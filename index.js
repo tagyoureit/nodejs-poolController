@@ -42,10 +42,7 @@ bottle.constant('apiSearch', require('./lib/api/api-search.js'))
 //ETC
 bottle.constant('settings', require('./etc/settings.js'))
 bottle.factory('constants', require('./etc/constants.js'))
-bottle.factory('autoUpdater', function() {
-        return require('auto-updater')
-    }) //for log formatting
-bottle.factory('autoUpdaterHelper', require('./etc/autoUpdater-helper.js'))
+
 //INTEGRATIONS
 bottle.factory('integrations', function() {
     return require('./etc/integrations.js')
@@ -159,7 +156,6 @@ bottle.service('winstonToIO', require('./lib/logger/winstonToIO.js'))
 
 function init() {
     //Call the modules to initialize them
-    bottle.container.autoUpdaterHelper.init()
     bottle.container.io.io
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
