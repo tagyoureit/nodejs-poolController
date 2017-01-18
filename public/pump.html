@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pentair Pool System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="centerflex">
+        <label class="centerfloat">Pentair Pool System</label>
+        <div id="firstObject" class="">
+
+            <p>
+
+                <button id="switchToPump" class="button rtalign">Pumps</button>
+
+                <button id="switchToChlorinator" class="button rtalign">Chlorinator</button>
+        </div>
+    </div>
+    <br>
+
+
+
+    <div id="pump" class="centerfloat">
+        <div class="left30">
+            <br>&nbsp;
+            <br>
+        </div>
+        <div class="circuitOneQuarter"></div>
+        <div class="circuitOneQuarter centerflex">
+
+            <div id="pump1" class="circuitOneQuarter parent">
+
+
+            </div>
+            <div id="pump1control" class="circuitOneQuarter child">
+                <button id="pu1on">On</button>
+                <button id="pu1off">Off</button>
+                
+                <p>
+                    Duration
+                    <input type="text" id="pump1duration" value="" size="6" placeholder="1" value="1">
+                    <br>
+                
+                <p>
+                    Program 1
+                    <input type="text" id="pump1program1setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu1pr1set">Set</button>-->
+                    <button id="pu1pr1run">Run</button>
+                    <br>
+                <p>
+                    Program 2
+                    <input type="text" id="pump1program2setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu1pr2set">Set</button>-->
+                    <button id="pu1pr2run">Run</button>
+                    <br>
+                <p>
+                    Program 3
+                    <input type="text" id="pump1program3setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu1pr3set">Set</button>-->
+                    <button id="pu1pr3run">Run</button>
+                    <br>
+                <p>
+                    Program 4
+                    <input type="text" id="pump1program4setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu1pr4set">Set</button>-->
+                    <button id="pu1pr4run">Run</button>
+                    <br>
+            </div>
+        </div>
+
+        <div class="circuitThreeQuarter centerflex">
+
+            <div id="pump2" class="circuitThreeQuarter parent centerflex">
+
+            </div>
+
+            <div id="pump2control" class="circuitThreeQuarter child">
+                <button id="pu2on">On</button>
+                <button id="pu2off">Off</button>
+                
+                <p>
+                    Duration
+                    <input type="text" id="pump2duration" value="" size="6" placeholder="1" value="1">
+                    <br>
+                
+                <p>
+                    Program 1
+                    <input type="text" id="pump2program1setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu2pr1set">Set</button>-->
+                    <button id="pu2pr1run">Run</button>
+                 <br>
+                                    <p>
+                    Program 2
+                    <input type="text" id="pump2program2setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu2pr2set">Set</button>-->
+                    <button id="pu2pr2run">Run</button>
+                    <br>
+                <p>
+                    Program 3
+                    <input type="text" id="pump2program3setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu2pr3set">Set</button>-->
+                    <button id="pu2pr3run">Run</button>
+                    <br>
+                <p>
+                    Program 4
+                    <input type="text" id="pump2program4setspeed" value="" size="6">
+                    <br>
+                    <!--<button id="pu2pr4set">Set</button>-->
+                    <button id="pu2pr4run">Run</button>
+                    <br>
+
+            </div>
+        </div>
+
+        <div class="right30">
+            <br>&nbsp;
+            <br>
+        </div>
+    </div>
+
+
+
+    <div id="chlorinator" class="config2 centerfloat">
+        <br>Chlorinator Status
+        <p>
+            Status may take 10-20 seconds to appear.
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/pump.js"></script>
+</body>
+
+</html>

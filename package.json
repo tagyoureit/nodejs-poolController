@@ -1,0 +1,53 @@
+{
+  "name": "nodejs-poolcontroller",
+  "version": "3.0.0",
+  "description": "NodeJS program to read and write to the Pentair serial bus.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "mocha config.json ./specs/index.spec.js --recursive --delay ./specs  --reporter spec --require ./specs/helpers/chai.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
+  },
+  "keywords": [
+    "Pentair"
+  ],
+  "author": "Russell Goldin",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/tagyoureit/nodejs-poolController/issues"
+  },
+  "homepage": "https://github.com/tagyoureit/nodejs-poolController#readme",
+  "dependencies": {
+    "auto-updater": "^1.0.2",
+    "bootstrap": "^3.3.7",
+    "bottlejs": "^1.5.0",
+    "dateformat": "^1.0.12",
+    "dequeue": "^1.0.5",
+    "express": "^4.14.0",
+    "http-auth": "^3.0.1",
+    "jquery-ui-dist": "^1.12.1",
+    "nanotimer": "^0.3.14",
+    "net": "latest",
+    "request": "^2.75.0",
+    "serialport": "^4.0.1",
+    "socket.io": "^1.4.8",
+    "socket.io-client": "^1.7.1",
+    "underscore": "^1.8.3",
+    "winston": "^2.2.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "grunt": "^1.0.1",
+    "grunt-banner": "^0.6.0",
+    "istanbul": "^0.4.5",
+    "lodash": "^4.17.2",
+    "mocha": "^3.1.2",
+    "request-promise": "^4.1.1",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^2.8.0"
+  }
+}
