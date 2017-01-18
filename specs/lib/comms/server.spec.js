@@ -1,4 +1,4 @@
-var URL = 'http://tagyoureit.asuscomm.com:3000/';
+var URL = 'http://raspberrypi:3000/';
 //var URL = 'http://localhost:3000'
 //var ENDPOINT = 'all'
 
@@ -164,45 +164,49 @@ describe('server', function() {
                 });
                 it('runs pump 1 to program 1 (NEW URL)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/run/pump/1/program/1').then(function(obj) {
-                        return obj;
+                          return obj;
                     });
-                    return expect(value).to.eventually.have.property('equip');
+                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, value: null, duration: null","pump":"1","program":"1"});
                 });
                 it('sets pump 1 program 1 to 1000 rpm', function() {
                     var value = requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {
+                                              console.log('myObj sets pump 1 program 1 to 1000 rpm: ', obj)
                         return obj;
                     });
-                    return expect(value).to.eventually.have.property('equip');
+                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null","pump":"1","program":"1","value":"1000","duration":null});
                 });
-                it('saves pump 1 program 1 to 1000 rpm (NEW URL)', function() {
-                    var value = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1000').then(function(obj) {
-                        return obj;
+                it('saves pump 1 program 1 to 1000 rpm (NEW URL)', function(done) {
+                   var result = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1000').then(function(obj) {
+                          return obj
+
+                         done()
                     });
-                    return expect(value).to.eventually.have.property('equip');
+                   return expect(result).should.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null","pump":"1","program":"1","speed":"1000"});
                 });
-                it('saves pump 1 and rpm 1 (should fail // no program)', function() {
-                    var value = requestPoolDataWithURL('pumpCommand/save/pump/1/rpm/1000').then(function(obj) {
-                        return obj.text;
+                it('saves pump 1 and rpm 1 (should fail // no program)', function(done) {
+                    var result = requestPoolDataWithURL('pumpCommand/save/pump/1/rpm/1000').then(function(obj) {
+
+                        done()
                     });
-                    return expect(obj).to.eventually.eq('Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#')
+                      return result.should.eventually.eq({"text":"Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#"})
                 });
                 it('runs pump 1 at rpm 1000 (should fail // no program)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1').then(function(obj) {
                         return obj.text;
                     });
-                    return expect(obj).to.eventually.eq('Please provide a program when setting the RPM.  /pumpCommand/run/pump/rpm/#')
+                    return expect(value).to.eventually.eq('Please provide a program when setting the RPM.  /pumpCommand/run/pump/rpm/#')
                 });
                 it('sets pump 1 to program 1 at 1000 rpm for 2 minutes', function() {
                     var value = requestPoolDataWithURL('pumpCommand/1/1/1000/2').then(function(obj) {
                         return obj;
                     });
-                    return expect(value).to.eventually.have.property('equip');
+                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, speed: 1000, duration: 2","pump":"1","program":"1","speed":"1000","duration":"2"});
                 });
                 it('runs pump 1, program 1 for 2 minutes ', function() {
                     var value = requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/2').then(function(obj) {
                         return obj;
                     });
-                    return expect(value).to.eventually.have.property('equip');
+                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, duration: 2","pump":"1","duration":"2"});
                 });
                 it('runs pump 1, program 1 for 2 minutes (NEW URL)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/2').then(function(obj) {

@@ -4,7 +4,7 @@ var Bottle = require('bottlejs')
 var bottle = Bottle.pop('pentair-Bottle');
 
 setTimeout(function() {
-    describe('nodejs-Pentair', function() {
+    describe('nodejs-poolController', function() {
         describe('Bottle should exist', function() {
             it('should start the app', function() {
                 expect(bottle).to.exist

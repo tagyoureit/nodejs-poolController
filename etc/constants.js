@@ -294,6 +294,7 @@ module.exports = function(container) {
         0: 'Auto', //0x00000000
         1: 'Service', //0x00000001
         4: 'Celsius', //if 1, Celsius.  If 0, Farenheit
+        8: 'Freeze', //0 if no freeze, 1 if freeze mode active
         128: '/Timeout' //Timeout always appears with Service; eg this bit has not been observed to be 128 but rather 129.  Not sure if the timer is in the controller.  0x10000001
 
     }
@@ -354,7 +355,7 @@ module.exports = function(container) {
         34: 'Wireless',
         96: 'Pump 1',
         97: 'Pump 2',
-        appAddress: 'nodejs-Pentair Server'
+        appAddress: 'nodejs-poolController Server'
     }
 
     if (container.logModuleLoading)

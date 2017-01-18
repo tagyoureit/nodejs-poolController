@@ -1,6 +1,6 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "NodeJS program to read and write to the Pentair serial bus.",
   "main": "index.js",
   "scripts": {
