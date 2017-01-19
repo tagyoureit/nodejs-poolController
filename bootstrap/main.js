@@ -454,6 +454,10 @@ $(function() {
 			$('#solarTemp').closest('tr').show();
 		$('#poolCurrentTemp').html(data.poolTemp);
 		$('#spaCurrentTemp').html(data.spaTemp);
+		if (data.freeze === 1)
+			$('#stateFreeze').html('On');
+		else
+			$('#stateFreeze').html('Off');
 		lastUpdate(true);
 	});
 
