@@ -1,4 +1,5 @@
 /* global Storage */
+jsVersion = 'v0.1.0';
 
 //Configure Bootstrap Panels, in 2 steps ...
 //   1) Enable / Disable panels as configured (in json file)
@@ -169,6 +170,9 @@ String.prototype.toTitleCase = function() {
 // From http://api.jquery.com/jquery/#jQuery3
 // JQuery(callback), Description: Binds a function to be executed when the DOM has finished loading
 $(function() {
+	// Display JavaScript Version
+	$('#jsVersion').html(jsVersion);
+	
 	// Initialize variables
 	var tmeLastUpd;
 	var $hideAUX = true;
