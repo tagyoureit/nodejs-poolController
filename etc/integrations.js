@@ -16,7 +16,7 @@
  */
 
 var Bottle = require('bottlejs');
-var bottle = Bottle.pop('pentair-Bottle');
+var bottle = Bottle.pop('poolController-Bottle');
 var fs = bottle.container.fs
 var path = require('path')
     //var glob = require('glob')

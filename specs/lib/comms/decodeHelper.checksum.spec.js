@@ -15,38 +15,42 @@ describe('decodeHelper', function() {
     var equip = 'controller'
 
     describe('#Checksum', function() {
-            context('when packets arrive', function() {
-                    it('it should return true with various controller packets', function() {
-                        for (var i = 0; i < testarrayGOOD.length; i++) {
-                            console.log('running test with: ', testarrayGOOD[i].toString())
-                            expect(spiedChecksum(testarrayGOOD[i], 25, equip)).to.be.true
+        context('when packets arrive', function() {
+            it('it should return true with various controller packets', function() {
+                for (var i = 0; i < testarrayGOOD.length; i++) {
+                    console.log('running test with: ', testarrayGOOD[i].toString())
+                    expect(spiedChecksum(testarrayGOOD[i], 25, equip)).to.be.true
 
-                        }
-                    })
-                    it('should return false with various invalid controller packets', function() {
-
-                        for (var i = 0; i < testarrayBAD.length; i++) {
-                            console.log('running test with: ', testarrayBAD[i].toString())
-                            expect(spiedChecksum(testarrayBAD[i], 25, equip)).to.be.false
-
-                        }
-                    })
+                }
             })
-    })
+            it('should return false with various invalid controller packets', function() {
 
-describe('#processChecksum', function() {
-    var spiedChecksum = sinon.spy(bottle.container.decodeHelper.decode)
+                for (var i = 0; i < testarrayBAD.length; i++) {
+                    console.log('running test with: ', testarrayBAD[i].toString())
+                    expect(spiedChecksum(testarrayBAD[i], 25, equip)).to.be.false
 
-    context('incoming packets', function() {
-        it('should return true with various controller packets', function() {
-            for (var i = 0; i < testarrayGOOD.length; i++) {
-                console.log('running test with: ', testarrayGOOD[i].toString())
-                bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
-                expect(spiedChecksum).to.be.calledOnce
-            }
+                }
+            })
         })
-
     })
-})
+
+    describe('#processChecksum', function() {
+        var spiedChecksum = sinon.spy(bottle.container.decodeHelper.decode)
+
+        context('incoming packets', function() {
+            it('should return true with various controller packets', function() {
+                for (var i = 0; i < testarrayGOOD.length; i++) {
+                    console.log('running test with: ', testarrayGOOD[i].toString())
+                    bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
+                    expect(spiedChecksum).to.be.calledOnce
+                }
+            })
+
+        })
+    })
+
+    after(function() {
+        
+    })
 
 })

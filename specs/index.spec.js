@@ -1,9 +1,9 @@
-var expect = require('chai').expect
-var nodejspentair = require('../index')
+//var expect = require('chai').expect
+//var nodejspentair = require('../index')
 var Bottle = require('bottlejs')
-var bottle = Bottle.pop('pentair-Bottle');
+var bottle = Bottle.pop('poolController-Bottle');
 
-setTimeout(function() {
+//setTimeout(function() {
     describe('nodejs-poolController', function() {
         describe('Bottle should exist', function() {
             it('should start the app', function() {
@@ -21,5 +21,5 @@ setTimeout(function() {
 
 
     })
-    run()
-}, 10000)
+    //run()
+//}, 10000)

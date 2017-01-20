@@ -1,0 +1,19 @@
+{
+  "name": "poolinfo",
+  "version": "1.0.0",
+  "description": "pool status",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test/"
+  },
+  "author": "tagyoureit",
+  "license": "ISC",
+  "dependencies": {
+    "alexa-app": "^2.3.2",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^5.2.0",
+    "lodash": "^4.3.0",
+    "mocha": "^2.4.5",
+    "request-promise": "^2.0.0"
+  }
+}

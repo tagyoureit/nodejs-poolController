@@ -1,18 +1,18 @@
 {
   "name": "nodejs-poolcontroller",
   "version": "3.0.1",
-  "description": "NodeJS program to read and write to the Pentair serial bus.",
+  "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "mocha config.json ./specs/index.spec.js --recursive --delay ./specs  --reporter spec --require ./specs/helpers/chai.js"
+    "test": "mocha ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
   },
   "keywords": [
-    "Pentair"
+    "Pentair", "Hayward", "pool", "home automation", "solar", "heat", "temperature", "pump", "chlorinator"
   ],
   "author": "Russell Goldin",
   "license": "AGPL-3.0",
@@ -46,7 +46,9 @@
     "istanbul": "^0.4.5",
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
+    "nock": "^9.0.2",
     "request-promise": "^4.1.1",
+    "rewire": "^2.5.2",
     "sinon": "^1.17.6",
     "sinon-chai": "^2.8.0"
   }

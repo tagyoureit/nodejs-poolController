@@ -1,13 +1,14 @@
-var URL = 'http://raspberrypi:3000/';
+var URL = 'http://localhost:3000/';
 //var URL = 'http://localhost:3000'
 //var ENDPOINT = 'all'
 
+var myModule = rewire(path.join(process.cwd(), 'lib/comms', 'server.js'))
 
 function requestPoolDataWithURL(endpoint) {
     console.log('pending - request sent for ' + endpoint)
     return getAllPoolData(endpoint).then(
         function(response) {
-            console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
+            //console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
             return response.body;
         }
     );
@@ -28,66 +29,93 @@ describe('server', function() {
     describe('#get functions', function() {
         context('with a URL', function() {
             it('returns pump status in a JSON', function() {
-                return expect(requestPoolDataWithURL('pump').then(function(obj) {
+
+                var scope = nock('https://localhost:3000')
+                    .get('/pump')
+                    .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'pumpstatus.json'));
+
+                (requestPoolDataWithURL('pump').then(function(obj) {
                     console.log('valuePumpObj:', obj)
-                    return obj[1];
-                })).to.eventually.have.property('pump');
+                    obj[1].watts.should.eq(999);
+                }))
             });
             it('returns everything in a JSON', function() {
-                var value = requestPoolDataWithURL('all').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/all')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'all.json'));
+
+                requestPoolDataWithURL('all').then(function(obj) {
+                    obj.circuits[1].friendlyName.eq('SPA')
                 });
 
-                return expect(value).to.eventually.have.property('time');
             });
             it('returns circuits in a JSON', function() {
-                return expect(requestPoolDataWithURL('circuit').then(function(obj) {
-                    return obj[1];
-                })).to.eventually.have.property('number');
+              var scope = nock('https://localhost:3000')
+                  .get('/circuit')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'circuit.json'));
+
+                requestPoolDataWithURL('circuit').then(function(obj) {
+                    obj[1].number.eq(1)
+                })
             });
             it('returns heat in a JSON', function() {
-                var valueHeat = requestPoolDataWithURL('heat').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/circuit')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'circuit.json'));
+
+                requestPoolDataWithURL('heat').then(function(obj) {
+                    obj.should.have.property('poolHeatMode');;
                 });
-                return expect(valueHeat).to.eventually.have.property('poolHeatMode');
+
             });
             it('returns schedule in a JSON', function() {
-                //NOTE: the following doesn't work because expecting a future value with value[1] where [1] is an array is causing an error.
-                /*
-                  var value = requestPoolDataWithURL('schedule').then(function(obj) {
-                      return obj;
-                  });
-                  return expect(value[1]).to.eventually.have.property('MODE');
-                  */
+              var scope = nock('https://localhost:3000')
+                  .get('/schedule')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'schedule.json'));
 
-                return expect(requestPoolDataWithURL('schedule').then(function(obj) {
-                    return obj[1];
-                })).to.eventually.have.property('MODE');
+                requestPoolDataWithURL('schedule').then(function(obj) {
+                    obj[1].should.have.property('DURATION');
+                })
 
             });
             it('returns temps in a JSON', function() {
-                var value = requestPoolDataWithURL('temperatures').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/temperatures')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'temperatures.json'));
+
+                requestPoolDataWithURL('temperatures').then(function(obj) {
+                    obj.should.have.property('poolTemp');
                 });
-                return expect(value).to.eventually.have.property('poolTemp');
+
             });
             it('returns time in a JSON', function() {
-                var value = requestPoolDataWithURL('time').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/time')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'time.json'));
+
+                requestPoolDataWithURL('time').then(function(obj) {
+                    obj.should.have.property('controllerTime');;
                 });
-                return expect(value).to.eventually.have.property('controllerTime');
+
             });
             it('returns chlorinator in a JSON', function() {
-                var value = requestPoolDataWithURL('chlorinator').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/chlorinator')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'chlorinator.json'));
+
+                requestPoolDataWithURL('chlorinator').then(function(obj) {
+                    obj.should.have.property('saltPPM');;
                 });
-                return expect(value).to.eventually.have.property('saltPPM');
+
             });
             it('returns circuit (9) in a JSON', function() {
-                var value = requestPoolDataWithURL('circuit/9').then(function(obj) {
-                    return obj;
+              var scope = nock('https://localhost:3000')
+                  .get('/circuit/9')
+                  .replyWithFile(200, path.join(process.cwd(),'specs/assets', 'circuit9.json'));
+
+                requestPoolDataWithURL('circuit/9').then(function(obj) {
+                    obj.should.have.property('status');
                 });
-                return expect(value).to.eventually.have.property('status');
             });
         });
     });
@@ -164,31 +192,48 @@ describe('server', function() {
                 });
                 it('runs pump 1 to program 1 (NEW URL)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/run/pump/1/program/1').then(function(obj) {
-                          return obj;
+                        return obj;
                     });
-                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, value: null, duration: null","pump":"1","program":"1"});
+                    return expect(value).to.eventually.eq({
+                        "text": "REST API pumpCommand variables - pump: 1, program: 1, value: null, duration: null",
+                        "pump": "1",
+                        "program": "1"
+                    });
                 });
                 it('sets pump 1 program 1 to 1000 rpm', function() {
                     var value = requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {
-                                              console.log('myObj sets pump 1 program 1 to 1000 rpm: ', obj)
+                        console.log('myObj sets pump 1 program 1 to 1000 rpm: ', obj)
                         return obj;
                     });
-                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null","pump":"1","program":"1","value":"1000","duration":null});
+                    return expect(value).to.eventually.eq({
+                        "text": "REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null",
+                        "pump": "1",
+                        "program": "1",
+                        "value": "1000",
+                        "duration": null
+                    });
                 });
                 it('saves pump 1 program 1 to 1000 rpm (NEW URL)', function(done) {
-                   var result = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1000').then(function(obj) {
-                          return obj
+                    var result = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1000').then(function(obj) {
+                        return obj
 
-                         done()
+                        done()
                     });
-                   return expect(result).should.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null","pump":"1","program":"1","speed":"1000"});
+                    return expect(result).should.eventually.eq({
+                        "text": "REST API pumpCommand variables - pump: 1, program: 1, rpm: 1000, duration: null",
+                        "pump": "1",
+                        "program": "1",
+                        "speed": "1000"
+                    });
                 });
                 it('saves pump 1 and rpm 1 (should fail // no program)', function(done) {
                     var result = requestPoolDataWithURL('pumpCommand/save/pump/1/rpm/1000').then(function(obj) {
 
                         done()
                     });
-                      return result.should.eventually.eq({"text":"Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#"})
+                    return result.should.eventually.eq({
+                        "text": "Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#"
+                    })
                 });
                 it('runs pump 1 at rpm 1000 (should fail // no program)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/save/pump/1/program/1').then(function(obj) {
@@ -200,13 +245,23 @@ describe('server', function() {
                     var value = requestPoolDataWithURL('pumpCommand/1/1/1000/2').then(function(obj) {
                         return obj;
                     });
-                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, speed: 1000, duration: 2","pump":"1","program":"1","speed":"1000","duration":"2"});
+                    return expect(value).to.eventually.eq({
+                        "text": "REST API pumpCommand variables - pump: 1, program: 1, speed: 1000, duration: 2",
+                        "pump": "1",
+                        "program": "1",
+                        "speed": "1000",
+                        "duration": "2"
+                    });
                 });
                 it('runs pump 1, program 1 for 2 minutes ', function() {
                     var value = requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/2').then(function(obj) {
                         return obj;
                     });
-                    return expect(value).to.eventually.eq({"text":"REST API pumpCommand variables - pump: 1, program: 1, duration: 2","pump":"1","duration":"2"});
+                    return expect(value).to.eventually.eq({
+                        "text": "REST API pumpCommand variables - pump: 1, program: 1, duration: 2",
+                        "pump": "1",
+                        "duration": "2"
+                    });
                 });
                 it('runs pump 1, program 1 for 2 minutes (NEW URL)', function() {
                     var value = requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/2').then(function(obj) {
