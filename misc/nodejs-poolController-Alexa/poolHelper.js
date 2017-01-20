@@ -1,7 +1,7 @@
 'use strict';
 var _ = require('lodash');
 var rp = require('request-promise');
-var URL = 'http://tagyoureit.asuscomm.com:3000/';
+var URL = 'http://DDNS_OF_YOUR_SERVER:3000/';
 
 function PoolHelper() {}
 
