@@ -305,15 +305,20 @@ $(function() {
 		if (data !== null) {
 			data.forEach(function(currCircuit, indx) {
 				if (currCircuit.hasOwnProperty('friendlyName')) {
-					if (currCircuit.friendlyName !== "NOT USED") {
-						if (document.getElementById(currCircuit.friendlyName)) {
-							setStatusButton($('#' + currCircuit.friendlyName), currCircuit.status);
-							$('#' + currCircuit.friendlyName).data(currCircuit.friendlyName, currCircuit.number);
+					// Check for POOL or SPA - then ignore friendlyName, need to use circuitFunction for these two!
+					if ((currCircuit.circuitFunction.toUpperCase() === "POOL") || (currCircuit.circuitFunction.toUpperCase() === "SPA"))
+						currName = currCircuit.circuitFunction.toUpperCase();
+					else
+						currName = currCircuit.friendlyName;
+					if (currName !== "NOT USED") {
+						if (document.getElementById(currName)) {
+							setStatusButton($('#' + currName), currCircuit.status);
+							$('#' + currName).data(currName, currCircuit.number);
 						} else if (document.getElementById(currCircuit.numberStr)) {
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
-						} else if (($hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1)) {
-							$('#features tr:last').after('<tr><td>' + currCircuit.friendlyName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-xs" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
+						} else if (($hideAUX === false) || (currName.indexOf("AUX") === -1)) {
+							$('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-xs" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
 						}
