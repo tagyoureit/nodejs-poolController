@@ -3,12 +3,12 @@
 		"system": { "state": "visible" },
 		"pool": { "state": "visible" },
 		"spa": { "state": "visible" },
-		"chlorinator": { "state": "visible" },
+		"chlorinator": { "state": "hidden" },
 		"features": { "state": "visible" },
 		"pump": { "state": "hidden" },
 		"schedule": { "state": "collapse" },
-		"eggtimer": { "state": "visible" },
-		"debug": { "state": "visible" }
+		"eggtimer": { "state": "hidden" },
+		"debug": { "state": "hidden" }
 	},
 
 	"equipConfig" : {
@@ -44,6 +44,7 @@
 
 	"generalParams" : {
 		"tmeSuccess": 90,
-		"tmeWarning": 180
+		"tmeWarning": 180,
+		"hideAUX" : true
 	}
 }
