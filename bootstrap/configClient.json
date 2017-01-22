@@ -3,12 +3,12 @@
 		"system": { "state": "visible" },
 		"pool": { "state": "visible" },
 		"spa": { "state": "visible" },
-		"chlorinator": { "state": "hidden" },
+		"chlorinator": { "state": "visible" },
 		"features": { "state": "visible" },
-		"pump": { "state": "hidden" },
-		"schedule": { "state": "collapse" },
-		"eggtimer": { "state": "hidden" },
-		"debug": { "state": "hidden" }
+		"pump": { "state": "visible" },
+		"schedule": { "state": "visible" },
+		"eggtimer": { "state": "visible" },
+		"debug": { "state": "visible" }
 	},
 
 	"equipConfig" : {
