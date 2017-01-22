@@ -1,6 +1,6 @@
 'use strict';
 
-var chai = global.chai =  require('chai');
+var chai = global.chai = require('chai');
 global.sinon = require('sinon')
 global.sinonChai = require("sinon-chai");
 var nock = global.nock = require('nock')
@@ -23,3 +23,12 @@ chai.config.includeStack = true;
 global.AssertionError = chai.AssertionError;
 global.Assertion = chai.Assertion;
 global.assert = chai.assert;
+
+var fs = require('promised-io/fs')
+
+ fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
+    .then(function(data) {
+      global.circuitJson = JSON.parse(data)
+    }, function(error) {
+        console.log('Error reading circuit.json from /specs/assets/webJsonReturns. ', error)
+    })

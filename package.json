@@ -12,7 +12,15 @@
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
   },
   "keywords": [
-    "Pentair", "Hayward", "pool", "home automation", "solar", "heat", "temperature", "pump", "chlorinator"
+    "Pentair",
+    "Hayward",
+    "pool",
+    "home automation",
+    "solar",
+    "heat",
+    "temperature",
+    "pump",
+    "chlorinator"
   ],
   "author": "Russell Goldin",
   "license": "AGPL-3.0",
@@ -47,6 +55,7 @@
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
     "nock": "^9.0.2",
+    "promised-io": "^0.3.5",
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^1.17.6",
