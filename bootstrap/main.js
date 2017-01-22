@@ -175,7 +175,6 @@ $(function() {
 	
 	// Initialize variables
 	var tmeLastUpd;
-	var $hideAUX = true;
 	var socket = io();
 
 	// Callback Routine, every second - to update / record time since last message received
@@ -317,7 +316,7 @@ $(function() {
 						} else if (document.getElementById(currCircuit.numberStr)) {
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
-						} else if (($hideAUX === false) || (currName.indexOf("AUX") === -1)) {
+						} else if ((generalParams.hideAUX === false) || (currName.indexOf("AUX") === -1)) {
 							$('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-xs" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);

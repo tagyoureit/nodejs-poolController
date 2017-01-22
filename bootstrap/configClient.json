@@ -5,8 +5,8 @@
 		"spa": { "state": "visible" },
 		"chlorinator": { "state": "visible" },
 		"features": { "state": "visible" },
-		"pump": { "state": "hidden" },
-		"schedule": { "state": "collapse" },
+		"pump": { "state": "visible" },
+		"schedule": { "state": "visible" },
 		"eggtimer": { "state": "visible" },
 		"debug": { "state": "visible" }
 	},
@@ -44,6 +44,7 @@
 
 	"generalParams" : {
 		"tmeSuccess": 90,
-		"tmeWarning": 180
+		"tmeWarning": 180,
+		"hideAUX" : true
 	}
 }
