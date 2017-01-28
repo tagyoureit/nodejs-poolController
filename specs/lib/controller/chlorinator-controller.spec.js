@@ -1,4 +1,4 @@
-var myModule = rewire(path.join(process.cwd(), '/lib/controllers/chlorinator-controller.js'))
+var myModule = rewire(path.join(process.cwd(), '/src/lib/controllers/chlorinator-controller.js'))
 
 describe('chlorinator controller', function() {
 
@@ -17,7 +17,7 @@ describe('chlorinator controller', function() {
 
                 'chlorinatorTimer': {
                     'setTimeout': function() {
-                        console.log('timer stubbed')
+                        //console.log('timer stubbed')
                     }
                 }
             })(function(){
@@ -52,7 +52,7 @@ describe('chlorinator controller', function() {
               'bottle.container': {
                   'chlorinator': {
                       'getDesiredChlorinatorOutput': function() {
-                          console.log('desired chlor output stubbed')
+                          //console.log('desired chlor output stubbed')
                           return 0
                       }
                   },
@@ -67,7 +67,7 @@ describe('chlorinator controller', function() {
               'chlorinatorTimer': {
                   'setTimeout': stub,
                   'clearTimeout': function() {
-                      console.log('clear timer stubbed')
+                      //console.log('clear timer stubbed')
                   }
               }
           })(function(){
@@ -90,7 +90,7 @@ describe('chlorinator controller', function() {
                 'bottle.container': {
                     'chlorinator': {
                         'getDesiredChlorinatorOutput': function() {
-                            console.log('desired chlor output stubbed')
+                            //console.log('desired chlor output stubbed')
                             return 10
                         }
                     },
@@ -105,7 +105,7 @@ describe('chlorinator controller', function() {
                 'chlorinatorTimer': {
                     'setTimeout': stub,
                     'clearTimeout': function() {
-                        console.log('clear timer stubbed')
+                        //console.log('clear timer stubbed')
                     }
                 }
             })(function(){
@@ -127,7 +127,7 @@ describe('chlorinator controller', function() {
                 'bottle.container': {
                     'chlorinator': {
                         'getDesiredChlorinatorOutput': function() {
-                            console.log('desired chlor output stubbed')
+                            //console.log('desired chlor output stubbed')
                             return 102
                         }
                     },
@@ -142,7 +142,7 @@ describe('chlorinator controller', function() {
                 'chlorinatorTimer': {
                     'setTimeout': stub,
                     'clearTimeout': function() {
-                        console.log('clear timer stubbed')
+                        //console.log('clear timer stubbed')
                     }
                 }
             })(function(){

@@ -1,7 +1,47 @@
-var myModule = rewire(path.join(process.cwd(), '/lib/equipment/circuit.js'))
+var myModule = rewire(path.join(process.cwd(), '/src/lib/equipment/circuit.js'))
 
 
 describe('circuit controller', function() {
+
+    describe('#sets the friendlyNames', function() {
+        it('sets the names for circuits other than pool and spa', function() {
+            var queuePacketStub = sinon.stub()
+            var loggerStub = sinon.stub()
+            var fnArr = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/specs/assets/config', 'configFriendlyNames.json'), 'utf8'))
+            //var _response = {}
+            myModule.__with__({
+                'currentCircuitArrObj': global.circuitJson,
+
+                //'response': _response,
+                'bottle.container': {
+                    'logger': {
+                        'warn': loggerStub
+                    },
+                    'settings': {
+                        'friendlyNamesArr': fnArr
+                    }
+                }
+            })(function() {
+                myModule(bottle.container).getFriendlyNames()
+
+                myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
+                myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
+                fnArr[1]['circuit1'] = "Try to rename spa"
+                myModule(bottle.container).getFriendlyNames()
+                myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
+                myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
+                fnArr[1]['circuit1'] = "SPA"
+                fnArr[6]['circuit6'] = "Try to rename pool"
+                myModule(bottle.container).getFriendlyNames()
+                myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
+                myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
+                myModule.__get__('currentCircuitArrObj')[6].friendlyName.should.eq('POOL')
+            })
+
+
+
+        });
+    })
 
 
     describe('#functions that get and set circuits', function() {

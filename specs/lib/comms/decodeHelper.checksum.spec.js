@@ -1,4 +1,4 @@
-var myModule = rewire(path.join(process.cwd(), '/lib/comms/inbound/decode-helper.js'))
+var myModule = rewire(path.join(process.cwd(), '/src/lib/comms/inbound/decode-helper.js'))
 
 describe('decodeHelper', function() {
     var testarrayGOOD = [

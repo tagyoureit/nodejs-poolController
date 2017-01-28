@@ -1,4 +1,4 @@
-var myModule = rewire(path.join(process.cwd(), '/lib/equipment/temperatures.js'))
+var myModule = rewire(path.join(process.cwd(), '/src/lib/equipment/temperatures.js'))
 
 
 describe('temperature tests', function() {
