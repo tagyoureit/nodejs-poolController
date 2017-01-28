@@ -247,7 +247,7 @@ module.exports = function(container) {
         response.pump = pump
         response.program = program
         response.speed = speed
-        container.pumpControllerMiddleware.pumpCommandSaveSpeed(pump, program, speed)
+        container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, speed)
         res.send(response)
     })
 

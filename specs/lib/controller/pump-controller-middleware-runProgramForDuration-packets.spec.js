@@ -66,25 +66,25 @@ describe('pump controller - run program for duration', function() {
 
                 /* Desired output
                 run 1:  [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
-                  [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
                   [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+                  [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
                   [ [ 165, 0, 96, 33, 1, 4, 3, 43, 0, 1 ] ],
                   [ [ 165, 0, 96, 33, 4, 1, 0 ] ],
                   [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+
                 start timer 1 :  [ [ 1 ] ]
                 queuePacketStub.callCount:  6
 
                 */
-                //console.log('run 1: ', queuePacketStub.args)
+                console.log('run 1: ', queuePacketStub.args)
                 //console.log('start timer 1 : ', pumpControllerTimersStub.args)
-                loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
                 queuePacketStub.callCount.should.eq(6)
-                queuePacketStub.args[0][0].should.include.members([165, 0, 96, 33, 4, 1, 255])
-                queuePacketStub.args[1][0].should.include.members([165, 0, 96, 33, 1, 4, 3, 33, 0, 8])
-                queuePacketStub.args[2][0].should.include.members([165, 0, 96, 33, 6, 1, 10])
-                queuePacketStub.args[3][0].should.include.members([165, 0, 96, 33, 1, 4, 3, 43, 0, 1])
-                queuePacketStub.args[4][0].should.include.members([165, 0, 96, 33, 4, 1, 0])
-                queuePacketStub.args[5][0].should.include.members([165, 0, 96, 33, 7, 0])
+                queuePacketStub.args[0][0].should.include.members(global.pump1RemotePacket)
+                queuePacketStub.args[1][0].should.include.members(global.pump1PowerOnPacket)
+                queuePacketStub.args[2][0].should.include.members(global.pump1RunProgram1Packet)
+                queuePacketStub.args[3][0].should.include.members(global.pump1SetTimerPacket)
+                queuePacketStub.args[4][0].should.include.members(global.pump1LocalPacket)
+                queuePacketStub.args[5][0].should.include.members(global.pump1RequestStatusPacket)
                 pumpControllerTimersStub.calledWith('[ 1 ]')
                 return
             })
@@ -142,14 +142,13 @@ describe('pump controller - run program for duration', function() {
                 */
                 //console.log('run 2: ', queuePacketStub.args)
                 //console.log('start timer 2 : ', pumpControllerTimersStub.args)
-                loggerStub.callCount.should.eq(0)
                 queuePacketStub.callCount.should.eq(6)
-                queuePacketStub.args[0][0].should.include.members([165, 0, 96, 33, 4, 1, 255])
-                queuePacketStub.args[1][0].should.include.members([165, 0, 96, 33, 1, 4, 3, 33, 0, 16])
-                queuePacketStub.args[2][0].should.include.members([165, 0, 96, 33, 6, 1, 10])
-                queuePacketStub.args[3][0].should.include.members([165, 0, 96, 33, 1, 4, 3, 43, 0, 1])
-                queuePacketStub.args[4][0].should.include.members([165, 0, 96, 33, 4, 1, 0])
-                queuePacketStub.args[5][0].should.include.members([165, 0, 96, 33, 7, 0])
+                queuePacketStub.args[0][0].should.include.members(global.pump1RemotePacket)
+                queuePacketStub.args[1][0].should.include.members(global.pump1PowerOnPacket)
+                queuePacketStub.args[2][0].should.include.members(global.pump1RunProgram2Packet)
+                queuePacketStub.args[3][0].should.include.members(global.pump1SetTimerPacket)
+                queuePacketStub.args[4][0].should.include.members(global.pump1LocalPacket)
+                queuePacketStub.args[5][0].should.include.members(global.pump1RequestStatusPacket)
                 pumpControllerTimersStub.calledWith('[ 1 ]')
                 return
             })
@@ -209,14 +208,13 @@ describe('pump controller - run program for duration', function() {
                 */
                 //console.log('run 2/4: ', queuePacketStub.args)
                 //console.log('start timer 2/4 : ', pumpControllerTimersStub.args)
-                loggerStub.callCount.should.eq(0)
                 queuePacketStub.callCount.should.eq(6)
-                queuePacketStub.args[0][0].should.include.members([165, 0, 97, 33, 4, 1, 255])
-                queuePacketStub.args[1][0].should.include.members([165, 0, 97, 33, 1, 4, 3, 33, 0, 32])
-                queuePacketStub.args[2][0].should.include.members([165, 0, 97, 33, 6, 1, 10])
-                queuePacketStub.args[3][0].should.include.members([165, 0, 97, 33, 1, 4, 3, 43, 0, 1])
-                queuePacketStub.args[4][0].should.include.members([165, 0, 97, 33, 4, 1, 0])
-                queuePacketStub.args[5][0].should.include.members([165, 0, 97, 33, 7, 0])
+                queuePacketStub.args[0][0].should.include.members(global.pump2RemotePacket)
+                queuePacketStub.args[1][0].should.include.members(global.pump2PowerOnPacket)
+                queuePacketStub.args[2][0].should.include.members(global.pump2RunProgram4Packet)
+                queuePacketStub.args[3][0].should.include.members(global.pump2SetTimerPacket)
+                queuePacketStub.args[4][0].should.include.members(global.pump2LocalPacket)
+                queuePacketStub.args[5][0].should.include.members(global.pump2RequestStatusPacket)
                 pumpControllerTimersStub.calledWith('[ 2 ]')
                 return
             })

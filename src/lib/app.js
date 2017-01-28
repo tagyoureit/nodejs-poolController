@@ -5,7 +5,7 @@ var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
 
-bottle.constant('appVersion', '3.1.0')
+bottle.constant('appVersion', '3.1.1')
 bottle.constant('logModuleLoading', 0)
 
 //Multiple

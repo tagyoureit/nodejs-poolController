@@ -1,14 +1,17 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.0.1",
+  "version": "3.1.1",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "mocha ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js"
+    "start": "node src/index.js",
+    "test": "mocha  ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
+    "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
+    "start:cover": "istanbul cover --handle-sigint src/index.js",
+    "open:cover": "open coverage/lcov-report/index.html"
+
   },
   "repository": {
-    "type": "git",
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
   },
   "keywords": [
@@ -38,7 +41,6 @@
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
     "nanotimer": "^0.3.14",
-    "net": "latest",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
     "socket.io": "^1.4.8",
@@ -51,7 +53,6 @@
     "chai-as-promised": "^6.0.0",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
-    "istanbul": "^0.4.5",
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
     "nock": "^9.0.2",

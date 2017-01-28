@@ -62,7 +62,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 1
                 var speed = 1000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output
@@ -145,7 +145,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 2
                 var speed = 1000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output
@@ -228,7 +228,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 2
                 var speed = 2000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output
@@ -313,7 +313,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 5
                 var speed = 1000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
                 //none of these should be called
                 setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -371,7 +371,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 1
                 var speed = 1000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
                 //none of these should be called
                 setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -427,7 +427,7 @@ describe('pump controller - save speed (2/2)', function() {
                 var program = 1
                 var speed = 5000
                 var address = myModule('whatever').pumpIndexToAddress(index)
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
                 //none of these should be called
                 setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -440,7 +440,7 @@ describe('pump controller - save speed (2/2)', function() {
                 loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
                 loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
                 loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
-                return loggerOutput.should.eq('FAIL: Speed provided (' + speed + ') is outside of tolerances.')
+                return loggerOutput.should.eq('FAIL: RPM provided (' + speed + ') is outside of tolerances.')
                 return
             })
         });

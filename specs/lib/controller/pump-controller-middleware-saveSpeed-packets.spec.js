@@ -55,7 +55,7 @@ describe('pump controller - save speed (1/2)', function() {
                 var speed = 1000
                 //var address = myModule('whatever').pumpIndexToAddress(index)
 
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output
@@ -110,7 +110,7 @@ describe('pump controller - save speed (1/2)', function() {
                 var speed = 500
                 //var address = myModule('whatever').pumpIndexToAddress(index)
 
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output
@@ -166,7 +166,7 @@ describe('pump controller - save speed (1/2)', function() {
                 var speed = 3450
                 //var address = myModule('whatever').pumpIndexToAddress(index)
 
-                myModule(bottle.container).pumpCommandSaveSpeed(index, program, speed)
+                myModule(bottle.container).pumpCommandSaveProgramSpeed(index, program, speed)
 
 
                 /* Desired output

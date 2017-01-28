@@ -24,6 +24,8 @@ global.AssertionError = chai.AssertionError;
 global.Assertion = chai.Assertion;
 global.assert = chai.assert;
 
+var pumpCommands = require(__dirname + '/pumpCommands.js')
+
 var fs = global.fs = require('promised-io/fs')
 
  fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
