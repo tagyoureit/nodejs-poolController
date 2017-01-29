@@ -56,7 +56,7 @@ module.exports = function(container) {
         */
         container.settings.load()
 
-        container.io.start()
+        //container.io.start()
         container.logger.info('Intro: ', container.settings.displayIntroMsg())
         container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
         container.sp.init()
