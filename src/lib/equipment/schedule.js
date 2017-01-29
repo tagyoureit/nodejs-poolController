@@ -36,7 +36,7 @@ module.exports = function(container) {
 
         schedule.ID = id;
         schedule.CIRCUIT = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit); //Correct???
-        schedule.friendlyName =  circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit);
+        schedule.friendlyName = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit);
         schedule.CIRCUITNUM = circuit
 
         if (time1 === 25) //25 = Egg Timer
@@ -79,11 +79,13 @@ module.exports = function(container) {
             initialSchedulesDiscovered = 1
         } else
         if (initialSchedulesDiscovered === 1) { //TODO: AND A CHANGE.  Either circuit by circuit or all of them?
-            broadcastScheduleChange(id, schedule, counter)
-            currentSchedule[id] = schedule
-        } else if ('no change') { //TODO: and finally, no change
-            if (container.settings.logConfigMessages)
-                logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
+            if (currentSchedule[id] === schedule) {
+                broadcastScheduleChange(id, schedule, counter)
+                currentSchedule[id] = schedule
+            } else{
+                if (container.settings.logConfigMessages)
+            logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
+          }
         }
         if (id === 12) {
             container.io.emitToClients('schedule')
@@ -116,7 +118,7 @@ module.exports = function(container) {
         scheduleChgStr += formatSchedId(id)
         scheduleChgStr += ' changed from:\n'
         scheduleChgStr += 'ID:' + currentSchedule[id].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[id].CIRCUIT
-            //FROM string
+        //FROM string
         if (currentSchedule[id].MODE === 'Egg Timer') {
             scheduleChgStr += formatEggTimerStr(id)
 
@@ -127,8 +129,8 @@ module.exports = function(container) {
 
 
         scheduleChgStr += '\n'
-        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT
-            //TO string
+        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT + ' '
+        //TO string
         if (schedule.MODE === 'Egg Timer') {
 
             scheduleChgStr += formatEggTimerStr(id)

@@ -60,7 +60,8 @@ bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
 bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 
 //HELPERS
-bottle.factory('helpers', require(__dirname + '//helpers/helpers.js'))
+bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
+bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -136,12 +137,13 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 init = exports.init = function() {
     //Call the modules to initialize them
-    bottle.container.io.io
+    bottle.container.settings.load()
+    bottle.container.io.start()
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
-    bottle.container.logger.info('Intro: ', bottle.container.settings.introMsg)
-    bottle.container.logger.warn('Settings: ', bottle.container.settings.settingsStr)
-    bottle.container.server.app
+
+    bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
+    bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
     bottle.container.sp.init()
     bottle.container.integrations
     if (bottle.container.settings.pumpOnly && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
@@ -151,13 +153,6 @@ init = exports.init = function() {
         bottle.container.chlorinatorController.startChlorinatorController()
     }
     bottle.container.helpers
-        /*setTimeout(function() {
-        console.log(bottle.list())
-    }, 1000)
-   setTimeout(function() {
-        console.log("alexa skills: ", bottle.container.alexaskills.init())
-    }, 1500)
-    */
 
 }
 

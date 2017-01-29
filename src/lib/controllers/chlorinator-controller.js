@@ -53,12 +53,20 @@ module.exports = function(container) {
         return false
     }
 
+    function clearTimer() {
+
+        chlorinatorTimer.clearTimeout()
+
+      return true
+    }
+
     if (container.logModuleLoading)
         logger.info('Loaded: chlorinator-controller.js')
 
     return {
         startChlorinatorController: startChlorinatorController,
-        chlorinatorStatusCheck: chlorinatorStatusCheck
+        chlorinatorStatusCheck: chlorinatorStatusCheck,
+        clearTimer: clearTimer
     }
 
 }

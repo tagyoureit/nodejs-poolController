@@ -80,7 +80,7 @@ module.exports = function(container) {
 
         writeQueueActive.writeQueueActive = true
         if (container.settings.netConnect === 0) {
-            container.sp.sp.write(container.queuePacket.first(), function(err) {
+            container.sp.writeSP(container.queuePacket.first(), function(err) {
                 if (err) {
                     logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
                 } else {
@@ -89,7 +89,7 @@ module.exports = function(container) {
                 }
             })
         } else {
-            container.sp.sp.write(new Buffer(container.queuePacket.first()), 'binary', function(err) {
+            container.sp.writeNET(new Buffer(container.queuePacket.first()), 'binary', function(err) {
                 if (err) {
                     logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
                 } else {

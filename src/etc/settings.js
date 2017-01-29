@@ -70,110 +70,121 @@ var logPumpTimers; //variable to output timer debug messages for the pumps
 //-------  END EQUIPMENT SETUP -----------
 
 
+var envParam = process.argv[2];
+var configFile;
+
+console.log('envParam:', envParam)
+
+load = exports.load = function() {
+    if (envParam === undefined) {
+        configurationFile = 'config.json';
+    } else {
+        configurationFile = envParam
+    }
+
+    configFile = JSON.parse(fs.readFileSync(configurationFile));
+
+    intellicom = exports.intellicom = configFile.Equipment.intellicom;
+    intellitouch = exports.intellitouch = configFile.Equipment.intellitouch;
+    pumpOnly = exports.pumpOnly = configFile.Equipment.pumpOnly;
+    chlorinator = exports.chlorinator = configFile.Equipment.chlorinator;
+    numberOfPumps = exports.numberOfPumps = configFile.Equipment.numberOfPumps;
+    appAddress = exports.appAddress = configFile.Equipment.appAddress;
+    expressDir = exports.expressDir = configFile.Misc.expressDir;
+    expressPort = exports.expressPort = configFile.Misc.expressPort;
+    expressTransport = exports.expressTransport = configFile.Misc.expressTransport;
+    expressAuth = exports.expressAuth = configFile.Misc.expressAuth;
+    expressAuthFile = exports.expressAuthFile = configFile.Misc.expressAuthFile;
+    netConnect = exports.netConnect = configFile.Network.netConnect;
+    rs485Port = exports.rs485Port = configFile.Network.rs485Port;
+    netPort = exports.netPort = configFile.Network.netPort;
+    netHost = exports.netHost = configFile.Network.netHost;
+    friendlyNames = exports.friendlyNamesArr = configFile.FriendlyNames
+    logLevel = exports.logLevel = configFile.Log.logLevel;
+    extLogLevel = exports.extLogLevel = configFile.Log.extLogLevel;
+    logPumpMessages = exports.logPumpMessages = configFile.Log.logPumpMessages;
+    logDuplicateMessages = exports.logDuplicateMessages = configFile.Log.logDuplicateMessages;
+    logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.Log.logConsoleNotDecoded;
+    logConfigMessages = exports.logConfigMessages = configFile.Log.logConfigMessages;
+    logMessageDecoding = exports.logMessageDecoding = configFile.Log.logMessageDecoding;
+    logChlorinator = exports.logChlorinator = configFile.Log.logChlorinator;
+    logPacketWrites = exports.logPacketWrites = configFile.Log.logPacketWrites;
+    logPumpTimers = exports.logPumpTimers = configFile.Log.logPumpTimers;
+    logApi = exports.logApi = configFile.Log.logApi;
 
 
-
-var configurationFile = '';
-if (process.argv[2]===undefined){
-  configurationFile = 'config.json';
 }
-else {
-  configurationFile = process.argv[2]
+
+
+
+
+getConfig = exports.getConfig = function() {
+    return configFile
 }
 
-var configFile = JSON.parse(fs.readFileSync(configurationFile));
 
-getConfig = exports.getConfig = function(){
-  return configFile
+
+displayIntroMsg = exports.displayIntroMsg = function() {
+    introMsg = '\n*******************************';
+    introMsg += '\n Important:';
+    introMsg += '\n Configuration is now read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
+    introMsg += '\n It will dynamically load as the information is parsed.  If there is a write error 10 times, the logging will change to debug mode.';
+    introMsg += '\n If the message fails to be written 20 times, it will abort the packet and go to the next one.';
+    introMsg += '\n If you have an IntelliComII, or pumps only, set the appropriate flags in lines 21-23 of this app.';
+    introMsg += '\n In general, if you specify the Intellitouch controller, the app will get the status  (pumps, chlorinator, heater, etc)from the controller directly.  If you specify pumps only or IntellicomII, the app will retrieve the status information from the peripherals themselves.'
+    introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
+    introMsg += '\n Visit http://_your_machine_name_:3000 to see a basic UI';
+    introMsg += '\n Visit http://_your_machine_name_:3000/debug.html for a way to listen for specific messages\n\n';
+    introMsg += '*******************************\n'
+    return introMsg
 }
 
-intellicom = exports.intellicom  = configFile.Equipment.intellicom;
-intellitouch = exports.intellitouch  = configFile.Equipment.intellitouch;
-pumpOnly = exports.pumpOnly  = configFile.Equipment.pumpOnly;
-chlorinator = exports.chlorinator  = configFile.Equipment.chlorinator;
-numberOfPumps = exports.numberOfPumps  = configFile.Equipment.numberOfPumps;
-appAddress = exports.appAddress  = configFile.Equipment.appAddress;
-expressDir = exports.expressDir  = configFile.Misc.expressDir;
-expressPort = exports.expressPort  = configFile.Misc.expressPort;
-expressTransport = exports.expressTransport = configFile.Misc.expressTransport;
-expressAuth = exports.expressAuth  = configFile.Misc.expressAuth;
-expressAuthFile = exports.expressAuthFile  = configFile.Misc.expressAuthFile;
-netConnect = exports.netConnect  = configFile.Network.netConnect;
-rs485Port = exports.rs485Port  = configFile.Network.rs485Port;
-netPort = exports.netPort  = configFile.Network.netPort;
-netHost = exports.netHost  = configFile.Network.netHost;
-friendlyNames = exports.friendlyNamesArr = configFile.FriendlyNames
-logLevel = exports.logLevel = configFile.Log.logLevel;
-extLogLevel = exports.extLogLevel = configFile.Log.extLogLevel;
-logPumpMessages = exports.logPumpMessages  = configFile.Log.logPumpMessages;
-logDuplicateMessages = exports.logDuplicateMessages  = configFile.Log.logDuplicateMessages;
-logConsoleNotDecoded = exports.logConsoleNotDecoded  = configFile.Log.logConsoleNotDecoded;
-logConfigMessages = exports.logConfigMessages  = configFile.Log.logConfigMessages;
-logMessageDecoding = exports.logMessageDecoding  = configFile.Log.logMessageDecoding;
-logChlorinator = exports.logChlorinator  = configFile.Log.logChlorinator;
-logPacketWrites = exports.logPacketWrites  = configFile.Log.logPacketWrites;
-logPumpTimers = exports.logPumpTimers  = configFile.Log.logPumpTimers;
-logApi = exports.logApi  = configFile.Log.logApi;
-
-
-
-var introMsg  = '\n*******************************';
-introMsg += '\n Important:';
-introMsg += '\n Configuration is now read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
-introMsg += '\n It will dynamically load as the information is parsed.  If there is a write error 10 times, the logging will change to debug mode.';
-introMsg += '\n If the message fails to be written 20 times, it will abort the packet and go to the next one.';
-introMsg += '\n If you have an IntelliComII, or pumps only, set the appropriate flags in lines 21-23 of this app.';
-introMsg += '\n In general, if you specify the Intellitouch controller, the app will get the status  (pumps, chlorinator, heater, etc)from the controller directly.  If you specify pumps only or IntellicomII, the app will retrieve the status information from the peripherals themselves.'
-introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-introMsg += '\n Visit http://_your_machine_name_:3000 to see a basic UI';
-introMsg += '\n Visit http://_your_machine_name_:3000/debug.html for a way to listen for specific messages\n\n';
-introMsg += '*******************************\n'
-exports.introMsg = introMsg
-
-var settingsStr = '' // \n*******************************';
-settingsStr += '\n Version: ' + bottle.container.appVersion;
-settingsStr += '\n Config File: ' + configurationFile
-settingsStr += '\n ';
-settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
-settingsStr += '\n var intellicom = ' + intellicom;
-settingsStr += '\n var intellitouch = ' + intellitouch;
-settingsStr += '\n var chlorinator = ' + chlorinator;
-settingsStr += '\n var pumpOnly = ' + pumpOnly;
-settingsStr += '\n var numberOfPumps = ' + numberOfPumps;
-settingsStr += '\n var appAddress = ' + appAddress;
-settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
-settingsStr += '\n ';
-settingsStr += '\n //-------  MISC SETUP -----------';
-settingsStr += '\n var expressDir = ' + expressDir;
-settingsStr += '\n var expressPort = ' + expressPort;
-settingsStr += '\n var expressTransport = ' + expressTransport;
-settingsStr += '\n var expressAuth = ' + expressAuth;
-settingsStr += '\n var expressAuthFile = ' + expressAuthFile;
-settingsStr += '\n //-------  END MISC SETUP -----------';
-settingsStr += '\n ';
-settingsStr += '\n //-------  NETWORK SETUP -----------';
-settingsStr += '\n // Setup for Network Connection (socat or nc)';
-settingsStr += '\n var netConnect = ' + netConnect;
-settingsStr += '\n var rs485Port = ' + rs485Port;
-settingsStr += '\n var netHost = ' + netHost;
-settingsStr += '\n var netPort = ' + netPort;
-settingsStr += '\n //-------  END NETWORK SETUP -----------';
-settingsStr += '\n ';
-settingsStr += '\n //-------  LOG SETUP -----------';
-settingsStr += '\n var logLevel = ' + logLevel;
-settingsStr += '\n var extLogLevel = ' + extLogLevel;
-settingsStr += '\n var logPumpMessages = ' + logPumpMessages;
-settingsStr += '\n var logDuplicateMessages = ' + logDuplicateMessages;
-settingsStr += '\n var logConsoleNotDecoded = ' + logConsoleNotDecoded;
-settingsStr += '\n var logConfigMessages = ' + logConfigMessages;
-settingsStr += '\n var logMessageDecoding = ' + logMessageDecoding;
-settingsStr += '\n var logChlorinator = ' + logChlorinator;
-settingsStr += '\n var logPacketWrites = ' + logPacketWrites;
-settingsStr += '\n var logPumpTimers = ' + logPumpTimers;
-settingsStr += '\n var logApi = ' + logApi;
-settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
-//settingsStr += '\n*******************************';
-exports.settingsStr = settingsStr
+displaySettingsMsg = exports.displaySettingsMsg = function() {
+    settingsStr = '' // \n*******************************';
+    settingsStr += '\n Version: ' + bottle.container.appVersion;
+    settingsStr += '\n Config File: ' + configurationFile
+    settingsStr += '\n ';
+    settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
+    settingsStr += '\n var intellicom = ' + intellicom;
+    settingsStr += '\n var intellitouch = ' + intellitouch;
+    settingsStr += '\n var chlorinator = ' + chlorinator;
+    settingsStr += '\n var pumpOnly = ' + pumpOnly;
+    settingsStr += '\n var numberOfPumps = ' + numberOfPumps;
+    settingsStr += '\n var appAddress = ' + appAddress;
+    settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
+    settingsStr += '\n ';
+    settingsStr += '\n //-------  MISC SETUP -----------';
+    settingsStr += '\n var expressDir = ' + expressDir;
+    settingsStr += '\n var expressPort = ' + expressPort;
+    settingsStr += '\n var expressTransport = ' + expressTransport;
+    settingsStr += '\n var expressAuth = ' + expressAuth;
+    settingsStr += '\n var expressAuthFile = ' + expressAuthFile;
+    settingsStr += '\n //-------  END MISC SETUP -----------';
+    settingsStr += '\n ';
+    settingsStr += '\n //-------  NETWORK SETUP -----------';
+    settingsStr += '\n // Setup for Network Connection (socat or nc)';
+    settingsStr += '\n var netConnect = ' + netConnect;
+    settingsStr += '\n var rs485Port = ' + rs485Port;
+    settingsStr += '\n var netHost = ' + netHost;
+    settingsStr += '\n var netPort = ' + netPort;
+    settingsStr += '\n //-------  END NETWORK SETUP -----------';
+    settingsStr += '\n ';
+    settingsStr += '\n //-------  LOG SETUP -----------';
+    settingsStr += '\n var logLevel = ' + logLevel;
+    settingsStr += '\n var extLogLevel = ' + extLogLevel;
+    settingsStr += '\n var logPumpMessages = ' + logPumpMessages;
+    settingsStr += '\n var logDuplicateMessages = ' + logDuplicateMessages;
+    settingsStr += '\n var logConsoleNotDecoded = ' + logConsoleNotDecoded;
+    settingsStr += '\n var logConfigMessages = ' + logConfigMessages;
+    settingsStr += '\n var logMessageDecoding = ' + logMessageDecoding;
+    settingsStr += '\n var logChlorinator = ' + logChlorinator;
+    settingsStr += '\n var logPacketWrites = ' + logPacketWrites;
+    settingsStr += '\n var logPumpTimers = ' + logPumpTimers;
+    settingsStr += '\n var logApi = ' + logApi;
+    settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
+    //settingsStr += '\n*******************************';
+    return settingsStr
+}
 
 if (bottle.container.logModuleLoading)
-  console.log('Loaded: settings.js')
+    console.log('Loaded: settings.js')

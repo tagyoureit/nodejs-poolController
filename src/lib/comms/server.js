@@ -70,6 +70,12 @@ module.exports = function(container) {
       res.send(container.helpers.allEquipmentInOneJSON())
     })
 
+    app.get('/reload', function(req, res){
+
+      container.reload.reload()
+      res.send('reloading configuration')
+    })
+
     app.get('/heat', function(req, res) {
         res.send(container.heat.getCurrentHeat())
     })

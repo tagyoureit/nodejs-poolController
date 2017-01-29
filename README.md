@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 3.1.0
+# nodejs-poolController - Version 3.1.2 DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -56,8 +56,8 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
 1. Unzip into nodejs-poolController.
 1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
-1. Run the app by calling 'node index.js'* (again, in the root directory). It should now run properly.
-   * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `node index.js configCustomized.json`.  By default, the app will load `config.json`.
+1. Run the app by calling 'npm start'* (again, in the root directory). It should now run properly.
+   * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `npm start configCustomized.json`.  By default, the app will load `config.json`.
 ***
 
 ## Support
