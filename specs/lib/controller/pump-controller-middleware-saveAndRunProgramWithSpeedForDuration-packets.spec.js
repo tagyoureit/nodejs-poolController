@@ -79,9 +79,9 @@ describe('pump controller - save and run program with speed for duration', funct
                 queuePacketStub.callCount:  10
 
                 */
-                console.log('logger 1: ', loggerStub.args)
-                console.log('run 1: ', queuePacketStub.args)
-                console.log('start timer 1 : ', pumpControllerTimersStub.args)
+                // console.log('logger 1: ', loggerStub.args)
+                // console.log('run 1: ', queuePacketStub.args)
+                // console.log('start timer 1 : ', pumpControllerTimersStub.args)
                 queuePacketStub.callCount.should.eq(10)
                 queuePacketStub.args[0][0].should.include.members(global.pump1LocalPacket)
                 queuePacketStub.args[1][0].should.include.members(global.pump1SetProgram1RPM1000Packet)

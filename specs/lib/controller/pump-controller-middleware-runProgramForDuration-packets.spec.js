@@ -76,7 +76,7 @@ describe('pump controller - run program for duration', function() {
                 queuePacketStub.callCount:  6
 
                 */
-                console.log('run 1: ', queuePacketStub.args)
+                // console.log('run 1: ', queuePacketStub.args)
                 //console.log('start timer 1 : ', pumpControllerTimersStub.args)
                 queuePacketStub.callCount.should.eq(6)
                 queuePacketStub.args[0][0].should.include.members(global.pump1RemotePacket)

@@ -20,11 +20,6 @@ module.exports = function(container) {
 
     if (container.logModuleLoading)
         container.logger.info('Loading: pump-controller-middleware.js')
-
-
-
-
-
     /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
 
     //generic functions that ends the commands to the pump by setting control to local and requesting the status

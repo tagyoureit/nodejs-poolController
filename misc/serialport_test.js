@@ -33,7 +33,7 @@ function listPorts() {
 };
 
 if (args.list) {
-  return listPorts();
+  console.log(listPorts());
 }
 
 if (!args.port) {
