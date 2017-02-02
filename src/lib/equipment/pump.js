@@ -20,7 +20,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
-    function Pump(number, time, run, mode, drivestate, watts, rpm, ppc, err, timer, duration, currentprogram, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
+    function Pump(number, time, run, mode, drivestate, watts, rpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
         this.pump = number; //1 or 2
         this.time = time;
         this.run = run;
@@ -31,8 +31,8 @@ module.exports = function(container) {
         this.ppc = ppc;
         this.err = err;
         this.timer = timer;
-        this.duration = duration;
-        this.currentprogram = currentprogram;
+        this.duration = duration; //duration on pump, not program duration
+        this.currentrunning = currentrunning
         this.program1rpm = program1rpm;
         this.program2rpm = program2rpm;
         this.program3rpm = program3rpm;
@@ -42,8 +42,16 @@ module.exports = function(container) {
     }
 
 
-    var pump1 = new Pump(1, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', 'currentprognotset', 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
-    var pump2 = new Pump(2, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', 'currentprognotset', 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
+    var pump1 = new Pump(1, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+        'mode': 'off',
+        'value': 0,
+        'remainingDuration': -1
+    }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
+    var pump2 = new Pump(2, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+        'mode': 'off',
+        'value': 0,
+        'remainingduration': -1
+    }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
     //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
     var currentPumpStatus = ['blank', pump1, pump2]
     var currentPumpStatusPacket = ['blank', [],
@@ -58,7 +66,13 @@ module.exports = function(container) {
     }
 
 
-
+    var significantWattsChange = function(pump, watts, counter) {
+        if ((Math.abs((watts - currentPumpStatus[pump].watts) / watts)) > (5/100)) {
+            if (container.settings.logPumpMessages) container.logger.info('Msg# %s   Pump %s watts changed >5%: %s --> %s \n', counter, pump, currentPumpStatus[pump].watts, watts)
+            return true
+        }
+        return false
+    }
 
     function getPumpNumber(data) {
         var pump;
@@ -66,9 +80,9 @@ module.exports = function(container) {
             pump = 1
         } else {
             pump = 2
-        };
+        }
 
-        pumpStatus = JSON.parse(JSON.stringify(currentPumpStatus[pump]));
+        var pumpStatus = JSON.parse(JSON.stringify(currentPumpStatus[pump]));
         if (currentPumpStatus.name === undefined) {
             currentPumpStatus[pump].name = container.constants.ctrlString[pump + 95]
             currentPumpStatus[pump].pump = pumpStatus.pump
@@ -78,8 +92,8 @@ module.exports = function(container) {
     }
 
     function pumpACK(data, from, counter) {
-        if (s.logPumpMessages)
-            logger.verbose('Msg# %s   %s responded with acknowledgement: %s', counter, container.constants.ctrlString[from], JSON.stringify(data));
+        if (container.settings.logPumpMessages)
+            container.logger.verbose('Msg# %s   %s responded with acknowledgement: %s', counter, container.constants.ctrlString[from], JSON.stringify(data));
     }
 
     function setCurrentProgramFromController(program, from, data, counter) {
@@ -88,8 +102,8 @@ module.exports = function(container) {
 
         if (currentPumpStatus[pump].currentprogram !== program) {
             currentPumpStatus[pump].currentprogram = program;
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s: Set Current Program to %s %s', counter, container.constants.ctrlString[from], program.toString(), JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s: Set Current Program to %s %s', counter, container.constants.ctrlString[from], program.toString(), JSON.stringify(data));
         }
         container.io.emitToClients('pump')
 
@@ -103,38 +117,38 @@ module.exports = function(container) {
 
 
     function saveProgramAs(program, rpm, from, data, counter) {
-        programXrpm = 'program' + program.toString() + 'rpm'
-            //str1 = 'Save Program 1 as '
-            //str2 = setAmount.toString() + 'rpm';
-            //pumpStatus.programXrpm = setAmount;
+        var programXrpm = 'program' + program.toString() + 'rpm'
+        //str1 = 'Save Program 1 as '
+        //str2 = setAmount.toString() + 'rpm';
+        //pumpStatus.programXrpm = setAmount;
 
         var pump = getPumpNumber(data)
 
         if (currentPumpStatus[pump].programXrpm !== rpm) {
             currentPumpStatus[pump].programXrpm = rpm;
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
         }
         container.io.emitToClients('pump')
     }
 
     function setRemoteControl(remotecontrol, from, data, counter) {
-        var remoteControlStr = remotecontrol === 1 ? 'on' : 'off'
+        var remoteControlStr = remotecontrol === 0 ? 'enable' : 'disable'
         var pump = getPumpNumber(data)
-        if (data[container.constants.packetFields.DEST] == 96 || data[container.constants.packetFields.DEST] == 97) //Command to the pump
+        if (data[container.constants.packetFields.DEST] === 96 || data[container.constants.packetFields.DEST] === 97) //Command to the pump
         {
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s --> %s: Remote control (turn %s pump control panel): %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], remoteControlStr, JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s --> %s: Remote control - %s pump control panel: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], remoteControlStr, JSON.stringify(data));
         } else {
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s: Remote control %s: %s', counter, container.constants.ctrlString[from], remoteControlStr, JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s: Remote control -  %s pump control panel: %s', counter, container.constants.ctrlString[from], remoteControlStr, JSON.stringify(data));
         }
         currentPumpStatus[pump].remotecontrol = remotecontrol
     }
 
     function setRunMode(mode, from, data, counter) {
         var pump = getPumpNumber(data)
-        if (data[container.constants.packetFields.DEST] == 96 || data[container.constants.packetFields.DEST] == 97) //Command to the pump
+        if (data[container.constants.packetFields.DEST] === 96 || data[container.constants.packetFields.DEST] === 97) //Command to the pump
         {
 
             switch (mode) {
@@ -212,14 +226,14 @@ module.exports = function(container) {
 
             if (currentPumpStatus[pump].mode !== mode) {
                 currentPumpStatus[pump].mode = mode;
-                if (s.logPumpMessages)
-                    logger.verbose('Msg# %s   %s --> %s: Set pump mode to _%s_: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], mode, JSON.stringify(data));
+                if (container.settings.logPumpMessages)
+                    container.logger.verbose('Msg# %s   %s --> %s: Set pump mode to _%s_: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], mode, JSON.stringify(data));
             }
             container.io.emitToClients('pump')
 
         } else {
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s confirming it is in mode %s: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], data[container.constants.packetFields.CMD], JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s confirming it is in mode %s: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], data[container.constants.packetFields.CMD], JSON.stringify(data));
         }
 
     }
@@ -230,14 +244,14 @@ module.exports = function(container) {
 
         if (data[container.constants.packetFields.DEST] === 96 || data[container.constants.packetFields.DEST] === 97) //Command to the pump
         {
-            if (s.logPumpMessages)
-                logger.verbose('Msg# %s   %s --> %s: Pump power to %s: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], powerStr, JSON.stringify(data));
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('Msg# %s   %s --> %s: Pump power to %s: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], powerStr, JSON.stringify(data));
 
         } else {
             if (currentPumpStatus[pump].power !== power) {
                 currentPumpStatus[pump].power = power;
-                if (s.logPumpMessages)
-                    logger.verbose('Msg# %s   %s: Pump power %s: %s', counter, container.constants.ctrlString[from], powerStr, JSON.stringify(data));
+                if (container.settings.logPumpMessages)
+                    container.logger.verbose('Msg# %s   %s: Pump power %s: %s', counter, container.constants.ctrlString[from], powerStr, JSON.stringify(data));
 
                 container.io.emitToClients('pump')
             }
@@ -247,8 +261,8 @@ module.exports = function(container) {
 
 
     function provideStatus(data, counter) {
-        if (s.logPumpMessages)
-            logger.verbose('Msg# %s   %s --> %s: Provide status: %s', counter, c.ctrlString[data[c.packetFields.FROM]], c.ctrlString[data[c.packetFields.DEST]], JSON.stringify(data));
+        if (container.settings.logPumpMessages)
+            container.logger.verbose('Msg# %s   %s --> %s: Provide status: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], container.constants.ctrlString[data[container.constants.packetFields.DEST]], JSON.stringify(data));
 
     }
 
@@ -308,8 +322,8 @@ module.exports = function(container) {
                 currentPumpStatus[pump].timer = timer
             }
 
-            if (s.logPumpMessages)
-                logger.verbose('\n Msg# %s  %s Status changed %s : ', counter, container.constants.ctrlString[pump + 95], whatsDifferent, data, '\n');
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('\n Msg# %s  %s Status changed %s : ', counter, container.constants.ctrlString[pump + 95], whatsDifferent, data, '\n');
 
         }
         if (needToEmit) {
@@ -317,27 +331,22 @@ module.exports = function(container) {
         }
     }
 
-    function significantWattsChange(pump, watts, counter) {
-        if ((Math.abs((watts - currentPumpStatus[pump].watts) / watts)) > .05) {
-            if (s.logPumpMessages) logger.info('Msg# %s   Pump %s watts changed >5%: %s --> %s \n', counter, pump, currentPumpStatus[pump].watts, watts)
-            return true
+    var setPower = function(pump, power) {
+        currentPumpStatus[pump].power = power
+        if (power === 0) {
+            currentPumpStatus[pump].duration = 0;
+            currentPumpStatus[pump].currentprogram = 0;
         }
-        return false
     }
 
-    function setPower(pump, power) {
-        currentPumpStatus[pump].power=power
-        if (power===0)
-        {
-          currentPumpStatus[pump].duration = 0;
-          currentPumpStatus[pump].currentprogram = 0;
-        }
+    var getPower = function(index){
+      return currentPumpStatus[index].power
     }
 
 
     //sets the current running program to pump & program & (optional) rpm
-    function setCurrentProgram(pump, program, rpm) {
-      //console.log('pump: %s,  program %s, rpm %s', pump, program, rpm)
+    var setCurrentProgram = function(pump, program, rpm) {
+        //console.log('pump: %s,  program %s, rpm %s', pump, program, rpm)
         if (rpm === undefined) {
             currentPumpStatus[pump].currentprogram = program;
         } else {
@@ -345,31 +354,70 @@ module.exports = function(container) {
             currentPumpStatus[pump][str] = rpm;
             currentPumpStatus[pump].currentprogram = program;
         }
-        container.io.emitToClients('pump')
+
     }
 
     //saves a program & rpm
-    function saveProgram(pump, program, rpm){
-      var str = 'program' + program + 'rpm';
-      currentPumpStatus[pump][str] = rpm;
+    var saveProgram = function(pump, program, rpm) {
+        var str = 'program' + program + 'rpm';
+        currentPumpStatus[pump][str] = rpm;
     }
 
-    function getCurrentPumpStatus() {
+    var setCurrentRPM = function(index, rpm) {
+        currentPumpStatus[index].currentrpm = rpm
+
+    }
+
+    var getCurrentPumpStatus = function() {
         return currentPumpStatus
     }
 
-    function setDuration(pump, _duration) {
-        currentPumpStatus[pump].duration = _duration;
+    var setDuration = function(index, _duration) {
+        currentPumpStatus[index].duration = _duration;
     }
 
-    function getDuration(pump) {
-        return currentPumpStatus[pump].duration;
+    var getDuration = function(index) {
+        return currentPumpStatus[index].duration;
     }
 
-    function updatePumpDuration(pump, _duration) {
-        currentPumpStatus[pump].duration = (currentPumpStatus[pump].duration - _duration);
+    var getCurrentRemainingDuration = function(pump) {
+        return currentPumpStatus[pump].currentrunning.remainingduration;
     }
 
+    var getCurrentRunningMode = function(pump) {
+        return currentPumpStatus[pump].currentrunning.mode;
+    }
+
+    var getCurrentRunningValue = function(pump) {
+        return currentPumpStatus[pump].currentrunning.value;
+    }
+
+    var updatePumpDuration = function(pump, _duration) {
+        currentPumpStatus[pump].duration = (currentPumpStatus[pump].duration + _duration);
+    }
+
+    var updateCurrentRunningPumpDuration = function(pump, _duration) {
+        currentPumpStatus[pump].currentrunning.remainingduration += _duration
+    }
+
+    var setCurrentRunning = function(index, program, value, duration) {
+        var newCurrentRunning = {
+            'mode': program,
+            'value': value,
+            'remainingduration': duration
+        }
+
+
+        if (currentPumpStatus[index].currentrunning !== newCurrentRunning) {
+            if (container.settings.logPumpMessages) {
+                container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    RemainingDuration: %s \r\n    to \r\n    Mode: %s     Value: %s    RemainingDuration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
+                    currentPumpStatus[index].currentrunning.remainingduration,
+                    program, value, duration)
+            }
+            currentPumpStatus[index].currentrunning = newCurrentRunning
+        }
+
+    }
 
 
     if (container.logModuleLoading)
@@ -387,11 +435,19 @@ module.exports = function(container) {
         setRemoteControl: setRemoteControl,
         setRunMode: setRunMode,
         setPower: setPower,
+        getPower: getPower,
         setPowerFromController: setPowerFromController,
         setDuration: setDuration,
         updatePumpDuration: updatePumpDuration,
         getDuration: getDuration,
-        setPower: setPower,
-        saveProgram: saveProgram
+        saveProgram: saveProgram,
+        setCurrentRPM: setCurrentRPM,
+        setCurrentRunning: setCurrentRunning,
+        getCurrentRunningMode: getCurrentRunningMode,
+        getCurrentRunningValue: getCurrentRunningValue,
+        getCurrentRemainingDuration: getCurrentRemainingDuration,
+        updateCurrentRunningPumpDuration: updateCurrentRunningPumpDuration
+
+
     }
 }

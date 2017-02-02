@@ -615,6 +615,12 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
  * Completely refactored code.  Integrated BottleJS (https://github.com/young-steveo/bottlejs) for dependency injection and service locator funcctions
  * Integrations to loosely couple add-ons
 
+3.0.0 -
+ * Upgraded pump logic
+
+3.1.0 -
+ * Added unit testing for certain areas
+
 # Wish list
 1.  Still many messages to debug
 2.  Alexa, Siri integration coming soon!  

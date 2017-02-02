@@ -1,32 +1,49 @@
-var myModule = rewire(path.join(process.cwd(), '/src/lib/controllers/chlorinator-controller.js'))
-
 describe('chlorinator controller', function() {
 
     describe('#startChlorinatorController starts the timer for 1 or 2 chlorinators', function() {
 
         before(function() {
-            //this.clock = sinon.useFakeTimers();
+
+            bottle.container.settings.chlorinator = 1
+            bottle.container.settings.logChlorinator = 1
+
+        });
+
+        beforeEach(function() {
+            sandbox = sinon.sandbox.create()
+            clock = sandbox.useFakeTimers()
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            // loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
+
+            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+            emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
+        })
+
+        afterEach(function() {
+            //restore the sandbox after each function
+            bottle.container.chlorinatorController.clearTimer()
+            sandbox.restore()
+
         })
 
         after(function() {
-            //this.clock.restore();
+            bottle.container.settings.chlorinator = 0
+            bottle.container.settings.logChlorinator = 0
+
         })
 
-        it('sets chlorinator timer to run after 3.5 seconds', function() {
-            myModule.__with__({
+        it('sets chlorinator timer to run after 4 seconds', function() {
 
-                'chlorinatorTimer': {
-                    'setTimeout': function() {
-                        //console.log('timer stubbed')
-                    }
-                }
-            })(function(){
-              //console.log('before time:', this.clock.now)
-              var res = myModule(bottle.container).startChlorinatorController()
-            })
-            //this.timeout(4000)
-
-
+            //console.log('before time:', this.clock.now)
+            bottle.container.chlorinatorController.startChlorinatorController()
+            queuePacketStub.callCount.should.eq(0)
+            clock.tick(4000)
+            queuePacketStub.callCount.should.eq(1)
+            queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 0])
+            clock.tick(60 * 1000) //1 hour
+            queuePacketStub.callCount.should.eq(3)
             //console.log('res:', res)
             //this.clock.tick(3500)
             //console.log('after time:', this.clock.now, res)
@@ -42,116 +59,28 @@ describe('chlorinator controller', function() {
     describe('#chlorinatorStatusCheck requests chlorinator status', function() {
 
 
-      it('requests status and resets the timer with a valid desired output (0)', function() {
-
-        var stub = sinon.stub()
-        stub.returnsArg(2)
-
-          myModule.__with__({
-
-              'bottle.container': {
-                  'chlorinator': {
-                      'getDesiredChlorinatorOutput': function() {
-                          //console.log('desired chlor output stubbed')
-                          return 0
-                      }
-                  },
-                  'queuePacket': {
-                      'queuePacket': function() {
-                          //console.log('queuePacket was called')
-                      }
-                  }
+        it('requests status and resets the timer with a valid desired output (0)', function() {
 
 
-              },
-              'chlorinatorTimer': {
-                  'setTimeout': stub,
-                  'clearTimeout': function() {
-                      //console.log('clear timer stubbed')
-                  }
-              }
-          })(function(){
+            //bottle.container.chlorinator.setChlorinatorLevel(2);
+            //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
+            // bottle.container.chlorinatorController.chlorinatorStatusCheck()
 
-          //bottle.container.chlorinator.setChlorinatorLevel(2);
-          //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
-          var res = myModule(bottle.container).chlorinatorStatusCheck()
-          res.should.be.eq('1800s')
-        })
-      });
+
+        });
 
 
         it('requests status and resets the timer with a valid desired output (10)', function() {
 
-          var stub = sinon.stub()
-          stub.returnsArg(2)
-
-            myModule.__with__({
-
-                'bottle.container': {
-                    'chlorinator': {
-                        'getDesiredChlorinatorOutput': function() {
-                            //console.log('desired chlor output stubbed')
-                            return 10
-                        }
-                    },
-                    'queuePacket': {
-                        'queuePacket': function() {
-                            //console.log('queuePacket was called')
-                        }
-                    }
-
-
-                },
-                'chlorinatorTimer': {
-                    'setTimeout': stub,
-                    'clearTimeout': function() {
-                        //console.log('clear timer stubbed')
-                    }
-                }
-            })(function(){
-
             //bottle.container.chlorinator.setChlorinatorLevel(2);
             //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
-            var res = myModule(bottle.container).chlorinatorStatusCheck()
-            res.should.be.eq('4s')
-          })
+
+
         });
 
         it('requests status and resets the timer with a valid desired output (102) (should fail)', function() {
 
-          var stub = sinon.stub()
-          stub.returnsArg(2)
 
-            myModule.__with__({
-
-                'bottle.container': {
-                    'chlorinator': {
-                        'getDesiredChlorinatorOutput': function() {
-                            //console.log('desired chlor output stubbed')
-                            return 102
-                        }
-                    },
-                    'queuePacket': {
-                        'queuePacket': function() {
-                            //console.log('queuePacket was called')
-                        }
-                    }
-
-
-                },
-                'chlorinatorTimer': {
-                    'setTimeout': stub,
-                    'clearTimeout': function() {
-                        //console.log('clear timer stubbed')
-                    }
-                }
-            })(function(){
-
-            //bottle.container.chlorinator.setChlorinatorLevel(2);
-            //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
-            var res = myModule(bottle.container).chlorinatorStatusCheck()
-            res.should.be.false
-          })
         });
     });
 

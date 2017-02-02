@@ -31,8 +31,8 @@ module.exports = function(container) {
 
 
 
-    var spTimer = container.nanoTimer
-
+    //var spTimer = new container.nanotimer
+    var spTimer;
     function init() {
 
         if (container.settings.netConnect === 0) {
@@ -50,7 +50,7 @@ module.exports = function(container) {
             });
             sp.open(function(err) {
                 if (err) {
-                    spTimer.setTimeout(init, [], '10s')
+                    spTimer.setTimeout(init, 10*1000)
                     return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                 }
                 //console.log('sp is now open (serial port)')
@@ -78,7 +78,7 @@ module.exports = function(container) {
         });
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
-            spTimer.setTimeout(init, [], '10s')
+            spTimer.setTimeout(init, 10*1000)
         })
 
 
@@ -99,7 +99,7 @@ module.exports = function(container) {
         })
 
 
-        /*var spTimer = container.nanoTimer
+        /*var spTimer = new container.nanotimer
 
             function sptimertest() {
                 var data
@@ -119,17 +119,17 @@ module.exports = function(container) {
 
     }
 
-    writeNET = function(data, type, callback) {
+    var writeNET = function(data, type, callback) {
         sp.write(data, type, callback)
 
     }
 
-    writeSP = function(data, callback) {
+    var writeSP = function(data, callback) {
         sp.write(data, callback)
     }
 
 
-    close = function(callback) {
+    var close = function(callback) {
         if (container.settings.netConnect === 0) {
             sp.close(function(err) {
               if (err) {

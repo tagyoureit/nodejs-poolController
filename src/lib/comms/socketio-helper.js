@@ -20,7 +20,8 @@ module.exports = function(container) {
 
     //var Server = require('./server.js'),
     //var io = require('socket.io')(container.server.server);
-    var io = container.socket(container.server.server)
+    var server = container.server.getServer()
+    var io = container.socket(server)
     var socketlist = [];
 
 

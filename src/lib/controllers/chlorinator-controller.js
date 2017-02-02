@@ -14,39 +14,37 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- var NanoTimer = require('nanotimer')
- var chlorinatorTimer = new NanoTimer();
-
+//var NanoTimer = require('nanotimer')
+//var chlorinatorTimer = new NanoTimer();
+var chlorinatorTimer;
 module.exports = function(container) {
-  var logger = container.logger
-  if (container.logModuleLoading)
-      logger.info('Loading: chlorinator-controller.js')
+    var logger = container.logger
+    if (container.logModuleLoading)
+        logger.info('Loading: chlorinator-controller.js')
 
-
-
-
-    function startChlorinatorController() {
-
-      chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '3500m')
-
-      return true
-    }
 
 
     function chlorinatorStatusCheck() {
-        var desiredChlorinatorOutput = container.chlorinator.getDesiredChlorinatorOutput()
+
+        var desiredChlorinatorOutput = container.chlorinator.getDesiredChlorinatorOutput() === -1 ? 0 : container.chlorinator.getDesiredChlorinatorOutput();
+
         if (desiredChlorinatorOutput >= 0 && desiredChlorinatorOutput <= 101) {
             container.queuePacket.queuePacket([16, 2, 80, 17, desiredChlorinatorOutput])
 
             //not 100% sure if we need this, but just in case we get here in the middle of the 1800s timeout, let's clear it out
             //this would happen if the users sets the chlorinator from 0 to 1-100.
-            chlorinatorTimer.clearTimeout()
+            if (chlorinatorTimer !== undefined)
+                clearTimeout(chlorinatorTimer)
 
             //if 0, then only check every 30 mins; else resend the packet every 4 seconds as a keep-alive
             if (desiredChlorinatorOutput === 0) {
-                return chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '1800s') //30 minutes
+                // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '1800s') //30 minutes
+                chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 30 * 1000) //30 minutes
+
             } else {
-                return chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '4s') // every 4 seconds
+                // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '4s') // every 4 seconds
+                chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000) // every 4 seconds
+
             }
             return true
         }
@@ -54,12 +52,20 @@ module.exports = function(container) {
     }
 
     function clearTimer() {
+        if (chlorinatorTimer !== undefined)
+            clearTimeout(chlorinatorTimer)
 
-        chlorinatorTimer.clearTimeout()
-
-      return true
+        return true
     }
 
+    function startChlorinatorController() {
+
+        // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '3500m')
+        chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
+
+
+        return true
+    }
     if (container.logModuleLoading)
         logger.info('Loaded: chlorinator-controller.js')
 

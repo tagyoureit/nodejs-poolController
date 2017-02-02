@@ -73,7 +73,7 @@ var logPumpTimers; //variable to output timer debug messages for the pumps
 var envParam = process.argv[2];
 var configFile;
 
-console.log('envParam:', envParam)
+//console.log('envParam:', envParam)
 
 load = exports.load = function() {
     if (envParam === undefined) {

@@ -58,8 +58,8 @@ describe('pump controller - save speed (1/2)', function() {
 
             */
 
-            // loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
-            // console.log('queuePacketStub:', queuePacketStub.args)
+            //loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
+            //console.log('queuePacketStub:', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(4)
             queuePacketStub.args[0][0].should.include.members([165, 0, 96, 33, 4, 1, 255])
             queuePacketStub.args[1][0].should.include.members([165, 0, 96, 33, 1, 4, 3, 39, 3, 232])

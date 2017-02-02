@@ -9,7 +9,10 @@ bottle.constant('appVersion', '3.1.1')
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
-bottle.service('nanoTimer', require('nanotimer'))
+bottle.factory('nanotimer', function(){
+  return require('nanotimer')
+})
+
 bottle.service('fs', function() {
     return require('fs')
 })
@@ -111,8 +114,8 @@ bottle.factory('heat', require(__dirname + '/equipment/heat.js'))
 bottle.factory('chlorinator', require(__dirname + '/equipment/chlorinator.js'))
 bottle.factory('pump', require(__dirname + '/equipment/pump.js'))
 bottle.factory('circuit', require(__dirname + '/equipment/circuit.js'))
-    //bottle.factory('status', require(__dirname + '//equipment/status.js'))
-bottle.factory('temperatures', require(__dirname + '//equipment/temperatures.js'))
+    //bottle.factory('status', require(__dirname + '/equipment/status.js'))
+bottle.factory('temperatures', require(__dirname + '/equipment/temperatures.js'))
 bottle.factory('time', require(__dirname + '/equipment/time.js'))
 bottle.factory('UOM', require(__dirname + '/equipment/UOM.js'))
 bottle.factory('valves', require(__dirname + '/equipment/valves.js'))
@@ -138,9 +141,11 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 init = exports.init = function() {
     //Call the modules to initialize them
     bottle.container.settings.load()
+    bottle.container.server.init()
     bottle.container.io.start()
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
+
 
     bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
     bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
@@ -156,4 +161,5 @@ init = exports.init = function() {
 
 }
 
-//init()
+/* UNCOMMENT TO ALLOW V8 PROFILING */
+//var profile = require(__dirname + '/helpers/profiler.js').init(__dirname + '/../profiler')

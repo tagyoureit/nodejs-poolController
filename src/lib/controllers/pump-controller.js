@@ -27,22 +27,24 @@ module.exports = function(container) {
 
     //turn pump on/off
     function sendPumpPowerPacket(address, power) {
-        var index = pumpAddressToIndex(address)
+        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         var setPrg;
-        //if (container.settings.logApi) logger.info('User request to set pump %s to %s', pump, power);
+        //if (container.settings.logApi) container.logger.info('User request to set pump %s to %s', pump, power);
         if (power === 0) {
             setPrg = [6, 1, 4];
-            container.pumpControllerTimers.clearTimer(index)
+            //manually set power packet here since it would not be done elsewhere
+            container.pump.setPower(index, 0)
         } else if (power === 1) // pump set to on
         {
             setPrg = [6, 1, 10];
+            container.pump.setPower(index, 1)
         } else {
             return false
         }
-        container.pump.setPower(index, power)
+
         var pumpPowerPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(pumpPowerPacket, setPrg)
-        //if (container.settings.logApi) logger.verbose('Sending Turn pump %s %s: %s', pump, power, pumpPowerPacket);
+        //if (container.settings.logApi) container.logger.verbose('Sending Turn pump %s %s: %s', pump, power, pumpPowerPacket);
         container.queuePacket.queuePacket(pumpPowerPacket);
     }
 
@@ -50,56 +52,55 @@ module.exports = function(container) {
     //set pump to remote control
     function setPumpToRemoteControl(address) {
         var remoteControlPacket = [165, 0, address, container.settings.appAddress, 4, 1, 255];
-        if (container.settings.logApi) logger.verbose('Sending Set pump to remote control: %s', remoteControlPacket)
+        if (container.settings.logApi) container.logger.verbose('Sending Set pump to remote control: %s', remoteControlPacket)
         container.queuePacket.queuePacket(remoteControlPacket);
     }
 
     //set pump to local control
     function setPumpToLocalControl(address) {
         var localControlPacket = [165, 0, address, container.settings.appAddress, 4, 1, 0];
-        if (container.settings.logPumpMessages) logger.verbose('Sending Set pump to local control: %s', localControlPacket)
+        if (container.settings.logPumpMessages) container.logger.verbose('Sending Set pump to local control: %s', localControlPacket)
         container.queuePacket.queuePacket(localControlPacket);
     }
 
     //NOTE: This pump timer doesn't do what we think it does... I think.
-    function setPumpDuration(pump, duration) {
-        var index = pumpAddressToIndex(pump)
-        var setTimerPacket = [165, 0, pump, container.settings.appAddress, 1, 4, 3, 43, 0, 1];
-        if (container.settings.logApi) logger.info('Sending Set a 30 second timer (safe mode enabled, timer will reset 2x/minute for a total of %s minutes): %s', duration, setTimerPacket);
-        container.pump.setDuration(index, duration)
+    function setPumpDuration(address, duration) {
+        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
+        var setTimerPacket = [165, 0, address, container.settings.appAddress, 1, 4, 3, 43, 0, 1];
+        if (container.settings.logApi) container.logger.info('Sending Set a 30 second timer (safe mode enabled, timer will reset 2x/minute for a total of %s minutes): %s', duration, setTimerPacket);
+
         container.queuePacket.queuePacket(setTimerPacket);
     }
 
     //run program packet
-    function runProgram(pump, program) {
-        var index = pumpAddressToIndex(pump)
+    function runProgram(address, program) {
+        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         //run program
         var runPrg = [1, 4, 3, 33, 0]
         runPrg.push(8 * program)
 
-        var runProgramPacket = [165, 0, pump, container.settings.appAddress];
+        var runProgramPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(runProgramPacket, runPrg);
-        if (container.settings.logApi) logger.verbose('Sending Run Program %s: %s', program, runProgramPacket)
-        container.pump.setCurrentProgram(index, program)
+        if (container.settings.logApi) container.logger.verbose('Sending Run Program %s: %s', program, runProgramPacket)
         container.queuePacket.queuePacket(runProgramPacket);
     }
 
     //run RPM packet
-    function runRPM(pump, rpm) {
-        var index = pumpAddressToIndex(pump)
+    function runRPM(address, rpm) {
+        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         //run program
         var runPrg = [1, 4, 2, 196]
         runPrg.push(Math.floor(rpm/256))
         runPrg.push(rpm%256)
 
-        var runProgramPacket = [165, 0, pump, container.settings.appAddress];
+        var runProgramPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(runProgramPacket, runPrg);
-        if (container.settings.logApi) logger.verbose('Sending run at RPM %s: %s', rpm, runProgramPacket)
+        if (container.settings.logApi) container.logger.verbose('Sending run at RPM %s: %s', rpm, runProgramPacket)
         container.queuePacket.queuePacket(runProgramPacket);
     }
 
     function saveProgramOnPump(address, program, speed, setPrg) {
-        var index = pumpAddressToIndex(address)
+        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
 
         //save program on pump
         //set speed
@@ -110,8 +111,7 @@ module.exports = function(container) {
         var setProgramPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(setProgramPacket, setPrg);
         //logger.info(setProgramPacket, setPrg)
-        if (container.settings.logApi) logger.verbose('Sending Set Program %s to %s RPM: %s', program, speed, setProgramPacket);
-        container.pump.saveProgram(index, program, speed)
+        if (container.settings.logApi) container.logger.verbose('Sending Set Program %s to %s RPM: %s', program, speed, setProgramPacket);
         container.queuePacket.queuePacket(setProgramPacket);
 
     }
@@ -119,7 +119,7 @@ module.exports = function(container) {
     //request pump status
     function requestPumpStatus(address) {
         var statusPacket = [165, 0, address, container.settings.appAddress, 7, 0];
-        if (container.settings.logApi) logger.verbose('Sending Request Pump Status: %s', statusPacket)
+        if (container.settings.logApi) container.logger.verbose('Sending Request Pump Status: %s', statusPacket)
         container.queuePacket.queuePacket(statusPacket);
     }
 

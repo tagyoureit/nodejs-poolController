@@ -22,7 +22,7 @@ module.exports = function(container) {
 
     var logger = container.logger
     var ISYConfig = container.settings.ISYConfig
-    var ISYTimer = container.nanoTimer
+    var ISYTimer = new container.nanotimer
 
     //var ISYConfig; //object to hold ISY variables.
     //TODO: We don't need to assign this anymore.  Can use the bottle... to access it directly.

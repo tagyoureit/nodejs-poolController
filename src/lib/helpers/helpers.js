@@ -19,7 +19,7 @@ module.exports = function(container) {
 
     var logger = container.logger
     var ISYConfig = container.settings.ISYConfig
-    var ISYTimer = container.nanoTimer
+    var ISYTimer = new container.nanotimer
 
     if (container.logModuleLoading)
         logger.info('Loading: helpers.js')

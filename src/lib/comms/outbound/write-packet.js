@@ -32,7 +32,7 @@ module.exports = function(container) {
     var skipPacketWrittenCount = {
             skipPacketWrittenCount: 0
         } //keep track of how many times we skipped writing the packet
-    var writePacketTimer = container.nanoTimer
+    var writePacketTimer = new container.nanotimer
 
     preWritePacketHelper = function() {
         if (container.queuePacket.getQueuePacketsArrLength() === 0) // need this because the correct packet might come back during the container.timers.writePacketTimer.timeout.

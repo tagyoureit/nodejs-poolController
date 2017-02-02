@@ -7,7 +7,7 @@ var nock = global.nock = require('nock')
 var rewire = global.rewire = require("rewire");
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
-
+bottle.container.settings.load()
 
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
