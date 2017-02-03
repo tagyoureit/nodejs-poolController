@@ -37,6 +37,29 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             bottle.container.settings.logPumpMessages = 0
         })
 
+//MOVE THIS TO THE API SECTION LATER
+        it('runs pump 1, program 1 for 600 minutes ', function(done) {
+
+            // requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/600').then(function(obj) {
+            //     obj.should.eq({
+            //         "text": "REST API pumpCommand variables - pump: 1, program: 1, duration: 2",
+            //         "pump": "1",
+            //         "duration": "600"
+            //     });
+            //     done()
+            // });
+            var http=require('http')
+            http.get('http://localhost:3000/pumpCommand/run/pump/1/program/1/duration/600', function(res){
+              console.log('res.body:', res.body)
+              clock.tick(25000)
+              console.log('call 1,1,6000 via url: ', queuePacketStub.args)
+              done()
+            })
+
+
+
+        });
+
 
         it('saves pump 1 program 1 at 1000', function() {
             var index = 1
@@ -125,10 +148,107 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //and now the timer is executed and we have 4 new packets
             queuePacketStub.callCount.should.eq(13)
             //console.log('run 1,1,1000,1 (after 30s): ', queuePacketStub.callCount, queuePacketStub.args)
-
+            clock.tick(240 * 1000) //advance 2 mins
+            //On(9) + Run(4)*3 +Off(4) = 29
+            queuePacketStub.callCount.should.eq(21)
             return
 
         });
+
+        it('runs pump 1 (no program) at 1000 RPM for 1 minute', function() {
+
+            var index = 1
+            var program = null
+            var speed = 1000
+            var duration = 1
+
+            bottle.container.pumpControllerMiddleware.pumpCommand(index, program, speed, duration)
+
+            /* Desired output
+            run 1,null,1000,1:  5 [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 2, 196, 3, 232 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 0 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+            queuePacketStub.callCount:  5
+            */
+
+            // console.log('logger 1,null,1000,1: ', loggerStub.args)
+            //console.log('run 1,null,1000,1: ', queuePacketStub.callCount, queuePacketStub.args)
+            //console.log('start timer 1,null,1000,1 : ', pumpControllerProgramTimersSpy.args)
+            queuePacketStub.callCount.should.eq(5)
+            queuePacketStub.args[0][0].should.include.members(global.pump1LocalPacket)
+            queuePacketStub.args[1][0].should.include.members(global.pump1PowerOnPacket)
+            queuePacketStub.args[2][0].should.include.members(global.pump1SetRPM1000Packet)
+            queuePacketStub.args[3][0].should.include.members(global.pump1LocalPacket)
+            queuePacketStub.args[4][0].should.include.members(global.pump1RequestStatusPacket)
+            emitToClientsStub.callCount.should.eq(1)
+            pumpControllerProgramTimersSpy.callCount.should.eq(0)
+            pumpControllerPowerTimersSpy.callCount.should.eq(0)
+            pumpControllerRPMTimersSpy.callCount.should.eq(1)
+
+            clock.tick(29 * 1000)
+            //should still be same # of calls before 30 seconds expires
+            queuePacketStub.callCount.should.eq(5)
+            clock.tick(1 * 1000)
+            //and now the timer is executed and we have 5 new packets
+            queuePacketStub.callCount.should.eq(10)
+            clock.tick((59 * 60 * 1000) + (30 * 1000)) //after 1 hour
+            //On/Run (5) + On/Run(5) + Off(4)
+            queuePacketStub.callCount.should.eq(19)
+            clock.tick(120 * 1000) //after 2 more minutes
+            queuePacketStub.callCount.should.eq(19)
+            return
+
+        });
+
+        it('runs pump 1 (no program) at 1000 RPM for 60 minute', function() {
+
+            var index = 1
+            var program = null
+            var speed = 1000
+            var duration = 60
+
+            bottle.container.pumpControllerMiddleware.pumpCommand(index, program, speed, duration)
+
+            /* Desired output
+            run 1,null,1000,1:  5 [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 2, 196, 3, 232 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 0 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+            queuePacketStub.callCount:  5
+            */
+
+            // console.log('logger 1,null,1000,1: ', loggerStub.args)
+            //console.log('run 1,null,1000,1: ', queuePacketStub.callCount, queuePacketStub.args)
+            //console.log('start timer 1,null,1000,1 : ', pumpControllerProgramTimersSpy.args)
+            queuePacketStub.callCount.should.eq(5)
+            queuePacketStub.args[0][0].should.include.members(global.pump1LocalPacket)
+            queuePacketStub.args[1][0].should.include.members(global.pump1PowerOnPacket)
+            queuePacketStub.args[2][0].should.include.members(global.pump1SetRPM1000Packet)
+            queuePacketStub.args[3][0].should.include.members(global.pump1LocalPacket)
+            queuePacketStub.args[4][0].should.include.members(global.pump1RequestStatusPacket)
+            emitToClientsStub.callCount.should.eq(1)
+            pumpControllerProgramTimersSpy.callCount.should.eq(0)
+            pumpControllerPowerTimersSpy.callCount.should.eq(0)
+            pumpControllerRPMTimersSpy.callCount.should.eq(1)
+
+            clock.tick(29 * 1000)
+            //should still be same # of calls before 30 seconds expires
+            queuePacketStub.callCount.should.eq(5)
+            clock.tick(1 * 1000)
+            //and now the timer is executed and we have 5 new packets
+            queuePacketStub.callCount.should.eq(10)
+            clock.tick((60 * 60 * 1000) + (30 * 1000)) //after 1 hour
+            //On/Run(5) * 2x/min(120)=600+Off(4)=604??
+            queuePacketStub.callCount.should.eq(609)
+            clock.tick(240 * 1000) //after 2 more mins
+            queuePacketStub.callCount.should.eq(609)
+            return
+
+        });
+
 
         it('turns off pump 1', function() {
             var index = 1
@@ -167,7 +287,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
 
             */
             // console.log('logger 1,on,null,null: ', loggerStub.args)
-            //console.log('run 1,on,null,null: ', queuePacketStub.args)
+            // console.log('run 1,on,null,null: ', queuePacketStub.args)
             // console.log('start timer 1,on,null,null: ', pumpControllerTimersSpy.args)
             //loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
             queuePacketStub.callCount.should.eq(4)
@@ -242,7 +362,9 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //2nd call @ 1m = 4 (17 total)
             //59 mins * 8 calls = 472 (489 total)
             clock.tick(70 * 60 * 1000) //70 mins
-            queuePacketStub.callCount.should.eq(489)
+            queuePacketStub.callCount.should.eq(493)
+            clock.tick(240 * 1000) //after two more minutes (timer expired)
+            queuePacketStub.callCount.should.eq(493)
             bottle.container.pumpControllerTimers.clearTimer(2)
             return
 

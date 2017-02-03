@@ -36,52 +36,21 @@ describe('chlorinator controller', function() {
 
         it('sets chlorinator timer to run after 4 seconds', function() {
 
-            //console.log('before time:', this.clock.now)
             bottle.container.chlorinatorController.startChlorinatorController()
             queuePacketStub.callCount.should.eq(0)
             clock.tick(4000)
             queuePacketStub.callCount.should.eq(1)
             queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 0])
-            clock.tick(60 * 1000) //1 hour
+            clock.tick(59 * 1000) //59+4 mins
+            queuePacketStub.callCount.should.eq(2)
+            clock.tick(1 * 1000) //60+4 mins
             queuePacketStub.callCount.should.eq(3)
-            //console.log('res:', res)
-            //this.clock.tick(3500)
-            //console.log('after time:', this.clock.now, res)
 
-            //expect(stub).to.be.true
-            //console.log('stub: ', stub)
-            //return expect(stub).to.be.calledOnce
         });
 
 
     });
 
-    describe('#chlorinatorStatusCheck requests chlorinator status', function() {
 
-
-        it('requests status and resets the timer with a valid desired output (0)', function() {
-
-
-            //bottle.container.chlorinator.setChlorinatorLevel(2);
-            //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
-            // bottle.container.chlorinatorController.chlorinatorStatusCheck()
-
-
-        });
-
-
-        it('requests status and resets the timer with a valid desired output (10)', function() {
-
-            //bottle.container.chlorinator.setChlorinatorLevel(2);
-            //expect(bottle.container.chlorinatorController.chlorinatorStatusCheck()).to.be.true;
-
-
-        });
-
-        it('requests status and resets the timer with a valid desired output (102) (should fail)', function() {
-
-
-        });
-    });
 
 });

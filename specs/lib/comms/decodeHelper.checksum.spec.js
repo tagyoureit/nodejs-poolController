@@ -34,7 +34,7 @@ describe('decodeHelper', function() {
                     }
                 })(function() {
                     for (var i = 0; i < testarrayGOOD.length; i++) {
-                        console.log('running test with (valid): ', testarrayGOOD[i].toString())
+                        // console.log('running test with (valid): ', testarrayGOOD[i].toString())
                         var result = myModule(bottle.container).checksum(testarrayGOOD[i], 25, equip)
                         //console.log('loggerStub: ', loggerStub.args)
                         result.should.be.true
@@ -62,7 +62,7 @@ describe('decodeHelper', function() {
                     }
                 })(function() {
                     for (var i = 0; i < testarrayBAD.length; i++) {
-                        console.log('running test with (invalid): ', testarrayBAD[i].toString())
+                        // console.log('running test with (invalid): ', testarrayBAD[i].toString())
                         var result = myModule(bottle.container).checksum(testarrayBAD[i], 25, equip)
                         //console.log('loggerStub: ', loggerStub.args)
                         result.should.be.false
@@ -110,7 +110,7 @@ describe('decodeHelper', function() {
 
                 })(function() {
                     for (var i = 0; i < testarrayGOOD.length; i++) {
-                        console.log('running test with: ', testarrayGOOD[i].toString())
+                        // console.log('running test with: ', testarrayGOOD[i].toString())
                         //myModule('fake').processChecksum(testarrayGOOD[i], i * 10, equip)
                         //expect(spiedChecksum).to.be.calledOnce
                         //decodeStub.should.be.calledOnce

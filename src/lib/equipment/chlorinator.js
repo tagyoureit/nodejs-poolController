@@ -50,23 +50,23 @@ module.exports = function(container) {
         chlorinatorStatus.saltPPM = saltPPM * 50
         chlorinatorStatus.outputPoolPercent = outputPoolPercent
         chlorinatorStatus.outputSpaPercent = (outputSpaPercent - 1) / 2; //41 would equal 20%, for example
-        chlorinatorStatus.SuperChlorinate = outputPoolPercent===101?1:0;
+        chlorinatorStatus.SuperChlorinate = outputPoolPercent === 101 ? 1 : 0;
         //TODO: take care of unknown status' here.  Is this right?
         chlorinatorStatus.status = chlorinatorStatusStr[status] !== undefined ? chlorinatorStatusStr[status] : status
         chlorinatorStatus.name = name;
 
-        if (currentChlorinatorStatus.saltPPM == -1) {
+        if (currentChlorinatorStatus.saltPPM === -1) {
             currentChlorinatorStatus = chlorinatorStatus;
             if (container.settings.logChlorinator)
-                logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
+                container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
             container.io.emitToClients('chlorinator');
         } else
-        if (JSON.stringify(currentChlorinatorStatus)===JSON.stringify(chlorinatorStatus)) {
+        if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
             if (container.settings.logChlorinator)
-                logger.debug('Msg# %s   Chlorinator status has not changed: ', counter, JSON.stringify(data))
+                container.logger.debug('Msg# %s   Chlorinator status has not changed. ', counter)
         } else {
             if (container.settings.logChlorinator)
-                logger.verbose('Msg# %s   Chlorinator status changed: ', counter, currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
+                container.logger.verbose('Msg# %s   Chlorinator status changed: ', counter, currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
             currentChlorinatorStatus = chlorinatorStatus;
             container.io.emitToClients('chlorinator');
         }
@@ -97,10 +97,10 @@ module.exports = function(container) {
     }
 
     function setChlorinatorLevel(chlorLvl, callback) {
+        var response = {}
         if (container.settings.chlorinator) {
             if (chlorLvl >= 0 && chlorLvl <= 101) {
                 currentChlorinatorStatus.outputPoolPercent = chlorLvl
-                var response = {}
                 if (currentChlorinatorStatus.outputPoolPercent === 0) {
                     response.text = 'Chlorinator set to off.  Chlorinator will be queried every 30 mins for PPM'
                     response.status = 'off'
@@ -114,16 +114,25 @@ module.exports = function(container) {
                     response.status = 'on'
                     response.value = currentChlorinatorStatus.outputPoolPercent
                 }
-                if (container.settings.logChlorinator) logger.info(response)
                 container.chlorinatorController.chlorinatorStatusCheck()
-                if (callback !== undefined) {
-                    callback(response)
+                if (container.settings.logChlorinator) {
+                    container.logger.info(response)
                 }
-                container.io.emitToClients('chlorinator')
-                return response
+            } else {
+
+                response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
+                response.status = this.status
+                response.value = currentChlorinatorStatus.outputPoolPercent
+                if (container.settings.logChlorinator) {
+                    container.logger.warn(response)
+                }
             }
         }
-        return currentChlorinatorStatus
+        if (callback !== undefined) {
+            callback(response)
+        }
+        container.io.emitToClients('chlorinator')
+        return response
     }
 
     function getDesiredChlorinatorOutput() {
@@ -133,7 +142,7 @@ module.exports = function(container) {
     function processChlorinatorPacketfromController(data, counter) {
         //put in logic (or logging here) for chlorinator discovered (upon 1st message?)
 
-        if (!s.intellitouch) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
+        if (!container.settings.intellitouch) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
         {
             var destination;
             if (data[container.constants.chlorinatorPacketFields.DEST] === 80) {
@@ -149,12 +158,14 @@ module.exports = function(container) {
             //not sure why the above line failed...?  Implementing the following instead.
             //var chlorinatorStatus = JSON.parse(JSON.stringify(currentChlorinatorStatus));
             //TODO: better check besides pump power for asking for the chlorinator name.  Possibly need to due this because some chlorinators are only "on" when the pumps/controller
-            if (currentChlorinatorStatus.name === '' && s.chlorinator && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
+            if (currentChlorinatorStatus.name === '' && container.settings.chlorinator && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
             //If we see a chlorinator status packet, then request the name.  Not sure when the name would be automatically sent over otherwise.
             {
-                logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
-                    //get salt cell name
-                if (s.logPacketWrites) logger.debug('decode: Queueing packet to retrieve Chlorinator Salt Cell Name: [16, 2, 80, 20, 0]')
+                container.logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
+                //get salt cell name
+                if (container.settings.logPacketWrites) {
+                    container.logger.debug('decode: Queueing packet to retrieve Chlorinator Salt Cell Name: [16, 2, 80, 20, 0]')
+                }
                 container.queuePacket.queuePacket([16, 2, 80, 20, 0]);
             }
 
@@ -163,15 +174,15 @@ module.exports = function(container) {
             switch (data[container.constants.chlorinatorPacketFields.ACTION]) {
                 case 0: //Get status of Chlorinator
                     {
-                        if (s.logChlorinator)
-                            logger.verbose('Msg# %s   %s --> %s: Please provide status: %s', counter, from, destination, data)
+                        if (container.settings.logChlorinator)
+                            container.logger.verbose('Msg# %s   %s --> %s: Please provide status: %s', counter, from, destination, data)
 
                         break;
                     }
                 case 1: //Response to get status
                     {
-                        if (s.logChlorinator)
-                            logger.verbose('Msg# %s   %s --> %s: I am here: %s', counter, from, destination, data)
+                        if (container.settings.logChlorinator)
+                            container.logger.verbose('Msg# %s   %s --> %s: I am here: %s', counter, from, destination, data)
 
                         break;
                     }
@@ -184,8 +195,8 @@ module.exports = function(container) {
                         }
 
                         if (currentChlorinatorStatus.name !== name && currentChlorinatorStatus.version !== version) {
-                            if (s.logChlorinator)
-                                logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
+                            if (container.settings.logChlorinator)
+                                container.logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
                             currentChlorinatorStatus.name = name
                             currentChlorinatorStatus.version = version
                             container.io.emitToClients('chlorinator')
@@ -197,14 +208,14 @@ module.exports = function(container) {
                     {
                         var outputPoolPercent = data[4];
                         var superChlorinate
-                        if (data[4] == 101) {
+                        if (data[4] === 101) {
                             superChlorinate = 1
                         } else {
                             superChlorinate = 0
                         }
                         if (currentChlorinatorStatus.outputPoolPercent !== outputPoolPercent && currentChlorinatorStatus.superChlorinate !== superChlorinate) {
-                            if (s.logChlorinator)
-                                logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, superChlorinate == 'On' ? 'Super Chlorinate' : outputPoolPercent, data);
+                            if (container.settings.logChlorinator)
+                                container.logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, superChlorinate === 'On' ? 'Super Chlorinate' : outputPoolPercent, data);
                             currentChlorinatorStatus.outputPoolPercent = outputPoolPercent
                             currentChlorinatorStatus.superChlorinate = superChlorinate
                             container.io.emitToClients('chlorinator')
@@ -248,8 +259,8 @@ module.exports = function(container) {
                                 }
                         }
                         if (currentChlorinatorStatus.saltPPM !== saltPPM && currentChlorinatorStatus.status !== status) {
-                            if (s.logChlorinator)
-                                logger.verbose('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
+                            if (container.settings.logChlorinator)
+                                container.logger.verbose('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
                             currentChlorinatorStatus.saltPPM = saltPPM
                             currentChlorinatorStatus.status = status
                             container.io.emitToClients('chlorinator')
@@ -259,8 +270,8 @@ module.exports = function(container) {
                     }
                 case 20: //Get version
                     {
-                        if (s.logChlorinator)
-                            logger.verbose('Msg# %s   %s --> %s: What is your version?: %s', counter, from, destination, data)
+                        if (container.settings.logChlorinator)
+                            container.logger.verbose('Msg# %s   %s --> %s: What is your version?: %s', counter, from, destination, data)
                         decoded = true;
                         break;
                     }
@@ -269,8 +280,8 @@ module.exports = function(container) {
                         outputPoolPercent = data[6] / 10;
 
                         if (currentChlorinatorStatus.outputPoolPercent !== outputPoolPercent) {
-                            if (s.logChlorinator)
-                                logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, outputPoolPercent, data);
+                            if (container.settings.logChlorinator)
+                                container.logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, outputPoolPercent, data);
                             currentChlorinatorStatus.outputPoolPercent = outputPoolPercent
                             container.io.emitToClients('chlorinator')
                         }
@@ -278,8 +289,8 @@ module.exports = function(container) {
                     }
                 default:
                     {
-                        if (s.logChlorinator)
-                            logger.verbose('Msg# %s   %s --> %s: Other chlorinator packet?: %s', counter, from, destination, data)
+                        if (container.settings.logChlorinator)
+                            container.logger.verbose('Msg# %s   %s --> %s: Other chlorinator packet?: %s', counter, from, destination, data)
                         decoded = true;
                         break;
                     }

@@ -406,8 +406,6 @@ module.exports = function(container) {
             'value': value,
             'remainingduration': duration
         }
-
-
         if (currentPumpStatus[index].currentrunning !== newCurrentRunning) {
             if (container.settings.logPumpMessages) {
                 container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    RemainingDuration: %s \r\n    to \r\n    Mode: %s     Value: %s    RemainingDuration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,

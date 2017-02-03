@@ -55,9 +55,9 @@ describe('#set functions', function() {
                 return requestPoolDataWithURL('pumpCommand/1/1').then(function(result) {
 
 
-                    console.log('loggerStub called with: ', loggerStub.args)
-                    console.log('pumpCommandStub2 called with: ', pumpCommandStub.args)
-                    console.log('result: ', result)
+                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('pumpCommandStub2 called with: ', pumpCommandStub.args)
+                    // console.log('result: ', result)
                     loggerStub.args[0][0].should.eq('Please update the URL to the new format: /pumpCommand/{run or save}/pump/1/program/1')
                     pumpCommandStub.args[0][0].should.eq(1)
                     pumpCommandStub.args[0][1].should.eq('1')  //should be a sting because it could be 0-4 or on/off
@@ -67,6 +67,19 @@ describe('#set functions', function() {
                 })
 
             });
+
+            // it('runs pump 1, program 1 for 600 minutes ', function(done) {
+            //
+            //     requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/600').then(function(obj) {
+            //         obj.should.eq({
+            //             "text": "REST API pumpCommand variables - pump: 1, program: 1, duration: 2",
+            //             "pump": "1",
+            //             "duration": "600"
+            //         });
+            //         done()
+            //     });
+            // });
+
             /*            it('saves pump 1 to program 1 (should fail)', function(done) {
 
                             requestPoolDataWithURL('pumpCommand/save/pump/1/program/1').then(function(obj) {
@@ -152,17 +165,7 @@ describe('#set functions', function() {
                                 done()
                             });
                         });
-                        it('runs pump 1, program 1 for 2 minutes ', function(done) {
 
-                            requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/2').then(function(obj) {
-                                obj.should.eq({
-                                    "text": "REST API pumpCommand variables - pump: 1, program: 1, duration: 2",
-                                    "pump": "1",
-                                    "duration": "2"
-                                });
-                                done()
-                            });
-                        });
                         it('runs pump 1, program 1 for 2 minutes (NEW URL)', function(done) {
 
                             requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/2').then(function(obj) {

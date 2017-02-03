@@ -231,8 +231,10 @@ module.exports = function(container) {
             container.pumpControllerTimers.clearTimer(index)
         } else if (program === 'on') {
             //what does this do on various pumps?
-            if (duration === null) duration = -1
-            container.pumpControllerTimers.startPowerTimer(index, 1, duration)
+            if (duration === null) {
+                duration = -1
+            }
+            container.pumpControllerTimers.startPowerTimer(index, duration)
         } else
 
         {

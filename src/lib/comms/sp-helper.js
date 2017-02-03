@@ -19,7 +19,7 @@
 
 //declare global var that can be accessed elsewhere
 var sp = exports.sp;
-
+    var spTimer;
 module.exports = function(container) {
     var logger = container.logger
     if (container.logModuleLoading)
@@ -32,7 +32,7 @@ module.exports = function(container) {
 
 
     //var spTimer = new container.nanotimer
-    var spTimer;
+
     function init() {
 
         if (container.settings.netConnect === 0) {
@@ -78,7 +78,7 @@ module.exports = function(container) {
         });
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
-            spTimer.setTimeout(init, 10*1000)
+            spTimer=setTimeout(init, 10*1000)
         })
 
 

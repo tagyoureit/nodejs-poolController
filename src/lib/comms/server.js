@@ -264,7 +264,17 @@ module.exports = function(container) {
             var response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: ' + off + ', duration: null'
             response.pump = pump
-            container.pumpControllerTimers.startPowerTimer(pump)
+            container.pumpControllerTimers.startPowerTimer(pump, -1)  //-1 for indefinite duration
+            res.send(response)
+        })
+
+        app.get('/pumpCommand/on/pump/:pump/duration/:duration', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var duration = parseInt(req.params.duration)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: ' + off + ', duration: ' + duration
+            response.pump = pump
+            container.pumpControllerTimers.startPowerTimer(pump, duration)  //-1 for indefinite duration
             res.send(response)
         })
 

@@ -311,6 +311,11 @@ module.exports = function(container) {
 
     //set the internal timer for pump controls
     var startProgramTimer = function(index, program, duration) {
+      if (duration > 0) {
+          duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+      } else if (duration === null || duration === undefined) {
+          duration = -1
+      }
         container.pump.setCurrentRunning(index, 'program', program, duration)
 
         if (index === 1) {
@@ -332,6 +337,11 @@ module.exports = function(container) {
 
     //set the internal timer for pump controls
     var startRPMTimer = function(index, rpm, duration) {
+      if (duration > 0) {
+          duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+      } else if (duration === null || duration === undefined) {
+          duration = -1
+      }
         container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
 
         if (index === 1) {
@@ -352,9 +362,13 @@ module.exports = function(container) {
     }
 
     //set the internal timer for pump controls
-    var startPowerTimer = function(index, power, duration) {
-        container.pump.setCurrentRunning(index, 'power', power, duration)
-
+    var startPowerTimer = function(index, duration) {
+        if (duration > 0) {
+            duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+        } else if (duration === null || duration === undefined) {
+            duration = -1
+        }
+        container.pump.setCurrentRunning(index, 'power', 1, duration)
         if (index === 1) {
             pump1PowerTimerMode(duration)
             pump1TimerRunning = 1
