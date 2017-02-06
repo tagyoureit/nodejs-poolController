@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 2.js')
 
@@ -33,6 +34,7 @@ module.exports = function(container) {
         container.pump.setRemoteControl(remotecontrol, data[container.constants.packetFields.FROM], data, counter)
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 2.js')
 

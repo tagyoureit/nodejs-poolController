@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: (pump)2.js')
 
@@ -30,6 +31,7 @@ module.exports = function(container) {
         return decoded
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: (pump)2.js')
 

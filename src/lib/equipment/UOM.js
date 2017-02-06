@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
     logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: UOM.js')
 
@@ -42,6 +43,7 @@ module.exports = function(container) {
       return UOMStr
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: UOM.js')
 

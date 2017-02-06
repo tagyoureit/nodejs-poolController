@@ -138,7 +138,7 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 
 
-init = exports.init = function() {
+var init = exports.init = function() {
     //Call the modules to initialize them
     bottle.container.settings.load()
     bottle.container.server.init()

@@ -16,9 +16,10 @@
  */
 
 module.exports = function(container) {
-    logger = container.logger
-    s = container.settings
+    var logger = container.logger
+    var s = container.settings
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: receive-buffer.js')
     var processingBuffer = {
@@ -34,7 +35,7 @@ module.exports = function(container) {
         return msgCounter.counter
     }
 
-    pushBufferToArray = function() {
+    var pushBufferToArray = function() {
 
         bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
         if (s.logMessageDecoding)
@@ -43,7 +44,7 @@ module.exports = function(container) {
 
     }
 
-    iterateOverArrayOfArrays = function() {
+    var iterateOverArrayOfArrays = function() {
 
         var chatter = []; //a {potential} message we have found on the bus
         var packetType;
@@ -182,14 +183,15 @@ module.exports = function(container) {
         }
     }
 
-    function getProcessingBuffer() {
+    var getProcessingBuffer=function() {
         return processingBuffer.processingBuffer
     }
 
-    function getBufferToProcessLength() {
+    var getBufferToProcessLength = function() {
         return bufferToProcess.length
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: receive-buffer.js')
 

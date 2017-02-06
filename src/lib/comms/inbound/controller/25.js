@@ -18,6 +18,7 @@
 //Intellichlor status
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 25.js')
 
@@ -52,7 +53,8 @@ module.exports = function(container) {
         }
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             container.logger.info('Loaded: 25.js')
 
 

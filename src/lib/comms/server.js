@@ -17,19 +17,23 @@
 
 // Setup express server
 
-var path = require('path').posix,
-   server
+
 
 module.exports = function(container) {
+
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: server.js')
     //var express = require('express');
+    var express = container.express
+    var app = express();
+    var port = process.env.PORT || 3000;
+    var path = require('path').posix,
+        server
 
     function init() {
 
-        var express = container.express
-        var app = express();
-
+        // console.log('calling express server init')
 
         // And Enable Authentication (if configured)
         if (container.settings.expressAuth === 1) {
@@ -39,7 +43,11 @@ module.exports = function(container) {
                 file: path.join(process.cwd(), container.settings.expressAuthFile)
             });
             app.use(auth.connect(basic));
+        } else {
+            //reset auth settings
+            app = express()
         }
+
         // Create Server (and set https options if https is selected)
         if (container.settings.expressTransport === 'https') {
             var opt_https = {
@@ -48,15 +56,14 @@ module.exports = function(container) {
                 requestCert: false,
                 rejectUnauthorized: false
             };
-             server = container.https.createServer(opt_https, app);
+            server = container.https.createServer(opt_https, app);
         } else
             //var server = require('http').createServer(app);
-             server = container.http.createServer(app);
+            server = container.http.createServer(app);
 
-        var port = process.env.PORT || 3000;
+
         server.listen(port, function logRes() {
             container.logger.verbose('Express Server listening at port %d', port);
-
         });
 
 
@@ -75,6 +82,7 @@ module.exports = function(container) {
             res.send(container.helpers.allEquipmentInOneJSON())
         })
 
+        /*istanbul ignore next */
         app.get('/reload', function(req, res) {
 
             container.reload.reload()
@@ -194,9 +202,10 @@ module.exports = function(container) {
 
             //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
             var response = {}
-            response.text = 'Please provide a speed /speed/{speed} when requesting to save the program'
+            response.text = 'FAIL: Please provide a speed /speed/{speed} when requesting to save the program'
             response.pump = pump
             response.program = program
+            response.duration = null
             res.send(response)
         })
 
@@ -210,24 +219,9 @@ module.exports = function(container) {
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', value: null, duration: null'
             response.pump = pump
             response.program = program
+            response.duration = -1
             // container.pumpControllerMiddleware.runProgramSequence(pump, program)
             container.pumpControllerTimers.startProgramTimer(pump, program, -1)
-            res.send(response)
-        })
-
-
-        app.get('/pumpCommand/:pump/:program/:speed', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var program = parseInt(req.params.program)
-            var value = parseInt(req.params.speed)
-            container.logger.warn('Please update the URL to the new format: /pumpCommand/{run or save}/pump/' + pump + '/program/' + program + '/rpm/' + value)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', rpm: ' + value + ', duration: null'
-            response.pump = pump
-            response.program = program
-            response.value = value
-            response.duration = null
-            container.pumpControllerMiddleware.pumpCommand(pump, program, value, null)
             res.send(response)
         })
 
@@ -245,6 +239,7 @@ module.exports = function(container) {
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', rpm: ' + rpm + ', duration: null'
             response.pump = pump
             response.speed = rpm
+            response.duration = -1
             // container.pumpControllerMiddleware.runRPMSequence(pump, rpm)
             container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
             res.send(response)
@@ -253,8 +248,10 @@ module.exports = function(container) {
         app.get('/pumpCommand/off/pump/:pump', function(req, res) {
             var pump = parseInt(req.params.pump)
             var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: ' + off + ', duration: null'
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: off, duration: null'
             response.pump = pump
+            response.value = null
+            response.duration = -1
             container.pumpControllerTimers.clearTimer(pump)
             res.send(response)
         })
@@ -262,9 +259,11 @@ module.exports = function(container) {
         app.get('/pumpCommand/on/pump/:pump', function(req, res) {
             var pump = parseInt(req.params.pump)
             var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: ' + off + ', duration: null'
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: null'
             response.pump = pump
-            container.pumpControllerTimers.startPowerTimer(pump, -1)  //-1 for indefinite duration
+            response.value = 1
+            response.duration = -1
+            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
             res.send(response)
         })
 
@@ -272,9 +271,11 @@ module.exports = function(container) {
             var pump = parseInt(req.params.pump)
             var duration = parseInt(req.params.duration)
             var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: ' + off + ', duration: ' + duration
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: ' + duration
             response.pump = pump
-            container.pumpControllerTimers.startPowerTimer(pump, duration)  //-1 for indefinite duration
+            response.value = null
+            response.duration = duration
+            container.pumpControllerTimers.startPowerTimer(pump, duration) //-1 for indefinite duration
             res.send(response)
         })
 
@@ -287,6 +288,7 @@ module.exports = function(container) {
             response.pump = pump
             response.program = program
             response.speed = speed
+            response.duration = null
             container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, speed)
             res.send(response)
         })
@@ -298,7 +300,7 @@ module.exports = function(container) {
             var response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', duration: ' + duration
             response.pump = pump
-
+            response.program = program
             response.duration = duration
             // container.pumpControllerMiddleware.runProgramSequenceForDuration(pump, program, duration)
             container.pumpControllerTimers.startProgramTimer(pump, program, duration)
@@ -312,9 +314,8 @@ module.exports = function(container) {
             var response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', rpm: ' + rpm + ', duration: ' + duration
             response.pump = pump
-
+            response.value = rpm
             response.duration = duration
-            // container.pumpControllerMiddleware.runRPMSequenceForDuration(pump, rpm, duration)
             container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
             res.send(response)
         })
@@ -331,6 +332,21 @@ module.exports = function(container) {
             response.speed = speed
             response.duration = duration
             container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, speed, duration)
+            res.send(response)
+        })
+
+        app.get('/pumpCommand/:pump/:program/:speed', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var value = parseInt(req.params.speed)
+            container.logger.warn('Please update the URL to the new format: /pumpCommand/{run or save}/pump/' + pump + '/program/' + program + '/rpm/' + value)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', rpm: ' + value + ', duration: null'
+            response.pump = pump
+            response.program = program
+            response.value = value
+            response.duration = null
+            container.pumpControllerMiddleware.pumpCommand(pump, program, value, null)
             res.send(response)
         })
 
@@ -351,15 +367,19 @@ module.exports = function(container) {
         })
     }
 
-    close = function() {
+    var close = function() {
+        // console.log('calling server close')
         if (server !== undefined)
-        server.close()
+            server.close(function() {
+                container.logger.verbose('Express Server closed. (was listening at port %d)', port);
+            })
     }
 
-    getServer = function(){
-      return server
+    var getServer = function() {
+        return server
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: server.js')
 

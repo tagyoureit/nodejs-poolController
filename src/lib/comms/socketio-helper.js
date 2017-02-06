@@ -27,6 +27,7 @@ module.exports = function(container) {
 
     var logger = container.logger
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: socketio-helper.js')
 
@@ -248,6 +249,7 @@ module.exports = function(container) {
         io.sockets.emit('outputLog', msg)
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: socketio-helper.js')
 

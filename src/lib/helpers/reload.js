@@ -21,6 +21,7 @@
 
 module.exports = function(container) {
     logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: reload.js')
 
@@ -76,13 +77,14 @@ module.exports = function(container) {
         if (callback !== undefined) {
             return res
         }
-        else {
+
           container.logger.info(res)
-        }
+        
 
     }
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: reload.js')
 

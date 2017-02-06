@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 2.js')
 
@@ -25,7 +26,8 @@ module.exports = function(container) {
         var c = container.constants
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             logger.info('Loaded: 2.js')
 
 

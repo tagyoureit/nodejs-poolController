@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
@@ -380,8 +381,8 @@ module.exports = function(container) {
         return currentPumpStatus[index].duration;
     }
 
-    var getCurrentRemainingDuration = function(pump) {
-        return currentPumpStatus[pump].currentrunning.remainingduration;
+    var getCurrentRemainingDuration = function(index) {
+        return currentPumpStatus[index].currentrunning.remainingduration;
     }
 
     var getCurrentRunningMode = function(pump) {
@@ -412,12 +413,12 @@ module.exports = function(container) {
                     currentPumpStatus[index].currentrunning.remainingduration,
                     program, value, duration)
             }
-            currentPumpStatus[index].currentrunning = newCurrentRunning
+            currentPumpStatus[index].currentrunning = JSON.parse(JSON.stringify(newCurrentRunning))
         }
-
     }
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: pump.js')
 

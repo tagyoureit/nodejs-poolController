@@ -15,8 +15,10 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            // loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
             pumpControllerPowerTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startPowerTimer')
             pumpControllerRPMTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
@@ -37,28 +39,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             bottle.container.settings.logPumpMessages = 0
         })
 
-//MOVE THIS TO THE API SECTION LATER
-        it('runs pump 1, program 1 for 600 minutes ', function(done) {
 
-            // requestPoolDataWithURL('pumpCommand/pump/1/program/1/duration/600').then(function(obj) {
-            //     obj.should.eq({
-            //         "text": "REST API pumpCommand variables - pump: 1, program: 1, duration: 2",
-            //         "pump": "1",
-            //         "duration": "600"
-            //     });
-            //     done()
-            // });
-            var http=require('http')
-            http.get('http://localhost:3000/pumpCommand/run/pump/1/program/1/duration/600', function(res){
-              console.log('res.body:', res.body)
-              clock.tick(25000)
-              console.log('call 1,1,6000 via url: ', queuePacketStub.args)
-              done()
-            })
-
-
-
-        });
 
 
         it('saves pump 1 program 1 at 1000', function() {

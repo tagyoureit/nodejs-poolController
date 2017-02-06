@@ -21,10 +21,12 @@ module.exports = function(container) {
     var ISYConfig = container.settings.ISYConfig
     var ISYTimer = new container.nanotimer
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: helpers.js')
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: helpers.js')
 

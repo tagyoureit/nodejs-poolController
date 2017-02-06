@@ -44,6 +44,7 @@
 
 module.exports = function(container) {
     var logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: heat.js')
 
@@ -250,6 +251,7 @@ function setPoolHeatmode(heatmode, callback){
 
 }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: heat.js')
 

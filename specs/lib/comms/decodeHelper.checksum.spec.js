@@ -1,6 +1,4 @@
-var myModule = rewire(path.join(process.cwd(), '/src/lib/comms/inbound/decode-helper.js'))
-
-describe('decodeHelper', function() {
+describe('decodeHelper processes controller packets', function() {
     var testarrayGOOD = [
         [165, 16, 15, 16, 8, 13, 73, 73, 49, 85, 100, 2, 0, 0, 45, 0, 0, 0, 0, 2, 148],
         [165, 16, 15, 16, 10, 12, 3, 87, 116, 114, 70, 97, 108, 108, 32, 51, 0, 251, 4, 247],
@@ -15,162 +13,117 @@ describe('decodeHelper', function() {
     ]
     var equip = 'controller'
 
-    describe('#Checksum', function() {
-        context('when packets arrive', function() {
-            it('it should return true with various controller packets', function() {
-                var stub = sinon.stub() //(bottle.container.decodeHelper.checksum)
-                var loggerStub = sinon.stub()
-                myModule.__with__({
+    describe('#When packets arrive', function() {
+        context('via serialport or Socat', function() {
 
-                    'bottle.container': {
-                        'settings': {
-                            'logMessageDecoding': true
-                        },
-                        'logger': {
-                            'info': loggerStub,
-                            'silly': loggerStub,
-                            'warn': loggerStub
-                        }
-                    }
-                })(function() {
-                    for (var i = 0; i < testarrayGOOD.length; i++) {
-                        // console.log('running test with (valid): ', testarrayGOOD[i].toString())
-                        var result = myModule(bottle.container).checksum(testarrayGOOD[i], 25, equip)
-                        //console.log('loggerStub: ', loggerStub.args)
-                        result.should.be.true
-                    }
+            before(function() {
+                bottle.container.settings.logMessageDecoding = 1
+            });
 
+            beforeEach(function() {
+                sandbox = sinon.sandbox.create()
+                clock = sandbox.useFakeTimers()
+                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
+                isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
+                isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
+                isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
+                isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
+                writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
+                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
+                processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
+                processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
+                bottle.container.queuePacket.queuePacketsArrLength = 0
+            })
 
-                })
+            afterEach(function() {
+                bottle.container.queuePacket.queuePacketsArrLength = 0
+                sandbox.restore()
 
             })
 
-            it('should return false with various invalid controller packets', function() {
-                var stub = sinon.stub() //(bottle.container.decodeHelper.checksum)
-                var loggerStub = sinon.stub()
-                myModule.__with__({
+            after(function() {
+                bottle.container.settings.logMessageDecoding = 0
 
-                    'bottle.container': {
-                        'settings': {
-                            'logMessageDecoding': true
-                        },
-                        'logger': {
-                            'info': loggerStub,
-                            'silly': loggerStub,
-                            'warn': loggerStub
-                        }
-                    }
-                })(function() {
-                    for (var i = 0; i < testarrayBAD.length; i++) {
-                        // console.log('running test with (invalid): ', testarrayBAD[i].toString())
-                        var result = myModule(bottle.container).checksum(testarrayBAD[i], 25, equip)
-                        //console.log('loggerStub: ', loggerStub.args)
-                        result.should.be.false
-                    }
+            })
+
+            it('#checksum should return true with various controller packets', function() {
+
+                for (var i = 0; i < testarrayGOOD.length; i++) {
+                    bottle.container.decodeHelper.checksum(testarrayGOOD[i], 25, equip).should.be.true
+
+                }
+            })
+
+            it('#checksum should return false with various invalid controller packets', function() {
+                for (var i = 0; i < testarrayBAD.length; i++) {
+                    bottle.container.decodeHelper.checksum(testarrayBAD[i], 25, equip).should.be.false
+                }
+            })
 
 
-                })
 
+
+            it('should try to decode the packet as a controller packet', function() {
+
+                bottle.container.settings.logMessageDecoding = 1
+                bottle.container.settings.logLevel = 'silly'
+
+                for (var i = 0; i < testarrayGOOD.length; i++) {
+                    bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
+                    // console.log('testarrayGOOD:', testarrayGOOD[i])
+                    // console.log('processControllerPacketStub.args', processControllerPacketStub.args)
+                    processControllerPacketStub.args[i][0].should.contain.members(testarrayGOOD[i])
+                    processPumpPacketStub.callCount.should.eq(0)
+                    processChlorinatorPacketStub.callCount.should.eq(0)
+                }
+            })
+
+
+
+            it('#isResponse should return false', function() {
+
+                // var checksumStub = sinon.stub()
+                // checksumStub.returns(true)
+                // var successfulAckStub = sinon.stub()
+                //
+                // var isResponseStub = sinon.stub()
+                // isResponseStub.returns(true)
+                // var decodeStub = sinon.stub()
+                //
+                // //myModule.__set__("checksum", checksumStub)
+                //
+                // myModule.__with__({
+                //     'checksum': function() {
+                //         return 'hello'
+                //     },
+                //     //'fred': function(){console.log('WAS CALLED')},
+                //     'bottle.container': {
+                //         'queuePacket': {
+                //             'first': function() {
+                //                 return [255, 0, 255, 165, 0, 96, 16, 1, 4, 3, 39, 3, 32, 1, 103]
+                //             }
+                //         },
+                //         'logger': {
+                //             silly: function() {},
+                //             error: function() {}
+                //         }
+                //     },
+                //     'decode': decodeStub,
+                //
+                //     'isResponse': isResponseStub,
+                //     'successfulAck': successfulAckStub
+
+                // })(function() {
+                for (var i = 0; i < testarrayGOOD.length; i++) {
+
+                }
+                // })
             })
         })
     })
-
-    describe('#processChecksum', function() {
-        //var spiedChecksum = sinon.spy(bottle.container.decodeHelper.decode)
-
-        context('(not a response)', function() {
-            it('should call decode once', function() {
-
-                var checksumStub = sinon.stub()
-                checksumStub.returns(true)
-                var successfulAckStub = sinon.stub()
-
-                var isResponseStub = sinon.stub()
-                isResponseStub.returns(true)
-                var decodeStub = sinon.stub()
-
-                //myModule.__set__("checksum", checksumStub)
-
-                myModule.__with__({
-                    'checksum': function() {
-                        return 'hello'
-                    },
-                    //'fred': function(){console.log('WAS CALLED')},
-                    'bottle.container': {
-                        'queuePacket': {
-                            'getQueuePacketsArrLength': function() {
-                                return 0
-                            }
-                        }
-                    },
-                    'decode': decodeStub,
-
-                    'isResponse': isResponseStub,
-                    'successfulAck': successfulAckStub
-
-                })(function() {
-                    for (var i = 0; i < testarrayGOOD.length; i++) {
-                        // console.log('running test with: ', testarrayGOOD[i].toString())
-                        //myModule('fake').processChecksum(testarrayGOOD[i], i * 10, equip)
-                        //expect(spiedChecksum).to.be.calledOnce
-                        //decodeStub.should.be.calledOnce
-                        //successfulAckStub.callCount.should.eq(0)
-                        return false
-                        //trying to figure out how to rewire checksum function.  not working...
-                        //http://stackoverflow.com/questions/41787876/use-rewire-to-stub-function-in-anonymous-export-in-nodejs
-
-                    }
-                })
-            })
-
-        })
-    })
-
-    describe('#isResponse', function() {
-        //var spiedChecksum = sinon.spy(bottle.container.decodeHelper.decode)
-
-        context('(with no packets in outbound queue)', function() {
-            it('should return false', function() {
-
-                var checksumStub = sinon.stub()
-                checksumStub.returns(true)
-                var successfulAckStub = sinon.stub()
-
-                var isResponseStub = sinon.stub()
-                isResponseStub.returns(true)
-                var decodeStub = sinon.stub()
-
-                //myModule.__set__("checksum", checksumStub)
-
-                myModule.__with__({
-                    'checksum': function() {
-                        return 'hello'
-                    },
-                    //'fred': function(){console.log('WAS CALLED')},
-                    'bottle.container': {
-                        'queuePacket': {
-                            'first': function() {
-                                return [255,0,255,165,0,96,16, 1,4,3,39, 3,32, 1,103]
-                            }
-                        },
-                        'logger': {
-                          silly: function() {},
-                          error: function() {}
-                        }
-                    },
-                    'decode': decodeStub,
-
-                    'isResponse': isResponseStub,
-                    'successfulAck': successfulAckStub
-
-                })(function() {
-                    for (var i = 0; i < testarrayGOOD.length; i++) {
-
-                    }
-                })
-            })
-
-        })
-    })
-
 })

@@ -18,6 +18,7 @@
 module.exports = function(container) {
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: pump-controller-timers.js')
 
@@ -249,7 +250,7 @@ module.exports = function(container) {
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
 
             //this function was called via timer and there is still time left on the timer
-            container.pumpController.runPowerSequence(index, container.pump.getCurrentRunningValue(1))
+            container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(index))
 
             if (container.settings.logPumpTimers) logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump1Timer = setTimeout(pump1PowerTimerMode, 30 * 1000)
@@ -267,7 +268,7 @@ module.exports = function(container) {
             //run until stopped
             if (container.settings.logPumpTimers)
                 logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
-            container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(1))
+            container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(index))
             pump1Timer = setTimeout(pump1PowerTimerMode, 30 * 1000)
         }
         container.io.emitToClients('pump')
@@ -286,7 +287,7 @@ module.exports = function(container) {
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
 
             //this function was called via timer and there is still time left on the timer
-            container.pumpController.runPowerSequence(index, container.pump.getCurrentRunningValue(2))
+            container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(2))
 
             if (container.settings.logPumpTimers) logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump2Timer = setTimeout(pump2PowerTimerMode, 30 * 1000)
@@ -389,6 +390,7 @@ module.exports = function(container) {
         }
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: pump-controller-timers.js')
 

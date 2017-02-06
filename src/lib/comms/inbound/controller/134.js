@@ -18,6 +18,7 @@
 //Set Circuit Function On/Off
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 134.js')
 
@@ -31,6 +32,7 @@ function process(data, counter) {
         }
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 134.js')
 

@@ -16,6 +16,7 @@
  */
 
 module.exports = function(container) {
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: process-pump.js')
 
@@ -86,6 +87,7 @@ module.exports = function(container) {
 
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: process-pump.js')
 

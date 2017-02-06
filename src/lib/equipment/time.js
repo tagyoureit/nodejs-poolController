@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
     logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: time.js')
 
@@ -54,6 +55,7 @@ module.exports = function(container) {
         return time
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: time.js')
 

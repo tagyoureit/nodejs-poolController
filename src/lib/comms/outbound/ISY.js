@@ -28,6 +28,7 @@ module.exports = function(container) {
     //TODO: We don't need to assign this anymore.  Can use the bottle... to access it directly.
     //ISYConfig = JSON.parse(JSON.stringify(s.ISYConfig))
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: ISY.js')
 
@@ -80,6 +81,7 @@ module.exports = function(container) {
         }
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: ISY.js')
 

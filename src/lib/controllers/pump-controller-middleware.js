@@ -18,6 +18,7 @@
 module.exports = function(container) {
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: pump-controller-middleware.js')
 
@@ -217,7 +218,6 @@ module.exports = function(container) {
 
     // Should be depricated
     var pumpCommand = function(index, program, rpm, duration) {
-
         index = parseInt(index)
 
         if (rpm !== null) {
@@ -326,6 +326,7 @@ module.exports = function(container) {
     /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: pump-controller-middleware.js')
 

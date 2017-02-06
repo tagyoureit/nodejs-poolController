@@ -16,7 +16,7 @@ describe('server', function() {
             bottle.container.settings.expressAuth = 1
             bottle.container.settings.expressAuthFile = path.join('/specs/assets/server', '/users.htpasswd')
             bottle.container.settings.expressDir = '/bootstrap'
-            bottle.container.server.close()
+            // bottle.container.server.close()
             bottle.container.server.init()
           })
 
@@ -33,7 +33,7 @@ describe('server', function() {
             bottle.container.settings.expressAuth = 0
             bottle.container.settings.expressAuthFile = ''
             bottle.container.server.close()
-            bottle.container.server.init()
+            // bottle.container.server.init()
           })
 
             it('authorizes a known user', function(done) {

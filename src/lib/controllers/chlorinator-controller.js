@@ -19,6 +19,7 @@
 var chlorinatorTimer;
 module.exports = function(container) {
     var logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: chlorinator-controller.js')
 
@@ -66,6 +67,7 @@ module.exports = function(container) {
 
         return true
     }
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: chlorinator-controller.js')
 

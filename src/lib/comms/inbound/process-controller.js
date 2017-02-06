@@ -18,7 +18,8 @@
 module.exports = function(container) {
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             logger.info('Loading: process-controller.js')
 
 
@@ -108,7 +109,8 @@ module.exports = function(container) {
 
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             logger.info('Loaded: process-controller.js')
 
 
