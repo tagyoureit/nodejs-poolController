@@ -21,13 +21,13 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: (pump)2.js')
 
-    s = container.settings
-    logger = container.logger
+    var s = container.settings
+    var logger = container.logger
 
     function process(pumpStatus, data) {
       logger.info('in pump area 2: ', data)
 
-        decoded = true;
+       var decoded = true;
         return decoded
     }
 

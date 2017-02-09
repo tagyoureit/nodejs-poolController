@@ -71,6 +71,7 @@ module.exports = function(container) {
         app.use(express.static(path.join(process.cwd(), 'src', container.settings.expressDir)));
         app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
         app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
+        // app.use('/bootstrap-slider', express.static(path.join(process.cwd(), '/node_modules/bootstrap-slider/dist/')));
 
 
 
@@ -177,7 +178,7 @@ module.exports = function(container) {
 
         })
 
-
+        /* Return warning with invalid pump URL's  */
         app.get('/pumpCommand/:index/:program', function(req, res) {
             var index = parseInt(req.params.index)
             //don't parseInt program because this could be an Int or 'on/off'
@@ -194,22 +195,73 @@ module.exports = function(container) {
             container.pumpControllerMiddleware.pumpCommand(index, program, null, null)
             res.send(response)
         })
+        /* END Return warning with invalid pump URL's  */
 
-        //URI call to save program to pump
-        app.get('/pumpCommand/save/pump/:pump/program/:program', function(req, res) {
+        /* New pumpCommand API's  */
+        //#1  Turn pump off
+        app.get('/pumpCommand/off/pump/:pump', function(req, res) {
             var pump = parseInt(req.params.pump)
-            var program = parseInt(req.params.program)
-
-            //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
             var response = {}
-            response.text = 'FAIL: Please provide a speed /speed/{speed} when requesting to save the program'
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: off, duration: null'
             response.pump = pump
-            response.program = program
-            response.duration = null
+            response.value = null
+            response.duration = -1
+            container.pumpControllerTimers.clearTimer(pump)
             res.send(response)
         })
 
-        //URI call to run program to pump
+        //#2  Run pump indefinitely.
+        app.get('/pumpCommand/run/pump/:pump', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: null'
+            response.pump = pump
+            response.value = 1
+            response.duration = -1
+            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
+            res.send(response)
+        })
+
+        // //variation on #2.  Probably should get rid of this as "on" is synonym to "run"
+        // app.get('/pumpCommand/on/pump/:pump', function(req, res) {
+        //     var pump = parseInt(req.params.pump)
+        //     var response = {}
+        //     response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: null'
+        //     response.pump = pump
+        //     response.value = 1
+        //     response.duration = -1
+        //     container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
+        //     res.send(response)
+        // })
+
+        //#3  Run pump for a duration.
+        app.get('/pumpCommand/run/pump/:pump/duration/:duration', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var duration = parseInt(req.params.duration)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: ' + duration
+            response.pump = pump
+            response.value = null
+            response.duration = duration
+            container.pumpControllerTimers.startPowerTimer(pump, duration) //-1 for indefinite duration
+            res.send(response)
+        })
+
+        // //variation on #3.  Probably should get rid of this as "on" is synonym to "run"
+        // app.get('/pumpCommand/on/pump/:pump/duration/:duration', function(req, res) {
+        //     var pump = parseInt(req.params.pump)
+        //     var duration = parseInt(req.params.duration)
+        //     var response = {}
+        //     response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: ' + duration
+        //     response.pump = pump
+        //     response.value = null
+        //     response.duration = duration
+        //     container.pumpControllerTimers.startPowerTimer(pump, duration) //-1 for indefinite duration
+        //     res.send(response)
+        // })
+
+
+        //#4  Run pump program for indefinite duration
         app.get('/pumpCommand/run/pump/:pump/program/:program', function(req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
@@ -225,74 +277,7 @@ module.exports = function(container) {
             res.send(response)
         })
 
-        app.get('/pumpCommand/save/pump/:pump/rpm/:rpm', function(req, res) {
-            //TODO:  this should be valid.  Just turn the pump on with no program at a specific speed.  Maybe 5,1,1 (manual)?
-            var response = {}
-            response.text = 'Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#'
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var rpm = parseInt(req.params.rpm)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', rpm: ' + rpm + ', duration: null'
-            response.pump = pump
-            response.speed = rpm
-            response.duration = -1
-            // container.pumpControllerMiddleware.runRPMSequence(pump, rpm)
-            container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/off/pump/:pump', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: off, duration: null'
-            response.pump = pump
-            response.value = null
-            response.duration = -1
-            container.pumpControllerTimers.clearTimer(pump)
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/on/pump/:pump', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: null'
-            response.pump = pump
-            response.value = 1
-            response.duration = -1
-            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/on/pump/:pump/duration/:duration', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var duration = parseInt(req.params.duration)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: ' + duration
-            response.pump = pump
-            response.value = null
-            response.duration = duration
-            container.pumpControllerTimers.startPowerTimer(pump, duration) //-1 for indefinite duration
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/save/pump/:pump/program/:program/rpm/:speed', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var program = parseInt(req.params.program)
-            var speed = parseInt(req.params.speed)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', rpm: ' + speed + ', duration: null'
-            response.pump = pump
-            response.program = program
-            response.speed = speed
-            response.duration = null
-            container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, speed)
-            res.send(response)
-        })
-
+        //#5 Run pump program for a specified duration
         app.get('/pumpCommand/run/pump/:pump/program/:program/duration/:duration', function(req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
@@ -307,6 +292,21 @@ module.exports = function(container) {
             res.send(response)
         })
 
+        //#6 Run pump at RPM for an indefinite duration
+        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var rpm = parseInt(req.params.rpm)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', rpm: ' + rpm + ', duration: null'
+            response.pump = pump
+            response.speed = rpm
+            response.duration = -1
+            // container.pumpControllerMiddleware.runRPMSequence(pump, rpm)
+            container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
+            res.send(response)
+        })
+
+        //#7 Run pump at RPM for specified duration
         app.get('/pumpCommand/run/pump/:pump/rpm/:rpm/duration/:duration', function(req, res) {
             var pump = parseInt(req.params.pump)
             var rpm = parseInt(req.params.rpm)
@@ -320,7 +320,39 @@ module.exports = function(container) {
             res.send(response)
         })
 
-        app.get('/pumpCommand/run/pump/:pump/program/:program/rpm/:speed/duration/:duration', function(req, res) {
+        //#8  Save program to pump
+        app.get('/pumpCommand/save/pump/:pump/program/:program/rpm/:speed', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var speed = parseInt(req.params.speed)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', rpm: ' + speed + ', duration: null'
+            response.pump = pump
+            response.program = program
+            response.speed = speed
+            response.duration = null
+            container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, speed)
+            res.send(response)
+        })
+
+        //#9  Save and run program for indefinite duration
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var speed = parseInt(req.params.speed)
+            var duration = parseInt(req.params.duration)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: indefinite'
+            response.pump = pump
+            response.program = program
+            response.speed = speed
+            response.duration = -1
+            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, speed, -1)
+            res.send(response)
+        })
+
+        //#10  Save and run program for specified duration
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed/duration/:duration', function(req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -334,6 +366,45 @@ module.exports = function(container) {
             container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, speed, duration)
             res.send(response)
         })
+
+
+        /* END New pumpCommand API's  */
+
+
+
+        /* Invalid pump commands -- sends response */
+        app.get('/pumpCommand/save/pump/:pump/rpm/:rpm', function(req, res) {
+            //TODO:  this should be valid.  Just turn the pump on with no program at a specific speed.  Maybe 5,1,1 (manual)?
+            var response = {}
+            response.text = 'FAIL: Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#'
+            res.send(response)
+        })
+
+
+        app.get('/pumpCommand/save/pump/:pump/program/:program', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+
+            //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
+            var response = {}
+            response.text = 'FAIL: Please provide a speed /speed/{speed} when requesting to save the program'
+            response.pump = pump
+            response.program = program
+            response.duration = null
+            res.send(response)
+        })
+
+        /* END Invalid pump commands -- sends response */
+
+
+
+
+
+
+
+
+
+        /*  Original pumpCommand API  */
 
         app.get('/pumpCommand/:pump/:program/:speed', function(req, res) {
             var pump = parseInt(req.params.pump)
@@ -366,7 +437,7 @@ module.exports = function(container) {
             res.send(response)
         })
     }
-
+    /*  END  Original pumpCommand API  */
     var close = function() {
         // console.log('calling server close')
         if (server !== undefined)

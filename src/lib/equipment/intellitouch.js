@@ -108,7 +108,6 @@ module.exports = function(container) {
         checkIfNeedControllerConfiguration: checkIfNeedControllerConfiguration,
         getPreambleByte: getPreambleByte,
         setPreambleByte : setPreambleByte,
-        checkIfNeedControllerConfiguration: checkIfNeedControllerConfiguration,
         getControllerConfiguration: getControllerConfiguration
     }
 

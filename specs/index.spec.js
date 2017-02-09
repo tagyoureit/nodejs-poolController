@@ -7,14 +7,14 @@ var bottle = Bottle.pop('poolController-Bottle');
     describe('nodejs-poolController', function() {
         describe('Bottle should exist', function() {
             it('should start the app', function() {
-                expect(bottle).to.exist
+                bottle.should.exist
 
             })
         })
 
         describe('Bottle should load logger', function() {
             it('should load logger', function() {
-                expect(bottle.container.logger).to.exist
+                bottle.container.logger.should.exist
 
             })
         })

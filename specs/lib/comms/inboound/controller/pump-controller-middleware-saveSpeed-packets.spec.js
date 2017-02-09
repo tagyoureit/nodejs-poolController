@@ -1,7 +1,3 @@
-var reqString = path.join(process.cwd(), '/src/lib/controllers/pump-controller-middleware.js')
-
-var myModule = rewire(reqString)
-
 
 describe('pump controller - save speed (1/2)', function() {
 

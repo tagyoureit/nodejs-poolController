@@ -12,19 +12,21 @@ bottle.container.settings.load()
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 chai.should();
-var expect = global.expect = chai.expect;
-chai.config.includeStack = true;
+// var expect = global.expect = chai.expect;
+// chai.config.includeStack = true;
 var _ = global._ = require('lodash');
 var rp = global.rp = require('request-promise')
 global.bottle = Bottle.pop('poolController-Bottle');
 global.spy = sinon.spy()
 chai.config.includeStack = true;
-//global.expect = chai.expect;
-global.AssertionError = chai.AssertionError;
-global.Assertion = chai.Assertion;
-global.assert = chai.assert;
-
+// //global.expect = chai.expect;
+// global.AssertionError = chai.AssertionError;
+// global.Assertion = chai.Assertion;
+// global.assert = chai.assert;
+bottle.container.pump.init()
 var pumpCommands = require(__dirname + '/pumpCommands.js')
+var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')
+var bufferCapture = require(__dirname + '/bufferCapture.js')
 
 var fs = global.fs = require('promised-io/fs')
 

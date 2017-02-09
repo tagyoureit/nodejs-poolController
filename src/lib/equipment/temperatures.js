@@ -24,10 +24,10 @@
  }
 
 module.exports = function(container) {
-    logger = container.logger
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loading: temperatures.js')
+        container.logger.info('Loading: temperatures.js')
 
 
 
@@ -48,11 +48,11 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: temperatures.js')
+        container.logger.info('Loaded: temperatures.js')
 
 
     return {
-        temperatures,
+        //temperatures,
         setTempFromController: setTempFromController,
         getTemperatures : getTemperatures
     }

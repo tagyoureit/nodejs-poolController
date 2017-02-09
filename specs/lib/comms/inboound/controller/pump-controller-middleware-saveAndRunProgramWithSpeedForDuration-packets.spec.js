@@ -22,6 +22,7 @@ describe('pump controller - save and run program with speed for duration', funct
         })
 
         afterEach(function() {
+          bottle.container.pump.init()
             //restore the sandbox after each function
             sandbox.restore()
         })

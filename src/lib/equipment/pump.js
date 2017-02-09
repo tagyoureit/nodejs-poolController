@@ -21,8 +21,9 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
-    function Pump(number, time, run, mode, drivestate, watts, rpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
+    function Pump(number, name, time, run, mode, drivestate, watts, rpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
         this.pump = number; //1 or 2
+        this.name = name;
         this.time = time;
         this.run = run;
         this.mode = mode;
@@ -42,23 +43,40 @@ module.exports = function(container) {
         this.power = power;
     }
 
+    var pump1,
+        pump2,
+        currentPumpStatus,
+        currentPumpStatusPacket
 
-    var pump1 = new Pump(1, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
-        'mode': 'off',
-        'value': 0,
-        'remainingDuration': -1
-    }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
-    var pump2 = new Pump(2, 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
-        'mode': 'off',
-        'value': 0,
-        'remainingduration': -1
-    }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
-    //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
-    var currentPumpStatus = ['blank', pump1, pump2]
-    var currentPumpStatusPacket = ['blank', [],
-        []
-    ]; // variable to hold the status packets of the pumps
 
+    var init = function() {
+        if (container.settings.logPumpMessages)
+            if (currentPumpStatus === undefined) {
+                container.logger.silly('initializing pumps for first time')
+            }
+        else {
+            container.logger.silly('will reset pumps...', currentPumpStatus[1].power)
+        }
+
+
+        pump1 = new Pump(1, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+            'mode': 'off',
+            'value': 0,
+            'remainingDuration': -1
+        }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
+        pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+            'mode': 'off',
+            'value': 0,
+            'remainingduration': -1
+        }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
+        //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
+        currentPumpStatus = ['blank', pump1, pump2]
+        currentPumpStatusPacket = ['blank', [],
+            []
+        ]; // variable to hold the status packets of the pumps
+        if (container.settings.logPumpMessages)
+            container.logger.silly('just reset pumps...', currentPumpStatus[1].power)
+    }
 
     function setTime(pump, hour, min) {
         var timeStr = container.helpers.formatTime(hour, min)
@@ -68,7 +86,7 @@ module.exports = function(container) {
 
 
     var significantWattsChange = function(pump, watts, counter) {
-        if ((Math.abs((watts - currentPumpStatus[pump].watts) / watts)) > (5/100)) {
+        if ((Math.abs((watts - currentPumpStatus[pump].watts) / watts)) > (5 / 100)) {
             if (container.settings.logPumpMessages) container.logger.info('Msg# %s   Pump %s watts changed >5%: %s --> %s \n', counter, pump, currentPumpStatus[pump].watts, watts)
             return true
         }
@@ -340,8 +358,8 @@ module.exports = function(container) {
         }
     }
 
-    var getPower = function(index){
-      return currentPumpStatus[index].power
+    var getPower = function(index) {
+        return currentPumpStatus[index].power
     }
 
 
@@ -445,7 +463,8 @@ module.exports = function(container) {
         getCurrentRunningMode: getCurrentRunningMode,
         getCurrentRunningValue: getCurrentRunningValue,
         getCurrentRemainingDuration: getCurrentRemainingDuration,
-        updateCurrentRunningPumpDuration: updateCurrentRunningPumpDuration
+        updateCurrentRunningPumpDuration: updateCurrentRunningPumpDuration,
+        init: init
 
 
     }

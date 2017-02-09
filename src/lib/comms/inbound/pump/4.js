@@ -24,7 +24,7 @@ module.exports = function(container) {
 
     function process(data, counter) {
         var remotecontrol
-        if (data[container.constants.pumpPacketFields.CMD] == 255) //Set pump control panel off (Main panel control only)
+        if (data[container.constants.pumpPacketFields.CMD] === 255) //Set pump control panel off (Main panel control only)
         {
             remotecontrol = 1;
         } else //0 = Set pump control panel on

@@ -137,16 +137,62 @@ module.exports = function(container) {
                 }
             })
 
-
+            //SHOULD DEPRICATE
             socket.on('pumpCommand', function(equip, program, value, duration) {
 
                 logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
                 container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
             })
 
-            socket.on('reload', function(){
-               logger.info('Reload requested from Socket.io')
-               container.reload.reload()
+            socket.on('setPumpCommand', function(action, pump, program, rpm, duration) {
+              pump = parseInt(pump)
+              if (program!==null) program = parseInt(program)
+              if (rpm!==null) rpm=parseInt(rpm)
+              if (duration!==null) duration=parseInt(duration)
+
+                logger.silly('Socket.IO pumpCommand variables - pump %s, action %s, program %s, rpm %s, duration %s', action, pump, program, rpm, duration)
+
+                if (action === 'off') {
+                    container.pumpControllerTimers.clearTimer(pump)
+                } else if (action === 'run') {
+                    if (program === null) {
+                        if (duration === null){
+                          container.pumpControllerTimers.startProgramTimer(pump, program, -1)
+                        } else {
+                          container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+                        }
+                    } else if (rpm === null) {
+                        if (duration===null){
+                          container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
+                        } else {
+                          container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
+                        }
+                    } else {
+                        if (duration === null) {
+                            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
+                        } else {
+                            container.pumpControllerTimers.startPowerTimer(pump, duration)
+                        }
+                    }
+                  }
+                  else if (action==="save") {
+                    container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, rpm)
+                  }
+                  else if (action==="saverun") {
+                      if (duration===null){
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, -1)
+
+                      }
+                      else {
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, duration)
+
+                      }
+                  }
+            })
+
+            socket.on('reload', function() {
+                logger.info('Reload requested from Socket.io')
+                container.reload.reload()
             })
 
 

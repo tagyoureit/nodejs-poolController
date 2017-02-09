@@ -28,7 +28,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
 
         afterEach(function() {
             //restore the sandbox after each function
-
+            bottle.container.pump.init()
             sandbox.restore()
 
         })

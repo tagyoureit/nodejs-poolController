@@ -47,7 +47,7 @@ module.exports = function(container) {
             }
 
 
-            decoded = true;
+            var decoded = true;
 
             return decoded
         }

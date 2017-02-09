@@ -20,10 +20,10 @@
 
 
 module.exports = function(container) {
-    logger = container.logger
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loading: valves.js')
+        container.logger.info('Loading: valves.js')
 
     var valves = {
         "valves": 0
@@ -41,7 +41,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: valves.js')
+        container.logger.info('Loaded: valves.js')
 
 
     return {

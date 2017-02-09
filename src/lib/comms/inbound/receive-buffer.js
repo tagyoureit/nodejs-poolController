@@ -57,9 +57,7 @@ module.exports = function(container) {
         pushBufferToArray()
 
         if (s.logMessageDecoding) {
-            if (container.settings.logLevel === 'debug')
-                console.log('\n\n')
-            logger.debug('iOAOA: Packet being analyzed: %s', bufferToProcess);
+            logger.debug('iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess);
         }
 
 

@@ -3,8 +3,6 @@ var URL = 'http://localhost:3000/'
 //var ENDPOINT = 'all'
 var sandbox;
 
-var myModule = rewire(path.join(process.cwd(), '/src/lib/comms', 'server.js'))
-
 function requestPoolDataWithURL(endpoint) {
     //console.log('pending - request sent for ' + endpoint)
     return getAllPoolData(endpoint).then(

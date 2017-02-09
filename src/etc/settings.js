@@ -19,6 +19,7 @@ var Bottle = require('bottlejs');
 var bottle = Bottle.pop('poolController-Bottle');
 var fs = bottle.container.fs
 
+/* istanbul ignore next */
 if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
 
@@ -186,5 +187,6 @@ displaySettingsMsg = exports.displaySettingsMsg = function() {
     return settingsStr
 }
 
+/* istanbul ignore next */
 if (bottle.container.logModuleLoading)
     console.log('Loaded: settings.js')

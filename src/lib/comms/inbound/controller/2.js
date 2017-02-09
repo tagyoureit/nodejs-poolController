@@ -70,7 +70,7 @@ module.exports = function(container) {
                       logger.verbose('Msg# %s   Duplicate broadcast.', counter)
               }
 
-              decoded = true;
+              var decoded = true;
               return decoded
 
             }

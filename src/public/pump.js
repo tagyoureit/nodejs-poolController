@@ -151,7 +151,7 @@ $(function () {
     function addChlorinator(data) {
 
 
-        if (data != null) {
+        if (data !== null) {
             $('#chlorinator').html('Salt: ' + data.saltPPM + ' PPM' +
                 '<br>[Pool/Default] Output (%): ' + data.outputPercent + '%' +
                 '<br>Spa Output (%): ' + data.outputSpaPercent + '%' +

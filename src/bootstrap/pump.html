@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Pentair Pool System</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" type="image/png" href="favicon.png">
+	<link type="text/css" rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+	<link type="text/css" rel="stylesheet" href="bootstrap-slider/css/bootstrap-slider.min.css">
+	<link type="text/css" rel="stylesheet" href="style.css">
+		<link type="text/css" rel="stylesheet" href="pumpstyle.css">
+	<script src="jquery/external/jquery/jquery.js"></script>
+	<script src="jquery/jquery-ui.min.js"></script>
+	<script src="bootstrap/js/bootstrap.min.js"></script>
+	<script src="bootstrap-slider/bootstrap-slider.min.js"></script>
+	<script src="socket.io/socket.io.js"></script>
+	<script src="pump.js"></script>
+</head>
+
+<body>
+	<nav class="navbar navbar-default">
+		<div class="container-fluid" style="width:100%;">
+			<div class="navbar-header">
+				<a class="navbar-brand">Pentair Pool System</a>
+			</div>
+			<table class="tabBlock" style="float: right;">
+				<tr>
+					<td><a id="tmrLastUpd" class="label label-danger" style="float: right;">Last update: NEVER</a></td>
+				</tr>
+				<tr>
+					<td><button id="debugEnable" class="btn btn-primary btn-xs" style="float: right;">Off</button><span style="float: right; margin-right: 5px;">Debug Log:</span></td>
+				</tr>
+			</table>
+		</div>
+	</nav>
+	<div id="draggablePanelList">
+		<p>
+			<p>
+		<div id="chlorinator" class="col-md-3 pnlChlorinator">
+			<div class="panel panel-primary">
+				<div class="panel-heading">Chlorinator Details
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
+				</div>
+				<div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="chlorinatorState">
+								<td>Chlorinator State</td>
+								<td>
+									<button id="CHLORINATOR" class="btn btn-primary btn-xs" data-target="#modalChlorinator" data-toggle="modal">---</button>
+								</td>
+							</tr>
+							<tr>
+								<td>Name</td>
+								<td id="chlorinatorName">---</td>
+							</tr>
+							<tr>
+								<td>Salt</td>
+								<td id="chlorinatorSalt">---</td>
+							</tr>
+							<tr>
+								<td>Pool</td>
+								<td id="chlorinatorPoolPercent">---</td>
+							</tr>
+							<tr>
+								<td>Spa</td>
+								<td id="chlorinatorSpaPercent">---</td>
+							</tr>
+							<tr>
+								<td>SuperChlorinate</td>
+								<td id="chlorinatorSuperChlorinate">---</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="pump" class="col-md-3 pnlSchedule">
+			<div class="panel panel-primary">
+				<div class="panel-heading">Pumps
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapsePump"></a>
+				</div>
+				<div id="collapsePump" class="panel-body panel-collapse collapse in">
+					<table id="pumps" class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="chlorinatorState">
+								<td>Pump Controller</td>
+								<td>
+									<button id="PUMP1" class="btn btn-primary btn-xs" data-target="#modalPump1" data-toggle="modal">Set</button>
+								</td>
+								<td>
+									<button id="PUMP2" class="btn btn-primary btn-xs" data-target="#modalPump2" data-toggle="modal">Set</button>
+								</td>
+							</tr>
+							<tr>
+								<td>Watts</td>
+							</tr>
+							<tr>
+								<td>RPM</td>
+							</tr>
+							<tr>
+								<td>Error</td>
+							</tr>
+							<tr>
+								<td>Drive State</td>
+							</tr>
+							<tr>
+								<td>Run Mode</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="debug" class="col-md-12 pnlDebug">
+			<div class="panel panel-primary">
+				<div class="panel-heading">Debug Log
+					<button id="debugClear" class="btn btn-warning btn-xs" style="position: absolute; right: 60px">Clear Log</button>
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseDebug"></a>
+				</div>
+				<div id="collapseDebug" class="panel-body panel-collapse collapse in">
+					<div tabindex="1" id="txtDebug" style="height:250px;width:100%;border:1px solid #ccc;font:12px Courier, Serif;white-space: nowrap;overflow:auto;">
+						<b>DEBUG LOG ... <br></b>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="modalChlorinator" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Chlorinator Settings ...</h4>
+				</div>
+				<div class="modal-body">
+					<div class="input-group">
+						<span class="input-group-addon">Chlorinator Level</span>
+						<input type="text" class="form-control" id="modalChlorInput" aria-describedby="basic-addon3">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>
+					<button id="SaveChanges" type="button" class="btn btn-primary">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+	<div class="modal fade" id="modalPump1" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Pump 1 Control Panel</h4>
+				</div>
+
+
+
+
+				<div class="modal-body">
+
+
+					<div id="actionpump1" class="btn-group" data-toggle="buttons">
+					  <label class="btn btn-primary active">
+					    <input type="radio" name="options" id="option1" autocomplete="off" data-value="run" checked> Run
+					  </label>
+					  <label class="btn btn-primary">
+					    <input type="radio" name="options" id="option2" autocomplete="off" data-value="save"> Save
+					  </label>
+					  <label class="btn btn-primary">
+					    <input type="radio" name="options" id="option3" autocomplete="off" data-value="saverun"> Save and Run
+					  </label>
+						<label class="btn btn-primary">
+							<input type="radio" name="options" id="option4" autocomplete="off" data-value="off"> Off
+						</label>
+					</div>
+					<p>
+
+						<div id="programpump1" class="btn-group" data-toggle="buttons">
+						  <label id="pump1label1" class="btn btn-primary active">
+						    <input type="radio" name="options" id="programpumpoption1" autocomplete="off" data-value="null"> No program
+						  </label>
+						  <label id="pump1label2" class="btn btn-primary">
+						    <input type="radio" name="options" id="programpumpoption2" autocomplete="off" data-value="1"> Program 1
+						  </label>
+						  <label class="btn btn-primary">
+						    <input type="radio" name="options" id="option3" autocomplete="off" data-value="2"> Program 2
+						  </label>
+							<label class="btn btn-primary">
+								<input type="radio" name="options" id="option4" autocomplete="off" data-value="3"> Program 3
+							</label>
+							<label class="btn btn-primary">
+								<input type="radio" name="options" id="option5" autocomplete="off" data-value="4"> Program 4
+							</label>
+						</div>
+						<p>
+				<p>
+				<div id="rpmpump1" class="input-group">
+					<span class="input-group-addon">RPM</span>
+					<input type="text" class="form-control" id="modalPump1" aria-describedby="rpm1" placeholder="450" disabled>
+				</div>
+				<br>
+				<div id="durationpump1" class="input-group">
+					<span class="input-group-addon">Duration</span>
+					<input type="text" class="form-control" id="modalPump1" aria-describedby="mins1" placeholder="in minutes">
+				</div>
+				<p>
+				<div id="result" class="input-group has-success">
+					<span class="input-group-addon">Here's what we got:</span>
+					<input type="text" class="form-control" id="result1" aria-describedby="mins1" placeholder="action to take...">
+					<span class="glyphicon glyphicon-ok form-control-feedback"></span>
+				</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>
+
+					<button id="SavePump1Changes" type="button" class="btn btn-primary">Go</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="alert alert-success" role="alert" id="pumpAlert">
+	  <strong>Warning!</strong> Better check yourself, you're not looking too good.
+	</div>
+
+
+	<div class="modal fade" id="modalPump2" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Pump 2 Settings ...</h4>
+				</div>
+				<div class="modal-body">
+					<div class="input-group">
+						<span class="input-group-addon">Pump 2 Level</span>
+						<input type="text" class="form-control" id="modalPump2" aria-describedby="basic-addon3">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Close</button>
+					<button id="SaveChanges" type="button" class="btn btn-primary">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container row-content">
+	</div>
+	<footer class="breadcrumb">
+		nodejs-poolController
+		<span style="float: right; margin-right: 5px;"><small>HTML Version: </small><span class="label label-default">v0.1.0</span></span><br>
+		<a href="https://github.com/tagyoureit/nodejs-poolController">Github Repository</a>
+		<span style="float: right; margin-right: 5px;"><small>JavaScript Version: </small><span id="jsVersion" class="label label-default">---</span></span>
+	</footer>
+</body>
+
+</html>

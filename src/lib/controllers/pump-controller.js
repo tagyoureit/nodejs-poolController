@@ -39,10 +39,7 @@ module.exports = function(container) {
         {
             setPrg = [6, 1, 10];
             container.pump.setPower(index, 1)
-        } else {
-            return false
         }
-
         var pumpPowerPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(pumpPowerPacket, setPrg)
         //if (container.settings.logApi) container.logger.verbose('Sending Turn pump %s %s: %s', pump, power, pumpPowerPacket);
@@ -65,6 +62,7 @@ module.exports = function(container) {
     }
 
     //NOTE: This pump timer doesn't do what we think it does... I think.
+    /* istanbul ignore next */
     function setPumpDuration(address, duration) {
         var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         var setTimerPacket = [165, 0, address, container.settings.appAddress, 1, 4, 3, 43, 0, 1];

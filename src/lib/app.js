@@ -145,7 +145,7 @@ var init = exports.init = function() {
     bottle.container.io.start()
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
-
+    bottle.container.pump.init()
 
     bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
     bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())

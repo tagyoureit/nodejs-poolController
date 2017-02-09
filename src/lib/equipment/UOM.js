@@ -16,10 +16,10 @@
  */
 
 module.exports = function(container) {
-    logger = container.logger
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loading: UOM.js')
+        container.logger.info('Loading: UOM.js')
 
     var UOM = {
         "UOM": 0,
@@ -29,7 +29,7 @@ module.exports = function(container) {
 
     function setUOM(uom) {
         UOM.UOM = uom
-        UOM.UOM = String.fromCharCode(176) +
+        UOM.UOMStr = String.fromCharCode(176) +
             (uom === 0 ?
                 ' Farenheit' :
                 ' Celsius')
@@ -40,12 +40,12 @@ module.exports = function(container) {
     }
 
     function getUOMStr(){
-      return UOMStr
+      return UOM.UOMStr
     }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: UOM.js')
+        container.logger.info('Loaded: UOM.js')
 
 
     return {

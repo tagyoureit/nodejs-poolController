@@ -23,9 +23,9 @@ describe('decodeHelper processes controller packets', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
                 isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
@@ -70,8 +70,8 @@ describe('decodeHelper processes controller packets', function() {
 
             it('should try to decode the packet as a controller packet', function() {
 
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logLevel = 'silly'
+                // bottle.container.settings.logMessageDecoding = 1
+                // bottle.container.settings.logLevel = 'silly'
 
                 for (var i = 0; i < testarrayGOOD.length; i++) {
                     bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)

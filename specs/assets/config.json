@@ -56,8 +56,8 @@
         "circuit16": ""
     }],
     "Log": {
-        "logLevel": "silly",
-        "extLogLevel": "silly",
+        "logLevel": "info",
+        "extLogLevel": "info",
         "logPumpMessages": 0,
         "logDuplicateMessages": 0,
         "logConsoleNotDecoded": 0,

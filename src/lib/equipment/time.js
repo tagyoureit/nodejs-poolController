@@ -16,10 +16,10 @@
  */
 
 module.exports = function(container) {
-    logger = container.logger
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loading: time.js')
+        container.logger.info('Loading: time.js')
 
     //How to use this.... container.dateFormat
 
@@ -41,7 +41,7 @@ module.exports = function(container) {
             time.controllerTime = timeStr;
         }
         else {
-          if (container.settings.logConfigMessages) logger.debug('No change in time.')
+          if (container.settings.logConfigMessages) container.logger.debug('No change in time.')
         }
 
     }
@@ -57,7 +57,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: time.js')
+        container.logger.info('Loaded: time.js')
 
 
     return {

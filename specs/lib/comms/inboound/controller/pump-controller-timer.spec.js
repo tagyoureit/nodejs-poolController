@@ -20,7 +20,7 @@ describe('pump controller', function() {
 
             bottle.container.settings.numberOfPumps = 1
             bottle.container.settings.logPumpTimers = 1
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.settings.logLevel = 'info'
             setPumpRemoteStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
 
@@ -52,7 +52,7 @@ describe('pump controller', function() {
 
             bottle.container.settings.numberOfPumps = 2
             bottle.container.settings.logPumpTimers = 1
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.settings.logLevel = 'info'
             setPumpRemoteStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
 
@@ -93,7 +93,7 @@ describe('pump controller', function() {
 
             bottle.container.settings.numberOfPumps = 1
             bottle.container.settings.logPumpTimers = 1
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.settings.logLevel = 'info'
             setPumpRemoteSpy = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusSpy = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')

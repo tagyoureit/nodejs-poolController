@@ -20,7 +20,7 @@ module.exports = function(container) {
 
         /*istanbul ignore next */
     if (container.logModuleLoading)
-            logger.info('Loading: process-controller.js')
+            container.logger.info('Loading: process-controller.js')
 
 
             function processControllerPacket(data, counter) {
@@ -94,13 +94,13 @@ module.exports = function(container) {
                         {
 
                             var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
-                            if (currentAction != undefined) {
-                                if (s.logConsoleNotDecoded)
-                                    logger.verbose('Msg# %s   %s packet: %s', counter, currentAction, data)
+                            if (currentAction !== undefined) {
+                                if (container.settings.logConsoleNotDecoded)
+                                    container.logger.verbose('Msg# %s   %s packet: %s', counter, currentAction, data)
                                 decoded = true;
                             } else {
-                                if (s.logConsoleNotDecoded)
-                                    logger.verbose('Msg# %s   is NOT DEFINED packet: %s', counter, data)
+                                if (container.settings.logConsoleNotDecoded)
+                                    container.logger.verbose('Msg# %s   is NOT DEFINED packet: %s', counter, data)
                             }
                         }
                 }
@@ -111,7 +111,7 @@ module.exports = function(container) {
 
         /*istanbul ignore next */
     if (container.logModuleLoading)
-            logger.info('Loaded: process-controller.js')
+            container.logger.info('Loaded: process-controller.js')
 
 
             return {

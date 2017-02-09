@@ -110,7 +110,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -151,7 +151,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -189,7 +189,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s RPM Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -225,7 +225,7 @@ module.exports = function(container) {
             //rpm duration has finished
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s RPM Timer Finished.   Pump will shut down.', index)
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -263,7 +263,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s Power Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -293,13 +293,11 @@ module.exports = function(container) {
             pump2Timer = setTimeout(pump2PowerTimerMode, 30 * 1000)
 
         } else
-        if (container.pump.getCurrentRemainingDuration(index) === 0)
-
-        {
+        if (container.pump.getCurrentRemainingDuration(index) === 0) {
             //program duration has finished
             if (container.settings.logPumpMessages)
                 logger.info('Pump %s Power Timer Finished.   Pump will shut down.', index)
-            clearTimer(1)
+            clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
             if (container.settings.logPumpTimers)
@@ -312,24 +310,21 @@ module.exports = function(container) {
 
     //set the internal timer for pump controls
     var startProgramTimer = function(index, program, duration) {
-      if (duration > 0) {
-          duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
-      } else if (duration === null || duration === undefined) {
-          duration = -1
-      }
-        container.pump.setCurrentRunning(index, 'program', program, duration)
+        if (duration > 0) {
+            duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+        } else if (duration === null || duration === undefined) {
+            duration = -1
+        }
 
         if (index === 1) {
-            // pump1Timer.setTimeout(pump1SafePumpMode, '', '30s')
-            //pump1Timer = setTimeout(pump1SafePumpMode, 30 * 1000)
-
-            pump1ProgramTimerMode(duration)
+            if (isPumpTimerRunning(1)) clearTimer(1)
+            container.pump.setCurrentRunning(index, 'program', program, duration)
+            pump1ProgramTimerMode()
             pump1TimerRunning = 1
         } else if (index === 2) {
-            // pump2Timer.setTimeout(pump2SafePumpMode, '', '30s')
-            //pump2Timer = setTimeout(pump2SafePumpMode, 30 * 1000)
-
-            pump2ProgramTimerMode(duration)
+            if (isPumpTimerRunning(2)) clearTimer(2)
+            container.pump.setCurrentRunning(index, 'program', program, duration)
+            pump2ProgramTimerMode()
             pump2TimerRunning = 1
         } else {
             logger.warn('Request to start pump program timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)
@@ -338,24 +333,20 @@ module.exports = function(container) {
 
     //set the internal timer for pump controls
     var startRPMTimer = function(index, rpm, duration) {
-      if (duration > 0) {
-          duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
-      } else if (duration === null || duration === undefined) {
-          duration = -1
-      }
-        container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
-
+        if (duration > 0) {
+            duration = duration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+        } else if (duration === null || duration === undefined) {
+            duration = -1
+        }
         if (index === 1) {
-            // pump1Timer.setTimeout(pump1SafePumpMode, '', '30s')
-            //pump1Timer = setTimeout(pump1SafePumpMode, 30 * 1000)
-
-            pump1RPMTimerMode(duration)
+            if (isPumpTimerRunning(1)) clearTimer(1)
+            container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
+            pump1RPMTimerMode()
             pump1TimerRunning = 1
         } else if (index === 2) {
-            // pump2Timer.setTimeout(pump2SafePumpMode, '', '30s')
-            //pump2Timer = setTimeout(pump2SafePumpMode, 30 * 1000)
-
-            pump2RPMTimerMode(duration)
+            if (isPumpTimerRunning(2)) clearTimer(2)
+            container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
+            pump2RPMTimerMode()
             pump2TimerRunning = 1
         } else {
             logger.warn('Request to start pump RPM timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)
@@ -369,12 +360,16 @@ module.exports = function(container) {
         } else if (duration === null || duration === undefined) {
             duration = -1
         }
-        container.pump.setCurrentRunning(index, 'power', 1, duration)
+
         if (index === 1) {
-            pump1PowerTimerMode(duration)
+            if (isPumpTimerRunning(1)) clearTimer(1)
+            container.pump.setCurrentRunning(index, 'power', 1, duration)
+            pump1PowerTimerMode()
             pump1TimerRunning = 1
         } else if (index === 2) {
-            pump2PowerTimerMode(duration)
+            if (isPumpTimerRunning(2)) clearTimer(2)
+            container.pump.setCurrentRunning(index, 'power', 1, duration)
+            pump2PowerTimerMode()
             pump2TimerRunning = 1
         } else {
             logger.warn('Request to start pump power timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)

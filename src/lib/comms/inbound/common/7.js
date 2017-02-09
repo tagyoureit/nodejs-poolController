@@ -23,9 +23,9 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: 2.js')
 
-    logger = container.logger
-    s = container.settings
-    c = container.constants
+    var logger = container.logger
+    var s = container.settings
+    var c = container.constants
 
 
 

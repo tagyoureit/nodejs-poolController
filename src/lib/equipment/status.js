@@ -34,46 +34,29 @@ module.exports = function(container) {
         return currentStatusBytes
     }
 
-    function setCurrentStatusBytes(data, counter) {
-        //TODO:  Is this right?  And do we even need to store this anymore?
-
-
-        if (currentStatusBytes.length === 0) {
-            if (container.settings.logConfigMessages) logger.verbose('\n ', printStatus(data));
-        } else
-        if (data !== currentStatusBytes) {
-            if (container.settings.logConfigMessages) {
-                logger.verbose('-->EQUIPMENT Msg# %s   \n', counter)
-                logger.verbose('Msg# %s: \n', counter, printStatus(currentStatusBytes, data));
-            }
-            currentStatusBytes.splice(0, currentStatusBytes.length, data)
-
-        } else //data ===currentStatusBytes
-        {
-            //do nothing?
-        }
-
+    var pad = function(num, size) {
+        //makes any digit returned as a string of length size (for outputting formatted byte text)
+        var s = "   " + num;
+        return s.substr(s.length - size);
     }
 
-
-
-    function printStatus(data1, data2) {
+    var printStatus = function(data1, data2) {
 
         var str1 = ''
         var str2 = ''
         var str3 = ''
 
         str1 = JSON.parse(JSON.stringify(data1));
-        if (data2 != null) str2 = JSON.parse(JSON.stringify(data2));
+        if (data2 !== null) str2 = JSON.parse(JSON.stringify(data2));
         str3 = ''; //delta
-        spacepadding = '';
-        spacepaddingNum = 19;
+        var spacepadding = '';
+        var spacepaddingNum = 19;
         for (var i = 0; i <= spacepaddingNum; i++) {
             spacepadding += ' ';
         }
 
 
-        header = '\n';
+        var header = '\n';
         header += (spacepadding + '               S       L                                           V           H   P   S   H       A   S           H\n');
         header += (spacepadding + '               O       E           M   M   M                       A           T   OO  P   T       I   O           E\n');
         header += (spacepadding + '           D   U       N   H       O   O   O                   U   L           R   L   A   R       R   L           A                           C   C\n');
@@ -85,9 +68,9 @@ module.exports = function(container) {
 
         //compare arrays so we can mark which are different
         //doing string 2 first so we can compare string arrays
-        if (data2 != null || data2 != undefined) {
-            for (var i = 0; i < str2.length - 1; i++) {
-                if (str1[i] == str2[i]) {
+        if (data2 !== null || data2 !== undefined) {
+            for (i = 0; i < str2.length - 1; i++) {
+                if (str1[i] === str2[i]) {
                     str3 += '    '
                 } else {
                     str3 += '   *'
@@ -102,20 +85,36 @@ module.exports = function(container) {
 
 
         //format status1 so numbers are three digits
-        for (var i = 0; i < str1.length - 1; i++) {
+        for (i = 0; i < str1.length - 1; i++) {
             str1[i] = pad(str1[i], 3);
         }
         str1 = 'Orig: ' + spacepadding.substr(6) + str1 + '\n';
 
-        str = header + str1 + str2 + str3;
+        var str = header + str1 + str2 + str3;
 
         return (str);
     }
 
-    function pad(num, size) {
-        //makes any digit returned as a string of length size (for outputting formatted byte text)
-        var s = "   " + num;
-        return s.substr(s.length - size);
+    function setCurrentStatusBytes(data, counter) {
+        //TODO:  Is this right?  And do we even need to store this anymore?
+
+
+        if (currentStatusBytes.length === 0) {
+            if (container.settings.logConfigMessages) container.logger.verbose('\n ', printStatus(data));
+        } else
+        if (data !== currentStatusBytes) {
+            if (container.settings.logConfigMessages) {
+                container.logger.verbose('-->EQUIPMENT Msg# %s   \n', counter)
+                container.logger.verbose('Msg# %s: \n', counter, printStatus(currentStatusBytes, data));
+            }
+            currentStatusBytes.splice(0, currentStatusBytes.length, data)
+
+        }
+        // else //data ===currentStatusBytes
+        // {
+        //     //do nothing?
+        // }
+
     }
 
 
