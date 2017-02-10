@@ -24,6 +24,12 @@ chai.config.includeStack = true;
 // global.Assertion = chai.Assertion;
 // global.assert = chai.assert;
 bottle.container.pump.init()
+            bottle.container.time.init()
+ ioclient = global.ioclient = require('socket.io-client')
+ socketURL = global.socketURL = 'http://localhost:3000'
+ socketOptions = global.socketOptions = {'transports': ['websocket'],
+'force new connection': false}
+
 var pumpCommands = require(__dirname + '/pumpCommands.js')
 var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')
 var bufferCapture = require(__dirname + '/bufferCapture.js')

@@ -77,6 +77,7 @@ bottle.factory('processChlorinator', require(__dirname + '/comms/inbound/process
 
 //COMMS/INBOUND/CONTROLLER
 bottle.factory('controller_2', require(__dirname + '/comms/inbound/controller/2.js'))
+bottle.factory('controller_5', require(__dirname + '/comms/inbound/controller/5.js'))
 bottle.factory('controller_8', require(__dirname + '/comms/inbound/controller/8.js'))
 bottle.factory('controller_10', require(__dirname + '/comms/inbound/controller/10.js'))
 bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/11.js'))
@@ -142,7 +143,8 @@ var init = exports.init = function() {
     //Call the modules to initialize them
     bottle.container.settings.load()
     bottle.container.server.init()
-    bottle.container.io.start()
+    bottle.container.io.init()
+    bottle.container.time.init()
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
     bottle.container.pump.init()

@@ -62,7 +62,7 @@ module.exports = function(container) {
         pump1 = new Pump(1, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
             'value': 0,
-            'remainingDuration': -1
+            'remainingduration': -1
         }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
         pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
@@ -427,7 +427,7 @@ module.exports = function(container) {
         }
         if (currentPumpStatus[index].currentrunning !== newCurrentRunning) {
             if (container.settings.logPumpMessages) {
-                container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    RemainingDuration: %s \r\n    to \r\n    Mode: %s     Value: %s    RemainingDuration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
+                container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    remainingduration: %s \r\n    to \r\n    Mode: %s     Value: %s    remainingduration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
                     currentPumpStatus[index].currentrunning.remainingduration,
                     program, value, duration)
             }

@@ -42,6 +42,8 @@ describe('#set functions', function() {
                 //loggerStub = sandbox.stub(bottle.container.logger, 'warn')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+
 
             })
 

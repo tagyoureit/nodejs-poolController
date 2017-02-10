@@ -16,203 +16,17 @@
  */
 
 module.exports = function(container) {
+    /*istanbul ignore next */
+    if (container.logModuleLoading)
+        container.logger.info('Loading: socketio-helper.js')
 
 
-    //var Server = require('./server.js'),
-    //var io = require('socket.io')(container.server.server);
-    var server = container.server.getServer()
-    var io = container.socket(server)
-    var socketlist = [];
+    var server, io, socketList = [];
 
 
     var logger = container.logger
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        logger.info('Loading: socketio-helper.js')
-
-
-    start = function() {
-
-
-        io.on('connection', function(socket, error) {
-            socketlist.push(socket);
-            socket.emit('socket_is_connected', 'You are connected!');
-            socket.on('close', function() {
-                container.logger.debug('socket closed');
-                socketlist.splice(socketlist.indexOf(socket), 1);
-            });
-            socket.on('error', function() {
-                container.logger.error('Error with socket: ', error)
-            })
-
-
-            // when the client emits 'toggleEquipment', this listens and executes
-            socket.on('toggleCircuit', function(equipment) {
-
-                container.circuit.toggleCircuit(equipment)
-
-
-            });
-            socket.on('search', function(mode, src, dest, action) {
-                //check if we don't have all valid values, and then emit a message to correct.
-
-                logger.debug('from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action);
-                searchMode = mode;
-                searchSrc = src;
-                searchDest = dest;
-                searchAction = action;
-            })
-
-            socket.on('all', function() {
-                emitToClients('all')
-            })
-
-            socket.on('sendpacket', function(incomingPacket) {
-
-
-                logger.info('User request (send_request.html) to send packet: %s', incomingPacket);
-                var packet;
-                packet = incomingPacket.split(',');
-                for (i = 0; i < packet.length; i++) {
-                    packet[i] = parseInt(packet[i])
-                }
-                if (packet[0] == 16 && packet[1] == c.ctrl.CHLORINATOR) {
-                    //logger.debug('packet (chlorinator) now: ', packet)
-                } else {
-                    if (packet[0] == 96 || packet[0] == 97 || packet[1] == 96 || packet[1] == 97)
-                    //If a message to the controller, use the preamble that we have recorded
-                    {
-                        var preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
-                    } else
-                    //if a message to the pumps, use 165,0
-                    {
-                        preamble = [165, 0]
-                    }
-                    Array.prototype.push.apply(preamblePacket, packet);
-                    packet = preamblePacket.slice(0);
-                    //logger.debug('packet (pool) now: ', packet)
-                }
-                container.queuePacket.queuePacket(packet);
-                var str = 'Sent packet: ' + JSON.stringify(packet)
-                io.sockets.emit('sendPacketResults', str)
-            })
-
-
-            socket.on('setchlorinator', function(desiredChlorinatorOutput) {
-                container.chlorinator.setChlorinatorLevel(parseInt(desiredChlorinatorOutput))
-            })
-
-            socket.on('spasetpoint', function(spasetpoint) {
-                container.heat.changeHeatSetPoint('spa', spasetpoint, ' socket.io spasetpoint')
-            })
-
-            socket.on('spaheatmode', function(spaheatmode) {
-                container.heat.changeHeatMode('spa', spaheatmode, 'socket.io spaheatmode')
-
-            })
-
-            socket.on('poolsetpoint', function(poolsetpoint) {
-                container.heat.changeHeatSetPoint('pool', change, 'socket.io poolsetpoint')
-            })
-
-            socket.on('poolheatmode', function(poolheatmode) {
-                container.heat.changeHeatMode('pool', poolheatmode, 'socket.io poolheatmode')
-            })
-
-            socket.on('setHeatSetPoint', function(equip, change) {
-                if (equip != null && change != null) {
-                    container.heat.changeHeatSetPoint(equip, change, 'socket.io setHeatSetPoint')
-                } else {
-                    logger.warn('setHeatPoint called with invalid values: %s %s', equip, change)
-                }
-            })
-
-            socket.on('setHeatMode', function(equip, change) {
-                if (equip == "pool") {
-                    container.heat.changeHeatMode('pool', change, 'socket.io setHeatMode ' + equip + ' ' + change)
-
-                } else {
-                    container.heat.changeHeatMode('spa', change, 'socket.io setHeatMode ' + equip + ' ' + change)
-                }
-            })
-
-            //SHOULD DEPRICATE
-            socket.on('pumpCommand', function(equip, program, value, duration) {
-
-                logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
-                container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
-            })
-
-            socket.on('setPumpCommand', function(action, pump, program, rpm, duration) {
-              pump = parseInt(pump)
-              if (program!==null) program = parseInt(program)
-              if (rpm!==null) rpm=parseInt(rpm)
-              if (duration!==null) duration=parseInt(duration)
-
-                logger.silly('Socket.IO pumpCommand variables - pump %s, action %s, program %s, rpm %s, duration %s', action, pump, program, rpm, duration)
-
-                if (action === 'off') {
-                    container.pumpControllerTimers.clearTimer(pump)
-                } else if (action === 'run') {
-                    if (program === null) {
-                        if (duration === null){
-                          container.pumpControllerTimers.startProgramTimer(pump, program, -1)
-                        } else {
-                          container.pumpControllerTimers.startProgramTimer(pump, program, duration)
-                        }
-                    } else if (rpm === null) {
-                        if (duration===null){
-                          container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
-                        } else {
-                          container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
-                        }
-                    } else {
-                        if (duration === null) {
-                            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
-                        } else {
-                            container.pumpControllerTimers.startPowerTimer(pump, duration)
-                        }
-                    }
-                  }
-                  else if (action==="save") {
-                    container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, rpm)
-                  }
-                  else if (action==="saverun") {
-                      if (duration===null){
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, -1)
-
-                      }
-                      else {
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, duration)
-
-                      }
-                  }
-            })
-
-            socket.on('reload', function() {
-                logger.info('Reload requested from Socket.io')
-                container.reload.reload()
-            })
-
-
-            emitToClients('all')
-        });
-    }
-
-    stop = function() {
-        //from http://stackoverflow.com/questions/16000120/socket-io-close-server
-        io.close();
-
-
-
-        socketlist.forEach(function(socket) {
-            socket.destroy();
-        });
-    }
-
-
-    function emitToClients(outputType) {
+    var emitToClients = function(outputType) {
         //logger.warn('EMIT: %s', outputType)
 
         //This code move to the INTEGRATIONS folder
@@ -257,6 +71,7 @@ module.exports = function(container) {
 
         if (outputType === 'pump' || outputType === 'all') {
             var pumpStatus = container.pump.getCurrentPumpStatus()
+            console.log('emitting pump')
             io.sockets.emit('pump',
                 pumpStatus
             )
@@ -290,7 +105,222 @@ module.exports = function(container) {
         }
     }
 
-    function emitDebugLog(msg) {
+
+    var init = function() {
+        //var Server = require('./server.js'),
+        //var io = require('socket.io')(container.server.server);
+        server = container.server.getServer()
+        io = container.socket(server)
+        socketList = [];
+
+        io.on('connection', function(socket, error) {
+
+            socketList.push(socket);
+            // socket.emit('socket_is_connected', 'You are connected!');
+            socket.on('close', function() {
+                console.log('socket closed')
+                container.logger.debug('socket closed');
+                socketList.splice(socketList.indexOf(socket), 1);
+            });
+            socket.on('error', function() {
+                container.logger.error('Error with socket: ', error)
+            })
+
+            socket.on('echo', function(msg) {
+                console.log('echo')
+                socket.emit('echo', msg)
+            })
+            // when the client emits 'toggleEquipment', this listens and executes
+            socket.on('toggleCircuit', function(equipment) {
+
+                container.circuit.toggleCircuit(equipment)
+
+
+            });
+            socket.on('search', function(mode, src, dest, action) {
+                //check if we don't have all valid values, and then emit a message to correct.
+
+                logger.debug('from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action);
+                searchMode = mode;
+                searchSrc = src;
+                searchDest = dest;
+                searchAction = action;
+            })
+
+            socket.on('all', function() {
+                emitToClients('all')
+            })
+
+            socket.on('sendpacket', function(incomingPacket) {
+
+
+                logger.info('User request (send_request.html) to send packet: %s', incomingPacket);
+                var packet, preamblePacket;
+                packet = incomingPacket.split(',');
+                for (var i = 0; i < packet.length; i++) {
+                    packet[i] = parseInt(packet[i])
+                }
+                if (packet[0] === 16 && packet[1] === container.constants.ctrl.CHLORINATOR) {
+                    //logger.debug('packet (chlorinator) now: ', packet)
+                } else {
+                    if (packet[0] === 96 || packet[0] === 97 || packet[1] === 96 || packet[1] === 97)
+                    //If a message to the controller, use the preamble that we have recorded
+                    {
+                        preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
+                    } else
+                    //if a message to the pumps, use 165,0
+                    {
+                        preamblePacket = [165, 0]
+                    }
+                    Array.prototype.push.apply(preamblePacket, packet);
+                    packet = preamblePacket.slice(0);
+                    //logger.debug('packet (pool) now: ', packet)
+                }
+                container.queuePacket.queuePacket(packet);
+                var str = 'Sent packet: ' + JSON.stringify(packet)
+                io.sockets.emit('sendPacketResults', str)
+            })
+
+
+            socket.on('setchlorinator', function(desiredChlorinatorOutput) {
+                container.chlorinator.setChlorinatorLevel(parseInt(desiredChlorinatorOutput))
+            })
+
+            socket.on('spasetpoint', function(spasetpoint) {
+                container.heat.changeHeatSetPoint('spa', spasetpoint, ' socket.io spasetpoint')
+            })
+
+            socket.on('spaheatmode', function(spaheatmode) {
+                container.heat.changeHeatMode('spa', spaheatmode, 'socket.io spaheatmode')
+
+            })
+
+            socket.on('poolsetpoint', function(poolsetpoint) {
+                container.heat.changeHeatSetPoint('pool', poolsetpoint, 'socket.io poolsetpoint')
+            })
+
+            socket.on('poolheatmode', function(poolheatmode) {
+                container.heat.changeHeatMode('pool', poolheatmode, 'socket.io poolheatmode')
+            })
+
+            socket.on('setHeatSetPoint', function(equip, change) {
+                if (equip !== null && change !== null) {
+                    container.heat.changeHeatSetPoint(equip, change, 'socket.io setHeatSetPoint')
+                } else {
+                    logger.warn('setHeatPoint called with invalid values: %s %s', equip, change)
+                }
+            })
+
+            socket.on('setHeatMode', function(equip, change) {
+                if (equip === "pool") {
+                    container.heat.changeHeatMode('pool', change, 'socket.io setHeatMode ' + equip + ' ' + change)
+
+                } else {
+                    container.heat.changeHeatMode('spa', change, 'socket.io setHeatMode ' + equip + ' ' + change)
+                }
+            })
+
+            //SHOULD DEPRICATE
+            socket.on('pumpCommand', function(equip, program, value, duration) {
+
+                logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
+                container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
+            })
+
+            socket.on('setPumpCommand', function(action, pump, program, rpm, duration) {
+                pump = parseInt(pump)
+                if (program !== null) program = parseInt(program)
+                if (rpm !== null) rpm = parseInt(rpm)
+                if (duration !== null) duration = parseInt(duration)
+
+                console.log('Socket.IO pumpCommand variables - action %s, pump %s, program %s, rpm %s, duration %s', action, pump, program, rpm, duration)
+
+                if (action === 'off') {
+                    console.log('called off')
+                    container.pumpControllerTimers.clearTimer(pump)
+                } else if (action === 'run') {
+                    if (program === null) {
+                        if (duration === null) {
+                            container.pumpControllerTimers.startProgramTimer(pump, program, -1)
+                        } else {
+                            container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+                        }
+                    } else if (rpm === null) {
+                        if (duration === null) {
+                            container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
+                        } else {
+                            container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
+                        }
+                    } else {
+                        if (duration === null) {
+                            container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
+                        } else {
+                            container.pumpControllerTimers.startPowerTimer(pump, duration)
+                        }
+                    }
+                } else if (action === "save") {
+                    container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, rpm)
+                } else if (action === "saverun") {
+                    if (duration === null) {
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, -1)
+
+                    } else {
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, duration)
+
+                    }
+                }
+            })
+
+            socket.on('setDateTime', function(hh, mm, dow, dd, mon, yy, dst) {
+                var hour = parseInt(hh)
+                var min = parseInt(mm)
+                var day = parseInt(dd)
+                var month = parseInt(mon)
+                var year = parseInt(yy)
+                var autodst = parseInt(dst)
+                var dayofweek = parseInt(dow)
+                var dowIsValid = container.time.lookupDOW(dayofweek)
+                var response = {}
+                if ((hour >= 0 && hour <= 23) && (min >= 0 && min <= 59) && (day >= 1 && day <= 31) && (month >= 1 && month <= 12) && (year >= 0 && year <= 99) && dowIsValid !== -1 && (autodst === 0 || autodst === 1)) {
+                    response.text = 'REST API received request to set date/time to: ' + hour + ':' + min + '(military time)'
+                    response.text += 'dayofweek: ' + dowIsValid + '(' + dayofweek + ') date: ' + month + '/' + day + '/20' + year + ' (mm/dd/yyyy)'
+                    response.text += 'automatically adjust dst (currently no effect): ' + autodst
+                    container.time.setDateTime(hour, min, dayofweek, day, month, year, autodst)
+                    container.logger.info(response)
+                } else {
+                    response.text = 'FAIL: hour (' + hour + ') should be 0-23 and minute (' + min + ') should be 0-59.  Received: ' + hour + ':' + min
+                    response.text += 'Day (' + day + ') should be 0-31, month (' + month + ') should be 0-12 and year (' + year + ') should be 0-99.'
+                    response.text += 'Day of week (' + dayofweek + ') should be one of: [1,2,4,8,16,32,64] [Sunday->Saturday]'
+                    response.text += 'dst (' + autodst + ') should be 0 or 1'
+                    container.logger.warn(response)
+                }
+
+            })
+
+            socket.on('reload', function() {
+                logger.info('Reload requested from Socket.io')
+                container.reload.reload()
+            })
+
+
+            emitToClients('all')
+        });
+    }
+
+    var stop = function() {
+        //from http://stackoverflow.com/questions/16000120/socket-io-close-server
+        io.close();
+        console.log('socket list length: ', socketList.length)
+        socketList.forEach(function(socket) {
+            socket.destroy();
+        });
+        console.log('socket list length after close: ', socketList.length)
+
+    }
+
+
+
+    var emitDebugLog = function(msg) {
         //console.log('EMITTING DEBUG LOG: %s', msg)
         io.sockets.emit('outputLog', msg)
     }
@@ -301,7 +331,7 @@ module.exports = function(container) {
 
     return {
         io: io,
-        start: start,
+        init: init,
         stop: stop,
         emitToClients: emitToClients,
         emitDebugLog: emitDebugLog

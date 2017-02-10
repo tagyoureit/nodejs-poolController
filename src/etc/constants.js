@@ -43,7 +43,8 @@ module.exports = function(container) {
         HEATER_ACTIVE: 22, //0=off.  32=on.  More here?
         AIR_TEMP: 24,
         SOLAR_TEMP: 25,
-        HEATER_MODE: 28
+        HEATER_MODE: 28,
+        MISC2: 32  //0=do not automatically adjust DST, 1=automatically adjust DST
     }
 
     const chlorinatorPacketFields = {

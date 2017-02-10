@@ -24,27 +24,42 @@ module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: server.js')
-    //var express = require('express');
-    var express = container.express
-    var app = express();
-    var port = process.env.PORT || 3000;
-    var path = require('path').posix,
-        server
+
+    var express, app, port, path, server
 
     function init() {
-
-        // console.log('calling express server init')
+        express = container.express
+        app = express();
+        port = process.env.PORT || 3000;
+        path = require('path').posix,
+            server
+        //  server = undefined //if we re-initialize, clear out the server
+        if (container.settings.logReload) container.logger.info('calling express server init')
 
         // And Enable Authentication (if configured)
         if (container.settings.expressAuth === 1) {
-            //var auth = require('http-auth');
+            // console.log('server requiring auth with file:', path.join(process.cwd(), container.settings.expressAuthFile))
+
             var auth = container.auth
             var basic = auth.basic({
                 file: path.join(process.cwd(), container.settings.expressAuthFile)
             });
             app.use(auth.connect(basic));
+            // basic.on('success', (result, req) => {
+            //     console.log(`User authenticated: ${result.user}`);
+            // });
+            //
+            // basic.on('fail', (result, req) => {
+            //     console.log(`User authentication failed: ${result.user}`);
+            // });
+            //
+            // basic.on('error', (error, req) => {
+            //     console.log(`Authentication error: ${error.code + " - " + error.message}`);
+            // });
         } else {
+            if (container.settings.logReload) container.logger.info('server NOT using auth')
             //reset auth settings
+            app = undefined
             app = express()
         }
 
@@ -108,6 +123,39 @@ module.exports = function(container) {
 
         app.get('/time', function(req, res) {
             res.send(container.time.getTime())
+        })
+
+        app.get('/datetime', function(req, res) {
+            res.send(container.time.getTime())
+        })
+
+
+        app.get('/datetime/set/time/:hh/:mm/date/:dow/:dd/:mon/:yy/:dst', function(req, res) {
+            var hour = parseInt(req.params.hh)
+            var min = parseInt(req.params.mm)
+            var day = parseInt(req.params.dd)
+            var month = parseInt(req.params.mon)
+            var year = parseInt(req.params.yy)
+            var autodst = parseInt(req.params.dst)
+            var dayofweek = parseInt(req.params.dow)
+            var dowIsValid = container.time.lookupDOW(dayofweek)
+            var response = {}
+            if ((hour >= 0 && hour <= 23) && (min >= 0 && min <= 59) && (day >= 1 && day <= 31) && (month >= 1 && month <= 12) && (year >= 0 && year <= 99) && dowIsValid !== -1 && (autodst === 0 || autodst === 1)) {
+                response.text = 'REST API received request to set date/time to: ' + hour + ':' + min + '(military time)'
+                response.text += 'dayofweek: ' + dowIsValid + '(' + dayofweek + ') date: ' + month + '/' + day + '/20' + year + ' (mm/dd/yyyy)'
+                response.text += 'automatically adjust dst (currently no effect): ' + autodst
+                container.time.setDateTime(hour, min, dayofweek, day, month, year, autodst)
+                container.logger.info(response)
+            } else {
+                response.text = 'FAIL: hour (' + hour + ') should be 0-23 and minute (' + min + ') should be 0-59.  Received: ' + hour + ':' + min
+                response.text += 'Day (' + day + ') should be 0-31, month (' + month + ') should be 0-12 and year (' + year + ') should be 0-99.'
+                response.text += 'Day of week (' + dayofweek + ') should be one of: [1,2,4,8,16,32,64] [Sunday->Saturday]'
+                response.text += 'dst (' + autodst + ') should be 0 or 1'
+                container.logger.warn(response)
+            }
+
+            res.send(response)
+
         })
 
         app.get('/pump', function(req, res) {
@@ -439,9 +487,10 @@ module.exports = function(container) {
     }
     /*  END  Original pumpCommand API  */
     var close = function() {
-        // console.log('calling server close')
+        if (container.settings.logReload) container.logger.info('calling server close')
         if (server !== undefined)
             server.close(function() {
+                if (container.settings.logReload) container.logger.info('server closed')
                 container.logger.verbose('Express Server closed. (was listening at port %d)', port);
             })
     }

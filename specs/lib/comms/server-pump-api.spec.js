@@ -42,6 +42,7 @@ describe('#set functions', function() {
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
                 bottle.container.server.init()
             });
 
@@ -173,7 +174,7 @@ describe('#set functions', function() {
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-
+            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
         })
 
         afterEach(function() {

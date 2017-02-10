@@ -9,6 +9,7 @@ describe('pump controller', function() {
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
+            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             clock = sandbox.useFakeTimers()
         })
 

@@ -12,7 +12,7 @@
         "expressPort": 3000,
         "expressTransport": "http",
         "expressAuth": 0,
-        "expressAuthFile": "/users.htpasswd"
+        "expressAuthFile": "/specs/assets/server/users.htpasswd"
     },
     "Network": {
         "rs485Port": "/dev/ttyUSB0",

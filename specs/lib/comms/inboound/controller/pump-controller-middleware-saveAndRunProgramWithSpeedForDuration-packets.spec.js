@@ -19,6 +19,7 @@ describe('pump controller - save and run program with speed for duration', funct
             //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
         })
 
         afterEach(function() {

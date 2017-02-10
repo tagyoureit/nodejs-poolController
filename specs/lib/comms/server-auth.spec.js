@@ -1,40 +1,60 @@
-
 var protocol = 'http://'
 var server = 'localhost:3000/'
 
 var sandbox,
-  user = '',
-  password = ''
+    user = '',
+    password = ''
 
 
 describe('server', function() {
     describe('#with authorization', function() {
 
         context('by a URL', function() {
-          before(function(){
-            //stop the express server and restart with authentication
-            bottle.container.settings.expressAuth = 1
-            bottle.container.settings.expressAuthFile = path.join('/specs/assets/server', '/users.htpasswd')
-            bottle.container.settings.expressDir = '/bootstrap'
-            // bottle.container.server.close()
-            bottle.container.server.init()
-          })
+            before(function() {
 
-          beforeEach(function() {
-              sandbox = sinon.sandbox.create()
-          })
+                //stop the express server and restart with authentication
+                bottle.container.settings.expressAuth = 1
+                bottle.container.settings.expressAuthFile = '/specs/assets/server/users.htpasswd'
+                bottle.container.settings.expressDir = '/bootstrap'
+                // bottle.container.server.close()
+                bottle.container.server.init()
+            })
 
-          afterEach(function() {
-              sandbox.restore()
-          })
+            beforeEach(function() {
+                sandbox = sinon.sandbox.create()
+            })
 
-          after(function(){
-            //stop the express server and restart without authentication
-            bottle.container.settings.expressAuth = 0
-            bottle.container.settings.expressAuthFile = ''
-            bottle.container.server.close()
-            // bottle.container.server.init()
-          })
+            afterEach(function() {
+                sandbox.restore()
+            })
+
+            after(function() {
+                //stop the express server and restart without authentication
+                bottle.container.settings.expressAuth = 0
+                bottle.container.settings.expressAuthFile = ''
+                bottle.container.server.close()
+                // bottle.container.server.init()
+            })
+
+            it('fails with no authorization provided', function(done) {
+                var options = {
+                    method: 'GET',
+                    uri: protocol + server + 'pump',
+                    resolveWithFullResponse: true,
+                    json: true,
+                };
+                var promise = global.rp(options)
+
+                promise.then(function(res) {
+                  // console.log('1:', res.statusCode)
+                  res.statusCode.should.not.eq(200)
+              }).catch(function(error) {
+                  // console.log('2:', error)
+                  error.statusCode.should.eq(401)
+                  done()
+                });
+
+            });
 
             it('authorizes a known user', function(done) {
                 user = 'user'
@@ -46,12 +66,12 @@ describe('server', function() {
                     resolveWithFullResponse: true,
                     json: true,
                 };
-                var promise = rp(options)
+                var promise = global.rp(options)
 
-                promise.then(function(res){
-                  res.statusCode.should.eq(200)
-                  res.statusMessage.should.eq('OK')
-                  done()
+                promise.then(function(res) {
+                    res.statusCode.should.eq(200)
+                    res.statusMessage.should.eq('OK')
+                    done()
                 });
 
             });
@@ -66,34 +86,20 @@ describe('server', function() {
                     resolveWithFullResponse: true,
                     json: true,
                 };
-                var promise = rp(options)
-
-                promise.then(function(res){
-                  true.should.eq(false)
-                }).catch(function(error){
-                  error.statusCode.should.eq(401)
-                  done()
+                var promise = global.rp(options)
+                // console.log('htaccess file: ', bottle.container.settings.expressAuthFile)
+                promise.then(function(res) {
+                    // console.log('1:', res.statusCode)
+                    res.statusCode.should.not.eq(200)
+                }).catch(function(error) {
+                    // console.log('2:', error)
+                    error.statusCode.should.eq(401)
+                    done()
                 });
 
             });
 
-            it('fails with no authorization provided', function(done) {
-                var options = {
-                    method: 'GET',
-                    uri: protocol + server + 'pump',
-                    resolveWithFullResponse: true,
-                    json: true,
-                };
-                var promise = rp(options)
 
-                promise.then(function(res){
-                  true.should.eq(false)
-                }).catch(function(error){
-                  error.statusCode.should.eq(401)
-                  done()
-                });
-
-            });
 
         });
 
