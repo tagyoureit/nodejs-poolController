@@ -37,7 +37,6 @@ module.exports = function(container) {
         fsio.readFile(location, 'utf-8').then(function(data) {
           try {
             configClient = JSON.parse(data)
-            console.log('in bce...', configClient)
             return deferred.resolve()
           }
           catch (err){

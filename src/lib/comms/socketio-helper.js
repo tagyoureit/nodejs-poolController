@@ -71,7 +71,7 @@ module.exports = function(container) {
 
         if (outputType === 'pump' || outputType === 'all') {
             var pumpStatus = container.pump.getCurrentPumpStatus()
-            console.log('emitting pump')
+            // console.log('emitting pump')
             io.sockets.emit('pump',
                 pumpStatus
             )
