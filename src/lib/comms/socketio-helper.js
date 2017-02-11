@@ -151,6 +151,10 @@ module.exports = function(container) {
                 emitToClients('all')
             })
 
+            socket.on('setConfigClient', function(a,b,c,d){
+              container.bootstrapConfigEditor.update(a,b,c,d)
+            })
+
             socket.on('sendpacket', function(incomingPacket) {
 
 

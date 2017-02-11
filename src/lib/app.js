@@ -65,6 +65,7 @@ bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 //HELPERS
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
+bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -141,6 +142,7 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 var init = exports.init = function() {
     //Call the modules to initialize them
+
     bottle.container.settings.load()
     bottle.container.server.init()
     bottle.container.io.init()

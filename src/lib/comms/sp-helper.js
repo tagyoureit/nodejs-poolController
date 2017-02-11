@@ -19,20 +19,12 @@
 
 //declare global var that can be accessed elsewhere
 var sp = exports.sp;
-    var spTimer;
+
 module.exports = function(container) {
     var logger = container.logger
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')
-
-
-
-
-
-
-
-    //var spTimer = new container.nanotimer
 
     function init() {
 
@@ -51,7 +43,7 @@ module.exports = function(container) {
             });
             sp.open(function(err) {
                 if (err) {
-                    spTimer.setTimeout(init, 10*1000)
+                    setTimeout(init, 10*1000)
                     return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                 }
                 //console.log('sp is now open (serial port)')
@@ -79,7 +71,7 @@ module.exports = function(container) {
         });
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
-            spTimer=setTimeout(init, 10*1000)
+            setTimeout(init, 10*1000)
         })
 
 
