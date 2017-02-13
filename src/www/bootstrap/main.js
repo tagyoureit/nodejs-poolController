@@ -1,5 +1,6 @@
 /* global Storage */
-jsVersion = 'v0.1.0';
+jsVersion = 'v0.1.1';
+var autoDST;					// Flag for Automatic DST (0 = manual, 1 = automatic)
 
 //Configure Bootstrap Panels, in 2 steps ...
 //   1) Enable / Disable panels as configured (in json file)
@@ -60,6 +61,10 @@ function dataAssociate(strControl, varJSON) {
 			}
 		}
 	}
+}
+
+function monthOfYearAsString(indDay) {
+	return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][indDay];
 }
 
 function dayOfWeekAsInteger(strDay) {
@@ -453,7 +458,25 @@ $(function() {
 	});
 
 	socket.on('time', function(data) {
-		$('#currTime').html(data.controllerTime);
+		// Update Date and Time (buttons) - Date is custome formatted.
+		var newDT = new Date(data.controllerDateStr + ' ' + data.controllerTime)
+		$('#currDate').val(newDT.getDate() + '-' + monthOfYearAsString(newDT.getMonth()) + '-' + newDT.getFullYear().toString().slice(-2));
+		$('#currTime').val(data.controllerTime);
+		// Initialize (and configure) Date and Clock Pickers for button (input) => gated on getting time once, to determine DST setting!
+		autoDST = data.automaticallyAdjustDST;
+		$('#currDate').datepicker({
+			dateFormat: 'dd-M-y',
+			onSelect: function () {
+				var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
+				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
+			}
+		});	
+		$('#currTime').jqclockpicker({
+			afterDone: function () {
+				var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
+				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
+			}
+		});	
 		lastUpdate(true);
 	});
 

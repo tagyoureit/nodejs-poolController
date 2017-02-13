@@ -38,6 +38,7 @@
     "express": "^4.14.0",
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
+    "jquery-clockpicker": "0.0.8",
     "nanotimer": "^0.3.14",
     "request": "^2.75.0",
     "serialport": "^4.0.1",

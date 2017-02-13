@@ -86,6 +86,7 @@ module.exports = function(container) {
         app.use(express.static(path.join(process.cwd(), 'src', container.settings.expressDir)));
         app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
         app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
+        app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
         // app.use('/bootstrap-slider', express.static(path.join(process.cwd(), '/node_modules/bootstrap-slider/dist/')));
 
 
