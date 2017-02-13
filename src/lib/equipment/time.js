@@ -94,7 +94,7 @@ module.exports = function(container) {
         time.controllerDayOfWeek = dayofweek
         time.controllerDayOfWeekStr = lookupDOW(dayofweek)
         if (dst !== null) setAutomaticallyAdjustDST(dst)
-
+        container.io.emitToClients('time')
     }
     var setControllerTime = function(hour, min) {
         var timeStr = container.helpers.formatTime(hour, min)

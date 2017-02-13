@@ -28,12 +28,12 @@ module.exports = function(container) {
     var express, app, port, path, server
 
     function init() {
-        express = container.express
-        app = express();
-        port = process.env.PORT || 3000;
-        path = require('path').posix,
-            server
-        //  server = undefined //if we re-initialize, clear out the server
+         express = container.express
+         app = express();
+         port = process.env.PORT || 3000;
+         path = require('path').posix
+         server = undefined;
+        //if we re-initialize, clear out the server
         if (container.settings.logReload) container.logger.info('calling express server init')
 
         // And Enable Authentication (if configured)
