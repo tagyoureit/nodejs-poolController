@@ -75,7 +75,8 @@ function dayOfWeekAsString(indDay) {
 	return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][indDay];
 }
 
-function fmtScheduleTime(strInpStr) {
+// Format Time (String), to 12 hour format. Input is HH:MM, Output is HH:MM am/pm
+function fmt12hrTime(strInpStr) {
 	splitInpStr = strInpStr.split(":");
 	if (splitInpStr[0] < 12)
 		strAMPM = 'am';
@@ -86,6 +87,17 @@ function fmtScheduleTime(strInpStr) {
 		strHours = "12";
 	strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
 	return strHours + ':' + strMins + ' ' + strAMPM;
+}
+
+// Format Time (String), to 24 hour format. Input is HH:MM am/pm, Output is HH:MM
+function fmt24hrTime(strInpStr) {
+	splitInpStr = strInpStr.slice(0,-3).split(":");
+	intAMPM = (strInpStr.slice(-2).toUpperCase() === "AM") ? 0 : 1;
+	strHours = ((parseInt(splitInpStr[0]) % 12) + (12 * intAMPM)).toFixed(0);
+	if (strHours === "0")
+		strHours = "00";
+	strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
+	return strHours + ':' + strMins;
 }
 
 function fmtEggTimerTime(strInpStr) {
@@ -112,8 +124,8 @@ function buildSchTime(currSchedule) {
 	strRow = '<tr name="' + schName + '" id="' + schName + '" class="botpad">';
 	strHTML = '<td>' + currSchedule.ID + '</td>' +
 		'<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
-		'<td>' + fmtScheduleTime(currSchedule.START_TIME) + '</td>' +
-		'<td>' + fmtScheduleTime(currSchedule.END_TIME) + '</td></tr>';
+		'<td>' + fmt12hrTime(currSchedule.START_TIME) + '</td>' +
+		'<td>' + fmt12hrTime(currSchedule.END_TIME) + '</td></tr>';
 	return strRow + strHTML;
 }
 
@@ -171,6 +183,7 @@ String.prototype.capitalizeFirstLetter = function() {
 String.prototype.toTitleCase = function() {
 	return this.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
 };
+
 
 // From http://api.jquery.com/jquery/#jQuery3
 // JQuery(callback), Description: Binds a function to be executed when the DOM has finished loading
@@ -458,10 +471,10 @@ $(function() {
 	});
 
 	socket.on('time', function(data) {
-		// Update Date and Time (buttons) - Date is custome formatted.
+		// Update Date and Time (buttons) - custom formatted
 		var newDT = new Date(data.controllerDateStr + ' ' + data.controllerTime)
 		$('#currDate').val(newDT.getDate() + '-' + monthOfYearAsString(newDT.getMonth()) + '-' + newDT.getFullYear().toString().slice(-2));
-		$('#currTime').val(data.controllerTime);
+		$('#currTime').val(fmt12hrTime(newDT.getHours() + ':' + newDT.getMinutes()));
 		// Initialize (and configure) Date and Clock Pickers for button (input) => gated on getting time once, to determine DST setting!
 		autoDST = data.automaticallyAdjustDST;
 		$('#currDate').datepicker({
@@ -472,7 +485,17 @@ $(function() {
 			}
 		});	
 		$('#currTime').jqclockpicker({
+			beforeShow: function () {
+				$('#currTime').val(fmt24hrTime($('#currTime').val()));
+			},
+			afterShow: function () {
+				$('#currTime').val(fmt12hrTime($('#currTime').val()));
+			},
+			afterHide: function () {
+				$('#currTime').val(fmt12hrTime($('#currTime').val()));
+			},
 			afterDone: function () {
+				$('#currTime').val(fmt12hrTime($('#currTime').val()));
 				var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
 				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
 			}
