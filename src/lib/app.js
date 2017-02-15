@@ -9,7 +9,10 @@ bottle.constant('appVersion', '3.1.1')
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
-bottle.service('nanoTimer', require('nanotimer'))
+bottle.factory('nanotimer', function(){
+  return require('nanotimer')
+})
+
 bottle.service('fs', function() {
     return require('fs')
 })
@@ -60,7 +63,9 @@ bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
 bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 
 //HELPERS
-bottle.factory('helpers', require(__dirname + '//helpers/helpers.js'))
+bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
+bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
+bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -73,6 +78,7 @@ bottle.factory('processChlorinator', require(__dirname + '/comms/inbound/process
 
 //COMMS/INBOUND/CONTROLLER
 bottle.factory('controller_2', require(__dirname + '/comms/inbound/controller/2.js'))
+bottle.factory('controller_5', require(__dirname + '/comms/inbound/controller/5.js'))
 bottle.factory('controller_8', require(__dirname + '/comms/inbound/controller/8.js'))
 bottle.factory('controller_10', require(__dirname + '/comms/inbound/controller/10.js'))
 bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/11.js'))
@@ -110,8 +116,8 @@ bottle.factory('heat', require(__dirname + '/equipment/heat.js'))
 bottle.factory('chlorinator', require(__dirname + '/equipment/chlorinator.js'))
 bottle.factory('pump', require(__dirname + '/equipment/pump.js'))
 bottle.factory('circuit', require(__dirname + '/equipment/circuit.js'))
-    //bottle.factory('status', require(__dirname + '//equipment/status.js'))
-bottle.factory('temperatures', require(__dirname + '//equipment/temperatures.js'))
+    //bottle.factory('status', require(__dirname + '/equipment/status.js'))
+bottle.factory('temperatures', require(__dirname + '/equipment/temperatures.js'))
 bottle.factory('time', require(__dirname + '/equipment/time.js'))
 bottle.factory('UOM', require(__dirname + '/equipment/UOM.js'))
 bottle.factory('valves', require(__dirname + '/equipment/valves.js'))
@@ -134,14 +140,19 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 
 
-init = exports.init = function() {
+var init = exports.init = function() {
     //Call the modules to initialize them
-    bottle.container.io.io
+
+    bottle.container.settings.load()
+    bottle.container.server.init()
+    bottle.container.io.init()
+    bottle.container.time.init()
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
-    bottle.container.logger.info('Intro: ', bottle.container.settings.introMsg)
-    bottle.container.logger.warn('Settings: ', bottle.container.settings.settingsStr)
-    bottle.container.server.app
+    bottle.container.pump.init()
+
+    bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
+    bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
     bottle.container.sp.init()
     bottle.container.integrations
     if (bottle.container.settings.pumpOnly && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
@@ -151,14 +162,8 @@ init = exports.init = function() {
         bottle.container.chlorinatorController.startChlorinatorController()
     }
     bottle.container.helpers
-        /*setTimeout(function() {
-        console.log(bottle.list())
-    }, 1000)
-   setTimeout(function() {
-        console.log("alexa skills: ", bottle.container.alexaskills.init())
-    }, 1500)
-    */
 
 }
 
-//init()
+/* UNCOMMENT TO ALLOW V8 PROFILING */
+//var profile = require(__dirname + '/helpers/profiler.js').init(__dirname + '/../profiler')

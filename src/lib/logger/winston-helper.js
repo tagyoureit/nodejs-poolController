@@ -20,6 +20,7 @@
 //  util = require('util')
 
 module.exports = function(container) {
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loading: winston-helper.js')
 
@@ -46,6 +47,7 @@ module.exports = function(container) {
     });
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: winston-helper.js')
 

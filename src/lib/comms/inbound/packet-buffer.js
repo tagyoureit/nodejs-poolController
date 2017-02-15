@@ -20,10 +20,10 @@
 
 module.exports = function(container) {
     var logger = container.logger
-    s = container.settings
+    var s = container.settings
 
 
-    var bufferArrayOfArrays = bottle.container.dequeue;
+    var bufferArrayOfArrays = container.dequeue;
     //var bufferArrayOfArrays =  new Dequeue()
 
     function push(packet){

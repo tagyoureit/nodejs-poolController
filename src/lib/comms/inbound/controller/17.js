@@ -18,6 +18,7 @@
 // Get Schedules
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 17.js')
 
@@ -41,13 +42,14 @@ module.exports = function(container) {
 
         container.schedule.addScheduleDetails(data[schedulePacketBytes.ID], data[schedulePacketBytes.CIRCUIT], data[schedulePacketBytes.DAYS], data[schedulePacketBytes.TIME1], data[schedulePacketBytes.TIME2], data[schedulePacketBytes.TIME3], data[schedulePacketBytes.TIME4], counter)
 
-        if (s.logConfigMessages)
-            logger.silly('\nMsg# %s  schedulePacketBytes packet %s', counter, JSON.stringify(data))
+        if (container.settings.logConfigMessages)
+            container.logger.silly('\nMsg# %s  schedulePacketBytes packet %s', counter, JSON.stringify(data))
 
-        decoded = true;
+        var decoded = true;
         return decoded
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 17.js')
 

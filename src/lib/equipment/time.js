@@ -16,52 +16,141 @@
  */
 
 module.exports = function(container) {
-    logger = container.logger
+
+    /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loading: time.js')
+        container.logger.info('Loading: time.js')
 
-    //How to use this.... container.dateFormat
+    var time;
 
-    var time = {
-        "controllerTime": -1,
-        "pump1Time": -1,
-        "pump2Time": -1
+    var init = function() {
+        time = {
+            "controllerTime": -1,
+            "controllerDateStr": 'datestrnotset',
+            "controllerDay": 'daynotset',
+            "controllerMonth": 'monthnotset',
+            "controllerYear": 'yearnotset',
+            "controllerDayOfWeekStr": 'dayofweekstrnotset',
+            "controllerDayOfWeek": 'dayofweeknotset',
+            "automaticallyAdjustDST": 0,
+            "pump1Time": -1,
+            "pump2Time": -1
+        }
     }
 
+    var setAutomaticallyAdjustDST = function(bool) {
+        time.automaticallyAdjustDST = bool
+    }
 
-    function setControllerTime(hour, min) {
+    var lookupDOW = function(dayofweek) {
+        switch (dayofweek) {
+            case 1:
+                {
+                    return 'Sunday'
+                    break
+                }
+            case 2:
+                {
+                    return 'Monday'
+                    break
+                }
+            case 4:
+                {
+                    return 'Tuesday'
+                    break
+                }
+            case 8:
+                {
+                    return 'Wednesday'
+                    break
+                }
+            case 16:
+                {
+                    return 'Thursday'
+                    break
+                }
+            case 32:
+                {
+                    return 'Friday'
+                    break
+                }
+            case 64:
+                {
+                    return 'Saturday'
+                    break
+                }
+            default:
+                {
+                    return -1
+                }
+        }
+    }
+
+    var setControllerDate = function(dayofweek, day, month, year, dst) {
+        time.controllerDay = day
+        time.controllerMonth = month
+        time.controllerYear = year
+        time.controllerDateStr = month + '/' + day + '/20' + year
+        time.controllerDayOfWeek = dayofweek
+        time.controllerDayOfWeekStr = lookupDOW(dayofweek)
+        if (dst !== null) setAutomaticallyAdjustDST(dst)
+        container.io.emitToClients('time')
+    }
+    var setControllerTime = function(hour, min) {
         var timeStr = container.helpers.formatTime(hour, min)
-
         if (time.controllerTime === -1) {
             time.controllerTime = timeStr;
             container.io.emitToClients('time')
         } else if (timeStr !== time.controllerTime) {
             container.io.emitToClients('time')
             time.controllerTime = timeStr;
-        }
-        else {
-          if (container.settings.logConfigMessages) logger.debug('No change in time.')
+        } else {
+            if (container.settings.logConfigMessages) container.logger.debug('No change in time.')
         }
 
     }
 
-    function setPumpTime(pump, time){
-      var pumpStr = "pump" + pump + "Time"
-      time[pumpStr] = time
+    var setDateTime = function(hour, min, dayofweek, day, month, year, autodst, callback) {
+        setControllerDate(dayofweek, day, month, year, autodst)
+        setControllerTime(hour, min)
+        var setDateTimePacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 133, 8, hour, min, dayofweek, day, month, year, 0, autodst];
+        container.queuePacket.queuePacket(setDateTimePacket);
+        var response = {}
+        response.text = 'User request to set date and time to '
+        response.text += hour + ':' + min + ' ' + dayofweek + ', ' + month + '/' + day + '/20' + year + ' (mm/dd/yyyy)'
+        container.logger.info(response)
+        //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+        if (callback !== undefined) {
+            callback(response)
+        }
     }
 
-    function getTime(callback) {
+
+
+    var setPumpTime = function(pump, time) {
+        var pumpStr = "pump" + pump + "Time"
+        time[pumpStr] = time
+    }
+
+    var getTime = function(callback) {
         return time
     }
 
+
+    /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: time.js')
+        container.logger.info('Loaded: time.js')
 
 
     return {
         //time,
         setControllerTime: setControllerTime,
         getTime: getTime,
-        setPumpTime: setPumpTime
+        setDateTime: setDateTime,
+        setPumpTime: setPumpTime,
+        setAutomaticallyAdjustDST: setAutomaticallyAdjustDST,
+        setControllerDate: setControllerDate,
+        lookupDOW: lookupDOW,
+        init: init
     }
 }

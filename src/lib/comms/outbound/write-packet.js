@@ -18,6 +18,7 @@
 module.exports = function(container) {
 
     var logger = container.logger
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: write-packet.js')
 
@@ -32,7 +33,7 @@ module.exports = function(container) {
     var skipPacketWrittenCount = {
             skipPacketWrittenCount: 0
         } //keep track of how many times we skipped writing the packet
-    var writePacketTimer = container.nanoTimer
+    var writePacketTimer = new container.nanotimer
 
     preWritePacketHelper = function() {
         if (container.queuePacket.getQueuePacketsArrLength() === 0) // need this because the correct packet might come back during the container.timers.writePacketTimer.timeout.
@@ -80,7 +81,7 @@ module.exports = function(container) {
 
         writeQueueActive.writeQueueActive = true
         if (container.settings.netConnect === 0) {
-            container.sp.sp.write(container.queuePacket.first(), function(err) {
+            container.sp.writeSP(container.queuePacket.first(), function(err) {
                 if (err) {
                     logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
                 } else {
@@ -89,7 +90,7 @@ module.exports = function(container) {
                 }
             })
         } else {
-            container.sp.sp.write(new Buffer(container.queuePacket.first()), 'binary', function(err) {
+            container.sp.writeNET(new Buffer(container.queuePacket.first()), 'binary', function(err) {
                 if (err) {
                     logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
                 } else {
@@ -187,6 +188,7 @@ module.exports = function(container) {
         return writeQueueActive.writeQueueActive
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: write-packet.js')
 

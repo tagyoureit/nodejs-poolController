@@ -16,10 +16,9 @@
  */
 
 module.exports = function(container) {
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             container.logger.info('Loading: process-chlorinator.js')
-
-        s = container.settings
 
 
         function processChlorinatorPacket(data, counter) {
@@ -31,7 +30,8 @@ module.exports = function(container) {
         }
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             container.logger.info('Loaded: process-chlorinator.js')
 
         return {

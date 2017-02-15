@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: queue-packet.js')
 
@@ -56,8 +57,8 @@ module.exports = function(container) {
             packet = [255, 0, 255];
             Array.prototype.push.apply(packet, message);
 
-            //if we request to "SET" a variable on the HEAT STATUS
-            if (packet[7] === 136 && s.intellitouch) {
+            //if we request to "SET" a variable on the HEAT STATUS & TIME
+            if ((packet[7] === 136 || packet[7] === 133) && s.intellitouch) {
                 requestGet = 1;
             }
         }
@@ -206,6 +207,7 @@ module.exports = function(container) {
     }
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: queue-packet.js')
 

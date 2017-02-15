@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: (pump)1.js')
 
@@ -35,7 +36,8 @@ module.exports = function(container) {
         var str1;
         var str2;
         var setAmount = data[8] * 256 + data[9];
-
+        var program,
+          rpm
         if (data[5] === 2) // Length==2 is a response.
         {
             container.pump.pumpACK(data, data[container.constants.packetFields.FROM], counter)
@@ -50,29 +52,29 @@ module.exports = function(container) {
                     }
                 case 39: //0x27
                     {
-                        var program = 1
-                        var rpm = data[8] * 256 + data[9];
+                        program = 1
+                         rpm = data[8] * 256 + data[9];
                         container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 40: //0x28
                     {
-                        var program = 2
-                        var rpm = data[8] * 256 + data[9];
+                         program = 2
+                         rpm = data[8] * 256 + data[9];
                         container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 41: //0x29
                     {
-                        var program = 3
-                        var rpm = data[8] * 256 + data[9];
+                         program = 3
+                         rpm = data[8] * 256 + data[9];
                         container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 42: //0x2a
                     {
-                        var program = 4
-                        var rpm = data[8] * 256 + data[9];
+                         program = 4
+                         rpm = data[8] * 256 + data[9];
                         container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
@@ -94,12 +96,12 @@ module.exports = function(container) {
 
             //if (s.logPumpMessages)
             //    logger.verbose('Msg# %s   %s: %s %s %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], str1, str2, JSON.stringify(data));
-            decoded = true;
+            var decoded = true;
         } else if (data[6] === 2) // data[4]: 1== Response; 2==IntelliTouch; 3==Intellicom2(?)/manual
         {
 
-            var str1;
-            var setAmount = data[8] * 256 + data[9];
+
+             setAmount = data[8] * 256 + data[9];
             if (s.logPumpMessages)
                 logger.verbose('Msg# %s   %s --> %s: Set Speed to %s rpm: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], container.constants.ctrlString[data[container.constants.packetFields.DEST]], setAmount, JSON.stringify(data));
         } else {
@@ -111,6 +113,7 @@ module.exports = function(container) {
 
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: (pump)1.js')
 

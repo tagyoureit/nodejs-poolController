@@ -17,11 +17,12 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: (pump)5.js')
 
-    s = container.settings
-    logger = container.logger
+    var s = container.settings
+    var logger = container.logger
 
     function process(data, counter) {
         var mode = data[7]
@@ -32,6 +33,7 @@ module.exports = function(container) {
 
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: (pump)5.js')
 

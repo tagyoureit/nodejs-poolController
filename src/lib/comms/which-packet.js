@@ -18,6 +18,7 @@
 module.exports = function(container) {
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: which-packet.js')
 
@@ -45,6 +46,7 @@ module.exports = function(container) {
         }
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: which-packet.js')
 

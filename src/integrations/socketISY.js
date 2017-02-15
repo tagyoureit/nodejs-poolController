@@ -20,7 +20,7 @@ var request = require('request')
 module.exports = function(container) {
 
     var io = container.socketClient
-    var ISYTimer = container.nanoTimer
+    var ISYTimer = new container.nanotimer
     var fs = container.fs
 
     var socket = io.connect('https://localhost:3000', {

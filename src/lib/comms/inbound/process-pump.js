@@ -16,17 +16,17 @@
  */
 
 module.exports = function(container) {
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: process-pump.js')
 
-    currentPumpStatus = container.pump.currentPumpStatus
-    currentPumpStatusPacket = container.pump.currentPumpStatusPacket
+    var decoded
 
     function processPumpPacket(data, counter, packetType) {
         {
-            var decoded
-            if (s.logPumpMessages)
-                logger.silly('Msg# %s  Decoding pump packet %s', counter, data)
+
+            if (container.settings.logPumpMessages)
+                container.logger.silly('Msg# %s  Decoding pump packet %s', counter, data)
 
             switch (data[container.constants.packetFields.ACTION]) {
                 case 1: //Set speed setting
@@ -67,14 +67,14 @@ module.exports = function(container) {
                     }
                 case 256: //03:17:39.122 INFO Msg# 5 is UNKNOWN: [16,96,255,1,8,2,29]  Possibly priming?
                     {
-                        logger.warn('Msg# %s  Pump message?  Possibly priming?  %s', JSON.stringify(pumpStatus))
+                        container.logger.warn('Msg# %s  Pump message?  Possibly priming?  %s', JSON.stringify(data))
                         decoded = false;
                         break;
                     }
                 default:
                     {
-                        if (s.logPumpMessages)
-                            logger.info('Msg# %s is UNKNOWN: %s', counter, JSON.stringify(data));
+                        if (container.settings.logPumpMessages)
+                            container.logger.info('Msg# %s is UNKNOWN: %s', counter, JSON.stringify(data));
                         decoded = false;
                     }
             }
@@ -86,6 +86,7 @@ module.exports = function(container) {
 
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: process-pump.js')
 

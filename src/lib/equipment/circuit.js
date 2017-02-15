@@ -53,6 +53,7 @@ var currentCircuitArrObj = ['blank', circuit1, circuit2, circuit3, circuit4, cir
 module.exports = function(container) {
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: circuit.js')
 
@@ -426,6 +427,7 @@ module.exports = function(container) {
         return response
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: circuit.js')
 

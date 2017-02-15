@@ -18,12 +18,14 @@
 //Get Custom Names
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 10.js')
 
 
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 10.js')
 

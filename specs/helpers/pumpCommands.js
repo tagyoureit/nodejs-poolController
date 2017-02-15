@@ -6,9 +6,14 @@ pump1LocalPacket = exports.pump1LocalPacket = [ 165, 0, 96, 33, 4, 1, 0 ]
 
 //Request Status
 pump1RequestStatusPacket = exports.pump1RequestStatusPacket = [ 165, 0, 96, 33, 7, 0 ]
+
+//save speed to programs
 pump1SetProgram1RPM500Packet = exports.pump1SetProgram1RPM500Packet = [ 165, 0, 96, 33, 1, 4, 3, 39, 1, 244 ]
 pump1SetProgram2RPM500Packet = exports.pump1SetProgram2RPM500Packet = [ 165, 0, 96, 33, 1, 4, 3, 40, 1, 244 ]
 pump1SetProgram1RPM1000Packet = exports.pump1SetProgram1RPM1000Packet = [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ]
+
+//run speed (without program)
+pump1SetRPM1000Packet = exports.pump1SetRPM1000Packet = [ 165, 0, 96, 33, 1, 4, 2, 196, 3, 232 ]
 
 //Power
 pump1PowerOnPacket = exports.pump1PowerOnPacket = [ 165, 0, 96, 33, 6, 1, 10 ]

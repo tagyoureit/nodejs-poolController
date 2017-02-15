@@ -18,6 +18,7 @@
 //Broadcast current heat set point and mode
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 8.js')
 
@@ -27,6 +28,7 @@ module.exports = function(container) {
         //currentHeat = container.heat.currentHeat <--Not sure why, but this isn't working very well.  :-(  Can't do currentHeat = heat and have it set container.heat.currentHeat at the same time.
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 8.js')
 
@@ -45,7 +47,7 @@ module.exports = function(container) {
             }
 
 
-            decoded = true;
+            var decoded = true;
 
             return decoded
         }

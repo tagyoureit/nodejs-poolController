@@ -20,6 +20,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: intellitouch.js')
 
@@ -99,6 +100,7 @@ module.exports = function(container) {
 
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: intellitouch.js')
 
@@ -106,7 +108,7 @@ module.exports = function(container) {
         checkIfNeedControllerConfiguration: checkIfNeedControllerConfiguration,
         getPreambleByte: getPreambleByte,
         setPreambleByte : setPreambleByte,
-        checkIfNeedControllerConfiguration: checkIfNeedControllerConfiguration
+        getControllerConfiguration: getControllerConfiguration
     }
 
 }

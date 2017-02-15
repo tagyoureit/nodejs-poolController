@@ -18,6 +18,7 @@
 //This is _SET_ heat/temp... not the response.
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 136.js')
 
@@ -57,6 +58,7 @@ module.exports = function(container) {
     }
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 136.js')
 

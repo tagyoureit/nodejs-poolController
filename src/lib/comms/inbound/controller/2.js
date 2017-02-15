@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 2.js')
 
@@ -25,7 +26,8 @@ module.exports = function(container) {
         var c = container.constants
 
 
-        if (container.logModuleLoading)
+        /*istanbul ignore next */
+    if (container.logModuleLoading)
             logger.info('Loaded: 2.js')
 
 
@@ -36,7 +38,9 @@ module.exports = function(container) {
                 container.circuit.setCurrentStatusBytes(data, counter)
 
 
+
                   container.time.setControllerTime(data[c.controllerStatusPacketFields.HOUR], data[c.controllerStatusPacketFields.MIN])
+                  container.time.setAutomaticallyAdjustDST(data[c.controllerStatusPacketFields.MISC2] & 1)
                   container.temperatures.setTempFromController(data[c.controllerStatusPacketFields.POOL_TEMP],data[c.controllerStatusPacketFields.SPA_TEMP],data[c.controllerStatusPacketFields.AIR_TEMP],data[c.controllerStatusPacketFields.SOLAR_TEMP], (data[c.controllerStatusPacketFields.UOM] & 8) >> 3)
 
                   //TODO: Figure out what this heat mode string does...
@@ -68,7 +72,7 @@ module.exports = function(container) {
                       logger.verbose('Msg# %s   Duplicate broadcast.', counter)
               }
 
-              decoded = true;
+              var decoded = true;
               return decoded
 
             }

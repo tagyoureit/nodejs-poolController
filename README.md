@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 3.1.0
+# nodejs-poolController - Version 3.1.8 DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -56,8 +56,8 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
 1. Unzip into nodejs-poolController.
 1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
-1. Run the app by calling 'node index.js'* (again, in the root directory). It should now run properly.
-   * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `node index.js configCustomized.json`.  By default, the app will load `config.json`.
+1. Run the app by calling 'npm start'* (again, in the root directory). It should now run properly.
+   * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `npm start configCustomized.json`.  By default, the app will load `config.json`.
 ***
 
 ## Support
@@ -112,7 +112,9 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>spaheatmode(spaheatmode)</code> | Change the `spa heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
 | To app | <code>poolsetpoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
 | To app | <code>poolheatmode(poolheatmode)</code> | Change the `pool heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
-| To app | <code>pumpCommand(equip, program, value, duration)</code> | Save `pump` (96=pump 1, 97=pump 2) to  `program
+| To app | _depricated_ <code>pumpCommand(equip, program, value, duration)</code> | Save `pump` (96=pump 1, 97=pump 2) to  `program`
+| To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
+| To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
 | To client | <code>circuit</code> | outputs an object of circuits and their status
 | To client | <code>config</code> | outputs an object with the pool controller status
@@ -614,6 +616,13 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
  * https, Authentication
  * Completely refactored code.  Integrated BottleJS (https://github.com/young-steveo/bottlejs) for dependency injection and service locator funcctions
  * Integrations to loosely couple add-ons
+
+3.0.0 -
+ * Upgraded pump logic
+
+3.1.x -
+ * Added unit testing for certain areas
+ * Added setDateTime API/Socket
 
 # Wish list
 1.  Still many messages to debug

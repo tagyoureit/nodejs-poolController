@@ -1,6 +1,6 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.1.1",
+  "version": "3.1.8",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,6 @@
     "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
     "open:cover": "open coverage/lcov-report/index.html"
-
   },
   "repository": {
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
@@ -32,7 +31,6 @@
   },
   "homepage": "https://github.com/tagyoureit/nodejs-poolController#readme",
   "dependencies": {
-    "auto-updater": "^1.0.2",
     "bootstrap": "^3.3.7",
     "bottlejs": "^1.5.0",
     "dateformat": "^1.0.12",
@@ -40,6 +38,7 @@
     "express": "^4.14.0",
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
+    "jquery-clockpicker": "^0.0.8",
     "nanotimer": "^0.3.14",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
@@ -53,6 +52,7 @@
     "chai-as-promised": "^6.0.0",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
+    "jshint": "^2.9.4",
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
     "nock": "^9.0.2",
@@ -60,6 +60,8 @@
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^1.17.6",
-    "sinon-chai": "^2.8.0"
+    "sinon-chai": "^2.8.0",
+    "socket.io-client": "^1.7.2",
+    "v8-profiler": "^5.6.5"
   }
 }

@@ -22,6 +22,7 @@ module.exports = function(container) {
     var initialCustomNamesDiscovered = 0
 
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: circuit.js')
 

@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: schedule.js')
 
@@ -26,17 +27,94 @@ module.exports = function(container) {
     var initialSchedulesDiscovered = 0
     var logger = container.logger
 
-    function getCurrentSchedule() {
+
+        var formatSchedId = function(id) {
+            var str = ''
+            str += '\nID:'
+            str += currentSchedule[id].ID < 10 ? ' ' + currentSchedule[id].ID : currentSchedule[id].ID
+            return str
+        }
+
+        var formatEggTimerStr = function(id) {
+            var str = ' MODE:' + currentSchedule[id].MODE + ' DURATION:' + currentSchedule[id].DURATION
+            return str
+        }
+
+        var formatScheduleStr = function(id, schedule) {
+            var str = ''
+            if (id === 0) { //format the temp schedule
+                str += 'MODE:' + schedule.MODE + ' START_TIME:' + schedule.START_TIME + ' END_TIME:' + schedule.END_TIME + ' DAYS:' + schedule.DAYS
+
+            } else //format currentSchedule
+            {
+                str += ' MODE:' + currentSchedule[id].MODE + ' START_TIME:' + currentSchedule[id].START_TIME + ' END_TIME:' + currentSchedule[id].END_TIME + ' DAYS:' + currentSchedule[id].DAYS
+            }
+            return str
+
+        }
+
+    var getCurrentSchedule = function() {
         return currentSchedule
     }
 
-    function addScheduleDetails(id, circuit, days, time1, time2, time3, time4, counter) {
+
+
+        var broadcastInitialSchedules = function(counter) {
+            var scheduleStr = 'Msg# ' + counter + '  Schedules discovered:'
+            for (var i = 1; i <= 12; i++) {
+                scheduleStr += formatSchedId(i)
+                scheduleStr += '  CIRCUIT:(' + currentSchedule[i].CIRCUITNUM + ')' + currentSchedule[i].CIRCUIT + ' '
+                if (currentSchedule[i].CIRCUIT !== 'NOT USED') {
+                    if (currentSchedule[i].MODE === 'Egg Timer') {
+                        scheduleStr += formatEggTimerStr(i)
+                    } else {
+                        scheduleStr += formatScheduleStr(i, 0)
+                    }
+                }
+            }
+            logger.info('%s\n\n', scheduleStr)
+        }
+
+        var broadcastScheduleChange = function(id, schedule, counter) {
+            //Explicitly writing out the old/new packets because if we call .whatsDifferent and the schedule switches from an egg timer to schedule (or vice versa) it will throw an error)
+
+            var scheduleChgStr = ''
+            scheduleChgStr += 'Msg# ' + counter
+            scheduleChgStr += '  Schedule '
+            scheduleChgStr += formatSchedId(id)
+            scheduleChgStr += ' changed from:\n'
+            scheduleChgStr += 'ID:' + currentSchedule[id].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[id].CIRCUIT
+            //FROM string
+            if (currentSchedule[id].MODE === 'Egg Timer') {
+                scheduleChgStr += formatEggTimerStr(id)
+
+            } else {
+
+                scheduleChgStr += formatScheduleStr(id, 0)
+            }
+
+
+            scheduleChgStr += '\n'
+            scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT + ' '
+            //TO string
+            if (schedule.MODE === 'Egg Timer') {
+
+                scheduleChgStr += formatEggTimerStr(id)
+            } else {
+
+                scheduleChgStr += formatScheduleStr(0, schedule)
+            }
+            logger.verbose(scheduleChgStr)
+        }
+
+
+    var addScheduleDetails = function(id, circuit, days, time1, time2, time3, time4, counter) {
 
         var schedule = {}
 
         schedule.ID = id;
         schedule.CIRCUIT = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit); //Correct???
-        schedule.friendlyName =  circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit);
+        schedule.friendlyName = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit);
         schedule.CIRCUITNUM = circuit
 
         if (time1 === 25) //25 = Egg Timer
@@ -79,11 +157,13 @@ module.exports = function(container) {
             initialSchedulesDiscovered = 1
         } else
         if (initialSchedulesDiscovered === 1) { //TODO: AND A CHANGE.  Either circuit by circuit or all of them?
-            broadcastScheduleChange(id, schedule, counter)
-            currentSchedule[id] = schedule
-        } else if ('no change') { //TODO: and finally, no change
-            if (container.settings.logConfigMessages)
-                logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
+            if (currentSchedule[id] === schedule) {
+                broadcastScheduleChange(id, schedule, counter)
+                currentSchedule[id] = schedule
+            } else{
+                if (container.settings.logConfigMessages)
+            logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
+          }
         }
         if (id === 12) {
             container.io.emitToClients('schedule')
@@ -91,83 +171,13 @@ module.exports = function(container) {
     }
 
 
-    function broadcastInitialSchedules(counter) {
-        var scheduleStr = 'Msg# ' + counter + '  Schedules discovered:'
-        for (var i = 1; i <= 12; i++) {
-            scheduleStr += formatSchedId(i)
-            scheduleStr += '  CIRCUIT:(' + currentSchedule[i].CIRCUITNUM + ')' + currentSchedule[i].CIRCUIT + ' '
-            if (currentSchedule[i].CIRCUIT !== 'NOT USED') {
-                if (currentSchedule[i].MODE === 'Egg Timer') {
-                    scheduleStr += formatEggTimerStr(i)
-                } else {
-                    scheduleStr += formatScheduleStr(i, 0)
-                }
-            }
-        }
-        logger.info('%s\n\n', scheduleStr)
-    }
-
-    function broadcastScheduleChange(id, schedule, counter) {
-        //Explicitly writing out the old/new packets because if we call .whatsDifferent and the schedule switches from an egg timer to schedule (or vice versa) it will throw an error)
-
-        var scheduleChgStr = ''
-        scheduleChgStr += 'Msg# ' + counter
-        scheduleChgStr += '  Schedule '
-        scheduleChgStr += formatSchedId(id)
-        scheduleChgStr += ' changed from:\n'
-        scheduleChgStr += 'ID:' + currentSchedule[id].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[id].CIRCUIT
-            //FROM string
-        if (currentSchedule[id].MODE === 'Egg Timer') {
-            scheduleChgStr += formatEggTimerStr(id)
-
-        } else {
-
-            scheduleChgStr += formatScheduleStr(id, 0)
-        }
 
 
-        scheduleChgStr += '\n'
-        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT
-            //TO string
-        if (schedule.MODE === 'Egg Timer') {
-
-            scheduleChgStr += formatEggTimerStr(id)
-        } else {
-
-            scheduleChgStr += formatScheduleStr(0, schedule)
-        }
-        logger.verbose(scheduleChgStr)
-    }
-
-    function formatSchedId(id) {
-        var str = ''
-        str += '\nID:'
-        str += currentSchedule[id].ID < 10 ? ' ' + currentSchedule[id].ID : currentSchedule[id].ID
-        return str
-    }
-
-    function formatEggTimerStr(id) {
-        var str = ' MODE:' + currentSchedule[id].MODE + ' DURATION:' + currentSchedule[id].DURATION
-        return str
-    }
-
-    function formatScheduleStr(id, schedule) {
-        var str = ''
-        if (id === 0) { //format the temp schedule
-            str += 'MODE:' + schedule.MODE + ' START_TIME:' + schedule.START_TIME + ' END_TIME:' + schedule.END_TIME + ' DAYS:' + schedule.DAYS
-
-        } else //format currentSchedule
-        {
-            str += ' MODE:' + currentSchedule[id].MODE + ' START_TIME:' + currentSchedule[id].START_TIME + ' END_TIME:' + currentSchedule[id].END_TIME + ' DAYS:' + currentSchedule[id].DAYS
-        }
-        return str
-
-    }
-
-    function numberOfSchedulesRegistered() {
+    var numberOfSchedulesRegistered = function() {
         return currentSchedule.length
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: schedule.js')
 

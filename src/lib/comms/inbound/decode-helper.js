@@ -18,6 +18,7 @@
 
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: decode.js')
     var s = container.settings
@@ -31,10 +32,24 @@ module.exports = function(container) {
         "counter": 0
     }; //variable to count checksum mismatches
 
-    function checksum(chatterdata, counter, packetType) {
 
+    var successfulAck = function(chatter, counter, messageAck) {
+
+        //TODO: There is nothing to do with mesageAck===0 currently.  We only care about matching if we have written something, so we'll account for this in the writePacket() function
+        if (s.logMessageDecoding || s.logPacketWrites) {
+            logger.debug('Msg# %s  Msg received: %s \n                           Msg written: %s \n                           Match?: %s', counter, chatter, container.queuePacket.first(), messageAck)
+        }
+        if (messageAck === 1) {
+            if (s.logPacketWrites) {
+                logger.debug('successfulAck: Incoming packet is a match. \nRemoving packet %s from queuePacketsArr and resetting msgWriteCounter variables', container.queuePacket.first())
+            }
+            container.writePacket.ejectPacketAndReset()
+        }
+    }
+
+    var checksum = function(chatterdata, counter, packetType) {
         //make a copy so when we callback the decode method it isn't changing our log output in Winston
-        if (s.logMessageDecoding) logger.silly("Msg# %s   Making sure we have a valid %s packet (matching checksum to actual packet): %s", counter, packetType, JSON.stringify(chatterdata));
+        if (container.settings.logMessageDecoding) container.logger.silly("Msg# %s   Making sure we have a valid %s packet (matching checksum to actual packet): %s", counter, packetType, JSON.stringify(chatterdata));
 
         var chatterCopy = chatterdata.slice(0);
         var len = chatterCopy.length;
@@ -56,8 +71,8 @@ module.exports = function(container) {
 
 
             // add up the data in the payload
-            for (var i = 0; i < len - 2; i++) {
-                databytes += chatterCopy[i];
+            for (var j = 0; j < len - 2; j++) {
+                databytes += chatterCopy[j];
             }
         }
 
@@ -83,39 +98,7 @@ module.exports = function(container) {
 
     }
 
-
-
-    //isResponse: function(chatter, counter, packetType, logMessageDecoding, queuePacketsArr)
-    function isResponse(chatter, counter, packetType) {
-
-        if (s.logMessageDecoding) logger.silly('Msg# %s  Checking to see if inbound message matches previously sent outbound message (isResponse function): %s ', counter, chatter, packetType)
-
-
-        //For Broadcast Packets
-        //Ex set circuit name[255,0,255,165, 10, 16, 32, 139, 5, 7, 0, 7, 0, 0, 1,125]
-        //Ex ACK circuit name[255,0,255,165, 10, 15, 16,  10,12, 0,85,83,69,82,78, 65,77,69,45,48,49]
-
-
-        if (s.logMessageDecoding) logger.silly('   isResponse:  Msg#: %s  chatterreceived.action: %s (10?) === queue[0].action&63: %s ALL TRUE?  %s \n\n', counter, chatter[container.constants.packetFields.ACTION], container.queuePacket.first()[7] & 63, ((chatter[container.constants.packetFields.ACTION] === (container.queuePacket.first()[7] & 63))))
-
-        if (packetType === 'pump') {
-            return isResponsePump(chatter, counter)
-        } else
-        if (packetType === 'chlorinator') {
-            return isResponseChlorinator(chatter)
-        } else
-
-        if (packetType === 'controller') {
-            return isResponseController(chatter)
-        } else //if we get here, no match
-        {
-            logger.error('Msg# %s  No match on response.  How did we get here? %s', counter, chatter)
-            return false
-        }
-
-    }
-
-    function isResponsePump(chatter, counter) {
+    var isResponsePump = function(chatter, counter) {
 
         var tempObj = container.queuePacket.first().slice(3);
         var tempDest = tempObj[2];
@@ -155,7 +138,7 @@ module.exports = function(container) {
 
     }
 
-    function isResponseChlorinator(chatter) {
+    var isResponseChlorinator = function(chatter) {
         /* CHECK FOR RESPONSES
          0=>1
          17=>18
@@ -176,7 +159,7 @@ module.exports = function(container) {
 
     }
 
-    function isResponseController(chatter) {
+    var isResponseController = function(chatter) {
         if (chatter[container.constants.packetFields.ACTION] === 1 && chatter[6] === container.queuePacket.first()[7])
         //if an ACK
         {
@@ -212,7 +195,37 @@ module.exports = function(container) {
     }
 
 
-    function decode(data, counter, packetType) {
+    //isResponse: function(chatter, counter, packetType, logMessageDecoding, queuePacketsArr)
+    var isResponse = function(chatter, counter, packetType) {
+
+        if (s.logMessageDecoding) logger.silly('Msg# %s  Checking to see if inbound message matches previously sent outbound message (isResponse function): %s ', counter, chatter, packetType)
+
+
+        //For Broadcast Packets
+        //Ex set circuit name[255,0,255,165, 10, 16, 32, 139, 5, 7, 0, 7, 0, 0, 1,125]
+        //Ex ACK circuit name[255,0,255,165, 10, 15, 16,  10,12, 0,85,83,69,82,78, 65,77,69,45,48,49]
+
+
+        if (s.logMessageDecoding) logger.silly('   isResponse:  Msg#: %s  chatterreceived.action: %s (10?) === queue[0].action&63: %s ALL TRUE?  %s \n\n', counter, chatter[container.constants.packetFields.ACTION], ((container.queuePacket.first()[7]) & 63), ((chatter[container.constants.packetFields.ACTION] === (container.queuePacket.first()[7] & 63))))
+
+        if (packetType === 'pump') {
+            return isResponsePump(chatter, counter)
+        } else
+        if (packetType === 'chlorinator') {
+            return isResponseChlorinator(chatter)
+        } else
+
+        if (packetType === 'controller') {
+            return isResponseController(chatter)
+        } else //if we get here, no match
+        {
+            logger.error('Msg# %s  No match on response.  How did we get here? %s', counter, chatter)
+            return false
+        }
+
+    }
+
+    var decode = function(data, counter, packetType) {
         var decoded = false;
         //when searchMode (from socket.io) is in 'start' status, any matching packets will be set to the browser at http://machine.ip:3000/debug.html
         if (container.apiSearch.searchMode === 'start') {
@@ -256,7 +269,7 @@ module.exports = function(container) {
             if (s.logConsoleNotDecoded) {
 
                 logger.info('Msg# %s is NOT DECODED %s', counter, JSON.stringify(data));
-            };
+            }
         } else {
 
             decoded = false
@@ -265,7 +278,7 @@ module.exports = function(container) {
 
     }
 
-    function processChecksum(chatter, counter, packetType) {
+    var processChecksum = function(chatter, counter, packetType) {
         //call new function to process message; if it isn't valid, we noted above so just don't continue
         //TODO: countChecksumMismatch is not incrementing properly
         if (checksum(chatter, counter, packetType)) {
@@ -278,27 +291,15 @@ module.exports = function(container) {
                 }
             }
             decode(chatter, counter, packetType)
-        } else {
-            //TODO: we shouldn't need to increment the countChecksumMismatch.  Why is it not being increased with decodeHelper.checksum above?
-            //countChecksumMismatch.counter ++
-
+            // } else {
+            //     //TODO: we shouldn't need to increment the countChecksumMismatch.  Why is it not being increased with decodeHelper.checksum above?
+            //     //countChecksumMismatch.counter ++
+            //
+            // }
         }
     }
 
-    function successfulAck(chatter, counter, messageAck) {
-
-        //TODO: There is nothing to do with mesageAck===0 currently.  We only care about matching if we have written something, so we'll account for this in the writePacket() function
-        if (s.logMessageDecoding || s.logPacketWrites) {
-            logger.debug('Msg# %s  Msg received: %s \n                           Msg written: %s \n                           Match?: %s', counter, chatter, container.queuePacket.first(), messageAck)
-        }
-        if (messageAck === 1) {
-            if (s.logPacketWrites) {
-                logger.debug('successfulAck: Incoming packet is a match. \nRemoving packet %s from queuePacketsArr and resetting msgWriteCounter variables', container.queuePacket.first())
-            }
-            container.writePacket.ejectPacketAndReset()
-        }
-    }
-
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: decode.js')
 

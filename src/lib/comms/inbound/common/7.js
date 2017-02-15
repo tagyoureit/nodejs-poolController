@@ -19,12 +19,13 @@
 //Send request/response for pump status
 module.exports = function(container) {
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: 2.js')
 
-    logger = container.logger
-    s = container.settings
-    c = container.constants
+    var logger = container.logger
+    var s = container.settings
+    var c = container.constants
 
 
 
@@ -56,6 +57,7 @@ module.exports = function(container) {
 
     }
 
+    /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: 2.js')
 
