@@ -3,9 +3,7 @@ describe('socket.io basic tests', function() {
 
 
     before(function() {
-        bottle.container.settings.logPumpMessages = 1
-        bottle.container.settings.logPumpTimers = 1
-        bottle.container.settings.logLevel = 'silly'
+
         bottle.container.server.init()
         bottle.container.io.init()
     });
@@ -20,25 +18,18 @@ describe('socket.io basic tests', function() {
         // loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         // loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-        bottle.container.pump.init()
-        bottle.container.pumpControllerTimers.clearTimer(1)
-        bottle.container.pumpControllerTimers.clearTimer(2)
+        preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
+
     })
 
     afterEach(function() {
         //restore the sandbox after each function
-        bottle.container.pumpControllerTimers.clearTimer(1)
-        bottle.container.pumpControllerTimers.clearTimer(2)
         sandbox.restore()
 
     })
 
     after(function() {
         bottle.container.time.init()
-        bottle.container.settings.logPumpTimers = 0
-        bottle.container.settings.logPumpMessages = 0
-        bottle.container.settings.logLevel = 'info'
         bottle.container.server.close()
     })
 
@@ -53,24 +44,6 @@ describe('socket.io basic tests', function() {
             client.on('echo', function(msg) {
                 // console.log(msg)
                 msg.should.eq('my test')
-                client.disconnect()
-                done()
-            })
-        })
-    })
-
-    it('#requests pump status', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
-
-        client.on('connect', function(data) {
-            // console.log('connected client:')
-            client.emit('all')
-            client.on('one', function(msg) {
-                // console.log(msg)
-                msg.circuits[0].should.eq('blank')
-                msg.pumps[1].pump.should.eq(1)
-                msg.schedule[0].should.eq('blank')
                 client.disconnect()
                 done()
             })
@@ -92,6 +65,26 @@ describe('socket.io basic tests', function() {
             console.log(res)
             res.controllerDateStr.should.eq('4/3/2018')
             res.controllerDayOfWeekStr.should.eq('Tuesday')
+            done()
+        }, 500)
+    })
+
+    it('#sets a schedule', function(done) {
+        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+        // var client =  global.ioclient.connect('http://localhost:3000');
+
+        client.on('connect', function(data) {
+            // console.log('connected client:')
+            client.emit('setSchedule', 12, 5, 13, 20, 13, 40, 131)
+            client.disconnect()
+        })
+
+        setTimeout(function() {
+          console.log('loggerInfoStub', loggerInfoStub.args[0])
+          loggerInfoStub.args[0][0].text.should.contain('REST API')
+          console.log('queuePacketStub', queuePacketStub.args)
+          queuePacketStub.args[0][0].should.contain.members([165,99,16,33,145,7,12,5,13,20,13,40,131])
+          queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
             done()
         }, 500)
     })
@@ -161,7 +154,72 @@ describe('socket.io basic tests', function() {
     // })
 
 
+})
 
 
+describe('socket.io pump tests', function() {
+
+
+
+    before(function() {
+        bottle.container.settings.logPumpMessages = 1
+        bottle.container.settings.logPumpTimers = 1
+        bottle.container.settings.logLevel = 'silly'
+        bottle.container.server.init()
+        bottle.container.io.init()
+    });
+
+    beforeEach(function() {
+        sandbox = sinon.sandbox.create()
+        //clock = sandbox.useFakeTimers()
+        bottle.container.time.init()
+        // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+        // loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+        // loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+        // loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+        pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+        bottle.container.pump.init()
+        bottle.container.pumpControllerTimers.clearTimer(1)
+        bottle.container.pumpControllerTimers.clearTimer(2)
+    })
+
+    afterEach(function() {
+        //restore the sandbox after each function
+        bottle.container.pumpControllerTimers.clearTimer(1)
+        bottle.container.pumpControllerTimers.clearTimer(2)
+        sandbox.restore()
+
+    })
+
+    after(function() {
+        bottle.container.time.init()
+        bottle.container.settings.logPumpTimers = 0
+        bottle.container.settings.logPumpMessages = 0
+        bottle.container.settings.logLevel = 'info'
+        bottle.container.server.close()
+    })
+
+
+
+
+    it('#requests pump status', function(done) {
+        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+        // var client =  global.ioclient.connect('http://localhost:3000');
+
+        client.on('connect', function(data) {
+            // console.log('connected client:')
+            client.emit('all')
+            client.on('one', function(msg) {
+                // console.log(msg)
+                msg.circuits[0].should.eq('blank')
+                msg.pumps[1].pump.should.eq(1)
+                msg.schedule[0].should.eq('blank')
+                client.disconnect()
+                done()
+            })
+        })
+    })
 
 })

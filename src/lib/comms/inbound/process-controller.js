@@ -78,6 +78,11 @@ module.exports = function(container) {
                     decoded = container.controller_136.process(data, counter)
                     break;
                 }
+            case 145: //Set Schedule
+                {
+                    decoded = container.controller_145.process(data, counter)
+                    break;
+                }
             case 153: //Set Intellichlor status
                 {
                     decoded = container.controller_153.process(data, counter)

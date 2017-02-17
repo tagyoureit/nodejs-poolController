@@ -28,30 +28,30 @@ module.exports = function(container) {
     var logger = container.logger
 
 
-        var formatSchedId = function(id) {
-            var str = ''
-            str += '\nID:'
-            str += currentSchedule[id].ID < 10 ? ' ' + currentSchedule[id].ID : currentSchedule[id].ID
-            return str
+    var formatSchedId = function(id) {
+        var str = ''
+        str += '\nID:'
+        str += currentSchedule[id].ID < 10 ? ' ' + currentSchedule[id].ID : currentSchedule[id].ID
+        return str
+    }
+
+    var formatEggTimerStr = function(id) {
+        var str = ' MODE:' + currentSchedule[id].MODE + ' DURATION:' + currentSchedule[id].DURATION
+        return str
+    }
+
+    var formatScheduleStr = function(id, schedule) {
+        var str = ''
+        if (id === 0) { //format the temp schedule
+            str += 'MODE:' + schedule.MODE + ' START_TIME:' + schedule.START_TIME + ' END_TIME:' + schedule.END_TIME + ' DAYS:' + schedule.DAYS
+
+        } else //format currentSchedule
+        {
+            str += ' MODE:' + currentSchedule[id].MODE + ' START_TIME:' + currentSchedule[id].START_TIME + ' END_TIME:' + currentSchedule[id].END_TIME + ' DAYS:' + currentSchedule[id].DAYS
         }
+        return str
 
-        var formatEggTimerStr = function(id) {
-            var str = ' MODE:' + currentSchedule[id].MODE + ' DURATION:' + currentSchedule[id].DURATION
-            return str
-        }
-
-        var formatScheduleStr = function(id, schedule) {
-            var str = ''
-            if (id === 0) { //format the temp schedule
-                str += 'MODE:' + schedule.MODE + ' START_TIME:' + schedule.START_TIME + ' END_TIME:' + schedule.END_TIME + ' DAYS:' + schedule.DAYS
-
-            } else //format currentSchedule
-            {
-                str += ' MODE:' + currentSchedule[id].MODE + ' START_TIME:' + currentSchedule[id].START_TIME + ' END_TIME:' + currentSchedule[id].END_TIME + ' DAYS:' + currentSchedule[id].DAYS
-            }
-            return str
-
-        }
+    }
 
     var getCurrentSchedule = function() {
         return currentSchedule
@@ -59,53 +59,74 @@ module.exports = function(container) {
 
 
 
-        var broadcastInitialSchedules = function(counter) {
-            var scheduleStr = 'Msg# ' + counter + '  Schedules discovered:'
-            for (var i = 1; i <= 12; i++) {
-                scheduleStr += formatSchedId(i)
-                scheduleStr += '  CIRCUIT:(' + currentSchedule[i].CIRCUITNUM + ')' + currentSchedule[i].CIRCUIT + ' '
-                if (currentSchedule[i].CIRCUIT !== 'NOT USED') {
-                    if (currentSchedule[i].MODE === 'Egg Timer') {
-                        scheduleStr += formatEggTimerStr(i)
-                    } else {
-                        scheduleStr += formatScheduleStr(i, 0)
-                    }
+    var broadcastInitialSchedules = function(counter) {
+        var scheduleStr = 'Msg# ' + counter + '  Schedules discovered:'
+        for (var i = 1; i <= 12; i++) {
+            scheduleStr += formatSchedId(i)
+            scheduleStr += '  CIRCUIT:(' + currentSchedule[i].CIRCUITNUM + ')' + currentSchedule[i].CIRCUIT + ' '
+            if (currentSchedule[i].CIRCUIT !== 'NOT USED') {
+                if (currentSchedule[i].MODE === 'Egg Timer') {
+                    scheduleStr += formatEggTimerStr(i)
+                } else {
+                    scheduleStr += formatScheduleStr(i, 0)
                 }
             }
-            logger.info('%s\n\n', scheduleStr)
+        }
+        logger.info('%s\n\n', scheduleStr)
+    }
+
+    var broadcastScheduleChange = function(id, schedule, counter) {
+        //Explicitly writing out the old/new packets because if we call .whatsDifferent and the schedule switches from an egg timer to schedule (or vice versa) it will throw an error)
+
+        var scheduleChgStr = ''
+        scheduleChgStr += 'Msg# ' + counter
+        scheduleChgStr += '  Schedule '
+        scheduleChgStr += formatSchedId(id)
+        scheduleChgStr += ' changed from:\n'
+        scheduleChgStr += 'ID:' + currentSchedule[id].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[id].CIRCUIT
+        //FROM string
+        if (currentSchedule[id].MODE === 'Egg Timer') {
+            scheduleChgStr += formatEggTimerStr(id)
+
+        } else {
+
+            scheduleChgStr += formatScheduleStr(id, 0)
         }
 
-        var broadcastScheduleChange = function(id, schedule, counter) {
-            //Explicitly writing out the old/new packets because if we call .whatsDifferent and the schedule switches from an egg timer to schedule (or vice versa) it will throw an error)
 
-            var scheduleChgStr = ''
-            scheduleChgStr += 'Msg# ' + counter
-            scheduleChgStr += '  Schedule '
-            scheduleChgStr += formatSchedId(id)
-            scheduleChgStr += ' changed from:\n'
-            scheduleChgStr += 'ID:' + currentSchedule[id].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[id].CIRCUIT
-            //FROM string
-            if (currentSchedule[id].MODE === 'Egg Timer') {
-                scheduleChgStr += formatEggTimerStr(id)
+        scheduleChgStr += '\n'
+        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT + ' '
+        //TO string
+        if (schedule.MODE === 'Egg Timer') {
 
-            } else {
+            scheduleChgStr += formatEggTimerStr(id)
+        } else {
 
-                scheduleChgStr += formatScheduleStr(id, 0)
-            }
-
-
-            scheduleChgStr += '\n'
-            scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT + ' '
-            //TO string
-            if (schedule.MODE === 'Egg Timer') {
-
-                scheduleChgStr += formatEggTimerStr(id)
-            } else {
-
-                scheduleChgStr += formatScheduleStr(0, schedule)
-            }
-            logger.verbose(scheduleChgStr)
+            scheduleChgStr += formatScheduleStr(0, schedule)
         }
+        logger.verbose(scheduleChgStr)
+    }
+
+    var dayStr = function(days) {
+        var dayStr = ''
+        if ((days === 0))
+            dayStr += 'None';
+        if ((days & 1) === 1)
+            dayStr += 'Sunday '; //1
+        if ((days & 2) >> 1 === 1)
+            dayStr += 'Monday '; // 2
+        if ((days & 4) >> 2 === 1)
+            dayStr += 'Tuesday '; // 4
+        if ((days & 8) >> 3 === 1)
+            dayStr += 'Wednesday '; //8
+        if ((days & 16) >> 4 === 1)
+            dayStr += 'Thursday '; //16
+        if ((days & 32) >> 5 === 1)
+            dayStr += 'Friday '; //32
+        if ((days & 64) >> 6 === 1)
+            dayStr += 'Saturday '; //64
+        return dayStr
+    }
 
 
     var addScheduleDetails = function(id, circuit, days, time1, time2, time3, time4, counter) {
@@ -126,27 +147,8 @@ module.exports = function(container) {
             schedule.DURATION = 'n/a'
             schedule.START_TIME = time1 + ':' + time2;
             schedule.END_TIME = time3 + ':' + time4;
-            schedule.DAYS = '';
-            // if (data[12] == 255) { //not sure this is needed as it is really x1111111 with the x=1 being unknown.  See following note.
-            //    schedule[id].DAYS += 'EVERY DAY'
-            //} else { //0 = none;  My Pentiar Intellitouch always adds a leading 1xxxxxxx to the schedule[id].  Don't know the significance of that.
-            if ((days === 0))
-                schedule.DAYS += 'None';
-            if ((days & 1) === 1)
-                schedule.DAYS += 'Sunday '; //1
-            if ((days & 2) >> 1 === 1)
-                schedule.DAYS += 'Monday '; // 2
-            if ((days & 4) >> 2 === 1)
-                schedule.DAYS += 'Tuesday '; // 4
-            if ((days & 8) >> 3 === 1)
-                schedule.DAYS += 'Wednesday '; //8
-            if ((days & 16) >> 4 === 1)
-                schedule.DAYS += 'Thursday '; //16
-            if ((days & 32) >> 5 === 1)
-                schedule.DAYS += 'Friday '; //32
-            if ((days & 64) >> 6 === 1)
-                schedule.DAYS += 'Saturday '; //64
-            //}
+            schedule.DAYS = dayStr(days)
+
         }
 
         if (currentSchedule[id] === undefined) {
@@ -160,10 +162,10 @@ module.exports = function(container) {
             if (currentSchedule[id] === schedule) {
                 broadcastScheduleChange(id, schedule, counter)
                 currentSchedule[id] = schedule
-            } else{
+            } else {
                 if (container.settings.logConfigMessages)
-            logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
-          }
+                    logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
+            }
         }
         if (id === 12) {
             container.io.emitToClients('schedule')
@@ -177,6 +179,46 @@ module.exports = function(container) {
         return currentSchedule.length
     }
 
+    var getControllerScheduleByID = function(id) {
+        container.logger.verbose('Queueing packet to retrieve schedule by id %s', id)
+        container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, id]);
+    }
+
+    var setControllerSchedule = function(id, circuit, starthh, startmm, endhh, endmm, days) {
+        //validate
+        console.log('calling setcontroller sched:', id, circuit, starthh, startmm, endhh, endmm, days)
+        if (id >= 0 && id <= 12 && starthh >= 0 && starthh <= 25 && startmm >= 0 && startmm <= 59 && endhh >= 0 && endmm <= 59) {
+            //TODO: validate days is one of 0,1,2,4,8,16,32 (+128 for any >0 entry??)
+            var scheduleStr = 'Queueing message to set schedule '
+            scheduleStr += id < 10 ? ' ' + id : id
+            var circuitTmpStr = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit)
+            scheduleStr += '  CIRCUIT:(' + circuit + ')' + circuitTmpStr + ' '
+
+            if (starthh === 25) {
+                scheduleStr += ' MODE: Egg Timer DURATION:' + endhh + ':' + endmm
+            } else {
+                scheduleStr += 'MODE: Schedule START_TIME:' + starthh + ':' + startmm + ' END_TIME:' + endhh + ':' + endmm + ' DAYS:' + dayStr(days)
+            }
+
+            container.logger.info(scheduleStr)
+
+            container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 145, 7, id, circuit, starthh, startmm, endhh, endmm, days]);
+            getControllerScheduleByID(id)
+        } else {
+            container.logger.warn('Aborting Queue set schedule packet with an invalid value: ', id, circuit, starthh, startmm, endhh, endmm, days)
+        }
+    }
+
+    var getControllerScheduleByCircuitID = function(circuit) {
+        for (var i = 0; i <= 12; i++) {
+            if (currentSchedule.CIRCUIT === circuit) {
+                container.logger.verbose('Queueing packet to retrieve schedule %s by circuit id %s', i, circuit)
+                container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
+            }
+        }
+    }
+
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: schedule.js')
@@ -184,8 +226,10 @@ module.exports = function(container) {
     return {
         getCurrentSchedule: getCurrentSchedule,
         addScheduleDetails: addScheduleDetails,
-        numberOfSchedulesRegistered: numberOfSchedulesRegistered
-        //currentSchedule
+        numberOfSchedulesRegistered: numberOfSchedulesRegistered,
+        setControllerSchedule: setControllerSchedule,
+        getControllerScheduleByID: getControllerScheduleByID,
+        getControllerScheduleByCircuitID: getControllerScheduleByCircuitID
     }
 
 

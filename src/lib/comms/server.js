@@ -118,6 +118,21 @@ module.exports = function(container) {
             res.send(container.schedule.getCurrentSchedule())
         })
 
+        app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
+          var id = parseInt(req.params.id)
+          var circuit = parseInt(req.params.circuit)
+          var starthh = parseInt(req.params.starthh)
+          var startmm = parseInt(req.params.startmm)
+          var endhh = parseInt(req.params.endhh)
+          var endmm = parseInt(req.params.endmm)
+          var days = parseInt(req.params.days)
+            var response = {}
+            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+            container.logger.info(response)
+            container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
+            res.send(response)
+          })
+
         app.get('/temperatures', function(req, res) {
             res.send(container.temperatures.getTemperatures())
         })
@@ -154,9 +169,7 @@ module.exports = function(container) {
                 response.text += 'dst (' + autodst + ') should be 0 or 1'
                 container.logger.warn(response)
             }
-
             res.send(response)
-
         })
 
         app.get('/pump', function(req, res) {
