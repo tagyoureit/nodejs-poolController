@@ -159,9 +159,10 @@ module.exports = function(container) {
             initialSchedulesDiscovered = 1
         } else
         if (initialSchedulesDiscovered === 1) { //TODO: AND A CHANGE.  Either circuit by circuit or all of them?
-            if (currentSchedule[id] === schedule) {
+            if (JSON.stringify(currentSchedule[id]) !== JSON.stringify(schedule)) {
                 broadcastScheduleChange(id, schedule, counter)
                 currentSchedule[id] = schedule
+                container.io.emitToClients('schedule')
             } else {
                 if (container.settings.logConfigMessages)
                     logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
@@ -184,9 +185,17 @@ module.exports = function(container) {
         container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, id]);
     }
 
+    var getControllerScheduleAll = function() {
+        //get schedules
+        console.log('requesting all schedules')
+        for (var i = 1; i < 13; i++) {
+
+            container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
+        }
+    }
+
     var setControllerSchedule = function(id, circuit, starthh, startmm, endhh, endmm, days) {
         //validate
-        console.log('calling setcontroller sched:', id, circuit, starthh, startmm, endhh, endmm, days)
         if (id >= 0 && id <= 12 && starthh >= 0 && starthh <= 25 && startmm >= 0 && startmm <= 59 && endhh >= 0 && endmm <= 59) {
             //TODO: validate days is one of 0,1,2,4,8,16,32 (+128 for any >0 entry??)
             var scheduleStr = 'Queueing message to set schedule '
@@ -203,9 +212,9 @@ module.exports = function(container) {
             container.logger.info(scheduleStr)
 
             container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 145, 7, id, circuit, starthh, startmm, endhh, endmm, days]);
-            getControllerScheduleByID(id)
+            getControllerScheduleAll()
         } else {
-            container.logger.warn('Aborting Queue set schedule packet with an invalid value: ', id, circuit, starthh, startmm, endhh, endmm, days)
+            container.logger.warn('Aborting Queue set schedule packet with an invalid value: ', id, circuit, starthh, startmm, endhh, endmm, days + 128)
         }
     }
 
@@ -219,6 +228,8 @@ module.exports = function(container) {
     }
 
 
+
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: schedule.js')
@@ -229,7 +240,8 @@ module.exports = function(container) {
         numberOfSchedulesRegistered: numberOfSchedulesRegistered,
         setControllerSchedule: setControllerSchedule,
         getControllerScheduleByID: getControllerScheduleByID,
-        getControllerScheduleByCircuitID: getControllerScheduleByCircuitID
+        getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,
+        getControllerScheduleAll: getControllerScheduleAll
     }
 
 

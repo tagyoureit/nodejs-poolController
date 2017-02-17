@@ -63,11 +63,7 @@ module.exports = function(container) {
 
 
         container.logger.verbose('Queueing messages to retrieve Schedules')
-            //get schedules
-        for (i = 1; i < 13; i++) {
-
-            container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 209, 1, i]);
-        }
+        container.schedule.getControllerScheduleAll()
     }
 
     function setPreambleByte(byte){
