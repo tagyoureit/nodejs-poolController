@@ -5,7 +5,7 @@ var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
 
-bottle.constant('appVersion', '3.1.1')
+
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
@@ -84,6 +84,7 @@ bottle.factory('controller_10', require(__dirname + '/comms/inbound/controller/1
 bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/11.js'))
 bottle.factory('controller_17', require(__dirname + '/comms/inbound/controller/17.js'))
 bottle.factory('controller_25', require(__dirname + '/comms/inbound/controller/25.js'))
+bottle.factory('controller_96', require(__dirname + '/comms/inbound/controller/96.js'))
 bottle.factory('controller_134', require(__dirname + '/comms/inbound/controller/134.js'))
 bottle.factory('controller_136', require(__dirname + '/comms/inbound/controller/136.js'))
 bottle.factory('controller_145', require(__dirname + '/comms/inbound/controller/145.js'))
