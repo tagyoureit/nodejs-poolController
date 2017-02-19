@@ -25,8 +25,7 @@ if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
 
 var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8' ))
-console.log(packageJson)
-var appversion = packageJson.version
+var appVersion = packageJson.version
 var configurationFile
 
 //-------  EQUIPMENT SETUP -----------
@@ -148,7 +147,7 @@ displayIntroMsg = exports.displayIntroMsg = function() {
 
 displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr = '' // \n*******************************';
-    settingsStr += '\n Version: ' + bottle.container.appVersion;
+    settingsStr += '\n Version: ' + appVersion;
     settingsStr += '\n Config File: ' + configurationFile
     settingsStr += '\n ';
     settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
