@@ -1,5 +1,5 @@
 /* global Storage */
-jsVersion = 'v0.1.1';
+jsVersion = 'v0.1.2';
 var autoDST;					// Flag for Automatic DST (0 = manual, 1 = automatic)
 
 //Configure Bootstrap Panels, in 2 steps ...
@@ -77,27 +77,37 @@ function dayOfWeekAsString(indDay) {
 
 // Format Time (String), to 12 hour format. Input is HH:MM, Output is HH:MM am/pm
 function fmt12hrTime(strInpStr) {
-	splitInpStr = strInpStr.split(":");
-	if (splitInpStr[0] < 12)
-		strAMPM = 'am';
-	else
-		strAMPM = 'pm';
-	strHours = (parseInt(splitInpStr[0]) % 12).toFixed(0);
-	if (strHours === "0")
-		strHours = "12";
-	strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
-	return strHours + ':' + strMins + ' ' + strAMPM;
+	// Make sure input is in 24 hour time ... if not, don't convert
+	if (strInpStr.toUpperCase().search("M") >= 0)
+		return strInpStr;
+	else {
+		splitInpStr = strInpStr.split(":");
+		if (splitInpStr[0] < 12)
+			strAMPM = 'am';
+		else
+			strAMPM = 'pm';
+		strHours = (parseInt(splitInpStr[0]) % 12).toFixed(0);
+		if (strHours === "0")
+			strHours = "12";
+		strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
+		return strHours + ':' + strMins + ' ' + strAMPM;		
+	}
 }
 
 // Format Time (String), to 24 hour format. Input is HH:MM am/pm, Output is HH:MM
 function fmt24hrTime(strInpStr) {
-	splitInpStr = strInpStr.slice(0,-3).split(":");
-	intAMPM = (strInpStr.slice(-2).toUpperCase() === "AM") ? 0 : 1;
-	strHours = ((parseInt(splitInpStr[0]) % 12) + (12 * intAMPM)).toFixed(0);
-	if (strHours === "0")
-		strHours = "00";
-	strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
-	return strHours + ':' + strMins;
+	// Make sure input is in 12 hour time ... if not, don't convert
+	if (strInpStr.toUpperCase().search("M") < 0)
+		return strInpStr;
+	else {
+		splitInpStr = strInpStr.slice(0,-3).split(":");
+		intAMPM = (strInpStr.slice(-2).toUpperCase() === "AM") ? 0 : 1;
+		strHours = ((parseInt(splitInpStr[0]) % 12) + (12 * intAMPM)).toFixed(0);
+		if (strHours === "0")
+			strHours = "00";
+		strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
+		return strHours + ':' + strMins;
+	}
 }
 
 function fmtEggTimerTime(strInpStr) {
@@ -484,7 +494,9 @@ $(function() {
 				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
 			}
 		});	
-		$('#currTime').jqclockpicker({
+		$('#currTime').clockpicker({
+			donetext: 'OK',
+			twelvehour: false,
 			beforeShow: function () {
 				$('#currTime').val(fmt24hrTime($('#currTime').val()));
 			},
