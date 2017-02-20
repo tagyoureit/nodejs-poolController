@@ -19,17 +19,17 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: constants.js')
+        container.logger.info('Loading: ants.js')
 
     // this first four bytes of ANY packet are the same
-    const packetFields = {
+    packetFields = {
         DEST: 2,
         FROM: 3,
         ACTION: 4,
         LENGTH: 5,
     }
 
-    const controllerStatusPacketFields = {
+    controllerStatusPacketFields = {
         HOUR: 6,
         MIN: 7,
         EQUIP1: 8,
@@ -44,15 +44,15 @@ module.exports = function(container) {
         AIR_TEMP: 24,
         SOLAR_TEMP: 25,
         HEATER_MODE: 28,
-        MISC2: 32  //0=do not automatically adjust DST, 1=automatically adjust DST
+        MISC2: 32 //0=do not automatically adjust DST, 1=automatically adjust DST
     }
 
-    const chlorinatorPacketFields = {
+    chlorinatorPacketFields = {
         DEST: 2,
         ACTION: 3
     }
 
-    const pumpPacketFields = {
+    pumpPacketFields = {
         DEST: 2,
         FROM: 3,
         ACTION: 4,
@@ -73,13 +73,13 @@ module.exports = function(container) {
         MIN: 20 //Mins
     }
 
-    const namePacketFields = {
+    namePacketFields = {
         NUMBER: 6,
         CIRCUITFUNCTION: 7,
         NAME: 8,
     }
 
-    const pumpAction = {
+    pumpAction = {
         1: 'WRITE', //Write commands to pump
         4: 'REMOTE', //Turn on/off pump control panel
         5: 'MODE', //Set pump mode
@@ -88,7 +88,7 @@ module.exports = function(container) {
 
     }
 
-    const strCircuitName = {
+    strCircuitName = {
         0: 'NOT USED',
         1: 'AERATOR',
         2: 'AIR BLOWER',
@@ -203,7 +203,7 @@ module.exports = function(container) {
         209: 'USERNAME-10'
     }
 
-    const strCircuitFunction = {
+    strCircuitFunction = {
         0: 'Generic',
         1: 'Spa',
         2: 'Pool',
@@ -221,7 +221,7 @@ module.exports = function(container) {
         64: 'Freeze protection on'
     }
 
-    const strPumpActions = {
+    strPumpActions = {
         1: 'Pump set speed/program or run program',
         4: 'Pump control panel',
         5: 'Pump speed',
@@ -229,7 +229,7 @@ module.exports = function(container) {
         7: 'Pump Status'
     }
 
-    const strChlorinatorActions = {
+    strChlorinatorActions = {
         0: 'Get Status',
         1: 'Response to Get Status',
         3: 'Response to Get Version',
@@ -239,7 +239,7 @@ module.exports = function(container) {
         21: 'Set Salt Generate % / 10'
     }
 
-    const strControllerActions = {
+    strControllerActions = {
         1: 'Ack Message',
         2: 'Controller Status',
         5: 'Date/Time',
@@ -258,18 +258,21 @@ module.exports = function(container) {
         35: 'Delay Status',
         39: 'Set ?',
         40: 'Settings?',
+        96: 'Set Color', //Intellibrite, maybe more?
         133: 'Set Date/Time',
         134: 'Set Circuit',
         136: 'Set Heat/Temperature',
         138: 'Set Custom Name',
         139: 'Set Circuit Name/Function',
         144: 'Set Heat Pump',
+        145: 'Set Schedule',
         147: 'Set IntelliChem',
         152: 'Set Pump Config',
         153: 'Set IntelliChlor',
         157: 'Set Valves',
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
+        167: 'Set Light Special Groups',  //all on, off
         194: 'Get Status',
         197: 'Get Date/Time',
         200: 'Get Heat/Temperature',
@@ -290,8 +293,44 @@ module.exports = function(container) {
         253: 'Get SW Version',
     }
 
+    strIntellibriteModes = {
+        0: 'Off', //All off in UI
+        1: 'On', //All on in UI
+        128: 'Color Sync',
+        144: 'Color Swim',
+        160: 'Color Set', //???
+        177: 'Party',
+        178: 'Romance',
+        179: 'Caribbean',
+        180: 'American',
+        181: 'Sunset',
+        182: 'Royal',
+        193: 'Blue',
+        194: 'Green',
+        195: 'Red',
+        196: 'White',
+        197: 'Magenta'
+    }
+    intellibriteModes = {
+        'Off': 0, //All off in UI
+        'On': 1, //All on in UI
+        'Color Sync': 128,
+        'Color Swim': 144,
+        'Color Set': 160, //???
+        'Party': 177,
+        'Romance': 178,
+        'Caribbean': 179,
+        'American': 180,
+        'Sunset': 181,
+        'Royal': 182,
+        'Blue': 193,
+        'Green': 194,
+        'Red': 195,
+        'White': 196,
+        'Magenta': 197
+    }
 
-    const strRunMode = {
+    strRunMode = {
         //same bit as UOM.  Need to fix naming.
         0: 'Auto', //0x00000000
         1: 'Service', //0x00000001
@@ -302,13 +341,13 @@ module.exports = function(container) {
     }
 
 
-    const strValves = {
+    strValves = {
         3: 'Pool',
         15: 'Spa',
         48: 'Heater' // I've seen the value of 51.  I think it is Pool + Heater.  Need to investigate.
     }
 
-    const heatModeStr = {
+    heatModeStr = {
         //Pentair controller sends the pool and spa heat status as a 4 digit binary byte from 0000 (0) to 1111 (15).  The left two (xx__) is for the spa and the right two (__xx) are for the pool.  EG 1001 (9) would mean 10xx = 2 (Spa mode Solar Pref) and xx01 = 1 (Pool mode Heater)
         //0: all off
         //1: Pool heater            Spa off
@@ -332,14 +371,14 @@ module.exports = function(container) {
         3: 'Solar Only'
     }
 
-    const heatMode = {
+    heatMode = {
         OFF: 0,
         HEATER: 1,
         SOLARPREF: 2,
         SOLARONLY: 3
     }
 
-    const ctrl = {
+    ctrl = {
         CHLORINATOR: 2,
         BROADCAST: 15,
         INTELLITOUCH: 16,
@@ -349,7 +388,7 @@ module.exports = function(container) {
         PUMP2: 97
     }
 
-    const ctrlString = {
+    ctrlString = {
         2: 'Chlorinator',
         15: 'Broadcast',
         16: 'Main',
@@ -362,7 +401,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: constants.js')
+        container.logger.info('Loaded: ants.js')
 
     return {
         packetFields,

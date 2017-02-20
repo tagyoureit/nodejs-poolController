@@ -20,19 +20,19 @@
 
 
 module.exports = function(container) {
-    logger = container.logger
+    var logger = container.logger
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: reload.js')
 
 
 
-    reload = function(callback) {
+    var reload = function(callback) {
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
             This will _NOT_ restart the express (web) server and will not affect bootstrap, auth, or ssl.'
         var res = reloadStr + '<p>'
-        res += 'Intro: <p>' + bottle.container.settings.displayIntroMsg() + '<p>'
-        res += 'Settings: <p>' + bottle.container.settings.displaySettingsMsg() + '<p>'
+        res += 'Intro: <p>' + container.settings.displayIntroMsg() + '<p>'
+        res += 'Settings: <p>' + container.settings.displaySettingsMsg() + '<p>'
 
 
 
@@ -79,7 +79,7 @@ module.exports = function(container) {
         }
 
           container.logger.info(res)
-        
+
 
     }
 

@@ -20,7 +20,7 @@ var request = require('request')
 module.exports = function(container) {
 
     var io = container.socketClient
-    var ISYTimer = new container.nanotimer
+    //var ISYTimer = new container.nanotimer
     var fs = container.fs
 
     var socket = io.connect('https://localhost:3000', {
@@ -67,7 +67,7 @@ module.exports = function(container) {
 
 
         container.logger.verbose('ISY Socket: Sending %s (value: %s) to ISY with URL (%s)', name, value, logconnectionString)
-        ISYTimer.setTimeout(send, [name, connectionString], (delayCounter).toString() + 'm'); //500ms delay between http requests to ISY
+        setTimeout(send, delayCounter, name, connectionString); //500ms delay between http requests to ISY
         delayCounter += 500
 
     }

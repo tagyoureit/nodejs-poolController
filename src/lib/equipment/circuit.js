@@ -15,13 +15,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-function Circuit(number, numberStr, name, circuitFunction, status, freeze) {
+function Circuit(number, numberStr, name, circuitFunction, status, freeze, light) {
     this.number = number; //1
     this.numberStr = numberStr; //circuit1
     this.name = name; //Pool
     this.circuitFunction = circuitFunction; //Generic, Light, etc
     this.status = status; //0, 1
     this.freeze = freeze; //0, 1
+    this.light = {'group': 0, 'colorStr':'Off', 'color':0}
 }
 
 
@@ -427,6 +428,14 @@ module.exports = function(container) {
         return response
     }
 
+    var setControllerLightColor = function(){
+
+    }
+
+    var setControllerLightGroup = function(){
+      
+    }
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: circuit.js')
@@ -445,6 +454,8 @@ module.exports = function(container) {
         setCurrentStatusBytes: setCurrentStatusBytes,
         toggleCircuit: toggleCircuit,
         setCircuit: setCircuit,
+        setControllerLightColor: setControllerLightColor,
+        setControllerLightGroup: setControllerLightGroup,
         //TESTING
         getFriendlyNames: getFriendlyNames
     }

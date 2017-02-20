@@ -63,11 +63,7 @@ module.exports = function(container) {
 
 
         container.logger.verbose('Queueing messages to retrieve Schedules')
-            //get schedules
-        for (i = 1; i < 13; i++) {
-
-            container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 209, 1, i]);
-        }
+        container.schedule.getControllerScheduleAll()
     }
 
     function setPreambleByte(byte){
@@ -92,9 +88,9 @@ module.exports = function(container) {
            } else {
 
                if (container.settings.intellicom) {
-                   logger.info('IntellicomII Controller in .  No configuration request messages sent.')
+                   container.logger.info('IntellicomII Controller in .  No configuration request messages sent.')
                } else {
-                   logger.info('No pool controller (Intellitouch or IntelliComII) detected.  No configuration request messages sent.')
+                   container.logger.info('No pool controller (Intellitouch or IntelliComII) detected.  No configuration request messages sent.')
                }
                controllerSettings.needConfiguration = 0; //we will no longer request the configuration.  Need this first in case multiple packets come through.
            }

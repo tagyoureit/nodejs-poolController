@@ -19,7 +19,7 @@
 
 var fsio = require('promised-io/fs'),
     configClient,
-    dir = '/src/bootstrap',
+    dir = '/src/www/bootstrap',
     file = 'configClient.json',
     path = require('path').posix,
     location

@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 3.1.8
+# nodejs-poolController - Version 3.1.9
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -115,6 +115,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | _depricated_ <code>pumpCommand(equip, program, value, duration)</code> | Save `pump` (96=pump 1, 97=pump 2) to  `program`
 | To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
 | To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
+| To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
 | To client | <code>circuit</code> | outputs an object of circuits and their status
 | To client | <code>config</code> | outputs an object with the pool controller status

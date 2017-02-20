@@ -15,30 +15,34 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Set Intellichlor status
+//This is _SET_ schedule... not the response.
 module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: 153.js')
+        container.logger.info('Loading: 145.js')
 
-    var logger = container.logger
-    var c = container.constants
-    var s = container.settings
+        var logger = container.logger
+        var s = container.settings
+        var c = container.constants
+
+
+
+
+    var process = function(data, counter) {
+
+      console.log(counter, data)
+
+        return true
+    }
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: 153.js')
+        container.logger.info('Loaded: 145.js')
 
-    //TODO:  Merge this to a common function with the pump packet
 
     return {
-        process: function(data, counter) {
-
-            if (s.logChlorinator)
-                logger.info('Msg# %s   Set Chlorinator packet: %s', counter, data)
-            var decoded = true;
-            return decoded
-        }
+        process: process
     }
 }

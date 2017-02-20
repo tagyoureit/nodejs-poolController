@@ -15,30 +15,29 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Set Intellichlor status
+//Set Intellibrite Lights
 module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: 153.js')
+        container.logger.info('Loading: 96.js')
 
-    var logger = container.logger
-    var c = container.constants
-    var s = container.settings
+
+    function process(data, counter) {
+        //          0  1  2  3  4 5   6 7 8  9
+        //eg RED: 165,16,16,34,96,2,195,0,2,12
+        container.circuit.setControllerLightColor(data[6], data[7], counter)
+
+        return true
+    }
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: 153.js')
+        container.logger.info('Loaded: 96.js')
 
-    //TODO:  Merge this to a common function with the pump packet
 
     return {
-        process: function(data, counter) {
-
-            if (s.logChlorinator)
-                logger.info('Msg# %s   Set Chlorinator packet: %s', counter, data)
-            var decoded = true;
-            return decoded
-        }
+        process: process
     }
 }

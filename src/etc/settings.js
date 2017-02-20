@@ -18,10 +18,15 @@
 var Bottle = require('bottlejs');
 var bottle = Bottle.pop('poolController-Bottle');
 var fs = bottle.container.fs
+var path = require('path').posix
 
 /* istanbul ignore next */
 if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
+
+var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8' ))
+var appVersion = packageJson.version
+var configurationFile
 
 //-------  EQUIPMENT SETUP -----------
 
@@ -76,7 +81,7 @@ var configFile;
 
 //console.log('envParam:', envParam)
 
-load = exports.load = function() {
+var load = exports.load = function() {
     if (envParam === undefined) {
         configurationFile = 'config.json';
     } else {
@@ -142,7 +147,7 @@ displayIntroMsg = exports.displayIntroMsg = function() {
 
 displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr = '' // \n*******************************';
-    settingsStr += '\n Version: ' + bottle.container.appVersion;
+    settingsStr += '\n Version: ' + appVersion;
     settingsStr += '\n Config File: ' + configurationFile
     settingsStr += '\n ';
     settingsStr += '\n //-------  EQUIPMENT SETUP -----------';

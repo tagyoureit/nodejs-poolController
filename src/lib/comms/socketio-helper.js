@@ -151,8 +151,8 @@ module.exports = function(container) {
                 emitToClients('all')
             })
 
-            socket.on('setConfigClient', function(a,b,c,d){
-              container.bootstrapConfigEditor.update(a,b,c,d)
+            socket.on('setConfigClient', function(a, b, c, d) {
+                container.bootstrapConfigEditor.update(a, b, c, d)
             })
 
             socket.on('sendpacket', function(incomingPacket) {
@@ -286,13 +286,13 @@ module.exports = function(container) {
                 var dowIsValid = container.time.lookupDOW(dayofweek)
                 var response = {}
                 if ((hour >= 0 && hour <= 23) && (min >= 0 && min <= 59) && (day >= 1 && day <= 31) && (month >= 1 && month <= 12) && (year >= 0 && year <= 99) && dowIsValid !== -1 && (autodst === 0 || autodst === 1)) {
-                    response.text = 'REST API received request to set date/time to: ' + hour + ':' + min + '(military time)'
+                    response.text = 'SOCKET API received request to set date/time to: ' + hour + ':' + min + '(military time)'
                     response.text += 'dayofweek: ' + dowIsValid + '(' + dayofweek + ') date: ' + month + '/' + day + '/20' + year + ' (mm/dd/yyyy)'
                     response.text += 'automatically adjust dst (currently no effect): ' + autodst
                     container.time.setDateTime(hour, min, dayofweek, day, month, year, autodst)
                     container.logger.info(response)
                 } else {
-                    response.text = 'FAIL: hour (' + hour + ') should be 0-23 and minute (' + min + ') should be 0-59.  Received: ' + hour + ':' + min
+                    response.text = 'FAIL: SOCKET API - hour (' + hour + ') should be 0-23 and minute (' + min + ') should be 0-59.  Received: ' + hour + ':' + min
                     response.text += 'Day (' + day + ') should be 0-31, month (' + month + ') should be 0-12 and year (' + year + ') should be 0-99.'
                     response.text += 'Day of week (' + dayofweek + ') should be one of: [1,2,4,8,16,32,64] [Sunday->Saturday]'
                     response.text += 'dst (' + autodst + ') should be 0 or 1'
@@ -300,6 +300,21 @@ module.exports = function(container) {
                 }
 
             })
+
+            socket.on('setSchedule', function(id, circuit, starthh, startmm, endhh, endmm, days) {
+                id = parseInt(id)
+                circuit = parseInt(circuit)
+                starthh = parseInt(starthh)
+                startmm = parseInt(startmm)
+                endhh = parseInt(endhh)
+                endmm = parseInt(endmm)
+                days = parseInt(days)
+                var response = {}
+                response.text = 'SOCKET received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
+                container.logger.info(response)
+                container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
+            })
+
 
             socket.on('reload', function() {
                 logger.info('Reload requested from Socket.io')
