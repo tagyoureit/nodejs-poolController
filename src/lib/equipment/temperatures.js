@@ -25,11 +25,12 @@
 
 module.exports = function(container) {
 
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: temperatures.js')
 
-
+        var _ = require('underscore')
 
 
     function setTempFromController(poolTemp, spaTemp, airTemp, solarTemp, freeze) {
@@ -43,7 +44,9 @@ module.exports = function(container) {
     }
 
     function getTemperatures(){
-      return temperatures
+        var heat = container.heat.getCurrentHeat()
+        var combine = _.extend(temperatures, heat)
+      return combine
     }
 
     /*istanbul ignore next */
