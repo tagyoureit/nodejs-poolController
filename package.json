@@ -1,6 +1,6 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.1.9",
+  "version": "3.1.10",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
@@ -38,6 +38,7 @@
     "express": "^4.14.0",
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
+    "promised-io": "^0.3.5",
     "nanotimer": "^0.3.14",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
@@ -56,11 +57,9 @@
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
     "nock": "^9.0.2",
-    "promised-io": "^0.3.5",
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^1.17.6",
-    "sinon-chai": "^2.8.0",
-    "socket.io-client": "^1.7.2"
+    "sinon-chai": "^2.8.0"
   }
 }

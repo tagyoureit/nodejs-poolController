@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 3.1.9
+# nodejs-poolController - Version 3.1.10-DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
