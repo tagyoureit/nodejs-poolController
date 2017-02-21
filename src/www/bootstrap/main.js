@@ -1,5 +1,5 @@
 /* global Storage */
-jsVersion = 'v0.1.2';
+jsVersion = 'v0.1.3';
 var autoDST;					// Flag for Automatic DST (0 = manual, 1 = automatic)
 
 //Configure Bootstrap Panels, in 2 steps ...
@@ -270,9 +270,11 @@ $(function() {
 		if ($('#debug').is(":visible") === true) {
 			$('#debug').hide();
 			setStatusButton($('#debugEnable'), 0);
+			socket.emit('setConfigClient', 'panelState', 'debug', 'state', 'hidden')
 		} else {
 			$('#debug').show();
 			setStatusButton($('#debugEnable'), 1);
+			socket.emit('setConfigClient', 'panelState', 'debug', 'state', 'visible')
 		}
 	});
 
@@ -352,13 +354,6 @@ $(function() {
 					}
 				}
 			});
-		}
-		lastUpdate(true);
-	});
-
-	socket.on('config', function(data) {
-		if (data !== null) {
-			$('#stateHeater').html(data.HEATER_ACTIVE);
 		}
 		lastUpdate(true);
 	});
@@ -524,6 +519,10 @@ $(function() {
 			$('#solarTemp').closest('tr').show();
 		$('#poolCurrentTemp').html(data.poolTemp);
 		$('#spaCurrentTemp').html(data.spaTemp);
+		if (data.heaterActive === 1)
+			$('#stateHeater').html('On');
+		else
+			$('#stateHeater').html('Off');
 		if (data.freeze === 1)
 			$('#stateFreeze').html('On');
 		else
