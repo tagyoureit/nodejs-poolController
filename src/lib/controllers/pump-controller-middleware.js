@@ -69,7 +69,7 @@ module.exports = function(container) {
 
     //generic functions that ends the commands to the pump by setting control to local and requesting the status
     var endPumpCommandSequence = function(address) {
-        container.pumpController.setPumpToLocalControl(address)
+        //container.pumpController.setPumpToLocalControl(address)
         container.pumpController.requestPumpStatus(address)
 
     }
