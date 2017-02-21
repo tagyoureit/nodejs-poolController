@@ -1,1 +1,2 @@
 sudo: required
+node_js: "4"
