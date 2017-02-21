@@ -1,5 +1,5 @@
 /* global Storage */
-jsVersion = 'v0.1.3';
+jsVersion = 'v0.1.4';
 var autoDST;					// Flag for Automatic DST (0 = manual, 1 = automatic)
 
 //Configure Bootstrap Panels, in 2 steps ...
@@ -239,6 +239,15 @@ $(function() {
 		generalParams = json.generalParams;
 	});
 
+	// Button Handling: Hide Panel
+	$('button').click(function(btnSelected) {
+		var btnID = btnSelected.target.id;
+		// If Panel Hide selected => then do it!
+		if (btnID.search('hidePanel') === 0) {
+			$('#' + btnID.replace('hidePanel', '')).hide();
+		}
+	});
+	
 	// Button Handling: Pool, Spa => On/Off
 	$('#poolState, #spaState').on('click', 'button', function() {
 		setEquipmentStatus($(this).data($(this).attr('id')));
