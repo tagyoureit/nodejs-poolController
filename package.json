@@ -22,7 +22,8 @@
     "heat",
     "temperature",
     "pump",
-    "chlorinator"
+    "chlorinator",
+    "IoT"
   ],
   "author": "Russell Goldin",
   "license": "AGPL-3.0",
