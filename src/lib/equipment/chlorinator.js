@@ -47,7 +47,7 @@ module.exports = function(container) {
         //MSb to LSb [ "Check Flow/PCB","Low Salt","Very Low Salt","High Current","Clean Cell","Low Voltage","Water Temp Low","No Comm","OK" ]
     }
 
-    function addChlorinatorStatus(saltPPM, outputPoolPercent, outputSpaPercent, status, name, counter) {
+    function setChlorinatorStatusFromController(saltPPM, outputPoolPercent, outputSpaPercent, status, name, counter) {
         var chlorinatorStatus = {}
         chlorinatorStatus.saltPPM = saltPPM * 50
         chlorinatorStatus.outputPoolPercent = outputPoolPercent
@@ -144,12 +144,12 @@ module.exports = function(container) {
         return currentChlorinatorStatus.outputPoolPercent
     }
 
-    function processChlorinatorPacketfromController(data, counter) {
+    function setChlorinatorStatusFromChlorinator(data, counter) {
         //put in logic (or logging here) for chlorinator discovered (upon 1st message?)
 
-        if (!container.settings.intellitouch) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
-        {
-            var destination;
+        // if (!container.settings.intellitouch) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
+        // {
+            var destination, from, outputPoolPercent;
             if (data[container.constants.chlorinatorPacketFields.DEST] === 80) {
                 destination = 'Salt cell';
                 from = 'Controller'
@@ -163,7 +163,7 @@ module.exports = function(container) {
             //not sure why the above line failed...?  Implementing the following instead.
             //var chlorinatorStatus = JSON.parse(JSON.stringify(currentChlorinatorStatus));
             //TODO: better check besides pump power for asking for the chlorinator name.  Possibly need to due this because some chlorinators are only "on" when the pumps/controller
-            if (currentChlorinatorStatus.name === '' && container.settings.chlorinator && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
+            if (currentChlorinatorStatus.name === -1) // && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
             //If we see a chlorinator status packet, then request the name.  Not sure when the name would be automatically sent over otherwise.
             {
                 container.logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
@@ -211,7 +211,7 @@ module.exports = function(container) {
                     }
                 case 17: //Set Generate %
                     {
-                        var outputPoolPercent = data[4];
+                        outputPoolPercent = data[4];
                         var superChlorinate
                         if (data[4] === 101) {
                             superChlorinate = 1
@@ -226,7 +226,7 @@ module.exports = function(container) {
                             container.io.emitToClients('chlorinator')
                         }
 
-                        break;
+                        break
                     }
                 case 18: //Response to 17 (set generate %)
                     {
@@ -271,14 +271,13 @@ module.exports = function(container) {
                             container.io.emitToClients('chlorinator')
                         }
 
-                        break;
+                        break
                     }
                 case 20: //Get version
                     {
                         if (container.settings.logChlorinator)
                             container.logger.verbose('Msg# %s   %s --> %s: What is your version?: %s', counter, from, destination, data)
-                        decoded = true;
-                        break;
+                            break
                     }
                 case 21: //Set Generate %, but value / 10??
                     {
@@ -290,16 +289,14 @@ module.exports = function(container) {
                             currentChlorinatorStatus.outputPoolPercent = outputPoolPercent
                             container.io.emitToClients('chlorinator')
                         }
-                        break;
+                        break
                     }
                 default:
                     {
                         if (container.settings.logChlorinator)
                             container.logger.verbose('Msg# %s   %s --> %s: Other chlorinator packet?: %s', counter, from, destination, data)
-                        decoded = true;
-                        break;
                     }
-            }
+            // }
         }
     }
 
@@ -311,9 +308,9 @@ module.exports = function(container) {
 
     return {
         //currentChlorinatorStatus,
-        processChlorinatorPacketfromController: processChlorinatorPacketfromController,
+        setChlorinatorStatusFromChlorinator: setChlorinatorStatusFromChlorinator,
         getDesiredChlorinatorOutput: getDesiredChlorinatorOutput,
-        addChlorinatorStatus: addChlorinatorStatus,
+        setChlorinatorStatusFromController: setChlorinatorStatusFromController,
         getChlorinatorName: getChlorinatorName,
         getChlorinatorNameByBytes: getChlorinatorNameByBytes,
         getSaltPPM: getSaltPPM,

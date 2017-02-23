@@ -39,6 +39,8 @@ var fs = global.fs = require('promised-io/fs')
  fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
     .then(function(data) {
       global.circuitJson = JSON.parse(data)
-    }, function(error) {
+    },
+    /* istanbul ignore next  */
+    function(error) {
         console.log('Error reading circuit.json from /specs/assets/webJsonReturns. ', error)
     })
