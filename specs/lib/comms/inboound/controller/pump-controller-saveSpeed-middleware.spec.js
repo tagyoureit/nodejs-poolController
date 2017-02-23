@@ -85,8 +85,8 @@ describe('pump controller - save speed (2/2)', function() {
             //loggerInfoOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
-            setPumpToLocalControlStub.args[0][0].should.eq(96)
-
+            // setPumpToLocalControlStub.args[0][0].should.eq(96)
+            setPumpToLocalControlStub.callCount.should.eq(0)
             //request pump status
             requestPumpStatusStub.calledWith(96).should.be.true
 
@@ -139,8 +139,8 @@ describe('pump controller - save speed (2/2)', function() {
             // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
-            setPumpToLocalControlStub.args[0][0].should.eq(96)
-
+            // setPumpToLocalControlStub.args[0][0].should.eq(96)
+            setPumpToLocalControlStub.callCount.should.eq(0)
             //request pump status
             requestPumpStatusStub.calledWith(96).should.be.true
 
@@ -192,8 +192,8 @@ describe('pump controller - save speed (2/2)', function() {
             // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
-            setPumpToLocalControlStub.args[0][0].should.eq(97)
-
+            // setPumpToLocalControlStub.args[0][0].should.eq(97)
+            setPumpToLocalControlStub.callCount.should.eq(0)
             //request pump status
             requestPumpStatusStub.calledWith(97).should.be.true
 

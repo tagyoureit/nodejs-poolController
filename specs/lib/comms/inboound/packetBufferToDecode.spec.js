@@ -8,7 +8,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
 
                 bottle.container.settings.logMessageDecoding = 1
                 bottle.container.settings.logPumpMessages = 1
-                bottle.container.settings.logLevel = 'verbose'
+                bottle.container.logger.transports.console.level = 'verbose'
                 bottle.container.server.init()
                 bottle.container.io.init()
             });
@@ -48,7 +48,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
                 bottle.container.pump.init()
                 bottle.container.settings.logMessageDecoding = 0
                 bottle.container.settings.logPumpMessages = 0
-                bottle.container.settings.logLevel = 'info'
+                bottle.container.logger.transports.console.level = 'info'
                 bottle.container.server.close()
             })
 

@@ -32,7 +32,7 @@ describe('#sets various functions', function() {
     describe('#sets the date/time', function() {
 
         before(function() {
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.logger.transports.console.level = 'silly'
             bottle.container.server.init()
             bottle.container.time.init()
         });
@@ -56,7 +56,7 @@ describe('#sets various functions', function() {
         })
 
         after(function() {
-            bottle.container.settings.logLevel = 'info'
+            bottle.container.logger.transports.console.level = 'info'
             bottle.container.server.close()
         })
         context('with the HTTP REST API', function() {

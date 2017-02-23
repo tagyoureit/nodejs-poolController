@@ -33,6 +33,7 @@ describe('#set functions', function() {
             before(function() {
                 bottle.container.settings.expressAuth = 0
                 bottle.container.settings.expressAuthFile = ''
+                bottle.container.logger.transports.console.level = 'silly';
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
@@ -50,6 +51,7 @@ describe('#set functions', function() {
             after(function() {
                 bottle.container.pumpControllerTimers.clearTimer(1)
                 bottle.container.pumpControllerTimers.clearTimer(2)
+                bottle.container.logger.transports.console.level = 'info';
                 bottle.container.server.close()
                 sandbox.restore()
                 bottle.container.settings.logPumpTimers = 1
@@ -160,7 +162,7 @@ describe('#set functions', function() {
         before(function() {
             bottle.container.settings.logPumpMessages = 1
             bottle.container.settings.logPumpTimers = 1
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.logger.transports.console.level = 'silly'
             bottle.container.server.init()
         });
 
@@ -188,7 +190,7 @@ describe('#set functions', function() {
         after(function() {
             bottle.container.settings.logPumpTimers = 0
             bottle.container.settings.logPumpMessages = 0
-            bottle.container.settings.logLevel = 'info'
+            bottle.container.logger.transports.console.level = 'info'
             bottle.container.server.close()
         })
         context('with the current HTTP REST API', function() {
@@ -275,11 +277,10 @@ describe('#set functions', function() {
                     obj.program.should.eq(1)
 
                     obj.duration.should.eq(2)
-                    clock.tick(1000)
-                    clock.tick(60 * 1000) //+1 min
-
+                    clock.tick(59 * 1000) // +59 seconds
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
-
+                    clock.tick(1 * 1000)  //1 min
+                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(.5)
                     clock.tick(59 * 60 * 1000) //+1 hr
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                     done()
@@ -293,11 +294,10 @@ describe('#set functions', function() {
                     obj.pump.should.eq(1)
                     obj.duration.should.eq(600)
                     // console.log('pumpQueue:', queuePacketStub.args)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 seconds
 
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(599)
-
-                    clock.tick(59 * 60 * 1000) //+1 hr
+                    clock.tick(59 * 60 * 1000) //+59 mins (59min 59sec total)
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(540)
                 })
 
@@ -311,11 +311,11 @@ describe('#set functions', function() {
                         obj.pump.should.eq(1)
                         obj.duration.should.eq(10)
                         // console.log('pumpQueue:', queuePacketStub.args)
-                        clock.tick(60 * 1000) //+1 min
+                        clock.tick(59 * 1000) //+59 seconds
 
                         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(9)
 
-                        clock.tick(59 * 60 * 1000) //+1 hr
+                        clock.tick(59 * 60 * 1000) //+59 mins (59min 59sec total)
                         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                     })
 
@@ -362,13 +362,13 @@ describe('#set functions', function() {
                     obj.pump.should.eq(2)
                     obj.duration.should.eq(600)
                     // console.log('pumpQueue:', queuePacketStub.args)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 sec
 
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(599)
 
-                    clock.tick(59 * 60 * 1000) //+1 hr
+                    clock.tick(59 * 60 * 1000) //59 min, 59 sec
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(540)
-                    clock.tick(9 * 60 * 60 * 1000) //+9 hours(10:00 total)
+                    clock.tick(9 * 60 * 60 * 1000) //+9 hours(9:59:59 total)
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(0)
                     clock.tick(60 * 60 * 1000) //+1 min more
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(-1)
@@ -382,12 +382,12 @@ describe('#set functions', function() {
                     obj.pump.should.eq(2)
                     // obj.duration.should.eq(600)
                     // console.log('pumpQueue:', queuePacketStub.args)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 secs
 
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(599)
                     bottle.container.pump.getCurrentRunningValue(2).should.eq(1000)
 
-                    clock.tick(59 * 60 * 1000) //+1 hr
+                    clock.tick(59 * 60 * 1000) //+59:59
                     bottle.container.pump.getCurrentRemainingDuration(2).should.eq(540)
                 }).then(function() {
                     requestPoolDataWithURL('pumpCommand/off/pump/2').then(function(obj) {
@@ -407,11 +407,11 @@ describe('#set functions', function() {
                     obj.pump.should.eq(1)
                     obj.program.should.eq(1)
                     obj.speed.should.eq(1000)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 sec
 
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
 
-                    clock.tick(59 * 60 * 1000) //+1 hr
+                    clock.tick(59 * 60 * 1000) //59:59
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                     done()
                 });
@@ -424,7 +424,7 @@ describe('#set functions', function() {
                     obj.program.should.eq(3)
                     obj.speed.should.eq(2000)
                     obj.duration.should.eq(-1)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 sec
 
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
 
@@ -444,7 +444,7 @@ describe('#set functions', function() {
                     obj.program.should.eq(1)
                     obj.speed.should.eq(1000)
                     obj.duration.should.eq(2)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 sec min
 
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
 
@@ -474,11 +474,11 @@ describe('#set functions', function() {
                     obj.program.should.eq(1)
                     obj.speed.should.eq(1000)
                     obj.duration.should.eq(2)
-                    clock.tick(60 * 1000) //+1 min
+                    clock.tick(59 * 1000) //+59 secs
 
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
 
-                    clock.tick(59 * 60 * 1000) //+1 hr
+                    clock.tick(59 * 60 * 1000) //+59:59
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                     done()
                 })

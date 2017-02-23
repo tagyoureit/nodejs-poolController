@@ -40,7 +40,7 @@ describe('chlorinator controller', function() {
             queuePacketStub.callCount.should.eq(0)
             clock.tick(4000)
             queuePacketStub.callCount.should.eq(1)
-            queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 0])
+            queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 0])
             clock.tick(59 * 1000) //59+4 mins
             queuePacketStub.callCount.should.eq(2)
             clock.tick(1 * 1000) //60+4 mins

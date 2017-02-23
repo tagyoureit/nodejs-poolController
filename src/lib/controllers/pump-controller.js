@@ -42,7 +42,7 @@ module.exports = function(container) {
         }
         var pumpPowerPacket = [165, 0, address, container.settings.appAddress];
         Array.prototype.push.apply(pumpPowerPacket, setPrg)
-        //if (container.settings.logApi) container.logger.verbose('Sending Turn pump %s %s: %s', pump, power, pumpPowerPacket);
+        if (container.settings.logApi) container.logger.verbose('Sending Turn pump %s to %s: %s', index, power, pumpPowerPacket);
         container.queuePacket.queuePacket(pumpPowerPacket);
     }
 

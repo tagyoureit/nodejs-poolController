@@ -163,7 +163,7 @@ describe('socket.io pump tests', function() {
     before(function() {
         bottle.container.settings.logPumpMessages = 1
         bottle.container.settings.logPumpTimers = 1
-        bottle.container.settings.logLevel = 'silly'
+        bottle.container.logger.transports.console.level = 'silly'
         bottle.container.server.init()
         bottle.container.io.init()
     });
@@ -196,7 +196,7 @@ describe('socket.io pump tests', function() {
         bottle.container.time.init()
         bottle.container.settings.logPumpTimers = 0
         bottle.container.settings.logPumpMessages = 0
-        bottle.container.settings.logLevel = 'info'
+        bottle.container.logger.transports.console.level = 'info'
         bottle.container.server.close()
     })
 

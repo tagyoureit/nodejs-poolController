@@ -44,6 +44,7 @@ module.exports = function(container) {
         132: "Comm Link Error(?).  Low Salt",
         144: "Clean Salt Cell",
         145: "???"
+        //MSb to LSb [ "Check Flow/PCB","Low Salt","Very Low Salt","High Current","Clean Cell","Low Voltage","Water Temp Low","No Comm","OK" ]
     }
 
     function addChlorinatorStatus(saltPPM, outputPoolPercent, outputSpaPercent, status, name, counter) {

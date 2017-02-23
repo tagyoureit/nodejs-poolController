@@ -17,7 +17,7 @@ pump1SetRPM1000Packet = exports.pump1SetRPM1000Packet = [ 165, 0, 96, 33, 1, 4, 
 
 //Power
 pump1PowerOnPacket = exports.pump1PowerOnPacket = [ 165, 0, 96, 33, 6, 1, 10 ]
-pump1PowerOffPacket = exports.pump1PowerOnPacket = [ 165, 0, 96, 33, 6, 1, 4 ]
+pump1PowerOffPacket = exports.pump1PowerOffPacket = [ 165, 0, 96, 33, 6, 1, 4 ]
 
 //Timer
 pump1SetTimerPacket = exports.pump1SetTimerPacket = [ 165, 0, 96, 33, 1, 4, 3, 43, 0, 1 ]
@@ -43,7 +43,7 @@ pump2SetProgram4RPM3450Packet = exports.pump2SetProgram4RPM3450Packet = [ 165, 0
 
 //Power
 pump2PowerOnPacket = exports.pump2PowerOnPacket = [ 165, 0, 97, 33, 6, 1, 10 ]
-pump2PowerOffPacket = exports.pump2PowerOnPacket = [ 165, 0, 97, 33, 6, 1, 4 ]
+pump2PowerOffPacket = exports.pump2PowerOffPacket = [ 165, 0, 97, 33, 6, 1, 4 ]
 
 //Timer
 pump2SetTimerPacket = exports.pump2SetTimerPacket = [ 165, 0, 97, 33, 1, 4, 3, 43, 0, 1 ]

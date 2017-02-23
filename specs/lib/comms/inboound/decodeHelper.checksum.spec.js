@@ -71,7 +71,7 @@ describe('decodeHelper processes controller packets', function() {
             it('should try to decode the packet as a controller packet', function() {
 
                 // bottle.container.settings.logMessageDecoding = 1
-                // bottle.container.settings.logLevel = 'silly'
+                // bottle.container.logger.transports.console.level = 'silly'
 
                 for (var i = 0; i < testarrayGOOD.length; i++) {
                     bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
