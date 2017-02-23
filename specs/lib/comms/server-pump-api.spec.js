@@ -356,7 +356,7 @@ describe('#set functions', function() {
             })
 
             it('API #7: runs pump 2, rpm 1000 for 600 minutes ', function(done) {
-                this.timeout(5 * 1000)
+                this.timeout(10 * 1000)
                 requestPoolDataWithURL('pumpCommand/run/pump/2/rpm/1000/duration/600').then(function(obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
