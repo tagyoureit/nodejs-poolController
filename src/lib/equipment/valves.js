@@ -18,6 +18,7 @@
 //TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
 
 
+var valves
 
 module.exports = function(container) {
 
@@ -25,10 +26,11 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: valves.js')
 
-    var valves = {
-        "valves": 0
+    var init = function() {
+        valves = {
+            "valves": 0
+        }
     }
-
 
     function setValves(data) {
 
@@ -45,7 +47,7 @@ module.exports = function(container) {
 
 
     return {
-        //valves,
+        init: init,
         setValves: setValves,
         getValves: getValves
     }

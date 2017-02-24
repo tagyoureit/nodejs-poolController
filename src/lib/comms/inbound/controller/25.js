@@ -44,7 +44,6 @@ module.exports = function(container) {
                 var status = data[chlorinatorStatusBytes.status]
 
                 var name = container.chlorinator.getChlorinatorNameByBytes(data.slice(12,28))
-                console.log('setChlorinatorStatusFromController:', saltPPM, outputPercent, outputSpaPercent, status, name, counter)
                 container.chlorinator.setChlorinatorStatusFromController(saltPPM, outputPercent, outputSpaPercent, status, name, counter)
 
 

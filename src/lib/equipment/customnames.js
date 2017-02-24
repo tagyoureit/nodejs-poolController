@@ -15,10 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+    var customNameArr
+
 module.exports = function(container) {
     var logger = container.logger
 
-    var customNameArr = [];
+
     var initialCustomNamesDiscovered = 0
 
 
@@ -31,8 +33,18 @@ module.exports = function(container) {
         return customNameArr[index]
     }
 
+    var init = function(){
+        customNameArr = [];
+    }
 
-    function setCustomName(index, nameBytes, counter) {
+    var displayInitialCustomNames = function() {
+        //display custom names when we reach the last circuit
+
+        logger.info('\n  Custom Circuit Names retrieved from configuration: ', customNameArr)
+        initialCustomNamesDiscovered = 1
+    }
+
+    var setCustomName = function(index, nameBytes, counter) {
         var customName=""
         for (var i = 0; i < nameBytes.length; i++) {
             if (nameBytes[i] > 0 && nameBytes[i] < 251) //251 is used to terminate the custom name string if shorter than 11 digits
@@ -56,15 +68,11 @@ module.exports = function(container) {
         }
     }
 
-    function displayInitialCustomNames() {
-        //display custom names when we reach the last circuit
 
-        logger.info('\n  Custom Circuit Names retrieved from configuration: ', customNameArr)
-        initialCustomNamesDiscovered = 1
-    }
 
 
     return {
+        init: init,
         getCustomName: getCustomName,
         setCustomName: setCustomName
     }

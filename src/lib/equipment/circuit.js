@@ -26,29 +26,10 @@ function Circuit(number, numberStr, name, circuitFunction, status, freeze, light
 }
 
 
-var circuit1 = new Circuit();
-var circuit2 = new Circuit();
-var circuit3 = new Circuit();
-var circuit4 = new Circuit();
-var circuit5 = new Circuit();
-var circuit6 = new Circuit();
-var circuit7 = new Circuit();
-var circuit8 = new Circuit();
-var circuit9 = new Circuit();
-var circuit10 = new Circuit();
-var circuit11 = new Circuit();
-var circuit12 = new Circuit();
-var circuit13 = new Circuit();
-var circuit14 = new Circuit();
-var circuit15 = new Circuit();
-var circuit16 = new Circuit();
-var circuit17 = new Circuit();
-var circuit18 = new Circuit();
-var circuit19 = new Circuit();
-var circuit20 = new Circuit();
-//array of circuit objects.  Since Pentair uses 1-20, we'll just use a placeholder for the 1st [0] element in the array
+var circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circuit8, circuit9, circuit10, circuit11, circuit12, circuit13, circuit14, circuit15, circuit16, circuit17, circuit18, circuit19, circuit20
 
-var currentCircuitArrObj = ['blank', circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circuit8, circuit9, circuit10, circuit11, circuit12, circuit13, circuit14, circuit15, circuit16, circuit17, circuit18, circuit19, circuit20];
+
+var currentCircuitArrObj ;
 
 
 module.exports = function(container) {
@@ -57,6 +38,34 @@ module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: circuit.js')
+
+    var init = function(){
+
+       circuit1 = new Circuit();
+       circuit2 = new Circuit();
+       circuit3 = new Circuit();
+       circuit4 = new Circuit();
+       circuit5 = new Circuit();
+       circuit6 = new Circuit();
+       circuit7 = new Circuit();
+       circuit8 = new Circuit();
+       circuit9 = new Circuit();
+       circuit10 = new Circuit();
+       circuit11 = new Circuit();
+       circuit12 = new Circuit();
+       circuit13 = new Circuit();
+       circuit14 = new Circuit();
+       circuit15 = new Circuit();
+       circuit16 = new Circuit();
+       circuit17 = new Circuit();
+       circuit18 = new Circuit();
+       circuit19 = new Circuit();
+       circuit20 = new Circuit();
+      //array of circuit objects.  Since Pentair uses 1-20, we'll just use a placeholder for the 1st [0] element in the array
+
+       currentCircuitArrObj = ['blank', circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circuit8, circuit9, circuit10, circuit11, circuit12, circuit13, circuit14, circuit15, circuit16, circuit17, circuit18, circuit19, circuit20];
+
+    }
 
     var sendInitialBroadcast = {
         "haveCircuitStatus": 0,
@@ -433,7 +442,7 @@ module.exports = function(container) {
     }
 
     var setControllerLightGroup = function(){
-      
+
     }
 
     /*istanbul ignore next */
@@ -442,6 +451,7 @@ module.exports = function(container) {
 
 
     return {
+        init: init,
         getCurrentCircuits: getCurrentCircuits,
         getCircuit: getCircuit,
         getCircuitName: getCircuitName,

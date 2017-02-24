@@ -39,7 +39,7 @@ module.exports = function(container) {
 
 
             container.heat.setHeatModeAndSetPoints(data[9], data[11] & 3, data[10], (data[11] & 12) >> 2, counter)
-
+            container.temperatures.setTempFromController(data[6], data[7], data[8], data[14], 0) //TODO: which one is freeze?
 
 
             if (s.logConfigMessages) {
