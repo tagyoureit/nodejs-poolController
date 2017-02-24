@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 3.1.11-DEV
+# nodejs-poolController - Version 3.1.12-DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=3.1.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController)
@@ -112,18 +112,20 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>spaheatmode(spaheatmode)</code> | Change the `spa heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
 | To app | <code>poolsetpoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
 | To app | <code>poolheatmode(poolheatmode)</code> | Change the `pool heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
-| To app | _depricated_ <code>pumpCommand(equip, program, value, duration)</code> | Save `pump` (96=pump 1, 97=pump 2) to  `program`
+| To app | _deprecated_ ~~<code>pumpCommand(equip, program, value, duration)</code>~~ | Save `pump` (96=pump 1, 97=pump 2) to  `program`
 | To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
 | To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
 | To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
 | To client | <code>circuit</code> | outputs an object of circuits and their status
-| To client | <code>config</code> | outputs an object with the pool controller status
+| To client | ~~<code>config</code>~~ | ~~outputs an object with the pool controller status~~ Deprecated.
 | To client | <code>pump</code> | outputs an object with the pump information
-| To client | <code>heat</heat> | outputs an object with the heat information
-| To client | <code>schedule</heat> | outputs an object with the schedule information
-| To client | <code>chlorinator</heat> | outputs an object with the chlorinator information
-| To client | <code>all</heat> | outputs an object with all equipment in one JSON
+| To client | ~~<code>heat</code>~~ | ~~outputs an object with the heat information~~ now included with temperatures
+| To client | <code>temperatures</code> | outputs an object with the temperatures, heat and set point information
+| To client | <code>schedule</code> | outputs an object with the schedule information
+| To client | <code>chlorinator</code> | outputs an object with the chlorinator information
+| To client | <code>updateAvailable</code> | outputs an object with current running version vs latest published release on GitHub (local is the running app, remote is the GitHub version)
+| To client | <code>all</code> | outputs an object with all equipment in one JSON
 
 ***
 
@@ -143,7 +145,7 @@ See below for descriptions
         "appAddress": 33
     },
     "Misc": {
-        "expressDir": "/bootstrap",
+        "expressDir": "/www",
         "expressPort": 3000,
         "expressTransport": "http",
         "expressAuth": 0,
@@ -253,8 +255,7 @@ Only one of these should be 1 (true).  The other two should be 0 (false).
 (This variable is only applicable with `pumpOnly=1`)
 
 #### Chlorinator
-1 = there is a chlorinator in your equipment, 0 = no chlorinator
-(This variable is only applicable with `pumpOnly=1`)
+1 = there is a STANDALONE chlorinator in your equipment, 0 = no chlorinator, or a chlorinator attached to an Intellitouch controller
 
 #### appAddress
 The address on the serial bus that this app will use.
@@ -264,7 +265,7 @@ The pumps don't seem to care what number you use, but Intellitouch won't respond
 ### Misc
 
 #### expressDir
-set to `/bootstrap` for the fancy UI or `/public` for a basic
+set to `/www`
 
 #### expressPort
 set to the value that you want the web pages to be served to.  3000 = http://localhost:3000

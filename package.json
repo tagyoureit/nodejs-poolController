@@ -1,6 +1,6 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.1.11",
+  "version": "3.1.12",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {

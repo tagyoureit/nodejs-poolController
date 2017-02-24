@@ -66,6 +66,7 @@ bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
+bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -153,7 +154,8 @@ var init = exports.init = function() {
 
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
-
+    bottle.container.updateAvailable.check()
+    
     //initialize variables to hold status
     bottle.container.chlorinator.init()
     bottle.container.heat.init()
@@ -179,6 +181,7 @@ var init = exports.init = function() {
         bottle.container.chlorinatorController.startChlorinatorController()
     }
     bottle.container.helpers
+
 
 }
 

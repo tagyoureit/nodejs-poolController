@@ -28,9 +28,7 @@ module.exports = function(container) {
         //currentHeat = container.heat.currentHeat <--Not sure why, but this isn't working very well.  :-(  Can't do currentHeat = heat and have it set container.heat.currentHeat at the same time.
 
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loaded: 8.js')
+
 
         function process(data, counter) {
             //   0 1  2  3 4  5  6 7   8  9  19 11 12 13  14 15 16 17 18 19  20
@@ -51,6 +49,10 @@ module.exports = function(container) {
 
             return decoded
         }
+
+        /*istanbul ignore next */
+        if (container.logModuleLoading)
+            container.logger.info('Loaded: 8.js')
 
     return {
         process: process

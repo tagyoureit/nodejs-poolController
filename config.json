@@ -4,7 +4,7 @@
         "intellitouch": 1,
         "pumpOnly": 0,
         "numberOfPumps": 0,
-        "chlorinator": 1,
+        "chlorinator": 0,
         "appAddress": 33
     },
     "Misc": {
@@ -17,7 +17,7 @@
     "Network": {
         "rs485Port": "/dev/ttyUSB0",
         "netConnect": 0,
-        "netHost": "raspberrypi.local",
+        "netHost": "raspberrypi",
         "netPort": 9801
     },
     "FriendlyNames": [{
@@ -70,6 +70,7 @@
     },
     "Integrations": {
         "socketISY": 0,
+        "alexaskills": 0,
         "outputToConsole": 0
     },
     "socketISY": {

@@ -34,6 +34,11 @@ module.exports = function(container) {
             container.ISYHelper.emit(outputType)
         }*/
 
+        if (outputType === 'updateAvailable' || outputType === 'all') {
+            var updateAvail = container.updateAvailable.getResults()
+            io.sockets.emit('updateAvailable', updateAvail)
+        }
+
         if (outputType === 'one' || outputType === 'all') {
             var one = container.helpers.allEquipmentInOneJSON()
             io.sockets.emit('one',
