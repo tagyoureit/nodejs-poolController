@@ -1,5 +1,5 @@
 /* global Storage */
-jsVersion = 'v0.1.4';
+jsVersion = 'v0.2.0';
 var autoDST;					// Flag for Automatic DST (0 = manual, 1 = automatic)
 
 //Configure Bootstrap Panels, in 2 steps ...
@@ -17,9 +17,9 @@ function configPanels(jsonPanel) {
 		// Debug Panel -> Update Debug Log Button
 		if (currPanel === "debug") {
 			if (jsonPanel[currPanel]["state"] === "hidden")
-				setStatusButton($('#debugEnable'), 0);
+				setStatusButton($('#debugEnable'), 0, 'Debug:<br/>');
 			else
-				setStatusButton($('#debugEnable'), 1);
+				setStatusButton($('#debugEnable'), 1, 'Debug:<br/>');
 		}
 	}
 
@@ -117,13 +117,17 @@ function fmtEggTimerTime(strInpStr) {
 	return strHours + ' hrs, ' + strMins + ' mins';
 }
 
-function setStatusButton(btnID, btnState) {
+function setStatusButton(btnID, btnState, btnLeadingText) {
+	// Check for Leading Text
+	if (typeof btnLeadingText === "undefined")
+		btnLeadingText = '';
+	// Set Button State
 	if (btnState === 1) {
-		btnID.html('On');
+		btnID.html(btnLeadingText + 'On');
 		btnID.removeClass('btn-primary');
 		btnID.addClass('btn-success');
 	} else {
-		btnID.html('Off');
+		btnID.html(btnLeadingText + 'Off');
 		btnID.removeClass('btn-success');
 		btnID.addClass('btn-primary');
 	}
@@ -278,11 +282,11 @@ $(function() {
 	$('#debugEnable').click(function () {
 		if ($('#debug').is(":visible") === true) {
 			$('#debug').hide();
-			setStatusButton($('#debugEnable'), 0);
+			setStatusButton($('#debugEnable'), 0, 'Debug:<br/>');
 			socket.emit('setConfigClient', 'panelState', 'debug', 'state', 'hidden')
 		} else {
 			$('#debug').show();
-			setStatusButton($('#debugEnable'), 1);
+			setStatusButton($('#debugEnable'), 1, 'Debug:<br/>');
 			socket.emit('setConfigClient', 'panelState', 'debug', 'state', 'visible')
 		}
 	});
@@ -539,26 +543,31 @@ $(function() {
 		lastUpdate(true);
 	});
 
+	socket.on('updateAvail', function(data) {
+		$('#gitState').html('Code State<br/>' + data.result.capitalizeFirstLetter());
+		lastUpdate(true);
+	});
+
 	function lastUpdate(reset) {
 		var tmeCurrent = Date.now();
 		if (typeof(tmeLastUpd) === "undefined")
 			tmeLastUpd = tmeCurrent;
 		tmeDelta = (tmeCurrent - tmeLastUpd)/1000;
 		domDelta = $('#tmrLastUpd')
-		domDelta[0].innerHTML = 'Last Update: ' + tmeDelta.toFixed(1) + ' sec ago';
+		domDelta[0].innerHTML = 'Last Update ... <br/>' + tmeDelta.toFixed(1) + ' sec ago';
 		if (typeof(generalParams) !== "undefined") {
 			if (tmeDelta <= generalParams.tmeSuccess) {
-				domDelta.removeClass('label-warning');
-				domDelta.removeClass('label-danger');
-				domDelta.addClass('label-success');
+				domDelta.removeClass('btn-warning');
+				domDelta.removeClass('btn-danger');
+				domDelta.addClass('btn-success');
 			} else if (tmeDelta <= generalParams.tmeWarning) {
-				domDelta.removeClass('label-success');
-				domDelta.removeClass('label-danger');
-				domDelta.addClass('label-warning');
+				domDelta.removeClass('btn-success');
+				domDelta.removeClass('btn-danger');
+				domDelta.addClass('btn-warning');
 			} else {
-				domDelta.removeClass('label-success');
-				domDelta.removeClass('label-warning');
-				domDelta.addClass('label-danger');
+				domDelta.removeClass('btn-success');
+				domDelta.removeClass('btn-warning');
+				domDelta.addClass('btn-danger');
 			}
 		}
 		if (reset === true)
