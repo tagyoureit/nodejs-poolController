@@ -8,7 +8,6 @@
         "appAddress": 33
     },
     "Misc": {
-        "expressDir": "/www",
         "expressPort": 3000,
         "expressTransport": "http",
         "expressAuth": 0,

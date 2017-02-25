@@ -83,7 +83,7 @@ module.exports = function(container) {
 
 
         // Routing
-        app.use(express.static(path.join(process.cwd(), 'src', container.settings.expressDir)));
+        app.use(express.static(path.join(process.cwd(), 'src/www')));
         app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
         app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
         app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
