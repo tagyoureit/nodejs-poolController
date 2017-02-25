@@ -543,8 +543,23 @@ $(function() {
 		lastUpdate(true);
 	});
 
-	socket.on('updateAvail', function(data) {
-		$('#gitState').html('Code State<br/>' + data.result.capitalizeFirstLetter());
+	socket.on('updateAvailable', function(data) {
+		strUpdate = data.result.capitalizeFirstLetter()
+		domUpdate = $('#gitState')
+		domUpdate[0].innerHTML = 'Code State<br/>' + strUpdate;
+		if (strUpdate === 'Equal') {
+			domUpdate.removeClass('btn-warning');
+			domUpdate.removeClass('btn-danger');
+			domUpdate.addClass('btn-success');
+		} else if (strUpdate === 'Newer') {
+			domUpdate.removeClass('btn-success');
+			domUpdate.removeClass('btn-danger');
+			domUpdate.addClass('btn-warning');
+		} else {
+			domUpdate.removeClass('btn-success');
+			domUpdate.removeClass('btn-warning');
+			domUpdate.addClass('btn-danger');
+		}
 		lastUpdate(true);
 	});
 
