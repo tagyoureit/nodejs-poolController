@@ -243,12 +243,24 @@ $(function() {
 		generalParams = json.generalParams;
 	});
 
+	// Panel Handling: When Panel is being collapsed or shown => save current state to configClient.json (i.e. set to be the default on load)
+    $(".collapse").on('show.bs.collapse', function(btnSelected){
+		var btnID = btnSelected.target.id;
+		var strID = btnID.replace('collapse', '').toLowerCase();
+		socket.emit('setConfigClient', 'panelState', strID, 'state', 'visible')
+    });
+    $(".collapse").on('hide.bs.collapse', function(btnSelected){
+		var btnID = btnSelected.target.id;
+		var strID = btnID.replace('collapse', '').toLowerCase();
+		socket.emit('setConfigClient', 'panelState', strID, 'state', 'collapse')
+    });
+	
 	// Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
 	$('button').click(function(btnSelected) {
 		var btnID = btnSelected.target.id;
 		// If Panel Hide selected => then do it!
 		if (btnID.search('hidePanel') === 0) {
-			strID = btnID.replace('hidePanel', '');
+			var strID = btnID.replace('hidePanel', '');
 			$('#' + strID).hide();
 			socket.emit('setConfigClient', 'panelState', strID, 'state', 'hidden')
 		}
