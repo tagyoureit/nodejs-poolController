@@ -243,13 +243,26 @@ $(function() {
 		generalParams = json.generalParams;
 	});
 
-	// Button Handling: Hide Panel
+	// Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
 	$('button').click(function(btnSelected) {
 		var btnID = btnSelected.target.id;
 		// If Panel Hide selected => then do it!
 		if (btnID.search('hidePanel') === 0) {
-			$('#' + btnID.replace('hidePanel', '')).hide();
+			strID = btnID.replace('hidePanel', '');
+			$('#' + strID).hide();
+			socket.emit('setConfigClient', 'panelState', strID, 'state', 'hidden')
 		}
+	});
+
+	// Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
+	$('#btnResetLayout').click(function() {
+		$.getJSON('configClient.json', function(json) {
+			// Panel Data Retrieved, now reset all of them to visible (store to configClient.json, and make visible immediately)
+			for (var currPanel in json.panelState) {
+				socket.emit('setConfigClient', 'panelState', currPanel, 'state', 'visible')
+				$('#' + currPanel).show();
+			}
+		});
 	});
 	
 	// Button Handling: Pool, Spa => On/Off
