@@ -165,9 +165,9 @@ function buildSchDays(currSchedule) {
 	for (var iterDay in arrDays) {
 		strCurrDay = dayOfWeekAsString(iterDay);
 		if (arrDays[iterDay] === true) {
-			strHTML += '<button class="btn btn-success btn-xs" id="' + strCurrDay + '">';
+			strHTML += '<button class="btn btn-success btn-md" id="' + strCurrDay + '">';
 		} else {
-			strHTML += '<button class="btn btn-default btn-xs" id="' + strCurrDay + '">';
+			strHTML += '<button class="btn btn-default btn-md" id="' + strCurrDay + '">';
 		}
 		strHTML += strCurrDay + '</button>';
 	}
@@ -385,7 +385,7 @@ $(function() {
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
 						} else if ((generalParams.hideAUX === false) || (currName.indexOf("AUX") === -1)) {
-							$('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-xs" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
+							$('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-md" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
 							setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
 							$('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
 						}
