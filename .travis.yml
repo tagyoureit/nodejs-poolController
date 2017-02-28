@@ -10,3 +10,5 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - g++-4.8
+script: 'npm run test:cover'
+after_success: 'npm run coveralls'
