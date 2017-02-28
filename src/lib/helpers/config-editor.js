@@ -48,14 +48,12 @@ module.exports = function(container) {
         }
     }
 
-    var updatePump = function(a, b, c, d) {
+    var updatePumpProgramRPM = function(_pump, program, rpm) {
+      console.log('updatePump:', _pump, program, rpm)
         return init()
             .then(function(data) {
-                if (c === null || c === undefined) {
-                    data.pump[a][b] = d
-                } else {
-                    data.pump[a][b][c] = d
-                }
+                    data.equipment.pump[_pump].programRPM[program] = rpm
+
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -97,7 +95,7 @@ module.exports = function(container) {
 
 
     return {
-        updatePump: updatePump,
+        updatePumpProgramRPM: updatePumpProgramRPM,
         // reset: reset,
         init: init,
         getProgramRPM: getProgramRPM

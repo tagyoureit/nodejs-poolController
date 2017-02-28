@@ -10,19 +10,19 @@
             "state": "visible"
         },
         "chlorinator": {
-            "state": "hidden"
+            "state": "visible"
         },
         "features": {
-            "state": "hidden"
+            "state": "visible"
         },
         "pump": {
-            "state": "hidden"
+            "state": "visible"
         },
         "schedule": {
-            "state": "collapse"
+            "state": "visible"
         },
         "eggtimer": {
-            "state": "collapse"
+            "state": "visible"
         },
         "debug": {
             "state": "visible"

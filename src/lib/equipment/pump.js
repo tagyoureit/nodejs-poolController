@@ -63,7 +63,6 @@ module.exports = function(container) {
 
     var loadProgramRPMfromConfig = function() {
         for (var _pump in container.settings.pump) {
-            console.log('GET PUMP PROGRAM:', _pump, container.settings.pump[_pump].programRPM)
         currentPumpStatus[_pump].programRPM = JSON.parse(JSON.stringify(container.settings.pump[_pump].programRPM))
     }
   }
@@ -105,7 +104,6 @@ module.exports = function(container) {
         ]; // variable to hold the status packets of the pumps
 
         loadProgramRPMfromConfig()
-        console.log('pumps...', currentPumpStatus)
 
         if (container.settings.logPumpMessages)
             container.logger.silly('just reset pumps...', currentPumpStatus[1].power)
@@ -185,7 +183,7 @@ module.exports = function(container) {
 
         if (currentPumpStatus[_pump].programRPM[program] !== rpm) {
             // container.settings.pump[_pump].programRPM[program] = rpm
-            container.configEditor.updatePump(_pump, 'programRPM', null, rpm)
+            container.configEditor.updatePumpProgramRPM(_pump, program, rpm)
             currentPumpStatus[_pump].programRPM[program] = rpm;
             if (container.settings.logPumpMessages)
                 container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
@@ -431,7 +429,7 @@ module.exports = function(container) {
     var saveProgram = function(pump, program, rpm) {
         // var str = 'program' + program + 'rpm';
         currentPumpStatus[pump].programRPM[program] = rpm;
-        container.configEditor.updatePump(pump, 'programRPM', null, rpm)
+        container.configEditor.updatePumpProgramRPM(pump, program, rpm)
     }
 
     var setCurrentRPM = function(index, rpm) {
