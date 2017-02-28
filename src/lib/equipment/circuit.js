@@ -110,9 +110,13 @@ module.exports = function(container) {
         //currentStatusBytes = data
     }
 
+    var pad = function(num, size) {
+        //makes any digit returned as a string of length size (for outputting formatted byte text)
+        var s = "   " + num;
+        return s.substr(s.length - size);
+    }
 
-
-    function printStatus(data1, data2) {
+    var printStatus = function(data1, data2) {
 
         var str1 = ''
         var str2 = ''
@@ -121,14 +125,14 @@ module.exports = function(container) {
         str1 = JSON.parse(JSON.stringify(data1));
         if (data2 !== undefined) str2 = JSON.parse(JSON.stringify(data2));
         str3 = ''; //delta
-        spacepadding = '';
-        spacepaddingNum = 19;
+        var spacepadding = '';
+        var spacepaddingNum = 19;
         for (var i = 0; i <= spacepaddingNum; i++) {
             spacepadding += ' ';
         }
 
 
-        header = '\n';
+        var header = '\n';
         header += (spacepadding + '              S       L                                           V           H   P   S   H       A   S           H\n');
         header += (spacepadding + '              O       E           M   M   M                       A           T   OO  P   T       I   O           E\n');
         header += (spacepadding + '          D   U       N   H       O   O   O                   U   L           R   L   A   R       R   L           A                           C   C\n');
@@ -140,14 +144,14 @@ module.exports = function(container) {
 
 
         //format status1 so numbers are three digits
-        for (var i = 0; i < str1.length - 1; i++) {
+        for (i = 0; i < str1.length - 1; i++) {
             str1[i] = pad(str1[i], 3);
         }
 
         //compare arrays so we can mark which are different
         //doing string 2 first so we can compare string arrays
         if (data2 !== undefined) {
-            for (var i = 0; i < str2.length - 1; i++) {
+            for (i = 0; i < str2.length - 1; i++) {
                 if (data1[i] === data2[i]) {
                     str3 += '    '
                 } else {
@@ -162,21 +166,106 @@ module.exports = function(container) {
             str1 = ' New: ' + spacepadding.substr(6) + str1 + '\n';
             str2 = ''
         }
-
-
-
-
-
-        str = header + str1 + str2 + str3;
+        var str = header + str1 + str2 + str3;
 
         return (str);
     }
 
-    function pad(num, size) {
-        //makes any digit returned as a string of length size (for outputting formatted byte text)
-        var s = "   " + num;
-        return s.substr(s.length - size);
+    //internal method to apply the friendly name
+    var getCircuitFriendlyNames = function() {
+            var useFriendlyName
+        for (var i = 1; i <= 20; i++) {
+            if (container.settings.circuitFriendlyNames[i] === "") {
+                useFriendlyName = false
+            } else {
+                //for now, UI doesn't support renaming 'pool' or 'spa'.  Check for that here.
+                if ((currentCircuitArrObj[i].circuitFunction === "Spa" && container.settings.circuitFriendlyNames[i] !== "Spa") ||
+                    (currentCircuitArrObj[i].circuitFunction === "Pool" && container.settings.circuitFriendlyNames[i] !== "Pool")) {
+                    logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[i].circuitFunction)
+                    useFriendlyName = false
+                } else {
+                    useFriendlyName = true
+                }
+            }
+            if (useFriendlyName) {
+                currentCircuitArrObj[i].friendlyName = container.settings.circuitFriendlyNames[i].toUpperCase()
+            } else {
+                currentCircuitArrObj[i].friendlyName = currentCircuitArrObj[i].name
+            }
+        }
     }
+
+    var statusToString = function(status) {
+        if (status === 1)
+            return 'On'
+        else {
+            return 'Off'
+        }
+    }
+    var outputInitialCircuitsDiscovered = function() {
+        var circuitStr = '';
+        for (var i = 1; i <= 20; i++) {
+            circuitStr += 'Circuit ' + currentCircuitArrObj[i].number + ': ' + currentCircuitArrObj[i].name
+            circuitStr += ' Function: ' + currentCircuitArrObj[i].circuitFunction
+            if (currentCircuitArrObj[i].status === undefined) {
+                circuitStr += ' Status: (not received yet)'
+            } else {
+                circuitStr += ' Status: ' + currentCircuitArrObj[i].status
+            }
+            circuitStr += ' Freeze Protection: '
+            circuitStr += statusToString(currentCircuitArrObj[i].freeze === 0)
+            circuitStr += '\n'
+        }
+        logger.info('\n  Circuit Array Discovered from configuration: \n%s \n', circuitStr)
+        container.io.emitToClients('circuit');
+
+    }
+
+    var doWeHaveAllInformation = function() {
+        //simple function to see if we have both the circuit names & status (come from 2 different sets of packets)
+        if (sendInitialBroadcast.haveCircuitNames === 1 && sendInitialBroadcast.haveCircuitStatus === 1) {
+            outputInitialCircuitsDiscovered()
+            sendInitialBroadcast.initialCircuitsBroadcast = 1
+        }
+
+    }
+
+    var assignCircuitVars = function(circuit, circuitArrObj) {
+        //we don't inculde status because it comes from a different packet
+        currentCircuitArrObj[circuit].number = circuitArrObj.number
+        currentCircuitArrObj[circuit].numberStr = circuitArrObj.numberStr
+        currentCircuitArrObj[circuit].name = circuitArrObj.name
+        currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
+        currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
+    }
+
+
+
+
+    function circuitChanged(circuit, counter) {
+
+
+        var results = currentCircuitArrObj[circuit].whatsDifferent(circuit);
+        if (!(results === "Nothing!" || currentCircuitArrObj[circuit].name === 'NOT USED')) {
+            logger.verbose('Msg# %s   Circuit %s change:  %s', counter, circuit.name, results)
+
+            if (container.settings.logConfigMessages) {
+
+                if (circuit.status === undefined) {
+                    logger.debug('Msg# %s  Circuit %s:   Name: %s  Function: %s  Status: (not received yet)  Freeze Protection: %s', counter, currentCircuitArrObj[circuit].number, currentCircuitArrObj[circuit].name, currentCircuitArrObj[circuit].circuitFunction, currentCircuitArrObj[circuit].freeze)
+                } else {
+                    logger.debug('Msg# %s  Circuit %s:   Name: %s  Function: %s  Status: %s  Freeze Protection: %s', counter, currentCircuitArrObj[circuit].number, currentCircuitArrObj[circuit].name, currentCircuitArrObj[circuit].circuitFunction, currentCircuitArrObj[circuit].status, currentCircuitArrObj[circuit].freeze)
+
+                }
+            }
+            container.io.emitToClients('circuit');
+        }
+
+
+
+
+    }
+
 
     function getCircuit(circuit) {
         return currentCircuitArrObj[circuit]
@@ -215,7 +304,7 @@ module.exports = function(container) {
 
         if (circuit === 20 && sendInitialBroadcast.haveCircuitNames === 0) {
             sendInitialBroadcast.haveCircuitNames = 1
-            getFriendlyNames()
+            getCircuitFriendlyNames()
             doWeHaveAllInformation()
         } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
             //not sure we can do this ... have to check to see if they will come out the same
@@ -230,92 +319,6 @@ module.exports = function(container) {
 
     }
 
-    //internal method to apply the friendly name
-    function getFriendlyNames() {
-        var friendlyNames = container.settings.friendlyNamesArr,
-            useFriendlyName
-        for (var i = 1; i <= 16; i++) {
-            if (friendlyNames[i][currentCircuitArrObj[i].numberStr] === "") {
-                useFriendlyName = false
-            } else {
-                //for now, UI doesn't support renaming 'pool' or 'spa'.  Check for that here.
-                if ((currentCircuitArrObj[i].circuitFunction === "Spa" && friendlyNames[i][currentCircuitArrObj[i].numberStr] !== "Spa") ||
-                    (currentCircuitArrObj[i].circuitFunction === "Pool" && friendlyNames[i][currentCircuitArrObj[i].numberStr] !== "Pool")) {
-                    logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[i].circuitFunction)
-                    useFriendlyName = false
-                } else {
-                    useFriendlyName = true
-                }
-            }
-            if (useFriendlyName) {
-                currentCircuitArrObj[i].friendlyName = friendlyNames[i][currentCircuitArrObj[i].numberStr].toUpperCase()
-            } else {
-                currentCircuitArrObj[i].friendlyName = currentCircuitArrObj[i].name
-            }
-        }
-    }
-
-    function doWeHaveAllInformation() {
-        //simple function to see if we have both the circuit names & status (come from 2 different sets of packets)
-        if (sendInitialBroadcast.haveCircuitNames === 1 && sendInitialBroadcast.haveCircuitStatus === 1) {
-            outputInitialCircuitsDiscovered()
-            sendInitialBroadcast.initialCircuitsBroadcast = 1
-        }
-
-    }
-
-    function assignCircuitVars(circuit, circuitArrObj) {
-        //we don't inculde status because it comes from a different packet
-        currentCircuitArrObj[circuit].number = circuitArrObj.number
-        currentCircuitArrObj[circuit].numberStr = circuitArrObj.numberStr
-        currentCircuitArrObj[circuit].name = circuitArrObj.name
-        currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
-        currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
-    }
-
-
-    function outputInitialCircuitsDiscovered() {
-        var circuitStr = '';
-        for (var i = 1; i <= 20; i++) {
-            circuitStr += 'Circuit ' + currentCircuitArrObj[i].number + ': ' + currentCircuitArrObj[i].name
-            circuitStr += ' Function: ' + currentCircuitArrObj[i].circuitFunction
-            if (currentCircuitArrObj[i].status === undefined) {
-                circuitStr += ' Status: (not received yet)'
-            } else {
-                circuitStr += ' Status: ' + currentCircuitArrObj[i].status
-            }
-            circuitStr += ' Freeze Protection: '
-            circuitStr += statusToString(currentCircuitArrObj[i].freeze === 0)
-            circuitStr += '\n'
-        }
-        logger.info('\n  Circuit Array Discovered from configuration: \n%s \n', circuitStr)
-        container.io.emitToClients('circuit');
-
-    }
-
-    function circuitChanged(circuit, counter) {
-
-
-        results = currentCircuitArrObj[circuit].whatsDifferent(circuit);
-        if (!(results === "Nothing!" || currentCircuitArrObj[circuit].name === 'NOT USED')) {
-            logger.verbose('Msg# %s   Circuit %s change:  %s', counter, circuit.name, results)
-
-            if (container.settings.logConfigMessages) {
-
-                if (circuit.status === undefined) {
-                    logger.debug('Msg# %s  Circuit %s:   Name: %s  Function: %s  Status: (not received yet)  Freeze Protection: %s', counter, currentCircuitArrObj[circuit].number, currentCircuitArrObj[circuit].name, currentCircuitArrObj[circuit].circuitFunction, currentCircuitArrObj[circuit].freeze)
-                } else {
-                    logger.debug('Msg# %s  Circuit %s:   Name: %s  Function: %s  Status: %s  Freeze Protection: %s', counter, currentCircuitArrObj[circuit].number, currentCircuitArrObj[circuit].name, currentCircuitArrObj[circuit].circuitFunction, currentCircuitArrObj[circuit].status, currentCircuitArrObj[circuit].freeze)
-
-                }
-            }
-            container.io.emitToClients('circuit');
-        }
-
-
-
-
-    }
 
     //this function takes the status packet (controller:2) and parses through the equipment fields
     function assignCircuitStatusFromControllerStatus(data, counter) {
@@ -329,7 +332,7 @@ module.exports = function(container) {
         for (var i = 0; i < 3; i++) {
             for (var j = 0; j < 8; j++) {
                 if ((j + (i * 8) + 1) <= 20) {
-                    equip = data[container.constants.controllerStatusPacketFields.EQUIP1 + i]
+                    var equip = data[container.constants.controllerStatusPacketFields.EQUIP1 + i]
                     if (container.settings.logMessageDecoding)
                         logger.silly('Decode Case 2:   i: %s  j:  %s  j + (i * 8) + 1: %s   equip: %s', i, j, j + (i * 8) + 1, equip)
                     circuitArrObj[j + (i * 8) + 1] = {}
@@ -342,7 +345,7 @@ module.exports = function(container) {
             sendInitialBroadcast.haveCircuitStatus = 1
             //copy all states
 
-            for (var i = 1; i <= 20; i++) {
+            for ( i = 1; i <= 20; i++) {
                 currentCircuitArrObj[i].status = circuitArrObj[i].status
             }
 
@@ -350,7 +353,7 @@ module.exports = function(container) {
             //logger.verbose('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, newStatus)
             //currentCircuitArrObj[j + (i * 8) + 1].status = newStatus
         } else
-            for (var i = 1; i <= 20; i++) {
+            for ( i = 1; i <= 20; i++) {
                 if (currentCircuitArrObj[i].status === circuitArrObj[i].status) {
                     //nothing changed
                     if (container.settings.logMessageDecoding) {
@@ -379,13 +382,7 @@ module.exports = function(container) {
 
     }
 
-    function statusToString(status) {
-        if (status === 1)
-            return 'On'
-        else {
-            return 'Off'
-        }
-    }
+
 
     function requestUpdateCircuit(source, dest, circuit, action, counter) {
         //this is for the request.  Not actual confirmation of circuit update.  So we don't update the object here.
@@ -467,6 +464,6 @@ module.exports = function(container) {
         setControllerLightColor: setControllerLightColor,
         setControllerLightGroup: setControllerLightGroup,
         //TESTING
-        getFriendlyNames: getFriendlyNames
+        getCircuitFriendlyNames: getCircuitFriendlyNames
     }
 }

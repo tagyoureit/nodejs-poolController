@@ -18,10 +18,16 @@ describe('server', function() {
                 bottle.container.settings.expressDir = '/bootstrap'
                 // bottle.container.server.close()
                 bottle.container.server.init()
+                bottle.container.logger.transports.console.level = 'silly';
             })
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             })
 
             afterEach(function() {
@@ -33,6 +39,7 @@ describe('server', function() {
                 bottle.container.settings.expressAuth = 0
                 bottle.container.settings.expressAuthFile = ''
                 bottle.container.server.close()
+                bottle.container.logger.transports.console.level = 'info';
                 // bottle.container.server.init()
             })
 
@@ -45,14 +52,18 @@ describe('server', function() {
                 };
                 var promise = global.rp(options)
 
-                promise.then(function(res) {
-                  // console.log('1:', res.statusCode)
-                  res.statusCode.should.not.eq(200)
-              }).catch(function(error) {
-                  // console.log('2:', error)
-                  error.statusCode.should.eq(401)
-                  done()
-                });
+                promise
+
+                    .then(
+                        /* istanbul ignore next */
+                        function(res) {
+                            // console.log('1:', res.statusCode)
+                            res.statusCode.should.not.eq(200)
+                        }).catch(function(error) {
+                        // console.log('2:', error)
+                        error.statusCode.should.eq(401)
+                        done()
+                    });
 
             });
 
@@ -88,10 +99,12 @@ describe('server', function() {
                 };
                 var promise = global.rp(options)
                 // console.log('htaccess file: ', bottle.container.settings.expressAuthFile)
-                promise.then(function(res) {
-                    // console.log('1:', res.statusCode)
-                    res.statusCode.should.not.eq(200)
-                }).catch(function(error) {
+                promise.then(
+                    /* istanbul ignore next */
+                    function(res) {
+                        // console.log('1:', res.statusCode)
+                        res.statusCode.should.not.eq(200)
+                    }).catch(function(error) {
                     // console.log('2:', error)
                     error.statusCode.should.eq(401)
                     done()

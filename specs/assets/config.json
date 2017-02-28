@@ -1,76 +1,118 @@
 {
-    "Equipment": {
-        "intellicom": 0,
-        "intellitouch": 1,
-        "pumpOnly": 0,
-        "numberOfPumps": 0,
-        "chlorinator": 0,
-        "appAddress": 33
+    "equipment": {
+        "controller": {
+            "intellicom": {
+                "installed": 0,
+                "friendlyName": ""
+            },
+            "intellitouch": {
+                "installed": 1,
+                "friendlyName": ""
+            },
+            "virtual": {
+                "pumpController": "default",
+                "chlorinatorController": "default"
+            },
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            },
+            "circuitFriendlyNames": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": "",
+                "6": "",
+                "7": "",
+                "8": "",
+                "9": "",
+                "10": "",
+                "11": "",
+                "12": "",
+                "13": "",
+                "14": "",
+                "15": "",
+                "16": ""
+            }
+
+        },
+        "chlorinator": {
+            "installed": 1,
+            "desiredOutput": -1,
+            "friendlyName": "",
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            }
+        },
+        "pump": {
+            "1": {
+                "programRPM": {
+                    "1": -1,
+                    "2": 2500,
+                    "3": -1,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            },
+            "2": {
+                "programRPM": {
+                    "1": -1,
+                    "2": -1,
+                    "3": 3450,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            }
+        }
     },
-    "Misc": {
-        "expressDir": "/bootstrap",
-        "expressPort": 3000,
-        "expressTransport": "http",
-        "expressAuth": 0,
-        "expressAuthFile": "/specs/assets/server/users.htpasswd"
+    "poolController": {
+        "appAddress": 33,
+        "web": {
+            "expressPort": 3000,
+            "expressTransport": "http",
+            "expressAuth": 0,
+            "expressAuthFile": "/users.htpasswd"
+        },
+        "network": {
+            "rs485Port": "/dev/ttyUSB0",
+            "netConnect": 1,
+            "netHost": "raspberrypi",
+            "netPort": 9801
+        },
+        "log": {
+            "logLevel": "debug",
+            "extLogLevel": "verbose",
+            "logPumpMessages": 1,
+            "logDuplicateMessages": 0,
+            "logConsoleNotDecoded": 0,
+            "logConfigMessages": 0,
+            "logMessageDecoding": 0,
+            "logChlorinator": 1,
+            "logPacketWrites": 1,
+            "logPumpTimers": 0,
+            "logApi": 0
+        }
     },
-    "Network": {
-        "rs485Port": "/dev/ttyUSB0",
-        "netConnect": 1,
-        "netHost": "raspberrypi",
-        "netPort": 9801
-    },
-    "FriendlyNames": [{
-        "blank": ""
-    }, {
-        "circuit1": ""
-    }, {
-        "circuit2": ""
-    }, {
-        "circuit3": ""
-    }, {
-        "circuit4": ""
-    }, {
-        "circuit5": "Waterfall Medium Low"
-    }, {
-        "circuit6": ""
-    }, {
-        "circuit7": ""
-    }, {
-        "circuit8": ""
-    }, {
-        "circuit9": ""
-    }, {
-        "circuit10": ""
-    }, {
-        "circuit11": ""
-    }, {
-        "circuit12": "Waterfall Low"
-    }, {
-        "circuit13": "Waterfall Medium"
-    }, {
-        "circuit14": "Waterfall High"
-    }, {
-        "circuit15": ""
-    }, {
-        "circuit16": ""
-    }],
-    "Log": {
-        "logLevel": "info",
-        "extLogLevel": "info",
-        "logPumpMessages": 0,
-        "logDuplicateMessages": 0,
-        "logConsoleNotDecoded": 0,
-        "logConfigMessages": 0,
-        "logMessageDecoding": 0,
-        "logChlorinator": 0,
-        "logPacketWrites": 0,
-        "logPumpTimers": 0,
-        "logApi": 0
-    },
-    "Integrations": {
+    "integrations": {
         "socketISY": 0,
-        "alexaskills": 0,
         "outputToConsole": 0
     },
     "socketISY": {
@@ -98,6 +140,6 @@
         }
     },
     "outputToConsole": {
-      "level": "warn"
+        "level": "warn"
     }
 }

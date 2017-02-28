@@ -6,6 +6,7 @@ describe('socket.io basic tests', function() {
 
         bottle.container.server.init()
         bottle.container.io.init()
+        bottle.container.logger.transports.console.level = 'silly';
     });
 
     beforeEach(function() {
@@ -13,12 +14,13 @@ describe('socket.io basic tests', function() {
         //clock = sandbox.useFakeTimers()
         bottle.container.time.init()
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-         loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
+        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
 
     })
 
@@ -31,6 +33,7 @@ describe('socket.io basic tests', function() {
     after(function() {
         bottle.container.time.init()
         bottle.container.server.close()
+        bottle.container.logger.transports.console.level = 'info';
     })
 
 
@@ -80,10 +83,10 @@ describe('socket.io basic tests', function() {
         })
 
         setTimeout(function() {
-          loggerInfoStub.args[0][0].text.should.contain('SOCKET')
-          queuePacketStub.args[0][0].should.contain.members([165,99,16,33,145,7,12,5,13,20,13,40,131])
-          queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 1])
-          queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
+            loggerInfoStub.args[0][0].text.should.contain('SOCKET')
+            queuePacketStub.args[0][0].should.contain.members([165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131])
+            queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 1])
+            queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
             done()
         }, 500)
     })
@@ -179,6 +182,7 @@ describe('socket.io pump tests', function() {
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
         bottle.container.pump.init()
         bottle.container.pumpControllerTimers.clearTimer(1)
         bottle.container.pumpControllerTimers.clearTimer(2)

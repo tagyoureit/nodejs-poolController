@@ -9,9 +9,11 @@ function requestPoolDataWithURL(endpoint) {
             //  console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
             return response.body;
         }
-    ).catch(function(err) {
-        console.log('error:', err)
-    });
+    ).catch(
+        /* istanbul ignore next */
+        function(err) {
+            console.log('error:', err)
+        });
 }
 
 function getAllPoolData(endpoint) {
@@ -32,16 +34,21 @@ describe('#set functions', function() {
 
             before(function() {
                 bottle.container.server.init()
-                bottle.container.settings.chlorinator = 1
+                bottle.container.settings.virtual.chlorinatorController = 1
+                bottle.container.settings.chlorinator.installed = 1
+                bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                //bottle.container.server.init()
                 clock = sandbox.useFakeTimers()
-                //loggerStub = sandbox.stub(bottle.container.logger, 'warn')
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
 
 
@@ -49,7 +56,7 @@ describe('#set functions', function() {
 
             afterEach(function() {
                 //restore the sandbox after each function
-                              bottle.container.chlorinator.setChlorinatorLevel(0)
+                bottle.container.chlorinator.setChlorinatorLevel(0)
                 bottle.container.chlorinatorController.clearTimer()
                 sandbox.restore()
 
@@ -57,19 +64,21 @@ describe('#set functions', function() {
 
             after(function() {
 
-                bottle.container.settings.chlorinator = 0
+              bottle.container.settings.virtual.chlorinatorController = 0
+              bottle.container.settings.chlorinator.installed = 0
                 bottle.container.server.close()
+                bottle.container.logger.transports.console.level = 'info'
             })
 
 
-            it('should send a message if chlorinator is not enabled', function(done) {
-                bottle.container.settings.chlorinator = 0
+            it('should send a message if chlorinator is not installed', function(done) {
+                bottle.container.settings.chlorinator.installed = 0
                 requestPoolDataWithURL('chlorinator/0').then(function(result) {
                     // console.log('loggerStub called with: ', loggerStub.args)
                     // console.log('result: ', result)
                     result.text.should.contain('FAIL')
                     queuePacketStub.callCount.should.eq(0)
-                    bottle.container.settings.chlorinator = 1
+                    bottle.container.settings.chlorinator.installed = 1
                     done()
 
                 })
@@ -135,7 +144,7 @@ describe('#set functions', function() {
                 })
             })
             it('starts chlorinator at 0%', function(done) {
-              //do this one last so
+                //do this one last so
                 requestPoolDataWithURL('chlorinator/0').then(function(result) {
                     // console.log('loggerStub called with: ', loggerStub.args)
                     // console.log('result: ', result)

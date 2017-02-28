@@ -69,7 +69,7 @@ var init = exports.init = function() {
         //console.log('strippedName: ', stripJS(name))
         //console.log('stat: ', stat)
         var shortName = stripJS(name)
-        if (configFile.Integrations[shortName] === 1) {
+        if (configFile.integrations[shortName] === 1) {
             bottle.factory(shortName, require(filePath)) //add the integration to Bottle
             bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
             bottle.container[shortName].init()

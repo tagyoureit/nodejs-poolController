@@ -24,65 +24,72 @@ var fsio = require('promised-io/fs'),
     path = require('path').posix,
     location
 
+var Promise = require('bluebird'),
+    fs = require('fs')
+Promise.promisifyAll(fs)
+
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: bootstrap-config-editor.js')
     location = path.join(process.cwd(), dir, file)
 
-    var readConfigClient = function() {
-        var Deferred = require("promised-io/promise").Deferred;
-        var deferred = new Deferred();
-
-        fsio.readFile(location, 'utf-8').then(function(data) {
-          try {
-            configClient = JSON.parse(data)
-            return deferred.resolve()
-          }
-          catch (err){
-            return deferred.reject(err)
-          }
-        }, function(error) {
-            container.logger.warn('can not read local configClient.json: ', error)
-            return deferred.reject(error)
-        })
-        return deferred
-    }
-
-    var alter = function(a, b, c, d) {
-        if (c === null || c===undefined) {
-                configClient[a][b] = d
-        } else {
-                configClient[a][b][c] = d
+    var resetPanelState = function() {
+        for (var key in configClient.panelState) {
+            key.state = "visible"
         }
     }
 
-    var writeConfigClient = function() {
-        var Deferred = require("promised-io/promise").Deferred;
-        var deferred = new Deferred();
-
-        fsio.writeFile(location, JSON.stringify(configClient, null, 4),  'utf-8').then(function(msg) {
-            return deferred.resolve()
-        }, function(error) {
-            return deferred.reject(error)
-        })
-        return deferred
+    var readConfigClient = function() {
+        if (configClient) {
+            return Promise.resolve(configClient)
+        } else {
+            return fs.readFileAsync(location, 'utf-8').then(function(data) {
+                configClient = JSON.parse(data)
+                return Promise.resolve(configClient)
+            })
+        }
     }
 
     var update = function(a, b, c, d) {
-        var promise = readConfigClient()
-            .then(function() {
-              alter(a, b, c, d)
-              // console.log('and finally', configClient)
-            })
-            .then(writeConfigClient)
-            .then(function(){
-              container.logger.verbose('Updated configClient.json')
+        return readConfigClient()
+            .then(function(data) {
+                if (c === null || c === undefined) {
+                    data[a][b] = d
+                } else {
+                    data[a][b][c] = d
+                }
+                return Promise.resolve(data)
 
-            }, function(err) {
+            })
+            .then(function(data){
+              return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                container.logger.verbose('Updated configClient.json.')
+            })
+            .catch(function(err) {
                 container.logger.warn('Error updating bootstrap configClient.json: ', err)
             })
     }
+
+    var reset = function() {
+        return readConfigClient()
+            .then(function(data) {
+                for (var key in data.panelState) {
+                    data.panelState[key].state = "visible"
+                }
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                container.logger.verbose('Reset bootstrap configClient.json')
+            })
+            .catch(function(err) {
+                container.logger.warn('Error resetting bootstrap configClient.json: ', err)
+            })
+    }
+
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -90,6 +97,7 @@ module.exports = function(container) {
 
 
     return {
-        update: update
+        update: update,
+        reset: reset
     }
 }

@@ -42,11 +42,11 @@ module.exports = function(container) {
 
 
     /* ----- INTERNAL TIMERS -----*/
-    var pumpStatusCheck = function(_numPumps) {
-        if (_numPumps === 1) {
+    var pumpStatusCheck = function() {
+        if (container.pump.numberOfPumps() === 1) {
             container.pumpControllerMiddleware.requestStatusSequence(1)
 
-        } else if (_numPumps === 2) {
+        } else if (container.pump.numberOfPumps() === 2) {
             container.pumpControllerMiddleware.requestStatusSequence(1)
             container.pumpControllerMiddleware.requestStatusSequence(2)
         }
@@ -54,18 +54,29 @@ module.exports = function(container) {
 
     //if we are on pump only mode, this will _always_ run a status check at 30s intervals
     var startPumpController = function() {
-        if (container.settings.numberOfPumps === 1 || container.settings.numberOfPumps === 2) {
-            if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, numPumps)')
+        if (container.settings.virtual.pumpController === 'never') {
+            //never start if the value is never
+                    if (container.settings.logPumpTimers) container.logger.warn('Not starting pump timers because virtual.pumpController=never')
+                   return false
+                 }
+                 else
+            if (container.settings.virtual.pumpController === 'always' || !(container.settings.intellicom || container.settings.intellitouch)) {
+                //start if the value is always, or (with default) the values of both intellicom and intellitouch are 0 (not [either/both not present])
+                if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
 
-            pumpStatusTimer = setInterval(pumpStatusCheck, 30 * 1000, container.settings.numberOfPumps);
-            if (container.settings.logPumpTimers) container.logger.silly('setTimeout(pumpStatusCheck, 4 * 1000, numPumps);')
-            //must give a short delay to allow the port to open
-            //this 4 second pause is necessary to let the SP and Server open/start
-            pumpInitialRequestConfigDelay = setTimeout(pumpStatusCheck, 4 * 1000, container.settings.numberOfPumps);
-            return true
+                pumpStatusTimer = setInterval(pumpStatusCheck, 30 * 1000);
+                if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump controller for %s pump(s).', container.pump.numberOfPumps())
+                //must give a short delay to allow the port to open
+                //this 4 second pause is necessary to let the SP and Server open/start
+                pumpInitialRequestConfigDelay = setTimeout(pumpStatusCheck, 4 * 1000);
+                return true
+            }
+            else {
+              if (container.settings.logPumpTimers) container.logger.verbose('Not starting virtual pump controller. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.virtual.pumpController, container.settings.intellitouch, container.settings.intellicom)
+            }
         }
-        return false
-    }
+
+
 
     //clear the internal timer for pump control
     var clearTimer = function(index) {
@@ -133,7 +144,7 @@ module.exports = function(container) {
             if (container.settings.logPumpTimers)
                 container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-            container.logger.verbose('App -> Pump %s: Sending Run Pump Program. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(2))
@@ -307,11 +318,20 @@ module.exports = function(container) {
         container.io.emitToClients('pump')
     }
 
+
+    var isPumpTimerRunning = function(index) {
+        if (index === 1) {
+            return pump1TimerRunning
+        } else if (index === 2) {
+            return pump2TimerRunning
+        }
+    }
+
     //set the internal timer for pump controls
     var startProgramTimer = function(index, program, duration) {
         var padDuration = 0
         if (duration > 0) {
-            padDuration + 0.5 //timer will decrement at first run.  add this so the full time is used.
+            padDuration = 0.5 //timer will decrement at first run.  add this so the full time is used.
         } else if (duration === null || duration === undefined) {
             duration = -1
         }
@@ -319,17 +339,17 @@ module.exports = function(container) {
         if (index === 1) {
             if (isPumpTimerRunning(1)) clearTimer(1)
             container.pump.setCurrentRunning(index, 'program', program, duration)
-            duration+=padDuration
+            duration += padDuration
             pump1ProgramTimerMode()
             pump1TimerRunning = 1
         } else if (index === 2) {
             if (isPumpTimerRunning(2)) clearTimer(2)
             container.pump.setCurrentRunning(index, 'program', program, duration)
-            duration+=padDuration
+            duration += padDuration
             pump2ProgramTimerMode()
             pump2TimerRunning = 1
         } else {
-            container.logger.warn('Request to start pump program timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)
+            container.logger.warn('Request to start pump program timer %s, but config.json numberOfPumps = %s', index, container.pump.numberOfPumps())
         }
     }
 
@@ -337,25 +357,25 @@ module.exports = function(container) {
     var startRPMTimer = function(index, rpm, duration) {
         var padDuration = 0
         if (duration > 0) {
-            padDuration =  0.5 //timer will decrement at first run.  add this so the full time is used.
+            padDuration = 0.5 //timer will decrement at first run.  add this so the full time is used.
         } else if (duration === null || duration === undefined) {
             duration = -1
         }
         if (index === 1) {
             if (isPumpTimerRunning(1)) clearTimer(1)
             container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
-            duration+=padDuration
+            duration += padDuration
             pump1RPMTimerMode()
             pump1TimerRunning = 1
         } else if (index === 2) {
             if (isPumpTimerRunning(2)) clearTimer(2)
             container.pump.setCurrentRunning(index, 'rpm', rpm, duration)
-            duration+=padDuration
+            duration += padDuration
 
             pump2RPMTimerMode()
             pump2TimerRunning = 1
         } else {
-            container.logger.warn('Request to start pump RPM timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)
+            container.logger.warn('Request to start pump RPM timer %s, but config.json numberOfPumps = %s', index, container.pump.numberOfPumps())
         }
     }
 
@@ -378,16 +398,7 @@ module.exports = function(container) {
             pump2PowerTimerMode()
             pump2TimerRunning = 1
         } else {
-            container.logger.warn('Request to start pump power timer %s, but config.json numberOfPumps = %s', index, container.settings.numberOfPumps)
-        }
-    }
-
-
-    var isPumpTimerRunning = function(index) {
-        if (index === 1) {
-            return pump1TimerRunning
-        } else if (index === 2) {
-            return pump2TimerRunning
+            container.logger.warn('Request to start pump power timer %s, but config.json numberOfPumps = %s', index, container.pump.numberOfPumps())
         }
     }
 

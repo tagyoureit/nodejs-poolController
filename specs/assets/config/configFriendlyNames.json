@@ -1,35 +1,22 @@
-[{
-    "blank": ""
-}, {
-    "circuit1": ""
-}, {
-    "circuit2": ""
-}, {
-    "circuit3": ""
-}, {
-    "circuit4": ""
-}, {
-    "circuit5": "Waterfall Medium Low"
-}, {
-    "circuit6": ""
-}, {
-    "circuit7": ""
-}, {
-    "circuit8": ""
-}, {
-    "circuit9": ""
-}, {
-    "circuit10": ""
-}, {
-    "circuit11": ""
-}, {
-    "circuit12": "Waterfall Low"
-}, {
-    "circuit13": "Waterfall Medium"
-}, {
-    "circuit14": "Waterfall High"
-}, {
-    "circuit15": ""
-}, {
-    "circuit16": ""
-}]
+{
+    "1": "",
+    "2": "",
+    "3": "",
+    "4": "",
+    "5": "Waterfall Medium Low",
+    "6": "",
+    "7": "",
+    "8": "",
+    "9": "",
+    "10": "",
+    "11": "",
+    "12": "Waterfall Low",
+    "13": "Waterfall Medium",
+    "14": "Waterfall High",
+    "15": "",
+    "16": "",
+    "17": "",
+    "18": "",
+    "19": "",
+    "20": ""
+}

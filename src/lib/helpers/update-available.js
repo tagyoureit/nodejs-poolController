@@ -23,7 +23,7 @@ var fs = require('promised-io/fs'),
     request = require('request')
 
 var _ = require('underscore')
-var promised = require("promised-io/promise");
+
 var userAgent = 'tagyoureit-nodejs-poolController-app',
     jsons = {},
     gitApiHost = 'api.github.com',
@@ -32,7 +32,7 @@ var userAgent = 'tagyoureit-nodejs-poolController-app',
     location = path.join(process.cwd(), '/package.json')
 
 module.exports = function(container) {
-
+var promised = container.promisedIoPromise
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: update_avail.js')
@@ -92,7 +92,7 @@ module.exports = function(container) {
         }
 
         if (!data['version']) {
-            console.log('Could not read package.json version.  error!')
+            container.logger.error('Could not read package.json version.  error!')
             throw Error
         }
         return data['version']
@@ -106,7 +106,6 @@ module.exports = function(container) {
         container.logger.silly('update_avail: reading local version at:', location)
 
         fs.readFile(location, 'utf-8').then(function(data) {
-
             jsons.local = {
                 'version': getVersionFromJson(data)
             }
@@ -155,8 +154,7 @@ module.exports = function(container) {
                 return
             }*/
             if (res.statusCode === 403) {
-                console.log('error with status code: %s', res.statusCode)
-                console.log('body: ', body)
+                container.logger.error('error with status code: %s', res.statusCode)
                 //throw Error(res.statusCode)
                 deferred.reject(res.statusCode)
                 //deferred.cancel(res.statusCode)
@@ -197,7 +195,6 @@ module.exports = function(container) {
 
     var check = function() {
         if (Object.keys(jsons).length === 0) {
-
             return loadLocalVersion()
                 .then(getLatestReleaseJson)
                 .then(compareVersions)

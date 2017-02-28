@@ -104,7 +104,7 @@ module.exports = function(container) {
 
     function setChlorinatorLevel(chlorLvl, callback) {
         var response = {}
-        if (container.settings.chlorinator) {
+        if (container.settings.chlorinator.installed) {
             if (chlorLvl >= 0 && chlorLvl <= 101) {
                 currentChlorinatorStatus.outputPoolPercent = chlorLvl
                 if (currentChlorinatorStatus.outputPoolPercent === 0) {

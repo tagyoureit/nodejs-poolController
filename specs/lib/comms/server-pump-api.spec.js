@@ -17,9 +17,11 @@ function requestPoolDataWithURL(endpoint) {
             //  console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
             return response.body;
         }
-    ).catch(function(err) {
-        console.log('error:', err)
-    });
+    ).catch(
+        /* istanbul ignore next */
+        function(err) {
+            console.log('error:', err)
+        });
 }
 
 
@@ -279,7 +281,7 @@ describe('#set functions', function() {
                     obj.duration.should.eq(2)
                     clock.tick(59 * 1000) // +59 seconds
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
-                    clock.tick(1 * 1000)  //1 min
+                    clock.tick(1 * 1000) //1 min
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(.5)
                     clock.tick(59 * 60 * 1000) //+1 hr
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)

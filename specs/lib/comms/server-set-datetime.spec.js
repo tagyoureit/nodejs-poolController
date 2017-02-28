@@ -17,9 +17,11 @@ function requestPoolDataWithURL(endpoint) {
             //  console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
             return response.body;
         }
-    ).catch(function(err) {
-        console.log('error:', err)
-    });
+    ).catch(
+        /* istanbul ignore next */
+        function(err) {
+            console.log('error:', err)
+        });
 }
 
 

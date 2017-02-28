@@ -24,126 +24,158 @@ var path = require('path').posix
 if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
 
-var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8' ))
+var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
 var appVersion = packageJson.version
 var configurationFile
 
+
+/*        EQUIPMENT        */
 //-------  EQUIPMENT SETUP -----------
 
-//ONE and only 1 of the following should be set to 1.
-var intellicom; //set this to 1 if you have the IntelliComII, otherwise 0.
-var intellitouch; //set this to 1 if you have the IntelliTouch, otherwise 0.
-var pumpOnly; //set this to 1 if you ONLY have pump(s), otherwise 0.
+var equipment, controller, intellicom, intellitouch, virtual, virtualPumpController, virtualChlorinatorController
 
-//1 or 0
-var chlorinator; //set this to 1 if you have a chlorinator, otherwise 0.
+var circuitFriendlyNames;
 
-//only relevant if pumpOnly=1
-var numberOfPumps; //this is only used with pumpOnly=1.  It will query 1 (or 2) pumps every 30 seconds for their status
-var appAddress; //address the app should emulate/use on the serial bus
+var chlorinator;
+
+var pump;
 //-------  END EQUIPMENT SETUP -----------
 
-//-------  MISC SETUP -----------
-// Setup for Miscellaneous items
-var netConnect; //set this to 1 to use a remote (net) connection, 0 for direct serial connection;
-var rs485Port; //port for direct connect to a RS485 adapter
-var netPort; //port for the SOCAT communications
-var netHost; //host for the SOCAT communications
 
+/*   POOL CONTROLLER SECTION  */
+var appAddress
+//-------  WEB SETUP -----------
+// Setup for Web items
+var netConnect, rs485Port, netPort, netHost;
 //-------  END MISC SETUP -----------
 
 
 //-------  NETWORK SETUP -----------
 // Setup for Network Connection (socat or nc)
-var expressPort; //port for the Express App Server
-var expressTransport; //http, https, or both
-var expressAuth; // Authentication (username, password) to access web interface (0=no auth, 1=auth)
-var expressAuthFile; // Authentication file (created using htpasswd, stores username and password)
+var expressPort, expressTransport, expressAuth, expressAuthFile;
 //-------  END NETWORK SETUP -----------
 
 //-------  LOG SETUP -----------
 //Change the following log message levels as needed
-var logLevel; // one of { error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 }
-var logPumpMessages; //variable if we want to output pump messages or not
-var logDuplicateMessages; //variable if we want to output duplicate broadcast messages
-var logConsoleNotDecoded; //variable to hide any unknown messages
-var logConfigMessages; //variable to show/hide configuration messages
-var logMessageDecoding; //variable to show messages regarding the buffer, checksum calculation, etc.
-var logChlorinator; //variable to show messages from the chlorinator
-var logPacketWrites; //variable to log queueing/writing activities
-var logPumpTimers; //variable to output timer debug messages for the pumps
+var logLevel;
+var extLogLevel;
+var logPumpMessages;
+var logDuplicateMessages;
+var logConsoleNotDecoded;
+var logConfigMessages;
+var logMessageDecoding;
+var logChlorinator;
+var logPacketWrites;
+var logPumpTimers;
+var logApi;
 //-------  END EQUIPMENT SETUP -----------
-
 
 var envParam = process.argv[2];
 var configFile;
 
-//console.log('envParam:', envParam)
+var checkForOldConfigFile = function() {
+    try {
+        //the throw will throw an error parsing the file, the catch will catch an error reading the file.
+        if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController")) {
+            throw new Error('Your configuration file is out of date.  Please update to the latest version.')
+        }
+    } catch (err) {
+        throw new Error(err)
+    }
+}
 
 var load = exports.load = function() {
+/* istanbul ignore next */
     if (envParam === undefined) {
-        configurationFile = 'config.json';
+        configurationFile =  exports.configurationFile = 'config.json';
     } else {
-        configurationFile = envParam
+        configurationFile  = exports.configurationFile = envParam
     }
-
     configFile = JSON.parse(fs.readFileSync(configurationFile));
+    checkForOldConfigFile()
 
-    intellicom = exports.intellicom = configFile.Equipment.intellicom;
-    intellitouch = exports.intellitouch = configFile.Equipment.intellitouch;
-    pumpOnly = exports.pumpOnly = configFile.Equipment.pumpOnly;
-    chlorinator = exports.chlorinator = configFile.Equipment.chlorinator;
-    numberOfPumps = exports.numberOfPumps = configFile.Equipment.numberOfPumps;
-    appAddress = exports.appAddress = configFile.Equipment.appAddress;
-    expressPort = exports.expressPort = configFile.Misc.expressPort;
-    expressTransport = exports.expressTransport = configFile.Misc.expressTransport;
-    expressAuth = exports.expressAuth = configFile.Misc.expressAuth;
-    expressAuthFile = exports.expressAuthFile = configFile.Misc.expressAuthFile;
-    netConnect = exports.netConnect = configFile.Network.netConnect;
-    rs485Port = exports.rs485Port = configFile.Network.rs485Port;
-    netPort = exports.netPort = configFile.Network.netPort;
-    netHost = exports.netHost = configFile.Network.netHost;
-    friendlyNames = exports.friendlyNamesArr = configFile.FriendlyNames
-    logLevel = exports.logLevel = configFile.Log.logLevel;
-    extLogLevel = exports.extLogLevel = configFile.Log.extLogLevel;
-    logPumpMessages = exports.logPumpMessages = configFile.Log.logPumpMessages;
-    logDuplicateMessages = exports.logDuplicateMessages = configFile.Log.logDuplicateMessages;
-    logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.Log.logConsoleNotDecoded;
-    logConfigMessages = exports.logConfigMessages = configFile.Log.logConfigMessages;
-    logMessageDecoding = exports.logMessageDecoding = configFile.Log.logMessageDecoding;
-    logChlorinator = exports.logChlorinator = configFile.Log.logChlorinator;
-    logPacketWrites = exports.logPacketWrites = configFile.Log.logPacketWrites;
-    logPumpTimers = exports.logPumpTimers = configFile.Log.logPumpTimers;
-    logApi = exports.logApi = configFile.Log.logApi;
+    /*   Equipment   */
+    //Controller
+    equipment = exports.equipment = configFile.equipment
+    controller = exports.controller = configFile.equipment.controller
+    intellicom = exports.intellicom = configFile.equipment.controller.intellicom;
+    intellitouch = exports.intellitouch = configFile.equipment.controller.intellitouch;
+    virtual = exports.virtual = configFile.equipment.controller.virtual
+    virtualPumpController = exports.virtualPumpController = configFile.equipment.controller.virtual.pumpController
+    virtualChlorinatorController = exports.virtualChlorinatorController = configFile.equipment.controller.virtual.chlorinatorController
+
+    circuitFriendlyNames = exports.circuitFriendlyNames = configFile.equipment.controller.circuitFriendlyNames
+
+    //chlorinator
+    chlorinator = exports.chlorinator = configFile.equipment.chlorinator;
+
+    //pump(s)
+    pump = exports.pump = configFile.equipment.pump;
+    /*   END Equipment   */
+    appAddress = exports.appAddress = configFile.poolController.appAddress;
+    //Web
+    expressPort = exports.expressPort = configFile.poolController.web.expressPort;
+    expressTransport = exports.expressTransport = configFile.poolController.web.expressTransport;
+    expressAuth = exports.expressAuth = configFile.poolController.web.expressAuth;
+    expressAuthFile = exports.expressAuthFile = configFile.poolController.web.expressAuthFile;
 
 
+    //Network
+    netConnect = exports.netConnect = configFile.poolController.network.netConnect;
+    rs485Port = exports.rs485Port = configFile.poolController.network.rs485Port;
+    netPort = exports.netPort = configFile.poolController.network.netPort;
+    netHost = exports.netHost = configFile.poolController.network.netHost;
+
+
+    //Logs
+    logLevel = exports.logLevel = configFile.poolController.log.logLevel;
+    extLogLevel = exports.extLogLevel = configFile.poolController.log.extLogLevel;
+    logPumpMessages = exports.logPumpMessages = configFile.poolController.log.logPumpMessages;
+    logDuplicateMessages = exports.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
+    logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
+    logConfigMessages = exports.logConfigMessages = configFile.poolController.log.logConfigMessages;
+    logMessageDecoding = exports.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
+    logChlorinator = exports.logChlorinator = configFile.poolController.log.logChlorinator;
+    logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
+    logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
+    logApi = exports.logApi = configFile.poolController.log.logApi;
 }
 
 
 
 
-getConfig = exports.getConfig = function() {
+var getConfig = exports.getConfig = function() {
     return configFile
 }
 
 
 
-displayIntroMsg = exports.displayIntroMsg = function() {
+var displayIntroMsg = exports.displayIntroMsg = function() {
+    var introMsg;
     introMsg = '\n*******************************';
-    introMsg += '\n Important:';
-    introMsg += '\n Configuration is now read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
-    introMsg += '\n It will dynamically load as the information is parsed.  If there is a write error 10 times, the logging will change to debug mode.';
-    introMsg += '\n If the message fails to be written 20 times, it will abort the packet and go to the next one.';
-    introMsg += '\n If you have an IntelliComII, or pumps only, set the appropriate flags in lines 21-23 of this app.';
-    introMsg += '\n In general, if you specify the Intellitouch controller, the app will get the status  (pumps, chlorinator, heater, etc)from the controller directly.  If you specify pumps only or IntellicomII, the app will retrieve the status information from the peripherals themselves.'
+    introMsg += '\n poolController in brief (for full details, see README.md):';
+    introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
+    introMsg += '\n It will dynamically load as the information is parsed.  '
+    introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
+    introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
+    introMsg += '\n                  always: poolController pump controller will always start'
+    introMsg += '\n                  never: poolController pump controller will never start'
+
+    introMsg += '\n'
+    introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
+    introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
+    introMsg += '\n it will abort the packet and go to the next one.';
+    introMsg += '\n'
+
     introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-    introMsg += '\n Visit http://_your_machine_name_:3000 to see a basic UI';
-    introMsg += '\n Visit http://_your_machine_name_:3000/debug.html for a way to listen for specific messages\n\n';
+    introMsg += '\n Visit http://_your_machine_name_:3000 for a web interface '
     introMsg += '*******************************\n'
     return introMsg
 }
 
-displaySettingsMsg = exports.displaySettingsMsg = function() {
+var displaySettingsMsg = exports.displaySettingsMsg = function() {
+    var settingsStr;
+
     settingsStr = '' // \n*******************************';
     settingsStr += '\n Version: ' + appVersion;
     settingsStr += '\n Config File: ' + configurationFile
@@ -151,13 +183,18 @@ displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
     settingsStr += '\n var intellicom = ' + intellicom;
     settingsStr += '\n var intellitouch = ' + intellitouch;
-    settingsStr += '\n var chlorinator = ' + chlorinator;
-    settingsStr += '\n var pumpOnly = ' + pumpOnly;
-    settingsStr += '\n var numberOfPumps = ' + numberOfPumps;
-    settingsStr += '\n var appAddress = ' + appAddress;
+    settingsStr += '\n var virtual = ' + JSON.stringify(virtual);
+    settingsStr += '\n var controller.id = ' + JSON.stringify(controller.id);
+    settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(circuitFriendlyNames)
+    settingsStr += '\n'
+    settingsStr += '\n var chlorinator = ' + JSON.stringify(chlorinator);
+    settingsStr += '\n'
+    settingsStr += '\n var pump = ' + JSON.stringify(pump)
     settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
     settingsStr += '\n ';
-    settingsStr += '\n //-------  MISC SETUP -----------';
+    settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
+    settingsStr += '\n var appAddress = ' + appAddress;
+    settingsStr += '\n //-------  WEB SETUP -----------';
     settingsStr += '\n var expressPort = ' + expressPort;
     settingsStr += '\n var expressTransport = ' + expressTransport;
     settingsStr += '\n var expressAuth = ' + expressAuth;

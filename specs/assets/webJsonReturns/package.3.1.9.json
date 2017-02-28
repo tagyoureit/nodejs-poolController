@@ -1,16 +1,15 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "4.0.0",
+  "version": "3.1.12",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
     "test": "mocha  ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
-    "test:one": "mocha  ./specs/assets/config.json --reporter spec --require ./specs/helpers/chai.js ./specs/index.spec.js",
-    "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --include-all-sources --recursive  ./specs  --require ./specs/helpers/chai.js --reporter spec",
+    "test:one": "mocha  ./specs/assets/config.json --reporter spec --require ./specs/helpers/chai.js",
+    "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
-    "open:cover": "open coverage/lcov-report/index.html",
-    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
+    "open:cover": "open coverage/lcov-report/index.html"
   },
   "repository": {
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
@@ -34,7 +33,6 @@
   },
   "homepage": "https://github.com/tagyoureit/nodejs-poolController#readme",
   "dependencies": {
-    "bluebird": "^3.4.7",
     "bootstrap": "^3.3.7",
     "bottlejs": "^1.5.0",
     "dateformat": "^1.0.12",
@@ -43,6 +41,7 @@
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
     "promised-io": "^0.3.5",
+    "nanotimer": "^0.3.14",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
     "socket.io": "^1.4.8",
@@ -54,7 +53,6 @@
     "@risingstack/v8-profiler": "^5.7.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
-    "coveralls": "^2.11.16",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
     "jshint": "^2.9.4",

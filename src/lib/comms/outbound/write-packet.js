@@ -23,88 +23,27 @@ module.exports = function(container) {
         logger.info('Loading: write-packet.js')
 
     var writeQueueActive = {
-            writeQueueActive: false
-        } //flag to tell us if we are currently processing the write queue or note
+        writeQueueActive: false
+    } //flag to tell us if we are currently processing the write queue or note
     var msgWriteCounter = {
         counter: 0, //how many times the packet has been written to the bus
         packetWrittenAt: 0, //var to hold the message counter variable when the message was sent.  Used to keep track of how many messages passed without a successful counter.
         msgWrote: []
     }; //How many times are we writing the same packet to the bus?
     var skipPacketWrittenCount = {
-            skipPacketWrittenCount: 0
-        } //keep track of how many times we skipped writing the packet
-    var writePacketTimer = new container.nanotimer
+        skipPacketWrittenCount: 0
+    } //keep track of how many times we skipped writing the packet
+    var writePacketTimer // = new container.nanotimer
 
-    preWritePacketHelper = function() {
-        if (container.queuePacket.getQueuePacketsArrLength() === 0) // need this because the correct packet might come back during the container.timers.writePacketTimer.timeout.
-        {
-            if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Setting writeQueueActive=false because last message was successfully received and there is no message to send. %s')
-            writeQueueActive.writeQueueActive = false
-        } else {
-            //msgWriteCounter===0;  this means no packet has been written yet (queuePacketsArr.shift() was called and msgWriteCounter reset)
-            if (msgWriteCounter.counter === 0) {
-                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because it has not been written yet', container.queuePacket.first())
-                skipPacketWrittenCount.skipPacketWrittenCount = 0
-                writePacket()
-            } else if (skipPacketWrittenCount.skipPacketWrittenCount === 2) {
-                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because it has been skipped twice', container.queuePacket.first())
-                skipPacketWrittenCount.skipPacketWrittenCount = 0
-                writePacket()
-            }
-            //if we have not processed more than 4 messages, let's delay again.  However, if we do this twice, then skipPacketWrittenCount >= 2 will be processed and we will write the message no matter what
-            else if (container.receiveBuffer.getCurrentMsgCounter() - msgWriteCounter.packetWrittenAt <= 4) {
-                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) because we have not processed four incoming messages since the last write. Packet: %s', skipPacketWrittenCount.skipPacketWrittenCount, container.queuePacket.first())
-                skipPacketWrittenCount.skipPacketWrittenCount++
-                    writePacketTimer.setTimeout(container.writePacket.preWritePacketHelper, '', '150m')
-            }
-            //if the incoming buffer (bufferArrayOfArrays)>=2
-            //OR
-            //part of buffer current processing (bufferToProcess)>=50 bytes, let's skip writing the packet twice
-            else if (container.packetBuffer.length() >= 2 || container.receiveBuffer.getBufferToProcessLength() >= 50) {
-                //skipPacketWrittenCount>=2;  we've skipped writting it twice already, so write it now.
-                skipPacketWrittenCount.skipPacketWrittenCount++
-                    if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) due to \n1. bufferArrayOfArrays.length>=2: %s (%s) \n2. bufferToProcess.length>=50:  %s (%s)', skipPacketWrittenCount.skipPacketWrittenCount, container.packetBuffer.length() >= 2, container.packetBuffer.length(), container.receiveBuffer.getBufferToProcessLength() >= 50, container.receiveBuffer.getBufferToProcessLength())
-                writePacketTimer.setTimeout(container.writePacket.preWritePacketHelper, '', '150m')
-            } else
-            //if none of the conditions above are met, let's write the packet
-            {
-                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because no other conditions have been met', container.queuePacket.first())
-                skipPacketWrittenCount.skipPacketWrittenCount = 0
-                writePacket()
-            }
-        }
+    var ejectPacketAndReset = function() {
+        container.queuePacket.eject()
+        msgWriteCounter.counter = 0
+        msgWriteCounter.msgWrote = []
+        msgWriteCounter.packetWrittenAt = 0
     }
 
-
-    writePacket = function() {
-        if (container.settings.logPacketWrites) logger.silly('writePacket: Entering writePacket() to write: %s\nFull queue: [[%s]]', container.queuePacket.first(), (container.queuePacket.entireQueue()).join('],\n['))
-
-        writeQueueActive.writeQueueActive = true
-        if (container.settings.netConnect === 0) {
-            container.sp.writeSP(container.queuePacket.first(), function(err) {
-                if (err) {
-                    logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
-                } else {
-                    //if (container.settings.logPacketWrites) logger.silly('Packet written: ', queuePacketsArr[0])
-                    postWritePacketHelper()
-                }
-            })
-        } else {
-            container.sp.writeNET(new Buffer(container.queuePacket.first()), 'binary', function(err) {
-                if (err) {
-                    logger.error('Error writing packet (%s): %s',container.queuePacket.first(),  err.message)
-                } else {
-                    //if (container.settings.logPacketWrites) logger.silly('Packet written: ', queuePacketsArr[0])
-                    postWritePacketHelper()
-                }
-            })
-        }
-
-
-    }
-
-    postWritePacketHelper = function() {
-
+    var postWritePacketHelper = function() {
+    var pktType
         if (msgWriteCounter.counter === 0) {
             //if we are here because we wrote a packet, but it is the first time, then the counter will be 0 and we need to set the variables for later comparison
             msgWriteCounter.packetWrittenAt = container.receiveBuffer.getCurrentMsgCounter();
@@ -114,7 +53,7 @@ module.exports = function(container) {
         } else
         if (msgWriteCounter.counter === 5) //if we get to 5 retries, then throw an Error.
         {
-            var pktType = container.whichPacket.outbound(container.queuePacket.first())
+            pktType = container.whichPacket.outbound(container.queuePacket.first())
             if (pktType === 'pump') {
                 logger.warn('Error writing pump packet \'%s\' to serial bus.  Tried %s times to write %s', container.constants.strPumpActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
             }
@@ -134,7 +73,7 @@ module.exports = function(container) {
         } else
         if (msgWriteCounter.counter === 10) //if we get to 10 retries, then abort this packet.
         {
-          var pktType = container.whichPacket.outbound(container.queuePacket.first())
+            pktType = container.whichPacket.outbound(container.queuePacket.first())
             if (pktType === 'pump') {
                 logger.error('Aborting pump packet \'%s\'.  Tried %s times to write %s', container.constants.strPumpActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
 
@@ -151,12 +90,18 @@ module.exports = function(container) {
             }
             ejectPacketAndReset()
             if (container.settings.logPacketWrites) logger.silly('postWritePacketHelper: Tries===10.  Shifted queuePacketsArr.  \nWrite queue now: %s\nmsgWriteCounter:', container.queuePacket.entireQueue(), msgWriteCounter)
-                //let's reconsider if we want to change the logging levels, or just fail silently/gracefully?
-                /*if (logLevel == "info" || logLevel == "warn" || logLevel == "error") {
-                    logger.warn('Setting logging level to Debug')
-                    logLevel = 'debug'
-                    logger.transportcontainer.settings.console.level = 'debug';
-                }*/
+            //let's reconsider if we want to change the logging levels, or just fail silently/gracefully?
+            if (container.settings.logLevel === "info" || container.settings.logLevel === "warn" || container.settings.logLevel === "error") {
+                var prevLevel = container.settings.logLevel
+                logger.warn('Setting logging level to Debug.  Will revert to previous level in 2 minutes.')
+                container.settings.logLevel = 'debug'
+                logger.transportcontainer.settings.console.level = 'debug';
+                setTimeout(function(){
+                  logger.warn('Setting logging level to %s', prevLevel)
+                  container.settings.logLevel = prevLevel
+                  logger.transportcontainer.settings.console.level = prevLevel;
+                }, 2*60*1000)
+            }
         } else //we should get here between 1-4 packet writes
         {
             msgWriteCounter.counter++;
@@ -168,31 +113,88 @@ module.exports = function(container) {
             writeQueueActive.writeQueueActive = false
         } else {
             if (container.settings.logPacketWrites) logger.debug('writePacketHelper: Setting timeout to write next packet (will call preWritePacketHelper())\n')
-            writePacketTimer.setTimeout(preWritePacketHelper, '', '175m')
+            writePacketTimer = setTimeout(preWritePacketHelper, 175)
 
         }
     }
 
 
-    ejectPacketAndReset = function() {
-        container.queuePacket.eject()
-        msgWriteCounter.counter = 0
-        msgWriteCounter.msgWrote = []
-        msgWriteCounter.packetWrittenAt = 0
+
+    var preWritePacketHelper = function() {
+        if (container.queuePacket.getQueuePacketsArrLength() === 0) // need this because the correct packet might come back during the container.timers.writePacketTimer.timeout.
+        {
+            if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Setting writeQueueActive=false because last message was successfully received and there is no message to send. %s')
+            writeQueueActive.writeQueueActive = false
+        } else {
+            //msgWriteCounter===0;  this means no packet has been written yet (queuePacketsArr.shift() was called and msgWriteCounter reset)
+            if (msgWriteCounter.counter === 0) {
+                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because it has not been written yet', container.queuePacket.first())
+                skipPacketWrittenCount.skipPacketWrittenCount = 0
+                writePacket()
+            } else if (skipPacketWrittenCount.skipPacketWrittenCount === 2) {
+                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because it has been skipped twice', container.queuePacket.first())
+                skipPacketWrittenCount.skipPacketWrittenCount = 0
+                writePacket()
+            }
+            //if we have not processed more than 4 messages, let's delay again.  However, if we do this twice, then skipPacketWrittenCount >= 2 will be processed and we will write the message no matter what
+            else if (container.receiveBuffer.getCurrentMsgCounter() - msgWriteCounter.packetWrittenAt <= 4) {
+                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) because we have not processed four incoming messages since the last write. Packet: %s', skipPacketWrittenCount.skipPacketWrittenCount, container.queuePacket.first())
+                skipPacketWrittenCount.skipPacketWrittenCount++
+                    writePacketTimer = setTimeout(container.writePacket.preWritePacketHelper, 150)
+            }
+            //if the incoming buffer (bufferArrayOfArrays)>=2
+            //OR
+            //part of buffer current processing (bufferToProcess)>=50 bytes, let's skip writing the packet twice
+            else if (container.packetBuffer.length() >= 2 || container.receiveBuffer.getBufferToProcessLength() >= 50) {
+                //skipPacketWrittenCount>=2;  we've skipped writting it twice already, so write it now.
+                skipPacketWrittenCount.skipPacketWrittenCount++
+                    if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) due to \n1. bufferArrayOfArrays.length>=2: %s (%s) \n2. bufferToProcess.length>=50:  %s (%s)', skipPacketWrittenCount.skipPacketWrittenCount, container.packetBuffer.length() >= 2, container.packetBuffer.length(), container.receiveBuffer.getBufferToProcessLength() >= 50, container.receiveBuffer.getBufferToProcessLength())
+                writePacketTimer = setTimeout(container.writePacket.preWritePacketHelper, 150)
+            } else
+            //if none of the conditions above are met, let's write the packet
+            {
+                if (container.settings.logPacketWrites) logger.silly('preWritePacketHelper: Ok to write message %s because no other conditions have been met', container.queuePacket.first())
+                skipPacketWrittenCount.skipPacketWrittenCount = 0
+                writePacket()
+            }
+        }
     }
 
 
+    var writePacket = function() {
+        if (container.settings.logPacketWrites) logger.silly('writePacket: Entering writePacket() to write: %s\nFull queue: [[%s]]', container.queuePacket.first(), (container.queuePacket.entireQueue()).join('],\n['))
+
+        writeQueueActive.writeQueueActive = true
+        if (container.settings.netConnect === 0) {
+            container.sp.writeSP(container.queuePacket.first(), function(err) {
+                if (err) {
+                    logger.error('Error writing packet (%s): %s', container.queuePacket.first(), err.message)
+                } else {
+                    //if (container.settings.logPacketWrites) logger.silly('Packet written: ', queuePacketsArr[0])
+                    postWritePacketHelper()
+                }
+            })
+        } else {
+            container.sp.writeNET(new Buffer(container.queuePacket.first()), 'binary', function(err) {
+                if (err) {
+                    logger.error('Error writing packet (%s): %s', container.queuePacket.first(), err.message)
+                } else {
+                    //if (container.settings.logPacketWrites) logger.silly('Packet written: ', queuePacketsArr[0])
+                    postWritePacketHelper()
+                }
+            })
+        }
 
 
-    function isWriteQueueActive() {
+    }
+
+    var isWriteQueueActive = function() {
         return writeQueueActive.writeQueueActive
     }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: write-packet.js')
-
-
 
     return {
         isWriteQueueActive: isWriteQueueActive,

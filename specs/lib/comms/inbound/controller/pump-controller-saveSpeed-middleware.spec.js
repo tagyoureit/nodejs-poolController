@@ -7,12 +7,15 @@ describe('pump controller - save speed (2/2)', function() {
         before(function() {
             bottle.container.logApi = 1
             sandbox = sinon.sandbox.create()
+            bottle.container.logger.transports.console.level = 'silly';
         });
 
         beforeEach(function() {
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()
@@ -34,7 +37,7 @@ describe('pump controller - save speed (2/2)', function() {
         })
 
         after(function() {
-
+            bottle.container.logger.transports.console.level = 'info';
             bottle.container.logApi = 0
         })
 

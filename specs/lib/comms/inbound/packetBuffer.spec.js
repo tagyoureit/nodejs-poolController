@@ -6,11 +6,19 @@ describe('packetBuffer receives raw packets from serial bus', function() {
 
             before(function() {
                 bottle.container.settings.logMessageDecoding = 1
+                bottle.container.server.init()
+                bottle.container.io.init()
+                bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 // loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
                 // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
@@ -39,15 +47,19 @@ describe('packetBuffer receives raw packets from serial bus', function() {
 
             after(function() {
                 bottle.container.settings.logMessageDecoding = 0
-
+                bottle.container.time.init()
+                bottle.container.server.close()
+                bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#should accept all packets and kick off processing buffer', function() {
-              receiveBufferStub.onFirstCall().returns(false)
-              receiveBufferStub.returns(true)
-              // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
+                receiveBufferStub.onFirstCall().returns(false)
+                receiveBufferStub.returns(true)
+                // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
                 for (var i = 0; i < global.rawBuffer.length; i++) {
-                    if (i===1) bottle.container.receiveBuffer.processingBuffer = {'processingBuffer': true}
+                    if (i === 1) bottle.container.receiveBuffer.processingBuffer = {
+                        'processingBuffer': true
+                    }
                     bottle.container.packetBuffer.push(new Buffer(global.rawBuffer[i]))
                 }
                 iOAOAStub.callCount.should.eq(1)
@@ -55,7 +67,7 @@ describe('packetBuffer receives raw packets from serial bus', function() {
             })
 
             it('#should push all packets with pop()', function() {
-              // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
+                // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
                 var packet
                 for (var i = 0; i < global.rawBuffer.length; i++) {
                     packet = bottle.container.packetBuffer.pop()

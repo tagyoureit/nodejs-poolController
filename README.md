@@ -1,8 +1,8 @@
 
-# nodejs-poolController - Version 3.1.12-DEV
+# nodejs-poolController - Version 4.x-DEV
 
 
-[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=3.1.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=3.1.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=3.1.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=3.1.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # License
 
@@ -616,7 +616,7 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
 
 2.0.0 -
  * https, Authentication
- * Completely refactored code.  Integrated BottleJS (https://github.com/young-steveo/bottlejs) for dependency injection and service locator funcctions
+ * Completely refactored code.  Integrated BottleJS (https://github.com/young-steveo/bottlejs) for dependency injection and service locator functions
  * Integrations to loosely couple add-ons
 
 3.0.0 -
@@ -625,6 +625,7 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
 3.1.x -
  * Added unit testing for certain areas
  * Added setDateTime API/Socket
+ * Bootstrap panel states are now persistent
 
 # Wish list
 1.  Still many messages to debug

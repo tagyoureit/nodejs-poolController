@@ -14,34 +14,18 @@ describe('recieves packets from buffer and follows them to decoding', function()
             });
 
             beforeEach(function() {
-
-
-
                 sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 bottle.container.pump.init()
-                // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-
-                // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                // checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
-                // isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
-                // isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
-                // isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
-                // isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
-                // writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
-                // controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                // processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
-                // processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
-                // processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
                 socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
                 iOAOAStub = sandbox.spy(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
-                // bottle.container.queuePacket.queuePacketsArrLength = 0
+
             })
 
             afterEach(function() {
@@ -70,16 +54,20 @@ describe('recieves packets from buffer and follows them to decoding', function()
                 // loggerVerboseStub.args[1][2].should.contain('Pump 1')
                 // loggerVerboseStub.args[1][3].should.contain('off')
 
-                setTimeout(function() {
-                    bottle.container.temperatures.getTemperatures().poolTemp.should.eq(53)
-                }, 500)
+
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('temp', function(data) {
                     // console.log(data)
                     data.poolTemp.should.eq(53)
+
+
+                    setTimeout(function() {
+                        bottle.container.temperatures.getTemperatures().poolTemp.should.eq(53)
                     client.disconnect()
-                    done()
+                        done()
+                    }, 100)
+
                 })
             })
 

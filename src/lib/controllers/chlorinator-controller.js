@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU Affero General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//var NanoTimer = require('nanotimer')
-//var chlorinatorTimer = new NanoTimer();
+
+
 var chlorinatorTimer;
 module.exports = function(container) {
     var logger = container.logger
@@ -39,13 +39,9 @@ module.exports = function(container) {
 
             //if 0, then only check every 30 mins; else resend the packet every 4 seconds as a keep-alive
             if (desiredChlorinatorOutput === 0) {
-                // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '1800s') //30 minutes
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 30 * 1000) //30 minutes
-
             } else {
-                // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '4s') // every 4 seconds
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000) // every 4 seconds
-
             }
             return true
         }
@@ -60,10 +56,16 @@ module.exports = function(container) {
     }
 
     function startChlorinatorController() {
-
-        // chlorinatorTimer.setTimeout(chlorinatorStatusCheck, '', '3500m')
-        chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
-
+        if (container.settings.chlorinator.installed) {
+            if (container.settings.virtual.chlorinatorController === 'always' || !(container.settings.intellicom || container.settings.intellitouch)) {
+                if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller starting.')
+                chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
+            } else {
+                if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller not starting because it is set to default and another controller (Intellitouch/Intellicom) is present.')
+            }
+        } else {
+            if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
+        }
 
         return true
     }

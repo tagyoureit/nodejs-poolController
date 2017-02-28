@@ -7,7 +7,7 @@ var nock = global.nock = require('nock')
 var rewire = global.rewire = require("rewire");
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
-bottle.container.settings.load()
+
 
 var chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -24,19 +24,6 @@ chai.config.includeStack = true;
 // global.Assertion = chai.Assertion;
 // global.assert = chai.assert;
 
-
-//initialize variables to hold status
-    bottle.container.chlorinator.init()
-    bottle.container.heat.init()
-    bottle.container.time.init()
-    bottle.container.pump.init()
-    bottle.container.schedule.init()
-    bottle.container.circuit.init()
-    bottle.container.customNames.init()
-    bottle.container.intellitouch.init()
-    bottle.container.temperatures.init()
-    bottle.container.UOM.init()
-    bottle.container.valves.init()
 
 
  ioclient = global.ioclient = require('socket.io-client')

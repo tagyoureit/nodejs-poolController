@@ -44,12 +44,12 @@ module.exports = function(container) {
         console.log(spClose)
         //container.server.close()
         container.logger.info(reloadStr)
-        if (!container.settings.pumpOnly) {
+        if (!container.settings.pump.standalone) {
             //only clear timers if we go from 1 or 2 pumps to 0 pumps
             container.pumpControllerTimers.clearTimer(1)
             container.pumpControllerTimers.clearTimer(2)
         }
-        if (!container.settings.chlorinator) {
+        if (!container.settings.chlorinator.standalone) {
             container.chlorinatorController.clearTimer()
         }
 
@@ -63,10 +63,10 @@ module.exports = function(container) {
         container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
         container.sp.init()
 
-        if (container.settings.pumpOnly && !container.settings.intellicom && !container.settings.intellitouch) {
+        if (container.settings.pump.standalone && !container.settings.intellicom && !container.settings.intellitouch) {
             container.pumpControllerTimers.startPumpController()
         }
-        if (container.settings.chlorinator) {
+        if (container.settings.chlorinator.standalone) {
             container.chlorinatorController.startChlorinatorController()
         }
         if (container.settings.intellitouch)
@@ -75,17 +75,17 @@ module.exports = function(container) {
         }
 
         if (reset){
-          bottle.container.chlorinator.init()
-          bottle.container.heat.init()
-          bottle.container.time.init()
-          bottle.container.pump.init()
-          bottle.container.schedule.init()
-          bottle.container.circuit.init()
-          bottle.container.customNames.init()
-          bottle.container.intellitouch.init()
-          bottle.container.temperatures.init()
-          bottle.container.uom.init()
-          bottle.container.valves.init()
+          container.chlorinator.init()
+          container.heat.init()
+          container.time.init()
+          container.pump.init()
+          container.schedule.init()
+          container.circuit.init()
+          container.customNames.init()
+          container.intellitouch.init()
+          container.temperatures.init()
+          container.uom.init()
+          container.valves.init()
 
         }
 

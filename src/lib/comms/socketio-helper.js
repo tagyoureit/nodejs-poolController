@@ -132,7 +132,6 @@ module.exports = function(container) {
             })
 
             socket.on('echo', function(msg) {
-                console.log('echo')
                 socket.emit('echo', msg)
             })
             // when the client emits 'toggleEquipment', this listens and executes
@@ -146,10 +145,10 @@ module.exports = function(container) {
                 //check if we don't have all valid values, and then emit a message to correct.
 
                 logger.debug('from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action);
-                searchMode = mode;
-                searchSrc = src;
-                searchDest = dest;
-                searchAction = action;
+                container.apiSearch.searchMode = mode;
+                container.apiSearch.searchSrc = src;
+                container.apiSearch.searchDest = dest;
+                container.apiSearch.searchAction = action;
             })
 
             socket.on('all', function() {
@@ -158,6 +157,11 @@ module.exports = function(container) {
 
             socket.on('setConfigClient', function(a, b, c, d) {
                 container.bootstrapConfigEditor.update(a, b, c, d)
+            })
+
+            socket.on('resetConfigClient', function() {
+              console.log('reset called')
+                container.bootstrapConfigEditor.reset()
             })
 
             socket.on('sendpacket', function(incomingPacket) {
@@ -170,7 +174,7 @@ module.exports = function(container) {
                     packet[i] = parseInt(packet[i])
                 }
                 if (packet[0] === 16 && packet[1] === container.constants.ctrl.CHLORINATOR) {
-                    //logger.debug('packet (chlorinator) now: ', packet)
+                    if (container.settings.logApi) logger.silly('packet (chlorinator) now: ', packet)
                 } else {
                     if (packet[0] === 96 || packet[0] === 97 || packet[1] === 96 || packet[1] === 97)
                     //If a message to the controller, use the preamble that we have recorded
@@ -325,7 +329,6 @@ module.exports = function(container) {
                 logger.info('Reload requested from Socket.io')
                 container.reload.reload()
             })
-
 
             emitToClients('all')
         });

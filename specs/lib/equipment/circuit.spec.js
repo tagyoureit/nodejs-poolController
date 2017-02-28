@@ -4,6 +4,29 @@ var myModule = rewire(path.join(process.cwd(), '/src/lib/equipment/circuit.js'))
 describe('circuit controller', function() {
 
     describe('#sets the friendlyNames', function() {
+
+      before(function() {
+          bottle.container.logger.transports.console.level = 'silly';
+      });
+
+      beforeEach(function() {
+          sandbox = sinon.sandbox.create()
+          clock = sandbox.useFakeTimers()
+          loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+          loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+          loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+          loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+          loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        })
+
+        afterEach(function() {
+            sandbox.restore()
+        })
+
+        after(function() {
+            bottle.container.logger.transports.console.level = 'info'
+        })
+
         it('sets the names for circuits other than pool and spa', function() {
             var queuePacketStub = sinon.stub()
             var loggerStub = sinon.stub()
@@ -11,28 +34,19 @@ describe('circuit controller', function() {
             //var _response = {}
             myModule.__with__({
                 'currentCircuitArrObj': global.circuitJson,
-
-                //'response': _response,
-                'bottle.container': {
-                    'logger': {
-                        'warn': loggerStub
-                    },
-                    'settings': {
-                        'friendlyNamesArr': fnArr
-                    }
-                }
+                'bottle.container.settings.circuitFriendlyNames': fnArr
             })(function() {
-                myModule(bottle.container).getFriendlyNames()
+                myModule(bottle.container).getCircuitFriendlyNames()
 
                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
                 fnArr[1]['circuit1'] = "Try to rename spa"
-                myModule(bottle.container).getFriendlyNames()
+                myModule(bottle.container).getCircuitFriendlyNames()
                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
                 fnArr[1]['circuit1'] = "SPA"
                 fnArr[6]['circuit6'] = "Try to rename pool"
-                myModule(bottle.container).getFriendlyNames()
+                myModule(bottle.container).getCircuitFriendlyNames()
                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
                 myModule.__get__('currentCircuitArrObj')[6].friendlyName.should.eq('POOL')
@@ -46,13 +60,26 @@ describe('circuit controller', function() {
 
     describe('#functions that get and set circuits', function() {
 
-        before(function() {
-            //this.clock = sinon.useFakeTimers();
+      before(function() {
+          bottle.container.logger.transports.console.level = 'silly';
+      });
 
+      beforeEach(function() {
+          sandbox = sinon.sandbox.create()
+          clock = sandbox.useFakeTimers()
+          loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+          loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+          loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+          loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+          loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        })
+
+        afterEach(function() {
+            sandbox.restore()
         })
 
         after(function() {
-            //this.clock.restore();
+            bottle.container.logger.transports.console.level = 'info'
         })
 
         it('gets a circuit (1)', function() {
@@ -193,7 +220,6 @@ describe('circuit controller', function() {
                 var response;
                 myModule(bottle.container).toggleCircuit(1, function(res) {
                     response = res
-                    console.log('response; ', res)
                 })
 
                 //console.log('response: ', _response)

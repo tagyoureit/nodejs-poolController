@@ -31,10 +31,17 @@ describe('server', function() {
 
             before(function() {
                 bottle.container.server.init()
+                bottle.container.logger.transports.console.level = 'silly';
             })
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
+                clock = sandbox.useFakeTimers()
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             })
 
             afterEach(function() {
@@ -43,6 +50,7 @@ describe('server', function() {
 
             after(function() {
                 bottle.container.server.close()
+                bottle.container.logger.transports.console.level = 'info'
             })
 
             // it('reloads the config.json', function(done) {

@@ -90,7 +90,7 @@ function fmt12hrTime(strInpStr) {
 		if (strHours === "0")
 			strHours = "12";
 		strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
-		return strHours + ':' + strMins + ' ' + strAMPM;		
+		return strHours + ':' + strMins + ' ' + strAMPM;
 	}
 }
 
@@ -254,7 +254,7 @@ $(function() {
 		var strID = btnID.replace('collapse', '').toLowerCase();
 		socket.emit('setConfigClient', 'panelState', strID, 'state', 'collapse')
     });
-	
+
 	// Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
 	$('button').click(function(btnSelected) {
 		var btnID = btnSelected.target.id;
@@ -276,7 +276,7 @@ $(function() {
 			}
 		});
 	});
-	
+
 	// Button Handling: Pool, Spa => On/Off
 	$('#poolState, #spaState').on('click', 'button', function() {
 		setEquipmentStatus($(this).data($(this).attr('id')));
@@ -524,9 +524,9 @@ $(function() {
 			dateFormat: 'dd-M-y',
 			onSelect: function () {
 				var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
-				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
+				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
 			}
-		});	
+		});
 		$('#currTime').clockpicker({
 			donetext: 'OK',
 			twelvehour: false,
@@ -542,9 +542,9 @@ $(function() {
 			afterDone: function () {
 				$('#currTime').val(fmt12hrTime($('#currTime').val()));
 				var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
-				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);				
+				socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
 			}
-		});	
+		});
 		lastUpdate(true);
 	});
 

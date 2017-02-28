@@ -21,7 +21,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
-    function Pump(number, name, time, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
+    function Pump(number, name, time, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, duration, currentrunning, programRPM, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
         this.pump = number; //1 or 2
         this.name = name;
         this.time = time;
@@ -36,6 +36,7 @@ module.exports = function(container) {
         this.timer = timer;
         this.duration = duration; //duration on pump, not program duration
         this.currentrunning = currentrunning
+        this.programRPM = programRPM
         this.program1rpm = program1rpm;
         this.program2rpm = program2rpm;
         this.program3rpm = program3rpm;
@@ -49,6 +50,23 @@ module.exports = function(container) {
         currentPumpStatus,
         currentPumpStatusPacket
 
+
+    var numberOfPumps = function() {
+        var numberOfPumps = -1
+        if (numberOfPumps === -1) {
+            numberOfPumps = container._.size(container.settings.pump)
+            container.logger.info('Number of pumps:', numberOfPumps)
+            return numberOfPumps
+        }
+        return numberOfPumps
+    }
+
+    var loadProgramRPMfromConfig = function() {
+        for (var _pump in container.settings.pump) {
+            console.log('GET PUMP PROGRAM:', _pump, container.settings.pump[_pump].programRPM)
+        currentPumpStatus[_pump].programRPM = JSON.parse(JSON.stringify(container.settings.pump[_pump].programRPM))
+    }
+  }
 
     var init = function() {
         if (container.settings.logPumpMessages)
@@ -64,17 +82,31 @@ module.exports = function(container) {
             'mode': 'off',
             'value': 0,
             'remainingduration': -1
+        }, {
+            "1": -1,
+            "2": -1,
+            "3": -1,
+            "4": -1
         }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
         pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
             'value': 0,
             'remainingduration': -1
+        }, {
+            "1": -1,
+            "2": -1,
+            "3": -1,
+            "4": -1
         }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
         //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
         currentPumpStatus = ['blank', pump1, pump2]
         currentPumpStatusPacket = ['blank', [],
             []
         ]; // variable to hold the status packets of the pumps
+
+        loadProgramRPMfromConfig()
+        console.log('pumps...', currentPumpStatus)
+
         if (container.settings.logPumpMessages)
             container.logger.silly('just reset pumps...', currentPumpStatus[1].power)
     }
@@ -137,18 +169,29 @@ module.exports = function(container) {
 
 
     function saveProgramAs(program, rpm, from, data, counter) {
-        var programXrpm = 'program' + program.toString() + 'rpm'
-        //str1 = 'Save Program 1 as '
-        //str2 = setAmount.toString() + 'rpm';
-        //pumpStatus.programXrpm = setAmount;
+        // var programXrpm = 'program' + program.toString() + 'rpm'
+        //
+        // var pump = getPumpNumber(data)
+        //
+        // if (currentPumpStatus[pump].programXrpm !== rpm) {
+        //     currentPumpStatus[pump].programXrpm = rpm;
+        //     if (container.settings.logPumpMessages)
+        //         container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
+        // }
 
-        var pump = getPumpNumber(data)
+        //var programRPM = 'program' + program.toString() + 'rpm'
 
-        if (currentPumpStatus[pump].programXrpm !== rpm) {
-            currentPumpStatus[pump].programXrpm = rpm;
+        var _pump = getPumpNumber(data)
+
+        if (currentPumpStatus[_pump].programRPM[program] !== rpm) {
+            // container.settings.pump[_pump].programRPM[program] = rpm
+            container.configEditor.updatePump(_pump, 'programRPM', null, rpm)
+            currentPumpStatus[_pump].programRPM[program] = rpm;
             if (container.settings.logPumpMessages)
                 container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
         }
+
+
         container.io.emitToClients('pump')
     }
 
@@ -375,8 +418,10 @@ module.exports = function(container) {
         if (rpm === undefined) {
             currentPumpStatus[pump].currentprogram = program;
         } else {
-            var str = 'program' + program + 'rpm';
-            currentPumpStatus[pump][str] = rpm;
+            // var str = 'program' + program + 'rpm';
+            // currentPumpStatus[pump][str] = rpm;
+            currentPumpStatus[pump].programRPM[program] = rpm;
+            container.configEditor.updatePump(pump, 'programRPM', null, rpm)
             currentPumpStatus[pump].currentprogram = program;
         }
 
@@ -384,8 +429,9 @@ module.exports = function(container) {
 
     //saves a program & rpm
     var saveProgram = function(pump, program, rpm) {
-        var str = 'program' + program + 'rpm';
-        currentPumpStatus[pump][str] = rpm;
+        // var str = 'program' + program + 'rpm';
+        currentPumpStatus[pump].programRPM[program] = rpm;
+        container.configEditor.updatePump(pump, 'programRPM', null, rpm)
     }
 
     var setCurrentRPM = function(index, rpm) {
@@ -449,6 +495,7 @@ module.exports = function(container) {
         container.logger.info('Loaded: pump.js')
 
     return {
+        numberOfPumps: numberOfPumps,
         setPumpStatus: setPumpStatus,
         getCurrentPumpStatus: getCurrentPumpStatus,
         provideStatus: provideStatus,

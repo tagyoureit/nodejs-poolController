@@ -17,9 +17,11 @@ function requestPoolDataWithURL(endpoint) {
             //  console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
             return response.body;
         }
-    ).catch(function(err) {
-        console.log('error:', err)
-    });
+    ).catch(
+        /* istanbul ignore next */
+        function(err) {
+            console.log('error:', err)
+        });
 }
 
 
@@ -66,8 +68,8 @@ describe('#sets various functions', function() {
             it('sets a valid schedule 12', function(done) {
                 requestPoolDataWithURL('schedule/set/12/5/13/20/13/40/131').then(function(obj) {
                     obj.text.should.contain('REST API')
-//                    console.log('queuePacketStub', queuePacketStub.args)
-                    queuePacketStub.args[0][0].should.contain.members([165,99,16,33,145,7,12,5,13,20,13,40,131])
+                    //                    console.log('queuePacketStub', queuePacketStub.args)
+                    queuePacketStub.args[0][0].should.contain.members([165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131])
                     queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 1])
                     queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
                     done()

@@ -9,8 +9,8 @@ var bottle = Bottle.pop('poolController-Bottle');
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
-bottle.factory('nanotimer', function(){
-  return require('nanotimer')
+bottle.factory('promisedIoPromise', function(){
+  return require("promised-io/promise");
 })
 
 bottle.service('fs', function() {
@@ -58,6 +58,9 @@ bottle.factory('net', function() {
 bottle.factory('socket', function() {
     return require('socket.io')
 })
+bottle.factory('_', function() {
+    return require('underscore')
+})
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
 bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
@@ -67,6 +70,8 @@ bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
 bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
+bottle.factory('configEditor', require(__dirname + '/helpers/config-editor.js'))
+
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -155,7 +160,8 @@ var init = exports.init = function() {
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
     bottle.container.updateAvailable.check()
-    
+
+
     //initialize variables to hold status
     bottle.container.chlorinator.init()
     bottle.container.heat.init()
@@ -172,16 +178,14 @@ var init = exports.init = function() {
     bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
     bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
 
+    bottle.container.configEditor.init()
 
-    bottle.container.integrations.init()
-    if (bottle.container.settings.pumpOnly && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
-        bottle.container.pumpControllerTimers.startPumpController()
-    }
-    if (bottle.container.settings.chlorinator  && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
-        bottle.container.chlorinatorController.startChlorinatorController()
-    }
+    //logic if we start the virtual pump/chlorinator controller is in the function
+    bottle.container.pumpControllerTimers.startPumpController()
+    bottle.container.chlorinatorController.startChlorinatorController()
+
     bottle.container.helpers
-
+    bottle.container.integrations.init()
 
 }
 

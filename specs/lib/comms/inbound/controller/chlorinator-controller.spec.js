@@ -3,9 +3,11 @@ describe('chlorinator controller', function() {
     describe('#startChlorinatorController starts the timer for 1 or 2 chlorinators', function() {
 
         before(function() {
-
-            bottle.container.settings.chlorinator = 1
+            bottle.container.settings.virtual.chlorinatorController = "default"
+            bottle.container.settings.chlorinator.installed = 1
             bottle.container.settings.logChlorinator = 1
+            bottle.container.settings.intellitouch = 0
+            bottle.container.settings.intellicom = 0
 
         });
 
@@ -13,8 +15,10 @@ describe('chlorinator controller', function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            // loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
 
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
@@ -29,7 +33,9 @@ describe('chlorinator controller', function() {
         })
 
         after(function() {
-            bottle.container.settings.chlorinator = 0
+          bottle.container.settings.virtual.chlorinatorController = "default"
+          bottle.container.settings.intellitouch = 1
+          bottle.container.settings.intellicom = 0
             bottle.container.settings.logChlorinator = 0
 
         })
