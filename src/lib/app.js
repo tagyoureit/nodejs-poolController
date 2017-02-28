@@ -66,6 +66,7 @@ bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
+bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -148,22 +149,39 @@ var init = exports.init = function() {
     bottle.container.settings.load()
     bottle.container.server.init()
     bottle.container.io.init()
-    bottle.container.time.init()
+    bottle.container.sp.init()
+
+
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
+    bottle.container.updateAvailable.check()
+    
+    //initialize variables to hold status
+    bottle.container.chlorinator.init()
+    bottle.container.heat.init()
+    bottle.container.time.init()
     bottle.container.pump.init()
+    bottle.container.schedule.init()
+    bottle.container.circuit.init()
+    bottle.container.customNames.init()
+    bottle.container.intellitouch.init()
+    bottle.container.temperatures.init()
+    bottle.container.UOM.init()
+    bottle.container.valves.init()
 
     bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
     bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
-    bottle.container.sp.init()
-    bottle.container.integrations
+
+
+    bottle.container.integrations.init()
     if (bottle.container.settings.pumpOnly && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
         bottle.container.pumpControllerTimers.startPumpController()
     }
-    if (bottle.container.settings.chlorinator) {
+    if (bottle.container.settings.chlorinator  && !bottle.container.settings.intellicom && !bottle.container.settings.intellitouch) {
         bottle.container.chlorinatorController.startChlorinatorController()
     }
     bottle.container.helpers
+
 
 }
 

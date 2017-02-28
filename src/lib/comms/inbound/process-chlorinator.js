@@ -22,8 +22,7 @@ module.exports = function(container) {
 
 
         function processChlorinatorPacket(data, counter) {
-
-            container.chlorinator.processChlorinatorPacketfromController(data, counter)
+            container.chlorinator.setChlorinatorStatusFromChlorinator(data, counter)
                 //return decoded
                 //End Chlorinator Decode
                 return true

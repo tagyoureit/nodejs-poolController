@@ -22,13 +22,11 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: 25.js')
 
-        logger = container.logger
-
         function process(data, counter) {
 
-            if (s.intellitouch) { //this is to test configs without a chlorinator.  can get rid of it.
-                if (s.logChlorinator)
-                    logger.debug('Msg# %s   Chlorinator status packet: %s', counter, data)
+
+                if (container.settings.logChlorinator)
+                    container.logger.debug('Msg# %s   Chlorinator status packet: %s', counter, data)
 
                     //TODO: move this to constants
                     var chlorinatorStatusBytes = {
@@ -44,12 +42,13 @@ module.exports = function(container) {
                 var outputPercent = data[chlorinatorStatusBytes.outputPercent];
                 var saltPPM = data[chlorinatorStatusBytes.saltPPM];
                 var status = data[chlorinatorStatusBytes.status]
-                var name = container.chlorinator.getChlorinatorNameByBytes(data.slice(12,28))
-                container. chlorinator.addChlorinatorStatus(saltPPM, outputPercent, outputSpaPercent, status, name, counter)
 
-            }
-            decoded = true;
-            return decoded
+                var name = container.chlorinator.getChlorinatorNameByBytes(data.slice(12,28))
+                container.chlorinator.setChlorinatorStatusFromController(saltPPM, outputPercent, outputSpaPercent, status, name, counter)
+
+
+
+            return true
         }
 
 

@@ -1,13 +1,19 @@
+/* Table formatting, vertical alignment (center), to handle larger buttons */
+.table > tbody > tr > td {
+     vertical-align: middle;
+}
+
+/* Panel Widths, to avoid wrapping. Trial and error! */
 .pnlSystem {
-	min-width: 260px;
+	min-width: 280px;
 }
 
 .pnlPool {
-	min-width: 300px;
+	min-width: 340px;
 }
 
 .pnlSpa {
-	min-width: 300px;
+	min-width: 340px;
 }
 
 .pnlChlorinator {
@@ -15,7 +21,7 @@
 }
 
 .pnlFeatures {
-	min-width: 210px;
+	min-width: 240px;
 }
 
 .pnlPump {
@@ -23,7 +29,7 @@
 }
 
 .pnlSchedule {
-	min-width: 300px;
+	min-width: 360px;
 }
 
 .pnlEggtimer {

@@ -55,7 +55,6 @@ var netHost; //host for the SOCAT communications
 
 //-------  NETWORK SETUP -----------
 // Setup for Network Connection (socat or nc)
-var expressDir; //set this to the default directory for the web interface (either "/bootstrap" or "/public")
 var expressPort; //port for the Express App Server
 var expressTransport; //http, https, or both
 var expressAuth; // Authentication (username, password) to access web interface (0=no auth, 1=auth)
@@ -96,7 +95,6 @@ var load = exports.load = function() {
     chlorinator = exports.chlorinator = configFile.Equipment.chlorinator;
     numberOfPumps = exports.numberOfPumps = configFile.Equipment.numberOfPumps;
     appAddress = exports.appAddress = configFile.Equipment.appAddress;
-    expressDir = exports.expressDir = configFile.Misc.expressDir;
     expressPort = exports.expressPort = configFile.Misc.expressPort;
     expressTransport = exports.expressTransport = configFile.Misc.expressTransport;
     expressAuth = exports.expressAuth = configFile.Misc.expressAuth;
@@ -160,7 +158,6 @@ displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
     settingsStr += '\n ';
     settingsStr += '\n //-------  MISC SETUP -----------';
-    settingsStr += '\n var expressDir = ' + expressDir;
     settingsStr += '\n var expressPort = ' + expressPort;
     settingsStr += '\n var expressTransport = ' + expressTransport;
     settingsStr += '\n var expressAuth = ' + expressAuth;

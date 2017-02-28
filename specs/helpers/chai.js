@@ -14,7 +14,7 @@ chai.use(chaiAsPromised);
 chai.should();
 // var expect = global.expect = chai.expect;
 // chai.config.includeStack = true;
-var _ = global._ = require('lodash');
+var _ = global._ = require('underscore');  //changed from lodash in 3.1.9
 var rp = global.rp = require('request-promise')
 global.bottle = Bottle.pop('poolController-Bottle');
 global.spy = sinon.spy()
@@ -23,8 +23,22 @@ chai.config.includeStack = true;
 // global.AssertionError = chai.AssertionError;
 // global.Assertion = chai.Assertion;
 // global.assert = chai.assert;
-bottle.container.pump.init()
-            bottle.container.time.init()
+
+
+//initialize variables to hold status
+    bottle.container.chlorinator.init()
+    bottle.container.heat.init()
+    bottle.container.time.init()
+    bottle.container.pump.init()
+    bottle.container.schedule.init()
+    bottle.container.circuit.init()
+    bottle.container.customNames.init()
+    bottle.container.intellitouch.init()
+    bottle.container.temperatures.init()
+    bottle.container.UOM.init()
+    bottle.container.valves.init()
+
+
  ioclient = global.ioclient = require('socket.io-client')
  socketURL = global.socketURL = 'http://localhost:3000'
  socketOptions = global.socketOptions = {'transports': ['websocket'],
@@ -39,6 +53,8 @@ var fs = global.fs = require('promised-io/fs')
  fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
     .then(function(data) {
       global.circuitJson = JSON.parse(data)
-    }, function(error) {
+    },
+    /* istanbul ignore next  */
+    function(error) {
         console.log('Error reading circuit.json from /specs/assets/webJsonReturns. ', error)
     })

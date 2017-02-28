@@ -62,7 +62,7 @@ describe('chlorinator tests', function() {
             queuePacketStub.callCount.should.eq(1)
             clock.tick(4000)
             queuePacketStub.callCount.should.eq(2)
-            queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 10])
+            queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 10])
             clock.tick(60 * 1000) //59+4 secs
             queuePacketStub.callCount.should.eq(17)
             clock.tick(60*60 * 1000) //1hr+5 mins
@@ -75,7 +75,7 @@ describe('chlorinator tests', function() {
           queuePacketStub.callCount.should.eq(1)
           clock.tick(30*1000)
           queuePacketStub.callCount.should.eq(2)
-          queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 0])
+          queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 0])
           clock.tick(60 * 1000) //1.5 min
           queuePacketStub.callCount.should.eq(4)
           clock.tick(60*60 * 1000) //1hr+1.5 mins
@@ -88,7 +88,7 @@ describe('chlorinator tests', function() {
           queuePacketStub.callCount.should.eq(1)
           clock.tick(4000)
           queuePacketStub.callCount.should.eq(2)
-          queuePacketStub.args[0][0].should.include.members([16, 2, 80, 17, 101])
+          queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 101])
           clock.tick(60 * 1000) //59+4 secs
           queuePacketStub.callCount.should.eq(17)
           clock.tick(60*60 * 1000) //1hr+5 mins

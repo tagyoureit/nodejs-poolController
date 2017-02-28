@@ -62,7 +62,7 @@ describe('socket.io basic tests', function() {
 
         setTimeout(function() {
             var res = bottle.container.time.getTime()
-            console.log(res)
+            // console.log(res)
             res.controllerDateStr.should.eq('4/3/2018')
             res.controllerDayOfWeekStr.should.eq('Tuesday')
             done()
@@ -83,7 +83,7 @@ describe('socket.io basic tests', function() {
           loggerInfoStub.args[0][0].text.should.contain('SOCKET')
           queuePacketStub.args[0][0].should.contain.members([165,99,16,33,145,7,12,5,13,20,13,40,131])
           queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 1])
-          queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])          
+          queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
             done()
         }, 500)
     })
@@ -163,7 +163,7 @@ describe('socket.io pump tests', function() {
     before(function() {
         bottle.container.settings.logPumpMessages = 1
         bottle.container.settings.logPumpTimers = 1
-        bottle.container.settings.logLevel = 'silly'
+        bottle.container.logger.transports.console.level = 'silly'
         bottle.container.server.init()
         bottle.container.io.init()
     });
@@ -172,11 +172,11 @@ describe('socket.io pump tests', function() {
         sandbox = sinon.sandbox.create()
         //clock = sandbox.useFakeTimers()
         bottle.container.time.init()
-        // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        // loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-        // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        // loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        // loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
         bottle.container.pump.init()
@@ -196,7 +196,7 @@ describe('socket.io pump tests', function() {
         bottle.container.time.init()
         bottle.container.settings.logPumpTimers = 0
         bottle.container.settings.logPumpMessages = 0
-        bottle.container.settings.logLevel = 'info'
+        bottle.container.logger.transports.console.level = 'info'
         bottle.container.server.close()
     })
 

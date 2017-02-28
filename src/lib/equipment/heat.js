@@ -41,6 +41,7 @@
  3: 'Solar Only'
  */
 
+var currentHeat;
 
 module.exports = function(container) {
 
@@ -58,7 +59,10 @@ module.exports = function(container) {
         this.heaterActive = 0
     }
 
-    var currentHeat = new Heat();
+    var init = function() {
+        currentHeat = new Heat();
+    }
+
 
     var copyHeat = function(heat) {
         currentHeat.poolSetPoint = heat.poolSetPoint;
@@ -261,6 +265,7 @@ function setPoolHeatmode(heatmode, callback){
 
 
     return {
+        init: init,
         getCurrentHeat: getCurrentHeat,
         changeHeatMode: changeHeatMode,
         changeHeatSetPoint: changeHeatSetPoint,

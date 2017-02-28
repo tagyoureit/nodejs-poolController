@@ -32,7 +32,7 @@ describe('#sets various functions', function() {
     describe('#sets the date/time', function() {
 
         before(function() {
-            bottle.container.settings.logLevel = 'silly'
+            bottle.container.logger.transports.console.level = 'silly'
             bottle.container.server.init()
             bottle.container.time.init()
         });
@@ -40,9 +40,9 @@ describe('#sets various functions', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
-            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
@@ -57,7 +57,7 @@ describe('#sets various functions', function() {
         })
 
         after(function() {
-            bottle.container.settings.logLevel = 'info'
+            bottle.container.logger.transports.console.level = 'info'
             bottle.container.server.close()
         })
         context('with the HTTP REST API', function() {

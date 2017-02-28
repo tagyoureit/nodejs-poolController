@@ -16,7 +16,7 @@
  */
 
 /* global logger */
-
+var controllerSettings
 
 module.exports = function(container) {
 
@@ -24,11 +24,13 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: intellitouch.js')
 
-    var controllerSettings = {
+    var init =function() {
+      controllerSettings = {
         'appAddress': container.settings.appAddress,
         'needConfiguration': 1, //variable to let the program know we need the configuration from the Intellitouch
         'preambleByte': -1 //variable to hold the 2nd preamble byte... it used to by 10 for me.  Now it is 16.  Very strange.  So here is a variable to find it.
     }
+  }
 
 
     function getControllerConfiguration() {
@@ -104,6 +106,7 @@ module.exports = function(container) {
         container.logger.info('Loaded: intellitouch.js')
 
     return {
+        init: init,
         checkIfNeedControllerConfiguration: checkIfNeedControllerConfiguration,
         getPreambleByte: getPreambleByte,
         setPreambleByte : setPreambleByte,

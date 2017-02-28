@@ -19,7 +19,7 @@ var Bottle = require('bottlejs');
 var bottle = Bottle.pop('poolController-Bottle');
 var fs = bottle.container.fs
 var path = require('path')
-    //var glob = require('glob')
+//var glob = require('glob')
 
 
 if (bottle.container.logModuleLoading)
@@ -61,21 +61,21 @@ function stripJS(name) {
 }
 
 
-
-walk(__dirname + '/../integrations', function(filePath, name, stat) {
-    // do something with "filePath"...
-    //console.log('filePath: ', filePath)
-    //console.log('name: ', name)
-    //console.log('strippedName: ', stripJS(name))
-    //console.log('stat: ', stat)
-    var shortName = stripJS(name)
-    if (configFile.Integrations[shortName] === 1) {
-        bottle.factory(shortName, require(filePath)) //add the integration to Bottle
-        bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
-        bottle.container[shortName].init() //call the init function to enable it  (this might be unnecessary since we digest it)
-    }
-});
-
+var init = exports.init = function() {
+    walk(__dirname + '/../integrations', function(filePath, name, stat) {
+        // do something with "filePath"...
+        //console.log('filePath: ', filePath)
+        //console.log('name: ', name)
+        //console.log('strippedName: ', stripJS(name))
+        //console.log('stat: ', stat)
+        var shortName = stripJS(name)
+        if (configFile.Integrations[shortName] === 1) {
+            bottle.factory(shortName, require(filePath)) //add the integration to Bottle
+            bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
+            bottle.container[shortName].init()
+        }
+    });
+}
 
 
 if (bottle.container.logModuleLoading)

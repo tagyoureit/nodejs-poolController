@@ -21,7 +21,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
-    function Pump(number, name, time, run, mode, drivestate, watts, rpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
+    function Pump(number, name, time, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, duration, currentrunning, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
         this.pump = number; //1 or 2
         this.name = name;
         this.time = time;
@@ -30,6 +30,7 @@ module.exports = function(container) {
         this.drivestate = drivestate;
         this.watts = watts;
         this.rpm = rpm;
+        this.gpm = gpm;
         this.ppc = ppc;
         this.err = err;
         this.timer = timer;
@@ -59,12 +60,12 @@ module.exports = function(container) {
         }
 
 
-        pump1 = new Pump(1, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+        pump1 = new Pump(1, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
             'value': 0,
             'remainingduration': -1
         }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
-        pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+        pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
             'value': 0,
             'remainingduration': -1
@@ -285,7 +286,7 @@ module.exports = function(container) {
 
     }
 
-    function setPumpStatus(pump, hour, min, run, mode, drivestate, watts, rpm, ppc, err, timer, data, counter) {
+    function setPumpStatus(pump, hour, min, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, data, counter) {
         setTime(pump, hour, min)
         var needToEmit = 0
         var whatsDifferent = ''
@@ -297,6 +298,7 @@ module.exports = function(container) {
             currentPumpStatus[pump].drivestate = drivestate
             currentPumpStatus[pump].watts = watts
             currentPumpStatus[pump].rpm = rpm
+            currentPumpStatus[pump].gpm = gpm
             currentPumpStatus[pump].ppc = ppc
             currentPumpStatus[pump].err = err
             currentPumpStatus[pump].timer = timer
@@ -327,6 +329,10 @@ module.exports = function(container) {
             if (currentPumpStatus[pump].rpm !== rpm) {
                 whatsDifferent += 'rpm: ' + currentPumpStatus[pump].rpm + '-->' + rpm + ' '
                 currentPumpStatus[pump].rpm = rpm
+            }
+            if (currentPumpStatus[pump].gpm !== gpm) {
+                whatsDifferent += 'gpm: ' + currentPumpStatus[pump].gpm + '-->' + gpm + ' '
+                currentPumpStatus[pump].gpm = gpm
             }
             if (currentPumpStatus[pump].ppc !== ppc) {
                 whatsDifferent += 'ppc: ' + currentPumpStatus[pump].ppc + '-->' + ppc + ' '
@@ -420,6 +426,8 @@ module.exports = function(container) {
     }
 
     var setCurrentRunning = function(index, program, value, duration) {
+        //we have the option to broadcast because when we start the pump for x minutes, we set it for x.5 minutes.  We don't
+        //need/want to broadcast this first message as it will be confusing.
         var newCurrentRunning = {
             'mode': program,
             'value': value,

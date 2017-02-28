@@ -27,7 +27,8 @@ module.exports = function(container) {
 
 
 
-    var reload = function(callback) {
+    var reload = function(reset, callback) {
+        //reset is a variable to also reset the status of objects.
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
             This will _NOT_ restart the express (web) server and will not affect bootstrap, auth, or ssl.'
         var res = reloadStr + '<p>'
@@ -72,6 +73,22 @@ module.exports = function(container) {
         {
           container.intellitouch.getControllerConfiguration()
         }
+
+        if (reset){
+          bottle.container.chlorinator.init()
+          bottle.container.heat.init()
+          bottle.container.time.init()
+          bottle.container.pump.init()
+          bottle.container.schedule.init()
+          bottle.container.circuit.init()
+          bottle.container.customNames.init()
+          bottle.container.intellitouch.init()
+          bottle.container.temperatures.init()
+          bottle.container.uom.init()
+          bottle.container.valves.init()
+
+        }
+
 
         return res
         if (callback !== undefined) {

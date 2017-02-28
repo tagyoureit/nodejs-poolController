@@ -8,11 +8,11 @@
 	<link rel="icon" type="image/png" href="favicon.png">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link type="text/css" rel="stylesheet" href="../jquery/jquery-ui.css">
-	<link type="text/css" rel="stylesheet" href="../jquery-clockpicker/jquery-clockpicker.min.css">
+	<link type="text/css" rel="stylesheet" href="bootstrap-clockpicker.min.css">
 	<link type="text/css" rel="stylesheet" href="style.css">
 	<script src="../jquery/external/jquery/jquery.js"></script>
 	<script src="../jquery/jquery-ui.min.js"></script>
-	<script src="../jquery-clockpicker/jquery-clockpicker.min.js"></script>
+	<script src="bootstrap-clockpicker.min.js"></script>
 	<script src="../socket.io/socket.io.js"></script>
 	<script src="js/bootstrap.min.js"></script>
 	<script src="main.js"></script>
@@ -20,12 +20,17 @@
 <body>
 <nav class="navbar navbar-default">
 	<div class="container-fluid" style="width:100%;">
-		<div class="navbar-header">
-			<a class="navbar-brand">Pentair Pool System</a>
-		</div>
-		<table class="tabBlock" style="float: right;">
-			<tr><td><a id="tmrLastUpd" class="label label-danger" style="float: right;">Last update: NEVER</a></td></tr>
-			<tr><td><button id="debugEnable" class="btn btn-primary btn-xs" style="float: right;">Off</button><span style="float: right; margin-right: 5px;">Debug Log:</span></td></tr>
+		<table class="tabBlock" width="100%;">
+			<tr>
+				<td>
+					<div class="navbar-header">
+						<a class="navbar-brand">Pentair Pool System</a>
+					</div>
+				</td>
+				<td width="40 px">
+					<a id="gitState" class="btn btn-warning btn-xs" style="float: right; margin-left: 5px;">Code State<br/>---</a>
+				</td>
+			</tr>
 		</table>
 	</div>
 </nav>
@@ -34,6 +39,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">System Information
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSystem"></a>
+				<button id="hidePanelsystem" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseSystem" class="panel-body panel-collapse collapse in">
 				<table class="table table-hover">
@@ -47,13 +53,13 @@
 						<tr>
 							<td>Date</td>
 							<td>
-								<input id="currDate" type="button" class="btn btn-primary btn-xs" value="---"></input>
+								<input id="currDate" type="button" class="btn btn-primary btn-md" value="---"></input>
 							</td>
 						</tr>
 						<tr>
 							<td>Time</td>
 							<td>
-								<input id="currTime" type="button" class="btn btn-primary btn-xs" value="---"></input>
+								<input id="currTime" type="button" class="btn btn-primary btn-md" value="---"></input>
 							</td>
 						</tr>
 						<tr>
@@ -64,12 +70,12 @@
 							<td>Solar Temp</td>
 							<td id="solarTemp">---</td>
 						</tr>
-						<tr>
+						<!--tr>
 							<td>Heater State</td>
 							<td id="stateHeater">---</td>
-						</tr>
+						</tr-->
 						<tr>
-							<td>Freeze Protection</td>
+							<td>Freeze Prot</td>
 							<td id="stateFreeze">---</td>
 						</tr>
 					</tbody>
@@ -81,6 +87,7 @@
 	  <div class="panel panel-primary">
 			<div class="panel-heading">Pool Details
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapsePool"></a>
+				<button id="hidePanelpool" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapsePool" class="panel-body panel-collapse collapse in">
 				<table class="table table-hover">
@@ -94,7 +101,7 @@
 						<tr id="poolState">
 							<td>Pool State</td>
 							<td>
-								<button id="POOL" class="btn btn-primary btn-xs">---</button>
+								<button id="POOL" class="btn btn-primary btn-md">---</button>
 							</td>
 						</tr>
 						<tr>
@@ -104,17 +111,17 @@
 						<tr id="poolSetpoint">
 							<td>SetPoint</td>
 							<td>
-								<button id="poolSetpointMinusOne" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+								<button id="poolSetpointMinusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
 								<span id="poolHeatSetPoint">---</span>
-								<button id="poolSetpointPlusOne" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								<button id="poolSetpointPlusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
 							</td>
 						</tr>
 						<tr id="poolHeatMode">
 							<td>Heater Mode</td>
 							<td>
-								<button id="poolHeatModeDown" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<button class="btn btn-default btn-xs" style="width: 70px;"><span id="poolHeatModeStr">Off</span></button>
-								<button id="poolHeatModeUp" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								<button id="poolHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+								<button class="btn btn-default btn-md" style="width: 70px;"><span id="poolHeatModeStr">Off</span></button>
+								<button id="poolHeatModeUp" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
 							</td>
 						</tr>
 					</tbody>
@@ -126,6 +133,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">Spa Details
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSpa"></a>
+				<button id="hidePanelspa" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseSpa" class="panel-body panel-collapse collapse in">
 				<table class="table table-hover">
@@ -139,7 +147,7 @@
 						<tr id="spaState">
 							<td>Spa State</td>
 							<td>
-								<button id="SPA" class="btn btn-primary btn-xs">---</button>
+								<button id="SPA" class="btn btn-primary btn-md">---</button>
 							</td>
 						</tr>
 						<tr>
@@ -149,17 +157,17 @@
 						<tr id="spaSetpoint">
 							<td>SetPoint</td>
 							<td>
-								<button id="spaSetpointMinusOne" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+								<button id="spaSetpointMinusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
 								<span id="spaHeatSetPoint">---</span>
-								<button id="spaSetpointPlusOne" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								<button id="spaSetpointPlusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
 							</td>
 						</tr>
 						<tr id="spaHeatMode">
 							<td>Heater Mode</td>
 							<td>
-								<button id="spaHeatModeDown" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<button class="btn btn-default btn-xs" style="width: 70px;"><span id="spaHeatModeStr">Off</span></button>
-								<button id="spaHeatModeUp" class="btn btn-primary btn-xs"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								<button id="spaHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+								<button class="btn btn-default btn-md" style="width: 70px;"><span id="spaHeatModeStr">Off</span></button>
+								<button id="spaHeatModeUp" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
 							</td>
 						</tr>
 					</tbody>
@@ -171,6 +179,7 @@
 	  <div class="panel panel-primary">
 			<div class="panel-heading">Chlorinator Details
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
+				<button id="hidePanelchlorinator" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
 				<table class="table table-hover">
@@ -184,7 +193,7 @@
 						<tr id="chlorinatorState">
 							<td>Chlorinator State</td>
 							<td>
-								<button id="CHLORINATOR" class="btn btn-primary btn-xs" data-target="#modalChlorinator" data-toggle="modal">---</button>
+								<button id="CHLORINATOR" class="btn btn-primary btn-md" data-target="#modalChlorinator" data-toggle="modal">---</button>
 							</td>
 						</tr>
 						<tr>
@@ -216,6 +225,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">Lighting / Features
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseFeatures"></a>
+				<button id="hidePanelfeatures" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseFeatures" class="panel-body panel-collapse collapse in">
 				<table class="table table-hover">
@@ -235,6 +245,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">Pumps
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapsePump"></a>
+				<button id="hidePanelpump" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapsePump" class="panel-body panel-collapse collapse in">
 				<table id="pumps" class="table table-hover">
@@ -258,6 +269,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">Schedules
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSchedule"></a>
+				<button id="hidePanelschedule" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseSchedule" class="panel-body panel-collapse collapse in">
 				<table id="schedules" class="table table-hover">
@@ -279,6 +291,7 @@
 		<div class="panel panel-primary">
 			<div class="panel-heading">EggTimers
 				<a class="accordion-toggle" data-toggle="collapse" href="#collapseEggtimer"></a>
+				<button id="hidePaneleggtimer" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 			</div>
 			<div id="collapseEggtimer" class="panel-body panel-collapse collapse in">
 				<table id="eggtimers" class="table table-hover">
@@ -332,10 +345,23 @@
 <div class="container row-content">
 </div>
 <footer class="breadcrumb">
-	nodejs-poolController
-	<span style="float: right; margin-right: 5px;"><small>HTML Version: </small><span class="label label-default">v0.1.1</span></span><br>
-	<a href="https://github.com/tagyoureit/nodejs-poolController">Github Repository</a>
-	<span style="float: right; margin-right: 5px;"><small>JavaScript Version: </small><span id="jsVersion" class="label label-default">---</span></span>
+	<table width="100%;">
+		<tr>
+			<td>
+				nodejs-poolController<br>
+				<a href="https://github.com/tagyoureit/nodejs-poolController">Github Repository</a>
+			</td>
+			<td width="40 px;">
+				<button id="btnResetLayout" class="btn btn-primary btn-xs" style="float: right;">Reset<br/>Layout</button>
+			</td>
+			<td width="40 px;">
+				<button id="debugEnable" class="btn btn-primary btn-xs" style="float: right; margin-left: 5px;">Debug:<br/>Off</button>
+			</td>
+			<td width="40 px;">
+				<a id="tmrLastUpd" class="btn btn-danger btn-xs" style="float: right; margin-left: 5px;">Last Update ...<br/>NEVER</a>
+			</td>
+		</tr>
+	</table>
 </footer>
 </body>
 </html>

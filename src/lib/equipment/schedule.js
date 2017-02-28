@@ -15,6 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+var currentSchedule
+
 module.exports = function(container) {
 
     /*istanbul ignore next */
@@ -23,10 +25,13 @@ module.exports = function(container) {
 
     //var bufferArr = []; //variable to process buffer.  interimBufferArr will be copied here when ready to process
     //var interimBufferArr = []; //variable to hold all serialport.open data; incomind data is appended to this with each read
-    var currentSchedule = ["blank"]; //schedules
     var initialSchedulesDiscovered = 0
     var logger = container.logger
 
+
+    var init = function() {
+      currentSchedule = ["blank"]; //schedules
+    }
 
     var formatSchedId = function(id) {
         var str = ''
@@ -187,7 +192,6 @@ module.exports = function(container) {
 
     var getControllerScheduleAll = function() {
         //get schedules
-        console.log('requesting all schedules')
         for (var i = 1; i < 13; i++) {
 
             container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
@@ -235,6 +239,7 @@ module.exports = function(container) {
         container.logger.info('Loaded: schedule.js')
 
     return {
+        init: init,
         getCurrentSchedule: getCurrentSchedule,
         addScheduleDetails: addScheduleDetails,
         numberOfSchedulesRegistered: numberOfSchedulesRegistered,

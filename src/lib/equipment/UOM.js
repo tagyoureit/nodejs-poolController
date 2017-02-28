@@ -15,15 +15,22 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+var UOM = {
+    "UOM": 0,
+    "UOMStr": "unknown"
+}
+
 module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: UOM.js')
 
-    var UOM = {
-        "UOM": 0,
-        "UOMStr": "unknown"
+    var init = function() {
+        UOM = {
+            "UOM": 0,
+            "UOMStr": "unknown"
+        }
     }
 
 
@@ -35,12 +42,12 @@ module.exports = function(container) {
                 ' Celsius')
     }
 
-    function getUOM(){
-      return UOM.UOM
+    function getUOM() {
+        return UOM.UOM
     }
 
-    function getUOMStr(){
-      return UOM.UOMStr
+    function getUOMStr() {
+        return UOM.UOMStr
     }
 
     /*istanbul ignore next */
@@ -49,7 +56,7 @@ module.exports = function(container) {
 
 
     return {
-        //UOM,
+        init: init,
         setUOM: setUOM,
         getUOM: getUOM,
         getUOMStr: getUOMStr

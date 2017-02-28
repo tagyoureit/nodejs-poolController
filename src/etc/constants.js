@@ -64,7 +64,8 @@ module.exports = function(container) {
         WATTSL: 10,
         RPMH: 11,
         RPML: 12,
-        PPC: 13, //??
+        GPM: 13,
+        PPC: 14, //??
         //14 Unknown
         ERR: 15,
         //16 Unknown

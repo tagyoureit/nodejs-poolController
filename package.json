@@ -1,11 +1,12 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "3.1.9",
+  "version": "3.1.13",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
     "test": "mocha  ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
+    "test:one": "mocha  ./specs/assets/config.json --reporter spec --require ./specs/helpers/chai.js",
     "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
     "open:cover": "open coverage/lcov-report/index.html"
@@ -22,7 +23,8 @@
     "heat",
     "temperature",
     "pump",
-    "chlorinator"
+    "chlorinator",
+    "IoT"
   ],
   "author": "Russell Goldin",
   "license": "AGPL-3.0",
@@ -38,7 +40,7 @@
     "express": "^4.14.0",
     "http-auth": "^3.0.1",
     "jquery-ui-dist": "^1.12.1",
-    "jquery-clockpicker": "^0.0.8",
+    "promised-io": "^0.3.5",
     "nanotimer": "^0.3.14",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
@@ -57,11 +59,9 @@
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
     "nock": "^9.0.2",
-    "promised-io": "^0.3.5",
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^1.17.6",
-    "sinon-chai": "^2.8.0",
-    "socket.io-client": "^1.7.2"
+    "sinon-chai": "^2.8.0"
   }
 }

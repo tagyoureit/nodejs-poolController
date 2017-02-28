@@ -49,10 +49,11 @@ module.exports = function(container) {
             var drivestate = data[c.pumpPacketFields.DRIVESTATE]
             var watts = (data[c.pumpPacketFields.WATTSH] * 256) + data[c.pumpPacketFields.WATTSL]
             var rpm = (data[c.pumpPacketFields.RPMH] * 256) + data[c.pumpPacketFields.RPML]
+            var gpm = data[c.pumpPacketFields.GPM]
             var ppc = data[c.pumpPacketFields.PPC]
             var err = data[c.pumpPacketFields.ERR]
             var timer = data[c.pumpPacketFields.TIMER]
-            container.pump.setPumpStatus(pump, hour, min, run, mode, drivestate, watts, rpm, ppc, err, timer, data, counter)
+            container.pump.setPumpStatus(pump, hour, min, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, data, counter)
         }
 
     }

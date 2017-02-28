@@ -15,22 +15,26 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- var temperatures = {
-     "poolTemp": 0,
-     "spaTemp": 0,
-     "airTemp": 0,
-     "solarTemp": 0,
-     "freeze": 0
- }
+ var temperatures
 
 module.exports = function(container) {
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: temperatures.js')
 
+        var _ = require('underscore')
 
-
+    var init = function(){
+      temperatures = {
+          "poolTemp": 0,
+          "spaTemp": 0,
+          "airTemp": 0,
+          "solarTemp": 0,
+          "freeze": 0
+      }
+    }
 
     function setTempFromController(poolTemp, spaTemp, airTemp, solarTemp, freeze) {
         temperatures.poolTemp = poolTemp
@@ -43,7 +47,9 @@ module.exports = function(container) {
     }
 
     function getTemperatures(){
-      return temperatures
+        var heat = container.heat.getCurrentHeat()
+        var combine = _.extend(temperatures, heat)
+      return combine
     }
 
     /*istanbul ignore next */
@@ -52,7 +58,7 @@ module.exports = function(container) {
 
 
     return {
-        //temperatures,
+        init: init,
         setTempFromController: setTempFromController,
         getTemperatures : getTemperatures
     }

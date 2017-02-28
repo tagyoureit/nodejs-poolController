@@ -8,19 +8,25 @@ describe('recieves packets from buffer and follows them to decoding', function()
 
                 bottle.container.settings.logMessageDecoding = 1
                 bottle.container.settings.logPumpMessages = 1
-                bottle.container.settings.logLevel = 'verbose'
+                bottle.container.logger.transports.console.level = 'silly';
                 bottle.container.server.init()
                 bottle.container.io.init()
             });
 
             beforeEach(function() {
-                bottle.container.pump.init()
+
+
+
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                // loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
-                // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                bottle.container.pump.init()
+                // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 // checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
                 // isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
@@ -39,16 +45,15 @@ describe('recieves packets from buffer and follows them to decoding', function()
             })
 
             afterEach(function() {
-                // bottle.container.queuePacket.queuePacketsArrLength = 0
+                bottle.container.pump.init()
                 sandbox.restore()
 
             })
 
             after(function() {
-                bottle.container.pump.init()
                 bottle.container.settings.logMessageDecoding = 0
                 bottle.container.settings.logPumpMessages = 0
-                bottle.container.settings.logLevel = 'info'
+                bottle.container.logger.transports.console.level = 'info'
                 bottle.container.server.close()
             })
 

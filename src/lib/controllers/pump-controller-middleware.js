@@ -69,7 +69,7 @@ module.exports = function(container) {
 
     //generic functions that ends the commands to the pump by setting control to local and requesting the status
     var endPumpCommandSequence = function(address) {
-        container.pumpController.setPumpToLocalControl(address)
+        //container.pumpController.setPumpToLocalControl(address)
         container.pumpController.requestPumpStatus(address)
 
     }
@@ -100,8 +100,10 @@ module.exports = function(container) {
         var address = pumpIndexToAddress(index)
         container.pumpController.setPumpToRemoteControl(address)
         container.pumpController.runProgram(address, program)
+        //NOTE: In runRPM we send the power each time.  Do we not need to do that with Program sequence?
         if (container.pump.getPower(index) !== 1)
             container.pumpController.sendPumpPowerPacket(address, 1)
+
         endPumpCommandSequence(address)
         //return true
 
@@ -205,10 +207,10 @@ module.exports = function(container) {
     function pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, rpm, duration) {
         var address = pumpIndexToAddress(index)
         if (address > -1) {
+          if (container.settings.logApi) container.logger.verbose('Request to set pump %s (address: %s) to Program %s @ %s RPM for %s minutes', index, address, program, rpm, duration);
             pumpCommandSaveProgramSpeed(index, program, rpm)
             // runProgramSequenceForDuration(index, program, duration)
             container.pumpControllerTimers.startProgramTimer(index, program, duration)
-            if (container.settings.logApi) container.logger.verbose('Request to set pump %s to Program %s (address: %s) for @ %s RPM for %s minutes', index, address, program, rpm, duration);
             return true
 
         }

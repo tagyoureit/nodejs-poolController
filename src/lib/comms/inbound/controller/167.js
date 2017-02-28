@@ -15,40 +15,29 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
-
-
-var valves
-
+//Set Intellibrite Lights
 module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: valves.js')
+        container.logger.info('Loading: 96.js')
 
-    var init = function() {
-        valves = {
-            "valves": 0
-        }
+
+    function process(data, counter) {
+        //          0  1  2  3  4 5   6 7 8  9
+        //eg RED: 165,16,16,34,96,2,195,0,2,12
+        container.circuit.setControllerLightColor(data[6], data[7], counter)
+
+        return true
     }
 
-    function setValves(data) {
-
-        valves.valves = container.constants.strValves[data];
-    }
-
-    function getValves() {
-        return valves
-    }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: valves.js')
+        container.logger.info('Loaded: 96.js')
 
 
     return {
-        init: init,
-        setValves: setValves,
-        getValves: getValves
+        process: process
     }
 }
