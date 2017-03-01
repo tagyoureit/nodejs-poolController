@@ -57,6 +57,7 @@
     "coveralls": "^2.11.16",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
+    "istanbul": "^0.4.5",
     "jshint": "^2.9.4",
     "lodash": "^4.17.2",
     "mocha": "^3.1.2",
