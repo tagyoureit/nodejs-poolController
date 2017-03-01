@@ -53,6 +53,7 @@
     "@risingstack/v8-profiler": "^5.7.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
+    "coveralls": "^2.11.16",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
     "jshint": "^2.9.4",
