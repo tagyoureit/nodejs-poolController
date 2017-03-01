@@ -9,7 +9,8 @@
     "test:one": "mocha  ./specs/assets/config.json --reporter spec --require ./specs/helpers/chai.js",
     "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
-    "open:cover": "open coverage/lcov-report/index.html"
+    "open:cover": "open coverage/lcov-report/index.html",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
   },
   "repository": {
     "url": "git+https://github.com/tagyoureit/nodejs-poolController.git"
