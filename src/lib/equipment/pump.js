@@ -47,8 +47,8 @@ module.exports = function(container) {
 
     var pump1,
         pump2,
-        currentPumpStatus,
-        currentPumpStatusPacket
+        currentPumpStatus
+        // ,        currentPumpStatusPacket
 
 
     var numberOfPumps = function() {
@@ -73,7 +73,7 @@ module.exports = function(container) {
                 container.logger.silly('initializing pumps for first time')
             }
         else {
-            container.logger.silly('will reset pumps...', currentPumpStatus[1].power)
+            container.logger.silly('will reset pumps...')
         }
 
 
@@ -98,15 +98,15 @@ module.exports = function(container) {
             "4": -1
         }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
         //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
-        currentPumpStatus = ['blank', pump1, pump2]
-        currentPumpStatusPacket = ['blank', [],
-            []
-        ]; // variable to hold the status packets of the pumps
+        currentPumpStatus = {'1': pump1, '2': pump2}
+
+
+        // currentPumpStatusPacket = ['blank', [],  []]; // variable to hold the status packets of the pumps
 
         loadProgramRPMfromConfig()
 
         if (container.settings.logPumpMessages)
-            container.logger.silly('just reset pumps...', currentPumpStatus[1].power)
+            container.logger.silly('just reset pumps...')
     }
 
     function setTime(pump, hour, min) {

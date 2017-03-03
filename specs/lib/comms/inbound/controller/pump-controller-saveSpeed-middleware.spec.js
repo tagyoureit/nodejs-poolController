@@ -27,6 +27,7 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub = sandbox.spy(bottle.container.pumpController, 'saveProgramOnPump')
             setPumpToLocalControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToLocalControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
         })
 
         afterEach(function() {

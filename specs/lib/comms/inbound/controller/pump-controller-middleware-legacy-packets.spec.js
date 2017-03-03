@@ -25,6 +25,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             pumpControllerRPMTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
         })
 
         afterEach(function() {

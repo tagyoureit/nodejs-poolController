@@ -16,14 +16,16 @@
  */
 
 
-var chlorinatorTimer;
+var chlorinatorTimer, isRunning;
 module.exports = function(container) {
     var logger = container.logger
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: chlorinator-controller.js')
 
-
+    var isRunning = function() {
+        return isRunning
+    }
 
     function chlorinatorStatusCheck() {
 
@@ -43,21 +45,23 @@ module.exports = function(container) {
             } else {
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000) // every 4 seconds
             }
+            isRunning = 1
             return true
         }
+        isRunning = 0
         return false
     }
 
     function clearTimer() {
         if (chlorinatorTimer !== undefined)
             clearTimeout(chlorinatorTimer)
-
+        isRunning = 0
         return true
     }
 
     function startChlorinatorController() {
         if (container.settings.chlorinator.installed) {
-            if (container.settings.virtual.chlorinatorController === 'always' || !(container.settings.intellicom || container.settings.intellitouch)) {
+            if (container.settings.virtual.chlorinatorController === 'always' || !(container.settings.intellicom.installed || container.settings.intellitouch.installed)) {
                 if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller starting.')
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
             } else {
@@ -76,7 +80,8 @@ module.exports = function(container) {
     return {
         startChlorinatorController: startChlorinatorController,
         chlorinatorStatusCheck: chlorinatorStatusCheck,
-        clearTimer: clearTimer
+        clearTimer: clearTimer,
+        isRunning: isRunning
     }
 
 }

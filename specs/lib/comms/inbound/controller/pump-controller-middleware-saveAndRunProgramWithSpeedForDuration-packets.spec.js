@@ -10,11 +10,11 @@ describe('pump controller - save and run program with speed for duration', funct
         });
 
         beforeEach(function() {
-          loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-          loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-          loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-          loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-          loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()
@@ -23,10 +23,11 @@ describe('pump controller - save and run program with speed for duration', funct
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
         })
 
         afterEach(function() {
-          bottle.container.pump.init()
+            bottle.container.pump.init()
             //restore the sandbox after each function
             sandbox.restore()
         })

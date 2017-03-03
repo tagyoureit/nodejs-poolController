@@ -49,7 +49,6 @@ module.exports = function(container) {
     }
 
     var updatePumpProgramRPM = function(_pump, program, rpm) {
-      console.log('updatePump:', _pump, program, rpm)
         return init()
             .then(function(data) {
                     data.equipment.pump[_pump].programRPM[program] = rpm

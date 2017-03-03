@@ -23,6 +23,7 @@ describe('pump controller - save speed (1/2)', function() {
             //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
         })
 
         afterEach(function() {

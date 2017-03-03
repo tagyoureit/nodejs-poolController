@@ -63,13 +63,13 @@ module.exports = function(container) {
         container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
         container.sp.init()
 
-        if (container.settings.pump.standalone && !container.settings.intellicom && !container.settings.intellitouch) {
+        if (container.settings.pump.standalone && !container.settings.intellicom.installed && !container.settings.intellitouch.installed) {
             container.pumpControllerTimers.startPumpController()
         }
         if (container.settings.chlorinator.standalone) {
             container.chlorinatorController.startChlorinatorController()
         }
-        if (container.settings.intellitouch)
+        if (container.settings.intellitouch.installed)
         {
           container.intellitouch.getControllerConfiguration()
         }

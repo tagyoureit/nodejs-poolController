@@ -5,7 +5,7 @@ describe('chlorinator tests', function() {
     before(function() {
         bottle.container.settings.virtual.chlorinatorController = "default"
         bottle.container.settings.chlorinator.installed = 1
-        bottle.container.settings.intellitouch = 0
+        bottle.container.settings.intellitouch.installed = 0
         bottle.container.settings.intellicom = 0
         bottle.container.settings.logChlorinator = 1
         bottle.container.logger.transports.console.level = 'silly';
@@ -39,7 +39,7 @@ describe('chlorinator tests', function() {
     after(function() {
         bottle.container.settings.virtual.chlorinatorController = "default"
         bottle.container.settings.chlorinator.installed = 0
-        bottle.container.settings.intellitouch = 1
+        bottle.container.settings.intellitouch.installed = 1
         bottle.container.settings.intellicom = 0
         bottle.container.settings.logChlorinator = 0
         bottle.container.chlorinatorController.clearTimer()

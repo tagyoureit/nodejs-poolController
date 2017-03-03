@@ -1,4 +1,7 @@
 var URL = 'http://localhost:3000/'
+var Promise = require('bluebird'),
+    fs = require('fs')
+Promise.promisifyAll(fs)
 
 function getAllPoolData(endpoint) {
     var options = {
@@ -171,7 +174,7 @@ describe('#set functions', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
@@ -179,6 +182,7 @@ describe('#set functions', function() {
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
         })
 
         afterEach(function() {
@@ -402,22 +406,61 @@ describe('#set functions', function() {
                 })
             })
             it('API #8: saves pump 1 program 1 to 1000 rpm (NEW URL)', function(done) {
+                //also test saving to file with this function
+                configEditorStub.restore()
+                bottle.container.configEditor.updatePumpProgramRPM(1, 4, 3000)
+                    .then(function() {
 
-                requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1000').then(function(obj) {
-                    // console.log('obj: ', obj)
-                    obj.text.should.contain('REST API')
-                    obj.pump.should.eq(1)
-                    obj.program.should.eq(1)
-                    obj.speed.should.eq(1000)
-                    clock.tick(59 * 1000) //+59 sec
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
+                            .then(function(data) {
+                                console.log('0', data)
+                                return JSON.parse(data)
+                            })
+                            .then(function(config) {
+                                //check to see if RPM (3000) is written to file
+                                console.log('1', config)
+                                config.equipment.pump[1].programRPM[1].should.eq(1010)
+                            })
+                            .then(function(){                               return requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')})
+                            .then(function(obj) {
+                                console.log('obj: ', obj)
+                                obj.text.should.contain('REST API')
+                                obj.pump.should.eq(1)
+                                obj.program.should.eq(1)
+                                obj.speed.should.eq(1010)
+                                clock.tick(59 * 1000) //+59 sec
 
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                                bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
 
-                    clock.tick(59 * 60 * 1000) //59:59
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    done()
-                });
-            });
+                                clock.tick(59 * 60 * 1000) //59:59
+                                bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                                //done()
+                            })
+                            .then(function() {
+                                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
+                                    .then(function(data) {
+                                        console.log('1.9', data)
+                                        return JSON.parse(data)
+                                    })
+                                    .then(function(config) {
+                                        //check to see if RPM (1000) is written back to file
+                                        console.log('2', config)
+                                        config.equipment.pump[1].programRPM[1].should.eq(1010)
+                                        done()
+                                    })
+
+                            })
+
+                    }).catch(function(err) {
+                        err.should.not.eq(err)
+                        console.log(err)
+                        done()
+                    })
+            })
+
+
+
+
             it('API #9: saves and runs pump 1 to program 3 at 2000 rpm for unspecified (NEW URL)', function(done) {
 
                 requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/3/rpm/2000/').then(function(obj) {
@@ -454,39 +497,11 @@ describe('#set functions', function() {
                     bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                     done()
                 });
-
             })
-
-
-
-
-
-
-
         })
 
-
-
-        context('with the original HTTP REST API', function() {
-            it('API #10: sets pump 1 to program 1 at 1000 rpm for 2 minutes', function(done) {
-
-                requestPoolDataWithURL('pumpCommand/1/1/1000/2').then(function(obj) {
-                    obj.text.should.contain('REST API')
-                    obj.pump.should.eq(1)
-                    obj.program.should.eq(1)
-                    obj.speed.should.eq(1000)
-                    obj.duration.should.eq(2)
-                    clock.tick(59 * 1000) //+59 secs
-
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
-
-                    clock.tick(59 * 60 * 1000) //+59:59
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    done()
-                })
-            });
-        })
         context('with invalid URIs', function() {
+
             it('sets pump 1 program 1 to 1000 rpm', function(done) {
 
                 requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {

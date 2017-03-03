@@ -6,7 +6,7 @@ describe('chlorinator controller', function() {
             bottle.container.settings.virtual.chlorinatorController = "default"
             bottle.container.settings.chlorinator.installed = 1
             bottle.container.settings.logChlorinator = 1
-            bottle.container.settings.intellitouch = 0
+            bottle.container.settings.intellitouch.installed = 0
             bottle.container.settings.intellicom = 0
 
         });
@@ -34,7 +34,7 @@ describe('chlorinator controller', function() {
 
         after(function() {
           bottle.container.settings.virtual.chlorinatorController = "default"
-          bottle.container.settings.intellitouch = 1
+          bottle.container.settings.intellitouch.installed = 1
           bottle.container.settings.intellicom = 0
             bottle.container.settings.logChlorinator = 0
 

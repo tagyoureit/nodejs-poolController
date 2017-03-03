@@ -57,7 +57,6 @@ module.exports = function(container) {
 
         var chatterdatachecksum;
         var databytes = 0;
-
         if (packetType === 'chlorinator') {
 
             chatterdatachecksum = chatterCopy[len - 3];

@@ -157,7 +157,7 @@ module.exports = function(container) {
             }
 
         }
-
+                            if (s.logMessageDecoding)
         logger.silly('iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\ncontainer.packetBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, container.packetBuffer.length(), bufferToProcess.length, container.packetBuffer.length() === 0 && bufferToProcess.length > 0)
         if (breakLoop) {
             processingBuffer.processingBuffer = false;

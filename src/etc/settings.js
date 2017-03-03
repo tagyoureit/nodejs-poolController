@@ -181,15 +181,15 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n Config File: ' + configurationFile
     settingsStr += '\n ';
     settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
-    settingsStr += '\n var intellicom = ' + intellicom;
-    settingsStr += '\n var intellitouch = ' + intellitouch;
-    settingsStr += '\n var virtual = ' + JSON.stringify(virtual);
-    settingsStr += '\n var controller.id = ' + JSON.stringify(controller.id);
-    settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(circuitFriendlyNames)
+    settingsStr += '\n var intellicom = ' + JSON.stringify(intellicom, null, 4);
+    settingsStr += '\n var intellitouch = ' + JSON.stringify(intellitouch, null, 4);
+    settingsStr += '\n var virtual = ' + JSON.stringify(virtual, null, 4);
+    settingsStr += '\n var controller.id = ' + JSON.stringify(controller.id, null, 4);
+    settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(circuitFriendlyNames, null, 4)
     settingsStr += '\n'
-    settingsStr += '\n var chlorinator = ' + JSON.stringify(chlorinator);
+    settingsStr += '\n var chlorinator = ' + JSON.stringify(chlorinator, null, 4);
     settingsStr += '\n'
-    settingsStr += '\n var pump = ' + JSON.stringify(pump)
+    settingsStr += '\n var pump = ' + JSON.stringify(pump, null, 4)
     settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
     settingsStr += '\n ';
     settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';

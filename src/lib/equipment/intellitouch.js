@@ -79,7 +79,7 @@ module.exports = function(container) {
     function checkIfNeedControllerConfiguration() {
        if (controllerSettings.needConfiguration) {
 
-           if (container.settings.intellitouch) // ONLY check the configuration if the controller is Intellitouch (address 16)
+           if (container.settings.intellitouch.installed) // ONLY check the configuration if the controller is Intellitouch (address 16)
            {
                if (controllerSettings.preambleByte !== -1) {
 

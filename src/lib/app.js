@@ -186,8 +186,7 @@ var init = exports.init = function() {
 
     bottle.container.helpers
     bottle.container.integrations.init()
-
-}
+  }
 
 /* UNCOMMENT TO ALLOW V8 PROFILING */
 //var profile = require(__dirname + '/helpers/profiler.js').init(__dirname + '/../profiler')

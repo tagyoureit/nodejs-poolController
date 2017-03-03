@@ -150,7 +150,7 @@ module.exports = function(container) {
     function setChlorinatorStatusFromChlorinator(data, counter) {
         //put in logic (or logging here) for chlorinator discovered (upon 1st message?)
 
-        // if (!container.settings.intellitouch) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
+        // if (!container.settings.intellitouch.installed) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
         // {
         var destination, from, outputPoolPercent;
         if (data[container.constants.chlorinatorPacketFields.DEST] === 80) {
@@ -283,10 +283,10 @@ module.exports = function(container) {
                 }
         }
 
-        if (currentChlorinatorStatus.name === -1) // && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
+        if (currentChlorinatorStatus.name === -1 && container.chlorinatorController.isRunning()) // && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
         //If we see a chlorinator status packet, then request the name.  Not sure when the name would be automatically sent over otherwise.
         {
-            container.logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
+            container.logger.verbose('ing messages to retrieve Salt Cell Name (AquaRite or OEM)')
             //get salt cell name
             if (container.settings.logPacketWrites) {
                 container.logger.debug('decode: Queueing packet to retrieve Chlorinator Salt Cell Name: [16, 2, 80, 20, 0]')
