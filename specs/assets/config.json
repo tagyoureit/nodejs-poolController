@@ -96,9 +96,14 @@
             "netHost": "raspberrypi",
             "netPort": 9801
         },
-        "notifications" : {
-          "version" : {"remote": {"version": "0.0.0", "tag_name":"v0.0.0",
-                      "dismissUntilNextRemoteVersionBump": false}
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "0.0.0",
+                    "tag_name": "v0.0.0",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
+            }
         },
         "log": {
             "logLevel": "debug",

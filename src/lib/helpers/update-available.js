@@ -190,7 +190,6 @@ var promised = container.promisedIoPromise
             jsons.resultStr = 'Your version (' + jsons.local.version + ') is the same as the latest published release.'
             container.logger.info(jsons.resultStr)
         }
-        console.log('UPDATEAVAIL', jsons)
         container.io.emitToClients('updateAvailable')
     }
 

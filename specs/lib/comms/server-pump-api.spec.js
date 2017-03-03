@@ -174,7 +174,7 @@ describe('#set functions', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
-            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
@@ -413,15 +413,15 @@ describe('#set functions', function() {
 
                         return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
                             .then(function(data) {
-                                console.log('0', data)
                                 return JSON.parse(data)
                             })
                             .then(function(config) {
                                 //check to see if RPM (3000) is written to file
-                                console.log('1', config)
                                 config.equipment.pump[1].programRPM[1].should.eq(1010)
                             })
-                            .then(function(){                               return requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')})
+                            .then(function() {
+                                return requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')
+                            })
                             .then(function(obj) {
                                 console.log('obj: ', obj)
                                 obj.text.should.contain('REST API')
@@ -444,7 +444,6 @@ describe('#set functions', function() {
                                     })
                                     .then(function(config) {
                                         //check to see if RPM (1000) is written back to file
-                                        console.log('2', config)
                                         config.equipment.pump[1].programRPM[1].should.eq(1010)
                                         done()
                                     })
