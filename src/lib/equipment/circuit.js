@@ -63,7 +63,7 @@ module.exports = function(container) {
        circuit20 = new Circuit();
       //array of circuit objects.  Since Pentair uses 1-20, we'll just use a placeholder for the 1st [0] element in the array
 
-       currentCircuitArrObj = ['blank', circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circuit8, circuit9, circuit10, circuit11, circuit12, circuit13, circuit14, circuit15, circuit16, circuit17, circuit18, circuit19, circuit20];
+       currentCircuitArrObj = {"1": circuit1, "2": circuit2, "3": circuit3, "4": circuit4, "5": circuit5, "6": circuit6, "7": circuit7, "8": circuit8, "9": circuit9, "10": circuit10, "11": circuit11, "12": circuit12, "13": circuit13, "14": circuit14, "15": circuit15, "16": circuit16, "17":circuit17, "18": circuit18, "19": circuit19, "20": circuit20}
 
     }
 
