@@ -16,7 +16,7 @@
  */
 
 
-var chlorinatorTimer, isRunning;
+var chlorinatorTimer, isRunning = 0;
 module.exports = function(container) {
     var logger = container.logger
     /*istanbul ignore next */

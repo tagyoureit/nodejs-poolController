@@ -65,6 +65,25 @@ describe('#set functions', function() {
 
 
 
+            it('API #1: turns off pump 1 (Old URL)', function(done) {
+
+                requestPoolDataWithURL('pumpCommand/1/off').then(function(obj) {
+                    obj.text.should.contain('REST API')
+                    obj.pump.should.eq(1)
+                    // obj.duration.should.eq(600)
+                    // console.log('pumpQueue:', queuePacketStub.args)
+                    clock.tick(60 * 1000) //+1 min
+
+                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                    bottle.container.pump.getCurrentRunningMode(1).should.eq('off')
+                    bottle.container.pump.getCurrentRunningValue(1).should.eq(0)
+
+                    clock.tick(59 * 60 * 1000) //+1 hr
+                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                    done()
+                })
+            })
+
             it('API #1: turns off pump 1', function(done) {
 
                 requestPoolDataWithURL('pumpCommand/off/pump/1').then(function(obj) {
@@ -83,6 +102,7 @@ describe('#set functions', function() {
                     done()
                 })
             })
+
             it('API #1: turns off pump 2', function(done) {
 
                 requestPoolDataWithURL('pumpCommand/off/pump/2').then(function(obj) {
@@ -103,6 +123,26 @@ describe('#set functions', function() {
 
                 })
             })
+            it('API #2: turns on pump 1 (Old URL)', function(done) {
+
+                requestPoolDataWithURL('pumpCommand/1/on').then(function(obj) {
+                    obj.text.should.contain('REST API')
+                    obj.pump.should.eq(1)
+                    // obj.duration.should.eq(600)
+                    // console.log('pumpQueue:', queuePacketStub.args)
+                    clock.tick(60 * 1000) //+1 min
+
+                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                    bottle.container.pump.getCurrentRunningMode(1).should.eq('power')
+                    bottle.container.pump.getCurrentRunningValue(1).should.eq(1)
+
+                    clock.tick(59 * 60 * 1000) //+1 hr
+                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                    done()
+
+                })
+            })
+
             it('API #2: turns on pump 1', function(done) {
 
                 requestPoolDataWithURL('pumpCommand/run/pump/1').then(function(obj) {
@@ -423,7 +463,7 @@ describe('#set functions', function() {
                                 return requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')
                             })
                             .then(function(obj) {
-                                console.log('obj: ', obj)
+                                // console.log('obj: ', obj)
                                 obj.text.should.contain('REST API')
                                 obj.pump.should.eq(1)
                                 obj.program.should.eq(1)
@@ -439,7 +479,7 @@ describe('#set functions', function() {
                             .then(function() {
                                 return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
                                     .then(function(data) {
-                                        console.log('1.9', data)
+                                        // console.log('1.9', data)
                                         return JSON.parse(data)
                                     })
                                     .then(function(config) {

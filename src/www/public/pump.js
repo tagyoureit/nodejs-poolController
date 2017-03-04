@@ -82,22 +82,22 @@ $(function () {
 
     $('#pu1off').click(function () {
         //alert('pu1off clicked');
-        pumpCommand(1,0,0);
+        pumpCommand(1,'off');
     })
 
     $('#pu2off').click(function () {
 
-        pumpCommand(2,0, 0)
+        pumpCommand(2,'off')
     })
 
         $('#pu1on').click(function () {
         //alert('pu1off clicked');
-        pumpCommand(1, 1,0);
+        pumpCommand(1, 'on';
     })
 
             $('#pu2on').click(function () {
         //alert('pu1off clicked');
-        pumpCommand(1, 1,0);
+        pumpCommand(1, 'off');
     })
 
     function pumpCommand(equip, program, value, duration) {
