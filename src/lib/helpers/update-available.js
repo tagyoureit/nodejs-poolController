@@ -16,13 +16,14 @@
  */
 
 
-var fs = require('promised-io/fs'),
-
+var fs = require('fs'),
     path = require('path').posix,
+    Promise = require('bluebird'),
+    request = Promise.promisify(require("request")),
+    fs = require('fs'),
+    _ = require('underscore')
+Promise.promisifyAll(fs)
 
-    request = require('request')
-
-var _ = require('underscore')
 
 var userAgent = 'tagyoureit-nodejs-poolController-app',
     jsons = {},
@@ -32,14 +33,11 @@ var userAgent = 'tagyoureit-nodejs-poolController-app',
     location = path.join(process.cwd(), '/package.json')
 
 module.exports = function(container) {
-var promised = container.promisedIoPromise
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: update_avail.js')
 
     var compareVersions = exports.compareVersions = function() {
-        var Deferred = require("promised-io/promise").Deferred;
-        var deferred = new Deferred()
         container.logger.silly('update_avail: versions discovered: ', jsons)
         var clientVersion = jsons.local.version,
             remoteVersion = jsons.remote.version,
@@ -58,16 +56,14 @@ var promised = container.promisedIoPromise
 
         } catch (err) {
             container.logger.warn('update_avail: error comparing versions: ', err)
-            return deferred.reject(err)
+            return Promise.reject(err)
         }
-        //console.log('array of client vars:', clientVerArr)
         var clientVerCompare = 'equal';
         if (clientVerArr.length !== remoteVerArr.length) {
-            return deferred.rejected('Version length of client (' + clientVersion + ') and remote ( ' + remoteVersion + ') do not match.')
+            return Promise.reject('Version length of client (' + clientVersion + ') and remote ( ' + remoteVersion + ') do not match.')
             //emit(self, 'error', 'Version length of client (' + clientVersion + ') and remote ( ' + remoteVersion + ') do not match.')
         } else {
             for (var i = 0; i < clientVerArr.length; i++) {
-                //console.log('client ver: %s    rem ver: %s', clientVerArr[i], remoteVerArr[i])
                 if (remoteVerArr[i] > clientVerArr[i]) {
                     clientVerCompare = 'older'
                     break
@@ -78,15 +74,13 @@ var promised = container.promisedIoPromise
             }
         }
 
-        // console.log('client version is: ', clientVerCompare)
         jsons.result = clientVerCompare
-        deferred.resolve(jsons)
-        return deferred
+        return Promise.resolve(jsons)
+
 
     }
 
     var getVersionFromJson = function(data) {
-        //console.log('latest JSON:', data)
         if (!_.isObject(data)) {
             data = JSON.parse(data)
         }
@@ -101,41 +95,30 @@ var promised = container.promisedIoPromise
     //this var outside of the scope of loadLocalVersion so it can be overwritten by test units.
 
     var loadLocalVersion = exports.loadLocalVersion = function() {
-        var Deferred = require("promised-io/promise").Deferred;
-        var deferred = new Deferred();
+
         container.logger.silly('update_avail: reading local version at:', location)
 
-        fs.readFile(location, 'utf-8').then(function(data) {
+      return  fs.readFileAsync(location, 'utf-8')
+        .then(function(data) {
             jsons.local = {
                 'version': getVersionFromJson(data)
             }
-            return deferred.resolve(jsons.local)
-        }, function(error) {
-            container.logger.warn('update_avail: Error reading local package.json: ', error)
-            return deferred.reject(error)
         })
-
-        return deferred
+        .catch(function(error) {
+            container.logger.warn('update_avail: Error reading local package.json: ', error)
+        })
 
     }
 
     var parseLatestReleaseJson = function(data) {
-        //console.log('jsons.remote (before): ', jsons.remote)
         var jsonsReturn = {
             tag_name: data.tag_name,
-            // tarball_url: data.tarball_url,
-            // zipball_url: data.zipball_url,
             version: data.tag_name.replace('v', '')
         }
-        //console.log('jsonsReturn: ', jsonsReturn)
         return jsonsReturn
     }
 
     var getLatestReleaseJson = function() {
-        var Deferred = require("promised-io/promise").Deferred;
-        var deferred = new Deferred(function(cancel) {
-            console.log('The action was cancelled because ', cancel)
-        })
 
         var options = {
             method: 'GET',
@@ -145,36 +128,19 @@ var promised = container.promisedIoPromise
             }
 
         }
-        //console.log('fetching remote JSON for latest version', options)
-        request(options, function(error, res, body) {
-            //console.log('remoteDownloader: ', opc)
-            /*if (error) {
-                console.log('error %s', error)
-                    //deferred.reject(error)
-                return
-            }*/
-            if (res.statusCode === 403) {
-                container.logger.error('error with status code: %s', res.statusCode)
-                //throw Error(res.statusCode)
-                deferred.reject(res.statusCode)
-                //deferred.cancel(res.statusCode)
-                return
-            }
+        return request(options)
+        .then(function(data){
+          data = JSON.parse(data.body);
+          jsons.remote = parseLatestReleaseJson(data)
+          return Promise.resolve(jsons)
+        })
+        .catch(function(e){
+          Promise.reject('Error parsing the incoming data: ' + e);
 
-            try {
-                data = JSON.parse(body);
-                //console.log('latest release JSON: ', data)
-                jsons.remote = parseLatestReleaseJson(data)
-                deferred.resolve(data);
-                return
-            } catch (e) {
-                //throw Error('Error reading the dowloaded JSON. ', e);
-                deferred.reject('Error parsing the incoming data: ' + e);
-                return
-            }
         })
 
-        return deferred;
+
+
     }
 
 
@@ -207,7 +173,6 @@ var promised = container.promisedIoPromise
                         container.logger.error('Error getting version information for local or remote systems.', err)
                     })
         } else {
-            console.log(jsons)
             return emitResults(jsons)
         }
     }

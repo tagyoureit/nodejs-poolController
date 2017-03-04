@@ -17,8 +17,7 @@
 
 //TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
 
-var fsio = require('promised-io/fs'),
-    configClient,
+var configClient,
     dir = '/src/www/bootstrap',
     file = 'configClient.json',
     path = require('path').posix,
