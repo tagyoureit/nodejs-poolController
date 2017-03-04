@@ -218,7 +218,7 @@ describe('socket.io pump tests', function() {
                 // console.log(msg)
                 msg.circuits[0].should.eq('blank')
                 msg.pumps[1].pump.should.eq(1)
-                msg.schedule[0].should.eq('blank')
+                msg.schedule.should.exist
                 client.disconnect()
                 done()
             })

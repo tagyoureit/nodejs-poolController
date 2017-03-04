@@ -30,7 +30,7 @@ module.exports = function(container) {
 
 
     var init = function() {
-      currentSchedule = ["blank"]; //schedules
+      currentSchedule = {}; //schedules
     }
 
     var formatSchedId = function(id) {
