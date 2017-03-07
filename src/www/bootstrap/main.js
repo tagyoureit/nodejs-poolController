@@ -158,7 +158,7 @@ function buildSchDays(currSchedule) {
 	strRow = '<tr class="borderless toppad" name="' + schName + '" id="' + schName + '" class="botpad"><td colspan="4" align="left">';
 	var arrDays = [false, false, false, false, false, false, false];
 	splitDays = currSchedule.DAYS.split(" ");
-	splitDays.forEach(function(currDay, indx) {
+	$.each(splitDays, function(indx, currDay) {
 		if (currDay !== "")
 			arrDays[dayOfWeekAsInteger(currDay)] = true;
 	});
@@ -203,7 +203,7 @@ String.prototype.toTitleCase = function() {
 function startSocketRx() {
 	socket.on('circuit', function(data) {
 		if (data !== null) {
-			data.forEach(function(currCircuit, indx) {
+			$.each(data, function(indx, currCircuit) {
 				if (currCircuit.hasOwnProperty('friendlyName')) {
 					// Check for POOL or SPA - then ignore friendlyName, need to use circuitFunction for these two!
 					if ((currCircuit.circuitFunction.toUpperCase() === "POOL") || (currCircuit.circuitFunction.toUpperCase() === "SPA"))
@@ -232,7 +232,7 @@ function startSocketRx() {
 	socket.on('pump', function(data) {
 		if (data !== null) {
 			// Build Pump table / panel
-			data.forEach(function(currPump, indx) {
+			$.each(data, function(indx, currPump) {
 				if (currPump === null) {
 					//console.log("Pump: Dataset empty.")
 				} else {
@@ -318,7 +318,7 @@ function startSocketRx() {
 			$('#schedules tr').not('tr:first').remove();
 			$('#eggtimers tr').not('tr:first').remove();
 			// And (Re)Build Schedule and EggTimer tables / panels
-			data.forEach(function(currSchedule, indx) {
+			$.each(data, function(indx, currSchedule) {
 				if (currSchedule === null) {
 					//console.log("Schedule: Dataset empty.")
 				} else {
