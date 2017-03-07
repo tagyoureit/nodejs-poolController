@@ -72,11 +72,11 @@ module.exports = function(container) {
             io.sockets.emit('temp',
                 temp
             )
+            io.sockets.emit('temperatures', temp)
         }
 
         if (outputType === 'pump' || outputType === 'all') {
             var pumpStatus = container.pump.getCurrentPumpStatus()
-            // console.log('emitting pump')
             io.sockets.emit('pump',
                 pumpStatus
             )
@@ -155,12 +155,17 @@ module.exports = function(container) {
                 emitToClients('all')
             })
 
+
+            socket.on('one', function() {
+                emitToClients('one')
+            })
+
             socket.on('setConfigClient', function(a, b, c, d) {
                 container.bootstrapConfigEditor.update(a, b, c, d)
             })
 
             socket.on('resetConfigClient', function() {
-              console.log('reset called')
+                console.log('reset called')
                 container.bootstrapConfigEditor.reset()
             })
 
@@ -328,6 +333,11 @@ module.exports = function(container) {
             socket.on('reload', function() {
                 logger.info('Reload requested from Socket.io')
                 container.reload.reload()
+            })
+
+            socket.on('updateVersionNotification', function(bool) {
+                logger.info('updateVersionNotification requested from Socket.io.  value:', bool)
+                container.configEditor.updateVersionNotification(bool)
             })
 
             emitToClients('all')

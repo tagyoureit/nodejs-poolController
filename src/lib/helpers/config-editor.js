@@ -33,7 +33,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: config-editor.js')
 
-    file = container.settings.configurationFile
+    file = exports.file = container.settings.configurationFile //exported for API Test #8
     location = path.join(process.cwd(), dir, file)
 
 
@@ -51,8 +51,7 @@ module.exports = function(container) {
     var updatePumpProgramRPM = function(_pump, program, rpm) {
         return init()
             .then(function(data) {
-                    data.equipment.pump[_pump].programRPM[program] = rpm
-
+                data.equipment.pump[_pump].programRPM[program] = rpm
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -63,28 +62,45 @@ module.exports = function(container) {
             })
     }
 
-    var getProgramRPM = function(_pump){
+    var updateVersionNotification = function(dismissUntilNextRemoteVersionBump) {
         return init()
-          .then(function(){
-            return config.equipment[_pump].programRPM
-          })
+            .then(function(data) {
+                data.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
+                results = container.updateAvailable.getResults()
+                data.poolController.notifications.version.remote.version = results.version
+                data.poolController.notifications.version.remote.tag_name = results.tag_name
+                return Promise.resolve(data)
+            })
+            .then(function(data) {
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                return container.logger.verbose('Updated version notification settings %s', location)
+            })
+            .catch(function(err) {
+                container.logger.warn('Error updating version notification settings %s: ', location, err)
+            })
     }
 
-    // var reset = function() {
-    //     var promise = init()
-    //         .then(function(data) {
-    //             for (var key in data.panelState) {
-    //                 data.panelState[key].state = "visible"
-    //             }
-    //             return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
-    //         })
-    //         .then(function() {
-    //             container.logger.verbose('Reset bootstrap %s', location)
-    //         })
-    //         .catch(function(err) {
-    //             container.logger.warn('Error resetting bootstrap %s: ', location, err)
-    //         })
-    // }
+    var getPumpProgramRPM = function(_pump) {
+        return init()
+            .then(function(config) {
+                return config.equipment.pump[_pump].programRPM
+            })
+            .catch(function(err) {
+                container.logger.error('Something went wrong getting pump program from config file.', err)
+            })
+    }
+
+    var getVersionNotification = function(_pump) {
+        return init(config)
+            .then(function() {
+                return config.poolController.notifications.version.remote
+            })
+            .catch(function(err) {
+                container.logger.error('Something went wrong getting version notification from config file.', err)
+            })
+    }
 
 
 
@@ -94,9 +110,10 @@ module.exports = function(container) {
 
 
     return {
-        updatePumpProgramRPM: updatePumpProgramRPM,
-        // reset: reset,
         init: init,
-        getProgramRPM: getProgramRPM
+        updatePumpProgramRPM: updatePumpProgramRPM,
+        updateVersionNotification: updateVersionNotification,
+        getPumpProgramRPM: getPumpProgramRPM,
+        getVersionNotification: getVersionNotification
     }
 }

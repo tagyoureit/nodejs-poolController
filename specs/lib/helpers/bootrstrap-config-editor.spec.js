@@ -4,7 +4,7 @@ var fs = require('fs'),
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
 var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/bootstrap-config-editor.js'))
-var hmm
+
 describe('updates/resets bootstrap configClient.json', function() {
     context('when called with the internal function', function() {
         describe('#updates panelState', function() {

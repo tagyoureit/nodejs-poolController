@@ -182,7 +182,7 @@ module.exports = function(container) {
 
 
     var numberOfSchedulesRegistered = function() {
-        return currentSchedule.length
+        return Object.keys(currentSchedule).length
     }
 
     var getControllerScheduleByID = function(id) {

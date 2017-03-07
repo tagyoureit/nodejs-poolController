@@ -125,7 +125,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To client | <code>schedule</code> | outputs an object with the schedule information
 | To client | <code>chlorinator</code> | outputs an object with the chlorinator information
 | To client | <code>updateAvailable</code> | outputs an object with current running version vs latest published release on GitHub (local is the running app, remote is the GitHub version)
-| To client | <code>all</code> | outputs an object with all equipment in one JSON
+| To client | <code>one</code> | outputs an object with all equipment in one JSON
 
 ***
 

@@ -20,7 +20,6 @@ var fs = require('fs'),
     path = require('path').posix,
     Promise = require('bluebird'),
     request = Promise.promisify(require("request")),
-    fs = require('fs'),
     _ = require('underscore')
 Promise.promisifyAll(fs)
 

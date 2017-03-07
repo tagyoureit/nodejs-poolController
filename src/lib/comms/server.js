@@ -99,6 +99,10 @@ module.exports = function(container) {
             res.send(container.helpers.allEquipmentInOneJSON())
         })
 
+        app.get('/one', function(req, res) {
+            res.send(container.helpers.allEquipmentInOneJSON())
+        })
+
         /*istanbul ignore next */
         app.get('/reload', function(req, res) {
 

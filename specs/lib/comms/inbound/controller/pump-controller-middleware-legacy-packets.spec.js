@@ -58,16 +58,13 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             /* Desired output
             [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
               [ [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ] ],
-              [ [ 165, 0, 96, 33, 4, 1, 0 ] ],
               [ [ 165, 0, 96, 33, 7, 0 ] ] ]
             start timer 1 :  []
             queuePacketStub.callCount:  4
 
             */
-            // console.log('logger 1,1,1000,null: ', loggerStub.args)
+            // console.log('logger 1,1,1000,null: ', loggerInfoStub.args)
             // console.log('run 1,1,1000,null: ', queuePacketStub.args)
-            // console.log('start timer 1,1,1000,null : ', pumpControllerTimersSpy.args)
-            // loggerStub.callCount.should.eq(2)
             // console.log('queuePacketStub 1,1,1000: ', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(3)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
@@ -93,7 +90,15 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             bottle.container.pumpControllerMiddleware.pumpCommand(index, program, speed, duration)
 
             /* Desired output
-            run 1,1,1000,1 (after 30s):  10 [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+            run 1,1,1000,1:  7 [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
+              [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+            start timer 1,1,1000,1 :  [ [ 1, 1, 1 ] ]
+            and now after 2 mins:  16 [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
               [ [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ] ],
               [ [ 165, 0, 96, 33, 7, 0 ] ],
               [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
@@ -102,32 +107,18 @@ describe('pump controller - checks legacy pumpCommand API', function() {
               [ [ 165, 0, 96, 33, 7, 0 ] ],
               [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
               [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 0 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 6, 1, 4 ] ],
               [ [ 165, 0, 96, 33, 7, 0 ] ] ]
-              and now after 2 mins:  13
-
-              [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],   pump remote
-                [ [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ] ],  save speed
-                [ [ 165, 0, 96, 33, 7, 0 ] ],   status
-
-                [ [ 165, 0, 96, 33, 4, 1, 255 ] ],   pump remote
-                [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],  run prg 1
-                [ [ 165, 0, 96, 33, 6, 1, 10 ] ],   power on
-                [ [ 165, 0, 96, 33, 7, 0 ] ],  status
-
-                [ [ 165, 0, 96, 33, 4, 1, 255 ] ],  pump remote
-                [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],  run prg 1
-                [ [ 165, 0, 96, 33, 7, 0 ] ],  status
-
-                [ [ 165, 0, 96, 33, 4, 1, 255 ] ],   pump remote
-                [ [ 165, 0, 96, 33, 6, 1, 4 ] ],  power off
-                [ [ 165, 0, 96, 33, 7, 0 ] ] ]  status
-            start timer 1,1,1000,1 :  [ [ 1, 1, 1 ] ]
-
             */
 
-            //console.log('logger 1,1,1000,1: ', loggerStub.args)
+            // console.log('logger 1,1,1000,1: ', loggerInfoStub.args)
             // console.log('run 1,1,1000,1: ', queuePacketStub.callCount, queuePacketStub.args)
-            //console.log('start timer 1,1,1000,1 : ', pumpControllerProgramTimersSpy.args)
+            // console.log('start timer 1,1,1000,1 : ', pumpControllerProgramTimersSpy.args)
             queuePacketStub.callCount.should.eq(7)
 
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
@@ -154,7 +145,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             clock.tick(240 * 1000) //advance 4 mins
             //Save(3) + run/power(4) + Run(3) +Off(3) = 13
             // console.log('and now after 2 mins: ', queuePacketStub.callCount, queuePacketStub.args)
-            queuePacketStub.callCount.should.eq(13)
+            queuePacketStub.callCount.should.eq(16)
             return
 
         });
@@ -383,7 +374,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //emitToClientsStub.calledWith('pump')
 
             clock.tick(30 * 1000)
-            //console.log('call count after 30: ', queuePacketStub.callCount)
+            // console.log('call count after 30: ', queuePacketStub.callCount,queuePacketStub.args)
             queuePacketStub.callCount.should.eq(10)
 
             //after 70 mins we should only have 60 mins of calls
@@ -392,9 +383,10 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //2nd call @ 1m = (10 total)
             //59 mins * 3 calls * 2x/min = 354 (367 total)
             clock.tick(70 * 60 * 1000) //70 mins
-            queuePacketStub.callCount.should.eq(367)
+            // console.log('call count after 70 mins: ', queuePacketStub.callCount,queuePacketStub.args)
+            queuePacketStub.callCount.should.eq(370)
             clock.tick(240 * 1000) //after two more minutes (timer expired)
-            queuePacketStub.callCount.should.eq(367)
+            queuePacketStub.callCount.should.eq(370)
             bottle.container.pumpControllerTimers.clearTimer(2)
             return
 

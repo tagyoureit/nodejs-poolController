@@ -121,6 +121,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 container.logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
+            container.pumpControllerMiddleware.runProgramSequence(index, 0)
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
@@ -161,6 +162,7 @@ module.exports = function(container) {
             if (container.settings.logPumpMessages)
                 container.logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
+            container.pumpControllerMiddleware.runProgramSequence(index, 0)
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped

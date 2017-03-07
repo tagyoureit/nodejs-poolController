@@ -445,60 +445,24 @@ describe('#set functions', function() {
                     })
                 })
             })
+
             it('API #8: saves pump 1 program 1 to 1000 rpm (NEW URL)', function(done) {
-                //also test saving to file with this function
-                configEditorStub.restore()
-                bottle.container.configEditor.updatePumpProgramRPM(1, 4, 3000)
-                    .then(function() {
 
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
-                            .then(function(data) {
-                                return JSON.parse(data)
-                            })
-                            .then(function(config) {
-                                //check to see if RPM (3000) is written to file
-                                config.equipment.pump[1].programRPM[1].should.eq(1010)
-                            })
-                            .then(function() {
-                                return requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')
-                            })
-                            .then(function(obj) {
-                                // console.log('obj: ', obj)
-                                obj.text.should.contain('REST API')
-                                obj.pump.should.eq(1)
-                                obj.program.should.eq(1)
-                                obj.speed.should.eq(1010)
-                                clock.tick(59 * 1000) //+59 sec
+                requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')
+                    .then(function(obj) {
+                        obj.text.should.contain('REST API')
+                        obj.pump.should.eq(1)
+                        obj.program.should.eq(1)
+                        obj.speed.should.eq(1010)
+                        clock.tick(59 * 1000) //+59 sec
 
-                                bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
 
-                                clock.tick(59 * 60 * 1000) //59:59
-                                bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                                //done()
-                            })
-                            .then(function() {
-                                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
-                                    .then(function(data) {
-                                        // console.log('1.9', data)
-                                        return JSON.parse(data)
-                                    })
-                                    .then(function(config) {
-                                        //check to see if RPM (1000) is written back to file
-                                        config.equipment.pump[1].programRPM[1].should.eq(1010)
-                                        done()
-                                    })
-
-                            })
-
-                    }).catch(function(err) {
-                        err.should.not.eq(err)
-                        console.log(err)
+                        clock.tick(59 * 60 * 1000) //59:59
+                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                         done()
                     })
             })
-
-
-
 
             it('API #9: saves and runs pump 1 to program 3 at 2000 rpm for unspecified (NEW URL)', function(done) {
 

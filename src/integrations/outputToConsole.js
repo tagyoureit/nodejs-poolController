@@ -23,7 +23,7 @@ module.exports = function(container) {
     var configFile = container.settings.getConfig()
         //and read the variables we put there
     var level = configFile.outputToConsole.level
-    var protocol = configFile.Misc.expressTransport
+    var protocol = configFile.poolController.web.expressTransport
     var serverURL;
     var secureTransport;
     //The following IF statement sets the varibles if the transport is either HTTP or HTTPS
@@ -56,6 +56,10 @@ module.exports = function(container) {
     //The 'error' function fires if there is an error connecting to the socket
     socket.on('error', function(err) {
         console.log('outputToConsole: Error connecting to socket @ %s (secure: %s)', serverURL, secureTransport)
+    })
+
+    socket.on('schedule', function(data){
+      console.log('outputToConsole: The schedules were broadcast, and it was received.  The schedules are: %s', JSON.stringify(data, null, 4))
     })
 
     //This init can be this simple.  It just lets us know the integration is running
