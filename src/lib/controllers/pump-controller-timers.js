@@ -85,6 +85,7 @@ var offCycleRemotePowerPump1 = function(){
     //clear the internal timer for pump control
     var clearTimer = function(index) {
         container.pump.setCurrentRunning(index, 'off', 0, -1)
+        container.pumpControllerMiddleware.runProgramSequence(index, 0)
         container.pumpControllerMiddleware.runPowerSequence(index, 0)
         if (index === 1 && pump1TimerRunning) {
             clearTimeout(pump1Timer);
@@ -125,7 +126,6 @@ var offCycleRemotePowerPump1 = function(){
             if (container.settings.logPumpMessages)
                 container.logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            container.pumpControllerMiddleware.runProgramSequence(index, 0)
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
@@ -166,7 +166,6 @@ var offCycleRemotePowerPump1 = function(){
             if (container.settings.logPumpMessages)
                 container.logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
-            container.pumpControllerMiddleware.runProgramSequence(index, 0)
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped

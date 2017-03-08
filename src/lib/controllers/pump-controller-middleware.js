@@ -101,7 +101,7 @@ module.exports = function(container) {
         container.pumpController.setPumpToRemoteControl(address)
         container.pumpController.runProgram(address, program)
         //NOTE: In runRPM we send the power each time.  Do we not need to do that with Program sequence?
-        if (container.pump.getPower(index) !== 1)
+        if (container.pump.getPower(index) !== 1 && program!==0)
             container.pumpController.sendPumpPowerPacket(address, 1)
 
         endPumpCommandSequence(address)

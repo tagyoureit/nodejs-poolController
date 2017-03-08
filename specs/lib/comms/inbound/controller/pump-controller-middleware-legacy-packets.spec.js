@@ -202,11 +202,11 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //and now the timer is executed and we have 4 new packets
             queuePacketStub.callCount.should.eq(8)
             clock.tick((59 * 60 * 1000) + (30 * 1000)) //after 1 hour
-            //On/Run (4) + On/Run(4) + Off(3)
+            //On/Run (4) + On/Run(4) + setprogram=0(3) + Off(3)
             // console.log('run 1,null,1000,1 (after 1 hour): ', queuePacketStub.callCount, queuePacketStub.args)
-            queuePacketStub.callCount.should.eq(11)
+            queuePacketStub.callCount.should.eq(14)
             clock.tick(120 * 1000) //after 2 more minutes
-            queuePacketStub.callCount.should.eq(11)
+            queuePacketStub.callCount.should.eq(14)
             return
 
         });
@@ -248,10 +248,10 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             //and now the timer is executed and we have 5 new packets
             queuePacketStub.callCount.should.eq(8)
             clock.tick((60 * 60 * 1000) + (30 * 1000)) //after 1 hour
-            //On/Run(4) * 2x/min(120)=480+Off(3)=483??
-            queuePacketStub.callCount.should.eq(483)
+            //On/Run(4) * 2x/min(120)=480+ SetProgram=0 (3) + Off(3)=486
+            queuePacketStub.callCount.should.eq(486)
             clock.tick(240 * 1000) //after 2 more mins
-            queuePacketStub.callCount.should.eq(483)
+            queuePacketStub.callCount.should.eq(486)
             return
 
         });
@@ -262,13 +262,25 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             var program = 'off'
             var speed = null
             var duration = null
-            //var address = myModule('whatever').pumpIndexToAddress(index)
+
+            /*
+            turns off pump 1:  [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 0 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ],
+              [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+              [ [ 165, 0, 96, 33, 6, 1, 4 ] ],
+              [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+             */
 
             bottle.container.pumpControllerMiddleware.pumpCommand(index, program, speed, duration)
-            queuePacketStub.callCount.should.eq(3)
+            // console.log('turns off pump 1: ', queuePacketStub.args)
+            queuePacketStub.callCount.should.eq(6)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
-            queuePacketStub.args[1][0].should.deep.equal(global.pump1PowerOffPacket)
-            queuePacketStub.args[2][0].should.deep.equal(global.pump1RequestStatusPacket)
+            queuePacketStub.args[1][0].should.deep.equal(global.pump1StopProgram)
+            queuePacketStub.args[3][0].should.deep.equal(global.pump1RemotePacket)
+            queuePacketStub.args[4][0].should.deep.equal(global.pump1PowerOffPacket)
+            queuePacketStub.args[5][0].should.deep.equal(global.pump1RequestStatusPacket)
+            queuePacketStub.args[5][0].should.deep.equal(global.pump1RequestStatusPacket)
             return
         })
 
@@ -329,7 +341,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             // console.log('run 1,on,null,null after 1 min: ', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(9)
             bottle.container.pumpControllerTimers.clearTimer(1)
-            queuePacketStub.callCount.should.eq(12)
+            queuePacketStub.callCount.should.eq(15)
             return
 
         });
