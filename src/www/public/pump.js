@@ -92,7 +92,7 @@ $(function () {
 
         $('#pu1on').click(function () {
         //alert('pu1off clicked');
-        pumpCommand(1, 'on';
+        pumpCommand(1, 'on');
     })
 
             $('#pu2on').click(function () {

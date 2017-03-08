@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "mocha  ./specs/assets/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
+    "test": "mocha  ./specs/assets/config/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "test:one": "mocha  ./specs/assets/config.json --reporter spec --require ./specs/helpers/chai.js ./specs/index.spec.js",
     "test:cover": "istanbul cover  _mocha -- ./specs/assets/config.json ./specs/index.spec.js --include-all-sources --recursive  ./specs  --require ./specs/helpers/chai.js --reporter spec",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
