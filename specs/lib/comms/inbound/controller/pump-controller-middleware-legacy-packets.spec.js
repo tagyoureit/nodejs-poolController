@@ -5,11 +5,12 @@ describe('pump controller - checks legacy pumpCommand API', function() {
 
 
         before(function() {
-
+            bottle.container.pump.init()
             bottle.container.settings.logApi = 1
             bottle.container.settings.logPumpTimers = 1
             bottle.container.settings.logPumpMessages = 1
             bottle.container.logger.transports.console.level = 'silly';
+
         });
 
         beforeEach(function() {
@@ -25,7 +26,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             pumpControllerRPMTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
@@ -50,7 +51,6 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             var program = 1
             var speed = 1000
             var duration = null
-            //var address = myModule('whatever').pumpIndexToAddress(index)
 
             bottle.container.pumpControllerMiddleware.pumpCommand(index, program, speed, duration)
 
@@ -182,7 +182,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
               [ [ 165, 0, 96, 33, 7, 0 ] ] ]
             */
 
-            // console.log('logger 1,null,1000,1: ', loggerStub.args)
+            // console.log('logger 1,null,1000,1: ', loggerInfoStub.args)
             // console.log('run 1,null,1000,1: ', queuePacketStub.callCount, queuePacketStub.args)
             //console.log('start timer 1,null,1000,1 : ', pumpControllerProgramTimersSpy.args)
             queuePacketStub.callCount.should.eq(4)
@@ -228,7 +228,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             queuePacketStub.callCount:  4
             */
 
-            // console.log('logger 1,null,1000,1: ', loggerStub.args)
+            // console.log('logger 1,null,1000,1: ', loggerInfoStub.args)
             // console.log('run 1,null,1000,1: ', queuePacketStub.callCount, queuePacketStub.args)
             //console.log('start timer 1,null,1000,1 : ', pumpControllerProgramTimersSpy.args)
             queuePacketStub.callCount.should.eq(4)
@@ -284,7 +284,6 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             return
         })
 
-
         it('turns on pump 1 (runs for 1 minute, then turns off)', function() {
 
             var index = 1
@@ -322,10 +321,10 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             queuePacketStub.callCount:  3
 
             */
-            // console.log('logger 1,on,null,null: ', loggerStub.args)
+            // console.log('logger 1,on,null,null: ', loggerInfoStub.args)
             // console.log('run 1,on,null,null: ', queuePacketStub.args)
             // console.log('start timer 1,on,null,null: ', pumpControllerTimersSpy.args)
-            //loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
+            //loggerInfoStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
             queuePacketStub.callCount.should.eq(3)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
             queuePacketStub.args[1][0].should.deep.equal(global.pump1PowerOnPacket)
@@ -371,7 +370,7 @@ describe('pump controller - checks legacy pumpCommand API', function() {
 
             */
             // console.log('run 2,2,500: ', queuePacketStub.args)
-            // console.log('logger 2,2,500: ', loggerStub.args)
+            // console.log('logger 2,2,500: ', loggerInfoStub.args)
 
 
             queuePacketStub.callCount.should.eq(7)
@@ -432,9 +431,9 @@ describe('pump controller - checks legacy pumpCommand API', function() {
             */
             // console.log('run 2,4,3450,120: ', queuePacketStub.args)
             // console.log('start timer 2,4,3450,120 : ', pumpControllerTimersSpy.args)
-            // console.log('logger 2,4,3450,120: ', loggerStub.args)
+            // console.log('logger 2,4,3450,120: ', loggerInfoStub.args)
             //
-            //loggerStub.callCount.should.eq(0)
+            //loggerInfoStub.callCount.should.eq(0)
             queuePacketStub.callCount.should.eq(7)
 
             queuePacketStub.args[0][0].should.deep.equal(global.pump2RemotePacket)

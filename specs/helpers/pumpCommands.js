@@ -12,6 +12,8 @@ pump1SetProgram1RPM500Packet = exports.pump1SetProgram1RPM500Packet = [ 165, 0, 
 pump1SetProgram2RPM500Packet = exports.pump1SetProgram2RPM500Packet = [ 165, 0, 96, 33, 1, 4, 3, 40, 1, 244 ]
 pump1SetProgram1RPM1000Packet = exports.pump1SetProgram1RPM1000Packet = [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ]
 
+pump1SetProgram1GPM15Packet = exports.pump1SetProgram1GPM15Packet = [165, 0, 96, 33, 1, 4, 3, 39, 0, 15]
+
 //run speed (without program)
 pump1SetRPM1000Packet = exports.pump1SetRPM1000Packet = [ 165, 0, 96, 33, 1, 4, 2, 196, 3, 232 ]
 
@@ -28,6 +30,7 @@ pump1RunProgram1Packet = exports.pump1RunProgram1Packet = [ 165, 0, 96, 33, 1, 4
 pump1RunProgram2Packet = exports.pump1RunProgram2Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 16 ]
 pump1RunProgram3Packet = exports.pump1RunProgram3Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 24 ]
 pump1RunProgram4Packet = exports.pump1RunProgram4Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 32 ]
+
 
 /*  PUMP 2  */
 //Local/Remote

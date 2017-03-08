@@ -37,7 +37,7 @@ describe('pump controller', function() {
 
         it('initializes the pump variables', function() {
 
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/', 'config.json'), 'utf8')
+            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config', 'config.json'), 'utf8')
                 .then(function(data) {
                     return JSON.parse(data)
                 })
@@ -46,8 +46,8 @@ describe('pump controller', function() {
                     bottle.container.settings.pump = config.equipment.pump;
                     bottle.container.pump.init()
                     var pumpStatus = bottle.container.pump.getCurrentPumpStatus()
-                    pumpStatus[1].programRPM[2].should.eq(2500)
-                    pumpStatus[2].programRPM[3].should.eq(3450)
+                    pumpStatus[1].externalProgram[2].should.eq(2500)
+                    pumpStatus[2].externalProgram[3].should.eq(3450)
 
                 })
 

@@ -1,0 +1,34 @@
+{
+    "1": {
+        "externalProgram": {
+            "1": 1000,
+            "2": 2500,
+            "3": -1,
+            "4": 3000
+        },
+        "friendlyName": "",
+        "type": "VS",
+        "id": {
+            "productName": "",
+            "productNumber": "",
+            "manufacturer": "",
+            "description": ""
+        }
+    },
+    "2": {
+        "externalProgram": {
+            "1": 1010,
+            "2": 2500,
+            "3": 3450,
+            "4": -1
+        },
+        "friendlyName": "",
+        "type": "VS",
+        "id": {
+            "productName": "",
+            "productNumber": "",
+            "manufacturer": "",
+            "description": ""
+        }
+    }
+}

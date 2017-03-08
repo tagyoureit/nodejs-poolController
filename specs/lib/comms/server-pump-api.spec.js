@@ -222,7 +222,7 @@ describe('#set functions', function() {
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
@@ -269,10 +269,10 @@ describe('#set functions', function() {
 
             it('API #4: runs pump 1, program 1', function(done) {
                 requestPoolDataWithURL('pumpCommand/1/1').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
-                    // console.log('pumpCommandStub2 called with: ', pumpCommandStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
+                    // console.log('loggerWarnStub called with: ', loggerWarnStub.args)
+                    // console.log('pumpCommandStub called with: ', pumpCommandStub.args)
                     // console.log('result: ', result)
-                    //loggerStub.args[0][0].should.eq('Please update the URL to the new format: /pumpCommand/{run or save}/pump/1/program/1')
                     pumpCommandStub.args[0][0].should.eq(1)
                     pumpCommandStub.args[0][1].should.eq('1') //should be a sting because it could be 0-4 or on/off
                     loggerWarnStub.calledOnce.should.be.true

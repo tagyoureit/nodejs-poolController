@@ -54,28 +54,28 @@ module.exports = function(container) {
                     {
                         program = 1
                          rpm = data[8] * 256 + data[9];
-                        container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
+                        container.pump.saveExternalProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 40: //0x28
                     {
                          program = 2
                          rpm = data[8] * 256 + data[9];
-                        container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
+                        container.pump.saveExternalProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 41: //0x29
                     {
                          program = 3
                          rpm = data[8] * 256 + data[9];
-                        container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
+                        container.pump.saveExternalProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 42: //0x2a
                     {
                          program = 4
                          rpm = data[8] * 256 + data[9];
-                        container.pump.saveProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
+                        container.pump.saveExternalProgramAs(program, rpm, data[container.constants.packetFields.FROM], data, counter)
                         break;
                     }
                 case 43: //0x2B

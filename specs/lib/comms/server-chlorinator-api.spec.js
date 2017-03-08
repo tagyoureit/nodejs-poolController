@@ -74,7 +74,7 @@ describe('#set functions', function() {
             it('should send a message if chlorinator is not installed', function(done) {
                 bottle.container.settings.chlorinator.installed = 0
                 requestPoolDataWithURL('chlorinator/0').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.text.should.contain('FAIL')
                     queuePacketStub.callCount.should.eq(0)
@@ -90,7 +90,7 @@ describe('#set functions', function() {
             it('starts chlorinator at 50%', function(done) {
 
                 requestPoolDataWithURL('chlorinator/50').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.status.should.eq('on')
                     result.value.should.eq(50)
@@ -102,7 +102,7 @@ describe('#set functions', function() {
             it('starts chlorinator at 100%', function(done) {
 
                 requestPoolDataWithURL('chlorinator/100').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.status.should.eq('on')
                     result.value.should.eq(100)
@@ -114,7 +114,7 @@ describe('#set functions', function() {
             it('starts chlorinator at 101% (super chlorinate)', function(done) {
 
                 requestPoolDataWithURL('chlorinator/101').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.status.should.eq('on')
                     result.value.should.eq(101)
@@ -126,7 +126,7 @@ describe('#set functions', function() {
             it('starts chlorinator at -1% (should fail)', function(done) {
 
                 requestPoolDataWithURL('chlorinator/-1').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.text.should.contain('FAIL')
                     queuePacketStub.callCount.should.eq(0)
@@ -136,7 +136,7 @@ describe('#set functions', function() {
             it('starts chlorinator at 150% (should fail)', function(done) {
 
                 requestPoolDataWithURL('chlorinator/150').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.text.should.contain('FAIL')
                     queuePacketStub.callCount.should.eq(0)
@@ -146,7 +146,7 @@ describe('#set functions', function() {
             it('starts chlorinator at 0%', function(done) {
                 //do this one last so
                 requestPoolDataWithURL('chlorinator/0').then(function(result) {
-                    // console.log('loggerStub called with: ', loggerStub.args)
+                    // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                     // console.log('result: ', result)
                     result.status.should.eq('off')
                     result.value.should.eq(0)

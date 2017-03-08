@@ -27,7 +27,7 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub = sandbox.spy(bottle.container.pumpController, 'saveProgramOnPump')
             setPumpToLocalControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToLocalControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
@@ -48,7 +48,7 @@ describe('pump controller - save speed (2/2)', function() {
             var program = 1
             var speed = 1000
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
@@ -82,10 +82,10 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub.alwaysCalledWith(96, 1, 1000).should.be.true
 
             //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             //loggerInfoOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
@@ -108,7 +108,7 @@ describe('pump controller - save speed (2/2)', function() {
             var program = 2
             var speed = 1000
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
@@ -136,10 +136,10 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub.alwaysCalledWith(96, 2, 1000).should.be.true
 
             //log output should equal string
-            // var loggerOutput = loggerStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
@@ -161,7 +161,7 @@ describe('pump controller - save speed (2/2)', function() {
             var index = 2
             var program = 2
             var speed = 2000
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
@@ -189,10 +189,10 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub.alwaysCalledWith(97, 2, 2000).should.be.true
 
             //log output should equal string
-            // var loggerOutput = loggerStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
@@ -216,7 +216,7 @@ describe('pump controller - save speed (2/2)', function() {
             var program = 5
             var speed = 1000
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
             //none of these should be called
             setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -226,10 +226,10 @@ describe('pump controller - save speed (2/2)', function() {
             emitToClientsStub.callCount.should.eq(0)
 
             //log output should equal string
-            // var loggerOutput = loggerStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             // loggerOutput.should.eq('FAIL: User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             return
@@ -244,7 +244,7 @@ describe('pump controller - save speed (2/2)', function() {
             var program = 1
             var speed = 1000
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
             //none of these should be called
             setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -254,10 +254,10 @@ describe('pump controller - save speed (2/2)', function() {
             emitToClientsStub.callCount.should.eq(0)
 
             //log output should equal string
-            // var loggerOutput = loggerStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             // loggerOutput.should.eq('FAIL: User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
             return
 
@@ -270,7 +270,7 @@ describe('pump controller - save speed (2/2)', function() {
             var program = 1
             var speed = 5000
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
             //none of these should be called
             setPumpToRemoteControlStub.callCount.should.eq(0)
@@ -279,10 +279,10 @@ describe('pump controller - save speed (2/2)', function() {
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
             //log output should equal string
-            // var loggerOutput = loggerStub.args[0][0].replace('%s', loggerStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerStub.args[0][4])
+            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
+            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
             //  loggerOutput.should.eq('FAIL: RPM provided (' + speed + ') is outside of tolerances.')
             return
         })

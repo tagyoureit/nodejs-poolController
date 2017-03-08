@@ -23,7 +23,7 @@ describe('pump controller - save speed (1/2)', function() {
             //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
@@ -45,11 +45,11 @@ describe('pump controller - save speed (1/2)', function() {
             var speed = 1000
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
-            loggerStub:  []
+            loggerInfoStub:  []
             queuePacketStub.args: [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
               [ [ 165, 0, 96, 33, 1, 4, 3, 39, 3, 232 ] ],
               [ [ 165, 0, 96, 33, 7, 0 ] ] ]
@@ -57,7 +57,7 @@ describe('pump controller - save speed (1/2)', function() {
 
             */
 
-            //loggerStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
+            //loggerInfoStub.callCount.should.eq(0) //hmmm?  does this depend on config settings?
             // console.log('sets pump 1 program 1 to 1000 rpm queuePacketStub:', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(3)
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
@@ -74,7 +74,7 @@ describe('pump controller - save speed (1/2)', function() {
             var speed = 500
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
@@ -85,7 +85,7 @@ describe('pump controller - save speed (1/2)', function() {
 
             */
             // console.log('sets pump 1 program 2 to 500 rpm queuePacketStub:', queuePacketStub.args)
-            //loggerStub.callCount.should.eq(0)
+            //loggerInfoStub.callCount.should.eq(0)
             queuePacketStub.callCount.should.eq(3)
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
             queuePacketStub.args[1][0].should.deep.equal([165, 0, 96, 33, 1, 4, 3, 40, 1, 244])
@@ -103,7 +103,7 @@ describe('pump controller - save speed (1/2)', function() {
             var speed = 3450
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(index, program, speed)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveProgram(index, program, speed)
 
 
             /* Desired output
@@ -114,7 +114,7 @@ describe('pump controller - save speed (1/2)', function() {
 
                     */
 
-            //  loggerStub.callCount.should.eq(0)
+            //  loggerInfoStub.callCount.should.eq(0)
             // console.log('sets pump 2 program 4 to 3450 rpm queuePacketStub:', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(3)
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 97, 33, 4, 1, 255])

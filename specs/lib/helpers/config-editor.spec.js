@@ -16,17 +16,17 @@ describe('updates config.json variables', function() {
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config.json'))
+            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'))
                 .then(function(orig) {
-                    return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), orig)
+                    return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
                 })
                 // .then(function() {
-                //     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), 'utf-8')
+                //     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
                 // })
                 // .then(function(copy) {
                 //     console.log('just copied _', copy)
@@ -41,7 +41,7 @@ describe('updates config.json variables', function() {
             sandbox.restore()
             return Promise.resolve()
                 .then(function() {
-                    return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/_config.json'))
+                    return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'))
                 })
                 // .then(function() {
                 //     console.log('file removed')
@@ -59,7 +59,7 @@ describe('updates config.json variables', function() {
 
         it('#gets version notification information', function(done) {
             myModule.__with__({
-                //'bottle.container.settings.configurationFile': '/specs/assets/config.json'
+                //'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
 
             })(function() {
                 return Promise.resolve()
@@ -78,19 +78,19 @@ describe('updates config.json variables', function() {
             })
         });
 
-        it('#tests updatePumpProgramRPM',
+        it('#tests updateExternalPumpProgram',
             function(done) {
                 myModule.__with__({
-                    'bottle.container.settings.configurationFile': '/specs/assets/_config.json'
+                    'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
 
                 })(function() {
-                    myModule(bottle.container).updatePumpProgramRPM(1, 1, 500)
+                    myModule(bottle.container).updateExternalPumpProgram(1, 1, 500)
                     setTimeout(function() {
                         //need delay to allow for file to write to disk
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), 'utf-8')
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
                             .then(function(changed) {
                                 changed = JSON.parse(changed)
-                                changed.equipment.pump[1].programRPM[1].should.eq(500)
+                                changed.equipment.pump[1].externalProgram[1].should.eq(500)
                                 done()
                             })
 
@@ -107,7 +107,7 @@ describe('updates config.json variables', function() {
             })
             myModule.__with__({
                 //'dir': '/specs/assets',
-                'bottle.container.settings.configurationFile': '/specs/assets/_config.json'
+                'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
 
             })(function() {
                 return Promise.resolve()
@@ -116,7 +116,7 @@ describe('updates config.json variables', function() {
                     })
                     .delay(150)
                     .then(function() {
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), 'utf-8')
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
                             .then(function(changed) {
                                 changed = JSON.parse(changed)
                                 changed.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.eq(true)
@@ -133,18 +133,18 @@ describe('updates config.json variables', function() {
             })
         })
 
-        it('#gets pumpProgramRPM', function(done) {
+        it('#gets pumpExternalProgram', function(done) {
             myModule.__with__({
-                'bottle.container.settings.configurationFile': '/specs/assets/config.json'
+                'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
             })(function() {
-                return myModule(bottle.container).getPumpProgramRPM(1)
+                return myModule(bottle.container).getPumpExternalProgram(1)
                     .then(function(data) {
                         data[1].should.eq(500)
                         done()
                     })
                     .catch(function(err) {
                     /* istanbul ignore next */
-                        console.log('error with getting pumpProgramRPM notification:', err)
+                        console.log('error with getting pumpExternalProgram notification:', err)
                     })
             })
         })
@@ -171,12 +171,12 @@ context('when called with the Socket API', function() {
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotification')
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config.json'))
+            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'))
                 .then(function(orig) {
-                    return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), orig)
+                    return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
                 })
                 // .then(function() {
-                //     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/_config.json'), 'utf-8')
+                //     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
                 // })
                 // .then(function(copy) {
                 //     console.log('just copied _config', copy)
@@ -190,7 +190,7 @@ context('when called with the Socket API', function() {
 
         afterEach(function() {
             sandbox.restore()
-            return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/_config.json'))
+            return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'))
             // .then(function() {
             //     console.log('file removed')
             // })

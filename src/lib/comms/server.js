@@ -397,7 +397,7 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = null
-            container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, speed)
+            container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
             res.send(response)
         })
 
@@ -413,7 +413,7 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = -1
-            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, speed, -1)
+            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1)
             res.send(response)
         })
 
@@ -429,10 +429,84 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = duration
-            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, speed, duration)
+            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
             res.send(response)
         })
 
+//#11 Run pump at GPM for an indefinite duration
+app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function(req, res) {
+    var pump = parseInt(req.params.pump)
+    var gpm = parseInt(req.params.gpm)
+    var response = {}
+    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: null'
+    response.pump = pump
+    response.speed = gpm
+    response.duration = -1
+    // container.pumpControllerMiddleware.runGPMSequence(pump, gpm)
+    container.pumpControllerTimers.startGPMTimer(pump, gpm, -1)
+    res.send(response)
+})
+
+//#12 Run pump at GPM for specified duration
+app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function(req, res) {
+    var pump = parseInt(req.params.pump)
+    var gpm = parseInt(req.params.gpm)
+    var duration = parseInt(req.params.duration)
+    var response = {}
+    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: ' + duration
+    response.pump = pump
+    response.value = gpm
+    response.duration = duration
+    container.pumpControllerTimers.startGPMTimer(pump, gpm, duration)
+    res.send(response)
+})
+
+//#13  Save program to pump
+app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+    var pump = parseInt(req.params.pump)
+    var program = parseInt(req.params.program)
+    var speed = parseInt(req.params.speed)
+    var response = {}
+    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', gpm: ' + speed + ', duration: null'
+    response.pump = pump
+    response.program = program
+    response.speed = speed
+    response.duration = null
+    container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
+    res.send(response)
+})
+
+//#14  Save and run program for indefinite duration
+app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+    var pump = parseInt(req.params.pump)
+    var program = parseInt(req.params.program)
+    var speed = parseInt(req.params.speed)
+    var duration = parseInt(req.params.duration)
+    var response = {}
+    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: indefinite'
+    response.pump = pump
+    response.program = program
+    response.speed = speed
+    response.duration = -1
+    container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1)
+    res.send(response)
+})
+
+//#14  Save and run program for specified duration
+app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function(req, res) {
+    var pump = parseInt(req.params.pump)
+    var program = parseInt(req.params.program)
+    var speed = parseInt(req.params.speed)
+    var duration = parseInt(req.params.duration)
+    var response = {}
+    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
+    response.pump = pump
+    response.program = program
+    response.speed = speed
+    response.duration = duration
+    container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
+    res.send(response)
+})
 
         /* END New pumpCommand API's  */
 

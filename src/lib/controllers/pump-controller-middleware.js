@@ -48,11 +48,26 @@ module.exports = function(container) {
         return -1
     }
 
-    var validRPM = function(rpm) {
-        if (rpm >= 450 && rpm <= 3450)
-            return true
-        else
-            return false
+    var validRPMorGPM = function(index, val) {
+        if (val===null){
+          return false
+        }
+        else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
+        {
+            if (val >= 450 && val <= 3450)
+                return true
+            else {
+                container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
+                return false
+            }
+        } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
+            if (val >= 15 && val <= 130)
+                return true
+            else {
+                container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
+                return false
+            }
+        }
     }
 
     var validProgram = function(program) {
@@ -91,7 +106,7 @@ module.exports = function(container) {
     }
 
     // function pumpCommandRunSpeedProgram(index, program, rpm) {
-    //     pumpCommandSaveProgramSpeed(index, program, rpm)
+    //     pumpCommandSaveProgram(index, program, rpm)
     //     //runProgramSequence(index, program))
     // }
 
@@ -101,7 +116,7 @@ module.exports = function(container) {
         container.pumpController.setPumpToRemoteControl(address)
         container.pumpController.runProgram(address, program)
         //NOTE: In runRPM we send the power each time.  Do we not need to do that with Program sequence?
-        if (container.pump.getPower(index) !== 1 && program!==0)
+        if (container.pump.getPower(index) !== 1 && program !== 0)
             container.pumpController.sendPumpPowerPacket(address, 1)
 
         endPumpCommandSequence(address)
@@ -127,65 +142,17 @@ module.exports = function(container) {
 
     }
 
-    //function to run a given RPM for a specified duration
-    // function runProgramSequenceForDuration(index, program, duration) {
-    //     var address = pumpIndexToAddress(index)
-    //
-    //     if (address > -1 && validProgram(program) && duration > 0 && duration !== null) {
-    //
-    //         if (container.settings.logApi) container.logger.verbose('Request to set pump %s (address: %s) to Program %s  for %s minutes', index, address, program, duration);
-    //
-    //         container.pumpController.setPumpToRemoteControl(address)
-    //         container.pumpController.sendPumpPowerPacket(address, 1) //maybe this isn't needed???  Just to save we should not turn power on.
-    //         container.pumpController.runProgram(address, program)
-    //         container.pumpController.setPumpDuration(address, duration)
-    //
-    //         //run the timer update 30s 2x/minute
-    //         container.pumpControllerTimers.startProgramTimer(index, duration)
-    //
-    //         endPumpCommandSequence(address)
-    //         return true
-    //     }
-    //     container.logger.warn('FAIL: Request to set pump %s (address: %s) to Program %s for %s minutes', index, address, program, duration);
-    //     return false
-    // }
-
-    //function to run a program for a specified duration
-    // function runRPMSequenceForDuration(index, rpm, duration) {
-    //     var address = pumpIndexToAddress(index)
-    //
-    //     if (address > -1 && validRPM(rpm) && duration !== null && duration > 0) {
-    //
-    //         if (container.settings.logApi) container.logger.verbose('Request to set pump %s (address: %s) to RPM %s  for %s minutes', index, address, rpm, duration);
-    //
-    //         container.pumpController.setPumpToRemoteControl(address)
-    //         container.pumpController.sendPumpPowerPacket(address, 1) //maybe this isn't needed???  Just to save we should not turn power on.
-    //         container.pumpController.runRPM(address, rpm)
-    //         console.log('duration_: ', duration)
-    //         //NOTE: We may not be able to run an RPM for duration without a Program...
-    //         container.pumpController.setPumpDuration(address, duration)
-    //
-    //         //run the timer update 30s 2x/minute
-    //         container.pumpControllerTimers.startTimer(index)
-    //
-    //         endPumpCommandSequence(address)
-    //         return true
-    //     }
-    //     container.logger.warn('FAIL: Request to set pump %s (address: %s) @ %s RPM for %s minutes', index, address, rpm, duration);
-    //     return false
-    // }
-
     /* ----- END PUMP PACKET SEQUENCES -----*/
 
 
     /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
 
     //function to save the program & speed
-    var pumpCommandSaveProgramSpeed = function(index, program, rpm) {
+    var pumpCommandSaveProgram = function(index, program, rpm) {
         var address = pumpIndexToAddress(index)
         if (address > -1 && validProgram(program)) {
             //set program packet
-            if (validRPM(rpm)) {
+            if (validRPMorGPM(index, rpm)) {
                 if (container.settings.logApi) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM', index, address, program, rpm);
 
                 container.pumpController.setPumpToRemoteControl(address)
@@ -204,12 +171,11 @@ module.exports = function(container) {
     }
 
     //function to save and run a program with rpm for a duration
-    function pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, rpm, duration) {
+    function pumpCommandSaveAndRunProgramWithValueForDuration(index, program, rpm, duration) {
         var address = pumpIndexToAddress(index)
         if (address > -1) {
             if (container.settings.logApi) container.logger.verbose('Request to set pump %s (address: %s) to Program %s @ %s RPM for %s minutes', index, address, program, rpm, duration);
-            pumpCommandSaveProgramSpeed(index, program, rpm)
-            // runProgramSequenceForDuration(index, program, duration)
+            pumpCommandSaveProgram(index, program, rpm)
             container.pumpControllerTimers.startProgramTimer(index, program, duration)
             return true
 
@@ -241,14 +207,14 @@ module.exports = function(container) {
 
         {
             if (validProgram(program)) {
-                if (validRPM(rpm)) {
+                if (validRPMorGPM(index, rpm)) {
                     if (duration > 0) {
-                        pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, rpm, duration)
+                        pumpCommandSaveAndRunProgramWithValueForDuration(index, program, rpm, duration)
                         //if (container.settings.logApi) container.logger.verbose('User request to save and run  pump %s as program %s @ %s RPM for %s minutes', index, program, rpm, duration);
 
                     } else {
                         //##
-                        pumpCommandSaveProgramSpeed(index, program, rpm)
+                        pumpCommandSaveProgram(index, program, rpm)
                         //if (container.settings.logApi) container.logger.verbose('User request to save pump %s as program %s @ %s RPM', index, program, rpm);
                     }
                 } else {
@@ -297,7 +263,7 @@ module.exports = function(container) {
         // container.pumpController.setPumpToRemoteControl(address)
         //
         // //set program packet
-        // if (validRPM(rpm)) {
+        // if (validRPMorGPM(rpm)) {
         //     if (container.settings.logApi) container.logger.warn('rpm provided (%s) is outside of tolerances.  Program being run with rpm that is stored in pump.', rpm)
         // } else
         // if (isNaN(rpm) || rpm == null) {
@@ -335,8 +301,8 @@ module.exports = function(container) {
     return {
         runProgramSequence: runProgramSequence,
         pumpCommand: pumpCommand,
-        pumpCommandSaveProgramSpeed: pumpCommandSaveProgramSpeed,
-        pumpCommandSaveAndRunProgramWithSpeedForDuration: pumpCommandSaveAndRunProgramWithSpeedForDuration,
+        pumpCommandSaveProgram: pumpCommandSaveProgram,
+        pumpCommandSaveAndRunProgramWithValueForDuration: pumpCommandSaveAndRunProgramWithValueForDuration,
         runRPMSequence: runRPMSequence,
         runPowerSequence: runPowerSequence,
         requestStatusSequence: requestStatusSequence,

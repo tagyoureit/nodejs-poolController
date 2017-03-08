@@ -48,17 +48,31 @@ module.exports = function(container) {
         }
     }
 
-    var updatePumpProgramRPM = function(_pump, program, rpm) {
+    var updateExternalPumpProgram = function(_pump, program, rpm) {
         return init()
             .then(function(data) {
-                data.equipment.pump[_pump].programRPM[program] = rpm
+                data.equipment.pump[_pump].externalProgram[program] = rpm
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
-                container.logger.verbose('Updated pump settings %s', location)
+                container.logger.verbose('Updated pump RPM settings %s', location)
             })
             .catch(function(err) {
-                container.logger.warn('Error updating config pump settings %s: ', location, err)
+                container.logger.warn('Error updating pump RPM settings %s: ', location, err)
+            })
+    }
+
+    var updatePumpProgramGPM = function(_pump, program, gpm) {
+        return init()
+            .then(function(data) {
+                data.equipment.pump[_pump].programGPM[program] = gpm
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                container.logger.verbose('Updated pump GPM settings %s', location)
+            })
+            .catch(function(err) {
+                container.logger.warn('Error updating config GPM pump settings %s: ', location, err)
             })
     }
 
@@ -82,10 +96,10 @@ module.exports = function(container) {
             })
     }
 
-    var getPumpProgramRPM = function(_pump) {
+    var getPumpExternalProgram = function(_pump) {
         return init()
             .then(function(config) {
-                return config.equipment.pump[_pump].programRPM
+                return config.equipment.pump[_pump].externalProgram
             })
             .catch(function(err) {
                 container.logger.error('Something went wrong getting pump program from config file.', err)
@@ -111,9 +125,10 @@ module.exports = function(container) {
 
     return {
         init: init,
-        updatePumpProgramRPM: updatePumpProgramRPM,
+        updateExternalPumpProgram: updateExternalPumpProgram,
+        updatePumpProgramGPM: updatePumpProgramGPM,
         updateVersionNotification: updateVersionNotification,
-        getPumpProgramRPM: getPumpProgramRPM,
+        getPumpExternalProgram: getPumpExternalProgram,
         getVersionNotification: getVersionNotification
     }
 }

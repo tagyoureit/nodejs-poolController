@@ -277,13 +277,13 @@ module.exports = function(container) {
                         }
                     }
                 } else if (action === "save") {
-                    container.pumpControllerMiddleware.pumpCommandSaveProgramSpeed(pump, program, rpm)
+                    container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, rpm)
                 } else if (action === "saverun") {
                     if (duration === null) {
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, -1)
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, -1)
 
                     } else {
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(pump, program, rpm, duration)
+                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, duration)
 
                     }
                 }

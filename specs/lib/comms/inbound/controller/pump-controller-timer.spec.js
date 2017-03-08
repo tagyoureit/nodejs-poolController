@@ -24,7 +24,7 @@ describe('pump controller', function() {
 
             setPumpRemoteStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {

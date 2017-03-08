@@ -29,7 +29,7 @@ describe('circuit controller', function() {
 
         it('sets the names for circuits other than pool and spa', function() {
             var queuePacketStub = sinon.stub()
-            var loggerStub = sinon.stub()
+            var loggerInfoStub = sinon.stub()
             var fnArr = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/specs/assets/config', 'configFriendlyNames.json'), 'utf8'))
             //var _response = {}
             myModule.__with__({
@@ -155,7 +155,7 @@ describe('circuit controller', function() {
     describe('#functions that get and set circuits', function() {
         it('toggles circuit 1 with no callback', function() {
             var queuePacketStub = sinon.stub()
-            var loggerStub = sinon.stub()
+            var loggerInfoStub = sinon.stub()
             //var _response = {}
             myModule.__with__({
                 'currentCircuitArrObj': global.circuitJson,
@@ -165,7 +165,7 @@ describe('circuit controller', function() {
                         'queuePacket': queuePacketStub
                     },
                     'logger': {
-                        'info': loggerStub
+                        'info': loggerInfoStub
                     },
                     'intellitouch': {
                         'getPreambleByte': function() {
@@ -180,10 +180,10 @@ describe('circuit controller', function() {
                 myModule(bottle.container).toggleCircuit(1)
                 //console.log('response: ', _response)
                 //console.log('stub: ', queuePacketStub.args)
-                //console.log('logger stub: ', loggerStub.args[0])
+                //console.log('logger stub: ', loggerInfoStub.args[0])
 
-                loggerStub.args[0][0].status.should.eq('on')
-                loggerStub.args[0][0].value.should.eq(1)
+                loggerInfoStub.args[0][0].status.should.eq('on')
+                loggerInfoStub.args[0][0].value.should.eq(1)
                 queuePacketStub.args[0][0].should.deep.eq([165, 99, 16, 999, 134, 2, 1, 1])
 
 
@@ -195,7 +195,7 @@ describe('circuit controller', function() {
 
         it('toggles circuit 1 with a callback', function() {
             var queuePacketStub = sinon.stub()
-            var loggerStub = sinon.stub()
+            var loggerInfoStub = sinon.stub()
             //var _response = {}
             myModule.__with__({
                 'currentCircuitArrObj': global.circuitJson,
@@ -205,7 +205,7 @@ describe('circuit controller', function() {
                         'queuePacket': queuePacketStub
                     },
                     'logger': {
-                        'info': loggerStub
+                        'info': loggerInfoStub
                     },
                     'intellitouch': {
                         'getPreambleByte': function() {
@@ -224,10 +224,10 @@ describe('circuit controller', function() {
 
                 //console.log('response: ', _response)
                 //console.log('stub: ', queuePacketStub.args)
-                //console.log('logger stub: ', loggerStub.args[0])
+                //console.log('logger stub: ', loggerInfoStub.args[0])
 
-                loggerStub.args[0][0].status.should.eq('on')
-                loggerStub.args[0][0].value.should.eq(1)
+                loggerInfoStub.args[0][0].status.should.eq('on')
+                loggerInfoStub.args[0][0].value.should.eq(1)
                 queuePacketStub.args[0][0].should.deep.eq([165, 99, 16, 999, 134, 2, 1, 1])
                 response.value.should.eq(1)
             })

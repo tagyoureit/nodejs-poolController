@@ -21,9 +21,10 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump.js')
 
-    function Pump(number, name, time, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, duration, currentrunning, programRPM, program1rpm, program2rpm, program3rpm, program4rpm, remotecontrol, power) {
+    function Pump(number, name, type, time, run, mode, drivestate, watts, rpm, gpm, ppc, err, timer, duration, currentrunning, externalProgram, remotecontrol, power) {
         this.pump = number; //1 or 2
         this.name = name;
+        this.type = type;
         this.time = time;
         this.run = run;
         this.mode = mode;
@@ -36,11 +37,11 @@ module.exports = function(container) {
         this.timer = timer;
         this.duration = duration; //duration on pump, not program duration
         this.currentrunning = currentrunning
-        this.programRPM = programRPM
-        this.program1rpm = program1rpm;
-        this.program2rpm = program2rpm;
-        this.program3rpm = program3rpm;
-        this.program4rpm = program4rpm;
+        this.externalProgram = externalProgram
+        // this.program1rpm = program1rpm;
+        // this.program2rpm = program2rpm;
+        // this.program3rpm = program3rpm;
+        // this.program4rpm = program4rpm;
         this.remotecontrol = remotecontrol;
         this.power = power;
     }
@@ -48,7 +49,7 @@ module.exports = function(container) {
     var pump1,
         pump2,
         currentPumpStatus
-        // ,        currentPumpStatusPacket
+    // ,        currentPumpStatusPacket
 
 
     var numberOfPumps = function() {
@@ -61,11 +62,14 @@ module.exports = function(container) {
         return numberOfPumps
     }
 
-    var loadProgramRPMfromConfig = function() {
+
+
+    var loadProgramsFromConfig = function() {
         for (var _pump in container.settings.pump) {
-        currentPumpStatus[_pump].programRPM = JSON.parse(JSON.stringify(container.settings.pump[_pump].programRPM))
+            currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(container.settings.pump[_pump].externalProgram))
+            currentPumpStatus[_pump].type = JSON.parse(JSON.stringify(container.settings.pump[_pump].type))
+        }
     }
-  }
 
     var init = function() {
         if (container.settings.logPumpMessages)
@@ -76,37 +80,39 @@ module.exports = function(container) {
             container.logger.silly('will reset pumps...')
         }
 
-
-        pump1 = new Pump(1, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+        var externalProgram = {
+                "1": -1,
+                "2": -1,
+                "3": -1,
+                "4": -1
+            },
+            pump1 = new Pump(1, 'namenotset', 'typenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+                'mode': 'off',
+                'value': 0,
+                'remainingduration': -1
+            }, externalProgram, 'remotecontrolnotset', 'powernotset');
+        pump2 = new Pump(2, 'namenotset', 'typenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
             'mode': 'off',
             'value': 0,
             'remainingduration': -1
-        }, {
-            "1": -1,
-            "2": -1,
-            "3": -1,
-            "4": -1
-        }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
-        pump2 = new Pump(2, 'namenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
-            'mode': 'off',
-            'value': 0,
-            'remainingduration': -1
-        }, {
-            "1": -1,
-            "2": -1,
-            "3": -1,
-            "4": -1
-        }, 'prg1notset', 'prg2notset', 'prg3notset', 'prg4notset', 'remotecontrolnotset', 'powernotset');
+        }, externalProgram, 'remotecontrolnotset', 'powernotset');
         //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
-        currentPumpStatus = {'1': pump1, '2': pump2}
+        currentPumpStatus = {
+            '1': pump1,
+            '2': pump2
+        }
 
 
         // currentPumpStatusPacket = ['blank', [],  []]; // variable to hold the status packets of the pumps
 
-        loadProgramRPMfromConfig()
+        loadProgramsFromConfig()
 
         if (container.settings.logPumpMessages)
             container.logger.silly('just reset pumps...')
+    }
+
+    var pumpType = function(index) {
+        return currentPumpStatus[index].type
     }
 
     function setTime(pump, hour, min) {
@@ -166,30 +172,15 @@ module.exports = function(container) {
     }
 
 
-    function saveProgramAs(program, rpm, from, data, counter) {
-        // var programXrpm = 'program' + program.toString() + 'rpm'
-        //
-        // var pump = getPumpNumber(data)
-        //
-        // if (currentPumpStatus[pump].programXrpm !== rpm) {
-        //     currentPumpStatus[pump].programXrpm = rpm;
-        //     if (container.settings.logPumpMessages)
-        //         container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
-        // }
-
-        //var programRPM = 'program' + program.toString() + 'rpm'
-
+    function saveExternalProgramAs(program, value, from, data, counter) {
         var _pump = getPumpNumber(data)
 
-        if (currentPumpStatus[_pump].programRPM[program] !== rpm) {
-            // container.settings.pump[_pump].programRPM[program] = rpm
-            container.configEditor.updatePumpProgramRPM(_pump, program, rpm)
-            currentPumpStatus[_pump].programRPM[program] = rpm;
+        if (currentPumpStatus[_pump].externalProgram[program] !== value) {
+            container.configEditor.updateExternalPumpProgram(_pump, program, value)
+            currentPumpStatus[_pump].externalProgram[program] = value;
             if (container.settings.logPumpMessages)
-                container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], rpm, JSON.stringify(data));
+                container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], value, JSON.stringify(data));
         }
-
-
         container.io.emitToClients('pump')
     }
 
@@ -418,24 +409,24 @@ module.exports = function(container) {
         } else {
             // var str = 'program' + program + 'rpm';
             // currentPumpStatus[pump][str] = rpm;
-            currentPumpStatus[pump].programRPM[program] = rpm;
-            container.configEditor.updatePump(pump, 'programRPM', null, rpm)
+            currentPumpStatus[pump].externalProgram[program] = rpm;
+            container.configEditor.updatePump(pump, 'externalProgram', null, rpm)
             currentPumpStatus[pump].currentprogram = program;
         }
 
     }
 
-    //saves a program & rpm
-    var saveProgram = function(pump, program, rpm) {
+    //saves a program & rpm/gpm
+    var saveProgram = function(pump, program, val) {
         // var str = 'program' + program + 'rpm';
-        currentPumpStatus[pump].programRPM[program] = rpm;
-        container.configEditor.updatePumpProgramRPM(pump, program, rpm)
+        currentPumpStatus[pump].externalProgram[program] = val;
+        container.configEditor.updateExternalPumpProgram(pump, program, val)
     }
 
-    var setCurrentRPM = function(index, rpm) {
-        currentPumpStatus[index].currentrpm = rpm
-
-    }
+    // var setCurrentRPM = function(index, rpm) {
+    //     currentPumpStatus[index].currentrpm = rpm
+    //
+    // }
 
     var getCurrentPumpStatus = function() {
         return currentPumpStatus
@@ -494,13 +485,14 @@ module.exports = function(container) {
 
     return {
         numberOfPumps: numberOfPumps,
+        pumpType: pumpType,
         setPumpStatus: setPumpStatus,
         getCurrentPumpStatus: getCurrentPumpStatus,
         provideStatus: provideStatus,
         getCurrentProgram: getCurrentProgram,
         setCurrentProgramFromController: setCurrentProgramFromController,
         setCurrentProgram: setCurrentProgram,
-        saveProgramAs: saveProgramAs,
+        saveExternalProgramAs: saveExternalProgramAs,
         pumpACK: pumpACK,
         setRemoteControl: setRemoteControl,
         setRunMode: setRunMode,
@@ -511,7 +503,7 @@ module.exports = function(container) {
         updatePumpDuration: updatePumpDuration,
         getDuration: getDuration,
         saveProgram: saveProgram,
-        setCurrentRPM: setCurrentRPM,
+        // setCurrentRPM: setCurrentRPM,
         setCurrentRunning: setCurrentRunning,
         getCurrentRunningMode: getCurrentRunningMode,
         getCurrentRunningValue: getCurrentRunningValue,

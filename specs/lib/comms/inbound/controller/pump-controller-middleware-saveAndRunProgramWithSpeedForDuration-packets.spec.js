@@ -1,15 +1,33 @@
+var fs = require('fs'),
+    // fsio = require('promised-io/fs'),
+    path = require('path').posix,
+    Promise = require('bluebird')
+Promise.promisifyAll(fs)
 describe('pump controller - save and run program with speed for duration', function() {
 
 
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
+            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+                .then(function(pumpVS) {
+                    return JSON.parse(pumpVS)
+                })
+                .then(function(parsed) {
+                    bottle.container.settings.pump = parsed
+                    return bottle.container.pump.init()
+                })
+                .catch(function(err) {
+                    /* istanbul ignore next */
+                    console.log('oops, we hit an error', err)
+                })
             bottle.container.logApi = 1
-            sandbox = sinon.sandbox.create()
             bottle.container.logger.transports.console.level = 'silly';
+
         });
 
         beforeEach(function() {
+            sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
@@ -23,7 +41,7 @@ describe('pump controller - save and run program with speed for duration', funct
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updatePumpProgramRPM')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
@@ -48,7 +66,7 @@ describe('pump controller - save and run program with speed for duration', funct
             var duration = 1
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, speed, duration)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(index, program, speed, duration)
 
 
             /* Desired output
@@ -64,7 +82,7 @@ describe('pump controller - save and run program with speed for duration', funct
             queuePacketStub.callCount:  9
 
             */
-            // console.log('logger 1: ', loggerStub.args)
+            // console.log('logger 1: ', loggerInfoStub.args)
             //  console.log('run 1: ', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(7)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
@@ -89,7 +107,7 @@ describe('pump controller - save and run program with speed for duration', funct
             var duration = 60
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, speed, duration)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(index, program, speed, duration)
 
 
             /* Desired output
@@ -104,7 +122,7 @@ describe('pump controller - save and run program with speed for duration', funct
 
             */
             // console.log('run 2: ', queuePacketStub.args)
-            //console.log('logger 2: ', loggerStub.args)
+            //console.log('logger 2: ', loggerInfoStub.args)
 
             queuePacketStub.callCount.should.eq(7)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
@@ -129,7 +147,7 @@ describe('pump controller - save and run program with speed for duration', funct
             var duration = 120
             //var address = myModule('whatever').pumpIndexToAddress(index)
 
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithSpeedForDuration(index, program, speed, duration)
+            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(index, program, speed, duration)
 
 
             /* Desired output

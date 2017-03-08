@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 4.0.0 alpha 1.  Version 4.x-DEV
+# nodejs-poolController - Version 4.0.0 alpha 2.  Version 4.x-DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
@@ -512,6 +512,9 @@ Run these commands on the remote machine
 1.  Run the following command to make the daemon run the socat upon startup:
 `sudo update-rc.d poolTTY defaults`
 1. Setup the app parameters (below)
+
+### Another alternative method
+Props to @antamy.  Another approach to an `etc/init.d` script.  The script is `runAtBoot.sh`.  See https://github.com/chovy/node-startup for instructions to use this script.
 
 #### Test socat
 
