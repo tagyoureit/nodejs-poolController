@@ -627,6 +627,14 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
  * Added setDateTime API/Socket
  * Bootstrap panel states are now persistent
 
+4.0.0 -
+ * Changed much in the config.json file
+ * Save pump settings to config.json
+ * Check for newer versions of the app on github, and dismiss notifications until next release
+ * Bootstrap configuration is automatically saved in clientConfig.json via UI actions
+ * Started to introduce some promises into the workflow (mostly with read/write operations)
+
+
 # Wish list
 1.  Still many messages to debug
 2.  Alexa, Siri integration coming soon!  

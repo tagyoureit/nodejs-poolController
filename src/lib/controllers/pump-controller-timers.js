@@ -42,6 +42,10 @@ module.exports = function(container) {
 
 
     /* ----- INTERNAL TIMERS -----*/
+
+var offCycleRemotePowerPump1 = function(){
+}
+
     var pumpStatusCheck = function() {
         if (container.pump.numberOfPumps() === 1) {
             container.pumpControllerMiddleware.requestStatusSequence(1)

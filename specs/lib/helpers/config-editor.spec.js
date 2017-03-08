@@ -32,6 +32,7 @@ describe('updates config.json variables', function() {
                 //     console.log('just copied _', copy)
                 // })
                 .catch(function(err) {
+                /* istanbul ignore next */
                     console.log('oops, we hit an error', err)
                 })
         })
@@ -46,6 +47,7 @@ describe('updates config.json variables', function() {
                 //     console.log('file removed')
                 // })
                 .catch(function(err){
+                /* istanbul ignore next */
                   console.log('Error removing file:', err)
                 })
         })
@@ -69,6 +71,7 @@ describe('updates config.json variables', function() {
                         done()
                     })
                     .catch(function(err) {
+                    /* istanbul ignore next */
                         console.log('error with getting version notification:', err)
                     })
 
@@ -124,6 +127,7 @@ describe('updates config.json variables', function() {
                         done()
                     })
                     .catch(function(err) {
+                    /* istanbul ignore next */
                         console.log('some error with updateVersionNotification:', err)
                     })
             })
@@ -139,6 +143,7 @@ describe('updates config.json variables', function() {
                         done()
                     })
                     .catch(function(err) {
+                    /* istanbul ignore next */
                         console.log('error with getting pumpProgramRPM notification:', err)
                     })
             })
@@ -177,6 +182,7 @@ context('when called with the Socket API', function() {
                 //     console.log('just copied _config', copy)
                 // })
                 .catch(function(err) {
+                /* istanbul ignore next */
                     console.log('oops, we hit an error', err)
                 })
 

@@ -26,7 +26,7 @@ pump1SetTimerPacket = exports.pump1SetTimerPacket = [ 165, 0, 96, 33, 1, 4, 3, 4
 pump1StopProgram = exports.pump1StopProgram = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 0 ]
 pump1RunProgram1Packet = exports.pump1RunProgram1Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ]
 pump1RunProgram2Packet = exports.pump1RunProgram2Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 16 ]
-pump1RunProgram3Packet = exports.pump1RunProgram3Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 24 ]  //18 or 16?
+pump1RunProgram3Packet = exports.pump1RunProgram3Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 24 ]
 pump1RunProgram4Packet = exports.pump1RunProgram4Packet = [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 32 ]
 
 /*  PUMP 2  */

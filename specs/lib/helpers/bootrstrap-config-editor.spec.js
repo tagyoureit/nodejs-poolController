@@ -32,6 +32,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     //     console.log('just copied _configClient', copy)
                     // })
                     .catch(function(err) {
+                        /* istanbul ignore next */
                         console.log('oops, we hit an error', err)
                     })
             })
@@ -162,6 +163,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     //     console.log('just copied _configClient', copy)
                     // })
                     .catch(function(err) {
+                        /* istanbul ignore next */
                         console.log('oops, we hit an error', err)
                     })
 
