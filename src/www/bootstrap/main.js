@@ -296,7 +296,7 @@ function startSocketRx() {
     socket.on('chlorinator', function(data) {
         //var data = {"saltPPM":2900,"currentOutput": 12, "outputPoolPercent":7,"outputSpaPercent":-1,"superChlorinate":0,"version":0,"name":"Intellichlor--40","status":"Unknown - Status code: 128"};
         if (data !== null) {
-            if ((data.outputPoolPercent > 0) || (data.outputSpaPercent > 0))
+            if ((data.currentOutput > 0))
                 setStatusButton($('#CHLORINATOR'), 1);
             else
                 setStatusButton($('#CHLORINATOR'), 0);

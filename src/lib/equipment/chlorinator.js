@@ -260,7 +260,7 @@ module.exports = function(container) {
                     } else {
                         superChlorinate = 0
                     }
-                    if (currentChlorinatorStatus.currentOutput !== currentOutput && currentChlorinatorStatus.superChlorinate !== superChlorinate) {
+                    if (currentChlorinatorStatus.currentOutput !== currentOutput || currentChlorinatorStatus.superChlorinate !== superChlorinate) {
                         if (container.settings.logChlorinator)
                             container.logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, superChlorinate === 'On' ? 'Super Chlorinate' : currentOutput, data);
                         currentChlorinatorStatus.currentOutput = currentOutput
@@ -273,39 +273,39 @@ module.exports = function(container) {
             case 18: //Response to 17 (set generate %)
                 {
                     var saltPPM = data[4] * 50;
-                    var status = ""
-                    switch (data[5]) {
-                        case 0: //ok
-                            {
-                                status = "Ok";
-                                break;
-                            }
-                        case 1:
-                            {
-                                status = "No flow";
-                                break;
-                            }
-                        case 2:
-                            {
-                                status = "Low Salt";
-                                break;
-                            }
-                        case 4:
-                            {
-                                status = "High Salt";
-                                break;
-                            }
-                        case 144:
-                            {
-                                status = "Clean Salt Cell"
-                                break;
-                            }
-                        default:
-                            {
-                                status = "Unknown - Status code: " + data[5];
-                            }
-                    }
-                    if (currentChlorinatorStatus.saltPPM !== saltPPM && currentChlorinatorStatus.status !== status) {
+                    var status = chlorinatorStatusStr(status)
+                    // switch (data[5]) {
+                    //     case 0: //ok
+                    //         {
+                    //             status = "Ok";
+                    //             break;
+                    //         }
+                    //     case 1:
+                    //         {
+                    //             status = "No flow";
+                    //             break;
+                    //         }
+                    //     case 2:
+                    //         {
+                    //             status = "Low Salt";
+                    //             break;
+                    //         }
+                    //     case 4:
+                    //         {
+                    //             status = "High Salt";
+                    //             break;
+                    //         }
+                    //     case 144:
+                    //         {
+                    //             status = "Clean Salt Cell"
+                    //             break;
+                    //         }
+                    //     default:
+                    //         {
+                    //             status = "Unknown - Status code: " + data[5];
+                    //         }
+                    // }
+                    if (currentChlorinatorStatus.saltPPM !== saltPPM || currentChlorinatorStatus.status !== status) {
                         if (container.settings.logChlorinator)
                             container.logger.verbose('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
                         currentChlorinatorStatus.saltPPM = saltPPM
