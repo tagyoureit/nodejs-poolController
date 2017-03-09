@@ -16,11 +16,11 @@ describe('updates config.json variables', function() {
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'))
                 .then(function(orig) {
                     return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
