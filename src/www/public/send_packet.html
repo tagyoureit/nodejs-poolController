@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <title>Pentair Pool Equipment Debug Window</title>
     <link rel="stylesheet" href="style.css">
+    <!--<script src="/jquery-1.10.2.min.js"></script>-->
+    <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="../socket.io/socket.io.js"></script>
+    <script src="send_packet.js"></script>
+
 </head>
 
 <body>
@@ -14,34 +19,36 @@
 
 
         <div id="sendPacket">
-            
-            
+
+
             Action:
             <input type="text" id="packet" value="">
+            <button id="add">Add packet to queue</button>
+            <button id="reset">Reset queue</button>
             <br>
-            <button id="send">Send packet</button>
-            <br>
-            For Chlorinator packets: 
-            <br>
-            Enter xx,xx,xx (eg 16,2,80,0).  The 98 (checksum) and 16,3 (end of packet) will be added automatically to make 16,2,80,0,98,16,3
-            <p>
-            <br>
-            For all Intellichlor packets:
-                <br>
-                Enter packet Dest,Src,etc.  The preamble (255,0,255,165,xx,) and checksum will be added for the full packet.
-                <br>
-                Example: 16,34,134,2,9,0 (turn off circuit 9) will automatically be sent as 255,0,255,165,16,16,34,134,2,9,0,1,120
-        </div>
-    
-        <div id="results">Results
-            
-        </div>
 
-        <!--<script src="/jquery-1.10.2.min.js"></script>-->
-        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-        <script src="../socket.io/socket.io.js"></script>
-        <script src="
-        send_packet.js"></script>
+            <br> For Chlorinator packets:
+            <br> Enter xx,xx,xx (eg 16,2,80,0). The 98 (checksum) and 16,3 (end of packet) will be added automatically to make 16,2,80,0,98,16,3
+            <p>
+                <br> For all Intellichlor packets:
+                <br> Enter packet Dest,Src,etc. The preamble (255,0,255,165,xx,) and checksum will be added for the full packet.
+                <br> Example: 16,34,134,2,9,0 (turn off circuit 9) will automatically be sent as 255,0,255,165,16,16,34,134,2,9,0,1,120
+        </div>
+        <p>
+            <div>Queue
+                <div id="queue">
+                  Queue empty...
+                </div>
+                <div>
+                    <button id="send">Send packet(s)</button>
+                </div>
+
+            </div>
+            <p>
+                <div id="results">Results
+
+                </div>
+
 </body>
 
 </html>

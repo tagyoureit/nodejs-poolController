@@ -87,7 +87,7 @@ $(function () {
 
     $('#pu2off').click(function () {
 
-        pumpCommand(2,'off')
+        pumpCommand(2,'off');
     })
 
         $('#pu1on').click(function () {
@@ -97,7 +97,7 @@ $(function () {
 
             $('#pu2on').click(function () {
         //alert('pu1off clicked');
-        pumpCommand(1, 'off');
+        pumpCommand(2, 'off');
     })
 
     function pumpCommand(equip, program, value, duration) {

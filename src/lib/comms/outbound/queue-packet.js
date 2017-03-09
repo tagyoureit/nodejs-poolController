@@ -22,15 +22,14 @@ module.exports = function(container) {
         container.logger.info('Loading: queue-packet.js')
 
 
-    var logger = container.logger
-    var s = container.settings
+
 
     var queuePacketsArr = []; //array to hold messages to send
 
 
 
     function queuePacket(message, callback) {
-        if (s.logPacketWrites) logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
+        if (container.settings.logPacketWrites) container.logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
 
         var response = {}
 
@@ -48,7 +47,7 @@ module.exports = function(container) {
             message.push(16)
             message.push(3)
             packet = message.slice();
-            logger.silly('chrlorinator packet configured as: ', packet)
+            container.logger.silly('chrlorinator packet configured as: ', packet)
         } else {
             //Process the packet to include the preamble and checksum
 
@@ -58,7 +57,7 @@ module.exports = function(container) {
             Array.prototype.push.apply(packet, message);
 
             //if we request to "SET" a variable on the HEAT STATUS & TIME
-            if ((packet[7] === 136 || packet[7] === 133) && s.intellitouch) {
+            if ((packet[7] === 136 || packet[7] === 133) && container.settings.intellitouch) {
                 requestGet = 1;
             }
         }
@@ -94,7 +93,7 @@ module.exports = function(container) {
         var validPacket = (packetchecksum === databytes);
 
         if (!validPacket) {
-            logger.error('Asking to queue malformed packet: %s', packet)
+            container.logger.error('Asking to queue malformed packet: %s', packet)
             response.text = 'Pump packet queued: ' + packet
             response.status = 'error'
         } else {
@@ -102,19 +101,19 @@ module.exports = function(container) {
             queuePacketsArr.push(packet)
                 //pump packet
             if (packet[container.constants.packetFields.DEST + 3] === 96 || packet[container.constants.packetFields.DEST + 3] === 97) {
-                if (s.logPacketWrites) logger.verbose('Just Queued Pump Message \'%s\' to send: %s', container.constants.strPumpActions[packet[container.constants.packetFields.ACTION + 3]], packet)
+                if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Pump Message \'%s\' to send: %s', container.constants.strPumpActions[packet[container.constants.packetFields.ACTION + 3]], packet)
                 response.text = 'Pump packet queued: ' + packet
                 response.status = 'ok'
             }
             //chlorinator
             else if (packet[0] === 16) {
-                if (s.logPacketWrites) logger.verbose('Just Queued Chlorinator Message \'%s\' to send: %s', container.constants.strChlorinatorActions[packet[3]], packet)
+                if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Chlorinator Message \'%s\' to send: %s', container.constants.strChlorinatorActions[packet[3]], packet)
                 response.text = 'Chlorinator packet queued: ' + packet
                 response.status = 'ok'
             }
             //controller packet
             else {
-                if (s.logPacketWrites) logger.verbose('Just Queued Message \'%s\' to send: %s', container.constants.strControllerActions[packet[container.constants.packetFields.ACTION + 3]], packet)
+                if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Message \'%s\' to send: %s', container.constants.strControllerActions[packet[container.constants.packetFields.ACTION + 3]], packet)
                 response.text = 'Controller packet queued: ' + packet
                 response.status = 'ok'
             }
@@ -125,15 +124,15 @@ module.exports = function(container) {
 
         if (requestGet) {
             //request the GET version of the SET packet
-            var getPacket = [165, container.intellitouch.getPreambleByte(), 16, s.appAddress, packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
-            if (s.logPacketWrites) logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
+            var getPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
+            if (container.settings.logPacketWrites) container.logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
             queuePacket(getPacket);
 
             //var statusPacket = [165, preambleByte, 16, 34, 194, 1, 0]
-            //logger.debug('Queueing messages to retrieve \'%s\'', container.constants.strControllerActions[statusPacket[container.constants.packetFields.ACTION]])
+            //container.logger.debug('Queueing messages to retrieve \'%s\'', container.constants.strControllerActions[statusPacket[container.constants.packetFields.ACTION]])
             //queuePacket(statusPacket);
         }
-        if (s.logPacketWrites) logger.silly('queuePacket: Message: %s now has checksum added: %s', message, packet)
+        if (container.settings.logPacketWrites) container.logger.silly('queuePacket: Message: %s now has checksum added: %s', message, packet)
 
         //if length > 0 then we will loop through from isResponse
         if (!container.writePacket.isWriteQueueActive())
@@ -171,14 +170,14 @@ module.exports = function(container) {
     }
 
     function sendThisPacket(packet, callback) {
-        logger.info('User request (REST API) to send packet: %s', packet);
+        container.logger.info('User request (REST API) to send packet: %s', packet);
         var preamblePacket;
         packet = packet.split('-');
-        for (i = 0; i < packet.length; i++) {
+        for (var i = 0; i < packet.length; i++) {
             packet[i] = parseInt(packet[i])
         }
         if (packet[0] === 16 && packet[1] === container.constants.ctrl.CHLORINATOR) {
-            logger.silly('packet (chlorinator) detected: ', packet)
+            container.logger.silly('packet (chlorinator) detected: ', packet)
         } else {
             if (packet[0] === 96 || packet[0] === 97 || packet[1] === 96 || packet[1] === 97)
             //if a message to the pumps, use 165,0
@@ -191,11 +190,11 @@ module.exports = function(container) {
             }
             Array.prototype.push.apply(preamblePacket, packet);
             packet = preamblePacket.slice(0);
-            logger.silly('packet (pool) detected: ', packet)
+            container.logger.silly('packet (pool) detected: ', packet)
         }
         var responseStr;
         queuePacket(packet, function(res) {
-            logger.info(res)
+            container.logger.info(res)
             responseStr = res
 
         });
@@ -209,7 +208,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: queue-packet.js')
+        container.logger.info('Loaded: queue-packet.js')
 
 
 

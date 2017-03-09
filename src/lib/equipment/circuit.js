@@ -333,8 +333,8 @@ module.exports = function(container) {
             for (var j = 0; j < 8; j++) {
                 if ((j + (i * 8) + 1) <= 20) {
                     var equip = data[container.constants.controllerStatusPacketFields.EQUIP1 + i]
-                    if (container.settings.logMessageDecoding)
-                        logger.silly('Decode Case 2:   i: %s  j:  %s  j + (i * 8) + 1: %s   equip: %s', i, j, j + (i * 8) + 1, equip)
+                    // if (container.settings.logMessageDecoding)
+                    //     logger.silly('Decode Case 2:   i: %s  j:  %s  j + (i * 8) + 1: %s   equip: %s', i, j, j + (i * 8) + 1, equip)
                     circuitArrObj[j + (i * 8) + 1] = {}
                     circuitArrObj[j + (i * 8) + 1].status = (equip & (1 << (j))) >> j ? 1 : 0
                     if (container.settings.logConfigMessages) logger.silly('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, circuitArrObj[j + (i * 8) + 1].status)

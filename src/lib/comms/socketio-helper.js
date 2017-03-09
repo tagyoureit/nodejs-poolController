@@ -119,7 +119,6 @@ module.exports = function(container) {
         socketList = [];
 
         io.on('connection', function(socket, error) {
-
             socketList.push(socket);
             // socket.emit('socket_is_connected', 'You are connected!');
             socket.on('close', function() {
@@ -165,38 +164,41 @@ module.exports = function(container) {
             })
 
             socket.on('resetConfigClient', function() {
-                console.log('reset called')
+                container.logger.info('reset called')
                 container.bootstrapConfigEditor.reset()
             })
 
-            socket.on('sendpacket', function(incomingPacket) {
+            socket.on('sendPacket', function(incomingPacket) {
+                var preamblePacket, sendPacket;
+                var str = 'Queued packet(s): '
+                logger.info('User request (send_request.html) to send packet: %s', JSON.stringify(incomingPacket));
 
+                for (var packet in incomingPacket) {
+                  // for (var byte in incomingPacket[packet]) {
+                  //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
+                  // }
 
-                logger.info('User request (send_request.html) to send packet: %s', incomingPacket);
-                var packet, preamblePacket;
-                packet = incomingPacket.split(',');
-                for (var i = 0; i < packet.length; i++) {
-                    packet[i] = parseInt(packet[i])
-                }
-                if (packet[0] === 16 && packet[1] === container.constants.ctrl.CHLORINATOR) {
-                    if (container.settings.logApi) logger.silly('packet (chlorinator) now: ', packet)
-                } else {
-                    if (packet[0] === 96 || packet[0] === 97 || packet[1] === 96 || packet[1] === 97)
-                    //If a message to the controller, use the preamble that we have recorded
-                    {
-                        preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
-                    } else
-                    //if a message to the pumps, use 165,0
-                    {
-                        preamblePacket = [165, 0]
+                    if (incomingPacket[packet][0] === 16 && incomingPacket[packet][1] === container.constants.ctrl.CHLORINATOR) {
+                        sendPacket = incomingPacket[packet]
+                        if (container.settings.logApi) logger.silly('packet (chlorinator) now: ', packet)
+                    } else {
+                        if (incomingPacket[packet][0] === 96 || incomingPacket[packet][0] === 97 || incomingPacket[packet][1] === 96 || incomingPacket[packet][1] === 97)
+                        //if a message to the pumps, use 165,0
+                        {
+                            preamblePacket = [165, 0]
+                        } else
+                        //If a message to the controller, use the preamble that we have recorded
+                        {
+                          preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
+
+                        }
+                        sendPacket = preamblePacket.concat(incomingPacket[packet]);
                     }
-                    Array.prototype.push.apply(preamblePacket, packet);
-                    packet = preamblePacket.slice(0);
-                    //logger.debug('packet (pool) now: ', packet)
+                    container.queuePacket.queuePacket(sendPacket);
+                    str += JSON.stringify(sendPacket) + ' '
                 }
-                container.queuePacket.queuePacket(packet);
-                var str = 'Sent packet: ' + JSON.stringify(packet)
                 io.sockets.emit('sendPacketResults', str)
+                container.logger.info(str)
             })
 
 

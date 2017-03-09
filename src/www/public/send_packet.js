@@ -1,5 +1,9 @@
-$(function () {
-    
+var socket
+var arrToBeSent = {"1": ''}
+var count = 0
+
+$(function() {
+
 
     // Initialize variables
 
@@ -7,22 +11,43 @@ $(function () {
 
     var $window = $(window);
 
-    var socket = io();
+    socket = io();
 
+    $("#reset").click(function() {
 
-
-    $("#send").click(function(){
-        //alert('clicked send with ' + $('#packet').val() )
-        socket.emit('sendPacket',$('#packet').val())
+        count = 0
+        arrToBeSent = {"1": ''}
+        $('#queue').html('Queue empty...')
     });
-    
-    
+
+
+    $("#add").click(function() {
+
+        var tempVal = $('#packet').val().split(',');
+        var tempArray = [];
+
+        for (var index in tempVal){
+          console.log(tempVal[index])
+          tempArray.push(parseInt(tempVal[index],10))
+        }
+        var len = arrToBeSent.length
+        count++
+        arrToBeSent[count.toString()] = tempArray;
+        $('#queue').html(JSON.stringify(arrToBeSent))
+    });
+
+
+    $("#send").click(function() {
+        //alert('clicked send with ' + $('#packet').val() )
+        socket.emit('sendPacket', arrToBeSent)
+    });
+
+
     // Whenever the server emits 'searchResults', update the page
 
-    socket.on('sendPacketResults', function (data) {
-        //alert('received data %s', data)
-        $( "#results" ).append( "<p>"+data+"</p>" );
-        
+    socket.on('sendPacketResults', function(data) {
+        $("#results").append("<p>" + data + "</p>");
+
     });
 
 });
