@@ -37,7 +37,6 @@ module.exports = function(container) {
 
                     }
 
-
                 var outputSpaPercent = data[chlorinatorStatusBytes.outputSpaPercent]
                 var outputPercent = data[chlorinatorStatusBytes.outputPercent];
                 var saltPPM = data[chlorinatorStatusBytes.saltPPM];

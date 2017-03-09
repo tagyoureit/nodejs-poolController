@@ -1,28 +1,28 @@
 {
     "panelState": {
         "system": {
-            "state": "visible"
+            "state": "hidden"
         },
         "pool": {
-            "state": "visible"
+            "state": "hidden"
         },
         "spa": {
-            "state": "visible"
+            "state": "hidden"
         },
         "chlorinator": {
             "state": "visible"
         },
         "features": {
-            "state": "visible"
+            "state": "hidden"
         },
         "pump": {
-            "state": "visible"
+            "state": "hidden"
         },
         "schedule": {
-            "state": "visible"
+            "state": "hidden"
         },
         "eggtimer": {
-            "state": "visible"
+            "state": "hidden"
         },
         "debug": {
             "state": "visible"
