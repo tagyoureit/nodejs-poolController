@@ -28,16 +28,22 @@
             <br>
 
             <br> For Chlorinator packets:
-            <br> Enter xx,xx,xx (eg 16,2,80,0). The 98 (checksum) and 16,3 (end of packet) will be added automatically to make 16,2,80,0,98,16,3
-            <p>
-                <br> For all Intellichlor packets:
-                <br> Enter packet Dest,Src,etc. The preamble (255,0,255,165,xx,) and checksum will be added for the full packet.
-                <br> Example: 16,34,134,2,9,0 (turn off circuit 9) will automatically be sent as 255,0,255,165,16,16,34,134,2,9,0,1,120
+            <br> The 98 (checksum) and 16,3 (end of packet) will be added by the app.
+            <br> Example: 16,2,80,0 => 16,2,80,0,98,16,3
+            <p></p>
+            For Intellichlor packets:
+            <br> Enter packet Dest,Src,etc. The preamble (165,xx,) and checksum will be added by the app.
+            <br> Example: 16,34,134,2,9,0 (turn off circuit 9) => 165,16,16,34,134,2,9,0,1,120
+            <p></p>
+            For Pump packets:
+            <br> Enter Dest, Src, etc. Preamble (165,0) and checksum will be added by the app.
+            <br> Example: 96,33,4,1,0 (turn off remote control) => 165,0,96,33,4,1,0,1,43
+
         </div>
         <p>
             <div>Queue
                 <div id="queue">
-                  Queue empty...
+                    Queue empty...
                 </div>
                 <div>
                     <button id="send">Send packet(s)</button>
