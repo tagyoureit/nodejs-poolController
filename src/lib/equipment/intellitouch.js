@@ -89,8 +89,8 @@ module.exports = function(container) {
 
            } else {
 
-               if (container.settings.intellicom) {
-                   container.logger.info('IntellicomII Controller in .  No configuration request messages sent.')
+               if (container.settings.intellicom.installed) {
+                   container.logger.info('IntellicomII Controller installed.  No configuration request messages sent.')
                } else {
                    container.logger.info('No pool controller (Intellitouch or IntelliComII) detected.  No configuration request messages sent.')
                }

@@ -4,23 +4,13 @@ var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
 describe('nodejs-poolController', function() {
-    describe('Bottle should exist', function() {
-        it('#should start the app', function() {
-            bottle.should.exist
 
-        })
-    })
 
-    describe('Bottle should load logger', function() {
-        it('#should load logger', function() {
-            bottle.container.logger.should.exist
-
-        })
-    })
 
     describe('Loads/checks for a valid configuration file', function() {
 
       before(function() {
+                    bottle.container.settings.load()
           bottle.container.server.init()
           bottle.container.io.init()
           bottle.container.logger.transports.console.level = 'silly';
@@ -54,11 +44,20 @@ describe('nodejs-poolController', function() {
             processStub.restore()
         })
 
+        it('#bottle should exist', function() {
+            bottle.should.exist
+
+        })
+
+        it('#should load logger', function() {
+            bottle.container.logger.should.exist
+
+        })
 
         it('#fails to load an invalid configuration file', function(done) {
             var myModule = rewire(path.join(process.cwd(), '/src/etc/settings.js'))
             myModule.__with__({
-                'envParam': './specs/assets/config.OUTDATED.json'
+                'envParam': path.join(process.cwd(),'./specs/assets/config/config.OUTDATED.json')
             })(function() {
                 var stub = sinon.spy(myModule, 'load')
                 try {
@@ -66,7 +65,7 @@ describe('nodejs-poolController', function() {
                 } catch (e) {
 
                 }
-                stub.threw()
+                stub.threw().should.equal.true
                 stub.restore()
                 done()
 
@@ -97,4 +96,5 @@ describe('nodejs-poolController', function() {
         })
 
     })
+
 })

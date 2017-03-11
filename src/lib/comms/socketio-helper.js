@@ -24,10 +24,8 @@ module.exports = function(container) {
     var server, io, socketList = [];
 
 
-    var logger = container.logger
-
     var emitToClients = function(outputType) {
-        //logger.warn('EMIT: %s', outputType)
+        //container.logger.warn('EMIT: %s', outputType)
 
         //This code move to the INTEGRATIONS folder
         /*if (container.settings.ISYController) {
@@ -121,7 +119,7 @@ module.exports = function(container) {
         io.on('connection', function(socket, error) {
             socketList.push(socket);
             // socket.emit('socket_is_connected', 'You are connected!');
-            socket.on('close', function() {
+            socket.once('close', function() {
                 console.log('socket closed')
                 container.logger.debug('socket closed');
                 socketList.splice(socketList.indexOf(socket), 1);
@@ -143,7 +141,7 @@ module.exports = function(container) {
             socket.on('search', function(mode, src, dest, action) {
                 //check if we don't have all valid values, and then emit a message to correct.
 
-                logger.debug('from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action);
+                container.logger.debug('from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action);
                 container.apiSearch.searchMode = mode;
                 container.apiSearch.searchSrc = src;
                 container.apiSearch.searchDest = dest;
@@ -171,12 +169,12 @@ module.exports = function(container) {
             socket.on('sendPacket', function(incomingPacket) {
                 var preamblePacket, sendPacket;
                 var str = 'Queued packet(s): '
-                logger.info('User request (send_request.html) to send packet: %s', JSON.stringify(incomingPacket));
+                container.logger.info('User request (send_request.html) to send packet: %s', JSON.stringify(incomingPacket));
 
                 for (var packet in incomingPacket) {
-                  // for (var byte in incomingPacket[packet]) {
-                  //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
-                  // }
+                    // for (var byte in incomingPacket[packet]) {
+                    //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
+                    // }
 
                     if (incomingPacket[packet][0] === 16 && incomingPacket[packet][1] === container.constants.ctrl.CHLORINATOR) {
                         sendPacket = incomingPacket[packet]
@@ -189,7 +187,7 @@ module.exports = function(container) {
                         } else
                         //If a message to the controller, use the preamble that we have recorded
                         {
-                          preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
+                            preamblePacket = [165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
 
                         }
                         sendPacket = preamblePacket.concat(incomingPacket[packet]);
@@ -227,7 +225,7 @@ module.exports = function(container) {
                 if (equip !== null && change !== null) {
                     container.heat.changeHeatSetPoint(equip, change, 'socket.io setHeatSetPoint')
                 } else {
-                    logger.warn('setHeatPoint called with invalid values: %s %s', equip, change)
+                    container.logger.warn('setHeatPoint called with invalid values: %s %s', equip, change)
                 }
             })
 
@@ -243,7 +241,7 @@ module.exports = function(container) {
             //SHOULD DEPRICATE
             socket.on('pumpCommand', function(equip, program, value, duration) {
 
-                logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
+                container.logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
                 container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
             })
 
@@ -333,12 +331,12 @@ module.exports = function(container) {
 
 
             socket.on('reload', function() {
-                logger.info('Reload requested from Socket.io')
+                container.logger.info('Reload requested from Socket.io')
                 container.reload.reload()
             })
 
             socket.on('updateVersionNotification', function(bool) {
-                logger.info('updateVersionNotification requested from Socket.io.  value:', bool)
+                container.logger.info('updateVersionNotification requested from Socket.io.  value:', bool)
                 container.configEditor.updateVersionNotification(bool)
             })
 
@@ -347,14 +345,27 @@ module.exports = function(container) {
     }
 
     var stop = function() {
+
+        container.logger.silly('Stopping Socket IO Server')
         //from http://stackoverflow.com/questions/16000120/socket-io-close-server
         io.close();
-        console.log('socket list length: ', socketList.length)
-        socketList.forEach(function(socket) {
-            socket.destroy();
-        });
-        console.log('socket list length after close: ', socketList.length)
 
+
+        socketList.forEach(function(el) {
+            container.logger.silly('sockets in list: ', socketList.length, el.id)
+
+        })
+        for (var socket in socketList) {
+            container.logger.silly('removing socket:', socketList[socket].id)
+            socketList[socket].disconnect();
+            var removed = socketList.shift()
+            container.logger.silly('socket removed:', socket, removed.id)
+
+        }
+        socketList.forEach(function(el) {
+            container.logger.silly('what sockets are left?: ', socketList.length, el.id)
+
+        })
     }
 
 

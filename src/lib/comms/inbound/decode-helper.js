@@ -266,7 +266,6 @@ module.exports = function(container) {
          }*/
         if (!decoded) {
             if (s.logConsoleNotDecoded) {
-
                 logger.info('Msg# %s is NOT DECODED %s', counter, JSON.stringify(data));
             }
         } else {

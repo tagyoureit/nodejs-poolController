@@ -49,7 +49,6 @@ describe('chlorinator tests', function() {
     describe('#setChlorinatorLevel returns objects', function() {
         it('@ 0 it should return a response object', function() {
             var res = bottle.container.chlorinator.setChlorinatorLevel(0)
-            console.log('res:', res)
             res.should.have.property('status')
             res.value.should.eq(0)
             res.status.should.eq('off')

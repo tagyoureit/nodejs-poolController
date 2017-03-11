@@ -57,7 +57,7 @@ module.exports = function(container) {
             Array.prototype.push.apply(packet, message);
 
             //if we request to "SET" a variable on the HEAT STATUS & TIME
-            if ((packet[7] === 136 || packet[7] === 133) && container.settings.intellitouch) {
+            if ((packet[7] === 136 || packet[7] === 133) && container.settings.intellitouch.installed) {
                 requestGet = 1;
             }
         }

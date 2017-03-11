@@ -57,7 +57,7 @@
     }],
     "Log": {
         "logLevel": "info",
-        "extLogLevel": "info",
+        "socketLogLevel": "info",
         "logPumpMessages": 0,
         "logDuplicateMessages": 0,
         "logConsoleNotDecoded": 0,

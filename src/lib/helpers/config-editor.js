@@ -76,6 +76,35 @@ module.exports = function(container) {
             })
     }
 
+    var updateChlorinatorDesiredOutput = function(chlorLvl) {
+        return init()
+            .then(function(data) {
+                data.equipment.chlorinator.desiredOutput = chlorLvl
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                if (container.settings.logChlorinator)
+                container.logger.verbose('Updated chlorinator settings %s', location)
+            })
+            .catch(function(err) {
+                container.logger.warn('Error updating chlorinator settings %s: ', location, err)
+            })
+    }
+
+    var updateChlorinatorName = function(name) {
+        return init()
+            .then(function(data) {
+                data.equipment.chlorinator.id.productName = name
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                container.logger.verbose('Updated chlorinator settings %s', location)
+            })
+            .catch(function(err) {
+                container.logger.warn('Error updating chlorinator settings %s: ', location, err)
+            })
+    }
+
     var updateVersionNotification = function(dismissUntilNextRemoteVersionBump) {
         return init()
             .then(function(data) {
@@ -106,6 +135,25 @@ module.exports = function(container) {
             })
     }
 
+    var getChlorinatorDesiredOutput = function(_pump) {
+        return init()
+            .then(function(config) {
+                return config.equipment.chlorinator.desiredOutput
+            })
+            .catch(function(err) {
+                container.logger.error('Something went wrong getting chlorinator desiredOutput from config file.', err)
+            })
+    }
+    var getChlorinatorName = function(_pump) {
+        return init()
+            .then(function(config) {
+                return config.equipment.chlorinator.id.productName
+            })
+            .catch(function(err) {
+                container.logger.error('Something went wrong getting chlorinator product name from config file.', err)
+            })
+    }
+
     var getVersionNotification = function(_pump) {
         return init(config)
             .then(function() {
@@ -128,7 +176,11 @@ module.exports = function(container) {
         updateExternalPumpProgram: updateExternalPumpProgram,
         updatePumpProgramGPM: updatePumpProgramGPM,
         updateVersionNotification: updateVersionNotification,
+        updateChlorinatorDesiredOutput: updateChlorinatorDesiredOutput,
+        updateChlorinatorName: updateChlorinatorName,
         getPumpExternalProgram: getPumpExternalProgram,
-        getVersionNotification: getVersionNotification
+        getVersionNotification: getVersionNotification,
+        getChlorinatorDesiredOutput: getChlorinatorDesiredOutput,
+        getChlorinatorName: getChlorinatorName
     }
 }

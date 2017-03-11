@@ -25,7 +25,7 @@ if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
 
 var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
-var appVersion = packageJson.version
+var appVersion = packageJson.version + ' alpha 3'
 var configurationFile
 
 
@@ -58,7 +58,7 @@ var expressPort, expressTransport, expressAuth, expressAuthFile;
 //-------  LOG SETUP -----------
 //Change the following log message levels as needed
 var logLevel;
-var extLogLevel;
+var socketLogLevel, fileLog;
 var logPumpMessages;
 var logDuplicateMessages;
 var logConsoleNotDecoded;
@@ -85,13 +85,18 @@ var checkForOldConfigFile = function() {
 }
 
 var load = exports.load = function() {
-/* istanbul ignore next */
+    /* istanbul ignore next */
     if (envParam === undefined) {
-        configurationFile =  exports.configurationFile = 'config.json';
+        configurationFile = exports.configurationFile = 'config.json';
     } else {
-        configurationFile  = exports.configurationFile = envParam
+        configurationFile = exports.configurationFile = envParam
     }
-    configFile = JSON.parse(fs.readFileSync(configurationFile));
+    try {
+        configFile = JSON.parse(fs.readFileSync(configurationFile, 'utf-8'));
+    } catch (err) {
+        console.log('Error reading config file:', err)
+    }
+
     checkForOldConfigFile()
 
     /*   Equipment   */
@@ -129,7 +134,8 @@ var load = exports.load = function() {
 
     //Logs
     logLevel = exports.logLevel = configFile.poolController.log.logLevel;
-    extLogLevel = exports.extLogLevel = configFile.poolController.log.extLogLevel;
+    socketLogLevel = exports.socketLogLevel = configFile.poolController.log.socketLogLevel;
+    fileLog = exports.fileLog = configFile.poolController.log.fileLog;
     logPumpMessages = exports.logPumpMessages = configFile.poolController.log.logPumpMessages;
     logDuplicateMessages = exports.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
     logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
@@ -211,7 +217,8 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n ';
     settingsStr += '\n //-------  LOG SETUP -----------';
     settingsStr += '\n var logLevel = ' + logLevel;
-    settingsStr += '\n var extLogLevel = ' + extLogLevel;
+    settingsStr += '\n var socketLogLevel = ' + socketLogLevel;
+    settingsStr += '\n var fileLog = ' + JSON.stringify(fileLog);
     settingsStr += '\n var logPumpMessages = ' + logPumpMessages;
     settingsStr += '\n var logDuplicateMessages = ' + logDuplicateMessages;
     settingsStr += '\n var logConsoleNotDecoded = ' + logConsoleNotDecoded;

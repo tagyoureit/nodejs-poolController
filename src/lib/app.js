@@ -1,6 +1,3 @@
-
-
-
 var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
@@ -9,8 +6,8 @@ var bottle = Bottle.pop('poolController-Bottle');
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
-bottle.factory('promisedIoPromise', function(){
-  return require("promised-io/promise");
+bottle.factory('promisedIoPromise', function() {
+    return require("promised-io/promise");
 })
 
 bottle.service('fs', function() {
@@ -29,9 +26,9 @@ bottle.factory('integrations', function() {
     return require(__dirname + '/../etc/integrations.js')
 })
 bottle.factory('socketClient', function() {
-        return require('socket.io-client')
-    })
-    //bottle.constant('socketISY', require(__dirname + '/comms/outbound/socketISY.js'))
+    return require('socket.io-client')
+})
+//bottle.constant('socketISY', require(__dirname + '/comms/outbound/socketISY.js'))
 bottle.factory('ISYHelper', require(__dirname + '/comms/outbound/ISY.js'))
 
 //COMMS
@@ -107,7 +104,7 @@ bottle.factory('pump_2', require(__dirname + '/comms/inbound/pump/2.js'))
 bottle.factory('pump_4', require(__dirname + '/comms/inbound/pump/4.js'))
 bottle.factory('pump_5', require(__dirname + '/comms/inbound/pump/5.js'))
 bottle.factory('pump_6', require(__dirname + '/comms/inbound/pump/6.js'))
-    //bottle.factory('pump_7', require(__dirname + '/comms/inbound/pump/7.js'))
+//bottle.factory('pump_7', require(__dirname + '/comms/inbound/pump/7.js'))
 
 //COMMS/OUTBOUND
 bottle.factory('writePacket', require(__dirname + '/comms/outbound/write-packet.js'))
@@ -124,7 +121,7 @@ bottle.factory('heat', require(__dirname + '/equipment/heat.js'))
 bottle.factory('chlorinator', require(__dirname + '/equipment/chlorinator.js'))
 bottle.factory('pump', require(__dirname + '/equipment/pump.js'))
 bottle.factory('circuit', require(__dirname + '/equipment/circuit.js'))
-    //bottle.factory('status', require(__dirname + '/equipment/status.js'))
+//bottle.factory('status', require(__dirname + '/equipment/status.js'))
 bottle.factory('temperatures', require(__dirname + '/equipment/temperatures.js'))
 bottle.factory('time', require(__dirname + '/equipment/time.js'))
 bottle.factory('UOM', require(__dirname + '/equipment/UOM.js'))
@@ -135,8 +132,8 @@ bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js')
 
 //LOGGER
 bottle.factory('dateFormat', function() {
-        return require('dateformat')
-    }) //for log formatting
+    return require('dateformat')
+}) //for log formatting
 bottle.factory('util', function() {
     return require('util')
 })
@@ -159,6 +156,7 @@ var init = exports.init = function() {
 
     bottle.container.logger.info('initializing logger')
     bottle.container.winstonToIO.init()
+    bottle.container.integrations.init()
     bottle.container.updateAvailable.check()
 
 
@@ -185,8 +183,35 @@ var init = exports.init = function() {
     bottle.container.chlorinatorController.startChlorinatorController()
 
     bottle.container.helpers
-    bottle.container.integrations.init()
-  }
+
+}
 
 /* UNCOMMENT TO ALLOW V8 PROFILING */
 //var profile = require(__dirname + '/helpers/profiler.js').init(__dirname + '/../profiler')
+
+
+// Exit process cleanly.  From http://stackoverflow.com/questions/10021373/what-is-the-windows-equivalent-of-process-onsigint-in-node-js
+process.on('exit', function() {
+    //handle your on exit code
+    console.log("Exited nodejs-poolController cleanly");
+});
+
+if (process.platform === "win32") {
+    var rl = require("readline").createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.on("SIGINT", function() {
+        process.emit("SIGINT");
+    });
+}
+
+process.on('SIGINT', function() {
+    console.log('Shutting down open processes')
+    bottle.container.reload.stop()
+        .then(function() {
+            process.exit();
+        })
+
+});

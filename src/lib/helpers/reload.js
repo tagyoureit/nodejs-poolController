@@ -17,6 +17,7 @@
 
 //TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
 
+var Promise = require('bluebird')
 
 
 module.exports = function(container) {
@@ -26,6 +27,39 @@ module.exports = function(container) {
         logger.info('Loading: reload.js')
 
 
+    var stop = function() {
+        /*  STOP STUFF
+         */
+
+        return Promise.resolve()
+            .then(function() {
+                return
+                    if (!container.settings.pump.standalone) {
+                        //only clear timers if we go from 1 or 2 pumps to 0 pumps
+                        container.pumpControllerTimers.clearTimer(1)
+                        container.pumpControllerTimers.clearTimer(2)
+                    }
+                if (!container.settings.chlorinator.standalone) {
+                    container.chlorinatorController.clearTimer()
+                }
+            })
+            .then(function() {
+                return container.server.close()
+            })
+            .then(function() {
+                return container.io.stop()
+            })
+            .then(function() {
+                container.sp.close()
+            })
+            .then(function(){
+                console.log('nodejs-poolController services stopped successfully')
+            })
+            .catch(function(err){
+              console.log('Error stopping services:', err)
+            })
+
+    }
 
     var reload = function(reset, callback) {
         //reset is a variable to also reset the status of objects.
@@ -36,58 +70,51 @@ module.exports = function(container) {
         res += 'Settings: <p>' + container.settings.displaySettingsMsg() + '<p>'
 
 
+        stop()
+        .then(function(){
+          /*  RELOAD STUFF
+           */
+          container.settings.load()
 
-        /*  STOP STUFF
-        */
-        //container.io.stop()
-        var spClose = container.sp.close()
-        console.log(spClose)
-        //container.server.close()
-        container.logger.info(reloadStr)
-        if (!container.settings.pump.standalone) {
-            //only clear timers if we go from 1 or 2 pumps to 0 pumps
-            container.pumpControllerTimers.clearTimer(1)
-            container.pumpControllerTimers.clearTimer(2)
-        }
-        if (!container.settings.chlorinator.standalone) {
-            container.chlorinatorController.clearTimer()
-        }
+          container.server.init()
+          container.io.init()
 
+          container.logger.info('Intro: ', container.settings.displayIntroMsg())
+          container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
+          container.sp.init()
 
-        /*  RELOAD STUFF
-        */
-        container.settings.load()
+          if (container.settings.pump.standalone && !container.settings.intellicom.installed && !container.settings.intellitouch.installed) {
+              container.pumpControllerTimers.startPumpController()
+          }
+          if (container.settings.chlorinator.standalone) {
+              container.chlorinatorController.startChlorinatorController()
+          }
+          if (container.settings.intellitouch.installed) {
+              container.intellitouch.getControllerConfiguration()
+          }
 
-        //container.io.start()
-        container.logger.info('Intro: ', container.settings.displayIntroMsg())
-        container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
-        container.sp.init()
+          if (reset) {
+              container.chlorinator.init()
+              container.heat.init()
+              container.time.init()
+              container.pump.init()
+              container.schedule.init()
+              container.circuit.init()
+              container.customNames.init()
+              container.intellitouch.init()
+              container.temperatures.init()
+              container.uom.init()
+              container.valves.init()
 
-        if (container.settings.pump.standalone && !container.settings.intellicom.installed && !container.settings.intellitouch.installed) {
-            container.pumpControllerTimers.startPumpController()
-        }
-        if (container.settings.chlorinator.standalone) {
-            container.chlorinatorController.startChlorinatorController()
-        }
-        if (container.settings.intellitouch.installed)
-        {
-          container.intellitouch.getControllerConfiguration()
-        }
+          }
 
-        if (reset){
-          container.chlorinator.init()
-          container.heat.init()
-          container.time.init()
-          container.pump.init()
-          container.schedule.init()
-          container.circuit.init()
-          container.customNames.init()
-          container.intellitouch.init()
-          container.temperatures.init()
-          container.uom.init()
-          container.valves.init()
-
-        }
+        })
+        .then(function(){
+          container.logger.info('Successfully reloaded services')
+        })
+        .catch(function(err){
+          container.logger.error('Error reloading services:', err)
+        })
 
 
         return res
@@ -95,10 +122,12 @@ module.exports = function(container) {
             return res
         }
 
-          container.logger.info(res)
+        container.logger.info(res)
 
 
     }
+
+
 
 
     /*istanbul ignore next */
@@ -107,6 +136,8 @@ module.exports = function(container) {
 
 
     return {
-        reload: reload
+        reload: reload,
+        stop: stop,
+
     }
 }

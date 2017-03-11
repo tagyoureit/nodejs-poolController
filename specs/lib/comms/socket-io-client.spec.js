@@ -91,7 +91,7 @@ describe('socket.io basic tests', function() {
         }, 500)
     })
 
-    it('#sends packets', function(done) {
+    it('#sends packets and checks the correct preamble is passed', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         // var client =  global.ioclient.connect('http://localhost:3000');
 
@@ -99,19 +99,20 @@ describe('socket.io basic tests', function() {
             // console.log('connected client:')
             client.emit('sendPacket', JSON.parse('{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}'))
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
-            client.on('sendPacketResults', function(res){
-                res.indexOf('165,0,96,16,6,1,10').should.not.eq(-1)
-                res.indexOf('16,2,80,20,0,118').should.not.eq(-1)
-                res.indexOf('16,34,134,2,9,0').should.not.eq(-1)
-            })
         })
 
-        setTimeout(function() {
-            queuePacketStub.args[0][0].should.deep.eq([165,0,96,16,6,1,10])
-            queuePacketStub.args[1][0].should.deep.eq([16,2,80,20,0,118])
-            queuePacketStub.args[2][0].should.deep.eq([165,99,16,34,134,2,9,0])
+        client.on('sendPacketResults', function(res) {
+            res.should.contain('165,0,96,16,6,1,10')
+            res.should.contain('16,2,80,20,0,118')
+            res.should.contain('16,34,134,2,9,0')
+            queuePacketStub.args[0][0].should.deep.eq([165, 0, 96, 16, 6, 1, 10])
+            queuePacketStub.args[1][0].should.deep.eq([16, 2, 80, 20, 0, 118])
+            queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
+            client.disconnect()
             done()
-        }, 500)
+
+        })
+
     })
 
 

@@ -120,12 +120,6 @@ module.exports = function(container) {
             container.pumpController.sendPumpPowerPacket(address, 1)
 
         endPumpCommandSequence(address)
-        //return true
-
-
-        // container.logger.warn('User request to run pump %s (address %s) Program %s for an unspecified duration', index, address, program);
-        // return false
-        //return runProgramSequenceForDuration(index, program)
     }
 
     //function to run a given RPM for an unspecified time
@@ -137,9 +131,6 @@ module.exports = function(container) {
         container.pumpController.sendPumpPowerPacket(address, 1)
         container.pumpController.runRPM(address, rpm)
         endPumpCommandSequence(address)
-
-        //return runRPMSequenceForDuration(index, rpm, 1440)
-
     }
 
     /* ----- END PUMP PACKET SEQUENCES -----*/

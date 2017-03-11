@@ -28,6 +28,7 @@ module.exports = function(container) {
         dateFormat = container.dateFormat
 
 
+
     var logger = new(winston.Logger)({
         transports: [
             new(winston.transports.Console)({
@@ -46,6 +47,28 @@ module.exports = function(container) {
         ]
     });
 
+    if (container.settings.fileLog.enable === 1) {
+        var path = require('path').posix
+        var _level = container.settings.fileLog.fileLogLevel
+        var file = path.join(process.cwd(), container.settings.fileLog.fileName)
+        console.log('file', file)
+
+        var options = {
+            timestamp: function() {
+                return dateFormat(Date.now(), "HH:MM:ss.l");
+            },
+            level: _level,
+            formatter: function(options) {
+                // Return string will be passed to logger.
+                return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
+                    (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
+            },
+            filename: file,
+            colorize: false,
+            json: false
+        }
+        logger.add(winston.transports.File, options)
+    }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)

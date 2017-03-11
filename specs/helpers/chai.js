@@ -24,6 +24,7 @@ chai.config.includeStack = true;
 // global.Assertion = chai.Assertion;
 // global.assert = chai.assert;
 
+Promise = global.Promise = require('bluebird')
 
 
  ioclient = global.ioclient = require('socket.io-client')

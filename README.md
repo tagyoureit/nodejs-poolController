@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 4.0.0 alpha 2.  Version 4.x-DEV
+# nodejs-poolController - Version 4.0.0 alpha 3.  Version 4.x-DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
@@ -632,11 +632,13 @@ You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json
 
 4.0.0 -
  * Changed much in the config.json file
- * Save pump settings to config.json
+ * Save pump programs and chlorinator level to config.json
+ * Added support for GPM with pumps
  * Check for newer versions of the app on github, and dismiss notifications until next release
  * Bootstrap configuration is automatically saved in clientConfig.json via UI actions
  * Started to introduce some promises into the workflow (mostly with read/write operations)
-
+ * Added log-to-file option
+ * Added capture for Ctrl-C/SIGINT to have a clean exit
 
 # Wish list
 1.  Still many messages to debug

@@ -17,13 +17,14 @@
 
 
 var chlorinatorTimer, isRunning = 0;
+
 module.exports = function(container) {
     var logger = container.logger
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: chlorinator-controller.js')
 
-    var isRunning = function() {
+    var isChlorinatorTimerRunning = function() {
         return isRunning
     }
 
@@ -47,6 +48,8 @@ module.exports = function(container) {
             }
             isRunning = 1
             return true
+        } else {
+            container.logger.error('Desired chlorinator settings (%s) is outside tolerances (1-101)', container.chlorinator.getDesiredChlorinatorOutput())
         }
         isRunning = 0
         return false
@@ -81,7 +84,7 @@ module.exports = function(container) {
         startChlorinatorController: startChlorinatorController,
         chlorinatorStatusCheck: chlorinatorStatusCheck,
         clearTimer: clearTimer,
-        isRunning: isRunning
+        isChlorinatorTimerRunning: isChlorinatorTimerRunning
     }
 
 }

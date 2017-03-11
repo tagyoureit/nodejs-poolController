@@ -43,16 +43,17 @@ module.exports = function(container) {
 
     /* ----- INTERNAL TIMERS -----*/
 
-var offCycleRemotePowerPump1 = function(){
-}
+    var offCycleRemotePowerPump1 = function() {}
 
     var pumpStatusCheck = function() {
-        if (container.pump.numberOfPumps() === 1) {
+        if (container.pump.numberOfPumps() >= 1  && isPumpTimerRunning(1)===0) {
             container.pumpControllerMiddleware.requestStatusSequence(1)
+            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
 
-        } else if (container.pump.numberOfPumps() === 2) {
-            container.pumpControllerMiddleware.requestStatusSequence(1)
+        }
+        if (container.pump.numberOfPumps() >= 2 && isPumpTimerRunning(2)===0) {
             container.pumpControllerMiddleware.requestStatusSequence(2)
+            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
         }
     }
 
@@ -60,25 +61,24 @@ var offCycleRemotePowerPump1 = function(){
     var startPumpController = function() {
         if (container.settings.virtual.pumpController === 'never') {
             //never start if the value is never
-                    if (container.settings.logPumpTimers) container.logger.warn('Not starting pump timers because virtual.pumpController=never')
-                   return false
-                 }
-                 else
-            if (container.settings.virtual.pumpController === 'always' || !(container.settings.intellicom || container.settings.intellitouch)) {
-                //start if the value is always, or (with default) the values of both intellicom and intellitouch are 0 (not [either/both not present])
-                if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
+            if (container.settings.logPumpTimers) container.logger.warn('Not starting pump off timers because virtual.pumpController=never')
+            return false
+        } else
+        if (container.settings.virtual.pumpController === 'always' || !(container.settings.intellicom.installed || container.settings.intellitouch.installed)) {
+            //start if the value is always, or (with default) the values of both intellicom and intellitouch are 0 (not [either/both not present])
 
-                pumpStatusTimer = setInterval(pumpStatusCheck, 30 * 1000);
-                if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump controller for %s pump(s).', container.pump.numberOfPumps())
-                //must give a short delay to allow the port to open
-                //this 4 second pause is necessary to let the SP and Server open/start
-                pumpInitialRequestConfigDelay = setTimeout(pumpStatusCheck, 4 * 1000);
-                return true
-            }
-            else {
-              if (container.settings.logPumpTimers) container.logger.verbose('Not starting virtual pump controller. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.virtual.pumpController, container.settings.intellitouch, container.settings.intellicom)
-            }
+            if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
+
+
+            if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump off timers for %s pump(s).', container.pump.numberOfPumps())
+            //must give a short delay to allow the port to open
+            //this 4 second pause is necessary to let the SP and Server open/start
+            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
+            return true
+        } else {
+            if (container.settings.logPumpTimers) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.virtual.pumpController, container.settings.intellitouch.installed, container.settings.intellicom.installed)
         }
+    }
 
 
 
@@ -89,9 +89,11 @@ var offCycleRemotePowerPump1 = function(){
         container.pumpControllerMiddleware.runPowerSequence(index, 0)
         if (index === 1 && pump1TimerRunning) {
             clearTimeout(pump1Timer);
+            startPumpController()
             pump1TimerRunning = 0
         } else if (index === 2 && pump2TimerRunning) {
             clearTimeout(pump2Timer);
+            startPumpController()
             pump2TimerRunning = 0
         }
 
@@ -124,7 +126,7 @@ var offCycleRemotePowerPump1 = function(){
         {
             //program duration has finished
             if (container.settings.logPumpMessages)
-                container.logger.info('Pump %s Program Timer Finished.   Pump will shut down.', index)
+                container.logger.info('Pump %s Program Timer Finished.   Pump will go to 4s off cycle for status.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {

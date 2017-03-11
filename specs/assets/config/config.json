@@ -40,10 +40,10 @@
         },
         "chlorinator": {
             "installed": 1,
-            "desiredOutput": -1,
+            "desiredOutput": 101,
             "friendlyName": "",
             "id": {
-                "productName": "",
+                "productName": -1,
                 "productNumber": "",
                 "manufacturer": "",
                 "description": ""
@@ -109,7 +109,12 @@
         },
         "log": {
             "logLevel": "debug",
-            "extLogLevel": "verbose",
+            "socketLogLevel": "verbose",
+            "fileLog": {
+                "enable": 0,
+                "fileLogLevel": "silly",
+                "fileName": "output.log"
+            },
             "logPumpMessages": 1,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,

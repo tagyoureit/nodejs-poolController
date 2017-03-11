@@ -7,7 +7,7 @@ describe('chlorinator controller', function() {
             bottle.container.settings.chlorinator.installed = 1
             bottle.container.settings.logChlorinator = 1
             bottle.container.settings.intellitouch.installed = 0
-            bottle.container.settings.intellicom = 0
+            bottle.container.settings.intellicom.installed = 0
 
         });
 
@@ -36,24 +36,46 @@ describe('chlorinator controller', function() {
           bottle.container.settings.virtual.chlorinatorController = "default"
           bottle.container.settings.intellitouch.installed = 1
           bottle.container.settings.intellicom = 0
-            bottle.container.settings.logChlorinator = 0
+          bottle.container.settings.logChlorinator = 0
 
         })
 
-        it('sets chlorinator timer to run after 4 seconds', function() {
+        it('sets chlorinator timer to run after 4 seconds at 0%', function() {
+            //bottle.container.settings.chlorinator.desiredOutput = 0
+            getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve(0))
+            return bottle.container.chlorinator.init()
+            .then(function(){
+              bottle.container.chlorinatorController.startChlorinatorController()
+              queuePacketStub.callCount.should.eq(0)
+              clock.tick(4000)
+              queuePacketStub.callCount.should.eq(1)
+              queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 0])
+              clock.tick(59 * 1000) //63 seconds
+              queuePacketStub.callCount.should.eq(2)
+              clock.tick(1 * 1000) //64 seconds
+              queuePacketStub.callCount.should.eq(3)
+            })
 
+
+        });
+
+        it('sets chlorinator timer to run after 4 seconds at 10%', function() {
+          getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve(10))
+          return bottle.container.chlorinator.init()
+          .then(function(){
             bottle.container.chlorinatorController.startChlorinatorController()
             queuePacketStub.callCount.should.eq(0)
             clock.tick(4000)
             queuePacketStub.callCount.should.eq(1)
-            queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 0])
-            clock.tick(59 * 1000) //59+4 mins
-            queuePacketStub.callCount.should.eq(2)
-            clock.tick(1 * 1000) //60+4 mins
-            queuePacketStub.callCount.should.eq(3)
+            queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 10])
+            clock.tick(59 * 1000) //63 seconds
+            queuePacketStub.callCount.should.eq(15)
+            clock.tick(1 * 1000) //64 Seconds
+            queuePacketStub.callCount.should.eq(16)
+          })
+
 
         });
-
 
     });
 

@@ -39,6 +39,17 @@ module.exports = function(container) {
 
     var init = function() {
         currentChlorinatorStatus = new Chlorinator(-1, -1, -1, -1, -1, -1, -1);
+        return container.configEditor.getChlorinatorDesiredOutput()
+            .then(function(output) {
+                currentChlorinatorStatus.outputPoolPercent = output
+            })
+            .then(container.configEditor.getChlorinatorName)
+            .then(function(name){
+              currentChlorinatorStatus.name = name
+            })
+            .catch(function(err){
+              container.logger.error('Something went wrong loading chlorinator data from the config file.', err)
+            })
     }
 
     var chlorinatorStatusStr = function(status) {
@@ -60,35 +71,35 @@ module.exports = function(container) {
 
         if ((status & 1) === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'No communications'; //1
+            chlorStr += 'Low Flow'; //1
         }
         if ((status & 2) >> 1 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Water Temp Low'; // 2
+            chlorStr += 'Low Salt'; // 2
         }
         if ((status & 4) >> 2 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Low Voltage'; // 4
+            chlorStr += 'Very Low Salt'; // 4
         }
         if ((status & 8) >> 3 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Clean Cell'; //8
+            chlorStr += 'High Current'; //8
         }
         if ((status & 16) >> 4 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'High Current'; //16
+            chlorStr += 'Clean Cell'; //16
         }
         if ((status & 32) >> 5 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Very Low Salt'; //32
+            chlorStr += 'Low Voltage'; //32
         }
         if ((status & 64) >> 6 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Low Salt'; //64
+            chlorStr += 'Water Temp Low'; //64
         }
         if ((status & 128) >> 7 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'Check Flow/PCB'
+            chlorStr += 'No communications'
         }
         return chlorStr
         //
@@ -119,6 +130,8 @@ module.exports = function(container) {
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             if (container.settings.logChlorinator)
                 container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
+            container.configEditor.updateChlorinatorName(name)
+            container.configEditor.updateChlorinatorDesiredOutput(outputPoolPercent)
             container.io.emitToClients('chlorinator');
         } else
         if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
@@ -127,9 +140,11 @@ module.exports = function(container) {
         } else {
             if (container.settings.logChlorinator) {
                 container.logger.verbose('Msg# %s   Chlorinator status changed \nfrom: %s \nto: %s ', counter,
-                // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
-                JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
+                    // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
+                    JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
             }
+                        container.configEditor.updateChlorinatorName(name)
+            container.configEditor.updateChlorinatorDesiredOutput(outputPoolPercent)
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             container.io.emitToClients('chlorinator');
         }
@@ -177,10 +192,13 @@ module.exports = function(container) {
                     response.status = 'on'
                     response.value = currentChlorinatorStatus.outputPoolPercent
                 }
+                container.configEditor.updateChlorinatorDesiredOutput(chlorLvl)
+                container.io.emitToClients('chlorinator')
                 container.chlorinatorController.chlorinatorStatusCheck()
                 if (container.settings.logChlorinator) {
                     container.logger.info(response)
                 }
+
             } else {
 
                 response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
@@ -196,7 +214,6 @@ module.exports = function(container) {
         if (callback !== undefined) {
             callback(response)
         }
-        container.io.emitToClients('chlorinator')
         return response
     }
 
@@ -205,10 +222,7 @@ module.exports = function(container) {
     }
 
     function setChlorinatorStatusFromChlorinator(data, counter) {
-        //put in logic (or logging here) for chlorinator discovered (upon 1st message?)
 
-        // if (!container.settings.intellitouch.installed) //If we have an intellitouch, we will get it from decoding the controller packets (25, 153 or 217)
-        // {
         var destination, from, currentOutput;
         if (data[container.constants.chlorinatorPacketFields.DEST] === 80) {
             destination = 'Salt cell';
@@ -246,6 +260,7 @@ module.exports = function(container) {
                             container.logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
                         currentChlorinatorStatus.name = name
                         currentChlorinatorStatus.version = version
+                        container.configEditor.updateChlorinatorName(name)
                         container.io.emitToClients('chlorinator')
                     }
 
@@ -272,8 +287,9 @@ module.exports = function(container) {
                 }
             case 18: //Response to 17 (set generate %)
                 {
+
                     var saltPPM = data[4] * 50;
-                    var status = chlorinatorStatusStr(status)
+                    var status = chlorinatorStatusStr(data[5])
                     // switch (data[5]) {
                     //     case 0: //ok
                     //         {
@@ -340,8 +356,10 @@ module.exports = function(container) {
                 }
         }
 
-        if (currentChlorinatorStatus.name === -1 && container.chlorinatorController.isRunning()) // && currentChlorinatorStatus.status !== -1) //Do we need this--> && container.pump.currentPumpStatus[1].power == 1)
-        //If we see a chlorinator status packet, then request the name.  Not sure when the name would be automatically sent over otherwise.
+        if (currentChlorinatorStatus.name === -1 && container.chlorinatorController.isChlorinatorTimerRunning()===1)
+        // If we see a chlorinator status packet, then request the name, but only if the chlorinator virtual
+        // controller is enabled.  Note that if the Intellichlor is used, it doesn't respond to the following;
+        // it's name will be in the Intellitouch status packet.
         {
             container.logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
             //get salt cell name
