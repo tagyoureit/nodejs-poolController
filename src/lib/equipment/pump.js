@@ -56,7 +56,6 @@ module.exports = function(container) {
         var numberOfPumps = -1
         if (numberOfPumps === -1) {
             numberOfPumps = container._.size(container.settings.pump)
-            container.logger.info('Number of pumps:', numberOfPumps)
             return numberOfPumps
         }
         return numberOfPumps

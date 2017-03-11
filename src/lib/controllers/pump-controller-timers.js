@@ -35,7 +35,10 @@ module.exports = function(container) {
     var pump2TimerRunning = 0;
 
     var pumpInitialRequestConfigDelay
-    var pumpStatusTimer
+    var pumpStatusTimer,
+        _runStatusCheck = 0,
+        _startPumpController = 0
+
 
 
 
@@ -45,14 +48,32 @@ module.exports = function(container) {
 
     var offCycleRemotePowerPump1 = function() {}
 
+
+    var isPumpTimerRunning = function(index) {
+        if (index === 1) {
+            return pump1TimerRunning
+        } else if (index === 2) {
+            return pump2TimerRunning
+        }
+    }
+
     var pumpStatusCheck = function() {
-        if (container.pump.numberOfPumps() >= 1  && isPumpTimerRunning(1)===0) {
+
+        if (container.pump.numberOfPumps() >= 1 && isPumpTimerRunning(1) === 0) {
             container.pumpControllerMiddleware.requestStatusSequence(1)
-            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
+            if (container.settings.logPumpTimers) container.logger.silly('running pump 1 status check')
+            _runStatusCheck = 1
 
         }
-        if (container.pump.numberOfPumps() >= 2 && isPumpTimerRunning(2)===0) {
+        if (container.pump.numberOfPumps() >= 2 && isPumpTimerRunning(2) === 0) {
             container.pumpControllerMiddleware.requestStatusSequence(2)
+            if (container.settings.logPumpTimers) container.logger.silly('running pump 2 status check')
+
+            _runStatusCheck = 1
+        }
+        if (_runStatusCheck === 1) {
+            //make sure that we don't run the same timer twice
+            _runStatusCheck = 0
             pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
         }
     }
@@ -67,7 +88,7 @@ module.exports = function(container) {
         if (container.settings.virtual.pumpController === 'always' || !(container.settings.intellicom.installed || container.settings.intellitouch.installed)) {
             //start if the value is always, or (with default) the values of both intellicom and intellitouch are 0 (not [either/both not present])
 
-            if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
+            // if (container.settings.logPumpTimers) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
 
 
             if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump off timers for %s pump(s).', container.pump.numberOfPumps())
@@ -89,12 +110,17 @@ module.exports = function(container) {
         container.pumpControllerMiddleware.runPowerSequence(index, 0)
         if (index === 1 && pump1TimerRunning) {
             clearTimeout(pump1Timer);
-            startPumpController()
+            _startPumpController = 1
             pump1TimerRunning = 0
         } else if (index === 2 && pump2TimerRunning) {
             clearTimeout(pump2Timer);
-            startPumpController()
+            _startPumpController = 1
             pump2TimerRunning = 0
+        }
+        if (_startPumpController === 1) {
+            // make sure we only call the startPumpController once
+            _startPumpController = 0
+            startPumpController()
         }
 
     }
@@ -107,16 +133,14 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //program has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run Pump Program %s. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program %s. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
 
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(1))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             // pump1Timer.setTimeout(pump1SafePumpModeDelay, '', '10s')
             pump1Timer = setTimeout(pump1ProgramTimerMode, 30 * 1000)
 
@@ -131,8 +155,10 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program %s. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
             // pump1Timer.setTimeout(pump1SafePumpModeDelay, '', '10s')
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(1))
             pump1Timer = setTimeout(pump1ProgramTimerMode, 30 * 1000)
@@ -148,15 +174,13 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //program has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run Pump Program. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(2))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             // pump1Timer.setTimeout(pump1SafePumpModeDelay, '', '10s')
             pump2Timer = setTimeout(pump2ProgramTimerMode, 30 * 1000)
 
@@ -171,8 +195,10 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program %s. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
             // pump1Timer.setTimeout(pump1SafePumpModeDelay, '', '10s')
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(2))
             pump2Timer = setTimeout(pump2ProgramTimerMode, 30 * 1000)
@@ -186,16 +212,14 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //rpm timer has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
 
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runRPMSequence(index, container.pump.getCurrentRunningValue(1))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump1Timer = setTimeout(pump1RPMTimerMode, 30 * 1000)
 
         } else
@@ -209,8 +233,11 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
             container.pumpControllerMiddleware.runRPMSequence(index, container.pump.getCurrentRunningValue(1))
             pump1Timer = setTimeout(pump1RPMTimerMode, 30 * 1000)
         }
@@ -223,16 +250,14 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //rpm has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left.', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
 
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runRPMSequence(index, container.pump.getCurrentRunningValue(2))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump2Timer = setTimeout(pump2RPMTimerMode, 30 * 1000)
 
         } else
@@ -245,8 +270,11 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s RPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
             container.pumpControllerMiddleware.runRPMSequence(index, container.pump.getCurrentRunningValue(2))
             pump2Timer = setTimeout(pump2RPMTimerMode, 30 * 1000)
         }
@@ -260,16 +288,14 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //power has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left.', container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left. (%s)', container.pump.getCurrentRemainingDuration(index), callback);
 
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(index))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump1Timer = setTimeout(pump1PowerTimerMode, 30 * 1000)
 
         } else
@@ -283,8 +309,11 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left. (%s)', index, container.pump.getCurrentRemainingDuration(index), callback);
             container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(index))
             pump1Timer = setTimeout(pump1PowerTimerMode, 30 * 1000)
         }
@@ -297,16 +326,14 @@ module.exports = function(container) {
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //program has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
-            if (container.settings.logPumpTimers)
-                container.logger.debug('%s: Running pump %s on with remaining duration %s', callback, index, container.pump.getCurrentRemainingDuration(index))
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left.', container.pump.getCurrentRemainingDuration(index));
+                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left. (%s)', index, container.pump.getCurrentRemainingDuration(index), callback);
 
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(2))
 
-            if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
             pump2Timer = setTimeout(pump2PowerTimerMode, 30 * 1000)
 
         } else
@@ -317,22 +344,18 @@ module.exports = function(container) {
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
             //run until stopped
-            if (container.settings.logPumpTimers)
-                container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run Power On. %s minutes left. (%s)', index, container.pump.getCurrentRemainingDuration(index), callback);
             container.pumpControllerMiddleware.runPowerSequence(index, container.pump.getCurrentRunningValue(2))
+
             pump2Timer = setTimeout(pump2PowerTimerMode, 30 * 1000)
         }
         container.io.emitToClients('pump')
     }
 
 
-    var isPumpTimerRunning = function(index) {
-        if (index === 1) {
-            return pump1TimerRunning
-        } else if (index === 2) {
-            return pump2TimerRunning
-        }
-    }
 
     //set the internal timer for pump controls
     var startProgramTimer = function(index, program, duration) {
