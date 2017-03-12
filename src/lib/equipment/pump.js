@@ -48,17 +48,14 @@ module.exports = function(container) {
 
     var pump1,
         pump2,
-        currentPumpStatus
+        currentPumpStatus,
+        numPumps = -1
     // ,        currentPumpStatusPacket
 
 
     var numberOfPumps = function() {
-        var numberOfPumps = -1
-        if (numberOfPumps === -1) {
-            numberOfPumps = container._.size(container.settings.pump)
-            return numberOfPumps
-        }
-        return numberOfPumps
+
+        return numPumps
     }
 
 
@@ -79,6 +76,14 @@ module.exports = function(container) {
             container.logger.silly('will reset pumps...')
         }
 
+        if (numPumps === -1) {
+            for (var _pump in container.settings.pump) {
+                if (container.settings.pump[_pump].type !== 'none'){
+                    numPumps = _pump
+                  }
+            }
+        }
+
         var externalProgram = {
                 "1": -1,
                 "2": -1,
@@ -89,20 +94,18 @@ module.exports = function(container) {
                 'mode': 'off',
                 'value': 0,
                 'remainingduration': -1
+            }, externalProgram, 'remotecontrolnotset', 'powernotset'),
+            pump2 = new Pump(2, 'namenotset', 'typenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
+                'mode': 'off',
+                'value': 0,
+                'remainingduration': -1
             }, externalProgram, 'remotecontrolnotset', 'powernotset');
-        pump2 = new Pump(2, 'namenotset', 'typenotset', 'timenotset', 'runnotset', 'modenotset', 'drivestatenotset', 'wattsnotset', 'rpmnotset', 'gpmnotset', 'ppcnotset', 'errnotset', 'timernotset', 'durationnotset', {
-            'mode': 'off',
-            'value': 0,
-            'remainingduration': -1
-        }, externalProgram, 'remotecontrolnotset', 'powernotset');
-        //object to hold pump information.  Pentair uses 1 and 2 as the pumps so we will set array[0] to a placeholder.
+
+
         currentPumpStatus = {
             '1': pump1,
             '2': pump2
         }
-
-
-        // currentPumpStatusPacket = ['blank', [],  []]; // variable to hold the status packets of the pumps
 
         loadProgramsFromConfig()
 

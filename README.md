@@ -129,86 +129,148 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 ***
 
-## Config.JSON
+# Config.JSON
 
 <a name="module_nodejs-poolController--config"></a>
 See below for descriptions
 
 ```
 {
-    "Equipment": {
-        "intellicom": 0,
-        "intellitouch": 1,
-        "pumpOnly": 0,
-        "numberOfPumps": 0,
-        "chlorinator": 0,
-        "appAddress": 33
+    "equipment": {
+        "controller": {
+            "intellicom": {
+                "installed": 0,
+                "friendlyName": ""
+            },
+            "intellitouch": {
+                "installed": 1,
+                "friendlyName": ""
+            },
+            "virtual": {
+                "pumpController": "default",
+                "chlorinatorController": "default"
+            },
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            },
+            "circuitFriendlyNames": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": "",
+                "6": "",
+                "7": "",
+                "8": "",
+                "9": "",
+                "10": "",
+                "11": "",
+                "12": "",
+                "13": "",
+                "14": "",
+                "15": "",
+                "16": "",
+                "17": "",
+                "18": "",
+                "19": "",
+                "20": ""
+            }
+
+        },
+        "chlorinator": {
+            "installed": 1,
+            "desiredOutput": -1,
+            "friendlyName": "",
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            }
+        },
+        "pump": {
+            "1": {
+                "type": "none",
+                "externalProgram": {
+                    "1": -1,
+                    "2": -1,
+                    "3": -1,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            },
+            "2": {
+                "type": "none",
+                "externalProgram": {
+                    "1": -1,
+                    "2": -1,
+                    "3": -1,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            }
+        }
     },
-    "Misc": {
-        "expressDir": "/www",
-        "expressPort": 3000,
-        "expressTransport": "http",
-        "expressAuth": 0,
-        "expressAuthFile": "/users.htpasswd"
+    "poolController": {
+        "appAddress": 33,
+        "web": {
+            "expressPort": 3000,
+            "expressTransport": "http",
+            "expressAuth": 0,
+            "expressAuthFile": "/users.htpasswd"
+        },
+        "network": {
+            "rs485Port": "/dev/ttyUSB0",
+            "netConnect": 0,
+            "netHost": "raspberrypi",
+            "netPort": 9801
+        },
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "0.0.0",
+                    "tag_name": "v0.0.0",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
+            }
+        },
+        "log": {
+            "logLevel": "silly",
+            "socketLogLevel": "verbose",
+            "fileLog": {
+                "enable": 0,
+                "fileLogLevel": "silly",
+                "fileName": "output.log"
+            },
+            "logPumpMessages": 1,
+            "logDuplicateMessages": 0,
+            "logConsoleNotDecoded": 0,
+            "logConfigMessages": 0,
+            "logMessageDecoding": 1,
+            "logChlorinator": 1,
+            "logPacketWrites": 1,
+            "logPumpTimers": 0,
+            "logApi": 0
+        }
     },
-    "Network": {
-        "rs485Port": "/dev/ttyUSB0",
-        "netConnect": 0,
-        "netHost": "raspberrypi",
-        "netPort": 9801
-    },
-    "FriendlyNames": [{
-        "blank": ""
-    }, {
-        "circuit1": ""
-    }, {
-        "circuit2": ""
-    }, {
-        "circuit3": ""
-    }, {
-        "circuit4": ""
-    }, {
-        "circuit5": ""
-    }, {
-        "circuit6": ""
-    }, {
-        "circuit7": ""
-    }, {
-        "circuit8": ""
-    }, {
-        "circuit9": ""
-    }, {
-        "circuit10": ""
-    }, {
-        "circuit11": ""
-    }, {
-        "circuit12": ""
-    }, {
-        "circuit13": ""
-    }, {
-        "circuit14": ""
-    }, {
-        "circuit15": ""
-    }, {
-        "circuit16": ""
-    }],
-    "Log": {
-        "logLevel": "info",
-        "extLogLevel": "info",
-        "logPumpMessages": 0,
-        "logDuplicateMessages": 0,
-        "logConsoleNotDecoded": 0,
-        "logConfigMessages": 0,
-        "logMessageDecoding": 0,
-        "logChlorinator": 0,
-        "logPacketWrites": 0,
-        "logPumpTimers": 0,
-        "logApi": 0
-    },
-    "Integrations": {
+    "integrations": {
         "socketISY": 0,
-        "alexaskills": 0,
-        "outputToConsole": 0
+        "outputSocketToConsoleExample": 0
     },
     "socketISY": {
         "username": "blank",
@@ -234,8 +296,8 @@ See below for descriptions
             }
         }
     },
-    "outputToConsole": {
-      "level": "warn"
+    "outputSocketToConsoleExample": {
+        "level": "warn"
     }
 }
 
@@ -243,62 +305,98 @@ See below for descriptions
 
 ***
 
-### Equipment
+## Equipment
+This section defines the equipment setup.
+
+### controller
+Physical or virtual controllers
+
+### intellicom
+ * If you have this, set `"installed": 1`
+ * `friendlyName` - not implemented as of 4.0 alpha 5
+
+### intellitouch
+ * If you have this, set `"installed": 1`
+ * `friendlyName` - not implemented as of 4.0 alpha 5
+
+### virtual
+Options to use the nodejs-poolController app as the controller on your system.  You should not enable these if you have another controller (intellicom/intellitouch)
+* `pumpController` - will actively manage the pumps when they are off or running
+* `chlorinatorController` - will actively manage the chlorinatorController
+
+Valid options are:
+* `default`: If intellicom and intellitouch are not installed, start the controller
+* `always`: Start the controller irregardless of other controllers
+* `never`: Do not start the controller
+
+### id
+Descriptive strings used to describe the controller.
+Not implemented as of 4.0 alpha 5.
+
+### circuitFriendlyNames
+If you want to expand the names of your circuits beyond the 11 (lame!) character limit, add them here.  These will filter through to the UI, but more importantly if you need to name your circuit "WTRFALL 1.5" in the Pentair controller but want to refer to it as "waterfall medium" through Siri/Alexa (hint, hint) this is the place to do it.
+
+For more detail, the app will first determine if the circuit is using one of the ~200 built-in names, then it will check if it using a Pentair custom name, and finally, it will check to see if you want to assign it a friendly name from this config file.
+
+### chlorinator
+ * If you have this, set `"installed": 1`
+ * `desiredOutput`: A value between 0-100 for % of chlorination time.  This value will be read/updated as it is changed in the UI or through the API.
+ * `friendlyName`: Used to identify the chlorinator.  Not implemented as of 4.0 alpha 5
+ * `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 5.
 
 
-#### intellicom, intellitouch, pumpOnly
-For your pool equipment, choose the appropriate variable.  
-Only one of these should be 1 (true).  The other two should be 0 (false).
+### pump
+Enumerated object of the pumps.  
+* `type`:
+   1. `none`: if you do not have this pump
+   1. `VF`: if you have a Variable Flow model pump
+   1. `VS`: if you have a Variable Speed model pump
+   1. `VSF`: if you have a Variable Speed/Flow model pump (Note: this will act the same as a VF model)
+* `externalProgram`: Stores the 4 external programs on the pump when the UI or one of the `save` API's is called.  For VS this will be RPM values, for VF/VSF this will be GPM values.  Please set these through the UI or they will not be synced with the pump.
+* `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 5.
 
-#### numberOfPumps
-1 = 1 pump, 2 = 2 pumps
-(This variable is only applicable with `pumpOnly=1`)
+## poolController
+Sets options related to how the app works
 
-#### Chlorinator
-1 = there is a STANDALONE chlorinator in your equipment, 0 = no chlorinator, or a chlorinator attached to an Intellitouch controller
-
-#### appAddress
+### appAddress
 The address on the serial bus that this app will use.
 The pumps don't seem to care what number you use, but Intellitouch won't respond unless this address is one of 32, 33, 34.
 
 
-### Misc
+### web
+* `expressPort`: set to the value that you want the web pages to be served to.  3000 = http://localhost:3000
+* `expressTransport`: `http` for unencrypted traffic.  `https` for encryption.  
+* `expressAuth`: `0` for no username/password.  `1` for username/password.
+* `expressAuthFile` : `/users.htpasswd` If you have `expressAuth=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
 
-#### expressDir
-set to `/www`
+### network
+* `rs485Port`: If you are running the code on the same machine as your local rs485 adapter, set the address of the adapter here.  Typically `/dev/ttyUSB0` on Unix machines.
+* To connect to native rs485 traffic for connectivity/debugging using <code>[SOCAT](#module_nodejs-poolController--socat)</code>
+        1. `netConnect`: `1` to enable or `0` to disable.  If you enable this option, it will NOT connect to the local RS485 adapter
+        1. `netHost`: Name/IP of your remote computer.  EG `raspberrypi`
+        1. `"netPort":`: `9801` is a standard port
 
-#### expressPort
-set to the value that you want the web pages to be served to.  3000 = http://localhost:3000
+### notifications
+Section for how/when the app will notify you about certain actions/conditions.
 
-#### expressTransport
-`http` for unencrypted traffic.  `https` for encryption.  
+#### version
+The app will check to see if you have the latest published release.  
+* `version`: Latest published version
+* `tag_name`: Tag of latest published version
+* `dismissUntilNextRemoteVersionBump`: Silence the notifications until version/tag_name changes again.
 
-#### expressAuth & expressAuthFile
-`expressAuth = 0` for no username/password.  `expressAuth = 1` for username/password.
-`expressAuthFile=/users.htpasswd`  If you have expressAuth=1 then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
 
-### Network
+###log
+Settings for the console, UI and file logs.
 
-#### rs485Port
-If you are running the code on the same machine as your local rs485 adapter, set the address of the adapter here.
+* `logLevel` is the console output level (see below for valid levels)
+* `socketLogLevel` is the bootstrap UI output level in the debug panel (see below for valid levels)
+* `fileLog` enable output to a fileLog
+    1.  `enable`: `1` for yes, `0` for no
+    1. `fileLogLevel`: output file for level (see below for valid levels)
+    1. `fileName`: `output.log` is the default.  Can take an optional path relative to the main directory.
 
-### Connect to native rs485 traffic for connectivity/debugging
-For SOCAT functionality
-        "netConnect": 1,
-        "netHost": "raspberrypi",
-        "netPort": "9801"
-
-### FriendlyNames
-If you want to expand the names of your circuits beyond the 11 (lame!) character limit, add them here.  These will filter through to the UI (in progress), but more importantly if you need to name your circuit "WTRFALL 1.5" in the Pentair controller but want to refer to it as "waterfall medium" through Siri/Alexa (hint, hint) this is the place to do it.
-
-For more detail, the app will first determine if it is using one of the ~200 built-in names, then it will check if it using a Pentair custom name, and finally, it will check to see if you want to assign it a friendly name from this config file.
-
-### Log
-
-#### logLevel & extLogLevel
-`logLevel` is the console output level
-`extLogLevel` is the bootstrap UI output level in the debug panel
-
+| Valid output levels |
 | --- | --- |
 | Error | Only output error messages |
 | Warn | Output the above, plus warnings |
@@ -306,47 +404,22 @@ For more detail, the app will first determine if it is using one of the ~200 bui
 | Debug | Output the above, plus debugging information |
 | Silly | Output the above, plus code-level troubleshooting messages |
 
-#### logPumpMessages
-1 = show messages from the pump in the logs, 0 = hide
-
-
-#### logDuplicateMessages
-1 = show messages that are repeated on the bus in the logs, 0 = hide
-
-#### logConsoleNotDecoded
-1 = log any messages that have not been [documented](https://github.com/tagyoureit/nodejs-poolController/wiki)
-
-#### logConfigMessages
-1 = log messages that relate to the configuration of the pool (from controllers), 0 = hide
-
-#### logMessageDecoding
-1 = log the internal decoding of packets
-
-#### logChlorinator
-1 = log messages directly from the chlorinator, 0 = hide
+* `logPumpMessages`: 1 = show messages from the pump in the logs, 0 = hide
+* `logDuplicateMessages`: 1 = show messages that are repeated on the bus in the logs, 0 = hide
+* `logConsoleNotDecoded`: 1 = log any messages that have not been [documented](https://github.com/tagyoureit/nodejs-poolController/wiki)
+* `logConfigMessages`: 1 = log messages that relate to the configuration of the pool (from controllers), 0 = hide
+* `logMessageDecoding`: 1 = log the internal decoding of packets
+* `logChlorinator`: 1 = log messages directly from the chlorinator, 0 = hide
 (If you have Intellitouch, status will be received from the controller directly)
-
-#### logPacketWrites
-1 = log debug messages about packet writes, 0 = hide
-
-#### logPumpTimers
-1 = log debug messages about pump timers, 0 = hide
+* `logPacketWrites`: 1 = log debug messages about packet writes, 0 = hide
+* `logPumpTimers`: 1 = log debug messages about pump timers, 0 = hide
 
 ### Integrations
-See below for Integration instructions
+See below for Integration instructions.  
+* `integrations`:
+  1. `_name_of_module_`: `1` to enable, `0` to disable
+* `_name_of_module_`: configuration options to be used by the integration component
 
-### socketISY
-This is an Integration (see below) that comes with the app.
-If you use ISY, put in your system information.
-
-#### Configuration
-Set the username/password/ip address/port.
-
-#### Variables
-Any number of ISY variables can go here.  
-Format should be `"equipment": {"parameter": port#}`
-For pumps, where there can be multiple of the same parameter, use `"pump": {"pumpNumber": {"parameter": port#}}`
-To see all of the potential equipment, call `http://localhost:3000/all`
 
 <a name="module_nodejs-poolController--RS485"></a>
 
@@ -447,7 +520,7 @@ ID:12  CIRCUIT:(5)WtrFall 1.5  MODE:Schedule START_TIME:13:20 END_TIME:13:40 DAY
 
 ```
 
-To display the messages below, change the logging level to VERBOSE.
+To display the messages below, change the logging level to `VERBOSE` and enable `logConfigMessages`.
 ```
 08:47:51.606 VERBOSE Msg# 266:
 
@@ -465,7 +538,7 @@ Diff:                                                     *
 08:47:51.624 VERBOSE Msg# 266   Circuit PATH LIGHTS change:  Status: Off --> On
 ```
 
-An example of pump communication.  To show these, change logPumpMessages from 0 to 1.
+An example of pump communication.  To show these, enable `logPumpMessages`.
 
 ```
 08:50:10.805 VERBOSE Msg# 79   Main --> Pump 1: Pump power to on: [165,0,96,16,6,1,10,1,38]
@@ -473,15 +546,15 @@ An example of pump communication.  To show these, change logPumpMessages from 0 
 
 =======
 
-<a name="module_nodejs-poolController--socat"></a>
 
 ***
 
 ## Integrations
 You can now (pretty) easily add your own code to interface with any other home automation (or other) systems.  See https://github.com/tagyoureit/nodejs-poolController/wiki/Integrations-in-2.0
 
-The "outputToConsole" is a very simple module that echos out additional messages.  The ISY sample is a bit more complex and keeps track of the state of variables.
+The `outputSocketToConsoleExample` is a very simple module that echos out a few socket messages.  The ISY sample is a bit more complex and keeps track of the state of variables.
 
+<a name="module_nodejs-poolController--socat"></a>
 ***
 
 ## Socat
@@ -527,29 +600,19 @@ In the <code>["network"](#module_nodejs-poolController--config)</code> section, 
 
 ## Standalone mode
 
-### Pump Standalone
-To use the pumps in standalone mode, set the following in `config.json`:
-`"pumpOnly":1`
-`"numberOfPumps":#` #=1 or 2
-`"expressDir":"/public"`
-Start the app and navigate to http://localhost:3000/pump.html.  Addition of the pump control to `/bootstrap` is in progress
+### Pump controller (as of 4.0 alpha 5)
+Start the app and navigate to http://localhost:3000/public/pump.html.  Addition of the pump control to `/bootstrap` is in progress
 
-### Chlorinator Standalone
-To use the chlorinator in standalone mode, set the following in `config.json`:
-`"chlorinator":1`
-(Intellitouch, Intellicom should be set to 0)
-Start the app to set the chlorinator level, call http://localhost:3000/chlorinator/LEVEL.  Level should be 0-101.  0 = off, 1-100=%, 101=Super Chlorinate (or Boost).  Addition of the chlorinator to the `/bootstrap` UI is in progress.
 
 ***
 
 ## Bootstrap UI
 
-You can configure the Bootstrap UI.  Edit the file `/bootstrap/configClient.json`.  Feel free to adjust which panels are available, depending on your actual equipment.  Values are:
+Configuration is saved automatically to `./src/www/bootstrap/configClient.json` when you make changes in the UI.
 
 1. `visible` - This panel will be shown and expanded
 1. `collapse` - This panel will be shown and collapsed
 1. `hidden` - This panel will not be shown
-
 
 ***
 

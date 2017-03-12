@@ -160,11 +160,11 @@ var init = exports.init = function() {
     bottle.container.updateAvailable.check()
 
 
-    //initialize variables to hold status
+    // initialize variables to hold status
+    bottle.container.pump.init()
     bottle.container.chlorinator.init()
     bottle.container.heat.init()
     bottle.container.time.init()
-    bottle.container.pump.init()
     bottle.container.schedule.init()
     bottle.container.circuit.init()
     bottle.container.customNames.init()

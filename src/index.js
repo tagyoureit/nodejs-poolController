@@ -19,7 +19,6 @@
     'use strict';
     // this function is strict...
 }());
-//console.log('\033[2J'); //clear the console
 console.log('\x1Bc');
 
 var app = require(__dirname + '/lib/app.js')
