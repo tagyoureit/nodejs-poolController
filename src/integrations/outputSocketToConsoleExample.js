@@ -22,7 +22,7 @@ module.exports = function(container) {
     //load the configuration file
     var configFile = container.settings.getConfig()
         //and read the variables we put there
-    var level = configFile.outputToConsole.level
+    var level = configFile.outputSocketToConsoleExample.level
     var protocol = configFile.poolController.web.expressTransport
     var serverURL;
     var secureTransport;
@@ -45,28 +45,28 @@ module.exports = function(container) {
 
     //This is a listener for the time event.  data is what is received.
     socket.on('time', function(data) {
-        console.log('outputToConsole: The time was broadcast, and it was received.  The time is: %s', JSON.stringify(data))
+        console.log('outputSocketToConsoleExample: The time was broadcast, and it was received.  The time is: %s', JSON.stringify(data))
     })
 
     //The 'connect' function fires when the socket is connected
     socket.on('connect', function(err) {
-        console.log('outputToConsole: Socket connected to socket @ %s (secure: %s)', serverURL, secureTransport)
+        console.log('outputSocketToConsoleExample: Socket connected to socket @ %s (secure: %s)', serverURL, secureTransport)
     })
 
     //The 'error' function fires if there is an error connecting to the socket
     socket.on('error', function(err) {
-        console.log('outputToConsole: Error connecting to socket @ %s (secure: %s)', serverURL, secureTransport)
+        console.log('outputSocketToConsoleExample: Error connecting to socket @ %s (secure: %s)', serverURL, secureTransport)
     })
 
     socket.on('schedule', function(data){
-      console.log('outputToConsole: The schedules were broadcast, and it was received.  The schedules are: %s', JSON.stringify(data, null, 4))
+      console.log('outputSocketToConsoleExample: The schedules were broadcast, and it was received.  The schedules are: %s', JSON.stringify(data, null, 4))
     })
 
     //This init can be this simple.  It just lets us know the integration is running
     function init() {
         //to log through all the logger channels (formatting, to the Bootstrap debug, etc, use "container.logger")
         //we are using our variable, level, to set the level of the logger here
-        container.logger[level]('outputToConsole Loaded.')
+        container.logger[level]('outputSocketToConsoleExample Loaded.')
     }
 
     //This makes the init() function available to the app globally
