@@ -257,7 +257,7 @@ module.exports = function(container) {
         29: 'Valve Status',
         34: 'Solar/Heat Pump Status',
         35: 'Delay Status',
-        39: 'Set ?',
+        39: 'Light Groups/Positions',
         40: 'Settings?',
         96: 'Set Color', //Intellibrite, maybe more?
         133: 'Set Date/Time',
@@ -273,7 +273,7 @@ module.exports = function(container) {
         157: 'Set Valves',
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
-        167: 'Set Light Special Groups',  //all on, off
+        167: 'Set Light Groups/Positions',
         194: 'Get Status',
         197: 'Get Date/Time',
         200: 'Get Heat/Temperature',
@@ -288,7 +288,7 @@ module.exports = function(container) {
         221: 'Get Valves',
         226: 'Get Solar/Heat Pump',
         227: 'Get Delays',
-        231: 'Get ?',
+        231: 'Get Light group/positions',
         232: 'Get Settings?',
         252: 'SW Version Info',
         253: 'Get SW Version',

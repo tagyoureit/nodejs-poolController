@@ -51,6 +51,7 @@
         },
         "pump": {
             "1": {
+                "type": "VS",
                 "externalProgram": {
                     "1": 1000,
                     "2": 2500,
@@ -58,7 +59,6 @@
                     "4": 3000
                 },
                 "friendlyName": "",
-                "type": "VS",
                 "id": {
                     "productName": "",
                     "productNumber": "",
@@ -67,6 +67,7 @@
                 }
             },
             "2": {
+                "type": "VS",
                 "externalProgram": {
                     "1": 1010,
                     "2": 2500,
@@ -74,7 +75,6 @@
                     "4": -1
                 },
                 "friendlyName": "",
-                "type": "VS",
                 "id": {
                     "productName": "",
                     "productNumber": "",
@@ -128,7 +128,7 @@
     },
     "integrations": {
         "socketISY": 0,
-        "outputToConsole": 0
+        "outputSocketToConsoleExample": 0
     },
     "socketISY": {
         "username": "blank",
@@ -154,7 +154,7 @@
             }
         }
     },
-    "outputToConsole": {
+    "outputSocketToConsoleExample": {
         "level": "warn"
     }
 }

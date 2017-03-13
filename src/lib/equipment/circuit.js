@@ -15,21 +15,33 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-function Circuit(number, numberStr, name, circuitFunction, status, freeze, light) {
+function Light(group, colorStr, color) {
+    this.group = group;
+    this.colorStr = colorStr;
+    this.color = color;
+}
+
+function Circuit(number, numberStr, name, circuitFunction, status, freeze, group, colorStr, color) {
     this.number = number; //1
     this.numberStr = numberStr; //circuit1
     this.name = name; //Pool
     this.circuitFunction = circuitFunction; //Generic, Light, etc
     this.status = status; //0, 1
     this.freeze = freeze; //0, 1
-    this.light = {'group': 0, 'colorStr':'Off', 'color':0}
+    this.light = {
+        'group': group,
+        'colorStr': colorStr,
+        'color': color
+    };
 }
+
 
 
 var circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circuit8, circuit9, circuit10, circuit11, circuit12, circuit13, circuit14, circuit15, circuit16, circuit17, circuit18, circuit19, circuit20
 
 
-var currentCircuitArrObj ;
+var currentCircuitArrObj = {},
+    lightGroup = {}
 
 
 module.exports = function(container) {
@@ -39,31 +51,35 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: circuit.js')
 
-    var init = function(){
+    var init = function() {
 
-       circuit1 = new Circuit();
-       circuit2 = new Circuit();
-       circuit3 = new Circuit();
-       circuit4 = new Circuit();
-       circuit5 = new Circuit();
-       circuit6 = new Circuit();
-       circuit7 = new Circuit();
-       circuit8 = new Circuit();
-       circuit9 = new Circuit();
-       circuit10 = new Circuit();
-       circuit11 = new Circuit();
-       circuit12 = new Circuit();
-       circuit13 = new Circuit();
-       circuit14 = new Circuit();
-       circuit15 = new Circuit();
-       circuit16 = new Circuit();
-       circuit17 = new Circuit();
-       circuit18 = new Circuit();
-       circuit19 = new Circuit();
-       circuit20 = new Circuit();
-      //array of circuit objects.  Since Pentair uses 1-20, we'll just use a placeholder for the 1st [0] element in the array
+        //  circuit1 = new Circuit();
+        //  circuit2 = new Circuit();
+        //  circuit3 = new Circuit();
+        //  circuit4 = new Circuit();
+        //  circuit5 = new Circuit();
+        //  circuit6 = new Circuit();
+        //  circuit7 = new Circuit();
+        //  circuit8 = new Circuit();
+        //  circuit9 = new Circuit();
+        //  circuit10 = new Circuit();
+        //  circuit11 = new Circuit();
+        //  circuit12 = new Circuit();
+        //  circuit13 = new Circuit();
+        //  circuit14 = new Circuit();
+        //  circuit15 = new Circuit();
+        //  circuit16 = new Circuit();
+        //  circuit17 = new Circuit();
+        //  circuit18 = new Circuit();
+        //  circuit19 = new Circuit();
+        //  circuit20 = new Circuit();
+        //
+        //  currentCircuitArrObj = {"1": circuit1, "2": circuit2, "3": circuit3, "4": circuit4, "5": circuit5, "6": circuit6, "7": circuit7, "8": circuit8, "9": circuit9, "10": circuit10, "11": circuit11, "12": circuit12, "13": circuit13, "14": circuit14, "15": circuit15, "16": circuit16, "17":circuit17, "18": circuit18, "19": circuit19, "20": circuit20}
 
-       currentCircuitArrObj = {"1": circuit1, "2": circuit2, "3": circuit3, "4": circuit4, "5": circuit5, "6": circuit6, "7": circuit7, "8": circuit8, "9": circuit9, "10": circuit10, "11": circuit11, "12": circuit12, "13": circuit13, "14": circuit14, "15": circuit15, "16": circuit16, "17":circuit17, "18": circuit18, "19": circuit19, "20": circuit20}
+        for (var i = 1; i <= 20; i++) {
+            lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
+            currentCircuitArrObj[i] = new Circuit()
+        }
 
     }
 
@@ -173,7 +189,7 @@ module.exports = function(container) {
 
     //internal method to apply the friendly name
     var getCircuitFriendlyNames = function() {
-            var useFriendlyName
+        var useFriendlyName
         for (var i = 1; i <= 20; i++) {
             if (container.settings.circuitFriendlyNames[i] === "") {
                 useFriendlyName = false
@@ -197,9 +213,9 @@ module.exports = function(container) {
 
     var statusToString = function(status) {
         if (status === 1)
-            return 'On'
+            return 'on'
         else {
-            return 'Off'
+            return 'off'
         }
     }
     var outputInitialCircuitsDiscovered = function() {
@@ -237,6 +253,7 @@ module.exports = function(container) {
         currentCircuitArrObj[circuit].name = circuitArrObj.name
         currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
         currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
+        currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
     }
 
 
@@ -299,7 +316,6 @@ module.exports = function(container) {
 
         if (currentCircuitArrObj[circuit].name === undefined) {
             assignCircuitVars(circuit, circuitArrObj)
-
         }
 
         if (circuit === 20 && sendInitialBroadcast.haveCircuitNames === 0) {
@@ -345,7 +361,7 @@ module.exports = function(container) {
             sendInitialBroadcast.haveCircuitStatus = 1
             //copy all states
 
-            for ( i = 1; i <= 20; i++) {
+            for (i = 1; i <= 20; i++) {
                 currentCircuitArrObj[i].status = circuitArrObj[i].status
             }
 
@@ -353,7 +369,7 @@ module.exports = function(container) {
             //logger.verbose('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, newStatus)
             //currentCircuitArrObj[j + (i * 8) + 1].status = newStatus
         } else
-            for ( i = 1; i <= 20; i++) {
+            for (i = 1; i <= 20; i++) {
                 if (currentCircuitArrObj[i].status === circuitArrObj[i].status) {
                     //nothing changed
                     if (container.settings.logMessageDecoding) {
@@ -434,12 +450,72 @@ module.exports = function(container) {
         return response
     }
 
-    var setControllerLightColor = function(){
+    var setControllerLightColor = function(color, lightGroup, counter) {
+      console.log('clr %s, lgrp %s, counter %s', color, lightGroup, counter)
+        // if (container.settings.logConfigMessages)
+            container.logger.verbose('Msg# %s  Detected a light change.  Color -> %s (%s) for light group %s ', counter, color, strIntellibriteModes[color], lightGroup)
+
+        for (var key in currentCircuitArrObj) {
+            if (currentCircuitArrObj[key].light.group === lightGroup) {
+                currentCircuitArrObj[key].light.color = color
+                currentCircuitArrObj[key].light.colorStr = strIntellibriteModes[color]
+                lightGroup[key].light.color = color
+                lightGroup[key].light.colorStr = strIntellibriteModes[color]
+                // if (container.settings.logConfigMessages)
+                    container.logger.info('Msg# %s  Detected a light change.  Color -> %s (%s) for circuit %s (%s)', counter, color, strIntellibriteModes[color], JSON.stringify(currentCircuitArrObj[key].light, null, 2), key)
+            }
+        }
 
     }
 
-    var setControllerLightGroup = function(){
+    var setControllerLightGroup = function(_lightGroupPacketArr, counter) {
+        container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
 
+        var _temp = {} //temporary object to hold light group/position assignments
+        for (var i = 0; i <= 7; i++) {
+            // split off groups of 4 packets and assign them to a copy of the lightGroup
+            var _this = _lightGroupPacketArr.splice(0, 4) // remove this light groupt
+
+            if (_this[0] !== 0) {
+                _temp[_this[0]] = {
+                    'group': (_this[1] / 16) + 1
+                } // group/position reported as 0, 16, 32, 48
+            }
+        }
+
+        var changed = 0
+        for (var key in lightGroup) {
+            if (lightGroup[key].group !== -1 && !_temp.hasOwnProperty(key)) {
+                // compare existing light group to passed light group assignments.
+                // if the group is not 0 in the existing lightGroup, and does
+                // not exist in the passed light assignments than it was deleted
+                // light group deleted
+                changed = 1
+                lightGroup[key].group = new Light(0, 'off', 0)
+                currentCircuitArrObj[key].light = new Light(0, 'off', 0)
+                if (container.settings.logConfigMessages)
+                    container.logger.verbose('Msg# %s  Light group deleted on circuit %s (%s):', counter,  currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
+            } else
+            if (_temp.hasOwnProperty(key)) {
+                // if the group does exist in the passed light group
+                if (lightGroup[key].group !== _temp[key].group) {
+                    // check to see if it is the same as what we already have
+                    // if it's different, we can determine that there is an
+                    // add/change in group assignment
+                    changed = 1
+                    lightGroup[key].group = _temp[key].group
+                    currentCircuitArrObj[key].light.group = _temp[key].group
+                    if (container.settings.logConfigMessages)
+                        container.logger.verbose('Msg# %s  Light group added or changed for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
+                } else if (lightGroup[key].group !== _temp[key].group) {
+                    // if it is the same, then no change
+                    if (container.settings.logConfigMessages)
+                        container.logger.silly('Msg# %s  No change in light group for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, lightGroup[key])
+                }
+            }
+        }
+        if (changed)
+            container.io.emitToClients('circuit');
     }
 
     /*istanbul ignore next */

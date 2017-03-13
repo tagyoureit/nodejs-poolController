@@ -30,9 +30,7 @@ module.exports = function(container) {
         if (container.settings.logMessageDecoding) logger.silly('Msg# %s  Get Circuit Info  %s', counter, JSON.stringify(data))
 
         container.circuit.setCircuitFromController(circuit, data[container.constants.namePacketFields.NAME], data[container.constants.namePacketFields.CIRCUITFUNCTION], counter)
-
-        decoded = true;
-        return decoded
+        return true
     }
 
     /*istanbul ignore next */

@@ -171,7 +171,7 @@ describe('#set functions', function() {
             })
 
             it('API #2: turns on pump 2', function(done) {
-
+              this.timeout(4 * 1000)
                 requestPoolDataWithURL('pumpCommand/run/pump/2').then(function(obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
@@ -256,6 +256,7 @@ describe('#set functions', function() {
 
 
                 it('API #3: turns on pump 1 for 15 minutes', function(done) {
+                    this.timeout(4*1000)
                     bottle.container.settings.logPumpTimers = 1
                     bottle.container.settings.logPumpMessages = 1
                     requestPoolDataWithURL('pumpCommand/run/pump/1/duration/15').then(function(obj) {
@@ -327,7 +328,7 @@ describe('#set functions', function() {
                     });
                 });
                 it('API #5: runs pump 1, program 1 for 2 minutes (NEW URL)', function(done) {
-
+                    this.timeout(4 * 1000)
                     requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/2').then(function(obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
@@ -361,7 +362,7 @@ describe('#set functions', function() {
 
                 })
                 it('API #5: runs pump 1, program 2 for 10 minutes ', function() {
-
+                  this.timeout(4 * 1000)
                     return requestPoolDataWithURL('pumpCommand/run/pump/1/program/2/duration/10')
                         .then(function(obj) {
                             obj.text.should.contain('REST API')

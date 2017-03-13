@@ -62,7 +62,8 @@ module.exports = function(container) {
         for (i = 1; i < 21; i++) {
             container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 203, 1, i]);
         }
-
+        container.logger.verbose('Queueing messages to retrieve light groups/positions')
+        container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 231, 1, 0]);
 
         container.logger.verbose('Queueing messages to retrieve Schedules')
         container.schedule.getControllerScheduleAll()

@@ -116,6 +116,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
 | To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
 | To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
+| To app | <code>updateVersionNotification(bool) | true = do not send the updateAvailable socket until the next version is available.  false = send updateAvailable everytime.
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
 | To client | <code>circuit</code> | outputs an object of circuits and their status
 | To client | ~~<code>config</code>~~ | ~~outputs an object with the pool controller status~~ Deprecated.
@@ -313,11 +314,11 @@ Physical or virtual controllers
 
 ### intellicom
  * If you have this, set `"installed": 1`
- * `friendlyName` - not implemented as of 4.0 alpha 5
+ * `friendlyName` - not implemented as of 4.0 alpha 6
 
 ### intellitouch
  * If you have this, set `"installed": 1`
- * `friendlyName` - not implemented as of 4.0 alpha 5
+ * `friendlyName` - not implemented as of 4.0 alpha 6
 
 ### virtual
 Options to use the nodejs-poolController app as the controller on your system.  You should not enable these if you have another controller (intellicom/intellitouch)
@@ -331,7 +332,7 @@ Valid options are:
 
 ### id
 Descriptive strings used to describe the controller.
-Not implemented as of 4.0 alpha 5.
+Not implemented as of 4.0 alpha 6.
 
 ### circuitFriendlyNames
 If you want to expand the names of your circuits beyond the 11 (lame!) character limit, add them here.  These will filter through to the UI, but more importantly if you need to name your circuit "WTRFALL 1.5" in the Pentair controller but want to refer to it as "waterfall medium" through Siri/Alexa (hint, hint) this is the place to do it.
@@ -341,8 +342,8 @@ For more detail, the app will first determine if the circuit is using one of the
 ### chlorinator
  * If you have this, set `"installed": 1`
  * `desiredOutput`: A value between 0-100 for % of chlorination time.  This value will be read/updated as it is changed in the UI or through the API.
- * `friendlyName`: Used to identify the chlorinator.  Not implemented as of 4.0 alpha 5
- * `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 5.
+ * `friendlyName`: Used to identify the chlorinator.  Not implemented as of 4.0 alpha 6
+ * `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 6.
 
 
 ### pump
@@ -353,7 +354,7 @@ Enumerated object of the pumps.
    1. `VS`: if you have a Variable Speed model pump
    1. `VSF`: if you have a Variable Speed/Flow model pump (Note: this will act the same as a VF model)
 * `externalProgram`: Stores the 4 external programs on the pump when the UI or one of the `save` API's is called.  For VS this will be RPM values, for VF/VSF this will be GPM values.  Please set these through the UI or they will not be synced with the pump.
-* `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 5.
+* `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 6.
 
 ## poolController
 Sets options related to how the app works
@@ -600,7 +601,7 @@ In the <code>["network"](#module_nodejs-poolController--config)</code> section, 
 
 ## Standalone mode
 
-### Pump controller (as of 4.0 alpha 5)
+### Pump controller (as of 4.0 alpha 6)
 Start the app and navigate to http://localhost:3000/public/pump.html.  Addition of the pump control to `/bootstrap` is in progress
 
 

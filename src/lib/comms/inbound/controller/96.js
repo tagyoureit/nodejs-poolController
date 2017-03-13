@@ -26,6 +26,8 @@ module.exports = function(container) {
     function process(data, counter) {
         //          0  1  2  3  4 5   6 7 8  9
         //eg RED: 165,16,16,34,96,2,195,0,2,12
+        // data[6] = color
+        // data[7] = light group
         container.circuit.setControllerLightColor(data[6], data[7], counter)
 
         return true

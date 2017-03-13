@@ -24,9 +24,15 @@ module.exports = function(container) {
 
 
     function processControllerPacket(data, counter) {
-        var decoded;
+        var decoded = false;
         switch (data[container.constants.packetFields.ACTION]) {
 
+            case 1: // Ack
+                {
+                    // Nothing to process with ACK at this time
+                    decoded = true;
+                    break
+                }
             case 2: //Controller Status
                 {
                     decoded = container.controller_2.process(data, counter)
@@ -68,6 +74,16 @@ module.exports = function(container) {
                     decoded = container.controller_25.process(data, counter)
                     break;
                 }
+            case 39: //Intellibrite lights/groups
+                {
+                    decoded = container.controller_39.process(data, counter)
+                    break;
+                }
+            case 96: //Set Intellibrite colors
+                {
+                    decoded = container.controller_96.process(data, counter)
+                    break;
+                }
             case 134: //Set Circuit Function On/Off
                 {
                     decoded = container.controller_134.process(data, counter)
@@ -88,6 +104,14 @@ module.exports = function(container) {
                     decoded = container.controller_153.process(data, counter)
                     break;
                 }
+            case 167: //Intellibrite lights/groups
+                {
+                    // This is the same packet as 39 (Light Group/Status)
+                    // but when setting this remotely, the new values are not re-broadcast
+                    // so we will treat the assignment the same as the broadcast (for now...)
+                    decoded = container.controller_39.process(data, counter)
+                    break;
+                }
             case 217: //Get Intellichlor status
                 {
                     decoded = container.controller_217.process(data, counter)
@@ -104,11 +128,13 @@ module.exports = function(container) {
                     var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
                     if (currentAction !== undefined) {
                         if (container.settings.logConsoleNotDecoded)
-                            container.logger.verbose('Msg# %s   %s packet: %s', counter, currentAction, data)
-                        decoded = true;
+                            container.logger.verbose('Msg# %s   Controller packet is known to be a %s packet, but is NOT DECODED: %s', counter, currentAction, data)
+                        decoded = true; //don't need to display the message again
                     } else {
                         if (container.settings.logConsoleNotDecoded)
-                            container.logger.verbose('Msg# %s   is NOT DEFINED packet: %s', counter, data)
+                            container.logger.verbose('Msg# %s   is NOT DEFINED and NOT DECODED packet: %s', counter, data)
+                        decoded = true; //don't need to display the message again
+
                     }
                 }
         }

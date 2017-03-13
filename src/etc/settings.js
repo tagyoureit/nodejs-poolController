@@ -25,7 +25,7 @@ if (bottle.container.logModuleLoading)
     console.log('Loading: settings.js')
 
 var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
-var appVersion = packageJson.version + ' alpha 5'
+var appVersion = packageJson.version + ' alpha 6'
 var configurationFile
 
 

@@ -24,9 +24,15 @@ module.exports = function(container) {
 
 
     function process(data, counter) {
-        //          0  1  2  3  4 5   6 7 8  9
-        //eg RED: 165,16,16,34,96,2,195,0,2,12
-        container.circuit.setControllerLightColor(data[6], data[7], counter)
+        //                                                                                      1         2            3           4           5           6           7           8
+        //                                                                    0  1  2  3   4  5 6  7 8 9 10  11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38   39
+        // 14:43:31.925 VERBOSE Msg# 416   Set Light Special Groups packet: 165,16,16,34,167,32,9,32,0,0, 7, 32, 0, 0, 18, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 254
+
+        var _temp = data.slice(6, data.length) // create new array with all packets after the preamble, dest, src, action, and length
+        _temp.splice(_temp.length-2, _temp.length)  // remove checksum high/low bytes
+
+        console.log('167PACKET: ', JSON.stringify(data))
+        container.circuit.setControllerLightGroup(_temp, counter)
 
         return true
     }
