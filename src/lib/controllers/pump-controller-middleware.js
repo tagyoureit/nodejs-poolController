@@ -48,7 +48,7 @@ module.exports = function(container) {
         return -1
     }
 
-    var validRPMorGPM = function(index, val) {
+    var validRPM = function(index, val) {
         if (val===null){
           return false
         }
@@ -60,6 +60,24 @@ module.exports = function(container) {
                 container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
                 return false
             }
+        } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
+
+                container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
+                return false
+
+        }
+    }
+
+    var validGPM = function(index, val) {
+        if (val===null){
+          return false
+        }
+        else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
+        {
+
+                container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
+                return false
+
         } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
             if (val >= 15 && val <= 130)
                 return true
@@ -143,13 +161,14 @@ module.exports = function(container) {
         var address = pumpIndexToAddress(index)
         if (address > -1 && validProgram(program)) {
             //set program packet
-            if (validRPMorGPM(index, rpm)) {
+            if (validRPM(index, rpm)) {
                 if (container.settings.logApi) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM', index, address, program, rpm);
 
                 container.pumpController.setPumpToRemoteControl(address)
                 container.pumpController.saveProgramOnPump(address, program, rpm)
                 container.pump.saveProgram(index, program, rpm)
                 endPumpCommandSequence(address)
+                container.io.emitToClients('pump')
                 return true
 
             } else {
@@ -176,70 +195,70 @@ module.exports = function(container) {
     }
 
     // Should be depricated
-    var pumpCommand = function(index, program, rpm, duration) {
-        index = parseInt(index)
-
-        if (rpm !== null) {
-            rpm = parseInt(rpm)
-        }
-        if (duration !== null) {
-            duration = parseInt(duration)
-        }
-
-        if (program === 'off') {
-            container.pumpControllerTimers.clearTimer(index)
-        } else if (program === 'on') {
-            //what does this do on various pumps?
-            if (duration === null) {
-                duration = -1
-            }
-            container.pumpControllerTimers.startPowerTimer(index, duration)
-        } else
-
-        {
-            if (validProgram(program)) {
-                if (validRPMorGPM(index, rpm)) {
-                    if (duration > 0) {
-                        pumpCommandSaveAndRunProgramWithValueForDuration(index, program, rpm, duration)
-                        //if (container.settings.logApi) container.logger.verbose('User request to save and run  pump %s as program %s @ %s RPM for %s minutes', index, program, rpm, duration);
-
-                    } else {
-                        //##
-                        pumpCommandSaveProgram(index, program, rpm)
-                        //if (container.settings.logApi) container.logger.verbose('User request to save pump %s as program %s @ %s RPM', index, program, rpm);
-                    }
-                } else {
-                    if (duration > 0) {
-                        // runProgramSequenceForDuration(index, program, duration)
-                        container.pumpControllerTimers.startProgramTimer(index, program, duration)
-                        //if (container.settings.logApi) container.logger.verbose('User request to run pump %s as program %s for %s minutes', index, program, duration);
-                    } else {
-                        // runProgramSequence(index, program)
-                        container.pumpControllerTimers.startProgramTimer(index, program, -1)
-                        //if (container.settings.logApi) container.logger.verbose('User request to run pump %s as program %s for an unspecified duration (will set timer to 24 hours)', index, program);
-
-                    }
-                }
-            }
-
-            //Program not valid
-            else {
-                if (duration > 0) {
-                    //With duration, run for duration
-                    // runRPMSequenceForDuration(index, rpm, duration)
-                    container.pumpControllerTimers.startRPMTimer(index, rpm, duration)
-                    //if (container.settings.logApi) container.logger.verbose('User request to run pump %s @ %s RPM for %s minutes', index, rpm, duration);
-
-
-                } else {
-                    //without duration, set timer for 24 hours
-                    // runRPMSequence(index, rpm)
-                    container.pumpControllerTimers.startRPMTimer(index, rpm, -1)
-                    //if (container.settings.logApi) container.logger.verbose('User request to run pump %s @ %s RPM for an unspecified duration (will set timer to 24 hours)', index, rpm);
-
-                }
-            }
-        }
+    // var pumpCommand = function(index, program, rpm, duration) {
+    //     index = parseInt(index)
+    //
+    //     if (rpm !== null) {
+    //         rpm = parseInt(rpm)
+    //     }
+    //     if (duration !== null) {
+    //         duration = parseInt(duration)
+    //     }
+    //
+    //     if (program === 'off') {
+    //         container.pumpControllerTimers.clearTimer(index)
+    //     } else if (program === 'on') {
+    //         //what does this do on various pumps?
+    //         if (duration === null) {
+    //             duration = -1
+    //         }
+    //         container.pumpControllerTimers.startPowerTimer(index, duration)
+    //     } else
+    //
+    //     {
+    //         if (validProgram(program)) {
+    //             if (validRPM(index, rpm)) {
+    //                 if (duration > 0) {
+    //                     pumpCommandSaveAndRunProgramWithValueForDuration(index, program, rpm, duration)
+    //                     //if (container.settings.logApi) container.logger.verbose('User request to save and run  pump %s as program %s @ %s RPM for %s minutes', index, program, rpm, duration);
+    //
+    //                 } else {
+    //                     //##
+    //                     pumpCommandSaveProgram(index, program, rpm)
+    //                     //if (container.settings.logApi) container.logger.verbose('User request to save pump %s as program %s @ %s RPM', index, program, rpm);
+    //                 }
+    //             } else {
+    //                 if (duration > 0) {
+    //                     // runProgramSequenceForDuration(index, program, duration)
+    //                     container.pumpControllerTimers.startProgramTimer(index, program, duration)
+    //                     //if (container.settings.logApi) container.logger.verbose('User request to run pump %s as program %s for %s minutes', index, program, duration);
+    //                 } else {
+    //                     // runProgramSequence(index, program)
+    //                     container.pumpControllerTimers.startProgramTimer(index, program, -1)
+    //                     //if (container.settings.logApi) container.logger.verbose('User request to run pump %s as program %s for an unspecified duration (will set timer to 24 hours)', index, program);
+    //
+    //                 }
+    //             }
+    //         }
+    //
+    //         //Program not valid
+    //         else {
+    //             if (duration > 0) {
+    //                 //With duration, run for duration
+    //                 // runRPMSequenceForDuration(index, rpm, duration)
+    //                 container.pumpControllerTimers.startRPMTimer(index, rpm, duration)
+    //                 //if (container.settings.logApi) container.logger.verbose('User request to run pump %s @ %s RPM for %s minutes', index, rpm, duration);
+    //
+    //
+    //             } else {
+    //                 //without duration, set timer for 24 hours
+    //                 // runRPMSequence(index, rpm)
+    //                 container.pumpControllerTimers.startRPMTimer(index, rpm, -1)
+    //                 //if (container.settings.logApi) container.logger.verbose('User request to run pump %s @ %s RPM for an unspecified duration (will set timer to 24 hours)', index, rpm);
+    //
+    //             }
+    //         }
+    //     }
 
         // //program should be one of 'on', 'off' or 1,2,3,4
         // if (program == 'on' || program == 'off') {
@@ -280,7 +299,7 @@ module.exports = function(container) {
         //if (container.settings.logApi) container.logger.info('pumpCommand: End of Sending Pump Packet \n \n')
 
         //container.io.emitToClients('pump')
-    }
+    // }
 
     /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
 
@@ -291,7 +310,7 @@ module.exports = function(container) {
 
     return {
         runProgramSequence: runProgramSequence,
-        pumpCommand: pumpCommand,
+        //pumpCommand: pumpCommand,
         pumpCommandSaveProgram: pumpCommandSaveProgram,
         pumpCommandSaveAndRunProgramWithValueForDuration: pumpCommandSaveAndRunProgramWithValueForDuration,
         runRPMSequence: runRPMSequence,

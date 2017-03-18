@@ -16,125 +16,210 @@
 
                 <button id="switchToPump" class="button rtalign">Pumps</button>
 
-                <button id="switchToChlorinator" class="button rtalign">Chlorinator</button>
         </div>
     </div>
     <br>
 
+    <div class="floating-box">
+
+        <div id="pump1" class="floating-box small">
 
 
-    <div id="pump" class="centerfloat">
-        <div class="left30">
-            <br>&nbsp;
-            <br>
         </div>
-        <div class="circuitOneQuarter"></div>
-        <div class="circuitOneQuarter centerflex">
+        <div id="pump1control" class="floating-box">
+          ON/OFF COMMANDS
+            <p>
+                API#1: <button id="pu1off">Off</button>
+            </p>
+            <p>
+                API#2: <button id="pu1on">Run/On NOT WORKING</button>
+            </p>
+            <p>
+                API#3 Run for a Duration (NOT WORKING)
+                <br><input type="text" id="api3pump1duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu1api3">Run</button>
+                <br>
 
-            <div id="pump1" class="circuitOneQuarter parent">
+            </p>
+          </div>
+              <div class="floating-box">
+                RUN PROGRAM COMMANDS
+            <p>
+                API#4 Run a program (until cancelled)<br>
+                <input type="text" id="api4pump1program" value="" size="6" placeholder="1" value="1"> Program <button id="pu1api4">Run</button>
+                <br>
+            </p>
+            <p>
+                API#5 Run a program for a duration<br>
+                <input type="text" id="api5pump1program" value="" size="6" placeholder="1" value="1"> Program <input type="text" id="api5pump1duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu1api5">Run</button>
+                <br>
+            </p>
+          </div>
+              <div class="floating-box">
+                RPM COMMANDS
+            <p>
+                API#6 Run at RPM (until cancelled)<br>
+                <input type="text" id="api6pump1rpm" value="" size="6" placeholder="1" value="1"> RPM <button id="pu1api6">Run</button>
+                <br>
+            </p>
+            <p>
+                API#7 Run at RPM for a duration<br>
+                <input type="text" id="api7pump1rpm" value="" size="6" placeholder="1" value="1000">RPM <input type="text" id="api7pump1duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu1api7">Run</button>
+                <br>
+            </p>
+            <p>
+                API#8 Save Program as RPM<br>
+                <input type="text" id="api8pump1program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api8pump1rpm" value="" size="6" placeholder="1" value="1000">RPM <button id="pu1api8">Save</button>
+                <br>
+            </p>
+            <p>
+                API#9 Save and run Program as RPM (until cancelled)<br>
+                <input type="text" id="api9pump1program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api9pump1rpm" value="" size="6" placeholder="1" value="1000">RPM <button id="pu1api9">Save and Run</button>
+                <br>
+            </p>
+            <p>
+                API#10 Save and run Program as RPM for duration<br>
+                <input type="text" id="api10pump1program" value="" size="6" placeholder="1" value="1"> Program
+                <input type="text" id="api10pump1rpm" value="" size="6" placeholder="1" value="1000">RPM
+                <input type="text" id="api10pump1duration" value="" size="6" placeholder="1" value="1"> Min
+                <button id="pu1api10">Save and Run</button>
+                <br>
+            </p>
+          </div>
+              <div class="floating-box">
+                GPM COMMANDS - NOT IMPLEMENTED YET
+            <p>
+                API#11 Run at GPM (until cancelled)<br>
+                <input type="text" id="api11pump1gpm" value="" size="6" placeholder="1" value="1"> GPM <button id="pu1api11">Run</button>
+                <br>
+            </p>
+            <p>
+                API#12 Run at GPM for a duration<br>
+                <input type="text" id="api12pump1gpm" value="" size="6" placeholder="1" value="1000">GPM <input type="text" id="api12pump1duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu1api12">Run</button>
+                <br>
+            </p>
+            <p>
+                API#13 Save Program as GPM<br>
+                <input type="text" id="api13pump1program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api13pump1gpm" value="" size="6" placeholder="1" value="1000">GPM <button id="pu1api13">Save</button>
+                <br>
+            </p>
+            <p>
+                API#14 Save and run Program as GPM (until cancelled)<br>
+                <input type="text" id="api14pump1program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api14pump1gpm" value="" size="6" placeholder="1" value="1000">GPM <button id="pu1api14">Save and Run</button>
+                <br>
+            </p>
+            <p>
+                API#15 Save and run Program as GPM for duration<br>
+                <input type="text" id="api15pump1program" value="" size="6" placeholder="1" value="1"> Program
+                <input type="text" id="api15pump1gpm" value="" size="6" placeholder="1" value="1000">GPM
+                <input type="text" id="api15pump1duration" value="" size="6" placeholder="1" value="1"> Min
+                <button id="pu1api15">Save and Run</button>
+                <br>
+            </p>
 
-
-            </div>
-            <div id="pump1control" class="circuitOneQuarter child">
-                <button id="pu1on">On</button>
-                <button id="pu1off">Off</button>
-                
-                <p>
-                    Duration
-                    <input type="text" id="pump1duration" value="" size="6" placeholder="1" value="1">
-                    <br>
-                
-                <p>
-                    Program 1
-                    <input type="text" id="pump1program1setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu1pr1set">Set</button>-->
-                    <button id="pu1pr1run">Run</button>
-                    <br>
-                <p>
-                    Program 2
-                    <input type="text" id="pump1program2setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu1pr2set">Set</button>-->
-                    <button id="pu1pr2run">Run</button>
-                    <br>
-                <p>
-                    Program 3
-                    <input type="text" id="pump1program3setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu1pr3set">Set</button>-->
-                    <button id="pu1pr3run">Run</button>
-                    <br>
-                <p>
-                    Program 4
-                    <input type="text" id="pump1program4setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu1pr4set">Set</button>-->
-                    <button id="pu1pr4run">Run</button>
-                    <br>
-            </div>
-        </div>
-
-        <div class="circuitThreeQuarter centerflex">
-
-            <div id="pump2" class="circuitThreeQuarter parent centerflex">
-
-            </div>
-
-            <div id="pump2control" class="circuitThreeQuarter child">
-                <button id="pu2on">On</button>
-                <button id="pu2off">Off</button>
-                
-                <p>
-                    Duration
-                    <input type="text" id="pump2duration" value="" size="6" placeholder="1" value="1">
-                    <br>
-                
-                <p>
-                    Program 1
-                    <input type="text" id="pump2program1setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu2pr1set">Set</button>-->
-                    <button id="pu2pr1run">Run</button>
-                 <br>
-                                    <p>
-                    Program 2
-                    <input type="text" id="pump2program2setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu2pr2set">Set</button>-->
-                    <button id="pu2pr2run">Run</button>
-                    <br>
-                <p>
-                    Program 3
-                    <input type="text" id="pump2program3setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu2pr3set">Set</button>-->
-                    <button id="pu2pr3run">Run</button>
-                    <br>
-                <p>
-                    Program 4
-                    <input type="text" id="pump2program4setspeed" value="" size="6">
-                    <br>
-                    <!--<button id="pu2pr4set">Set</button>-->
-                    <button id="pu2pr4run">Run</button>
-                    <br>
-
-            </div>
         </div>
 
-        <div class="right30">
-            <br>&nbsp;
-            <br>
+    </div>
+
+    <div class="floating-box">
+        <div id="pump2" class="floating-box">
+
+        </div>
+
+        <div id="pump2control" class="floating-box">
+          ON/OFF COMMANDS
+            <p>
+                API#1: <button id="pu2off">Off</button>
+            </p>
+            <p>
+                API#2: <button id="pu2on">Run/On (NOT WORKING)</button>
+            </p>
+            <p>
+                API#3 Run for a Duration (NOT WORKING)
+                <br><input type="text" id="api3pump2duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu2api3">Run</button>
+                <br>
+
+            </p>
+          </div>
+              <div class="floating-box">
+                RUN PROGRAM COMMANDS
+            <p>
+                API#4 Run a program (until cancelled)<br>
+                <input type="text" id="api4pump2program" value="" size="6" placeholder="1" value="1"> Program <button id="pu2api4">Run</button>
+                <br>
+            </p>
+            <p>
+                API#5 Run a program for a duration<br>
+                <input type="text" id="api5pump2program" value="" size="6" placeholder="1" value="1"> Program <input type="text" id="api5pump2duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu2api5">Run</button>
+                <br>
+            </p>
+          </div>
+              <div class="floating-box">
+                RPM COMMANDS
+            <p>
+                API#6 Run at RPM (until cancelled)<br>
+                <input type="text" id="api6pump2rpm" value="" size="6" placeholder="1" value="1"> RPM <button id="pu2api6">Run</button>
+                <br>
+            </p>
+            <p>
+                API#7 Run at RPM for a duration<br>
+                <input type="text" id="api7pump2rpm" value="" size="6" placeholder="1" value="1000">RPM <input type="text" id="api7pump2duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu2api7">Run</button>
+                <br>
+            </p>
+            <p>
+                API#8 Save Program as RPM<br>
+                <input type="text" id="api8pump2program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api8pump2rpm" value="" size="6" placeholder="1" value="1000">RPM <button id="pu2api8">Save</button>
+                <br>
+            </p>
+
+            <p>
+                API#9 Save and run Program as RPM (until cancelled)<br>
+                <input type="text" id="api9pump2program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api9pump2rpm" value="" size="6" placeholder="1" value="1000">RPM <button id="pu2api9">Save and Run</button>
+                <br>
+            </p>
+            <p>
+                API#10 Save and run Program as RPM for duration<br>
+                <input type="text" id="api10pump2program" value="" size="6" placeholder="1" value="1"> Program
+                <input type="text" id="api10pump2rpm" value="" size="6" placeholder="1" value="1000">RPM
+                <input type="text" id="api10pump2duration" value="" size="6" placeholder="1" value="1"> Min
+                <button id="pu2api10">Save and Run</button>
+                <br>
+            </p>
+          </div>
+              <div class="floating-box">
+                GPM COMMANDS - NOT IMPLEMENTED YET
+            <p>
+                API#11 Run at GPM (until cancelled)<br>
+                <input type="text" id="api11pump2gpm" value="" size="6" placeholder="1" value="1"> GPM <button id="pu2api11">Run</button>
+                <br>
+            </p>
+            <p>
+                API#12 Run at GPM for a duration<br>
+                <input type="text" id="api12pump2gpm" value="" size="6" placeholder="1" value="1000">GPM <input type="text" id="api12pump2duration" value="" size="6" placeholder="1" value="1"> Min <button id="pu2api12">Run</button>
+                <br>
+            </p>
+            <p>
+                API#13 Save Program as GPM<br>
+                <input type="text" id="api13pump2program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api13pump2gpm" value="" size="6" placeholder="1" value="1000">GPM <button id="pu2api13">Save</button>
+                <br>
+            </p>
+            <p>
+                API#14 Save and run Program as GPM (until cancelled)<br>
+                <input type="text" id="api14pump2program" value="" size="6" placeholder="1" value="1"> Program<input type="text" id="api14pump2gpm" value="" size="6" placeholder="1" value="1000">GPM <button id="pu2api14">Save and Run</button>
+                <br>
+            </p>
+            <p>
+                API#15 Save and run Program as GPM for duration<br>
+                <input type="text" id="api15pump2program" value="" size="6" placeholder="1" value="1"> Program
+                <input type="text" id="api15pump2gpm" value="" size="6" placeholder="1" value="1000">GPM
+                <input type="text" id="api15pump2duration" value="" size="6" placeholder="1" value="1"> Min
+                <button id="pu2api15">Save and Run</button>
+                <br>
+            </p>
+
         </div>
     </div>
 
 
-
-    <div id="chlorinator" class="config2 centerfloat">
-        <br>Chlorinator Status
-        <p>
-            Status may take 10-20 seconds to appear.
-    </div>
 
 
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>

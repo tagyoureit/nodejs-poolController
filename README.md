@@ -1,5 +1,5 @@
 
-# nodejs-poolController - Version 4.0.0 alpha 4.  Version 4.x-DEV
+# nodejs-poolController - Version 4.0.0 alpha 7.  Version 4.x-DEV
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
@@ -314,11 +314,11 @@ Physical or virtual controllers
 
 ### intellicom
  * If you have this, set `"installed": 1`
- * `friendlyName` - not implemented as of 4.0 alpha 6
+ * `friendlyName` - not implemented as of 4.0 alpha 7
 
 ### intellitouch
  * If you have this, set `"installed": 1`
- * `friendlyName` - not implemented as of 4.0 alpha 6
+ * `friendlyName` - not implemented as of 4.0 alpha 7
 
 ### virtual
 Options to use the nodejs-poolController app as the controller on your system.  You should not enable these if you have another controller (intellicom/intellitouch)
@@ -332,7 +332,7 @@ Valid options are:
 
 ### id
 Descriptive strings used to describe the controller.
-Not implemented as of 4.0 alpha 6.
+Not implemented as of 4.0 alpha 7.
 
 ### circuitFriendlyNames
 If you want to expand the names of your circuits beyond the 11 (lame!) character limit, add them here.  These will filter through to the UI, but more importantly if you need to name your circuit "WTRFALL 1.5" in the Pentair controller but want to refer to it as "waterfall medium" through Siri/Alexa (hint, hint) this is the place to do it.
@@ -342,8 +342,8 @@ For more detail, the app will first determine if the circuit is using one of the
 ### chlorinator
  * If you have this, set `"installed": 1`
  * `desiredOutput`: A value between 0-100 for % of chlorination time.  This value will be read/updated as it is changed in the UI or through the API.
- * `friendlyName`: Used to identify the chlorinator.  Not implemented as of 4.0 alpha 6
- * `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 6.
+ * `friendlyName`: Used to identify the chlorinator.  Not implemented as of 4.0 alpha 7
+ * `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 7.
 
 
 ### pump
@@ -354,7 +354,7 @@ Enumerated object of the pumps.
    1. `VS`: if you have a Variable Speed model pump
    1. `VSF`: if you have a Variable Speed/Flow model pump (Note: this will act the same as a VF model)
 * `externalProgram`: Stores the 4 external programs on the pump when the UI or one of the `save` API's is called.  For VS this will be RPM values, for VF/VSF this will be GPM values.  Please set these through the UI or they will not be synced with the pump.
-* `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 6.
+* `id`: Descriptive strings used to describe the chlorinator. Not implemented as of 4.0 alpha 7.
 
 ## poolController
 Sets options related to how the app works
@@ -601,7 +601,7 @@ In the <code>["network"](#module_nodejs-poolController--config)</code> section, 
 
 ## Standalone mode
 
-### Pump controller (as of 4.0 alpha 6)
+### Pump controller (as of 4.0 alpha 7)
 Start the app and navigate to http://localhost:3000/public/pump.html.  Addition of the pump control to `/bootstrap` is in progress
 
 

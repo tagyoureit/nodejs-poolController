@@ -60,46 +60,46 @@ describe('pump controller - save and run program with flow for duration', functi
         })
 
 
-        it('runs pump 1 program 1 at 15 gpm for 1 minute', function() {
-
-
-
-            var index = 1
-            var program = 1
-            var flow = 15
-            var duration = 1
-            //var address = myModule('whatever').pumpIndexToAddress(index)
-
-            bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(index, program, flow, duration)
-
-
-            /* Desired output
-            run 1:  [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
-              [ [ 165, 0, 96, 33, 1, 4, 3, 39, 0, 15 ] ],
-              [ [ 165, 0, 96, 33, 7, 0 ] ],
-              [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
-              [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
-              [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
-              [ [ 165, 0, 96, 33, 7, 0 ] ] ]
-            queuePacketStub.callCount:  7
-
-            */
-            // console.log('logger 1: ', loggerInfoStub.args)
-            //  console.log('pump 1, program 1, 15 gpm, 1 minute: ', queuePacketStub.args)
-            queuePacketStub.callCount.should.eq(7)
-            queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
-            queuePacketStub.args[1][0].should.deep.equal(global.pump1SetProgram1GPM15Packet)
-            queuePacketStub.args[2][0].should.deep.equal(global.pump1RequestStatusPacket)
-            queuePacketStub.args[3][0].should.deep.equal(global.pump1RemotePacket)
-
-            queuePacketStub.args[4][0].should.deep.equal(global.pump1RunProgram1Packet)
-            queuePacketStub.args[5][0].should.deep.equal(global.pump1PowerOnPacket)
-            queuePacketStub.args[6][0].should.deep.equal(global.pump1RequestStatusPacket)
-
-            bottle.container.pumpControllerTimers.clearTimer(1)
-            return
-
-        });
+        // it('runs pump 1 program 1 at 15 gpm for 1 minute', function() {
+        //
+        //
+        //
+        //     var index = 1
+        //     var program = 1
+        //     var flow = 15
+        //     var duration = 1
+        //     //var address = myModule('whatever').pumpIndexToAddress(index)
+        //
+        //     bottle.container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(index, program, flow, duration)
+        //
+        //
+        //     /* Desired output
+        //     run 1:  [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+        //       [ [ 165, 0, 96, 33, 1, 4, 3, 39, 0, 15 ] ],
+        //       [ [ 165, 0, 96, 33, 7, 0 ] ],
+        //       [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+        //       [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 8 ] ],
+        //       [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+        //       [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+        //     queuePacketStub.callCount:  7
+        //
+        //     */
+        //     // console.log('logger 1: ', loggerInfoStub.args)
+        //     //  console.log('pump 1, program 1, 15 gpm, 1 minute: ', queuePacketStub.args)
+        //     queuePacketStub.callCount.should.eq(7)
+        //     queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
+        //     queuePacketStub.args[1][0].should.deep.equal(global.pump1SetProgram1GPM15Packet)
+        //     queuePacketStub.args[2][0].should.deep.equal(global.pump1RequestStatusPacket)
+        //     queuePacketStub.args[3][0].should.deep.equal(global.pump1RemotePacket)
+        //
+        //     queuePacketStub.args[4][0].should.deep.equal(global.pump1RunProgram1Packet)
+        //     queuePacketStub.args[5][0].should.deep.equal(global.pump1PowerOnPacket)
+        //     queuePacketStub.args[6][0].should.deep.equal(global.pump1RequestStatusPacket)
+        //
+        //     bottle.container.pumpControllerTimers.clearTimer(1)
+        //     return
+        //
+        // });
 
         // it('runs pump 1 program 2 at 500 rpm for 60 minutes', function() {
         //

@@ -22,27 +22,15 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: pump-controller-timers.js')
 
-    //var NanoTimer = require('nanotimer')
-    // var pump1Timer = new container.nanotimer
-    // var pump2Timer = new container.nanotimer
-    // var pumpInitialRequestConfigDelay = new container.nanotimer
-    // var pumpStatusTimer = new container.nanotimer
-
     var pump1Timer
     var pump1TimerRunning = 0;
 
     var pump2Timer
     var pump2TimerRunning = 0;
 
-    var pumpInitialRequestConfigDelay
     var pumpStatusTimer,
         _runStatusCheck = 0,
         _startPumpController = 0
-
-
-
-
-
 
     /* ----- INTERNAL TIMERS -----*/
 
@@ -74,7 +62,7 @@ module.exports = function(container) {
         if (_runStatusCheck === 1) {
             //make sure that we don't run the same timer twice
             _runStatusCheck = 0
-            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
+            pumpStatusTimer = setTimeout(pumpStatusCheck, 30 * 1000);
         }
     }
 
@@ -93,8 +81,8 @@ module.exports = function(container) {
 
             if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump off timers for %s pump(s).', container.pump.numberOfPumps())
             //must give a short delay to allow the port to open
-            //this 4 second pause is necessary to let the SP and Server open/start
-            pumpStatusTimer = setTimeout(pumpStatusCheck, 4 * 1000);
+            //this 30 second pause is necessary to let the SP and Server open/start
+            setTimeout(pumpStatusCheck,4*1000)
             return true
         } else {
             if (container.settings.logPumpTimers) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.virtual.pumpController, container.settings.intellitouch.installed, container.settings.intellicom.installed)
@@ -150,7 +138,7 @@ module.exports = function(container) {
         {
             //program duration has finished
             if (container.settings.logPumpMessages)
-                container.logger.info('Pump %s Program Timer Finished.   Pump will go to 4s off cycle for status.', index)
+                container.logger.info('Pump %s Program Timer Finished.   Pump will go to 30s off cycle for status.', index)
             //Timer = 0, we are done.  Pump should turn off automatically
             clearTimer(index)
         } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
@@ -169,13 +157,12 @@ module.exports = function(container) {
 
     var pump2ProgramTimerMode = function() {
         var index = 2
-        var pumpXTimer = 'pump' + index.toString() + 'Timer'
         var callback = 'pump' + index.toString() + 'ProgramTimerMode'
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
             //program has remaining duration
             container.pump.updateCurrentRunningPumpDuration(index, -0.5)
             if (container.settings.logPumpMessages)
-                container.logger.verbose('App -> Pump %s: Sending Run Pump Program. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+                container.logger.verbose('App -> Pump %s: Sending Run Pump Program %s. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
 
             //this function was called via timer and there is still time left on the timer
             container.pumpControllerMiddleware.runProgramSequence(index, container.pump.getCurrentRunningValue(2))

@@ -65,9 +65,9 @@ module.exports = function(container) {
                         decoded = true;
                         break;
                     }
-                case 256: //03:17:39.122 INFO Msg# 5 is UNKNOWN: [16,96,255,1,8,2,29]  Possibly priming?
+                case 255: //03:17:39.122 INFO Msg# 5 is UNKNOWN: [16,96,255,1,8,2,29]  Possibly priming?
                     {
-                        container.logger.warn('Msg# %s  Pump message?  Possibly priming?  %s', JSON.stringify(data))
+                        container.logger.warn('Msg# %s  Pump %s reject the command. %s', data[0], JSON.stringify(data))
                         decoded = false;
                         break;
                     }

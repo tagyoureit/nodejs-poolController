@@ -6,8 +6,12 @@ var bottle = Bottle.pop('poolController-Bottle');
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
-bottle.factory('promisedIoPromise', function() {
-    return require("promised-io/promise");
+// bottle.factory('promisedIoPromise', function() {
+//     return require("promised-io/promise");
+// })
+
+bottle.service('promise',function(){
+return require('bluebird')
 })
 
 bottle.service('fs', function() {

@@ -29,6 +29,7 @@ module.exports = function(container) {
 
 
     function queuePacket(message, callback) {
+      console.log('queuePacket: ', message, callback)
         if (container.settings.logPacketWrites) container.logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
 
         var response = {}
@@ -42,6 +43,7 @@ module.exports = function(container) {
 
         var packet;
         var requestGet = 0;
+        console.log('container.constants.ctrl.CHLORINATOR', container.constants.ctrl.CHLORINATOR)
         if (message[0] === 16 && message[1] === container.constants.ctrl.CHLORINATOR) {
             message.push(checksum)
             message.push(16)
@@ -143,6 +145,7 @@ module.exports = function(container) {
         if (callback !== undefined) {
             callback(response)
         }
+        return true
     }
 
 

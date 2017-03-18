@@ -33,8 +33,28 @@ module.exports = function(container) {
         }*/
 
         if (outputType === 'updateAvailable' || outputType === 'all') {
-            var updateAvail = container.updateAvailable.getResults()
-            io.sockets.emit('updateAvailable', updateAvail)
+            var Promise = container.promise
+            Promise.resolve()
+                .then(function() {
+                    return container.configEditor.getVersionNotification()
+                })
+                .then(function(remote) {
+                    if (remote.dismissUntilNextRemoteVersionBump !== true) {
+                        // true = means that we will suppress the update until the next available version bump
+                        return Promise.resolve()
+                            .then(function() {
+                                return container.updateAvailable.getResults()
+                            })
+                            .then(function(updateAvail) {
+                                return io.sockets.emit('updateAvailable', updateAvail)
+                            })
+
+                    }
+
+                })
+                .catch(function(err) {
+                    container.logger.warn('Error emitting updateAvailable. ', err)
+                })
         }
 
         if (outputType === 'one' || outputType === 'all') {
@@ -178,7 +198,7 @@ module.exports = function(container) {
 
                     if (incomingPacket[packet][0] === 16 && incomingPacket[packet][1] === container.constants.ctrl.CHLORINATOR) {
                         sendPacket = incomingPacket[packet]
-                        if (container.settings.logApi) logger.silly('packet (chlorinator) now: ', packet)
+                        if (container.settings.logApi) container.logger.silly('packet (chlorinator) now: ', packet)
                     } else {
                         if (incomingPacket[packet][0] === 96 || incomingPacket[packet][0] === 97 || incomingPacket[packet][1] === 96 || incomingPacket[packet][1] === 97)
                         //if a message to the pumps, use 165,0
@@ -240,53 +260,179 @@ module.exports = function(container) {
 
             //SHOULD DEPRICATE
             socket.on('pumpCommand', function(equip, program, value, duration) {
-
-                container.logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
-                container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
+                container.logger.error('This API (pumpCommand) has been depricated.  Please use setPumpCommand')
+                // container.logger.silly('Socket.IO pumpCommand variables - equip %s, program %s, value %s, duration %s', equip, program, value, duration)
+                // container.pumpControllerMiddleware.pumpCommand(equip, program, value, duration)
             })
 
-            socket.on('setPumpCommand', function(action, pump, program, rpm, duration) {
+            socket.on('setPumpCommand', function(action, pump, program, rpm, gpm, duration) {
                 pump = parseInt(pump)
+
+                // if commands are missing, assing them null
+                if (isNaN(program)) program = null
+                if (isNaN(rpm)) rpm = null
+                if (isNaN(gpm)) gpm = null
+                if (isNaN(duration)) duration = null
+
+
                 if (program !== null) program = parseInt(program)
                 if (rpm !== null) rpm = parseInt(rpm)
+                if (gpm !== null) gpm = parseInt(gpm)
                 if (duration !== null) duration = parseInt(duration)
 
-                console.log('Socket.IO pumpCommand variables - action %s, pump %s, program %s, rpm %s, duration %s', action, pump, program, rpm, duration)
+                var mapping = 0
+                // Quick mapping to make calling the right command easier
+                // duration null = 0; not null = 1
+                if (duration !== null ) mapping += 1
+                // gpm null = 0; not null = 2
+                if (gpm !== null) mapping += 2
+                // rpm null =0; not null = 4
+                if (rpm !== null) mapping += 4
+                // program null = 0; not null = 8
+                if (program !== null) mapping += 8
+                // action; off = 0; run = 16; save = 32; saverun = 64
+                if (action === 'run') mapping += 16
+                if (action === 'save') mapping += 32
+                if (action === 'saverun') mapping += 64
+                console.log('In Socket; mapping = %s', mapping)
+                console.log('Socket.IO setPumpCommand variables - action %s, pump %s, program %s, rpm %s, gpm %s, duration %s', action, pump, program, rpm, gpm, duration)
 
-                if (action === 'off') {
-                    console.log('called off')
-                    container.pumpControllerTimers.clearTimer(pump)
-                } else if (action === 'run') {
-                    if (program === null) {
-                        if (duration === null) {
-                            container.pumpControllerTimers.startProgramTimer(pump, program, -1)
-                        } else {
-                            container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+
+                switch (mapping) {
+                    case 0:
+                        {
+                            // Api #1 off
+                            console.log('called off')
+                            container.pumpControllerTimers.clearTimer(pump)
+                            break;
                         }
-                    } else if (rpm === null) {
-                        if (duration === null) {
-                            container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
-                        } else {
-                            container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
-                        }
-                    } else {
-                        if (duration === null) {
+                    case 16:
+                        {
+                            // Api #2 Run pump until cancelled
+                            console.log('Api #2 Run pump until cancelled')
                             container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
-                        } else {
-                            container.pumpControllerTimers.startPowerTimer(pump, duration)
+                            break
                         }
+                    case 17:
+                        {
+                            // Api #3 Run pump for duration
+                            container.pumpControllerTimers.startPowerTimer(pump, duration)
+                            break
+                        }
+                    case 18:
+                        {
+                            // Api #11 Run pump at GPM until cancelled
+                            container.logger.error('Api #11 Run pump at GPM until cancelled NOT IMPLEMENTED YET ')
+                            break
+                        }
+                    case 19:
+                        {
+                            // Api #12 Run pump at GPM for duration
+                            container.logger.error('Api #12 Run pump at GPM for duration NOT IMPLEMENTED YET ')
+                            break
+                        }
+                    case 20:
+                        {
+                            // Api #6 Run pump at RPM until cancelled
+                            container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
+                            break
+                        }
+                    case 21:
+                        {
+                            // Api #7 Run pump at RPM for duration
+                            container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
+                            break
+                        }
+                    case 24:
+                        {
+                            // Api #4 Run pump program until cancelled
+                            container.pumpControllerTimers.startProgramTimer(pump, program, -1)
+                            break
+                        }
+                    case 25:
+                        {
+                            // Api #5 Run pump program for duration
+                            container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+                            break
+                        }
+                    case 42:
+                        {
+                            // Api #13 Save program with GPM
+                            container.logger.error('Api #13 Save program with GPM NOT IMPLEMENTED YET')
+                            break
+                        }
+                    case 44:
+                        {
+                            // Api #8 Save program with RPM
+                            container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, rpm)
+                            break
+                        }
+                    case 74:
+                        {
+                            // Api #14 Save and run program at GPM until cancelled
+                            container.logger.error('Api #14 Save and run program at GPM until cancelled NOT IMPLEMENTED YET')
+                            break
+                        }
+                    case 75:
+                        {
+                            // Api #15 Save and run program with GPM for duration
+                            container.logger.error('Api #15 Save and run program with GPM for duration NOT IMPLEMENTED YET')
+                            break
+                        }
+                    case 76:
+                        {
+                            // Api #9 Save and run program at rpm until cancelled
+                            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, -1)
+                            break
+                        }
+                    case 77:
+                        {
+                            // Api #10 Save and run program with rpm for duration
+                            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, duration)
+                            break
+                        }
+                    default: {
+                      container.logger.warn('No pump commands found')
                     }
-                } else if (action === "save") {
-                    container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, rpm)
-                } else if (action === "saverun") {
-                    if (duration === null) {
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, -1)
-
-                    } else {
-                        container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, duration)
-
-                    }
+                    mapping = 0;
                 }
+
+
+
+                // if (action === 'off') {
+                //     console.log('called off')
+                //     container.pumpControllerTimers.clearTimer(pump)
+                // } else if (action === 'run') {
+                //     if (program === null) {
+                //         if (duration === null) {
+                //             container.pumpControllerTimers.startProgramTimer(pump, program, -1)
+                //         } else {
+                //             container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+                //         }
+                //     } else if (rpm === null) {
+                //         if (duration === null) {
+                //             container.pumpControllerTimers.startRPMTimer(pump, rpm, -1)
+                //         } else {
+                //             container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
+                //         }
+                //     } else {
+                //         if (duration === null) {
+                //             container.pumpControllerTimers.startPowerTimer(pump, -1) //-1 for indefinite duration
+                //         } else {
+                //             container.pumpControllerTimers.startPowerTimer(pump, duration)
+                //         }
+                //     }
+                // } else if (action === "save") {
+                //     container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, rpm)
+                // } else if (action === "saverun") {
+                //     if (duration === null) {
+                //         container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, -1)
+                //
+                //     } else {
+                //         container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, rpm, duration)
+                //
+                //     }
+                // }
             })
 
             socket.on('setDateTime', function(hh, mm, dow, dd, mon, yy, dst) {
@@ -377,7 +523,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        logger.info('Loaded: socketio-helper.js')
+        container.logger.info('Loaded: socketio-helper.js')
 
     return {
         io: io,

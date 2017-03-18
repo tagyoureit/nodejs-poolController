@@ -1,3 +1,13 @@
+.floating-box {
+    display: inline-table;
+    margin: 10px;
+    border: 3px solid gray;
+}
+.small {
+    width: 500px
+    border: 3px solid gray;
+}
+
 #config {
     display: none;
 }

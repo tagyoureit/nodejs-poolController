@@ -15,11 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//var NanoTimer = require('nanotimer')
-
-//declare global var that can be accessed elsewhere
-var sp = exports.sp;
-
 module.exports = function(container) {
     var logger = container.logger
     /*istanbul ignore next */
@@ -30,8 +25,6 @@ module.exports = function(container) {
 
         if (container.settings.netConnect === 0) {
             var serialport = container.serialport
-            //serialport = require("serialport");
-            //var SerialPort = serialport.SerialPort;
             sp = new serialport(container.settings.rs485Port, {
                 baudrate: 9600,
                 databits: 8,
@@ -46,7 +39,6 @@ module.exports = function(container) {
                     setTimeout(init, 10*1000)
                     return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                 }
-                //console.log('sp is now open (serial port)')
             })
         } else {
             sp = new container.net.Socket();
@@ -63,11 +55,6 @@ module.exports = function(container) {
             container.packetBuffer.push(data)
             //console.log(JSON.stringify(data.toJSON()))
 
-            /*  if (!container.receiveBuffer.getProcessingBuffer()) {
-                  //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
-                  container.receiveBuffer.iterateOverArrayOfArrays()
-                      //testbufferArrayOfArrays=[]
-              }*/
         });
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
@@ -90,25 +77,6 @@ module.exports = function(container) {
         sp.on('open', function() {
             logger.verbose('Serial Port opened');
         })
-
-
-        /*var spTimer = new container.nanotimer
-
-            function sptimertest() {
-                var data
-                console.log('reading data')
-                data = sp.read()
-
-                spTimer.setTimeout(sptimertest, [], '100m')
-                if (data !== null) {
-                    console.log(data)
-                    container.packetBuffer.push(data)
-                }
-
-
-            }
-            sptimertest()
-        */
 
     }
 

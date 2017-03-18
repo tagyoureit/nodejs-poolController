@@ -204,7 +204,7 @@ describe('socket.io pump tests', function() {
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+        // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
         bottle.container.pump.init()
         bottle.container.pumpControllerTimers.clearTimer(1)
@@ -249,3 +249,48 @@ describe('socket.io pump tests', function() {
     })
 
 })
+
+
+// describe('socket.io updateAvailable tests', function() {
+//
+//
+//
+//     before(function() {
+//         bottle.container.logger.transports.console.level = 'silly'
+//         bottle.container.server.init()
+//         bottle.container.io.init()
+//     });
+//
+//     beforeEach(function() {
+//         sandbox = sinon.sandbox.create()
+//         //clock = sandbox.useFakeTimers()
+//         bottle.container.time.init()
+//         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+//         loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+//         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+//         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+//         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+//         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+//         pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+//         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+//     })
+//
+//
+//
+//     afterEach(function() {
+//
+//         sandbox.restore()
+//
+//     })
+//
+//     after(function() {
+//         bottle.container.logger.transports.console.level = 'info'
+//         bottle.container.server.close()
+//     })
+//
+//
+//
+//
+//
+//
+// })

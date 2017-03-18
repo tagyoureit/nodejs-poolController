@@ -49,7 +49,7 @@ describe('#set functions', function() {
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
                 bottle.container.server.init()
             });
@@ -72,24 +72,24 @@ describe('#set functions', function() {
 
 
 
-            it('API #1: turns off pump 1 (Old URL)', function(done) {
+            // it('API #1: turns off pump 1 (Old URL)', function(done) {
 
-                requestPoolDataWithURL('pumpCommand/1/off').then(function(obj) {
-                    obj.text.should.contain('REST API')
-                    obj.pump.should.eq(1)
-                    // obj.duration.should.eq(600)
-                    // console.log('pumpQueue:', queuePacketStub.args)
-                    clock.tick(60 * 1000) //+1 min
-
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    bottle.container.pump.getCurrentRunningMode(1).should.eq('off')
-                    bottle.container.pump.getCurrentRunningValue(1).should.eq(0)
-
-                    clock.tick(59 * 60 * 1000) //+1 hr
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    done()
-                })
-            })
+            //     requestPoolDataWithURL('pumpCommand/1/off').then(function(obj) {
+            //         obj.text.should.contain('REST API')
+            //         obj.pump.should.eq(1)
+            //         // obj.duration.should.eq(600)
+            //         // console.log('pumpQueue:', queuePacketStub.args)
+            //         clock.tick(60 * 1000) //+1 min
+            //
+            //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+            //         bottle.container.pump.getCurrentRunningMode(1).should.eq('off')
+            //         bottle.container.pump.getCurrentRunningValue(1).should.eq(0)
+            //
+            //         clock.tick(59 * 60 * 1000) //+1 hr
+            //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+            //         done()
+            //     })
+            // })
 
             it('API #1: turns off pump 1', function(done) {
 
@@ -130,25 +130,25 @@ describe('#set functions', function() {
 
                 })
             })
-            it('API #2: turns on pump 1 (Old URL)', function(done) {
-
-                requestPoolDataWithURL('pumpCommand/1/on').then(function(obj) {
-                    obj.text.should.contain('REST API')
-                    obj.pump.should.eq(1)
-                    // obj.duration.should.eq(600)
-                    // console.log('pumpQueue:', queuePacketStub.args)
-                    clock.tick(60 * 1000) //+1 min
-
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    bottle.container.pump.getCurrentRunningMode(1).should.eq('power')
-                    bottle.container.pump.getCurrentRunningValue(1).should.eq(1)
-
-                    clock.tick(59 * 60 * 1000) //+1 hr
-                    bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    done()
-
-                })
-            })
+            // it('API #2: turns on pump 1 (Old URL)', function(done) {
+            //
+            //     requestPoolDataWithURL('pumpCommand/1/on').then(function(obj) {
+            //         obj.text.should.contain('REST API')
+            //         obj.pump.should.eq(1)
+            //         // obj.duration.should.eq(600)
+            //         // console.log('pumpQueue:', queuePacketStub.args)
+            //         clock.tick(60 * 1000) //+1 min
+            //
+            //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+            //         bottle.container.pump.getCurrentRunningMode(1).should.eq('power')
+            //         bottle.container.pump.getCurrentRunningValue(1).should.eq(1)
+            //
+            //         clock.tick(59 * 60 * 1000) //+1 hr
+            //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+            //         done()
+            //
+            //     })
+            // })
 
             it('API #2: turns on pump 1', function(done) {
 
@@ -171,7 +171,7 @@ describe('#set functions', function() {
             })
 
             it('API #2: turns on pump 2', function(done) {
-              this.timeout(4 * 1000)
+                this.timeout(4 * 1000)
                 requestPoolDataWithURL('pumpCommand/run/pump/2').then(function(obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
@@ -229,7 +229,7 @@ describe('#set functions', function() {
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
                 configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
             })
@@ -256,7 +256,7 @@ describe('#set functions', function() {
 
 
                 it('API #3: turns on pump 1 for 15 minutes', function(done) {
-                    this.timeout(4*1000)
+                    this.timeout(4 * 1000)
                     bottle.container.settings.logPumpTimers = 1
                     bottle.container.settings.logPumpMessages = 1
                     requestPoolDataWithURL('pumpCommand/run/pump/1/duration/15').then(function(obj) {
@@ -279,21 +279,21 @@ describe('#set functions', function() {
                     })
                 })
 
-                it('API #4: runs pump 1, program 1', function(done) {
-                    requestPoolDataWithURL('pumpCommand/1/1').then(function(result) {
-                        // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
-                        // console.log('loggerWarnStub called with: ', loggerWarnStub.args)
-                        // console.log('pumpCommandStub called with: ', pumpCommandStub.args)
-                        // console.log('result: ', result)
-                        pumpCommandStub.args[0][0].should.eq(1)
-                        pumpCommandStub.args[0][1].should.eq('1') //should be a sting because it could be 0-4 or on/off
-                        loggerWarnStub.calledOnce.should.be.true
-                        result.program.should.eq('1')
-                        done()
-
-                    })
-
-                });
+                // it('API #4: runs pump 1, program 1', function(done) {
+                //     requestPoolDataWithURL('pumpCommand/1/1').then(function(result) {
+                //         // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
+                //         // console.log('loggerWarnStub called with: ', loggerWarnStub.args)
+                //         // console.log('pumpCommandStub called with: ', pumpCommandStub.args)
+                //         // console.log('result: ', result)
+                //         pumpCommandStub.args[0][0].should.eq(1)
+                //         pumpCommandStub.args[0][1].should.eq('1') //should be a sting because it could be 0-4 or on/off
+                //         loggerWarnStub.calledOnce.should.be.true
+                //         result.program.should.eq('1')
+                //         done()
+                //
+                //     })
+                //
+                // });
                 it('API #4: runs pump 1, program 1 (NEW URL)', function(done) {
 
                     requestPoolDataWithURL('pumpCommand/run/pump/1/program/1').then(function(obj) {
@@ -338,7 +338,7 @@ describe('#set functions', function() {
                         clock.tick(59 * 1000) // +59 seconds
                         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1)
                         clock.tick(1 * 1000) //1 min
-                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(.5)
+                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(0.5)
                         clock.tick(59 * 60 * 1000) //+1 hr
                         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
                         done()
@@ -362,7 +362,7 @@ describe('#set functions', function() {
 
                 })
                 it('API #5: runs pump 1, program 2 for 10 minutes ', function() {
-                  this.timeout(4 * 1000)
+                    this.timeout(4 * 1000)
                     return requestPoolDataWithURL('pumpCommand/run/pump/1/program/2/duration/10')
                         .then(function(obj) {
                             obj.text.should.contain('REST API')
@@ -497,7 +497,7 @@ describe('#set functions', function() {
 
 
                 it('API #10: saves and runs pump 1 to program 1 at 1000 rpm for 2 minutes (NEW URL)', function(done) {
-                    this.timeout(5*1000)
+                    this.timeout(5 * 1000)
                     requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/1/rpm/1000/duration/2').then(function(obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
@@ -517,24 +517,24 @@ describe('#set functions', function() {
 
             context('with invalid URIs', function() {
 
-                it('sets pump 1 program 1 to 1000 rpm', function(done) {
+                // it('sets pump 1 program 1 to 1000 rpm', function(done) {
 
-                    requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {
-                        // console.log('obj: ', obj)
-                        obj.text.should.contain('REST API')
-                        obj.pump.should.eq(1)
-                        obj.program.should.eq(1)
-                        obj.value.should.eq(1000)
-                        loggerWarnStub.calledOnce.should.be.true
-                        clock.tick(60 * 1000) //+1 min
-
-                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-
-                        clock.tick(59 * 60 * 1000) //+1 hr
-                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                        done()
-                    });
-                });
+                //     requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {
+                //         // console.log('obj: ', obj)
+                //         obj.text.should.contain('REST API')
+                //         obj.pump.should.eq(1)
+                //         obj.program.should.eq(1)
+                //         obj.value.should.eq(1000)
+                //         loggerWarnStub.calledOnce.should.be.true
+                //         clock.tick(60 * 1000) //+1 min
+                //
+                //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                //
+                //         clock.tick(59 * 60 * 1000) //+1 hr
+                //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                //         done()
+                //     });
+                // });
 
 
 
@@ -610,7 +610,7 @@ describe('#set functions', function() {
                         obj.pump.should.eq(1)
                         obj.duration.should.eq(3)
                         clock.tick(2 * 60 * 1000)
-                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(.5)
+                        bottle.container.pump.getCurrentRemainingDuration(1).should.eq(0.5)
                         bottle.container.pump.getCurrentRunningValue(1).should.eq(2500)
                         bottle.container.pump.getCurrentRunningMode(1).should.eq('rpm')
                         // console.log('pumpQueue6:', queuePacketStub.args)
@@ -630,6 +630,7 @@ describe('#set functions', function() {
                         done()
                     })
                     .catch(function(err) {
+                        /* istanbul ignore next */
                         console.log('something went wrong:', err)
                     })
             })
@@ -638,5 +639,4 @@ describe('#set functions', function() {
         })
 
     })
-
 })

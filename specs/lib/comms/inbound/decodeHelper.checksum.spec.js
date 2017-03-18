@@ -33,7 +33,7 @@ describe('decodeHelper processes controller packets', function() {
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
 
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
                 isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
                 isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)

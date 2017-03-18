@@ -40,17 +40,17 @@ describe('pump controller', function() {
             bottle.container.settings.intellicom.installed = 0
         })
 
-        it('starts pump 1 timer to check for status every 4 seconds', function() {
+        it('starts pump 1 timer to check for status every 30 seconds', function() {
             this.timeout(5000)
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(1)
 
             bottle.container.settings.virtual.pumpController = 'always' //TODO: add test for 'default' and 'never'
             bottle.container.pumpControllerTimers.startPumpController()
 
-            clock.tick(3999)
-            setPumpRemoteStub.callCount.should.eq(0)
-            requestPumpStatusStub.callCount.should.eq(0)
-            clock.tick(1)
+            clock.tick(29 * 1000)
+            setPumpRemoteStub.callCount.should.eq(1)
+            requestPumpStatusStub.callCount.should.eq(1)
+            clock.tick(4 * 1000)
             setPumpRemoteStub.callCount.should.eq(1)
             // console.log('setPumpRemoteStub: ', setPumpRemoteStub.args)
             // console.log('requestPumpStatusStub: ', requestPumpStatusStub.args)
@@ -58,50 +58,44 @@ describe('pump controller', function() {
             requestPumpStatusStub.callCount.should.eq(1)
             requestPumpStatusStub.args[0][0].should.eq(96)
 
-            clock.tick(26 * 1000)
-            setPumpRemoteStub.callCount.should.eq(7)
+            clock.tick(6 * 60 * 1000)
+            setPumpRemoteStub.callCount.should.eq(13)
             setPumpRemoteStub.args[1][0].should.eq(96)
-            requestPumpStatusStub.callCount.should.eq(7)
+            requestPumpStatusStub.callCount.should.eq(13)
             requestPumpStatusStub.args[1][0].should.eq(96)
             // console.log('setPumpRemoteStub: ', setPumpRemoteStub.callCount, setPumpRemoteStub.args)
             // console.log('requestPumpStatusStub: ', requestPumpStatusStub.args)
-            clock.tick(60 * 60 * 1000) //1 hr 30 seconds
-            setPumpRemoteStub.callCount.should.eq(907)
-            setPumpRemoteStub.args[121][0].should.eq(96)
-            requestPumpStatusStub.callCount.should.eq(907)
-            requestPumpStatusStub.args[121][0].should.eq(96)
-            queuePacketStub.callCount.should.eq(1814)
 
         });
 
 
-        it('starts pump 1 & 2 timers to check for status every 4 seconds', function() {
+        it('starts pump 1 & 2 timers to check for status every 30 seconds', function() {
             this.timeout(5000)
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(2)
             bottle.container.settings.virtual.pumpController = 'always' //TODO: add test for 'default' and 'never'
 
             bottle.container.pumpControllerTimers.startPumpController()
 
-            clock.tick(3999)
-            setPumpRemoteStub.callCount.should.eq(0)
-            requestPumpStatusStub.callCount.should.eq(0)
-            clock.tick(1)
-
+            clock.tick(29 * 1000)
             setPumpRemoteStub.callCount.should.eq(2)
+            requestPumpStatusStub.callCount.should.eq(2)
+            clock.tick(5 * 1000)
+
+            setPumpRemoteStub.callCount.should.eq(4)
             setPumpRemoteStub.args[0][0].should.eq(96)
             setPumpRemoteStub.args[1][0].should.eq(97)
-            requestPumpStatusStub.callCount.should.eq(2)
+            requestPumpStatusStub.callCount.should.eq(4)
             requestPumpStatusStub.args[0][0].should.eq(96)
             requestPumpStatusStub.args[1][0].should.eq(97)
 
-            clock.tick(26 * 1000)
-            setPumpRemoteStub.callCount.should.eq(14)
+            clock.tick(5 * 60 * 1000)
+            setPumpRemoteStub.callCount.should.eq(24)
             setPumpRemoteStub.args[2][0].should.eq(96)
             setPumpRemoteStub.args[3][0].should.eq(97)
-            requestPumpStatusStub.callCount.should.eq(14)
+            requestPumpStatusStub.callCount.should.eq(24)
             requestPumpStatusStub.args[2][0].should.eq(96)
             requestPumpStatusStub.args[3][0].should.eq(97)
-            queuePacketStub.callCount.should.eq(28)
+            queuePacketStub.callCount.should.eq(48)
 
         });
 
@@ -124,10 +118,10 @@ describe('pump controller', function() {
 
             bottle.container.pumpControllerTimers.startPumpController()
 
-            clock.tick(3999)
-            setPumpRemoteStub.callCount.should.eq(0)
-            requestPumpStatusStub.callCount.should.eq(0)
-            clock.tick(1)
+            clock.tick(29 * 1000)
+            setPumpRemoteStub.callCount.should.eq(2)
+            requestPumpStatusStub.callCount.should.eq(2)
+            clock.tick(4 * 1000)
             setPumpRemoteStub.callCount.should.eq(2)
             //  console.log('setPumpRemoteStub: ', setPumpRemoteStub.args)
             //  console.log('requestPumpStatusStub: ', requestPumpStatusStub.args)
@@ -139,15 +133,15 @@ describe('pump controller', function() {
             requestPumpStatusStub.args[0][0].should.eq(96)
             requestPumpStatusStub.args[1][0].should.eq(97)
 
-            clock.tick(26 * 1000)
+            clock.tick(5 * 60  * 1000)
             // console.log('setPumpRemoteStub: ', setPumpRemoteStub.args)
             // console.log('requestPumpStatusStub: ', requestPumpStatusStub.args)
             // setPumpRemoteStub:  [ [ 96 ], [ 97 ], [ 96 ], [ 97 ] ]
             // requestPumpStatusStub:  [ [ 96 ], [ 97 ], [ 96 ], [ 97 ] ]
-            setPumpRemoteStub.callCount.should.eq(14)
+            setPumpRemoteStub.callCount.should.eq(22)
             setPumpRemoteStub.args[2][0].should.eq(96)
             setPumpRemoteStub.args[3][0].should.eq(97)
-            requestPumpStatusStub.callCount.should.eq(14)
+            requestPumpStatusStub.callCount.should.eq(22)
             requestPumpStatusStub.args[2][0].should.eq(96)
             requestPumpStatusStub.args[3][0].should.eq(97)
             bottle.container.settings.virtual.pumpController = 'default'
@@ -159,7 +153,7 @@ describe('pump controller', function() {
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(1)
             pumpCurrentProgramSpy = sandbox.spy(bottle.container.pump, 'setCurrentProgram')
             pumpDurationSpy = sandbox.spy(bottle.container.pump, 'setDuration')
-            bottle.container.pumpControllerMiddleware.pumpCommand(1, 1, 1000, 5)
+            bottle.container.pumpControllerTimers.startRPMTimer(1, 1000, 5)
 
             clock.tick(30 * 1000)
 
@@ -173,7 +167,7 @@ describe('pump controller', function() {
             //  requestPumpStatusStub:  [ [ 96 ], [ 97 ] ]
 
 
-            clock.tick(26 * 1000)
+            clock.tick(30 * 1000)
             // console.log('setPumpRemoteStub: ', setPumpRemoteStub.args)
             // console.log('requestPumpStatusStub: ', requestPumpStatusStub.args)
             // setPumpRemoteStub:  [ [ 96 ], [ 97 ], [ 96 ], [ 97 ] ]
@@ -185,9 +179,9 @@ describe('pump controller', function() {
             requestPumpStatusStub.callCount.should.eq(3)
 
             clock.tick(10 * 60 * 1000)
-            queuePacketStub.callCount.should.eq(218)
+            queuePacketStub.callCount.should.eq(70)
             clock.tick(10 * 60 * 1000)
-            queuePacketStub.callCount.should.eq(518)
+            queuePacketStub.callCount.should.eq(110)
         });
 
     });

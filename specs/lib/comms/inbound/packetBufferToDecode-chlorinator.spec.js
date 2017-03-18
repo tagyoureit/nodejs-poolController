@@ -28,6 +28,7 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                 intellitouchStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration').returns(false)
 
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+                getVersionNotificationStub = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({'remote': {'dismissUntilNextRemoteVersionBump':false}}) 
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
                 socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
                 iOAOAStub = sandbox.spy(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
