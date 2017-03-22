@@ -103,27 +103,24 @@ module.exports = function(container) {
                 } else {
                     for (var i = 0; i < configJsonVerArr.length; i++) {
                         if (remoteVerArr[i] > configJsonVerArr[i]) {
-                            container.logger.info('Remote version of nodejs-poolController has been updated.  Resetting local updateVersionNotification in config.json.')
-                            return container.configEditor.updateVersionNotification(false)
+                            configJsonVerCompare = 'older'
+                            break
+                        } else if (remoteVerArr[i] < configJsonVerArr[i]) {
+
+                            configJsonVerCompare = 'newer'
                             break
                         }
-                        // else if (remoteVerArr[i] < configJsonVerArr[i]) {
-                        //
-                        //     configJsonVerCompare = 'newer'
-                        //     break
-                        // }
                     }
                 }
-                if (configJsonVerCompare==='equal'){
-                  container.logger.silly('update_avail: no change in remote version compared to config.json version of app')
-
+                if (configJsonVerCompare === 'equal') {
+                    container.logger.silly('update_avail: no change in remote version compared to config.json version of app')
+                } else if (configJsonVerCompare === 'older') {
+                    container.logger.info('Remote version of nodejs-poolController has been updated.  Resetting local updateVersionNotification in config.json.')
+                    return container.configEditor.updateVersionNotification(false)
+                } else if (configJsonVerCompare === 'newer') {
+                    container.logger.silly('update_avail: Somehow the local version is newer than the GitHub release.  Did something get pulled?')
                 }
-
-                //return Promise.resolve()
-
             })
-
-
     }
 
     var getVersionFromJson = function(data) {
