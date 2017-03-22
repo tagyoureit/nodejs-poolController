@@ -39,12 +39,17 @@ module.exports = function(container) {
 
     var init = function() {
         if (config) {
-            return Promise.resolve(config)
-        } else {
-            return fs.readFileAsync(location, 'utf-8').then(function(data) {
-                config = JSON.parse(data)
-                return config
-            })
+          return Promise.resolve(config)
+        }
+        else {
+            return fs.readFileAsync(location, 'utf-8')
+                .then(function(data) {
+                    config = JSON.parse(data)
+                    return config
+                })
+                .catch(function(err){
+                  container.logger.error('Error reading %s.  %s', location, err)
+                })
         }
     }
 
@@ -84,7 +89,7 @@ module.exports = function(container) {
             })
             .then(function() {
                 if (container.settings.logChlorinator)
-                container.logger.verbose('Updated chlorinator settings %s', location)
+                    container.logger.verbose('Updated chlorinator settings %s', location)
             })
             .catch(function(err) {
                 container.logger.warn('Error updating chlorinator settings %s: ', location, err)
@@ -109,9 +114,12 @@ module.exports = function(container) {
         return init()
             .then(function(data) {
                 data.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
-                results = container.updateAvailable.getResults()
-                data.poolController.notifications.version.remote.version = results.version
-                data.poolController.notifications.version.remote.tag_name = results.tag_name
+                var results = container.updateAvailable.getResults()
+                console.log('results:', results)
+                data.poolController.notifications.version.remote.version = results.remote.version
+                data.poolController.notifications.version.remote.tag_name = results.remote.tag_name
+                console.log('and now:', data.poolController.notifications.version.remote)
+
                 return Promise.resolve(data)
             })
             .then(function(data) {
@@ -154,7 +162,7 @@ module.exports = function(container) {
             })
     }
 
-    var getVersionNotification = function(_pump) {
+    var getVersionNotification = function() {
         return init(config)
             .then(function() {
                 return config.poolController.notifications.version.remote

@@ -36,7 +36,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: update_avail.js')
 
-    var compareVersions = exports.compareVersions = function() {
+    var compareLocalToRemoteVersion = exports.compareLocalToRemoteVersion = function() {
         container.logger.silly('update_avail: versions discovered: ', jsons)
         var clientVersion = jsons.local.version,
             remoteVersion = jsons.remote.version,
@@ -75,6 +75,53 @@ module.exports = function(container) {
 
         jsons.result = clientVerCompare
         return Promise.resolve(jsons)
+    }
+
+    var compareLocalToSavedLocalVersion = function() {
+        return Promise.resolve()
+            .then(container.configEditor.getVersionNotification)
+            .then(function(_configJsonRemote) {
+                container.logger.silly('update_avail compare remote to saved: ', jsons.remote.version, _configJsonRemote.version)
+                var configJsonRemote = _configJsonRemote,
+                    remoteVersion = jsons.remote.version,
+                    configJsonVerArr,
+                    remoteVerArr
+                //compare the version numbers sequentially (major, minor, patch) to make sure there is a newer version and not just a different version
+                //nice to have the try block here in case we can't split the result
+                if (configJsonRemote.version === '') configJsonRemote = '0.0.0'
+
+                configJsonVerArr = configJsonRemote.version.split(".").map(function(val) {
+                    return Number(val);
+                });
+                remoteVerArr = jsons.remote.version.split(".").map(function(val) {
+                    return Number(val);
+                });
+                var configJsonVerCompare = 'equal';
+                if (configJsonVerArr.length !== remoteVerArr.length) {
+                    return Promise.reject('Version length of configJson (' + configJsonRemote + ') and remote ( ' + remoteVersion + ') do not match.')
+                    //emit(self, 'error', 'Version length of configJson (' + configJsonRemote + ') and remote ( ' + remoteVersion + ') do not match.')
+                } else {
+                    for (var i = 0; i < configJsonVerArr.length; i++) {
+                        if (remoteVerArr[i] > configJsonVerArr[i]) {
+                            container.logger.info('Remote version of nodejs-poolController has been updated.  Resetting local updateVersionNotification in config.json.')
+                            return container.configEditor.updateVersionNotification(false)
+                            break
+                        }
+                        // else if (remoteVerArr[i] < configJsonVerArr[i]) {
+                        //
+                        //     configJsonVerCompare = 'newer'
+                        //     break
+                        // }
+                    }
+                }
+                if (configJsonVerCompare==='equal'){
+                  container.logger.silly('update_avail: no change in remote version compared to config.json version of app')
+
+                }
+
+                //return Promise.resolve()
+
+            })
 
 
     }
@@ -97,15 +144,15 @@ module.exports = function(container) {
 
         container.logger.silly('update_avail: reading local version at:', location)
 
-      return  fs.readFileAsync(location, 'utf-8')
-        .then(function(data) {
-            jsons.local = {
-                'version': getVersionFromJson(data)
-            }
-        })
-        .catch(function(error) {
-            container.logger.warn('update_avail: Error reading local package.json: ', error)
-        })
+        return fs.readFileAsync(location, 'utf-8')
+            .then(function(data) {
+                jsons.local = {
+                    'version': getVersionFromJson(data)
+                }
+            })
+            .catch(function(error) {
+                container.logger.warn('update_avail: Error reading local package.json: ', error)
+            })
 
     }
 
@@ -125,21 +172,17 @@ module.exports = function(container) {
             headers: {
                 'User-Agent': userAgent
             }
-
         }
         return request(options)
-        .then(function(data){
-          data = JSON.parse(data.body);
-          jsons.remote = parseLatestReleaseJson(data)
-          return Promise.resolve(jsons)
-        })
-        .catch(function(e){
-          Promise.reject('Error parsing the incoming data: ' + e);
+            .then(function(data) {
+                data = JSON.parse(data.body);
+                jsons.remote = parseLatestReleaseJson(data)
+                return Promise.resolve(jsons)
+            })
+            .catch(function(e) {
+                container.logger.error('Error parsing the incoming data: ' + e);
 
-        })
-
-
-
+            })
     }
 
 
@@ -162,7 +205,8 @@ module.exports = function(container) {
         if (Object.keys(jsons).length === 0) {
             return loadLocalVersion()
                 .then(getLatestReleaseJson)
-                .then(compareVersions)
+                .then(compareLocalToSavedLocalVersion)
+                .then(compareLocalToRemoteVersion)
                 .then(emitResults)
                 .then(function() {
                         container.logger.silly('update_avail: finished successfully')
@@ -188,7 +232,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: 8.js')
+        container.logger.info('Loaded: update-avail.js')
 
     return {
         check: check,
