@@ -433,6 +433,7 @@ function startSocketRx() {
             domUpdate.removeClass('btn-warning');
             domUpdate.addClass('btn-danger');
         }
+		$('#gitState').show();
         lastUpdate(true);
     });
 }
@@ -470,6 +471,14 @@ function handlePanels() {
 
 // Initialize Button Handling Routines (Callbacks)
 function handleButtons() {
+
+    // Button Handling: gitState => Hide Code State (and flag upstream). Note, hide to start (default), unhide if state received.
+	$('#gitState').hide();	
+    $('#gitState').click(function() {
+		$('#gitState').hide();
+		socket.emit('updateVersionNotification', true);
+    });
+	
     // Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
     $('button').click(function(btnSelected) {
         var btnID = btnSelected.target.id;
@@ -483,6 +492,7 @@ function handleButtons() {
 
     // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
     $('#btnResetLayout').click(function() {
+		socket.emit('updateVersionNotification', 'false');
         $.getJSON('configClient.json', function(json) {
             // Panel Data Retrieved, now reset all of them to visible (store to configClient.json, and make visible immediately)
             for (var currPanel in json.panelState) {
