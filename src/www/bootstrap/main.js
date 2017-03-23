@@ -433,7 +433,7 @@ function startSocketRx() {
             domUpdate.removeClass('btn-warning');
             domUpdate.addClass('btn-danger');
         }
-		$('#gitState').show();
+		domUpdate[0].style.visibility = "visible";
         lastUpdate(true);
     });
 }
@@ -472,10 +472,9 @@ function handlePanels() {
 // Initialize Button Handling Routines (Callbacks)
 function handleButtons() {
 
-    // Button Handling: gitState => Hide Code State (and flag upstream). Note, hide to start (default), unhide if state received.
-	$('#gitState').hide();	
+    // Button Handling: gitState => Hide Code State (and flag upstream). Note, hidden to start (default, in index.html), unhide (change visibility) if state received.
     $('#gitState').click(function() {
-		$('#gitState').hide();
+		$('#gitState')[0].style.visibility = "hidden";
 		socket.emit('updateVersionNotification', true);
     });
 	
@@ -492,7 +491,7 @@ function handleButtons() {
 
     // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
     $('#btnResetLayout').click(function() {
-		socket.emit('updateVersionNotification', 'false');
+		socket.emit('updateVersionNotification', false);
         $.getJSON('configClient.json', function(json) {
             // Panel Data Retrieved, now reset all of them to visible (store to configClient.json, and make visible immediately)
             for (var currPanel in json.panelState) {
