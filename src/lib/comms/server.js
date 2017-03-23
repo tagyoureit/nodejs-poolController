@@ -216,8 +216,20 @@ module.exports = function(container) {
             })
         })
 
+        app.get('/spaheat/increment', function(req, res) {
+            container.heat.incrementSpaSetPoint(1, function(response) {
+                res.send(response)
+            })
+        })
+
         app.get('/spaheat/increment/:spasetpoint', function(req, res) {
             container.heat.incrementSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+                res.send(response)
+            })
+        })
+
+        app.get('/spaheat/decrement', function(req, res) {
+            container.heat.decrementSpaSetPoint(1, function(response) {
                 res.send(response)
             })
         })
@@ -240,8 +252,21 @@ module.exports = function(container) {
             })
         })
 
+        app.get('/poolheat/decrement', function(req, res) {
+            container.heat.decrementPoolSetPoint(1, function(response) {
+                res.send(response)
+            })
+        })
+
+
         app.get('/poolheat/decrement/:poolsetpoint', function(req, res) {
             container.heat.decrementPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+                res.send(response)
+            })
+        })
+
+        app.get('/poolheat/increment', function(req, res) {
+            container.heat.incrementPoolSetPoint(1, function(response) {
                 res.send(response)
             })
         })
