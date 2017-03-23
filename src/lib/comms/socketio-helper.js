@@ -224,17 +224,45 @@ module.exports = function(container) {
                 container.chlorinator.setChlorinatorLevel(parseInt(desiredChlorinatorOutput))
             })
 
+            // deprecate this
             socket.on('spasetpoint', function(spasetpoint) {
-                container.heat.changeHeatSetPoint('spa', spasetpoint, ' socket.io spasetpoint')
+                container.heat.setSpaSetPoint(spasetpoint)
             })
+
+
+            socket.on('setSpaSetPoint', function(spasetpoint) {
+                container.heat.setSpaSetPoint(spasetpoint)
+            })
+
+            socket.on('incrementSpaSetPoint', function(increment) {
+                container.heat.incrementSpaSetPoint(increment)
+            })
+
+            socket.on('decrementSpaSetPoint', function(decrement) {
+                container.heat.decrementSpaSetPoint(decrement)
+            })
+
 
             socket.on('spaheatmode', function(spaheatmode) {
-                container.heat.changeHeatMode('spa', spaheatmode, 'socket.io spaheatmode')
+                container.heat.changeHeatMode(spaheatmode)
 
             })
 
+            // deprecate this
             socket.on('poolsetpoint', function(poolsetpoint) {
-                container.heat.changeHeatSetPoint('pool', poolsetpoint, 'socket.io poolsetpoint')
+                container.heat.setHeatSetPoint('pool', poolsetpoint, 'socket.io poolsetpoint')
+            })
+
+            socket.on('setPoolSetPoint', function(poolsetpoint) {
+                container.heat.setPoolSetPoint(poolsetpoint)
+            })
+
+            socket.on('incrementPoolSetPoint', function(increment) {
+                container.heat.incrementPoolSetPoint(increment)
+            })
+
+            socket.on('decrementPoolSetPoint', function(decrement) {
+                container.heat.decrementPoolSetPoint(decrement)
             })
 
             socket.on('poolheatmode', function(poolheatmode) {
@@ -243,7 +271,7 @@ module.exports = function(container) {
 
             socket.on('setHeatSetPoint', function(equip, change) {
                 if (equip !== null && change !== null) {
-                    container.heat.changeHeatSetPoint(equip, change, 'socket.io setHeatSetPoint')
+                    container.heat.setHeatSetPoint(equip, change, 'socket.io setHeatSetPoint')
                 } else {
                     container.logger.warn('setHeatPoint called with invalid values: %s %s', equip, change)
                 }

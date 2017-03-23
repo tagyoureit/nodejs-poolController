@@ -70,7 +70,7 @@ describe('decodeHelper processes controller packets', function() {
 
             it('#queuePacket should try to write a pump packet with checksum', function() {
                 bottle.container.queuePacket.queuePacket(pumpPacket)
-                              console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
+                              //console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
                 bottle.container.queuePacket.first().should.deep.eq([255, 0, 255, 165, 0, 96, 16, 6, 1, 10, 1, 38])
                 bottle.container.queuePacket.eject()
 
@@ -78,7 +78,7 @@ describe('decodeHelper processes controller packets', function() {
 
             it('#queuePacket should try to write a controller packet with checksum', function() {
                 bottle.container.queuePacket.queuePacket(controllerPacket)
-              console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
+              //console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
                 bottle.container.queuePacket.first().should.deep.eq([255, 0, 255, 165, 99, 16, 34, 134, 2, 9, 0, 1, 203])
                 bottle.container.queuePacket.eject()
 

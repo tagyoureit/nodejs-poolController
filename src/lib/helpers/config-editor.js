@@ -115,11 +115,8 @@ module.exports = function(container) {
             .then(function(data) {
                 data.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
                 var results = container.updateAvailable.getResults()
-                console.log('results:', results)
                 data.poolController.notifications.version.remote.version = results.remote.version
                 data.poolController.notifications.version.remote.tag_name = results.remote.tag_name
-                console.log('and now:', data.poolController.notifications.version.remote)
-
                 return Promise.resolve(data)
             })
             .then(function(data) {

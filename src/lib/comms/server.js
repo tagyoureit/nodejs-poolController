@@ -211,11 +211,22 @@ module.exports = function(container) {
         })
 
         app.get('/spaheat/setpoint/:spasetpoint', function(req, res) {
-            container.heat.setSpaSetpoint(parseInt(req.params.spasetpoint), function(response) {
+            container.heat.setSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
                 res.send(response)
             })
         })
 
+        app.get('/spaheat/increment/:spasetpoint', function(req, res) {
+            container.heat.incrementSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+                res.send(response)
+            })
+        })
+
+        app.get('/spaheat/decrement/:spasetpoint', function(req, res) {
+            container.heat.decrementSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+                res.send(response)
+            })
+        })
 
         app.get('/spaheat/mode/:spaheatmode', function(req, res) {
             container.heat.setSpaHeatmode(parseInt(req.params.spaheatmode), function(response) {
@@ -224,10 +235,21 @@ module.exports = function(container) {
         })
 
         app.get('/poolheat/setpoint/:poolsetpoint', function(req, res) {
-            container.heat.setPoolSetpoint(parseInt(req.params.poolsetpoint), function(response) {
+            container.heat.setPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
                 res.send(response)
             })
+        })
 
+        app.get('/poolheat/decrement/:poolsetpoint', function(req, res) {
+            container.heat.decrementPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+                res.send(response)
+            })
+        })
+
+        app.get('/poolheat/increment/:poolsetpoint', function(req, res) {
+            container.heat.incrementPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+                res.send(response)
+            })
         })
 
         app.get('/poolheat/mode/:poolheatmode', function(req, res) {
