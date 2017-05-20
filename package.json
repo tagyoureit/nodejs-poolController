@@ -46,8 +46,8 @@
     "promised-io": "^0.3.5",
     "request": "^2.75.0",
     "serialport": "^4.0.1",
-    "socket.io": "^1.4.8",
-    "socket.io-client": "^1.7.1",
+    "socket.io": "^2.0.0",
+    "socket.io-client": "^2.0.0",
     "underscore": "^1.8.3",
     "winston": "^2.2.0"
   },
