@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "mocha  ./specs/assets/config/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
+    "test": "snyk test && mocha  ./specs/assets/config/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js",
     "test:one": "mocha  ./specs/assets/config/config.json --reporter spec --require ./specs/helpers/chai.js ./specs/index.spec.js",
     "test:cover": "istanbul cover  _mocha -- ./specs/assets/config/config.json ./specs/index.spec.js --include-all-sources --recursive  ./specs  --require ./specs/helpers/chai.js --reporter spec",
     "start:cover": "istanbul cover --handle-sigint src/index.js",
@@ -52,7 +52,7 @@
     "promised-io": "^0.3.5",
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
-    "serialport": "^4.0.1",
+    "serialport": "^4.0.7",
     "sinon-chai": "^2.10.0",
     "socket.io": "^2.0.2",
     "socket.io-client": "^2.0.2",
@@ -74,7 +74,8 @@
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^2.3.2",
-    "sinon-chai": "^2.8.0"
+    "sinon-chai": "^2.8.0",
+    "snyk": "^1.33.0"
   },
   "snyk": true
 }

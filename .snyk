@@ -1,0 +1,38 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.7.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  'npm:brace-expansion:20170302':
+    - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.568Z'
+    - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update
+        expires: '2017-07-05T18:55:00.568Z'
+    - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.569Z'
+    - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.570Z'
+    - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.571Z'
+    - serialport > node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.571Z'
+    - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-05T18:55:00.571Z'
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  'npm:ms:20170412':
+    - socket.io > socket.io-adapter > debug > ms:
+        patched: '2017-06-05T18:52:55.963Z'
+    - serialport > node-pre-gyp > tar-pack > debug > ms:
+        patched: '2017-06-05T18:52:55.963Z'
+    - mocha > debug > ms:
+        patched: '2017-06-05T18:52:55.963Z'
+  'npm:qs:20170213':
+    - serialport > node-pre-gyp > request > qs:
+        patched: '2017-06-05T18:52:55.963Z'
