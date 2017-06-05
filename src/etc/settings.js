@@ -70,13 +70,16 @@ var logPumpTimers;
 var logApi;
 //-------  END EQUIPMENT SETUP -----------
 
+var influxEnabled, influxHost, influxPort, influxDB
+
 var envParam = process.argv[2];
 var configFile;
 
 var checkForOldConfigFile = function() {
     try {
         //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-        if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController")) {
+        if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController") ||
+        !(configFile.poolController).hasOwnProperty("database")) {
             throw new Error('Your configuration file is out of date.  Please update to the latest version.')
         }
     } catch (err) {
@@ -145,10 +148,13 @@ var load = exports.load = function() {
     logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
     logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
     logApi = exports.logApi = configFile.poolController.log.logApi;
+
+    // Database
+    influxEnabled = exports.influxEnabled = configFile.poolController.database.influx.enabled;
+    influxHost = exports.influxHost = configFile.poolController.database.influx.host;
+    influxPort = exports.influxPort = configFile.poolController.database.influx.port;
+    influxDB = exports.influxDB = configFile.poolController.database.influx.database;
 }
-
-
-
 
 var getConfig = exports.getConfig = function() {
     return configFile
@@ -229,6 +235,13 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n var logPumpTimers = ' + logPumpTimers;
     settingsStr += '\n var logApi = ' + logApi;
     settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
+    settingsStr += '\n ';
+    settingsStr += '\n //-------  DATABASE SETUP -----------';
+    settingsStr += '\n var influxEnabled = ' + influxEnabled;
+    settingsStr += '\n var influxHost = ' + influxHost;
+    settingsStr += '\n var influxPort = ' + influxPort;
+    settingsStr += '\n var influxDB = ' + influxDB;
+    settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
     //settingsStr += '\n*******************************';
     return settingsStr
 }

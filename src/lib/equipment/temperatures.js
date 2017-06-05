@@ -43,6 +43,7 @@ module.exports = function(container) {
         temperatures.solarTemp = solarTemp
         temperatures.freeze = freeze
         container.io.emitToClients('temp')
+                container.influx.writeTemperatureData(temperatures)
         return temperatures
     }
 

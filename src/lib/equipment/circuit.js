@@ -276,11 +276,9 @@ module.exports = function(container) {
                 }
             }
             container.io.emitToClients('circuit');
+
         }
-
-
-
-
+        if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
     }
 
 
@@ -332,6 +330,7 @@ module.exports = function(container) {
             }
 
         }
+        if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
 
     }
 
@@ -395,6 +394,7 @@ module.exports = function(container) {
                     container.io.emitToClients('circuit')
                 }
             }
+            if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
 
     }
 
@@ -516,6 +516,8 @@ module.exports = function(container) {
         }
         if (changed)
             container.io.emitToClients('circuit');
+
+            if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
     }
 
     /*istanbul ignore next */

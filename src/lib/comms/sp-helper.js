@@ -17,6 +17,7 @@
 
 module.exports = function(container) {
     var logger = container.logger
+    var sp
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')

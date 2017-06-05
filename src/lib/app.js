@@ -48,23 +48,26 @@ bottle.factory('https', function() {
 bottle.factory('auth', function() {
     return require('http-auth')
 })
-bottle.factory('server', require(__dirname + '/comms/server.js'))
 
+// COMMS
+bottle.factory('influx', require(__dirname + '/comms/influx-connector.js'))
+bottle.factory('server', require(__dirname + '/comms/server.js'))
 bottle.factory('serialport', function() {
     return require('serialport')
 })
+bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
+bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 bottle.factory('net', function() {
     return require('net')
 })
 bottle.factory('socket', function() {
     return require('socket.io')
 })
+
 bottle.factory('_', function() {
     return require('underscore')
 })
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
-bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
-bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
 
 //HELPERS
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
@@ -147,8 +150,6 @@ bottle.factory('winston', function() {
 })
 bottle.factory('logger', require(__dirname + '/logger/winston-helper.js'))
 bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
-
-
 
 var init = exports.init = function() {
     //Call the modules to initialize them

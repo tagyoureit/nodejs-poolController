@@ -65,7 +65,7 @@ describe('nodejs-poolController', function() {
                 } catch (e) {
 
                 }
-                stub.threw().should.equal.true
+                stub.threw().should.be.true
                 stub.restore()
                 done()
 

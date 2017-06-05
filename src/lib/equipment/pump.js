@@ -164,6 +164,8 @@ module.exports = function(container) {
                 container.logger.verbose('Msg# %s   %s: Set Current Program to %s %s', counter, container.constants.ctrlString[from], program.toString(), JSON.stringify(data));
         }
         container.io.emitToClients('pump')
+        container.influx.writePumpData(currentPumpStatus)
+
 
     }
 
@@ -184,6 +186,8 @@ module.exports = function(container) {
                 container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], value, JSON.stringify(data));
         }
         container.io.emitToClients('pump')
+        container.influx.writePumpData(currentPumpStatus)
+
     }
 
     function setRemoteControl(remotecontrol, from, data, counter) {
@@ -284,6 +288,8 @@ module.exports = function(container) {
                     container.logger.verbose('Msg# %s   %s --> %s: Set pump mode to _%s_: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], mode, JSON.stringify(data));
             }
             container.io.emitToClients('pump')
+            container.influx.writePumpData(currentPumpStatus)
+
 
         } else {
             if (container.settings.logPumpMessages)
@@ -308,6 +314,8 @@ module.exports = function(container) {
                     container.logger.verbose('Msg# %s   %s: Pump power %s: %s', counter, container.constants.ctrlString[from], powerStr, JSON.stringify(data));
 
                 container.io.emitToClients('pump')
+                container.influx.writePumpData(currentPumpStatus)
+
             }
 
         }
@@ -388,6 +396,8 @@ module.exports = function(container) {
         if (needToEmit) {
             container.io.emitToClients('pump');
         }
+        container.influx.writePumpData(currentPumpStatus)
+
     }
 
     var setPower = function(pump, power) {
