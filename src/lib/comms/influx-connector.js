@@ -48,7 +48,7 @@ module.exports = function(container) {
             }
           }])
           .then(function() {
-            return influx.query('select count(*) from chlorinator')
+            // return influx.query('select count(*) from chlorinator')
           })
           .then(function(res) {
             // container.logger.info('Wrote %s to influx chlorinator measurement', JSON.stringify(res))
@@ -90,7 +90,7 @@ module.exports = function(container) {
 
       influx.writePoints(data_array)
         .then(function() {
-          return influx.query('select count(*) from circuits')
+          // return influx.query('select count(*) from circuits')
         })
         .then(function(res) {
           // container.logger.info('Wrote %s to influx circuits measurement', JSON.stringify(res))
@@ -107,27 +107,28 @@ module.exports = function(container) {
     if (container.settings.influxEnabled) {
       var data_array = []
       for (var key in data) {
-        data_array.push({
-          measurement: 'pumps',
-          tags: {
-            'pump': data[key].pump,
-            'type': data[key].type,
-            'run': data[key].run,
-            'mode': data[key].mode,
-            'remotecontrol': data[key].remotecontrol,
-            'power': data[key].power
-          },
-          fields: {
-            'watts': data[key].watts,
-            'rpm': data[key].rpm,
-            'gpm': data[key].gpm
-          }
-        })
-
+        if (typeof(data[key].rpm)==='number') {
+          data_array.push({
+            measurement: 'pumps',
+            tags: {
+              'pump': data[key].pump,
+              'type': data[key].type,
+              'run': data[key].run,
+              'mode': data[key].mode,
+              'remotecontrol': data[key].remotecontrol,
+              'power': data[key].power
+            },
+            fields: {
+              'watts': data[key].watts,
+              'rpm': data[key].rpm,
+              'gpm': data[key].gpm
+            }
+          })
+        }
       }
       influx.writePoints(data_array)
         .then(function() {
-          return influx.query('select count(*) from pumps')
+          // return influx.query('select count(*) from pumps')
         })
         .then(function(res) {
           // container.logger.info('Wrote %s to influx pumps measurement', JSON.stringify(res))
@@ -140,8 +141,8 @@ module.exports = function(container) {
 
 
 
-function writeTemperatureData(data){
-   influx.writePoints([{
+  function writeTemperatureData(data) {
+    influx.writePoints([{
         measurement: 'temperatures',
         tags: {
           'poolHeatMode': data.poolHeatMode,
@@ -160,7 +161,7 @@ function writeTemperatureData(data){
         }
       }])
       .then(function() {
-        return influx.query('select count(*) from temperatures')
+        // return influx.query('select count(*) from temperatures')
       })
       .then(function(res) {
         // container.logger.info('Wrote %s to influx temperatures measurement', JSON.stringify(res))

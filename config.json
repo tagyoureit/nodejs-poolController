@@ -112,8 +112,8 @@
       }
     },
     "log": {
-      "logLevel": "silly",
-      "socketLogLevel": "verbose",
+      "logLevel": "info",
+      "socketLogLevel": "info",
       "fileLog": {
         "enable": 0,
         "fileLogLevel": "silly",
