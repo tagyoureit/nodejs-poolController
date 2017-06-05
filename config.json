@@ -128,14 +128,14 @@
       "logPacketWrites": 1,
       "logPumpTimers": 0,
       "logApi": 0
-    }
-  },
-  "database": {
-    "influx": {
-      "enabled": 0,
-      "host": "localhost",
-      "port": 8086,
-      "database": "pool"
+    },
+    "database": {
+      "influx": {
+        "enabled": 0,
+        "host": "localhost",
+        "port": 8086,
+        "database": "pool"
+      }
     }
   },
   "integrations": {
