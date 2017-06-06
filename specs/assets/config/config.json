@@ -131,7 +131,7 @@
         },
         "database": {
             "influx": {
-                "enabled": 1,
+                "enabled": 0,
                 "host": "localhost",
                 "port": 8086,
                 "database": "pool"
