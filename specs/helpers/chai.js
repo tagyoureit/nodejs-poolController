@@ -2,15 +2,15 @@
 var path = global.path = require('path').posix
 var chai = global.chai = require('chai');
 global.sinon = require('sinon')
-global.sinonChai = require("sinon-chai");
+// global.sinonChai = require("sinon-chai");
 var nock = global.nock = require('nock')
 var rewire = global.rewire = require("rewire");
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
 
 
-var chaiAsPromised = require('chai-as-promised');
-chai.use(chaiAsPromised);
+// var chaiAsPromised = require('chai-as-promised');
+// chai.use(chaiAsPromised);
 chai.should();
 // var expect = global.expect = chai.expect;
 // chai.config.includeStack = true;

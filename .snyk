@@ -5,25 +5,43 @@ ignore:
   'npm:brace-expansion:20170302':
     - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.568Z'
+        expires: '2017-07-06T15:53:06.037Z'
     - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update
-        expires: '2017-07-05T18:55:00.568Z'
+        expires: '2017-07-06T15:53:06.037Z'
     - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.569Z'
+        expires: '2017-07-06T15:53:06.038Z'
     - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.570Z'
+        expires: '2017-07-06T15:53:06.038Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.571Z'
+        expires: '2017-07-06T15:53:06.039Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.571Z'
+        expires: '2017-07-06T15:53:06.039Z'
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-05T18:55:00.571Z'
+        expires: '2017-07-06T15:53:06.039Z'
+  'npm:ms:20170412':
+    - mocha > debug > ms:
+        reason: None given
+        expires: '2017-07-06T15:53:06.035Z'
+    - socket.io > socket.io-adapter > debug > ms:
+        reason: None given
+        expires: '2017-07-06T15:53:06.036Z'
+    - serialport > node-pre-gyp > tar-pack > debug > ms:
+        reason: None given
+        expires: '2017-07-06T15:53:06.036Z'
+  'npm:qs:20170213':
+    - serialport > node-pre-gyp > request > qs:
+        reason: None given
+        expires: '2017-07-06T15:53:06.036Z'
+  'npm:growl:20160721':
+    - mocha > growl:
+        reason: None given
+        expires: '2017-07-06T15:53:06.039Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':
