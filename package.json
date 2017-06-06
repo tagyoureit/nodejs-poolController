@@ -58,8 +58,6 @@
   "devDependencies": {
     "@risingstack/v8-profiler": "^5.7.0",
     "chai": "^4.0.1",
-    "sinon-chai": "^2.10.0",
-    "chai-as-promised": "^6.0.0",
     "coveralls": "^2.13.1",
     "grunt": "^1.0.1",
     "grunt-banner": "^0.6.0",
@@ -71,7 +69,6 @@
     "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^2.3.2",
-    "sinon-chai": "^2.8.0",
     "snyk": "^1.33.0"
   },
   "snyk": true
