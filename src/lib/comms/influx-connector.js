@@ -78,11 +78,11 @@ module.exports = function(container) {
             'circuitFunction': data[key].circuitFunction,
             'lightgroup': data[key].light.group,
             'friendlyName': data[key].friendlyName,
-            'colorStr': data[key].light.colorStr
+            'colorStr': data[key].light.colorStr,
+            'freeze': data[key].freeze
           },
           fields: {
-            'status': data[key].status,
-            'freeze': data[key].freeze
+            'status': data[key].status
           }
         })
 
@@ -148,7 +148,7 @@ module.exports = function(container) {
           'poolHeatMode': data.poolHeatMode,
           'poolHeatModeStr': data.poolHeatModeStr,
           'spaHeatMode': data.spaHeatMode,
-          'spaHeadModeStr': data.spaHeadModeStr,
+          'spaHeatModeStr': data.spaHeatModeStr,
           'freeze': data.freeze
         },
         fields: {

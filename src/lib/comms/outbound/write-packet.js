@@ -95,11 +95,13 @@ module.exports = function(container) {
                 var prevLevel = container.settings.logLevel
                 logger.warn('Setting logging level to Debug.  Will revert to previous level in 2 minutes.')
                 container.settings.logLevel = 'debug'
-                logger.transportcontainer.settings.console.level = 'debug';
+                //logger.transportcontainer.settings.console.level = 'debug';
+                logger.transports.console.level = 'debug';
+                console.log('JUST SET TO DEBUG')
                 setTimeout(function(){
                   logger.warn('Setting logging level to %s', prevLevel)
                   container.settings.logLevel = prevLevel
-                  logger.transportcontainer.settings.console.level = prevLevel;
+                  logger.transports.console.level = prevLevel;
                 }, 2*60*1000)
             }
         } else //we should get here between 1-4 packet writes
