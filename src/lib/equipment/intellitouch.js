@@ -52,14 +52,14 @@ module.exports = function(container) {
         container.logger.verbose('Queueing messages to retrieve Custom Names')
         var i = 0;
         //get custom names
-        for (i; i < container.customName.numberOfCustomNames; i++) {
+        for (i; i < container.customNames.numberOfCustomNames; i++) {
             container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 202, 1, i]);
         }
 
 
         container.logger.verbose('Queueing messages to retrieve Circuit Names')
             //get circuit names
-        for (i = 1; i <= container.circuits.numberOfCircuits; i++) {
+        for (i = 1; i <= container.circuit.numberOfCircuits; i++) {
             container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 203, 1, i]);
         }
         container.logger.verbose('Queueing messages to retrieve light groups/positions')
