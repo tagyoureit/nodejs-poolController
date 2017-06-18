@@ -22,7 +22,7 @@ module.exports = function(container) {
 
 
     var initialCustomNamesDiscovered = 0
-
+    var numberOfCustomNames = 10;
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -60,7 +60,7 @@ module.exports = function(container) {
 
         customNameArr[index] = customName;
 
-        if (initialCustomNamesDiscovered === 0 && index === 9) {
+        if (initialCustomNamesDiscovered === 0 && index === (numberOfCustomNames - 1)) {
             displayInitialCustomNames()
         } else
         if (customNameArr[index] !== customName) {
@@ -74,6 +74,7 @@ module.exports = function(container) {
     return {
         init: init,
         getCustomName: getCustomName,
-        setCustomName: setCustomName
+        setCustomName: setCustomName,
+        numberOfCustomNames: numberOfCustomNames
     }
 }

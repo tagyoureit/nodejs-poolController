@@ -27,7 +27,7 @@ module.exports = function(container) {
     //var interimBufferArr = []; //variable to hold all serialport.open data; incomind data is appended to this with each read
     var initialSchedulesDiscovered = 0
     var logger = container.logger
-
+    var numberOfSchedules = 12
 
     var init = function() {
       currentSchedule = {}; //schedules
@@ -66,7 +66,7 @@ module.exports = function(container) {
 
     var broadcastInitialSchedules = function(counter) {
         var scheduleStr = 'Msg# ' + counter + '  Schedules discovered:'
-        for (var i = 1; i <= 12; i++) {
+        for (var i = 1; i <= numberOfSchedules; i++) {
             scheduleStr += formatSchedId(i)
             scheduleStr += '  CIRCUIT:(' + currentSchedule[i].CIRCUITNUM + ')' + currentSchedule[i].CIRCUIT + ' '
             if (currentSchedule[i].CIRCUIT !== 'NOT USED') {
@@ -159,7 +159,7 @@ module.exports = function(container) {
         if (currentSchedule[id] === undefined) {
             currentSchedule[id] = schedule
         }
-        if (id === 12 && initialSchedulesDiscovered === 0) {
+        if (id === numberOfSchedules && initialSchedulesDiscovered === 0) {
             broadcastInitialSchedules(counter)
             initialSchedulesDiscovered = 1
         } else
@@ -173,7 +173,7 @@ module.exports = function(container) {
                     logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
             }
         }
-        if (id === 12) {
+        if (id === numberOfSchedules) {
             container.io.emitToClients('schedule')
         }
     }
@@ -192,7 +192,7 @@ module.exports = function(container) {
 
     var getControllerScheduleAll = function() {
         //get schedules
-        for (var i = 1; i < 13; i++) {
+        for (var i = 1; i <= numberOfSchedules; i++) {
 
             container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
         }
@@ -200,7 +200,7 @@ module.exports = function(container) {
 
     var setControllerSchedule = function(id, circuit, starthh, startmm, endhh, endmm, days) {
         //validate
-        if (id >= 0 && id <= 12 && starthh >= 0 && starthh <= 25 && startmm >= 0 && startmm <= 59 && endhh >= 0 && endmm <= 59) {
+        if (id >= 0 && id <= numberOfSchedules && starthh >= 0 && starthh <= 25 && startmm >= 0 && startmm <= 59 && endhh >= 0 && endmm <= 59) {
             //TODO: validate days is one of 0,1,2,4,8,16,32 (+128 for any >0 entry??)
             var scheduleStr = 'Queueing message to set schedule '
             scheduleStr += id < 10 ? ' ' + id : id
@@ -223,7 +223,7 @@ module.exports = function(container) {
     }
 
     var getControllerScheduleByCircuitID = function(circuit) {
-        for (var i = 0; i <= 12; i++) {
+        for (var i = 0; i <= numberOfSchedules; i++) {
             if (currentSchedule.CIRCUIT === circuit) {
                 container.logger.verbose('Queueing packet to retrieve schedule %s by circuit id %s', i, circuit)
                 container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
@@ -246,7 +246,8 @@ module.exports = function(container) {
         setControllerSchedule: setControllerSchedule,
         getControllerScheduleByID: getControllerScheduleByID,
         getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,
-        getControllerScheduleAll: getControllerScheduleAll
+        getControllerScheduleAll: getControllerScheduleAll,
+        numberOfSchedules: numberOfSchedules
     }
 
 

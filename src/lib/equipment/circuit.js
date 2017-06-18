@@ -41,7 +41,8 @@ var circuit1, circuit2, circuit3, circuit4, circuit5, circuit6, circuit7, circui
 
 
 var currentCircuitArrObj = {},
-    lightGroup = {}
+    lightGroup = {},
+    numberOfCircuits = 20
 
 
 module.exports = function(container) {
@@ -53,30 +54,7 @@ module.exports = function(container) {
 
     var init = function() {
 
-        //  circuit1 = new Circuit();
-        //  circuit2 = new Circuit();
-        //  circuit3 = new Circuit();
-        //  circuit4 = new Circuit();
-        //  circuit5 = new Circuit();
-        //  circuit6 = new Circuit();
-        //  circuit7 = new Circuit();
-        //  circuit8 = new Circuit();
-        //  circuit9 = new Circuit();
-        //  circuit10 = new Circuit();
-        //  circuit11 = new Circuit();
-        //  circuit12 = new Circuit();
-        //  circuit13 = new Circuit();
-        //  circuit14 = new Circuit();
-        //  circuit15 = new Circuit();
-        //  circuit16 = new Circuit();
-        //  circuit17 = new Circuit();
-        //  circuit18 = new Circuit();
-        //  circuit19 = new Circuit();
-        //  circuit20 = new Circuit();
-        //
-        //  currentCircuitArrObj = {"1": circuit1, "2": circuit2, "3": circuit3, "4": circuit4, "5": circuit5, "6": circuit6, "7": circuit7, "8": circuit8, "9": circuit9, "10": circuit10, "11": circuit11, "12": circuit12, "13": circuit13, "14": circuit14, "15": circuit15, "16": circuit16, "17":circuit17, "18": circuit18, "19": circuit19, "20": circuit20}
-
-        for (var i = 1; i <= 20; i++) {
+        for (var i = 1; i <= numberOfCircuits; i++) {
             lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
             currentCircuitArrObj[i] = new Circuit()
         }
@@ -190,7 +168,7 @@ module.exports = function(container) {
     //internal method to apply the friendly name
     var getCircuitFriendlyNames = function() {
         var useFriendlyName
-        for (var i = 1; i <= 20; i++) {
+        for (var i = 1; i <= numberOfCircuits; i++) {
             if (container.settings.circuitFriendlyNames[i] === "") {
                 useFriendlyName = false
             } else {
@@ -220,7 +198,7 @@ module.exports = function(container) {
     }
     var outputInitialCircuitsDiscovered = function() {
         var circuitStr = '';
-        for (var i = 1; i <= 20; i++) {
+        for (var i = 1; i <= numberOfCircuits; i++) {
             circuitStr += 'Circuit ' + currentCircuitArrObj[i].number + ': ' + currentCircuitArrObj[i].name
             circuitStr += ' Function: ' + currentCircuitArrObj[i].circuitFunction
             if (currentCircuitArrObj[i].status === undefined) {
@@ -316,7 +294,7 @@ module.exports = function(container) {
             assignCircuitVars(circuit, circuitArrObj)
         }
 
-        if (circuit === 20 && sendInitialBroadcast.haveCircuitNames === 0) {
+        if (circuit === numberOfCircuits && sendInitialBroadcast.haveCircuitNames === 0) {
             sendInitialBroadcast.haveCircuitNames = 1
             getCircuitFriendlyNames()
             doWeHaveAllInformation()
@@ -346,7 +324,7 @@ module.exports = function(container) {
 
         for (var i = 0; i < 3; i++) {
             for (var j = 0; j < 8; j++) {
-                if ((j + (i * 8) + 1) <= 20) {
+                if ((j + (i * 8) + 1) <= numberOfCircuits) {
                     var equip = data[container.constants.controllerStatusPacketFields.EQUIP1 + i]
                     // if (container.settings.logMessageDecoding)
                     //     logger.silly('Decode Case 2:   i: %s  j:  %s  j + (i * 8) + 1: %s   equip: %s', i, j, j + (i * 8) + 1, equip)
@@ -360,7 +338,7 @@ module.exports = function(container) {
             sendInitialBroadcast.haveCircuitStatus = 1
             //copy all states
 
-            for (i = 1; i <= 20; i++) {
+            for (i = 1; i <= numberOfCircuits; i++) {
                 currentCircuitArrObj[i].status = circuitArrObj[i].status
             }
 
@@ -368,7 +346,7 @@ module.exports = function(container) {
             //logger.verbose('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, newStatus)
             //currentCircuitArrObj[j + (i * 8) + 1].status = newStatus
         } else
-            for (i = 1; i <= 20; i++) {
+            for (i = 1; i <= numberOfCircuits; i++) {
                 if (currentCircuitArrObj[i].status === circuitArrObj[i].status) {
                     //nothing changed
                     if (container.settings.logMessageDecoding) {
@@ -542,6 +520,7 @@ module.exports = function(container) {
         setControllerLightColor: setControllerLightColor,
         setControllerLightGroup: setControllerLightGroup,
         //TESTING
-        getCircuitFriendlyNames: getCircuitFriendlyNames
+        getCircuitFriendlyNames: getCircuitFriendlyNames,
+        numberOfCircuits: numberOfCircuits
     }
 }
