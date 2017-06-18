@@ -66,6 +66,7 @@ describe('pump controller', function() {
                 pumpStatus[1].externalProgram[2].should.eq(2500)
                 pumpStatus[2].externalProgram[3].should.eq(3450)
                 pumpStatus[16].pump.should.eq(16)
+                pumpStatus[16].name.should.eq('Pump 16')
             })
     })
 

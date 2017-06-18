@@ -411,6 +411,20 @@ module.exports = function(container) {
         34: 'Wireless',
         96: 'Pump 1',
         97: 'Pump 2',
+        98: 'Pump 3',
+        99: 'Pump 4',
+        100: 'Pump 5',
+        101: 'Pump 6',
+        102: 'Pump 7',
+        103: 'Pump 8',
+        104: 'Pump 9',
+        105: 'Pump 10',
+        106: 'Pump 11',
+        107: 'Pump 12',
+        108: 'Pump 13',
+        109: 'Pump 14',
+        110: 'Pump 15',
+        111: 'Pump 16',
         appAddress: 'nodejs-poolController Server'
     }
 

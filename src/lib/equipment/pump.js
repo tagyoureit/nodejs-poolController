@@ -562,6 +562,7 @@ module.exports = function(container) {
     packetToPump: packetToPump,
     packetFromPump: packetFromPump,
     packetToOrFromPump: packetToOrFromPump,
+    getPumpNumber: getPumpNumber,
     init: init
 
 
