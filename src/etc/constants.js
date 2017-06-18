@@ -192,6 +192,8 @@ module.exports = function(container) {
         99: 'FEATURE 6',
         100: 'FEATURE 7',
         101: 'FEATURE 8',
+        102: 'FEATURE 9',// i10 has 10 features
+        103: 'FEATURE 10',// i10 has 10 features
         200: 'USERNAME-01',
         201: 'USERNAME-02',
         202: 'USERNAME-03',
@@ -201,7 +203,17 @@ module.exports = function(container) {
         206: 'USERNAME-07',
         207: 'USERNAME-08',
         208: 'USERNAME-09',
-        209: 'USERNAME-10'
+        209: 'USERNAME-10',
+        210: 'USERNAME-11',// i10 extentions adds additional USERNAMES
+        211: 'USERNAME-12',// i10 extentions adds additional USERNAMES
+        212: 'USERNAME-13',// i10 extentions adds additional USERNAMES
+        213: 'USERNAME-14',// i10 extentions adds additional USERNAMES
+        214: 'USERNAME-15',// i10 extentions adds additional USERNAMES
+        215: 'USERNAME-16',// i10 extentions adds additional USERNAMES
+        216: 'USERNAME-17',// i10 extentions adds additional USERNAMES
+        217: 'USERNAME-18',// i10 extentions adds additional USERNAMES
+        218: 'USERNAME-19',// i10 extentions adds additional USERNAMES
+        219: 'USERNAME-20'// i10 extentions adds additional USERNAMES
     }
 
     strCircuitFunction = {

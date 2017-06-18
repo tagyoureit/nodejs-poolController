@@ -52,7 +52,8 @@ module.exports = function(container) {
         container.logger.verbose('Queueing messages to retrieve Custom Names')
         var i = 0;
         //get custom names
-        for (i; i < 10; i++) {
+        //Increase iteration of custom name retrival - i10
+        for (i; i < 20; i++) {
             container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 202, 1, i]);
         }
 
