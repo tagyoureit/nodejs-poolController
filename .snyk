@@ -5,16 +5,28 @@ ignore:
   'npm:brace-expansion:20170302':
     - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.037Z'
+        expires: '2017-07-17T17:20:45.694Z'
+      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update
-        expires: '2017-07-06T15:53:06.037Z'
+        expires: '2017-07-17T17:20:45.694Z'
+      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-06T15:53:06.038Z'
+      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.038Z'
+        expires: '2017-07-17T17:20:45.694Z'
+      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-06T15:53:06.039Z'
@@ -24,6 +36,18 @@ ignore:
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-06T15:53:06.039Z'
+    - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-17T17:20:45.694Z'
+    - serialport > node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-17T17:20:45.695Z'
+    - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-17T17:20:45.695Z'
+    - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
+        reason: no update avail
+        expires: '2017-07-17T17:20:45.695Z'
   'npm:ms:20170412':
     - mocha > debug > ms:
         reason: None given
@@ -51,6 +75,10 @@ patch:
         patched: '2017-06-05T18:52:55.963Z'
     - mocha > debug > ms:
         patched: '2017-06-05T18:52:55.963Z'
+    - serialport > node-pre-gyp > tar-pack > debug > ms:
+        patched: '2017-06-17T17:20:23.051Z'
+    - socket.io > socket.io-adapter > debug > ms:
+        patched: '2017-06-17T17:20:23.051Z'
   'npm:qs:20170213':
     - serialport > node-pre-gyp > request > qs:
-        patched: '2017-06-05T18:52:55.963Z'
+        patched: '2017-06-17T17:20:23.051Z'

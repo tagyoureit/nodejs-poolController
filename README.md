@@ -722,6 +722,7 @@ Docker Instructions
  * Added log-to-file option
  * Added capture for Ctrl-C/SIGINT to have a clean exit
  * Added InfluxDB database capabilities
+ * Added support for reading the data from up to 16 pumps.  (You can still only control two.)
 
 # Wish list
 1.  Still many messages to debug

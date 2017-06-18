@@ -386,7 +386,21 @@ module.exports = function(container) {
         REMOTE: 32,
         WIRELESS: 34, //Looks like this is any communications through the wireless link (ScreenLogic on computer, iPhone...)
         PUMP1: 96,
-        PUMP2: 97
+        PUMP2: 97,
+        PUMP3: 98,
+        PUMP4: 99,
+        PUMP5: 100,
+        PUMP6: 101,
+        PUMP7: 102,
+        PUMP8: 103,
+        PUMP9: 104,
+        PUMP10: 105,
+        PUMP11: 106,
+        PUMP12: 107,
+        PUMP13: 108,
+        PUMP14: 109,
+        PUMP15: 110,
+        PUMP16: 111
     }
 
     ctrlString = {

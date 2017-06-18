@@ -46,7 +46,7 @@ module.exports = function(container) {
                                 return container.updateAvailable.getResults()
                             })
                             .then(function(updateAvail) {
-                                console.log('updateAvail', updateAvail)
+                                // console.log('updateAvail', updateAvail)
                                 return io.sockets.emit('updateAvailable', updateAvail)
                             })
 

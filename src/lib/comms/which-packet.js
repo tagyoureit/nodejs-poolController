@@ -18,41 +18,44 @@
 module.exports = function(container) {
 
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loading: which-packet.js')
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loading: which-packet.js')
 
 
-    function outbound(packet) {
-        //TODO: swap out 96/97 for ctrlString vars
+  function outbound(packet) {
 
-        if (packet[container.constants.packetFields.DEST + 3] === 96 || packet[container.constants.packetFields.DEST + 3] === 97) {
-            return 'pump'
-        } else if (packet[0] === 16) {
+    // changes to support 16 pumps
+    // if (packet[container.constants.packetFields.DEST + 3] === 96 || packet[container.constants.packetFields.DEST + 3] === 97) {
+    if (packet[container.constants.packetFields.DEST + 3] >= container.constants.ctrl.PUMP1 && packet[container.constants.packetFields.DEST + 3] <= container.constants.ctrl.PUMP16) {
+      return 'pump'
+    } else if (packet[0] === 16) {
 
-            return 'chlorinator'
-        } else {
-            return 'controller'
-        }
+      return 'chlorinator'
+    } else {
+      return 'controller'
     }
+  }
 
-    function inbound(packet) {
-        if (packet[container.constants.packetFields.DEST] === 96 || packet[container.constants.packetFields.DEST] === 97) {
-            return 'pump'
-        } else if (packet[0] === 16) {
-            return 'chlorinator'
-        } else {
-            return 'controller'
-        }
+  function inbound(packet) {
+    // changes to support 16 pumps
+    // if (packet[container.constants.packetFields.DEST] === 96 || packet[container.constants.packetFields.DEST] === 97) {
+    if (packet[container.constants.packetFields.DEST] >= container.constants.ctrl.PUMP1 && packet[container.constants.packetFields.DEST] <= container.constants.ctrl.PUMP16) {
+      return 'pump'
+    } else if (packet[0] === 16) {
+      return 'chlorinator'
+    } else {
+      return 'controller'
     }
+  }
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loaded: which-packet.js')
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loaded: which-packet.js')
 
-    return {
-        outbound: outbound,
-        inbound: inbound
-    }
+  return {
+    outbound: outbound,
+    inbound: inbound
+  }
 
 }

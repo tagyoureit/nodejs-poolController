@@ -30,18 +30,23 @@ module.exports = function(container) {
 
 
     function process(data, counter) {
-
-        if (data[c.packetFields.DEST] === 96 || data[c.packetFields.DEST] === 97) //Command to the pump
+        // changes to support 16 pumps
+        // if (data[c.packetFields.DEST] === 96 || data[c.packetFields.DEST] === 97) //Command to the pump
+        if (container.pump.packetToPump(data)) //Command to the pump
         {
             container.pump.provideStatus(data, counter)
         } else //response
         {
             var pump;
-            if (data[c.packetFields.FROM] === 96 || data[c.packetFields.DEST] === 96) {
-                pump = 1
-            } else {
-                pump = 2
-            }
+            // code to support 16 pumps
+            // if (data[c.packetFields.FROM] === 96 || data[c.packetFields.DEST] === 96) {
+            //     pump = 1
+            // } else {
+            //     pump = 2
+            // }
+
+            pump = container.pump.getPumpNumber(data)
+
             var hour = data[c.pumpPacketFields.HOUR]
             var min = data[c.pumpPacketFields.MIN];
             var run = data[c.pumpPacketFields.CMD]

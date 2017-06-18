@@ -48,10 +48,25 @@ describe('pump controller', function() {
                 var pumpStatus = bottle.container.pump.getCurrentPumpStatus()
                 pumpStatus[1].externalProgram[2].should.eq(2500)
                 pumpStatus[2].externalProgram[3].should.eq(3450)
-
             })
+    })
 
+    it('initializes the pump variables with 16 pumps', function() {
 
+        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config', 'config_16_pumps.json'), 'utf8')
+            .then(function(data) {
+                return JSON.parse(data)
+            })
+            .then(function(config) {
+
+                bottle.container.settings.pump = config.equipment.pump;
+                bottle.container.pump.init()
+
+                var pumpStatus = bottle.container.pump.getCurrentPumpStatus()
+                pumpStatus[1].externalProgram[2].should.eq(2500)
+                pumpStatus[2].externalProgram[3].should.eq(3450)
+                pumpStatus[16].pump.should.eq(16)
+            })
     })
 
 

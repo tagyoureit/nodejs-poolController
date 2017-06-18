@@ -27,7 +27,6 @@ module.exports = function(container) {
     database: container.settings.influxDB
   }
 
-  console.log("CONNECTION: ", conn)
   var influx = new Influx.InfluxDB(conn)
 
   var writeChlorinator = function(data) {
@@ -54,7 +53,7 @@ module.exports = function(container) {
             // container.logger.info('Wrote %s to influx chlorinator measurement', JSON.stringify(res))
           })
           .catch(function(err) {
-            container.logger.error('Something bad happened writing to InfluxDB (chlorinator): ', err)
+            container.logger.error('Something bad happened writing to InfluxDB (chlorinator): ', err.message)
           })
       }
     }
@@ -96,7 +95,7 @@ module.exports = function(container) {
           // container.logger.info('Wrote %s to influx circuits measurement', JSON.stringify(res))
         })
         .catch(function(err) {
-          container.logger.error('Something bad happened writing to InfluxDB (circuit): ', err)
+          container.logger.error('Something bad happened writing to InfluxDB (circuit): ', err.message)
         })
     }
 
@@ -107,7 +106,7 @@ module.exports = function(container) {
     if (container.settings.influxEnabled) {
       var data_array = []
       for (var key in data) {
-        if (typeof(data[key].rpm)==='number') {
+        if (typeof(data[key].rpm) === 'number') {
           data_array.push({
             measurement: 'pumps',
             tags: {
@@ -131,10 +130,10 @@ module.exports = function(container) {
           // return influx.query('select count(*) from pumps')
         })
         .then(function(res) {
-          // container.logger.info('Wrote %s to influx pumps measurement', JSON.stringify(res))
+          // container.logger.info('Wrote %s to influx pumps measurement', res)
         })
         .catch(function(err) {
-          container.logger.error('Something bad happened writing to InfluxDB (pump): ', err)
+          container.logger.error('Something bad happened writing to InfluxDB (pump): ', err.message)
         })
     }
   }
@@ -142,34 +141,36 @@ module.exports = function(container) {
 
 
   function writeTemperatureData(data) {
-    influx.writePoints([{
-        measurement: 'temperatures',
-        tags: {
-          'poolHeatMode': data.poolHeatMode,
-          'poolHeatModeStr': data.poolHeatModeStr,
-          'spaHeatMode': data.spaHeatMode,
-          'spaHeatModeStr': data.spaHeatModeStr,
-          'freeze': data.freeze
-        },
-        fields: {
-          'poolSetPoint': data.poolSetPoint,
-          'spaSetPoint': data.spaSetPoint,
-          'poolTemp': data.poolTemp,
-          'spaTemp': data.spaTemp,
-          'airTemp': data.airTemp,
-          'solarTemp': data.solarTemp
-        }
-      }])
-      .then(function() {
-        // return influx.query('select count(*) from temperatures')
-      })
-      .then(function(res) {
-        // container.logger.info('Wrote %s to influx temperatures measurement', JSON.stringify(res))
-      })
-      .catch(function(err) {
-        container.logger.error('Something bad happened writing to InfluxDB (temperatures): ', err)
-      })
+    if (container.settings.influxEnabled) {
+      influx.writePoints([{
+          'measurement': 'temperatures',
+          'tags': {
+            'poolHeatMode': data.poolHeatMode,
+            'poolHeatModeStr': data.poolHeatModeStr,
+            'spaHeatMode': data.spaHeatMode,
+            'spaHeatModeStr': data.spaHeatModeStr,
+            'freeze': data.freeze
+          },
+          'fields': {
+            'poolSetPoint': data.poolSetPoint,
+            'spaSetPoint': data.spaSetPoint,
+            'poolTemp': data.poolTemp,
+            'spaTemp': data.spaTemp,
+            'airTemp': data.airTemp,
+            'solarTemp': data.solarTemp
+          }
+        }])
+        .then(function() {
+          // return influx.query('select count(*) from temperatures')
+        })
+        .then(function(r) {
+          // container.logger.info('Wrote %s to influx temperatures measurement', r)
+        })
+        .catch(function(e) {
+          container.logger.error('Something bad happened writing to InfluxDB (temperatures): ', e.message)
+        })
 
+    }
   }
 
   var init = function() {

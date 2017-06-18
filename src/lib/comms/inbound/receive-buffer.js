@@ -100,7 +100,9 @@ module.exports = function(container) {
                     bufferToProcess.shift() //remove the 255 byte
                     chatter = bufferToProcess.splice(0, chatterlen); //splice modifies the existing buffer.  We remove chatter from the bufferarray.
 
-                    if (((chatter[2] === container.constants.ctrl.PUMP1 || chatter[2] === container.constants.ctrl.PUMP2)) || chatter[3] === container.constants.ctrl.PUMP1 || chatter[3] === container.constants.ctrl.PUMP2) {
+                    // convert code to support up to 16 pumps
+                    //if (((chatter[2] === container.constants.ctrl.PUMP1 || chatter[2] === container.constants.ctrl.PUMP2)) || chatter[3] === container.constants.ctrl.PUMP1 || chatter[3] === container.constants.ctrl.PUMP2) {
+                  if (((chatter[2] >= container.constants.ctrl.PUMP1 && chatter[2] <= container.constants.ctrl.PUMP16)) || (chatter[3] >= container.constants.ctrl.PUMP1 && chatter[3] <= container.constants.ctrl.PUMP16)) {
                         packetType = 'pump'
                     } else {
                         packetType = 'controller';
