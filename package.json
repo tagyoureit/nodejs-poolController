@@ -36,7 +36,6 @@
   },
   "homepage": "https://github.com/tagyoureit/nodejs-poolController#readme",
   "dependencies": {
-    "@risingstack/v8-profiler": "^5.7.9",
     "bluebird": "^3.5.0",
     "bootstrap": "^3.3.7",
     "bottlejs": "^1.6.1",
@@ -56,7 +55,6 @@
     "winston": "^2.2.0"
   },
   "devDependencies": {
-    "@risingstack/v8-profiler": "^5.7.0",
     "chai": "^4.0.1",
     "coveralls": "^2.13.1",
     "grunt": "^1.0.1",
@@ -66,7 +64,6 @@
     "lodash": "^4.17.2",
     "mocha": "^3.4.2",
     "nock": "^9.0.13",
-    "request-promise": "^4.1.1",
     "rewire": "^2.5.2",
     "sinon": "^2.3.2",
     "snyk": "^1.33.0"
