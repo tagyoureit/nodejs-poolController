@@ -174,6 +174,7 @@ module.exports = function(container) {
                 } else {
                     //if (container.settings.logPacketWrites) logger.silly('Packet written: ', queuePacketsArr[0])
                     postWritePacketHelper()
+                    container.sp.drainSP(function(err){ if (err) logger.error('Error draining serialport buffer. %s', err)})
                 }
             })
         } else {

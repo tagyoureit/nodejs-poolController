@@ -33,7 +33,8 @@ module.exports = function(container) {
                 stopBits: 1,
                 flowControl: false,
                 //parser: container.serialport.parsers.raw,
-                autoOpen: false
+                autoOpen: false,
+                lock: false
             });
             sp.open(function(err) {
                 if (err) {
@@ -53,8 +54,11 @@ module.exports = function(container) {
         sp.on('data', function(data) {
             //Push the incoming array onto the end of the dequeue array
             //bufferArrayOfArrays.push(Array.prototype.slice.call(data));
+            //process.stdout.write(JSON.stringify(data.toJSON())  + '\n');
             container.packetBuffer.push(data)
+
             //console.log(JSON.stringify(data.toJSON()))
+            //console.log(data)
 
         });
         sp.on('error', function(err) {
@@ -90,6 +94,9 @@ module.exports = function(container) {
         sp.write(data, callback)
     }
 
+    var drainSP = function(callback){
+      sp.drain(callback)
+    }
 
     var close = function(callback) {
         if (container.settings.netConnect === 0) {
@@ -119,6 +126,7 @@ module.exports = function(container) {
         init: init,
         writeNET: writeNET,
         writeSP: writeSP,
+        drainSP: drainSP,
         close: close
     }
 }

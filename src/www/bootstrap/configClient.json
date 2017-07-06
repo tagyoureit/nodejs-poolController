@@ -37,7 +37,7 @@
                 "equip": "pool"
             },
             {
-                "adjust": -1
+                "adjust": 1
             }
         ],
         "poolSetpointPlusOne": [
@@ -62,7 +62,7 @@
                 "equip": "spa"
             },
             {
-                "adjust": -1
+                "adjust": 1
             }
         ],
         "spaSetpointPlusOne": [
@@ -81,7 +81,7 @@
         }
     },
     "pumpParams": {
-        "name": {
+        "friendlyName": {
             "title": "Parameter",
             "type": "th"
         },
@@ -91,6 +91,10 @@
         },
         "rpm": {
             "title": "RPM",
+            "type": "td"
+        },
+        "gpm": {
+            "title": "GPM",
             "type": "td"
         },
         "err": {

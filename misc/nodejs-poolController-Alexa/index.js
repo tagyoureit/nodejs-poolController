@@ -119,7 +119,7 @@ app.intent('toggleCircuitStatus', {
             //console.log('before prompt')
             //var prompt =
             //console.log('prompt: ', prompt)
-            poolHelper.toggleCircuit(req.session('poolData'), circuit).then(function(obj) {
+            return poolHelper.toggleCircuit(req.session('poolData'), circuit).then(function(obj) {
                 console.log('response from setCircuit: ' + obj)
                 var prompt = obj
                 var reprompt = "would you like to know more?"
@@ -135,7 +135,6 @@ app.intent('toggleCircuitStatus', {
 
 
         }
-        return false
     }
 );
 
@@ -307,7 +306,7 @@ app.intent('runPumpProgramWithDuration', {
             //console.log('before prompt')
             //var prompt =
             //console.log('prompt: ', prompt)
-            poolHelper.runPumpProgramWithDuration(req.session('poolData'), pump, program, duration).then(function(obj) {
+            return poolHelper.runPumpProgramWithDuration(req.session('poolData'), pump, program, duration).then(function(obj) {
                 console.log('response from runPumpProgramWithDuration: ' + obj)
                 var prompt = obj
                 var reprompt = "would you like to know more?"
@@ -323,7 +322,7 @@ app.intent('runPumpProgramWithDuration', {
 
 
         }
-        return false
+
     }
 );
 

@@ -28,15 +28,13 @@ module.exports = function(container) {
 
     function push(packet){
       var packetArr = packet.toJSON().data
-      //console.log(packetArr)
-      bufferArrayOfArrays.push(packetArr)
+      bufferArrayOfArrays.push(packetArr);
 
       if (!container.receiveBuffer.getProcessingBuffer()) {
           //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
           container.receiveBuffer.iterateOverArrayOfArrays()
               //testbufferArrayOfArrays=[]
       }
-
     }
 
     function pop(){

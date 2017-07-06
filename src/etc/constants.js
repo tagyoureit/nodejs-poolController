@@ -214,6 +214,7 @@ module.exports = function(container) {
         10: 'SAL Light',
         11: 'Photon Gen',
         12: 'color wheel',
+        13: 'Valves',
         14: 'Spillway',
         15: 'Floor Cleaner',
         16: 'Intellibrite',

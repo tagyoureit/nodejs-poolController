@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<title>Pentair Pool System</title>
 	<meta charset="utf-8">
@@ -17,355 +18,392 @@
 	<script src="js/bootstrap.min.js"></script>
 	<script src="main.js"></script>
 </head>
+
 <body>
-<nav class="navbar navbar-default">
-	<div class="container-fluid" style="width:100%;">
-		<table class="tabBlock" width="100%;">
+	<nav class="navbar navbar-default navbar-fixed-top">
+		<div class="container-fluid" style="width:100%;">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+				<span class="sr-only">Toggle navigation</span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand">Pool System</a>
+				<a id="tmrLastUpd" class="btn btn-danger btn-xs" style="float: right; margin-left: 5px;margin-top: 8px; margin-right:5px;height: 34px;line-height:1.25;">...<br/>NEVER</a></li>
+			</div>
+
+
+
+			<div id="navbar" class="navbar-collapse collapse">
+				<ul class="nav navbar-nav hidden-sm hidden-md hidden-lg">
+					<li class="active"><a href="#systeminformation">System Information</a></li>
+						<li><a href="#pool">Pool</a></li>
+						<li><a href="#spa">Spa</a></li>
+						<li><a href="#chlorinator">Chlorinator</a></li>
+						<li><a href="#features">Features</a></li>
+						<li><a href="#pump">Pumps</a></li>
+						<li><a href="#schedule">Schedules</a></li>
+						<li><a href="#eggtimer">Egg Timer</a></li>
+						<li><a href="#debug">Debug</a></li>
+				</ul>
+			</div>
+	</nav>
+	<div id="draggablePanelList">
+		<a name="systeminformation" class="anchor"></a>
+		<div id="system" class="col-md-2 pnlSystem">
+			<div class="panel panel-primary">
+				<div class="panel-heading">System Information
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseSystem"></a>
+					<button id="hidePanelsystem" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseSystem" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+								<th>Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Date</td>
+								<td>
+									<input id="currDate" type="button" class="btn btn-primary btn-md" value="---"></input>
+								</td>
+							</tr>
+							<tr>
+								<td>Time</td>
+								<td>
+									<input id="currTime" type="button" class="btn btn-primary btn-md" value="---"></input>
+								</td>
+							</tr>
+							<tr>
+								<td>Air Temp</td>
+								<td id="airTemp">---</td>
+							</tr>
+							<tr>
+								<td>Solar Temp</td>
+								<td id="solarTemp">---</td>
+							</tr>
+							<!--tr>
+							<td>Heater State</td>
+							<td id="stateHeater">---</td>
+						</tr-->
+							<tr>
+								<td>Freeze Prot</td>
+								<td id="stateFreeze">---</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="pool" class="col-md-3 pnlPool">
+			<a name="pool" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Pool Details
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapsePool"></a>
+					<button id="hidePanelpool" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapsePool" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="poolState">
+								<td>Pool State</td>
+								<td>
+									<button id="POOL" class="btn btn-primary btn-md">---</button>
+								</td>
+							</tr>
+							<tr>
+								<td>Temperature</td>
+								<td id="poolCurrentTemp">---</td>
+							</tr>
+							<tr id="poolSetpoint">
+								<td>SetPoint</td>
+								<td>
+									<button id="poolSetpointMinusOne" class="btn btn-primary btn-md" data-socket="decrementPoolSetPoint"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+									<span id="poolHeatSetPoint">---</span>
+									<button id="poolSetpointPlusOne" class="btn btn-primary btn-md" data-socket="incrementPoolSetPoint"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								</td>
+							</tr>
+							<tr id="poolHeatMode">
+								<td>Heater Mode</td>
+								<td>
+									<button id="poolHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+									<button class="btn btn-default btn-md" style="width: 70px;"><span id="poolHeatModeStr">Off</span></button>
+									<button id="poolHeatModeUp" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="spa" class="col-md-3 pnlSpa">
+			<a name="spa" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Spa Details
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseSpa"></a>
+					<button id="hidePanelspa" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseSpa" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="spaState">
+								<td>Spa State</td>
+								<td>
+									<button id="SPA" class="btn btn-primary btn-md">---</button>
+								</td>
+							</tr>
+							<tr>
+								<td>Temperature</td>
+								<td id="spaCurrentTemp">---</td>
+							</tr>
+							<tr id="spaSetpoint">
+								<td>SetPoint</td>
+								<td>
+									<button id="spaSetpointMinusOne" class="btn btn-primary btn-md" data-socket="decrementSpaSetPoint"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+									<span id="spaHeatSetPoint">---</span>
+									<button id="spaSetpointPlusOne" class="btn btn-primary btn-md" data-socket="incrementSpaSetPoint"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								</td>
+							</tr>
+							<tr id="spaHeatMode">
+								<td>Heater Mode</td>
+								<td>
+									<button id="spaHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
+									<button class="btn btn-default btn-md" style="width: 70px;"><span id="spaHeatModeStr">Off</span></button>
+									<button id="spaHeatModeUp" class="btn btn-primary btn-md" ><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="chlorinator" class="col-md-3 pnlChlorinator">
+			<a name="chlorinator" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Chlorinator Details
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
+					<button id="hidePanelchlorinator" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr id="chlorinatorState">
+								<td>Chlorinator State</td>
+								<td>
+									<button id="CHLORINATOR" class="btn btn-primary btn-md" data-target="#modalChlorinator" data-toggle="modal">---</button>
+								</td>
+							</tr>
+							<tr>
+								<td>Name</td>
+								<td id="chlorinatorName">---</td>
+							</tr>
+							<tr>
+								<td>Salt</td>
+								<td id="chlorinatorSalt">---</td>
+							</tr>
+							<tr>
+								<td>Current Output</td>
+								<td id="chlorinatorCurrentOutput">---</td>
+							</tr>
+							<tr>
+								<td id="chlorinatorPoolPercentLabel">Pool Setpoint</td>
+								<td id="chlorinatorPoolPercent">---</td>
+							</tr>
+							<tr>
+								<td>SuperChlorinate</td>
+								<td id="chlorinatorSuperChlorinate">---</td>
+							</tr>
+							<tr>
+								<td>Status</td>
+								<td id="chlorinatorStatus">---</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="features" class="col-md-2 pnlFeatures">
+			<a name="features" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Lighting / Features
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseFeatures"></a>
+					<button id="hidePanelfeatures" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseFeatures" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+							<tr>
+								<th>Feature</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="pump" class="col-md-3 pnlSchedule">
+			<a name="pump" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Pumps
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapsePump"></a>
+					<button id="hidePanelpump" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapsePump" class="panel-body panel-collapse collapse in">
+					<table id="pumps" class="table table-hover">
+						<thead>
+							<tr>
+								<th>Parameter</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Watts</td>
+							</tr>
+							<tr>
+								<td>RPM</td>
+							</tr>
+							<tr>
+								<td>GPM</td>
+							</tr>
+							<tr>
+								<td>Error</td>
+							</tr>
+							<tr>
+								<td>Drive State</td>
+							</tr>
+							<tr>
+								<td>Run Mode</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="schedule" class="col-md-4 pnlSchedule">
+			<a name="schedule" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Schedules
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseSchedule"></a>
+					<button id="hidePanelschedule" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseSchedule" class="panel-body panel-collapse collapse in">
+					<table id="schedules" class="table table-hover">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Circuit</th>
+								<th>Start Time</th>
+								<th>End Time</th>
+							</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="eggtimer" class="col-md-3 pnlEggtimer">
+			<a name="eggtimer" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">EggTimers
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseEggtimer"></a>
+					<button id="hidePaneleggtimer" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+				</div>
+				<div id="collapseEggtimer" class="panel-body panel-collapse collapse in">
+					<table id="eggtimers" class="table table-hover">
+						<thead>
+							<tr>
+								<th>#</th>
+								<th>Circuit</th>
+								<th>Duration</th>
+							</tr>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div id="debug" class="col-md-12 pnlDebug">
+			<a name="debug" class="anchor"></a>
+			<div class="panel panel-primary">
+				<div class="panel-heading">Debug Log
+					<button id="debugClear" class="btn btn-warning btn-xs" style="position: absolute; right: 60px">Clear Log</button>
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseDebug"></a>
+				</div>
+				<div id="collapseDebug" class="panel-body panel-collapse collapse in">
+					<div tabindex="1" id="txtDebug" style="height:250px;width:100%;border:1px solid #ccc;font:12px Courier, Serif;white-space: nowrap;overflow:auto;">
+						<b>DEBUG LOG ... <br></b>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="modal fade" id="modalChlorinator" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">Chlorinator Settings ...</h4>
+				</div>
+				<div class="modal-body">
+					<div class="input-group">
+						<span class="input-group-addon">Chlorinator Level</span>
+						<input type="text" class="form-control" id="modalChlorInput" aria-describedby="basic-addon3">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>
+					<button id="SaveChanges" type="button" class="btn btn-primary">Save changes</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="container row-content">
+	</div>
+	<footer class="breadcrumb">
+		<table width="100%;">
 			<tr>
 				<td>
-					<div class="navbar-header">
-						<a class="navbar-brand">Pentair Pool System</a>
-					</div>
+					nodejs-poolController<br>
+					<a href="https://github.com/tagyoureit/nodejs-poolController">Github Repository</a>
+				</td>
+				<td width="40 px;">
+					<button id="btnResetLayout" class="btn btn-primary btn-xs" style="float: right;">Reset<br/>Layout</button>
+				</td>
+				<td width="40 px;">
+					<button id="debugEnable" class="btn btn-primary btn-xs" style="float: right; margin-left: 5px;">Debug:<br/>Off</button>
 				</td>
 				<td width="40 px">
 					<a id="gitState" class="btn btn-warning btn-xs" style="float: right; margin-left: 5px; visibility:hidden;">Code State<br/>---</a>
 				</td>
 			</tr>
 		</table>
-	</div>
-</nav>
-<div id="draggablePanelList">
-	<div id="system" class="col-md-2 pnlSystem">
-		<div class="panel panel-primary">
-			<div class="panel-heading">System Information
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSystem"></a>
-				<button id="hidePanelsystem" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseSystem" class="panel-body panel-collapse collapse in">
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Parameter</th>
-							<th>Value</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr>
-							<td>Date</td>
-							<td>
-								<input id="currDate" type="button" class="btn btn-primary btn-md" value="---"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>Time</td>
-							<td>
-								<input id="currTime" type="button" class="btn btn-primary btn-md" value="---"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>Air Temp</td>
-							<td id="airTemp">---</td>
-						</tr>
-						<tr>
-							<td>Solar Temp</td>
-							<td id="solarTemp">---</td>
-						</tr>
-						<!--tr>
-							<td>Heater State</td>
-							<td id="stateHeater">---</td>
-						</tr-->
-						<tr>
-							<td>Freeze Prot</td>
-							<td id="stateFreeze">---</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="pool" class="col-md-3 pnlPool">
-	  <div class="panel panel-primary">
-			<div class="panel-heading">Pool Details
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapsePool"></a>
-				<button id="hidePanelpool" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapsePool" class="panel-body panel-collapse collapse in">
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Parameter</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr id="poolState">
-							<td>Pool State</td>
-							<td>
-								<button id="POOL" class="btn btn-primary btn-md">---</button>
-							</td>
-						</tr>
-						<tr>
-							<td>Temperature</td>
-							<td id="poolCurrentTemp">---</td>
-						</tr>
-						<tr id="poolSetpoint">
-							<td>SetPoint</td>
-							<td>
-								<button id="poolSetpointMinusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<span id="poolHeatSetPoint">---</span>
-								<button id="poolSetpointPlusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
-							</td>
-						</tr>
-						<tr id="poolHeatMode">
-							<td>Heater Mode</td>
-							<td>
-								<button id="poolHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<button class="btn btn-default btn-md" style="width: 70px;"><span id="poolHeatModeStr">Off</span></button>
-								<button id="poolHeatModeUp" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="spa" class="col-md-3 pnlSpa">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Spa Details
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSpa"></a>
-				<button id="hidePanelspa" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseSpa" class="panel-body panel-collapse collapse in">
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Parameter</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr id="spaState">
-							<td>Spa State</td>
-							<td>
-								<button id="SPA" class="btn btn-primary btn-md">---</button>
-							</td>
-						</tr>
-						<tr>
-							<td>Temperature</td>
-							<td id="spaCurrentTemp">---</td>
-						</tr>
-						<tr id="spaSetpoint">
-							<td>SetPoint</td>
-							<td>
-								<button id="spaSetpointMinusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<span id="spaHeatSetPoint">---</span>
-								<button id="spaSetpointPlusOne" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
-							</td>
-						</tr>
-						<tr id="spaHeatMode">
-							<td>Heater Mode</td>
-							<td>
-								<button id="spaHeatModeDown" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E9;</span></button>
-								<button class="btn btn-default btn-md" style="width: 70px;"><span id="spaHeatModeStr">Off</span></button>
-								<button id="spaHeatModeUp" class="btn btn-primary btn-md"><span style="font-weight:bold; font-size:12px;">&#x21E7;</span></button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="chlorinator" class="col-md-3 pnlChlorinator">
-	  <div class="panel panel-primary">
-			<div class="panel-heading">Chlorinator Details
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
-				<button id="hidePanelchlorinator" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Parameter</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr id="chlorinatorState">
-							<td>Chlorinator State</td>
-							<td>
-								<button id="CHLORINATOR" class="btn btn-primary btn-md" data-target="#modalChlorinator" data-toggle="modal">---</button>
-							</td>
-						</tr>
-						<tr>
-							<td>Name</td>
-							<td id="chlorinatorName">---</td>
-						</tr>
-						<tr>
-							<td>Salt</td>
-							<td id="chlorinatorSalt">---</td>
-						</tr>
-						<tr>
-							<td>Current Output</td>
-							<td id="chlorinatorCurrentOutput">---</td>
-						</tr>
-						<tr>
-							<td id="chlorinatorPoolPercentLabel">Pool Setpoint</td>
-							<td id="chlorinatorPoolPercent">---</td>
-						</tr>
-						<tr>
-							<td>SuperChlorinate</td>
-							<td id="chlorinatorSuperChlorinate">---</td>
-						</tr>
-						<tr>
-							<td>Status</td>
-							<td id="chlorinatorStatus">---</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="features" class="col-md-2 pnlFeatures">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Lighting / Features
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseFeatures"></a>
-				<button id="hidePanelfeatures" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseFeatures" class="panel-body panel-collapse collapse in">
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Feature</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="pump" class="col-md-3 pnlSchedule">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Pumps
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapsePump"></a>
-				<button id="hidePanelpump" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapsePump" class="panel-body panel-collapse collapse in">
-				<table id="pumps" class="table table-hover">
-					<thead>
-						<tr>
-							<th>Parameter</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr><td>Watts</td></tr>
-						<tr><td>RPM</td></tr>
-						<tr><td>Error</td></tr>
-						<tr><td>Drive State</td></tr>
-						<tr><td>Run Mode</td></tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="schedule" class="col-md-4 pnlSchedule">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Schedules
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseSchedule"></a>
-				<button id="hidePanelschedule" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseSchedule" class="panel-body panel-collapse collapse in">
-				<table id="schedules" class="table table-hover">
-					<thead>
-						<tr>
-							<th>#</th>
-							<th>Circuit</th>
-							<th>Start Time</th>
-							<th>End Time</th>
-						</tr>
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="eggtimer" class="col-md-3 pnlEggtimer">
-		<div class="panel panel-primary">
-			<div class="panel-heading">EggTimers
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseEggtimer"></a>
-				<button id="hidePaneleggtimer" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
-			</div>
-			<div id="collapseEggtimer" class="panel-body panel-collapse collapse in">
-				<table id="eggtimers" class="table table-hover">
-					<thead>
-						<tr>
-							<th>#</th>
-							<th>Circuit</th>
-							<th>Duration</th>
-						</tr>
-					</thead>
-					<tbody>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
-	<div id="debug" class="col-md-12 pnlDebug">
-		<div class="panel panel-primary">
-			<div class="panel-heading">Debug Log
-				<button id="debugClear" class="btn btn-warning btn-xs" style="position: absolute; right: 60px">Clear Log</button>
-				<a class="accordion-toggle" data-toggle="collapse" href="#collapseDebug"></a>
-			</div>
-			<div id="collapseDebug" class="panel-body panel-collapse collapse in">
-				<div tabindex="1" id="txtDebug" style="height:250px;width:100%;border:1px solid #ccc;font:12px Courier, Serif;white-space: nowrap;overflow:auto;">
-					<b>DEBUG LOG ... <br></b>
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
-<div class="modal fade" id="modalChlorinator" tabindex="-1">
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<div class="modal-header">
-				<button type="button" class="close" data-dismiss="modal">&times;</button>
-				<h4 class="modal-title">Chlorinator Settings ...</h4>
-			</div>
-			<div class="modal-body">
-				<div class="input-group">
-					<span class="input-group-addon">Chlorinator Level</span>
-					<input type="text" class="form-control" id="modalChlorInput" aria-describedby="basic-addon3">
-				</div>
-			</div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>
-				<button id="SaveChanges" type="button" class="btn btn-primary">Save changes</button>
-			</div>
-		</div>
-	</div>
-</div>
-<div class="container row-content">
-</div>
-<footer class="breadcrumb">
-	<table width="100%;">
-		<tr>
-			<td>
-				nodejs-poolController<br>
-				<a href="https://github.com/tagyoureit/nodejs-poolController">Github Repository</a>
-			</td>
-			<td width="40 px;">
-				<button id="btnResetLayout" class="btn btn-primary btn-xs" style="float: right;">Reset<br/>Layout</button>
-			</td>
-			<td width="40 px;">
-				<button id="debugEnable" class="btn btn-primary btn-xs" style="float: right; margin-left: 5px;">Debug:<br/>Off</button>
-			</td>
-			<td width="40 px;">
-				<a id="tmrLastUpd" class="btn btn-danger btn-xs" style="float: right; margin-left: 5px;">Last Update ...<br/>NEVER</a>
-			</td>
-		</tr>
-	</table>
-</footer>
+	</footer>
 </body>
+
 </html>

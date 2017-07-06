@@ -90,9 +90,21 @@ module.exports = function(container) {
       if (_pump <= numPumps) {
         currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(container.settings.pump[_pump].externalProgram))
         currentPumpStatus[_pump].type = JSON.parse(JSON.stringify(container.settings.pump[_pump].type))
+
+
+
+            if (container.settings.pump[_pump].friendlyName !== "") {
+              currentPumpStatus[_pump].friendlyName = container.settings.pump[_pump].friendlyName
+            } else {
+              currentPumpStatus[_pump].friendlyName = currentPumpStatus[_pump].name
+            }
+
+
       }
     }
   }
+
+
   var init = function() {
     if (container.settings.logPumpMessages)
       if (currentPumpStatus === undefined) {
@@ -111,6 +123,9 @@ module.exports = function(container) {
         numPumps = parseInt(_pump)
       }
       //}
+
+
+
     }
 
 

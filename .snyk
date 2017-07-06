@@ -6,27 +6,15 @@ ignore:
     - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-17T17:20:45.694Z'
-      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion':
-        reason: None given
-        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update
         expires: '2017-07-17T17:20:45.694Z'
-      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion':
-        reason: None given
-        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-06T15:53:06.038Z'
-      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion':
-        reason: None given
-        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-17T17:20:45.694Z'
-      '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion':
-        reason: None given
-        expires: '2017-07-17T17:22:18.713Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-06T15:53:06.039Z'
@@ -48,6 +36,18 @@ ignore:
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-17T17:20:45.695Z'
+    - '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
+    - '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
+    - '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
+    - '@risingstack/v8-profiler > @risingstack/node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion':
+        reason: None given
+        expires: '2017-07-17T17:22:18.713Z'
   'npm:ms:20170412':
     - mocha > debug > ms:
         reason: None given
@@ -66,6 +66,10 @@ ignore:
     - mocha > growl:
         reason: None given
         expires: '2017-07-06T15:53:06.039Z'
+  'npm:tunnel-agent:20170305':
+    - serialport > node-pre-gyp > request > tunnel-agent:
+        reason: None given
+        expires: '2017-08-05T05:06:28.802Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

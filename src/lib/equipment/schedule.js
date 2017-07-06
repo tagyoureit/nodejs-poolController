@@ -140,7 +140,7 @@ module.exports = function(container) {
 
         schedule.ID = id;
         schedule.CIRCUIT = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit); //Correct???
-        schedule.friendlyName = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit);
+        schedule.friendlyName = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getFriendlyName(circuit);
         schedule.CIRCUITNUM = circuit
 
         if (time1 === 25) //25 = Egg Timer

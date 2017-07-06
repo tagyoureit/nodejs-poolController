@@ -1,172 +1,172 @@
 {
-  "equipment": {
-    "controller": {
-      "intellicom": {
-        "installed": 0,
-        "friendlyName": ""
-      },
-      "intellitouch": {
-        "installed": 1,
-        "friendlyName": ""
-      },
-      "virtual": {
-        "pumpController": "default",
-        "chlorinatorController": "default"
-      },
-      "id": {
-        "productName": "",
-        "productNumber": "",
-        "manufacturer": "",
-        "description": ""
-      },
-      "circuitFriendlyNames": {
-        "1": "",
-        "2": "",
-        "3": "",
-        "4": "",
-        "5": "",
-        "6": "",
-        "7": "",
-        "8": "",
-        "9": "",
-        "10": "",
-        "11": "",
-        "12": "",
-        "13": "",
-        "14": "",
-        "15": "",
-        "16": "",
-        "17": "",
-        "18": "",
-        "19": "",
-        "20": ""
-      }
-    },
-    "chlorinator": {
-      "installed": 1,
-      "desiredOutput": -1,
-      "friendlyName": "",
-      "id": {
-        "productName": "",
-        "productNumber": "",
-        "manufacturer": "",
-        "description": ""
-      }
-    },
-    "pump": {
-      "1": {
-        "type": "VS",
-        "externalProgram": {
-          "1": -1,
-          "2": -1,
-          "3": -1,
-          "4": -1
+    "equipment": {
+        "controller": {
+            "intellicom": {
+                "installed": 0,
+                "friendlyName": ""
+            },
+            "intellitouch": {
+                "installed": 1,
+                "friendlyName": ""
+            },
+            "virtual": {
+                "pumpController": "default",
+                "chlorinatorController": "default"
+            },
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            },
+            "circuitFriendlyNames": {
+                "1": "",
+                "2": "",
+                "3": "",
+                "4": "",
+                "5": "",
+                "6": "",
+                "7": "",
+                "8": "",
+                "9": "",
+                "10": "",
+                "11": "",
+                "12": "",
+                "13": "",
+                "14": "",
+                "15": "",
+                "16": "",
+                "17": "",
+                "18": "",
+                "19": "",
+                "20": ""
+            }
         },
-        "friendlyName": "",
-        "id": {
-          "productName": "",
-          "productNumber": "",
-          "manufacturer": "",
-          "description": ""
-        }
-      },
-      "2": {
-        "type": "none",
-        "externalProgram": {
-          "1": -1,
-          "2": -1,
-          "3": -1,
-          "4": -1
+        "chlorinator": {
+            "installed": 1,
+            "desiredOutput": -1,
+            "friendlyName": "",
+            "id": {
+                "productName": "",
+                "productNumber": "",
+                "manufacturer": "",
+                "description": ""
+            }
         },
-        "friendlyName": "",
-        "id": {
-          "productName": "",
-          "productNumber": "",
-          "manufacturer": "",
-          "description": ""
+        "pump": {
+            "1": {
+                "type": "VS",
+                "externalProgram": {
+                    "1": -1,
+                    "2": -1,
+                    "3": -1,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            },
+            "2": {
+                "type": "None",
+                "externalProgram": {
+                    "1": -1,
+                    "2": -1,
+                    "3": -1,
+                    "4": -1
+                },
+                "friendlyName": "",
+                "id": {
+                    "productName": "",
+                    "productNumber": "",
+                    "manufacturer": "",
+                    "description": ""
+                }
+            }
         }
-      }
-    }
-  },
-  "poolController": {
-    "appAddress": 33,
-    "web": {
-      "expressPort": 3000,
-      "expressTransport": "http",
-      "expressAuth": 0,
-      "expressAuthFile": "/users.htpasswd"
     },
-    "network": {
-      "rs485Port": "/dev/ttyUSB0",
-      "netConnect": 0,
-      "netHost": "raspberrypi",
-      "netPort": 9801
-    },
-    "notifications": {
-      "version": {
-        "remote": {
-          "version": "0.0.0",
-          "tag_name": "v0.0.0",
-          "dismissUntilNextRemoteVersionBump": false
+    "poolController": {
+        "appAddress": 33,
+        "web": {
+            "expressPort": 3000,
+            "expressTransport": "http",
+            "expressAuth": 0,
+            "expressAuthFile": "/users.htpasswd"
+        },
+        "network": {
+            "rs485Port": "/dev/ttyUSB0",
+            "netConnect": 0,
+            "netHost": "raspberrypi",
+            "netPort": 9801
+        },
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "3.1.13",
+                    "tag_name": "v3.1.13",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
+            }
+        },
+        "log": {
+            "logLevel": "info",
+            "socketLogLevel": "info",
+            "fileLog": {
+                "enable": 0,
+                "fileLogLevel": "silly",
+                "fileName": "output.log"
+            },
+            "logPumpMessages": 1,
+            "logDuplicateMessages": 0,
+            "logConsoleNotDecoded": 0,
+            "logConfigMessages": 0,
+            "logMessageDecoding": 1,
+            "logChlorinator": 1,
+            "logPacketWrites": 1,
+            "logPumpTimers": 0,
+            "logApi": 0
+        },
+        "database": {
+            "influx": {
+                "enabled": 0,
+                "host": "localhost",
+                "port": 8086,
+                "database": "pool"
+            }
         }
-      }
     },
-    "log": {
-      "logLevel": "info",
-      "socketLogLevel": "info",
-      "fileLog": {
-        "enable": 0,
-        "fileLogLevel": "silly",
-        "fileName": "output.log"
-      },
-      "logPumpMessages": 1,
-      "logDuplicateMessages": 0,
-      "logConsoleNotDecoded": 0,
-      "logConfigMessages": 0,
-      "logMessageDecoding": 1,
-      "logChlorinator": 1,
-      "logPacketWrites": 1,
-      "logPumpTimers": 0,
-      "logApi": 0
+    "integrations": {
+        "socketISY": 0,
+        "outputSocketToConsoleExample": 0
     },
-    "database": {
-      "influx": {
-        "enabled": 0,
-        "host": "localhost",
-        "port": 8086,
-        "database": "pool"
-      }
-    }
-  },
-  "integrations": {
-    "socketISY": 0,
-    "outputSocketToConsoleExample": 0
-  },
-  "socketISY": {
-    "username": "blank",
-    "password": "blank",
-    "ipaddr": "127.0.0.1",
-    "port": 12345,
-    "Variables": {
-      "chlorinator": {
-        "saltPPM": 16
-      },
-      "pump": {
-        "1": {
-          "watts": 25,
-          "rpm": 24,
-          "currentprogram": 13,
-          "program1rpm": 10,
-          "program2rpm": 11,
-          "program3rpm": 12,
-          "program4rpm": 13,
-          "power": 14,
-          "timer": 15
+    "socketISY": {
+        "username": "blank",
+        "password": "blank",
+        "ipaddr": "127.0.0.1",
+        "port": 12345,
+        "Variables": {
+            "chlorinator": {
+                "saltPPM": 16
+            },
+            "pump": {
+                "1": {
+                    "watts": 25,
+                    "rpm": 24,
+                    "currentprogram": 13,
+                    "program1rpm": 10,
+                    "program2rpm": 11,
+                    "program3rpm": 12,
+                    "program4rpm": 13,
+                    "power": 14,
+                    "timer": 15
+                }
+            }
         }
-      }
+    },
+    "outputSocketToConsoleExample": {
+        "level": "warn"
     }
-  },
-  "outputSocketToConsoleExample": {
-    "level": "warn"
-  }
 }

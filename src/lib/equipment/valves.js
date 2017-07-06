@@ -33,8 +33,8 @@ module.exports = function(container) {
     }
 
     function setValves(data) {
-
-        valves.valves = container.constants.strValves[data];
+        //container.logger.info('Received valves status packet.  \n\tPossible association with %s. \n\t  Valves data: %s', data[container.constants.controllerStatusPacketFields.VALVES], data)
+        valves.valves = data[container.constants.controllerStatusPacketFields.VALVES];
     }
 
     function getValves() {

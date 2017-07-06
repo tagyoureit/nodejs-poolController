@@ -9,11 +9,11 @@
   "author": "tagyoureit",
   "license": "ISC",
   "dependencies": {
-    "alexa-app": "^2.3.2",
-    "chai": "^3.5.0",
-    "chai-as-promised": "^5.2.0",
-    "lodash": "^4.3.0",
-    "mocha": "^2.4.5",
-    "request-promise": "^2.0.0"
+    "alexa-app": "^4.0.1",
+    "chai": "^4.0.2",
+    "chai-as-promised": "^7.0.0",
+    "lodash": "^4.17.4",
+    "mocha": "^3.4.2",
+    "request-promise": "^4.2.1"
   }
 }

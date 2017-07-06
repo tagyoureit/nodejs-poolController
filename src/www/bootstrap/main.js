@@ -120,17 +120,19 @@ function fmtEggTimerTime(strInpStr) {
     return strHours + ' hrs, ' + strMins + ' mins';
 }
 
-function setStatusButton(btnID, btnState, btnLeadingText) {
+function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
     // Check for Leading Text
     if (typeof btnLeadingText === "undefined")
         btnLeadingText = '';
+    if (typeof glyphicon === "undefined")
+            glyphicon = '';
     // Set Button State
     if (btnState === 1) {
-        btnID.html(btnLeadingText + 'On');
+        btnID.html(btnLeadingText + 'On' + glyphicon);
         btnID.removeClass('btn-primary');
         btnID.addClass('btn-success');
     } else {
-        btnID.html(btnLeadingText + 'Off');
+        btnID.html(btnLeadingText + 'Off' + glyphicon);
         btnID.removeClass('btn-success');
         btnID.addClass('btn-primary');
     }
@@ -215,15 +217,17 @@ function startSocketRx() {
                     else
                         currName = currCircuit.friendlyName;
                     if (currName !== "NOT USED") {
+                      var glyphicon = '<span class="glyphicon glyphicon-play" aria-hidden="true"></span>';
                         if (document.getElementById(currName)) {
+
                             setStatusButton($('#' + currName), currCircuit.status);
                             $('#' + currName).data(currName, currCircuit.number);
                         } else if (document.getElementById(currCircuit.numberStr)) {
-                            setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
+                            setStatusButton($('#' + currCircuit.numberStr), currCircuit.status,'', currCircuit.macro?glyphicon:'');
                             $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
                         } else if ((generalParams.hideAUX === false) || (currName.indexOf("AUX") === -1)) {
                             $('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-md" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
-                            setStatusButton($('#' + currCircuit.numberStr), currCircuit.status);
+                            setStatusButton($('#' + currCircuit.numberStr), currCircuit.status,'', currCircuit.macro?glyphicon:'');
                             $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
                         }
                     }
@@ -235,6 +239,14 @@ function startSocketRx() {
 
     socket.on('pump', function(data) {
         if (data !== null) {
+            // check all pumps first to see if we need to hide the GPM row
+            var showGPM = false;
+            $.each(data, function(indx, currPump) {
+               if (currPump['type'].toUpperCase() === 'VF'){
+                 showGPM = true;
+               }
+            })
+
             // Build Pump table / panel
             $.each(data, function(indx, currPump) {
                 if (currPump === null) {
@@ -243,17 +255,22 @@ function startSocketRx() {
                     if (currPump !== "blank") {
                         // New Pump Data (Object) ... make sure pumpParams has been read / processed (i.e. is available)
                         if (typeof(pumpParams) !== "undefined") {
-                            if (typeof(currPump["name"]) !== "undefined") {
+                            if (typeof(currPump["friendlyName"]) !== "undefined") {
                                 // Determine if we need to add a column (new pump), or replace data - and find the target column if needed
-                                var rowHeader = $('#pumps tr:first:contains(' + currPump["name"] + ')');
+                                var rowHeader = $('#pumps tr:first:contains(' + currPump["friendlyName"] + ')');
                                 var colAppend = rowHeader.length ? false : true;
                                 if (colAppend === false) {
                                     var colTarget = -1;
                                     $('th', rowHeader).each(function(index) {
-                                        if ($(this).text() === currPump["name"])
+                                        if ($(this).text() === currPump["friendlyName"])
                                             colTarget = index;
                                     });
                                 }
+
+                                if (!showGPM) {
+                                  $('#pumps tr:contains("GPM")').attr("hidden", "hidden")
+                                }
+
                                 // Cycle through Pump Parameters
                                 for (var currPumpParam in pumpParams) {
                                     currParamSet = pumpParams[currPumpParam];
@@ -439,9 +456,6 @@ function startSocketRx() {
 }
 
 // Socket Emit Events (Transmit to Server)
-function setHeatSetPoint(equip, change) {
-    socket.emit('setHeatSetPoint', equip, change);
-}
 
 function setHeatMode(equip, change) {
     socket.emit('setHeatMode', equip, change);
@@ -477,7 +491,7 @@ function handleButtons() {
 		$('#gitState')[0].style.visibility = "hidden";
 		socket.emit('updateVersionNotification', true);
     });
-	
+
     // Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
     $('button').click(function(btnSelected) {
         var btnID = btnSelected.target.id;
@@ -508,8 +522,9 @@ function handleButtons() {
 
     // Button Handling: Pool / Spa, Temperature SetPoint
     $('#poolSetpoint, #spaSetpoint').on('click', 'button', function() {
-        setHeatSetPoint($(this).data('equip'), $(this).data('adjust'));
+        socket.emit($(this).data('socket'), $(this).data('adjust'));
     });
+
 
     // Button Handling: Pool / Spa, Heater Mode
     $('#poolHeatMode, #spaHeatMode').on('click', 'button', function() {
@@ -574,6 +589,16 @@ function handleButtons() {
         if (key.which == 13)
             $('#SaveChanges').click();
     })
+
+    //set active menu item
+    $(".nav li").on("click", function() {
+      $(".nav li").removeClass("active");
+      $(this).addClass("active");
+    });
+     //and collapse navbar when selecting
+    $('.navbar-collapse a').click(function(){
+      $(".navbar-collapse").collapse('hide');
+    });
 }
 
 // Refresh / Update status button (showing last message / information received)
@@ -583,7 +608,8 @@ function lastUpdate(reset) {
         tmeLastUpd = tmeCurrent;
     tmeDelta = (tmeCurrent - tmeLastUpd) / 1000;
     domDelta = $('#tmrLastUpd')
-    domDelta[0].innerHTML = 'Last Update ... <br/>' + tmeDelta.toFixed(1) + ' sec ago';
+    domDelta[0].innerHTML = 'Last Update<br/>' + tmeDelta.toFixed(1) + ' secs ago';
+
     if (typeof(generalParams) !== "undefined") {
         if (tmeDelta <= generalParams.tmeSuccess) {
             domDelta.removeClass('btn-warning');
@@ -602,6 +628,8 @@ function lastUpdate(reset) {
     if (reset === true)
         tmeLastUpd = tmeCurrent;
 }
+
+
 
 // From http://api.jquery.com/jquery/#jQuery3
 // JQuery(callback), Description: Binds a function to be executed when the DOM has finished loading
