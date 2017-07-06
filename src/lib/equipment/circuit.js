@@ -306,7 +306,7 @@ module.exports = function(container) {
         circuitChanged(circuit, circuitArrObj, counter)
         assignCircuitVars(circuit, circuitArrObj)
       } else {
-        logger.debug('Msg# %s  No change in circuit %s', counter, circuit)
+        logger.debug('Msg# %s  a.No change in circuit %s', counter, circuit)
       }
 
     }
@@ -357,7 +357,7 @@ module.exports = function(container) {
           //nothing changed
           if (container.settings.logMessageDecoding) {
             if (sendInitialBroadcast.haveCircuitNames) {
-              logger.silly('Msg# %s   NO change in circuit %s', counter, circuitArrObj[i].name)
+              logger.silly('Msg# %s   NO change in circuit %s', counter, currentCircuitArrObj[i].name)
             } else {
               logger.silly('Msg# %s   NO change in circuit %s', counter, i)
             }

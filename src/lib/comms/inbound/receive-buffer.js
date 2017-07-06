@@ -69,9 +69,9 @@ module.exports = function(container) {
                 //   0,   1,      2,      3,    4, 5,        6
                 //(255,165,preambleByte,Dest,Src,cmd,chatterlen) and 2 for checksum)
 
-                if (chatterlen >= 50) //we should never get a packet greater than or equal to 50.  So if the chatterlen is greater than that let's shift the array and retry
+                if (chatterlen >= 100) //we should never get a packet greater than or equal to 50.  So if the chatterlen is greater than that let's shift the array and retry
                 {
-                    if (s.logMessageDecoding) logger.debug('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=50) Lengeth: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
+                    if (s.logMessageDecoding) logger.debug('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=100) Length: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
                     bufferToProcess.shift() //remove the first byte so we look for the next [255,165] in the array.
 
                 } else if ((bufferToProcess.length - chatterlen) <= 0) {

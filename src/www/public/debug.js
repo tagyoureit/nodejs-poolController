@@ -1,5 +1,5 @@
 $(function () {
-    
+
 
     // Initialize variables
 
@@ -20,7 +20,7 @@ $(function () {
         //alert('clicked stop')
         socket.emit('search',"stop")
     });
-    
+
     $("#start").click(function(){
         //alert ( $("#searchSrc").val() );
         var src = $("#searchSrc").val();
@@ -30,13 +30,16 @@ $(function () {
         socket.emit('search','start',src,dest,action)
     })
 
-    
+
     // Whenever the server emits 'searchResults', update the page
 
     socket.on('searchResults', function (data) {
         //alert('received data %s', data)
         $( "#results" ).append( "<p>"+data+"</p>" );
-        
+
     });
+
+    //emit once upon load
+    socket.emit('search','load');
 
 });

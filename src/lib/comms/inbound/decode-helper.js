@@ -228,10 +228,9 @@ module.exports = function(container) {
         var decoded = false;
         //when searchMode (from socket.io) is in 'start' status, any matching packets will be set to the browser at http://machine.ip:3000/debug.html
         if (container.apiSearch.searchMode === 'start') {
-
-            var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify(data)
             if (container.apiSearch.searchAction === data[container.constants.packetFields.ACTION] && container.apiSearch.searchSrc === data[container.constants.packetFields.FROM] && container.apiSearch.searchDest === data[container.constants.packetFields.DEST]) {
-                container.io.sockets.emit('searchResults',
+            var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify(data)
+                container.io.emitToClients('searchResults',
                     resultStr
                 )
             }
