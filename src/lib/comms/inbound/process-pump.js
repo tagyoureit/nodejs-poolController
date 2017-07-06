@@ -74,7 +74,7 @@ module.exports = function(container) {
                 default:
                     {
                         if (container.settings.logPumpMessages)
-                            container.logger.info('Msg# %s is UNKNOWN: %s', counter, JSON.stringify(data));
+                            container.logger.verbose('Msg# %s is UNKNOWN: %s', counter, JSON.stringify(data));
                         decoded = false;
                     }
             }

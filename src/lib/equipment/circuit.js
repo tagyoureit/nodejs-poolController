@@ -205,6 +205,7 @@ module.exports = function(container) {
       }
       circuitStr += ' Freeze Protection: '
       circuitStr += statusToString(currentCircuitArrObj[i].freeze === 0)
+      circuitStr += ' Macro: ' + currentCircuitArrObj[i].macro
       circuitStr += '\n'
     }
     logger.info('\n  Circuit Array Discovered from configuration: \n%s \n', circuitStr)
@@ -228,6 +229,7 @@ module.exports = function(container) {
     currentCircuitArrObj[circuit].name = circuitArrObj.name
     currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
     currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
+    currentCircuitArrObj[circuit].macro = circuitArrObj.macro
     currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
   }
 

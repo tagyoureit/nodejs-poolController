@@ -1,6 +1,8 @@
 /* Add 70px to move content below nav menu */
 body {
     padding-top: 70px;
+    position: relative;
+    overflow-y: scroll;
 }
 
 /* Table formatting, vertical alignment (center), to handle larger buttons */

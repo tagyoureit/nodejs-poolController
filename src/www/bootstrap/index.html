@@ -19,7 +19,8 @@
 	<script src="main.js"></script>
 </head>
 
-<body>
+<body data-spy="scroll" data-target="#pool_navbar" data-offset="71">
+	<div id="pool_navbar">
 	<nav class="navbar navbar-default navbar-fixed-top">
 		<div class="container-fluid" style="width:100%;">
 			<div class="navbar-header">
@@ -36,8 +37,8 @@
 
 
 			<div id="navbar" class="navbar-collapse collapse">
-				<ul class="nav navbar-nav hidden-sm hidden-md hidden-lg">
-					<li class="active"><a href="#systeminformation">System Information</a></li>
+				<ul class="nav navbar-nav hidden-md hidden-lg">
+						<li class="active"><a href="#systeminformation">System Information</a></li>
 						<li><a href="#pool">Pool</a></li>
 						<li><a href="#spa">Spa</a></li>
 						<li><a href="#chlorinator">Chlorinator</a></li>
@@ -49,6 +50,7 @@
 				</ul>
 			</div>
 	</nav>
+</div>
 	<div id="draggablePanelList">
 		<a name="systeminformation" class="anchor"></a>
 		<div id="system" class="col-md-2 pnlSystem">
