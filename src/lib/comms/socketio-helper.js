@@ -237,20 +237,20 @@ module.exports = function(container) {
 
       // deprecate this
       socket.on('spasetpoint', function(spasetpoint) {
-        container.heat.setSpaSetPoint(spasetpoint)
+        container.heat.setSpaSetPoint(parseInt(spasetpoint))
       })
 
 
       socket.on('setSpaSetPoint', function(spasetpoint) {
-        container.heat.setSpaSetPoint(spasetpoint)
+        container.heat.setSpaSetPoint(parseInt(spasetpoint))
       })
 
       socket.on('incrementSpaSetPoint', function(increment) {
-        container.heat.incrementSpaSetPoint(increment)
+        container.heat.incrementSpaSetPoint(parseInt(increment))
       })
 
       socket.on('decrementSpaSetPoint', function(decrement) {
-        container.heat.decrementSpaSetPoint(decrement)
+        container.heat.decrementSpaSetPoint(parseInt(decrement))
       })
 
 
@@ -265,15 +265,15 @@ module.exports = function(container) {
       })
 
       socket.on('setPoolSetPoint', function(poolsetpoint) {
-        container.heat.setPoolSetPoint(poolsetpoint)
+        container.heat.setPoolSetPoint(parseInt(poolsetpoint))
       })
 
       socket.on('incrementPoolSetPoint', function(increment) {
-        container.heat.incrementPoolSetPoint(increment)
+        container.heat.incrementPoolSetPoint(parseInt(increment))
       })
 
       socket.on('decrementPoolSetPoint', function(decrement) {
-        container.heat.decrementPoolSetPoint(decrement)
+        container.heat.decrementPoolSetPoint(parseInt(decrement))
       })
 
       socket.on('poolheatmode', function(poolheatmode) {

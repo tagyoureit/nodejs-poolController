@@ -229,14 +229,14 @@ module.exports = function(container) {
     }
 
     function incrementSpaSetPoint(increment, callback) {
-       if (increment === null || increment === undefined)
+       if (increment === null || increment === undefined || isNaN(increment))
               increment = 1
             else parseInt(increment)
         setSpaSetPoint(currentHeat.spaSetPoint + increment, callback)
     }
 
     function decrementSpaSetPoint(decrement, callback) {
-      if (decrement === null || decrement === undefined)
+      if (decrement === null || decrement === undefined || isNaN(decrement))
         decrement = 1
       else parseInt(decrement)
         setSpaSetPoint(currentHeat.spaSetPoint - decrement, callback)
@@ -283,14 +283,14 @@ module.exports = function(container) {
     }
 
     function incrementPoolSetPoint(increment, callback) {
-        if (increment === null || increment === undefined)
+        if (increment === null || increment === undefined || isNaN(increment))
           increment = 1
         else parseInt(increment)
         setPoolSetPoint(currentHeat.poolSetPoint + increment, callback)
     }
 
     function decrementPoolSetPoint(decrement, callback) {
-      if (decrement === null || decrement === undefined)
+      if (decrement === null || decrement === undefined || isNaN(decrement))
         decrement = 1
       else parseInt(decrement)
         setPoolSetPoint(currentHeat.poolSetPoint - decrement, callback)
