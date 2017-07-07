@@ -25,6 +25,8 @@ describe('chlorinator tests', function() {
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
 
+        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+
             // bottle.container.chlorinatorController.startChlorinatorController()
     })
 

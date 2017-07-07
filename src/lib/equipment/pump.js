@@ -83,7 +83,12 @@ module.exports = function(container) {
     return numPumps
   }
 
-
+  var getPumpConfiguration = function() {
+      //get pump Configution
+      for (var i = 1; i <= container.pump.numberOfPumps(); i++) {
+          container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 219, 1, i]);
+      }
+  }
 
   var loadProgramsFromConfig = function() {
     for (var _pump in container.settings.pump) {
@@ -629,8 +634,7 @@ module.exports = function(container) {
     packetFromPump: packetFromPump,
     packetToOrFromPump: packetToOrFromPump,
     getPumpNumber: getPumpNumber,
+    getPumpConfiguration: getPumpConfiguration,
     init: init
-
-
   }
 }

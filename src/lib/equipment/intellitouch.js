@@ -67,6 +67,10 @@ module.exports = function(container) {
 
         container.logger.verbose('Queueing messages to retrieve Schedules')
         container.schedule.getControllerScheduleAll()
+
+        container.logger.verbose('Queueing messages to retrieve pump configurations')
+        container.pump.getPumpConfiguration()
+
     }
 
     function setPreambleByte(byte){

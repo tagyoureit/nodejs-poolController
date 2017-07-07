@@ -94,6 +94,7 @@ bottle.factory('controller_10', require(__dirname + '/comms/inbound/controller/1
 bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/11.js'))
 bottle.factory('controller_17', require(__dirname + '/comms/inbound/controller/17.js'))
 bottle.factory('controller_25', require(__dirname + '/comms/inbound/controller/25.js'))
+bottle.factory('controller_27', require(__dirname + '/comms/inbound/controller/27.js'))
 bottle.factory('controller_39', require(__dirname + '/comms/inbound/controller/39.js'))
 bottle.factory('controller_96', require(__dirname + '/comms/inbound/controller/96.js'))
 bottle.factory('controller_134', require(__dirname + '/comms/inbound/controller/134.js'))

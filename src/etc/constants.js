@@ -22,14 +22,14 @@ module.exports = function(container) {
         container.logger.info('Loading: ants.js')
 
     // this first four bytes of ANY packet are the same
-    packetFields = {
+  var packetFields = {
         DEST: 2,
         FROM: 3,
         ACTION: 4,
         LENGTH: 5,
     }
 
-    controllerStatusPacketFields = {
+    var controllerStatusPacketFields = {
         HOUR: 6,
         MIN: 7,
         EQUIP1: 8,
@@ -47,12 +47,12 @@ module.exports = function(container) {
         MISC2: 32 //0=do not automatically adjust DST, 1=automatically adjust DST
     }
 
-    chlorinatorPacketFields = {
+    var chlorinatorPacketFields = {
         DEST: 2,
         ACTION: 3
     }
 
-    pumpPacketFields = {
+    var pumpPacketFields = {
         DEST: 2,
         FROM: 3,
         ACTION: 4,
@@ -74,22 +74,140 @@ module.exports = function(container) {
         MIN: 20 //Mins
     }
 
-    namePacketFields = {
+    var pumpConfigFieldsCommon = {
+      NUMBER: 6,
+      TYPE: 7
+    }
+
+    var pumpConfigFieldsVS = {
+      PRIMINGMINS: 8,
+      UNKNOWNCONSTANT_9: 9,
+      UNUSED_10: 10,
+      CIRCUIT1: 11,
+      CIRCUIT1RPMH: 12,
+      CIRCUIT2: 13,
+      CIRCUIT2RPMH: 14,
+      CIRCUIT3: 15,
+      CIRCUIT3RPMH: 16,
+      CIRCUIT4: 17,
+      CIRCUIT4RPMH: 18,
+      CIRCUIT5: 19,
+      CIRCUIT5RPMH: 20,
+      CIRCUIT6: 21,
+      CIRCUIT6RPMH: 22,
+      CIRCUIT7: 23,
+      CIRCUIT7RPMH: 24,
+      CIRCUIT8: 25,
+      CIRCUIT8RPMH: 26,
+      PRIMERPMH: 27,
+      CIRCUIT1RPML: 28,
+      CIRCUIT2RPML: 29,
+      CIRCUIT3RPML: 30,
+      CIRCUIT4RPML: 31,
+      CIRCUIT5RPML: 32,
+      CIRCUIT6RPML: 33,
+      CIRCUIT7RPML: 34,
+      CIRCUIT8RPML: 35,
+      PRIMERPML: 36
+      // CIRCUITS 37-51 ARE ALL 0 FOR VS WITH EXTENDED CONFIG
+    }
+
+    var pumpConfigFieldsVF = {
+      POOLSIZE: 8,  // GALLONS
+      TURNOVERS: 9,  // PER DAY
+      UNUSED_10: 10,
+      CIRCUIT1: 11,
+      CIRCUIT1GPM: 12,
+      CIRCUIT2: 13,
+      CIRCUIT2GPM: 14,
+      CIRCUIT3: 15,
+      CIRCUIT3GPM: 16,
+      CIRCUIT4: 17,
+      CIRCUIT4GPM: 18,
+      CIRCUIT5: 19,
+      CIRCUIT5GPM: 20,
+      CIRCUIT6: 21,
+      CIRCUIT6GPM: 22,
+      CIRCUIT7: 23,
+      CIRCUIT7GPM: 24,
+      CIRCUIT8: 25,
+      CIRCUIT8GPM: 26,
+      MANUALFILTERGPM: 27,
+      MAXPRIMEFLOW: 28,
+      MAXPRIMESYSTEMTIME: 29,
+      MAXPRESSUREINCREASE: 30,
+      BACKWASHFLOW: 31,
+      BACKWASHTIME: 32,
+      RINSETIME: 33,
+      VACUUMFLOW: 34, // +1 FOR ACTUAL VALUE
+      UNUSED_35: 35,
+      VACUUMTIME: 36
+      // CIRCUITS 37-51 ARE ALL 0 FOR VF WITH EXTENDED CONFIG
+    }
+
+    var pumpConfigFieldsVSF = {
+      PRIMINGMINS: 8, // ALWAYS 0?
+      UNKNOWNCONSTANT_9: 9,
+      RPMGPMFLAG: 10,
+      CIRCUIT1: 11,
+      CIRCUIT1H: 12,
+      CIRCUIT2: 13,
+      CIRCUIT2H: 14,
+      CIRCUIT3: 15,
+      CIRCUIT3H: 16,
+      CIRCUIT4: 17,
+      CIRCUIT4H: 18,
+      CIRCUIT5: 19,
+      CIRCUIT5H: 20,
+      CIRCUIT6: 21,
+      CIRCUIT6H: 22,
+      CIRCUIT7: 23,
+      CIRCUIT7H: 24,
+      CIRCUIT8: 25,
+      CIRCUIT8H: 26,
+      PRIMERPMH: 27,  // NOT USED WITH VSF?
+      CIRCUIT1RPML: 28,
+      CIRCUIT2RPML: 29,
+      CIRCUIT3RPML: 30,
+      CIRCUIT4RPML: 31,
+      CIRCUIT5RPML: 32,
+      CIRCUIT6RPML: 33,
+      CIRCUIT7RPML: 34,
+      CIRCUIT8RPML: 35,
+      PRIMERPML: 36  // NOT USED WITH VSF?
+      // CIRCUITS 37-44 ARE ALL 255 FOR VS WITH EXTENDED CONFIG
+      // CIRCUITS 45-51 ARE ALL 0 WITH VS FOR EXTENDED CONFIG
+    }
+
+    var pumpTypeStr = {
+      0: 'None',
+      1: 'VF', // VF is really any circuit assignment between 1-63(?)
+      64: 'VSF',
+      128: 'VS'
+    }
+
+    var pumpType = {
+      NONE: 0,
+      VF: 1,
+      VSF: 64,
+      VS: 128
+    }
+
+    var namePacketFields = {
         NUMBER: 6,
         CIRCUITFUNCTION: 7,
         NAME: 8,
     }
 
-    pumpAction = {
+    var pumpAction = {
         1: 'WRITE', //Write commands to pump
         4: 'REMOTE', //Turn on/off pump control panel
         5: 'MODE', //Set pump mode
         6: 'RUN', //Set run mode
         7: 'STATUS' //Request status
-
     }
 
-    strCircuitName = {
+    var strCircuitName = {
         0: 'NOT USED',
         1: 'AERATOR',
         2: 'AIR BLOWER',
@@ -204,7 +322,7 @@ module.exports = function(container) {
         209: 'USERNAME-10'
     }
 
-    strCircuitFunction = {
+    var strCircuitFunction = {
         0: 'Generic',
         1: 'Spa',
         2: 'Pool',
@@ -220,10 +338,17 @@ module.exports = function(container) {
         16: 'Intellibrite',
         17: 'MagicStream',
         19: 'Not Used',
-        64: 'Freeze protection on'
+        64: 'Freeze protection on',
+        // Not exactly sure if the following belong in this list...
+        // they show up in the pump circuit assignment packets (24/27)
+        128: 'Solar',
+        129: 'Either Heater',
+        130: 'Pool Heater',
+        131: 'Spa Heater',
+        132: 'Freeze'
     }
 
-    strPumpActions = {
+    var strPumpActions = {
         1: 'Pump set speed/program or run program',
         4: 'Pump control panel',
         5: 'Pump speed',
@@ -231,7 +356,7 @@ module.exports = function(container) {
         7: 'Pump Status'
     }
 
-    strChlorinatorActions = {
+    var strChlorinatorActions = {
         0: 'Get Status',
         1: 'Response to Get Status',
         3: 'Response to Get Version',
@@ -241,7 +366,7 @@ module.exports = function(container) {
         21: 'Set Salt Generate % / 10'
     }
 
-    strControllerActions = {
+    var strControllerActions = {
         1: 'Ack Message',
         2: 'Controller Status',
         5: 'Date/Time',
@@ -255,6 +380,7 @@ module.exports = function(container) {
         23: 'Pump Status',
         24: 'Pump Config',
         25: 'IntelliChlor Status',
+        27: 'Pump Config (Extended)',
         29: 'Valve Status',
         34: 'Solar/Heat Pump Status',
         35: 'Delay Status',
@@ -271,6 +397,7 @@ module.exports = function(container) {
         147: 'Set IntelliChem',
         152: 'Set Pump Config',
         153: 'Set IntelliChlor',
+        155: 'Set Pump Config (Extended)',
         157: 'Set Valves',
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
@@ -286,6 +413,7 @@ module.exports = function(container) {
         215: 'Get Pump Status',
         216: 'Get Pump Config',
         217: 'Get IntelliChlor',
+        219: 'Get Pump Config (Extended)',
         221: 'Get Valves',
         226: 'Get Solar/Heat Pump',
         227: 'Get Delays',
@@ -295,7 +423,7 @@ module.exports = function(container) {
         253: 'Get SW Version',
     }
 
-    strIntellibriteModes = {
+    var strIntellibriteModes = {
         0: 'Off', //All off in UI
         1: 'On', //All on in UI
         128: 'Color Sync',
@@ -313,7 +441,7 @@ module.exports = function(container) {
         196: 'White',
         197: 'Magenta'
     }
-    intellibriteModes = {
+    var intellibriteModes = {
         'Off': 0, //All off in UI
         'On': 1, //All on in UI
         'Color Sync': 128,
@@ -332,7 +460,7 @@ module.exports = function(container) {
         'Magenta': 197
     }
 
-    strRunMode = {
+    var strRunMode = {
         //same bit as UOM.  Need to fix naming.
         0: 'Auto', //0x00000000
         1: 'Service', //0x00000001
@@ -343,13 +471,13 @@ module.exports = function(container) {
     }
 
 
-    strValves = {
+    var strValves = {
         3: 'Pool',
         15: 'Spa',
         48: 'Heater' // I've seen the value of 51.  I think it is Pool + Heater.  Need to investigate.
     }
 
-    heatModeStr = {
+    var heatModeStr = {
         //Pentair controller sends the pool and spa heat status as a 4 digit binary byte from 0000 (0) to 1111 (15).  The left two (xx__) is for the spa and the right two (__xx) are for the pool.  EG 1001 (9) would mean 10xx = 2 (Spa mode Solar Pref) and xx01 = 1 (Pool mode Heater)
         //0: all off
         //1: Pool heater            Spa off
@@ -373,14 +501,14 @@ module.exports = function(container) {
         3: 'Solar Only'
     }
 
-    heatMode = {
+    var heatMode = {
         OFF: 0,
         HEATER: 1,
         SOLARPREF: 2,
         SOLARONLY: 3
     }
 
-    ctrl = {
+    var ctrl = {
         CHLORINATOR: 2,
         BROADCAST: 15,
         INTELLITOUCH: 16,
@@ -404,7 +532,7 @@ module.exports = function(container) {
         PUMP16: 111
     }
 
-    ctrlString = {
+    var ctrlString = {
         2: 'Chlorinator',
         15: 'Broadcast',
         16: 'Main',
@@ -434,23 +562,29 @@ module.exports = function(container) {
         container.logger.info('Loaded: ants.js')
 
     return {
-        packetFields,
-        controllerStatusPacketFields,
-        chlorinatorPacketFields,
-        pumpPacketFields,
-        namePacketFields,
-        pumpAction,
-        strCircuitName,
-        strCircuitFunction,
-        strPumpActions,
-        strChlorinatorActions,
-        strControllerActions,
-        strRunMode,
-        strValves,
-        heatModeStr,
-        heatMode,
-        ctrl,
-        ctrlString
+        packetFields: packetFields,
+        controllerStatusPacketFields: controllerStatusPacketFields,
+        chlorinatorPacketFields: chlorinatorPacketFields,
+        pumpPacketFields: pumpPacketFields,
+        pumpType: pumpType,
+        pumpTypeStr: pumpTypeStr,
+        pumpConfigFieldsCommon: pumpConfigFieldsCommon,
+        pumpConfigFieldsVS: pumpConfigFieldsVS,
+        pumpConfigFieldsVF: pumpConfigFieldsVF,
+        pumpConfigFieldsVSF: pumpConfigFieldsVSF,
+        namePacketFields: namePacketFields,
+        pumpAction: pumpAction,
+        strCircuitName: strCircuitName,
+        strCircuitFunction: strCircuitFunction,
+        strPumpActions: strPumpActions,
+        strChlorinatorActions: strChlorinatorActions,
+        strControllerActions: strControllerActions,
+        strRunMode: strRunMode,
+        strValves: strValves,
+        heatModeStr: heatModeStr,
+        heatMode: heatMode,
+        ctrl: ctrl,
+        ctrlString: ctrlString
     }
 
 }
