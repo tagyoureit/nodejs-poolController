@@ -474,7 +474,8 @@ module.exports = function(container) {
     var strValves = {
         3: 'Pool',
         15: 'Spa',
-        48: 'Heater' // I've seen the value of 51.  I think it is Pool + Heater.  Need to investigate.
+        48: 'Heater', 
+        51: 'Solar'
     }
 
     var heatModeStr = {

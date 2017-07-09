@@ -76,6 +76,9 @@ module.exports = function(container) {
             //var server = require('http').createServer(app);
             server = container.http.createServer(app);
 
+        //hook to use custom routes
+        var customRoutes = require(path.join(process.cwd(), 'src/integrations/customExpressRoutes'))
+        customRoutes.init(app)
 
         server.listen(port, function logRes() {
             container.logger.verbose('Express Server listening at port %d', port);

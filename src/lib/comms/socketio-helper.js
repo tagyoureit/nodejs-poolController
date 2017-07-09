@@ -128,7 +128,6 @@ module.exports = function(container) {
     }
   }
 
-
   var init = function() {
     //var Server = require('./server.js'),
     //var io = require('socket.io')(container.server.server);
