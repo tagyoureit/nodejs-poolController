@@ -127,9 +127,14 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
   if (typeof glyphicon === "undefined")
     glyphicon = '';
   // Set Button State
-  if (btnState === 1) {
+  if (btnState === 'delay') {
+    btnID.html(btnLeadingText + 'Delay' + glyphicon);
+    btnID.removeClass('btn-success');
+    btnID.addClass('btn-warning');
+  } else if (btnState === 1) {
     btnID.html(btnLeadingText + 'On' + glyphicon);
     btnID.removeClass('btn-primary');
+    btnID.removeClass('btn-warning');
     btnID.addClass('btn-success');
   } else {
     btnID.html(btnLeadingText + 'Off' + glyphicon);
@@ -223,11 +228,19 @@ function startSocketRx() {
               setStatusButton($('#' + currName), currCircuit.status);
               $('#' + currName).data(currName, currCircuit.number);
             } else if (document.getElementById(currCircuit.numberStr)) {
-              setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
+              if (currCircuit.delay === 1) {
+                setStatusButton($('#' + currCircuit.numberStr), 'delay', '', currCircuit.macro ? glyphicon : '');
+              } else {
+                setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
+              }
               $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
             } else if ((generalParams.hideAUX === false) || (currName.indexOf("AUX") === -1)) {
               $('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-md" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
-              setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
+              if (currCircuit.delay === 1) {
+                setStatusButton($('#' + currCircuit.numberStr), 'delay', '', currCircuit.macro ? glyphicon : '');
+              } else {
+                setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
+              }
               $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
             }
           }
@@ -550,7 +563,12 @@ function handleButtons() {
 
   // Button Handling: Features => On/Off
   $('#features').on('click', 'button', function() {
-    setEquipmentStatus($(this).data($(this).attr('id')));
+
+    if ($(this).html() === 'Delay') {
+      socket.emit('cancelDelay')
+    } else {
+      setEquipmentStatus($(this).data($(this).attr('id')));
+    }
   });
 
   // Button Handling: Debug Log => On/Off

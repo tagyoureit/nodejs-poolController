@@ -152,11 +152,15 @@ module.exports = function(container) {
       })
       // when the client emits 'toggleEquipment', this listens and executes
       socket.on('toggleCircuit', function(equipment) {
-
         container.circuit.toggleCircuit(equipment)
-
-
       });
+
+      // when the client emits 'cancelDelay', this listens and executes
+      socket.on('cancelDelay', function() {
+        container.circuit.setDelayCancel()
+      });
+
+
       socket.on('search', function(mode, src, dest, action) {
         //check if we don't have all valid values, and then emit a message to correct.
 

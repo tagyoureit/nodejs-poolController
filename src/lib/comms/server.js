@@ -113,6 +113,10 @@ module.exports = function(container) {
             res.send('reloading configuration')
         })
 
+        app.get('/cancelDelay', function(req, res) {
+            res.send(container.circuit.setDelayCancel())
+        })
+
         app.get('/heat', function(req, res) {
             res.send(container.heat.getCurrentHeat())
         })

@@ -37,6 +37,7 @@ module.exports = function(container) {
         EQUIP3: 10,
         UOM: 15, //Celsius (4) or Farenheit (0); Also Service/Timeout.  See strRunMode below.
         VALVES: 16,
+        DELAY: 18,  //64==??; 65-135 (for 50 circuits) is the circuit that is currently delayed.
         UNKNOWN: 19, //Something to do with heat.
         POOL_TEMP: 20,
         SPA_TEMP: 21,
@@ -387,6 +388,7 @@ module.exports = function(container) {
         39: 'Light Groups/Positions',
         40: 'Settings?',
         96: 'Set Color', //Intellibrite, maybe more?
+        131: 'Set Delay Cancel',
         133: 'Set Date/Time',
         134: 'Set Circuit',
         136: 'Set Heat/Temperature',
@@ -402,7 +404,7 @@ module.exports = function(container) {
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
         167: 'Set Light Groups/Positions',
-        194: 'Get Status',
+        194: 'Get Status/',
         197: 'Get Date/Time',
         200: 'Get Heat/Temperature',
         202: 'Get Custom Name',
@@ -474,7 +476,7 @@ module.exports = function(container) {
     var strValves = {
         3: 'Pool',
         15: 'Spa',
-        48: 'Heater', 
+        48: 'Heater',
         51: 'Solar'
     }
 

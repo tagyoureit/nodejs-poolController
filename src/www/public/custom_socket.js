@@ -9,7 +9,7 @@ $(function () {
     $("#ipButton").on("click", function() {
       val = $('#ip_addr').val()
       console.log("Send IP button clicked.  Will send %s", val)
-      socket.broadcast.emit('ip_addr', val)
+      socket.emit('ip_addr', val)
     });
 
     $("#echoButton").on("click", function() {

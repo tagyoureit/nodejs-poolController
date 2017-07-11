@@ -59,6 +59,7 @@ module.exports = function(container) {
 
                   container.heat.setHeatActiveFromController(data[c.controllerStatusPacketFields.HEATER_ACTIVE])
                   container.circuit.assignCircuitStatusFromControllerStatus(data, counter)
+                  container.circuit.assignCircuitDelayFromControllerStatus(data[c.controllerStatusPacketFields.DELAY]&63, counter)
 
 
 

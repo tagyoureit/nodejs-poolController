@@ -21,7 +21,7 @@ function Light(group, colorStr, color) {
   this.color = color;
 }
 
-function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro, group, colorStr, color) {
+function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro, delay, group, colorStr, color) {
   this.number = number; //1
   this.numberStr = numberStr; //circuit1
   this.name = name; //Pool
@@ -29,6 +29,7 @@ function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro
   this.status = status; //0, 1
   this.freeze = freeze; //0, 1
   this.macro = macro; //is the circuit a macro?
+  this.delay = delay; //0 no delay, 1 in delay
   this.light = {
     'group': group,
     'colorStr': colorStr,
@@ -125,11 +126,11 @@ module.exports = function(container) {
 
     var header = '\n';
     header += (spacepadding + '              S       L                                           V           H   P   S   H       A   S           H\n');
-    header += (spacepadding + '              O       E           M   M   M                       A           T   OO  P   T       I   O           E\n');
-    header += (spacepadding + '          D   U       N   H       O   O   O                   U   L           R   L   A   R       R   L           A                           C   C\n');
-    header += (spacepadding + '          E   R   C   G   O   M   D   D   D                   O   V           M   T   T   _       T   T           T                           H   H\n');
-    header += (spacepadding + '          S   C   M   T   U   I   E   E   E                   M   E           D   M   M   O       M   M           M                           K   K\n');
-    header += (spacepadding + '          T   E   D   H   R   N   1   2   3                       S           E   P   P   N       P   P           D                           H   L\n');
+    header += (spacepadding + '              O       E           M   M   M                       A       D   T   OO  P   T       I   O           E\n');
+    header += (spacepadding + '          D   U       N   H       O   O   O                   U   L       E   R   L   A   R       R   L           A                           C   C\n');
+    header += (spacepadding + '          E   R   C   G   O   M   D   D   D                   O   V       L   M   T   T   _       T   T           T                           H   H\n');
+    header += (spacepadding + '          S   C   M   T   U   I   E   E   E                   M   E       A   D   M   M   O       M   M           M                           K   K\n');
+    header += (spacepadding + '          T   E   D   H   R   N   1   2   3                       S       Y   E   P   P   N       P   P           D                           H   L\n');
     //                    e.g.  165, xx, 15, 16,  2, 29, 11, 33, 32,  0,  0,  0,  0,  0,  0,  0, 51,  0, 64,  4, 79, 79, 32,  0, 69,102,  0,  0,  7,  0,  0,182,215,  0, 13,  4,186
 
 
@@ -230,6 +231,7 @@ module.exports = function(container) {
     currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
     currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
     currentCircuitArrObj[circuit].macro = circuitArrObj.macro
+
     currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
   }
 
@@ -306,7 +308,7 @@ module.exports = function(container) {
         circuitChanged(circuit, circuitArrObj, counter)
         assignCircuitVars(circuit, circuitArrObj)
       } else {
-        logger.debug('Msg# %s  a.No change in circuit %s', counter, circuit)
+        logger.debug('Msg# %s  No change in circuit %s', counter, circuit)
       }
 
     }
@@ -314,6 +316,40 @@ module.exports = function(container) {
 
   }
 
+  function assignCircuitDelayFromControllerStatus(_delay, counter) {
+    logger.info("CHECKING DELAY!  %s", _delay)
+    for (var i=1; i<=numberOfCircuits; i++){
+       if (currentCircuitArrObj[i].delay===undefined){
+         if (i===_delay){
+           currentCircuitArrObj[i].delay = 1
+         }
+         else {
+           currentCircuitArrObj[i].delay = 0
+         }
+       }
+       else if (i===_delay){
+         if (currentCircuitArrObj[i].delay === 0)
+         {
+            // change in delay from 'no delay' to delay
+            if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  No Delay --> Delay', counter, i)
+            currentCircuitArrObj[i].delay = 1
+            container.io.emitToClients('circuit')
+         }
+         // else if (currentCircuitArrObj[i].delay === 1) then no change
+       }
+       else if (i!==_delay){
+         if (currentCircuitArrObj[i].delay === 1)
+         {
+            // change in delay from delay to 'no delay'
+            if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  Delay --> No Delay', counter, i)
+            currentCircuitArrObj[i].delay = 0
+            container.io.emitToClients('circuit')
+         }
+
+       }
+
+    }
+  }
 
   //this function takes the status packet (controller:2) and parses through the equipment fields
   function assignCircuitStatusFromControllerStatus(data, counter) {
@@ -507,6 +543,21 @@ module.exports = function(container) {
     if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
   }
 
+  function setDelayCancel(callback) {
+    var delayCancelPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 131, 1, 0];
+    container.queuePacket.queuePacket(delayCancelPacket);
+    var response = {}
+    response.text = 'User request to cancel delay'
+    response.status = 'Sent';
+    response.value = 0
+    logger.info(response)
+    //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+    if (callback !== undefined) {
+      callback(response)
+    }
+
+  }
+
   /*istanbul ignore next */
   if (container.logModuleLoading)
     container.logger.info('Loaded: circuit.js')
@@ -519,6 +570,7 @@ module.exports = function(container) {
     getCircuitName: getCircuitName,
     getFriendlyName: getFriendlyName,
     assignCircuitStatusFromControllerStatus: assignCircuitStatusFromControllerStatus,
+    assignCircuitDelayFromControllerStatus: assignCircuitDelayFromControllerStatus,
     requestUpdateCircuit: requestUpdateCircuit,
     setCircuitFromController: setCircuitFromController,
     getCurrentStatus: getCurrentStatus,
@@ -528,6 +580,7 @@ module.exports = function(container) {
     setCircuit: setCircuit,
     setControllerLightColor: setControllerLightColor,
     setControllerLightGroup: setControllerLightGroup,
+    setDelayCancel: setDelayCancel,
     //TESTING
     getCircuitFriendlyNames: getCircuitFriendlyNames,
     numberOfCircuits: numberOfCircuits
