@@ -1,8 +1,8 @@
 
-# nodejs-poolController - Version 4.0.0 alpha 8.  Version 4.x-DEV
+# nodejs-poolController - Version 4.0.0
 
 
-[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # License
 
@@ -75,8 +75,9 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 ## Useful URL's included with the boring, basic, functional interface
 
-  -  Control standalone pumps: http://_your_machine_name_:3000/pump.html
-  -  Listen for specific messages: `http://_your_machine_name_:3000/debug.html`
+  *  Control standalone pumps: `http://_your_machine_name_:3000/pump.html`
+  *  Listen for specific messages: `http://_your_machine_name_:3000/debug.html`
+  *  Send a message on the serial bus: `http://<server>:3000/public/send_packet.html`
 
 #### Technical notes:
 
@@ -99,6 +100,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
  * Set pool heat setpoint: /poolheat/setpoint/#
  * Set pool heat mode: /poolheat/mode/# (0=off, 1=heater, 2=solar pref, 3=solar only)
  * Run pumps in stand-alone mode
+ * Cancel delay: /cancelDelay
 
  ### APIs
  You can use Sockets.IO  (see the "basic UI" example).  Valid sockets:
@@ -116,7 +118,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
 | To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
 | To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
-| To app | <code>updateVersionNotification(bool) | true = do not send the updateAvailable socket until the next version is available.  false = send updateAvailable everytime.
+| To app | <code>updateVersionNotification(bool)</code> | true = do not send the updateAvailable socket until the next version is available.  false = send updateAvailable everytime.
+| To app | <code>cancelDelay</code>| Cancel and current circuit (valves/heater cool down?) delay.
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
 | To client | <code>circuit</code> | outputs an object of circuits and their status
 | To client | ~~<code>config</code>~~ | ~~outputs an object with the pool controller status~~ Deprecated.
@@ -723,6 +726,9 @@ Docker Instructions
  * Added capture for Ctrl-C/SIGINT to have a clean exit
  * Added InfluxDB database capabilities
  * Added support for reading the data from up to 16 pumps.  (You can still only control two.)
+ * Support for up to 50 circuits, 8 pumps
+ * Delay and Cancel Delay for circuits
+
 
 # Wish list
 1.  Still many messages to debug

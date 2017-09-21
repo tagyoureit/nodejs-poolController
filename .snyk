@@ -5,25 +5,25 @@ ignore:
   'npm:brace-expansion:20170302':
     - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-17T17:20:45.694Z'
+        expires: '2017-10-21T03:53:09.671Z'
     - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update
-        expires: '2017-07-17T17:20:45.694Z'
+        expires: '2017-10-21T03:53:09.671Z'
     - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.038Z'
+        expires: '2017-10-21T03:53:09.671Z'
     - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-17T17:20:45.694Z'
+        expires: '2017-10-21T03:53:09.671Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.039Z'
+        expires: '2017-10-21T03:53:09.671Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.039Z'
+        expires: '2017-10-21T03:53:09.672Z'
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-07-06T15:53:06.039Z'
+        expires: '2017-10-21T03:53:09.672Z'
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-17T17:20:45.694Z'
@@ -69,7 +69,7 @@ ignore:
   'npm:tunnel-agent:20170305':
     - serialport > node-pre-gyp > request > tunnel-agent:
         reason: None given
-        expires: '2017-08-05T05:06:28.802Z'
+        expires: '2017-10-21T03:53:09.672Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

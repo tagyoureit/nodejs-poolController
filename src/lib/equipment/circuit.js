@@ -475,6 +475,7 @@ module.exports = function(container) {
 
   var setControllerLightColor = function(color, lightGroup, counter) {
     console.log('clr %s, lgrp %s, counter %s', color, lightGroup, counter)
+    var strIntellibriteModes = container.constants.strIntellibriteModes;
     // if (container.settings.logConfigMessages)
     container.logger.verbose('Msg# %s  Detected a light change.  Color -> %s (%s) for light group %s ', counter, color, strIntellibriteModes[color], lightGroup)
 
