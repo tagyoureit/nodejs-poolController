@@ -166,14 +166,12 @@ var updateChlorinatorInstalled = function(installed) {
               // "desiredOutput": -1,
               // to
               // "desiredOutput": {"pool": -1, "spa":-1},
-              console.log('getChlorinatorDesiredOutput Number.isInteger(config.equipment.chlorinator.desiredOutput): %s ', Number.isInteger(config.equipment.chlorinator.desiredOutput))
                 if (Number.isInteger(config.equipment.chlorinator.desiredOutput)){
                   return updateChlorinatorDesiredOutput(config.equipment.chlorinator.desiredOutput,-1)
                   .then(function() {
                     return init()
                   })
                   .then(function() {
-                    console.log('getChlorinatorDesiredOutput: %s', JSON.stringify(config.equipment.chlorinator.desiredOutput,null,2))
                     return config.equipment.chlorinator.desiredOutput
                   })
                 }

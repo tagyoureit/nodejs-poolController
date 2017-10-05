@@ -41,7 +41,6 @@ module.exports = function(container) {
     currentChlorinatorStatus = new Chlorinator(0,-1, -1, -1, -1, -1, -1, -1);
     return container.configEditor.getChlorinatorDesiredOutput()
       .then(function(output) {
-        console.log('chlorinator INIT: %s', JSON.stringify(output))
         currentChlorinatorStatus.outputPoolPercent = output.pool
         currentChlorinatorStatus.outputSpaPercent = output.spa
 
@@ -49,7 +48,6 @@ module.exports = function(container) {
       .then(container.configEditor.getChlorinatorName)
       .then(function(name) {
         currentChlorinatorStatus.name = name
-        console.log('chlorinator init DONE: %s', JSON.stringify(currentChlorinatorStatus,null,2))
       })
       .catch(function(err) {
         container.logger.error('Something went wrong loading chlorinator data from the config file.', err)
