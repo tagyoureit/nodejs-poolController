@@ -37,7 +37,7 @@ module.exports = function(container) {
 
         //TODO: There is nothing to do with mesageAck===0 currently.  We only care about matching if we have written something, so we'll account for this in the writePacket() function
         if (container.settings.logMessageDecoding || container.settings.logPacketWrites) {
-            container.logger.debug('Msg# %s  Msg received: %s \n                           Msg written: %s \n                           Match?: %s', counter, chatter, container.queuePacket.first(), messageAck)
+            container.logger.debug('Msg# %s  Msg received: %s \n                           Msg written: %s \n                           Match?: %s', counter, chatter, container.queuePacket.first(), messageAck?'true':false)
         }
         if (messageAck === 1) {
             if (container.settings.logPacketWrites) {

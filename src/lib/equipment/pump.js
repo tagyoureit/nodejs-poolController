@@ -568,6 +568,12 @@ module.exports = function(container) {
     }
   }
 
+var getFriendlyName = function(pump){
+  if (pump <= numPumps) {
+    return currentPumpStatus[pump].friendlyName;
+  }
+}
+
   var updatePumpDuration = function(pump, _duration) {
     if (pump <= numPumps) {
       currentPumpStatus[pump].duration = (currentPumpStatus[pump].duration + _duration);
@@ -635,6 +641,7 @@ module.exports = function(container) {
     packetToOrFromPump: packetToOrFromPump,
     getPumpNumber: getPumpNumber,
     getPumpConfiguration: getPumpConfiguration,
+    getFriendlyName: getFriendlyName,
     init: init
   }
 }

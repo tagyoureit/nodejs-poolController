@@ -57,7 +57,7 @@ module.exports = function(container) {
         pushBufferToArray()
 
         if (s.logMessageDecoding) {
-            logger.debug('iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess);
+            logger.silly('iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess);
         }
 
 
@@ -71,7 +71,7 @@ module.exports = function(container) {
 
                 if (chatterlen >= 100) //we should never get a packet greater than or equal to 50.  So if the chatterlen is greater than that let's shift the array and retry
                 {
-                    if (s.logMessageDecoding) logger.debug('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=100) Length: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
+                    if (s.logMessageDecoding) logger.silly('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=100) Length: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
                     bufferToProcess.shift() //remove the first byte so we look for the next [255,165] in the array.
 
                 } else if ((bufferToProcess.length - chatterlen) <= 0) {
@@ -104,12 +104,15 @@ module.exports = function(container) {
                     //if (((chatter[2] === container.constants.ctrl.PUMP1 || chatter[2] === container.constants.ctrl.PUMP2)) || chatter[3] === container.constants.ctrl.PUMP1 || chatter[3] === container.constants.ctrl.PUMP2) {
                   if (((chatter[2] >= container.constants.ctrl.PUMP1 && chatter[2] <= container.constants.ctrl.PUMP16)) || (chatter[3] >= container.constants.ctrl.PUMP1 && chatter[3] <= container.constants.ctrl.PUMP16)) {
                         packetType = 'pump'
+                        if (s.logMessageDecoding && s.logPumpMessages)
+                            logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                     } else {
                         packetType = 'controller';
                         container.intellitouch.setPreambleByte(chatter[1]); //we dynamically adjust this based on what the controller is using.  It is also different for the pumps (should always be 0 for pump messages)
+                        if (s.logMessageDecoding)
+                            logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                     }
-                    if (s.logMessageDecoding)
-                        logger.debug('Msg# %s  Found incoming %s packet: %s', msgCounter.counter, packetType, chatter)
+
 
                     container.decodeHelper.processChecksum(chatter, msgCounter.counter, packetType);
                 }
@@ -144,8 +147,8 @@ module.exports = function(container) {
                             chatter.push(bufferToProcess[i + 1]);
                             i += 2;
                             msgCounter.counter += 1;
-                            if (s.logMessageDecoding)
-                                logger.debug('Msg# %s  Found incoming %s packet: %s', msgCounter.counter, packetType, chatter)
+                            if (s.logMessageDecoding && s.logChlorinator)
+                                logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                             container.decodeHelper.processChecksum(chatter, msgCounter.counter, 'chlorinator');
                             bufferToProcess.splice(0, i)
                             breakLoop = true;

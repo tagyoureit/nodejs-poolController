@@ -18,25 +18,30 @@
 //Set Intellichlor status
 module.exports = function(container) {
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loading: 153.js')
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loading: 34.js')
 
-    var logger = container.logger
-    var c = container.constants
-    var s = container.settings
+  function process(data, counter) {
+   // 17:50:49.257 VERBOSE Msg# 2216   Controller packet is a Get Solar/Heat Pump packet: 165,33,16,32,226,1,0,1,217
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loaded: 153.js')
 
-    return {
-        process: function(data, counter) {
+    var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
 
-            if (s.logChlorinator)
-                logger.info('Msg# %s   Set Intellichlor packet: %s', counter, data)
-            var decoded = true;
-            return decoded
-        }
-    }
+    container.logger.verbose('Msg# %s   Controller packet is a %s packet: %s', counter, currentAction, data)
+
+    return true
+  }
+
+
+
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loaded: 34.js')
+
+
+
+  return {
+    process: process
+  }
 }

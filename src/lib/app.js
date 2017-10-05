@@ -95,13 +95,16 @@ bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/1
 bottle.factory('controller_17', require(__dirname + '/comms/inbound/controller/17.js'))
 bottle.factory('controller_25', require(__dirname + '/comms/inbound/controller/25.js'))
 bottle.factory('controller_27', require(__dirname + '/comms/inbound/controller/27.js'))
+bottle.factory('controller_32_33', require(__dirname + '/comms/inbound/controller/32_33.js'))
+bottle.factory('controller_34', require(__dirname + '/comms/inbound/controller/34.js'))
 bottle.factory('controller_39', require(__dirname + '/comms/inbound/controller/39.js'))
 bottle.factory('controller_96', require(__dirname + '/comms/inbound/controller/96.js'))
 bottle.factory('controller_134', require(__dirname + '/comms/inbound/controller/134.js'))
 bottle.factory('controller_136', require(__dirname + '/comms/inbound/controller/136.js'))
 bottle.factory('controller_145', require(__dirname + '/comms/inbound/controller/145.js'))
+bottle.factory('controller_150', require(__dirname + '/comms/inbound/controller/150.js'))
 bottle.factory('controller_153', require(__dirname + '/comms/inbound/controller/153.js'))
-bottle.factory('controller_217', require(__dirname + '/comms/inbound/controller/217.js'))
+bottle.factory('controller_get', require(__dirname + '/comms/inbound/controller/get.js'))
 bottle.factory('controller_252', require(__dirname + '/comms/inbound/controller/252.js'))
 
 //COMMS/INBOUND/COMMON

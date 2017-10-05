@@ -368,6 +368,7 @@ module.exports = function(container) {
     }
 
     var strControllerActions = {
+        // Response/information/settings
         1: 'Ack Message',
         2: 'Controller Status',
         5: 'Date/Time',
@@ -378,16 +379,21 @@ module.exports = function(container) {
         16: 'Heat Pump Status?',
         17: 'Schedule details',
         19: 'IntelliChem pH',
+        22: 'Get Intelliflo Spa Side Control',
         23: 'Pump Status',
         24: 'Pump Config',
         25: 'IntelliChlor Status',
         27: 'Pump Config (Extended)',
         29: 'Valve Status',
+        32: 'is4/is10 Settings',
+        33: 'Intelliflo Spa Side Remote settings',
         34: 'Solar/Heat Pump Status',
         35: 'Delay Status',
         39: 'Light Groups/Positions',
         40: 'Settings?',
         96: 'Set Color', //Intellibrite, maybe more?
+
+        // Set commands
         131: 'Set Delay Cancel',
         133: 'Set Date/Time',
         134: 'Set Circuit',
@@ -397,13 +403,18 @@ module.exports = function(container) {
         144: 'Set Heat Pump',
         145: 'Set Schedule',
         147: 'Set IntelliChem',
+        150: 'Set Intelliflow Spa Side Control',
         152: 'Set Pump Config',
         153: 'Set IntelliChlor',
         155: 'Set Pump Config (Extended)',
         157: 'Set Valves',
+        160: 'Set is4/is10 Spa Side Remote',
+        161: 'Set QuickTouch Spa Side Remote',
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
         167: 'Set Light Groups/Positions',
+
+        // Get commands
         194: 'Get Status/',
         197: 'Get Date/Time',
         200: 'Get Heat/Temperature',
@@ -412,11 +423,14 @@ module.exports = function(container) {
         208: 'Get Heat Pump',
         209: 'Get Schedule',
         211: 'Get IntelliChem',
+        214: 'Get Inteliflo Spa Side Control',
         215: 'Get Pump Status',
         216: 'Get Pump Config',
         217: 'Get IntelliChlor',
         219: 'Get Pump Config (Extended)',
         221: 'Get Valves',
+        224: 'Get is4/is10 Settings',
+        225: 'Get Intelliflo Spa Side Remote settings',
         226: 'Get Solar/Heat Pump',
         227: 'Get Delays',
         231: 'Get Light group/positions',

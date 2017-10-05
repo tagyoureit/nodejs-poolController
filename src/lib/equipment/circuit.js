@@ -279,7 +279,7 @@ module.exports = function(container) {
 
     var circuitArrObj = {}
     //if the ID of the circuit name is 1-101 then it is a standard name.  If it is 200-209 it is a custom name.  The mapping between the string value in the getCircuitNames and getCustomNames is 200.  So subtract 200 from the circuit name to get the id in the custom name array.
-    logger.info("Getting the name for circuit: %s \n\tThe circuit nameByte is: ", circuit, nameByte)
+    // logger.info("Getting the name for circuit: %s \n\tThe circuit nameByte is: ", circuit, nameByte)
     if (nameByte < 200) {
       circuitArrObj.name = container.constants.strCircuitName[nameByte]
     } else {
