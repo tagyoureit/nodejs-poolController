@@ -50,7 +50,11 @@ module.exports = function(container) {
 
     var chlorinatorPacketFields = {
         DEST: 2,
-        ACTION: 3
+        ACTION: 3,
+        OUTPUTSPAPERCENT: 6,
+        OUTPUTPERCENT: 7,
+        SALTPPM: 9,
+        STATUS: 10
     }
 
     var pumpPacketFields = {

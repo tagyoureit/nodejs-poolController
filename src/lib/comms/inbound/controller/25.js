@@ -28,19 +28,21 @@ module.exports = function(container) {
                 if (container.settings.logChlorinator)
                     container.logger.debug('Msg# %s   Chlorinator status packet: %s', counter, data)
 
-                    //TODO: move this to constants
-                    var chlorinatorStatusBytes = {
-                      "outputSpaPercent": 6,
-                      "outputPercent": 7,
-                      "saltPPM": 9,
-                      "status": 10
+                // set packet
+                // sample packet:  165,33,16,34,153,10,0,10,0,0,0,0,0,0,0,0,1,165
+                //                 165,33,16,34,153,10,0,10,0,0,0,0,0,0,0,0,1,165
+                //
+                // status (response to get)
+                // sample packet:  165,33,15,16,25,22,1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,231 <-- installed
+                //                 165,33,15,16,25,22,0,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,230  <-- not installed
+                //                 165,33,15,16,25,22,1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,231
+                //
 
-                    }
 
-                var outputSpaPercent = data[chlorinatorStatusBytes.outputSpaPercent]
-                var outputPercent = data[chlorinatorStatusBytes.outputPercent];
-                var saltPPM = data[chlorinatorStatusBytes.saltPPM];
-                var status = data[chlorinatorStatusBytes.status]
+                var outputSpaPercent = data[container.constants.chlorinatorPacketFields.OUTPUTSPAPERCENT]
+                var outputPercent = data[container.constants.chlorinatorPacketFields.OUTPUTPERCENT];
+                var saltPPM = data[container.constants.chlorinatorPacketFields.SALTPPM];
+                var status = data[container.constants.chlorinatorPacketFields.STATUS]
 
                 var name = container.chlorinator.getChlorinatorNameByBytes(data.slice(12,28))
                 container.chlorinator.setChlorinatorStatusFromController(saltPPM, outputPercent, outputSpaPercent, status, name, counter)

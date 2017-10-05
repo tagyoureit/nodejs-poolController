@@ -326,33 +326,37 @@ function startSocketRx() {
   socket.on('chlorinator', function(data) {
     //var data = {"saltPPM":2900,"currentOutput": 12, "outputPoolPercent":7,"outputSpaPercent":-1,"superChlorinate":0,"version":0,"name":"Intellichlor--40","status":"Unknown - Status code: 128"};
     if (data !== null) {
-      if ((data.currentOutput > 0))
-        setStatusButton($('#CHLORINATOR'), 1);
-      else
-        setStatusButton($('#CHLORINATOR'), 0);
-      $('#chlorinatorName').html(data.name);
-      $('#chlorinatorSalt').html(data.saltPPM + ' ppm');
-      $('#chlorinatorCurrentOutput').html(data.currentOutput + '%');
-      var chlorStr = data.outputPoolPercent + '%'
-      if (data.outputSpaPercent === -1) {
-        $('#chlorinatorPoolPercentLabel').html('Pool Setpoint')
+
+      if (data.installed === 1) {
+        $('#chlorinatorTable tr').not(':first').show();
+        $('#chlorinatorInstalled').hide();
+
+        if ((data.currentOutput > 0))
+          setStatusButton($('#CHLORINATOR'), 1);
+        else
+          setStatusButton($('#CHLORINATOR'), 0);
+        $('#chlorinatorName').html(data.name);
+        $('#chlorinatorSalt').html(data.saltPPM + ' ppm');
+        $('#chlorinatorCurrentOutput').html(data.currentOutput + '%');
+        var chlorStr = data.outputPoolPercent + '%'
+        if (data.outputSpaPercent === -1) {
+          $('#chlorinatorPoolPercentLabel').html('Pool Setpoint')
+        } else {
+          chlorStr += ' / ' + data.outputSpaPercent + '%';
+          $('#chlorinatorPoolPercentLabel').html('Pool/Spa Setpoint')
+        }
+
+        $('#chlorinatorPoolPercent').html(chlorStr);
+
+        if (data.superChlorinate === 1)
+          $('#chlorinatorSuperChlorinate').html('True');
+        else
+          $('#chlorinatorSuperChlorinate').html('False');
+        $('#chlorinatorStatus').html(data.status);
       } else {
-        chlorStr += ' / ' + data.outputSpaPercent + '%';
-        $('#chlorinatorPoolPercentLabel').html('Pool/Spa Setpoint')
+        $('#chlorinatorTable tr').not(':first').hide();
+        $('#chlorinatorInstalled').show();
       }
-
-      // if (data.outputSpaPercent === -1)
-      //   $('#chlorinatorSpaPercent').parent().hide();
-      // else
-      // 	$('#chlorinatorSpaPercent').parent().show();
-      // 	$('#chlorinatorSpaPercent').html(data.outputSpaPercent + '%');
-      $('#chlorinatorPoolPercent').html(chlorStr);
-
-      if (data.superChlorinate === 1)
-        $('#chlorinatorSuperChlorinate').html('True');
-      else
-        $('#chlorinatorSuperChlorinate').html('False');
-      $('#chlorinatorStatus').html(data.status);
     }
     lastUpdate(true);
   });

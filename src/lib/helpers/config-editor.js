@@ -81,15 +81,34 @@ module.exports = function(container) {
             })
     }
 
-    var updateChlorinatorDesiredOutput = function(chlorLvl) {
+
+var updateChlorinatorInstalled = function(installed) {
+    return init()
+        .then(function(data) {
+            data.equipment.chlorinator.installed = installed
+            return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+        })
+        .then(function() {
+            if (container.settings.logChlorinator)
+                container.logger.verbose('Updated chlorinator settings (installed) %s', location)
+        })
+        .catch(function(err) {
+            container.logger.warn('Error updating chlorinator settings %s: ', location, err)
+        })
+}
+
+
+    var updateChlorinatorDesiredOutput = function(pool, spa) {
         return init()
             .then(function(data) {
-                data.equipment.chlorinator.desiredOutput = chlorLvl
+                data.equipment.chlorinator.desiredOutput = {}
+                data.equipment.chlorinator.desiredOutput.pool = pool
+                data.equipment.chlorinator.desiredOutput.spa = spa
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
                 if (container.settings.logChlorinator)
-                    container.logger.verbose('Updated chlorinator settings %s', location)
+                    container.logger.verbose('Updated chlorinator settings (desired output) %s', location)
             })
             .catch(function(err) {
                 container.logger.warn('Error updating chlorinator settings %s: ', location, err)
@@ -103,7 +122,7 @@ module.exports = function(container) {
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
-                container.logger.verbose('Updated chlorinator settings %s', location)
+                container.logger.verbose('Updated chlorinator settings (name) %s', location)
             })
             .catch(function(err) {
                 container.logger.warn('Error updating chlorinator settings %s: ', location, err)
@@ -140,16 +159,34 @@ module.exports = function(container) {
             })
     }
 
-    var getChlorinatorDesiredOutput = function(_pump) {
+    var getChlorinatorDesiredOutput = function() {
         return init()
             .then(function(config) {
-                return config.equipment.chlorinator.desiredOutput
+              // following is to support changing from
+              // "desiredOutput": -1,
+              // to
+              // "desiredOutput": {"pool": -1, "spa":-1},
+              console.log('getChlorinatorDesiredOutput Number.isInteger(config.equipment.chlorinator.desiredOutput): %s ', Number.isInteger(config.equipment.chlorinator.desiredOutput))
+                if (Number.isInteger(config.equipment.chlorinator.desiredOutput)){
+                  return updateChlorinatorDesiredOutput(config.equipment.chlorinator.desiredOutput,-1)
+                  .then(function() {
+                    return init()
+                  })
+                  .then(function() {
+                    console.log('getChlorinatorDesiredOutput: %s', JSON.stringify(config.equipment.chlorinator.desiredOutput,null,2))
+                    return config.equipment.chlorinator.desiredOutput
+                  })
+                }
+                else {
+                  return config.equipment.chlorinator.desiredOutput
+                }
+
             })
             .catch(function(err) {
                 container.logger.error('Something went wrong getting chlorinator desiredOutput from config file.', err)
             })
     }
-    var getChlorinatorName = function(_pump) {
+    var getChlorinatorName = function() {
         return init()
             .then(function(config) {
                 return config.equipment.chlorinator.id.productName
@@ -181,6 +218,7 @@ module.exports = function(container) {
         updateExternalPumpProgram: updateExternalPumpProgram,
         updatePumpProgramGPM: updatePumpProgramGPM,
         updateVersionNotification: updateVersionNotification,
+        updateChlorinatorInstalled: updateChlorinatorInstalled,
         updateChlorinatorDesiredOutput: updateChlorinatorDesiredOutput,
         updateChlorinatorName: updateChlorinatorName,
         getPumpExternalProgram: getPumpExternalProgram,

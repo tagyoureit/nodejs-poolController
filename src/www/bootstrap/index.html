@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-	<title>Pentair Pool System</title>
+	<title>nodejs-poolController Control Center</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<!-- Note, Stylesheet preference order = latter specified wins, so set order accordingly! -->
@@ -203,7 +203,7 @@
 					<button id="hidePanelchlorinator" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
 				</div>
 				<div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
-					<table class="table table-hover">
+					<table class="table table-hover" id="chlorinatorTable">
 						<thead>
 							<tr>
 								<th>Parameter</th>
@@ -211,6 +211,12 @@
 							</tr>
 						</thead>
 						<tbody>
+							<tr id="chlorinatorInstalled">
+								<td>Chlorinator Installed?</td>
+								<td>
+									 Not installed
+								</td>
+							</tr>
 							<tr id="chlorinatorState">
 								<td>Chlorinator State</td>
 								<td>

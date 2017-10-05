@@ -23,8 +23,8 @@ module.exports = function(container) {
   if (container.logModuleLoading)
     container.logger.info('Loading: chlorinator.js')
 
-  function Chlorinator(saltPPM, currentOutput, outputPoolPercent, outputSpaPercent, superChlorinate, version, name, status) {
-
+  function Chlorinator(installed, saltPPM, currentOutput, outputPoolPercent, outputSpaPercent, superChlorinate, version, name, status) {
+    this.installed = installed;
     this.saltPPM = saltPPM;
     this.currentOutput = currentOutput //actual output as reported by the chlorinator
     this.outputPoolPercent = outputPoolPercent; //for intellitouch this is the pool setpoint, for standalone it is the default
@@ -35,21 +35,26 @@ module.exports = function(container) {
     this.status = status;
   }
 
-  //module.exports = Chlorinator
+
 
   var init = function() {
-    currentChlorinatorStatus = new Chlorinator(-1, -1, -1, -1, -1, -1, -1);
+    currentChlorinatorStatus = new Chlorinator(0,-1, -1, -1, -1, -1, -1, -1);
     return container.configEditor.getChlorinatorDesiredOutput()
       .then(function(output) {
-        currentChlorinatorStatus.outputPoolPercent = output
+        console.log('chlorinator INIT: %s', JSON.stringify(output))
+        currentChlorinatorStatus.outputPoolPercent = output.pool
+        currentChlorinatorStatus.outputSpaPercent = output.spa
+
       })
       .then(container.configEditor.getChlorinatorName)
       .then(function(name) {
         currentChlorinatorStatus.name = name
+        console.log('chlorinator init DONE: %s', JSON.stringify(currentChlorinatorStatus,null,2))
       })
       .catch(function(err) {
         container.logger.error('Something went wrong loading chlorinator data from the config file.', err)
       })
+
   }
 
   var chlorinatorStatusStr = function(status) {
@@ -118,20 +123,30 @@ module.exports = function(container) {
   function setChlorinatorStatusFromController(saltPPM, outputPoolPercent, outputSpaPercent, status, name, counter) {
     var chlorinatorStatus = {}
     chlorinatorStatus.saltPPM = saltPPM * 50
+
     chlorinatorStatus.currentOutput = currentChlorinatorStatus.hasOwnProperty('currentOutput') ? currentChlorinatorStatus.currentOutput : -1; //if chlorinator has reported a current output percent, keep it.  Otherwise set to -1
     chlorinatorStatus.outputPoolPercent = outputPoolPercent
-    chlorinatorStatus.outputSpaPercent = (outputSpaPercent - 1) / 2; //41 would equal 20%, for example
+
+    // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
+    // eg. a value of 41 is 00101001
+    // installed = (aaaaaaa)1 so 1 = installed
+    // spa percent = 0010100(b) so 10100 = 20
+    chlorinatorStatus.installed = outputSpaPercent & 1 === 1 ? 1 : 0;
+    chlorinatorStatus.outputSpaPercent = outputSpaPercent >> 1;
+
+
     chlorinatorStatus.superChlorinate = outputPoolPercent >= 100 ? 1 : 0;
     //TODO: take care of unknown status' here.  Is this right?
     chlorinatorStatus.status = chlorinatorStatusStr(status)
     chlorinatorStatus.name = name;
 
-    if (currentChlorinatorStatus.saltPPM === -1) {
+    if (currentChlorinatorStatus.saltPPM === -1 && currentChlorinatorStatus.installed===1) {
       currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
       if (container.settings.logChlorinator)
         container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
-      container.configEditor.updateChlorinatorName(name)
-      container.configEditor.updateChlorinatorDesiredOutput(outputPoolPercent)
+      container.configEditor.updateChlorinatorInstalled(chlorinatorStatus.installed)
+      container.configEditor.updateChlorinatorName(chlorinatorStatus.name)
+      container.configEditor.updateChlorinatorDesiredOutput(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
       container.io.emitToClients('chlorinator');
     } else
     if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
@@ -143,8 +158,9 @@ module.exports = function(container) {
           // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
           JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
       }
-      container.configEditor.updateChlorinatorName(name)
-      container.configEditor.updateChlorinatorDesiredOutput(outputPoolPercent)
+      container.configEditor.updateChlorinatorInstalled(chlorinatorStatus.installed)
+      container.configEditor.updateChlorinatorName(chlorinatorStatus.name)
+      container.configEditor.updateChlorinatorDesiredOutput(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
       currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
       container.io.emitToClients('chlorinator');
     }
@@ -192,7 +208,7 @@ module.exports = function(container) {
           response.status = 'on'
           response.value = currentChlorinatorStatus.outputPoolPercent
         }
-        container.configEditor.updateChlorinatorDesiredOutput(chlorLvl)
+        container.configEditor.updateChlorinatorDesiredOutput(chlorLvl, currentChlorinatorStatus.outputSpaPercent)
         container.io.emitToClients('chlorinator')
         container.chlorinatorController.chlorinatorStatusCheck()
         if (container.settings.logChlorinator) {
