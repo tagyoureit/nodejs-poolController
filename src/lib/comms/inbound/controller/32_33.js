@@ -39,7 +39,7 @@ module.exports = function(container) {
       spaside0.button2 = container.circuit.getCircuitName(data[8])
       spaside0.button3 = container.circuit.getCircuitName(data[9])
       spaside0.button4 = container.circuit.getCircuitName(data[10])
-      if (spaside0.controllerType = 'is4') {
+      if (spaside0.controllerType === 'is4') {
         //is4 packet has these bytes, but they don't appear to be used
         spaside0.byte5 = 'Not used -- ' + data[11]
         spaside0.byte6 = 'Not used -- ' + data[12]
