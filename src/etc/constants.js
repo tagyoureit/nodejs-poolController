@@ -389,15 +389,17 @@ module.exports = function(container) {
         25: 'IntelliChlor Status',
         27: 'Pump Config (Extended)',
         29: 'Valve Status',
+        30: 'High Speed Circuits for Valves',
         32: 'is4/is10 Settings',
         33: 'Intelliflo Spa Side Remote settings',
         34: 'Solar/Heat Pump Status',
         35: 'Delay Status',
         39: 'Light Groups/Positions',
-        40: 'Settings?',
-        96: 'Set Color', //Intellibrite, maybe more?
+        40: 'Settings, Heat Mode?',  //
+
 
         // Set commands
+        96: 'Set Color', //Intellibrite, maybe more?
         131: 'Set Delay Cancel',
         133: 'Set Date/Time',
         134: 'Set Circuit',
@@ -412,11 +414,13 @@ module.exports = function(container) {
         153: 'Set IntelliChlor',
         155: 'Set Pump Config (Extended)',
         157: 'Set Valves',
+        158: 'Set High Speed Circuits for Valves',  //Circuits that require high speed
         160: 'Set is4/is10 Spa Side Remote',
         161: 'Set QuickTouch Spa Side Remote',
         162: 'Set Solar/Heat Pump',
         163: 'Set Delay',
         167: 'Set Light Groups/Positions',
+        168: 'Set Heat Mode',  //probably more
 
         // Get commands
         194: 'Get Status/',
@@ -433,12 +437,13 @@ module.exports = function(container) {
         217: 'Get IntelliChlor',
         219: 'Get Pump Config (Extended)',
         221: 'Get Valves',
+        222: 'Get High Speed Circuits for Valves',
         224: 'Get is4/is10 Settings',
         225: 'Get Intelliflo Spa Side Remote settings',
         226: 'Get Solar/Heat Pump',
         227: 'Get Delays',
         231: 'Get Light group/positions',
-        232: 'Get Settings?',
+        232: 'Get Settings, Heat Mode?',
         252: 'SW Version Info',
         253: 'Get SW Version',
     }
@@ -578,6 +583,16 @@ module.exports = function(container) {
         appAddress: 'nodejs-poolController Server'
     }
 
+    var schedulePacketBytes = {
+        "ID": 6,
+        "CIRCUIT": 7,
+        "TIME1": 8,
+        "TIME2": 9,
+        "TIME3": 10,
+        "TIME4": 11,
+        "DAYS": 12
+    };
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: ants.js')
@@ -605,7 +620,8 @@ module.exports = function(container) {
         heatModeStr: heatModeStr,
         heatMode: heatMode,
         ctrl: ctrl,
-        ctrlString: ctrlString
+        ctrlString: ctrlString,
+        schedulePacketBytes: schedulePacketBytes
     }
 
 }

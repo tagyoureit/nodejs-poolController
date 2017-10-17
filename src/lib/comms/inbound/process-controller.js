@@ -79,6 +79,16 @@ module.exports = function(container) {
           decoded = container.controller_27.process(data, counter)
           break;
         }
+      case 29: // Valves
+        {
+          decoded = container.controller_29.process(data, counter)
+          break;
+        }
+      case 30: // High speed circuits
+        {
+          decoded = container.controller_30.process(data, counter)
+          break;
+        }
       case 32: // Spa-side is4/is10 remotes
       case 33: // Spa-side Quicktouch remotes
         {
@@ -90,10 +100,19 @@ module.exports = function(container) {
           decoded = container.controller_34.process(data, counter)
           break;
         }
-
+      case 35: // Delay Status
+        {
+          decoded = container.controller_35.process(data, counter)
+          break;
+        }
       case 39: //Intellibrite lights/groups
         {
           decoded = container.controller_39.process(data, counter)
+          break;
+        }
+      case 40: // settings?  heat mode.
+        {
+          decoded = container.controller_40.process(data, counter)
           break;
         }
       case 96: //Set Intellibrite colors
@@ -135,32 +154,54 @@ module.exports = function(container) {
           decoded = container.controller_39.process(data, counter)
           break;
         }
-      case 139: //Set circuit name/function
-      case 157: //Set valves
-      case 160: //Set Spa-side is4/is10 remotes
-      case 161: //Set Spa-side Quicktouch remotes
-      case 194: //'Get Status/',
-      case 197: //'Get Date/Time',
-      case 200: //'Get Heat/Temperature',
-      case 202: //'Get Custom Name',
-      case 203: //'Get Circuit Name/Function',
-      case 208: //'Get Heat Pump',
-      case 209: //'Get Schedule',
-      case 211: //'Get IntelliChem',
-      case 215: //'Get Pump Status',
-      case 216: //'Get Pump Config',
-      case 217: //'Get IntelliChlor',
-      case 219: //'Get Pump Config (Extended)',
-      case 221: //'Get Valves',
-      case 224: // Get is4/is10,
-      case 225: // Get Quicktouch,
-      case 226: //'Get Solar/Heat Pump',
-      case 227: //'Get Delays',
-      case 231: //'Get Light group/positions',
-        {
-          decoded = container.controller_get.process(data, counter)
-          break;
-        }
+        //   case 96: 'Set Color', //Intellibrite, maybe more?
+        //   case 131: 'Set Delay Cancel',
+        //   case 133: 'Set Date/Time',
+        //   case 134: 'Set Circuit',
+        //   case 136: 'Set Heat/Temperature',
+        //   case 138: 'Set Custom Name',
+        //   case 139: 'Set Circuit Name/Function',
+        //   case 144: 'Set Heat Pump',
+        //   case 145: 'Set Schedule',
+        //   case 147: 'Set IntelliChem',
+        //   case 150: 'Set Intelliflow Spa Side Control',
+        //   case 152: 'Set Pump Config',
+        //   case 153: 'Set IntelliChlor',
+        //   case 155: 'Set Pump Config (Extended)',
+        //   case 157: 'Set Valves',
+        //   case 160: 'Set is4/is10 Spa Side Remote',
+        //   case 161: 'Set QuickTouch Spa Side Remote',
+        //   case 162: 'Set Solar/Heat Pump',
+        //   case 163: 'Set Delay',
+        //   case 167: 'Set Light Groups/Positions',
+        //   case 168: 'Set Heat Mode',  //probably more
+        // case 139: //Set circuit name/function
+        // case 157: //Set valves
+        // case 160: //Set Spa-side is4/is10 remotes
+        // case 161: //Set Spa-side Quicktouch remotes
+        // case 194: //'Get Status/',
+        // case 197: //'Get Date/Time',
+        // case 200: //'Get Heat/Temperature',
+        // case 202: //'Get Custom Name',
+        // case 203: //'Get Circuit Name/Function',
+        // case 208: //'Get Heat Pump',
+        // case 209: //'Get Schedule',
+        // case 211: //'Get IntelliChem',
+        // case 215: //'Get Pump Status',
+        // case 216: //'Get Pump Config',
+        // case 217: //'Get IntelliChlor',
+        // case 219: //'Get Pump Config (Extended)',
+        // case 221: //'Get Valves',
+        // case 224: // Get is4/is10,
+        // case 225: // Get Quicktouch,
+        // case 226: //'Get Solar/Heat Pump',
+        // case 227: //'Get Delays',
+        // case 231: //'Get Light group/positions',
+        // case 232: // Settings?  manual heat mode
+        //   {
+        //     decoded = container.controller_get.process(data, counter)
+        //     break;
+        //   }
       case 252: //Get system settings
         {
           decoded = container.controller_252.process(data, counter)
@@ -172,12 +213,12 @@ module.exports = function(container) {
           var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
           if (currentAction !== undefined) {
             if (container.settings.logConsoleNotDecoded)
-              container.logger.verbose('Msg# %s   Controller packet is known to be a %s packet, but is NOT DECODED: %s', counter, currentAction, data)
-            decoded = true; //don't need to display the message again
+              container.logger.verbose('Msg# %s   Controller packet is known to be a %s packet: %s', counter, currentAction, data)
+            decoded = true
           } else {
             if (container.settings.logConsoleNotDecoded)
-              container.logger.verbose('Msg# %s  %s is NOT DEFINED and NOT DECODED packet: %s', counter, data[3], data)
-            decoded = true; //don't need to display the message again
+              container.logger.verbose('Msg# %s  Identifier %s is NOT DEFINED and NOT DECODED packet: %s', counter, data[3], data)
+            decoded = true
 
           }
         }

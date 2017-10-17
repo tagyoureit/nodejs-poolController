@@ -20,7 +20,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: 96.js')
+        container.logger.info('Loading: 39.js')
 
 
     function process(data, counter) {
@@ -40,7 +40,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: 96.js')
+        container.logger.info('Loaded: 39.js')
 
 
     return {

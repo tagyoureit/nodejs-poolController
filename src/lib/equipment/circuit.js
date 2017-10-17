@@ -267,12 +267,33 @@ module.exports = function(container) {
 
 
   function getCircuitName(circuit) {
-    return currentCircuitArrObj[circuit].name
+    try {
+        if (circuit >= 1 && circuit <= numberOfCircuits) {
+          return currentCircuitArrObj[circuit].name
+        } else {
+          return container.constants.strCircuitFunction[circuit]
+        }
+      }
+      catch(err) {
+        logger.warn('Tried to retrieve circuit %s which is not a valid circuit.', circuit)
+        return 'No valid circuit (' + circuit + ')'
+      }
+
   }
 
   //external methode to return the friendlyName
   function getFriendlyName(circuit) {
-    return currentCircuitArrObj[circuit].friendlyName
+    try {
+      if (circuit >= 1 && circuit <= numberOfCircuits) {
+        return currentCircuitArrObj[circuit].friendlyName
+      } else {
+        return container.constants.strCircuitFunction[circuit]
+      }
+    } catch (err) {
+      logger.warn('Tried to retrieve circuit %s which is not a valid circuit.', circuit)
+      return 'No valid circuit (' + circuit + ')'
+    }
+
   }
 
   function setCircuitFromController(circuit, nameByte, functionByte, counter) {
@@ -291,7 +312,7 @@ module.exports = function(container) {
     var freeze = ((functionByte & 64) === 64) ? 1 : 0
     circuitArrObj.freeze = freeze
     circuitArrObj.circuitFunction = container.constants.strCircuitFunction[functionByte & 63]
-    circuitArrObj.macro = (functionByte & 128)>>7  //1 or 0
+    circuitArrObj.macro = (functionByte & 128) >> 7 //1 or 0
 
     if (currentCircuitArrObj[circuit].name === undefined) {
       //logger.info("Assigning circuit %s the function %s based on value %s\n\t", circuit, circuitArrObj.circuitFunction, functionByte & 63)
@@ -318,35 +339,30 @@ module.exports = function(container) {
 
   function assignCircuitDelayFromControllerStatus(_delay, counter) {
     logger.info("CHECKING DELAY!  %s", _delay)
-    for (var i=1; i<=numberOfCircuits; i++){
-       if (currentCircuitArrObj[i].delay===undefined){
-         if (i===_delay){
-           currentCircuitArrObj[i].delay = 1
-         }
-         else {
-           currentCircuitArrObj[i].delay = 0
-         }
-       }
-       else if (i===_delay){
-         if (currentCircuitArrObj[i].delay === 0)
-         {
-            // change in delay from 'no delay' to delay
-            if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  No Delay --> Delay', counter, i)
-            currentCircuitArrObj[i].delay = 1
-            container.io.emitToClients('circuit')
-         }
-         // else if (currentCircuitArrObj[i].delay === 1) then no change
-       }
-       else if (i!==_delay){
-         if (currentCircuitArrObj[i].delay === 1)
-         {
-            // change in delay from delay to 'no delay'
-            if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  Delay --> No Delay', counter, i)
-            currentCircuitArrObj[i].delay = 0
-            container.io.emitToClients('circuit')
-         }
+    for (var i = 1; i <= numberOfCircuits; i++) {
+      if (currentCircuitArrObj[i].delay === undefined) {
+        if (i === _delay) {
+          currentCircuitArrObj[i].delay = 1
+        } else {
+          currentCircuitArrObj[i].delay = 0
+        }
+      } else if (i === _delay) {
+        if (currentCircuitArrObj[i].delay === 0) {
+          // change in delay from 'no delay' to delay
+          if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  No Delay --> Delay', counter, i)
+          currentCircuitArrObj[i].delay = 1
+          container.io.emitToClients('circuit')
+        }
+        // else if (currentCircuitArrObj[i].delay === 1) then no change
+      } else if (i !== _delay) {
+        if (currentCircuitArrObj[i].delay === 1) {
+          // change in delay from delay to 'no delay'
+          if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  Delay --> No Delay', counter, i)
+          currentCircuitArrObj[i].delay = 0
+          container.io.emitToClients('circuit')
+        }
 
-       }
+      }
 
     }
   }
@@ -362,7 +378,7 @@ module.exports = function(container) {
 
 
     //This is an attempt to support >20 circuits when there is an expansion port(s) in use.  Intellitouch can support up to 50.
-    var byteCount = Math.floor(numberOfCircuits/8);
+    var byteCount = Math.floor(numberOfCircuits / 8);
 
     for (var i = 0; i <= byteCount; i++) {
       for (var j = 0; j < 8; j++) {

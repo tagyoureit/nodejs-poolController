@@ -65,10 +65,10 @@ module.exports = function(container) {
                         decoded = true;
                         break;
                     }
-                case 255: 
+                case 255:
                     {
-                        container.logger.warn('Msg# %s  Pump %s rejected the command. %s', counter, data[0], JSON.stringify(data))
-                        decoded = false;
+                        container.logger.warn('Msg# %s  Pump %s rejected the command. %s', counter, container.pump.getPumpNumber(data[3]), JSON.stringify(data))
+                        decoded = true;
                         break;
                     }
                 default:

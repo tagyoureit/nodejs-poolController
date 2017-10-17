@@ -175,9 +175,9 @@ function buildSchDays(currSchedule) {
   for (var iterDay in arrDays) {
     strCurrDay = dayOfWeekAsString(iterDay);
     if (arrDays[iterDay] === true) {
-      strHTML += '<button class="btn btn-success btn-md" id="' + strCurrDay + '">';
+      strHTML += '<button class="btn btn-success btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
     } else {
-      strHTML += '<button class="btn btn-default btn-md" id="' + strCurrDay + '">';
+      strHTML += '<button class="btn btn-default btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
     }
     strHTML += strCurrDay + '</button>';
   }
@@ -529,6 +529,11 @@ function handleButtons() {
     }
     refreshSpy();
   });
+
+// bind to the parent event as the children are dynamically created
+$('#schedules').on('click', '.schDay', function(){
+  socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay") )
+})
 
   // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
   $('#btnResetLayout').click(function() {

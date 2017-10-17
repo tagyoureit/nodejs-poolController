@@ -129,6 +129,16 @@ module.exports = function(container) {
             res.send(container.schedule.getCurrentSchedule())
         })
 
+        app.get('/schedule/toggle/id/:id/day/:day', function(req, res) {
+          var id = parseInt(req.params.id)
+          var day = req.params.day
+            var response = {}
+            response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id
+            container.logger.info(response)
+            container.schedule.toggleDay(id, day)
+            res.send(response)
+          })
+
         app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
           var id = parseInt(req.params.id)
           var circuit = parseInt(req.params.circuit)
@@ -143,6 +153,23 @@ module.exports = function(container) {
             container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
             res.send(response)
           })
+
+          // TODO:  merge above and this code into single function
+          app.get('/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:day', function(req, res) {
+            var id = parseInt(req.params.id)
+            var circuit = parseInt(req.params.circuit)
+            var starthh = parseInt(req.params.starthh)
+            var startmm = parseInt(req.params.startmm)
+            var endhh = parseInt(req.params.endhh)
+            var endmm = parseInt(req.params.endmm)
+            var days = parseInt(req.params.days)
+              var response = {}
+              response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+              container.logger.info(response)
+              container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
+              res.send(response)
+          })
+
 
         app.get('/temperatures', function(req, res) {
             res.send(container.temperatures.getTemperatures())

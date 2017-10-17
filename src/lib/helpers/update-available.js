@@ -21,7 +21,7 @@ var fs = require('fs'),
     Promise = require('bluebird'),
     request = Promise.promisify(require("request")),
     _ = require('underscore')
-Promise.promisifyAll(fs)
+    Promise.promisifyAll(fs)
 
 
 var userAgent = 'tagyoureit-nodejs-poolController-app',

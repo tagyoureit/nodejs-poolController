@@ -30,20 +30,13 @@ module.exports = function(container) {
         //example: 165,16,15,16,17,7,1,6,9,25,15,55,255,2, 90
 
         //TODO: Move this to constants
-        var schedulePacketBytes = {
-            "ID": 6,
-            "CIRCUIT": 7,
-            "TIME1": 8,
-            "TIME2": 9,
-            "TIME3": 10,
-            "TIME4": 11,
-            "DAYS": 12
-        };
 
-        container.schedule.addScheduleDetails(data[schedulePacketBytes.ID], data[schedulePacketBytes.CIRCUIT], data[schedulePacketBytes.DAYS], data[schedulePacketBytes.TIME1], data[schedulePacketBytes.TIME2], data[schedulePacketBytes.TIME3], data[schedulePacketBytes.TIME4], counter)
+        var bytes = [data[container.constants.schedulePacketBytes.ID], data[container.constants.schedulePacketBytes.CIRCUIT], data[container.constants.schedulePacketBytes.DAYS], data[container.constants.schedulePacketBytes.TIME1], data[container.constants.schedulePacketBytes.TIME2], data[container.constants.schedulePacketBytes.TIME3], data[container.constants.schedulePacketBytes.TIME4]]
+
+        container.schedule.addScheduleDetails(data[container.constants.schedulePacketBytes.ID], data[container.constants.schedulePacketBytes.CIRCUIT], data[container.constants.schedulePacketBytes.DAYS], data[container.constants.schedulePacketBytes.TIME1], data[container.constants.schedulePacketBytes.TIME2], data[container.constants.schedulePacketBytes.TIME3], data[container.constants.schedulePacketBytes.TIME4], data, counter)
 
         if (container.settings.logConfigMessages)
-            container.logger.silly('\nMsg# %s  schedulePacketBytes packet %s', counter, JSON.stringify(data))
+            container.logger.silly('\nMsg# %s  container.constants.schedulePacketBytes packet %s', counter, JSON.stringify(data))
 
         var decoded = true;
         return decoded

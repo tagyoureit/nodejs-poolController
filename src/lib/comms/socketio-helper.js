@@ -518,6 +518,13 @@ module.exports = function(container) {
         container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
       })
 
+      socket.on('toggleScheduleDay', function(id, day) {
+        id = parseInt(id)
+          var response = {}
+          response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id
+          container.logger.info(response)
+          container.schedule.toggleDay(id, day)
+        })
 
       socket.on('reload', function() {
         container.logger.info('Reload requested from Socket.io')

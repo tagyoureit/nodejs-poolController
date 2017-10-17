@@ -134,7 +134,7 @@ module.exports = function(container) {
     }
 
 
-    var addScheduleDetails = function(id, circuit, days, time1, time2, time3, time4, counter) {
+    var addScheduleDetails = function(id, circuit, days, time1, time2, time3, time4, bytes, counter) {
 
         var schedule = {}
 
@@ -142,6 +142,7 @@ module.exports = function(container) {
         schedule.CIRCUIT = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit); //Correct???
         schedule.friendlyName = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getFriendlyName(circuit);
         schedule.CIRCUITNUM = circuit
+        schedule.BYTES = bytes
 
         if (time1 === 25) //25 = Egg Timer
         {
@@ -231,7 +232,41 @@ module.exports = function(container) {
         }
     }
 
+    var dayOfWeekAsInt = function(day) {
+      var index=0
+        if (day.length === 3){
+          index = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(day)
+        }
+        else{
+          index = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].indexOf(day)
+        }
+        return (1 << index)
+    }
 
+    var toggleDay = function(id, day){
+      // this function will take a schedule ID and toggle the day(s) that are passed to it.
+      // day can be in the format of:
+      // - a 3 digit string (Sun, Sat, etc)
+      // - the full name (Sunday, Saturday, etc)
+      // - a value representing one or more days (1=Sunday, 2=Monday, 3=Sunday+Monday) as represented by the binary days bit
+
+      var dayIndex = parseInt(day)
+      if (isNaN(dayIndex)){
+        dayIndex = dayOfWeekAsInt(day)
+      }
+
+      var old_days = currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS]
+      var new_days = currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS]
+      new_days = new_days ^= dayIndex
+
+      if (container.settings.logApi)
+        container.logger.info("Schedule change requested for %s (id:%s). Toggle Day(s) %s: \n\tFrom: %s \n\tTo: %s", currentSchedule[id].CIRCUIT, id, day, dayStr(old_days), dayStr(new_days))
+      setControllerSchedule( currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
+        currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],
+      currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME4],
+      new_days)
+
+    }
 
 
     /*istanbul ignore next */
@@ -247,7 +282,8 @@ module.exports = function(container) {
         getControllerScheduleByID: getControllerScheduleByID,
         getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,
         getControllerScheduleAll: getControllerScheduleAll,
-        numberOfSchedules: numberOfSchedules
+        numberOfSchedules: numberOfSchedules,
+        toggleDay: toggleDay
     }
 
 
