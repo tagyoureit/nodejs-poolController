@@ -526,6 +526,16 @@ module.exports = function(container) {
           container.schedule.toggleDay(id, day)
         })
 
+        socket.on('setScheduleStartOrEndTime', function(id, sOE, hour, min) {
+          id = parseInt(id)
+          hour = parseInt(hour)
+          min = parseInt(min)
+            var response = {}
+            response.text = 'REST API received request to set ' + sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
+            container.logger.info(response)
+            container.schedule.setControllerScheduleStartOrEndTime(id, sOE, hour, min)
+          })
+
       socket.on('reload', function() {
         container.logger.info('Reload requested from Socket.io')
         container.reload.reload()

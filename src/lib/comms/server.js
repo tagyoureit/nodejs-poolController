@@ -139,6 +139,17 @@ module.exports = function(container) {
             res.send(response)
           })
 
+          app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function(req, res) {
+            var id = parseInt(req.params.id)
+            var hour = parseInt(req.params.hour)
+            var min = parseInt(req.params.min)
+              var response = {}
+              response.text = 'REST API received request to set ' + req.params.sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
+              container.logger.info(response)
+              container.schedule.setControllerScheduleStartOrEndTime(id, req.params.sOE, hour, min)
+              res.send(response)
+            })
+
         app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
           var id = parseInt(req.params.id)
           var circuit = parseInt(req.params.circuit)

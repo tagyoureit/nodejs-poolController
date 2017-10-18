@@ -265,8 +265,28 @@ module.exports = function(container) {
         currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],
       currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME4],
       new_days)
-
     }
+
+    var setControllerScheduleStartOrEndTime = function(id, startOrEnd, hour, min){
+      // this function will take a schedule ID set the start or end time.
+      // time should be sent in 24hr format.  EG 4:01pm = 16, 1
+
+      if (container.settings.logApi)
+        container.logger.info("Schedule change requested for %s (id:%s). Set %s time to %s:%s", currentSchedule[id].CIRCUIT, id, startOrEnd, hour, min)
+
+        if (startOrEnd==='start'){
+      setControllerSchedule( currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
+        currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], hour, min, currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],
+      currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME4],
+      currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS])
+    }
+    else {
+      setControllerSchedule( currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
+        currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], hour, min,
+      currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS])
+    }
+    }
+
 
 
     /*istanbul ignore next */
@@ -279,6 +299,7 @@ module.exports = function(container) {
         addScheduleDetails: addScheduleDetails,
         numberOfSchedulesRegistered: numberOfSchedulesRegistered,
         setControllerSchedule: setControllerSchedule,
+        setControllerScheduleStartOrEndTime: setControllerScheduleStartOrEndTime,
         getControllerScheduleByID: getControllerScheduleByID,
         getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,
         getControllerScheduleAll: getControllerScheduleAll,

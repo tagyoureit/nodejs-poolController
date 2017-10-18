@@ -146,10 +146,16 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
 function buildSchTime(currSchedule) {
   schName = 'schTime' + currSchedule.ID;
   strRow = '<tr name="' + schName + '" id="' + schName + '" class="botpad">';
+  el_start = schName + 'StartTime'
+  el_end = schName + 'EndTime'
   strHTML = '<td>' + currSchedule.ID + '</td>' +
     '<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
-    '<td>' + fmt12hrTime(currSchedule.START_TIME) + '</td>' +
-    '<td>' + fmt12hrTime(currSchedule.END_TIME) + '</td></tr>';
+    '<td id="' + schName + '">' +
+    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_start + '" data-startorend="start" data-id="'+ currSchedule.ID + '"value="' + fmt12hrTime(currSchedule.START_TIME) + '"></div>' + '</td>' +
+    '<td>' +
+    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_end + '" data-startorend="end" data-id="'+ currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.END_TIME) + '"></div>'
+    + '</td></tr>';
+
   return strRow + strHTML;
 }
 
@@ -376,6 +382,8 @@ function startSocketRx() {
               // Schedule Event (if circuit used)
               if (currSchedule.CIRCUIT !== 'NOT USED') {
                 $('#schedules tr:last').after(buildSchTime(currSchedule) + buildSchDays(currSchedule));
+                bindClockPicker('#schTime' + currSchedule.ID + 'StartTime', 'left')
+                bindClockPicker('#schTime' + currSchedule.ID + 'EndTime', 'right')
               }
             } else {
               // EggTimer Event (if circuit used)
@@ -386,6 +394,36 @@ function startSocketRx() {
           }
         }
       });
+
+      function bindClockPicker(el, _align) {
+      $(el).clockpicker({
+        donetext: 'OK',
+        twelvehour: false,
+        align: _align,
+        autoclose: true,
+        beforeShow: function() {
+          $(el).val(fmt24hrTime($(el).val()));
+        },
+        afterShow: function() {
+          $(el).val(fmt12hrTime($(el).val()));
+        },
+        afterHide: function() {
+          $(el).val(fmt12hrTime($(el).val()));
+        },
+        afterDone: function() {
+          $(el).val(fmt12hrTime($(el).val()));
+          $(el).attr("value", fmt12hrTime($(el).val()))
+          var newTime = fmt24hrTime($(el).val())
+          var timeArr = newTime.split(':')
+          socket.emit('setScheduleStartOrEndTime', $(el).data("id"), $(el).data("startorend"), timeArr[0], timeArr[1]);
+        }
+       })
+    }
+    bindClockPicker();
+
+
+
+
     }
     lastUpdate(true);
   });
@@ -530,10 +568,10 @@ function handleButtons() {
     refreshSpy();
   });
 
-// bind to the parent event as the children are dynamically created
-$('#schedules').on('click', '.schDay', function(){
-  socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay") )
-})
+  // bind to the parent event as the children are dynamically created
+  $('#schedules').on('click', '.schDay', function() {
+    socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay"))
+  })
 
   // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
   $('#btnResetLayout').click(function() {
