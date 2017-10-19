@@ -4,18 +4,20 @@
 <head>
 	<title>nodejs-poolController Control Center</title>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 	<!-- Note, Stylesheet preference order = latter specified wins, so set order accordingly! -->
 	<link rel="icon" type="image/png" href="favicon.png">
 	<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
 	<link type="text/css" rel="stylesheet" href="../jquery/jquery-ui.css">
 	<link type="text/css" rel="stylesheet" href="bootstrap-clockpicker.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
 	<link type="text/css" rel="stylesheet" href="style.css">
 	<script src="../jquery/external/jquery/jquery.js"></script>
 	<script src="../jquery/jquery-ui.min.js"></script>
 	<script src="bootstrap-clockpicker.min.js"></script>
 	<script src="../socket.io/socket.io.js"></script>
 	<script src="js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
 	<script src="main.js"></script>
 </head>
 
@@ -317,6 +319,7 @@
 				<div class="panel-heading">Schedules
 					<a class="accordion-toggle" data-toggle="collapse" href="#collapseSchedule"></a>
 					<button id="hidePanelschedule" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+					<button id="editPanelschedule" class="btn btn-primary btn-xs" style="float: right;">Edit</button>
 				</div>
 				<div id="collapseSchedule" class="panel-body panel-collapse collapse in">
 					<table id="schedules" class="table table-hover">

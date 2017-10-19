@@ -536,6 +536,15 @@ module.exports = function(container) {
             container.schedule.setControllerScheduleStartOrEndTime(id, sOE, hour, min)
           })
 
+          socket.on('setScheduleCircuit', function(id, circuit) {
+            id = parseInt(id)
+            circuit = parseInt(circuit)
+              var response = {}
+              response.text = 'REST API received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
+              container.logger.info(response)
+              container.schedule.setControllerScheduleCircuit(id, circuit)
+            })
+
       socket.on('reload', function() {
         container.logger.info('Reload requested from Socket.io')
         container.reload.reload()

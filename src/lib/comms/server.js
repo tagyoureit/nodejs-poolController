@@ -150,6 +150,17 @@ module.exports = function(container) {
               res.send(response)
             })
 
+
+          app.get('/schedule/set/id/:id/circuit/:circuit', function(req, res) {
+            var id = parseInt(req.params.id)
+            var circuit = parseInt(req.params.circuit)
+              var response = {}
+              response.text = 'REST API received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
+              container.logger.info(response)
+              container.schedule.setControllerScheduleCircuit(id, circuit)
+              res.send(response)
+            })
+
         app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
           var id = parseInt(req.params.id)
           var circuit = parseInt(req.params.circuit)

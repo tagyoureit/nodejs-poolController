@@ -1,7 +1,21 @@
+/* jshint undef: false, unused: true , latedef: false*/
+
 /* global Storage */
 var autoDST; // Flag for Automatic DST (0 = manual, 1 = automatic)
 var tmeLastUpd; // Time of Last Update (last socket message received)
 var socket; // Socket IO (don't initalize communications until clientConfig.json received!)
+var currCircuitArr; // keep a local copy of circuits so we can use them to allow schedule changes
+
+/**
+ * jQuery.browser.mobile (http://detectmobilebrowser.com/)
+ *
+ * jQuery.browser.mobile will be true if the browser is a mobile device
+ *
+ **/
+(function(a) {
+  (jQuery.browser = jQuery.browser || {}).mobile = /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))
+})(navigator.userAgent || navigator.vendor || window.opera);
+
 
 //Configure Bootstrap Panels, in 2 steps ...
 //   1) Enable / Disable panels as configured (in json file)
@@ -49,7 +63,7 @@ function configPanels(jsonPanel) {
   } else {
     $('#txtDebug').append('Sorry, your browser does not support Web Storage.' + '<br>');
   }
-};
+}
 
 //Routine to recursively parse Equipment Configuration, setting associated data for DOM elements
 function dataAssociate(strControl, varJSON) {
@@ -120,6 +134,133 @@ function fmtEggTimerTime(strInpStr) {
   return strHours + ' hrs, ' + strMins + ' mins';
 }
 
+function buildSchTime(currSchedule) {
+  schName = 'schTime' + currSchedule.ID;
+  strRowEdit = '<tr name="' + schName + '" id="' + schName + '" class="botpad schEdit" '
+  if (!$('#editPanelschedule').hasClass('btn-success'))
+   strRowEdit+='style="display:none"'
+  strRowEdit += '>';
+  el_circuit = schName + 'Circuit'
+  el_start = schName + 'StartTime'
+  el_end = schName + 'EndTime'
+
+  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker" id="' + el_circuit + '"><option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
+  if (Object.keys(currCircuitArr).length > 1) {
+    $.each(currCircuitArr, function(index, currCircuit) {
+      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && currCircuit.friendlyName.toUpperCase() !== currSchedule.CIRCUIT.toUpperCase() && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+        circuitSelectHTML += '<option data-id="' + currSchedule.ID + '" + " data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
+      }
+    })
+  }
+
+  circuitSelectHTML += '</select>'
+
+  strHTMLEdit = '<td>' + currSchedule.ID + '</td>' +
+    '<td>' + circuitSelectHTML +
+    '</td>' +
+    '<td id="' + schName + '">' +
+    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_start + '" data-startorend="start" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.START_TIME) + '" readonly="true"></div>' +
+    '</td>' +
+    '<td>' +
+    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_end + '" data-startorend="end" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.END_TIME) + '" readonly="true"></div>' +
+    '</td></tr>';
+
+  strRowStatic = '<tr name="' + schName + '" id="' + schName + '" class="botpad schStatic" '
+  if ($('#editPanelschedule').hasClass('btn-success'))
+   strRowStatic+='style="display:none"'
+  strRowStatic+='>';
+  strHTMLStatic = '<td>' + currSchedule.ID + '</td>' +
+    '<td>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</td>' +
+    '<td>' + fmt12hrTime(currSchedule.START_TIME) + '</td>' +
+    '<td>' + fmt12hrTime(currSchedule.END_TIME) + '</td></tr>';
+
+  return strRowEdit + strHTMLEdit + strRowStatic + strHTMLStatic;
+}
+
+function buildEggTime(currSchedule) {
+  schName = 'schEgg' + currSchedule.ID;
+  strRow = '<tr name="' + schName + '" id="' + schName + '">';
+  strHTML = '<td>' + currSchedule.ID + '</td>' +
+    '<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
+    '<td>' + fmtEggTimerTime(currSchedule.DURATION) + '</td></tr>';
+  return strRow + strHTML;
+}
+
+function buildSchDays(currSchedule) {
+  schName = 'schDays' + currSchedule.ID;
+  strRowEdit = '<tr class="borderless toppad schEdit" '
+   if (!$('#editPanelschedule').hasClass('btn-success'))
+    strRowEdit+='style="display:none"'
+   strRowEdit += 'name="' + schName + '" id="' + schName + '"><td colspan="4" align="left">';
+  var arrDays = [false, false, false, false, false, false, false];
+  splitDays = currSchedule.DAYS.split(" ");
+  $.each(splitDays, function(indx, currDay) {
+    if (currDay !== "")
+      arrDays[dayOfWeekAsInteger(currDay)] = true;
+  });
+  strHTMLEdit = '';
+  for (var iterDay in arrDays) {
+    strCurrDay = dayOfWeekAsString(iterDay);
+    if (arrDays[iterDay] === true) {
+      strHTMLEdit += '<button class="btn btn-success btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
+    } else {
+      strHTMLEdit += '<button class="btn btn-default btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
+    }
+    strHTMLEdit += strCurrDay + '</button>';
+  }
+  strHTMLEdit+= '</td></tr>'
+
+  strRowStatic = '<tr class="borderless toppad schStatic" name="' + schName + '" id="' + schName + '" '
+  if ($('#editPanelschedule').hasClass('btn-success'))
+   strRowStatic+='style="display:none"'
+  strRowStatic += '><td colspan="4" align="left">';
+  arrDays = [false, false, false, false, false, false, false];
+  splitDays = currSchedule.DAYS.split(" ");
+  $.each(splitDays, function(indx, currDay) {
+    if (currDay !== "")
+      arrDays[dayOfWeekAsInteger(currDay)] = true;
+  });
+  strHTMLStatic = '';
+  for (iterDay in arrDays) {
+    strCurrDay = dayOfWeekAsString(iterDay);
+    if (arrDays[iterDay] === true) {
+      strHTMLStatic += '<button class="btn btn-success btn-md" id="' + strCurrDay + '">';
+    } else {
+      strHTMLStatic += '<button class="btn btn-default btn-md" id="' + strCurrDay + '">';
+    }
+    strHTMLStatic += strCurrDay + '</button>';
+  }
+    strHTMLStatic+= '</td></tr>'
+
+  return strRowEdit + strHTMLEdit + strRowStatic + strHTMLStatic;
+}
+
+function formatLog(strMessage) {
+  // Colorize Message, in HTML format
+  var strSplit = strMessage.split(' ');
+  if (typeof(logColors) !== "undefined")
+    strColor = logColors[strSplit[1].toLowerCase()];
+  else
+    strColor = "lightgrey";
+  if (strColor) {
+    strSplit[1] = strSplit[1].fontcolor(strColor).bold();
+  }
+
+  // And output colorized string to Debug Log (Panel)
+  $('#txtDebug').append(strSplit.join(' ') + '<br>');
+  $("#txtDebug").scrollTop($("#txtDebug")[0].scrollHeight);
+}
+
+String.prototype.capitalizeFirstLetter = function() {
+  return this.charAt(0).toUpperCase() + this.toLowerCase().slice(1);
+};
+
+String.prototype.toTitleCase = function() {
+  return this.replace(/\w\S*/g, function(txt) {
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
+};
+
 function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
   // Check for Leading Text
   if (typeof btnLeadingText === "undefined")
@@ -143,83 +284,11 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
   }
 }
 
-function buildSchTime(currSchedule) {
-  schName = 'schTime' + currSchedule.ID;
-  strRow = '<tr name="' + schName + '" id="' + schName + '" class="botpad">';
-  el_start = schName + 'StartTime'
-  el_end = schName + 'EndTime'
-  strHTML = '<td>' + currSchedule.ID + '</td>' +
-    '<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
-    '<td id="' + schName + '">' +
-    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_start + '" data-startorend="start" data-id="'+ currSchedule.ID + '"value="' + fmt12hrTime(currSchedule.START_TIME) + '"></div>' + '</td>' +
-    '<td>' +
-    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_end + '" data-startorend="end" data-id="'+ currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.END_TIME) + '"></div>'
-    + '</td></tr>';
-
-  return strRow + strHTML;
-}
-
-function buildEggTime(currSchedule) {
-  schName = 'schEgg' + currSchedule.ID;
-  strRow = '<tr name="' + schName + '" id="' + schName + '">';
-  strHTML = '<td>' + currSchedule.ID + '</td>' +
-    '<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
-    '<td>' + fmtEggTimerTime(currSchedule.DURATION) + '</td></tr>';
-  return strRow + strHTML;
-}
-
-function buildSchDays(currSchedule) {
-  schName = 'schDays' + currSchedule.ID;
-  strRow = '<tr class="borderless toppad" name="' + schName + '" id="' + schName + '" class="botpad"><td colspan="4" align="left">';
-  var arrDays = [false, false, false, false, false, false, false];
-  splitDays = currSchedule.DAYS.split(" ");
-  $.each(splitDays, function(indx, currDay) {
-    if (currDay !== "")
-      arrDays[dayOfWeekAsInteger(currDay)] = true;
-  });
-  strHTML = '';
-  for (var iterDay in arrDays) {
-    strCurrDay = dayOfWeekAsString(iterDay);
-    if (arrDays[iterDay] === true) {
-      strHTML += '<button class="btn btn-success btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
-    } else {
-      strHTML += '<button class="btn btn-default btn-md schDay" data-schId="' + currSchedule.ID + '" data-schDay="' + strCurrDay + '" >';
-    }
-    strHTML += strCurrDay + '</button>';
-  }
-  return strRow + strHTML + '</td></tr>';
-}
-
-function formatLog(strMessage) {
-  // Colorize Message, in HTML format
-  var strSplit = strMessage.split(' ');
-  if (typeof(logColors) !== "undefined")
-    var strColor = logColors[strSplit[1].toLowerCase()];
-  else
-    strColor = "lightgrey";
-  if (strColor) {
-    strSplit[1] = strSplit[1].fontcolor(strColor).bold();
-  }
-
-  // And output colorized string to Debug Log (Panel)
-  $('#txtDebug').append(strSplit.join(' ') + '<br>');
-  $("#txtDebug").scrollTop($("#txtDebug")[0].scrollHeight);
-}
-
-String.prototype.capitalizeFirstLetter = function() {
-  return this.charAt(0).toUpperCase() + this.toLowerCase().slice(1);
-};
-
-String.prototype.toTitleCase = function() {
-  return this.replace(/\w\S*/g, function(txt) {
-    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-  });
-};
-
 // Function to configure communications sockets receive handling -> not called until clientConfig.json available (i.e. configuration complete)
 function startSocketRx() {
   socket.on('circuit', function(data) {
     if (data !== null) {
+      currCircuitArr = JSON.parse(JSON.stringify(data))
       $.each(data, function(indx, currCircuit) {
         if (currCircuit.hasOwnProperty('friendlyName')) {
           // Check for POOL or SPA - then ignore friendlyName, need to use circuitFunction for these two!
@@ -384,6 +453,7 @@ function startSocketRx() {
                 $('#schedules tr:last').after(buildSchTime(currSchedule) + buildSchDays(currSchedule));
                 bindClockPicker('#schTime' + currSchedule.ID + 'StartTime', 'left')
                 bindClockPicker('#schTime' + currSchedule.ID + 'EndTime', 'right')
+                bindSelectPicker('#schTime' + currSchedule.ID + 'Circuit')
               }
             } else {
               // EggTimer Event (if circuit used)
@@ -395,31 +465,45 @@ function startSocketRx() {
         }
       });
 
+      function bindSelectPicker(el) {
+        // To style only <select>s with the selectpicker class
+        $(el).selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          console.log(JSON.stringify(e))
+          console.log('indx: %s, new: %s, old: %s', clickedIndex, newValue, oldValue)
+          console.log('selected: %s  with id: %s', $(el).val(), $(el).find('option:selected').data('circuitnum'))
+          socket.emit('setScheduleCircuit', $(el).find('option:selected').data('id'), $(el).find('option:selected').data('circuitnum'))
+
+        })
+      }
+
       function bindClockPicker(el, _align) {
-      $(el).clockpicker({
-        donetext: 'OK',
-        twelvehour: false,
-        align: _align,
-        autoclose: true,
-        beforeShow: function() {
-          $(el).val(fmt24hrTime($(el).val()));
-        },
-        afterShow: function() {
-          $(el).val(fmt12hrTime($(el).val()));
-        },
-        afterHide: function() {
-          $(el).val(fmt12hrTime($(el).val()));
-        },
-        afterDone: function() {
-          $(el).val(fmt12hrTime($(el).val()));
-          $(el).attr("value", fmt12hrTime($(el).val()))
-          var newTime = fmt24hrTime($(el).val())
-          var timeArr = newTime.split(':')
-          socket.emit('setScheduleStartOrEndTime', $(el).data("id"), $(el).data("startorend"), timeArr[0], timeArr[1]);
-        }
-       })
-    }
-    bindClockPicker();
+        $(el).clockpicker({
+          donetext: 'OK',
+          twelvehour: false,
+          align: _align,
+          autoclose: true,
+          beforeShow: function() {
+            $(el).val(fmt24hrTime($(el).val()));
+          },
+          afterShow: function() {
+            $(el).val(fmt12hrTime($(el).val()));
+          },
+          afterHide: function() {
+            $(el).val(fmt12hrTime($(el).val()));
+          },
+          afterDone: function() {
+            $(el).val(fmt12hrTime($(el).val()));
+            $(el).attr("value", fmt12hrTime($(el).val()))
+            var newTime = fmt24hrTime($(el).val())
+            var timeArr = newTime.split(':')
+            socket.emit('setScheduleStartOrEndTime', $(el).data("id"), $(el).data("startorend"), timeArr[0], timeArr[1]);
+          }
+        })
+      }
+      bindClockPicker();
 
 
 
@@ -568,7 +652,7 @@ function handleButtons() {
     refreshSpy();
   });
 
-  // bind to the parent event as the children are dynamically created
+  // Schedule day toggle: bind to the parent event as the children are dynamically created
   $('#schedules').on('click', '.schDay', function() {
     socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay"))
   })
@@ -662,7 +746,7 @@ function handleButtons() {
       socket.emit('setchlorinator', chlorSetting);
   });
   $('#modalChlorinator').keypress(function(key) {
-    if (key.which == 13)
+    if (key.which === 13)
       $('#SaveChanges').click();
   })
 
@@ -675,6 +759,24 @@ function handleButtons() {
   $('.navbar-collapse a').click(function() {
     $(".navbar-collapse").collapse('hide');
   });
+
+  $('#editPanelschedule').click(function() {
+      if ($('#editPanelschedule').hasClass('btn-success'))
+      // static
+      {
+        $('#editPanelschedule').removeClass('btn-success')
+        $('.schEdit').hide()
+        $('.schStatic').show()
+      } else
+      // edit
+      {
+        $('#editPanelschedule').addClass('btn-success')
+        $('.schEdit').show()
+        $('.schStatic').hide()
+      }
+
+  })
+
 }
 
 // Refresh / Update status button (showing last message / information received)
