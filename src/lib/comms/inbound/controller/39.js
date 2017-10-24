@@ -31,7 +31,6 @@ module.exports = function(container) {
         var _temp = data.slice(6, data.length) // create new array with all packets after the preamble, dest, src, action, and length
         _temp.splice(_temp.length-2, _temp.length)  // remove checksum high/low bytes
 
-        console.log('167PACKET: ', JSON.stringify(data))
         container.circuit.setControllerLightGroup(_temp, counter)
 
         return true

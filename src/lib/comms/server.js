@@ -161,6 +161,19 @@ module.exports = function(container) {
               res.send(response)
             })
 
+
+            app.get('/eggtimer/set/id/:id/circuit/:circuit/hour/:hour/min/:min', function(req, res) {
+              var id = parseInt(req.params.id)
+              var circuit = parseInt(req.params.circuit)
+              var hour = parseInt(req.params.hour)
+              var min = parseInt(req.params.min)
+                var response = {}
+                response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + ' for ' + hour + ' hours, ' +min+' minutes'
+                container.logger.info(response)
+                container.schedule.setControllerEggTimer(id, circuit, hour, min)
+                res.send(response)
+              })
+
         app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
           var id = parseInt(req.params.id)
           var circuit = parseInt(req.params.circuit)

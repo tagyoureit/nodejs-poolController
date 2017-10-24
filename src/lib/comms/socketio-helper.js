@@ -545,6 +545,17 @@ module.exports = function(container) {
               container.schedule.setControllerScheduleCircuit(id, circuit)
             })
 
+            socket.on('setEggTimer', function(id, circuit, hour, min) {
+              id = parseInt(id)
+              circuit = parseInt(circuit)
+              hour = parseInt(hour)
+              min = parseInt(min)
+                var response = {}
+                response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + 'for ' + hour + ' hours, ' +min+' minutes'
+                container.logger.info(response)
+                container.schedule.setControllerEggTimer(id, circuit, hour, min)
+              })
+
       socket.on('reload', function() {
         container.logger.info('Reload requested from Socket.io')
         container.reload.reload()

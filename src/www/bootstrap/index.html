@@ -313,7 +313,7 @@
 				</div>
 			</div>
 		</div>
-		<div id="schedule" class="col-md-4 pnlSchedule">
+		<div id="schedule" class="col-md-4 pnlSchedule" style="display: table;">
 			<a name="schedule" class="anchor"></a>
 			<div class="panel panel-primary">
 				<div class="panel-heading">Schedules
@@ -337,20 +337,25 @@
 				</div>
 			</div>
 		</div>
-		<div id="eggtimer" class="col-md-3 pnlEggtimer">
+		<div id="eggtimer" class="col-md-3 pnlEggtimer" style="display: table;">
 			<a name="eggtimer" class="anchor"></a>
 			<div class="panel panel-primary">
 				<div class="panel-heading">EggTimers
 					<a class="accordion-toggle" data-toggle="collapse" href="#collapseEggtimer"></a>
 					<button id="hidePaneleggtimer" class="btn btn-primary btn-xs" style="float: right;">Hide</button>
+					<button id="editPaneleggtimer" class="btn btn-primary btn-xs" style="float: right;">Edit</button>
 				</div>
 				<div id="collapseEggtimer" class="panel-body panel-collapse collapse in">
 					<table id="eggtimers" class="table table-hover">
 						<thead>
 							<tr>
-								<th>#</th>
-								<th>Circuit</th>
-								<th>Duration</th>
+								<th class="eggStatic">#</th>
+								<th class="eggStatic">Circuit</th>
+								<th class="eggStatic">Duration</th>
+								<th class="eggEdit" style="display:none;">#</th>
+								<th class="eggEdit" style="display:none;">Circuit</th>
+								<th class="eggEdit" style="display:none;">Hours</th>
+								<th class="eggEdit" style="display:none;">Mins</th>
 							</tr>
 						</thead>
 						<tbody>

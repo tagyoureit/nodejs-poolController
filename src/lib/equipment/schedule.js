@@ -202,7 +202,6 @@ module.exports = function(container) {
   var setControllerSchedule = function(id, circuit, starthh, startmm, endhh, endmm, days) {
     //validate
     if (id >= 0 && id <= numberOfSchedules && starthh >= 0 && starthh <= 25 && startmm >= 0 && startmm <= 59 && endhh >= 0 && endmm <= 59) {
-      //TODO: validate days is one of 0,1,2,4,8,16,32 (+128 for any >0 entry??)
       var scheduleStr = 'Queueing message to set schedule '
       scheduleStr += id < 10 ? ' ' + id : id
       var circuitTmpStr = circuit === 0 ? container.constants.strCircuitName[circuit] : container.circuit.getCircuitName(circuit)
@@ -259,7 +258,7 @@ module.exports = function(container) {
     new_days = new_days ^= dayIndex
 
     if (container.settings.logApi)
-      container.logger.info("Schedule change requested for %s (id:%s). Toggle Day(s) %s: \n\tFrom: %s \n\tTo: %s", currentSchedule[id].CIRCUIT, id, day, dayStr(old_days), dayStr(new_days))
+      container.logger.info("Schedule change requested for %s (id:%s). Toggle Day(s) %s: \n\tFrom: %s \n\tTo: %s", currentSchedule[id].friendlyName, id, day, dayStr(old_days), dayStr(new_days))
     setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
       currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],
       currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME4],
@@ -271,7 +270,7 @@ module.exports = function(container) {
     // time should be sent in 24hr format.  EG 4:01pm = 16, 1
 
     if (container.settings.logApi)
-      container.logger.info("Schedule change requested for %s (id:%s). Set %s time to %s:%s", currentSchedule[id].CIRCUIT, id, startOrEnd, hour, min)
+      container.logger.info("Schedule change requested for %s (id:%s). Set %s time to %s:%s", currentSchedule[id].friendlyName, id, startOrEnd, hour, min)
 
     if (startOrEnd === 'start') {
       setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
@@ -283,6 +282,18 @@ module.exports = function(container) {
         currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], hour, min,
         currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS])
     }
+  }
+
+  var setControllerEggTimer = function(id, circuit, hour, min) {
+    // this function will take a schedule ID set the circuit and duration.
+    // time should be sent in 24hr format.  EG 4:01pm = 16, 1
+
+    if (container.settings.logApi)
+      container.logger.info("Egg Timer change requested for %s (id:%s). Set %s duration to %s hours, %s minutes", currentSchedule[id].friendlyName, id, hour, min)
+
+      setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
+        circuit, 25, 0, hour, min, 0)
+
   }
 
   var setControllerScheduleCircuit = function(id, circuit) {
@@ -309,6 +320,7 @@ module.exports = function(container) {
     numberOfSchedulesRegistered: numberOfSchedulesRegistered,
     setControllerSchedule: setControllerSchedule,
     setControllerScheduleStartOrEndTime: setControllerScheduleStartOrEndTime,
+    setControllerEggTimer: setControllerEggTimer,
     setControllerScheduleCircuit: setControllerScheduleCircuit,
     getControllerScheduleByID: getControllerScheduleByID,
     getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,

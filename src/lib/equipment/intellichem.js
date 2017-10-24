@@ -15,34 +15,27 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//This is _SET_ schedule... not the response.
 module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: 145.js')
+        container.logger.info('Loading: intellichem.js')
 
-        var logger = container.logger
-        var s = container.settings
-        var c = container.constants
+    var intellichemPresent = 0;
 
-
-
-
-    var process = function(data, counter) {
-
-      console.log(counter, data)
-
-        return true
-    }
+    var init =function() {
+          container.logger.debug('Initialized intellichem module')
+        }
+      
 
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: 145.js')
-
+        container.logger.info('Loaded: intellichem.js')
 
     return {
-        process: process
+        init: init
     }
+
+
 }

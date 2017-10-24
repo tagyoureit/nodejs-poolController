@@ -22,21 +22,16 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: 17.js')
 
-
-    //TODO:  Merge this to a common function with the pump packet
-
     function process(data, counter) {
         //byte:      0  1  2  3  4 5 6 7 8  9 10 11  12 13 14
         //example: 165,16,15,16,17,7,1,6,9,25,15,55,255,2, 90
-
-        //TODO: Move this to constants
 
         var bytes = [data[container.constants.schedulePacketBytes.ID], data[container.constants.schedulePacketBytes.CIRCUIT], data[container.constants.schedulePacketBytes.DAYS], data[container.constants.schedulePacketBytes.TIME1], data[container.constants.schedulePacketBytes.TIME2], data[container.constants.schedulePacketBytes.TIME3], data[container.constants.schedulePacketBytes.TIME4]]
 
         container.schedule.addScheduleDetails(data[container.constants.schedulePacketBytes.ID], data[container.constants.schedulePacketBytes.CIRCUIT], data[container.constants.schedulePacketBytes.DAYS], data[container.constants.schedulePacketBytes.TIME1], data[container.constants.schedulePacketBytes.TIME2], data[container.constants.schedulePacketBytes.TIME3], data[container.constants.schedulePacketBytes.TIME4], data, counter)
 
         if (container.settings.logConfigMessages)
-            container.logger.silly('\nMsg# %s  container.constants.schedulePacketBytes packet %s', counter, JSON.stringify(data))
+            container.logger.silly('\nMsg# %s  Schedule packet %s', counter, JSON.stringify(data))
 
         var decoded = true;
         return decoded

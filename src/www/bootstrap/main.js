@@ -138,8 +138,8 @@ function buildSchTime(currSchedule) {
   schName = 'schTime' + currSchedule.ID;
   strRowEdit = '<tr name="' + schName + '" id="' + schName + '" class="botpad schEdit" '
   if (!$('#editPanelschedule').hasClass('btn-success'))
-   strRowEdit+='style="display:none"'
-  strRowEdit += '>';
+    strRowEdit += 'style="display:none"'
+  strRowEdit += ' data-id="' + currSchedule.ID + '">';
   el_circuit = schName + 'Circuit'
   el_start = schName + 'StartTime'
   el_end = schName + 'EndTime'
@@ -147,8 +147,8 @@ function buildSchTime(currSchedule) {
   circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker" id="' + el_circuit + '"><option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
   if (Object.keys(currCircuitArr).length > 1) {
     $.each(currCircuitArr, function(index, currCircuit) {
-      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && currCircuit.friendlyName.toUpperCase() !== currSchedule.CIRCUIT.toUpperCase() && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
-        circuitSelectHTML += '<option data-id="' + currSchedule.ID + '" + " data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
+      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
       }
     })
   }
@@ -159,16 +159,16 @@ function buildSchTime(currSchedule) {
     '<td>' + circuitSelectHTML +
     '</td>' +
     '<td id="' + schName + '">' +
-    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_start + '" data-startorend="start" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.START_TIME) + '" readonly="true"></div>' +
+    '<div class="input-group" style="width:85px">    <input type="text" class="form-control" id="' + el_start + '" data-startorend="start" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.START_TIME) + '" readonly="true"></div>' +
     '</td>' +
     '<td>' +
-    '<div class="input-group" style="width:80px">    <input type="text" class="form-control" id="' + el_end + '" data-startorend="end" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.END_TIME) + '" readonly="true"></div>' +
+    '<div class="input-group" style="width:85px">    <input type="text" class="form-control" id="' + el_end + '" data-startorend="end" data-id="' + currSchedule.ID + '" value="' + fmt12hrTime(currSchedule.END_TIME) + '" readonly="true"></div>' +
     '</td></tr>';
 
   strRowStatic = '<tr name="' + schName + '" id="' + schName + '" class="botpad schStatic" '
   if ($('#editPanelschedule').hasClass('btn-success'))
-   strRowStatic+='style="display:none"'
-  strRowStatic+='>';
+    strRowStatic += 'style="display:none"'
+  strRowStatic += '>';
   strHTMLStatic = '<td>' + currSchedule.ID + '</td>' +
     '<td>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</td>' +
     '<td>' + fmt12hrTime(currSchedule.START_TIME) + '</td>' +
@@ -179,19 +179,70 @@ function buildSchTime(currSchedule) {
 
 function buildEggTime(currSchedule) {
   schName = 'schEgg' + currSchedule.ID;
-  strRow = '<tr name="' + schName + '" id="' + schName + '">';
-  strHTML = '<td>' + currSchedule.ID + '</td>' +
-    '<td>' + currSchedule.CIRCUIT.capitalizeFirstLetter() + '</td>' +
+  strRowStatic = '<tr name="' + schName + '" id="' + schName + 'Static" '
+  if ($('#editPaneleggtimer').hasClass('btn-success'))
+    strRowStatic += 'style="display:none"'
+  strRowStatic += ' class="eggStatic">';
+  strHTMLStatic = '<td>' + currSchedule.ID + '</td>' +
+    '<td>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</td>' +
     '<td>' + fmtEggTimerTime(currSchedule.DURATION) + '</td></tr>';
-  return strRow + strHTML;
+
+
+
+  splitInpStr = currSchedule.DURATION.split(":");
+  strHours = splitInpStr[0];
+  strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
+
+  schNameEdit = schName + 'Edit'
+
+
+
+
+
+
+
+  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker" id="' + schName + 'Circuit"><option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
+  if (Object.keys(currCircuitArr).length > 1) {
+    $.each(currCircuitArr, function(index, currCircuit) {
+      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
+      }
+    })
+  }
+
+  hourSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker" id="' + schName + 'Hour"><option>' + strHours + '</option>'
+  for (var i = 1; i <= 12; i++) {
+    hourSelectHTML += '<option>' + i + '</option>';
+  }
+  hourSelectHTML += '</div>'
+
+  minSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker" id="' + schName + 'Min"><option>' + strMins + '</option>'
+  for (var i = 0; i <= 3; i++) {
+    minSelectHTML += '<option>' + i*15 + '</option>';
+  }
+  minSelectHTML += '</div>'
+
+  strRowEdit = '<tr name="' + schName + '" id="' + schNameEdit + '"'
+  if (!$('#editPaneleggtimer').hasClass('btn-success'))
+    strRowEdit += 'style="display:none"'
+  strRowEdit += ' class="eggEdit" data-id="' + currSchedule.ID + '" data-circuitnum="' + currSchedule.CIRCUITNUM + ' " data-hour="' + strHours + '" data-min="' + strMins + '">'
+
+  // //strHTMLEdit = '<div class="input-group">'
+  strHTMLEdit = '<td>' + currSchedule.ID + '</td>'
+  strHTMLEdit += '<td>' + circuitSelectHTML + '</td>'
+
+  strHTMLEdit += '<td class="eggEditHour">'+ hourSelectHTML + '</td>'
+  strHTMLEdit += '<td class="eggEditMin">' + minSelectHTML + '</td>'
+  strHTMLEdit += '</tr>'
+  return strRowStatic + strHTMLStatic + strRowEdit + strHTMLEdit;
 }
 
 function buildSchDays(currSchedule) {
   schName = 'schDays' + currSchedule.ID;
   strRowEdit = '<tr class="borderless toppad schEdit" '
-   if (!$('#editPanelschedule').hasClass('btn-success'))
-    strRowEdit+='style="display:none"'
-   strRowEdit += 'name="' + schName + '" id="' + schName + '"><td colspan="4" align="left">';
+  if (!$('#editPanelschedule').hasClass('btn-success'))
+    strRowEdit += 'style="display:none"'
+  strRowEdit += 'name="' + schName + '" id="' + schName + '"><td colspan="4" align="left">';
   var arrDays = [false, false, false, false, false, false, false];
   splitDays = currSchedule.DAYS.split(" ");
   $.each(splitDays, function(indx, currDay) {
@@ -208,11 +259,11 @@ function buildSchDays(currSchedule) {
     }
     strHTMLEdit += strCurrDay + '</button>';
   }
-  strHTMLEdit+= '</td></tr>'
+  strHTMLEdit += '</td></tr>'
 
   strRowStatic = '<tr class="borderless toppad schStatic" name="' + schName + '" id="' + schName + '" '
   if ($('#editPanelschedule').hasClass('btn-success'))
-   strRowStatic+='style="display:none"'
+    strRowStatic += 'style="display:none"'
   strRowStatic += '><td colspan="4" align="left">';
   arrDays = [false, false, false, false, false, false, false];
   splitDays = currSchedule.DAYS.split(" ");
@@ -230,7 +281,7 @@ function buildSchDays(currSchedule) {
     }
     strHTMLStatic += strCurrDay + '</button>';
   }
-    strHTMLStatic+= '</td></tr>'
+  strHTMLStatic += '</td></tr>'
 
   return strRowEdit + strHTMLEdit + strRowStatic + strHTMLStatic;
 }
@@ -453,28 +504,63 @@ function startSocketRx() {
                 $('#schedules tr:last').after(buildSchTime(currSchedule) + buildSchDays(currSchedule));
                 bindClockPicker('#schTime' + currSchedule.ID + 'StartTime', 'left')
                 bindClockPicker('#schTime' + currSchedule.ID + 'EndTime', 'right')
-                bindSelectPicker('#schTime' + currSchedule.ID + 'Circuit')
+                bindSelectPickerScheduleCircuit('#schTime' + currSchedule.ID + 'Circuit')
               }
             } else {
               // EggTimer Event (if circuit used)
               if (currSchedule.CIRCUIT !== 'NOT USED') {
                 $('#eggtimers tr:last').after(buildEggTime(currSchedule));
+                bindSelectPickerEggTimerCircuit('#schEgg' + currSchedule.ID + 'Circuit')
+                bindSelectPickerHour('#schEgg' + currSchedule.ID + 'Hour')
+                bindSelectPickerMin('#schEgg' + currSchedule.ID + 'Min')
               }
             }
           }
         }
       });
 
-      function bindSelectPicker(el) {
+      function bindSelectPickerScheduleCircuit(el) {
         // To style only <select>s with the selectpicker class
         $(el).selectpicker({
           mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
         });
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
-          console.log(JSON.stringify(e))
-          console.log('indx: %s, new: %s, old: %s', clickedIndex, newValue, oldValue)
-          console.log('selected: %s  with id: %s', $(el).val(), $(el).find('option:selected').data('circuitnum'))
-          socket.emit('setScheduleCircuit', $(el).find('option:selected').data('id'), $(el).find('option:selected').data('circuitnum'))
+          socket.emit('setScheduleCircuit', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'))
+          })
+      }
+
+      function bindSelectPickerEggTimerCircuit(el) {
+        // To style only <select>s with the selectpicker class
+        $(el).selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
+          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
+          })
+      }
+
+      function bindSelectPickerHour(el) {
+        // To style only <select>s with the selectpicker class
+        $(el).selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('min'))
+          //console.log('egg id: %s  hour changed to %s.  circuit %s.  min %s', $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('min'))
+          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('min'))
+        })
+      }
+
+
+      function bindSelectPickerMin(el) {
+        // To style only <select>s with the selectpicker class
+        $(el).selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
+          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
 
         })
       }
@@ -761,19 +847,36 @@ function handleButtons() {
   });
 
   $('#editPanelschedule').click(function() {
-      if ($('#editPanelschedule').hasClass('btn-success'))
-      // static
-      {
-        $('#editPanelschedule').removeClass('btn-success')
-        $('.schEdit').hide()
-        $('.schStatic').show()
-      } else
-      // edit
-      {
-        $('#editPanelschedule').addClass('btn-success')
-        $('.schEdit').show()
-        $('.schStatic').hide()
-      }
+    if ($('#editPanelschedule').hasClass('btn-success'))
+    // static
+    {
+      $('#editPanelschedule').removeClass('btn-success')
+      $('.schEdit').hide()
+      $('.schStatic').show()
+    } else
+    // edit
+    {
+      $('#editPanelschedule').addClass('btn-success')
+      $('.schEdit').show()
+      $('.schStatic').hide()
+    }
+
+  })
+
+  $('#editPaneleggtimer').click(function() {
+    if ($('#editPaneleggtimer').hasClass('btn-success'))
+    // static
+    {
+      $('#editPaneleggtimer').removeClass('btn-success')
+      $('.eggEdit').hide()
+      $('.eggStatic').show()
+    } else
+    // edit
+    {
+      $('#editPaneleggtimer').addClass('btn-success')
+      $('.eggEdit').show()
+      $('.eggStatic').hide()
+    }
 
   })
 

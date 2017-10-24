@@ -93,6 +93,7 @@ bottle.factory('controller_8', require(__dirname + '/comms/inbound/controller/8.
 bottle.factory('controller_10', require(__dirname + '/comms/inbound/controller/10.js'))
 bottle.factory('controller_11', require(__dirname + '/comms/inbound/controller/11.js'))
 bottle.factory('controller_17', require(__dirname + '/comms/inbound/controller/17.js'))
+bottle.factory('controller_18', require(__dirname + '/comms/inbound/controller/18.js'))
 bottle.factory('controller_25', require(__dirname + '/comms/inbound/controller/25.js'))
 bottle.factory('controller_27', require(__dirname + '/comms/inbound/controller/27.js'))
 bottle.factory('controller_29', require(__dirname + '/comms/inbound/controller/29.js'))
@@ -105,7 +106,6 @@ bottle.factory('controller_39', require(__dirname + '/comms/inbound/controller/3
 bottle.factory('controller_96', require(__dirname + '/comms/inbound/controller/96.js'))
 bottle.factory('controller_134', require(__dirname + '/comms/inbound/controller/134.js'))
 bottle.factory('controller_136', require(__dirname + '/comms/inbound/controller/136.js'))
-bottle.factory('controller_145', require(__dirname + '/comms/inbound/controller/145.js'))
 bottle.factory('controller_150', require(__dirname + '/comms/inbound/controller/150.js'))
 bottle.factory('controller_153', require(__dirname + '/comms/inbound/controller/153.js'))
 bottle.factory('controller_get', require(__dirname + '/comms/inbound/controller/get.js'))
@@ -145,6 +145,7 @@ bottle.factory('valves', require(__dirname + '/equipment/valves.js'))
 bottle.factory('customNames', require(__dirname + '/equipment/customnames.js'))
 bottle.factory('schedule', require(__dirname + '/equipment/schedule.js'))
 bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js'))
+bottle.factory('intellichem', require(__dirname + '/equipment/intellichem.js'))
 
 //LOGGER
 bottle.factory('dateFormat', function() {

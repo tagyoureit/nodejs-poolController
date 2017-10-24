@@ -33,40 +33,45 @@ module.exports = function(container) {
           decoded = true;
           break
         }
-      case 2: //Controller Status
+      case 2: //C ontroller Status
         {
           decoded = container.controller_2.process(data, counter)
           break;
         }
-      case 5: //Broadcast date & time
+      case 5: // Broadcast date & time
         {
           decoded = container.controller_5.process(data, counter)
           break;
         }
-      case 7: //Send request/response for pump status
+      case 7: // Pump status
         {
           decoded = container.common_7.process(data, counter)
           break;
         }
-      case 8: //Broadcast current heat set point and mode
+      case 8: // Broadcast current heat set point and mode
         {
           decoded = container.controller_8.process(data, counter)
           break;
         }
-      case 10: //Get Custom Names
+      case 10: // Custom Names
         {
           decoded = container.controller_10.process(data, counter)
           break;
         }
 
-      case 11: // Get Circuit Names
+      case 11: // Circuit Names
         {
           decoded = container.controller_11.process(data, counter)
           break;
         }
-      case 17: // Get Schedules
+      case 17: // Schedules
         {
           decoded = container.controller_17.process(data, counter)
+          break;
+        }
+      case 18: // IntelliChem
+        {
+          decoded = container.controller_18.process(data, counter)
           break;
         }
       case 25: //Intellichlor status
@@ -128,11 +133,6 @@ module.exports = function(container) {
       case 136: //Set Heat/temp
         {
           decoded = container.controller_136.process(data, counter)
-          break;
-        }
-      case 145: //Set Schedule
-        {
-          decoded = container.controller_145.process(data, counter)
           break;
         }
       case 150: //Set Intelliflo Spa Side Control
