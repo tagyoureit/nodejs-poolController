@@ -130,6 +130,7 @@ module.exports = function(container) {
       dayStr += 'Friday '; //32
     if ((days & 64) >> 6 === 1)
       dayStr += 'Saturday '; //64
+    // is 128 "no days"?
     return dayStr
   }
 
@@ -220,6 +221,10 @@ module.exports = function(container) {
     } else {
       container.logger.warn('Aborting Queue set schedule packet with an invalid value: ', id, circuit, starthh, startmm, endhh, endmm, days + 128)
     }
+  }
+
+  var deleteScheduleOrEggTimer = function(id){
+    setControllerSchedule(id, 0,0,0,0,0,0)
   }
 
   var getControllerScheduleByCircuitID = function(circuit) {
@@ -318,6 +323,7 @@ module.exports = function(container) {
     getCurrentSchedule: getCurrentSchedule,
     addScheduleDetails: addScheduleDetails,
     numberOfSchedulesRegistered: numberOfSchedulesRegistered,
+    deleteScheduleOrEggTimer: deleteScheduleOrEggTimer,
     setControllerSchedule: setControllerSchedule,
     setControllerScheduleStartOrEndTime: setControllerScheduleStartOrEndTime,
     setControllerEggTimer: setControllerEggTimer,

@@ -526,6 +526,14 @@ module.exports = function(container) {
           container.schedule.toggleDay(id, day)
         })
 
+        socket.on('deleteScheduleOrEggTimer', function(id) {
+          id = parseInt(id)
+            var response = {}
+            response.text = 'REST API received request delete schedule with ID:' + id
+            container.logger.info(response)
+            container.schedule.deleteScheduleOrEggTimer(id)
+          })
+
         socket.on('setScheduleStartOrEndTime', function(id, sOE, hour, min) {
           id = parseInt(id)
           hour = parseInt(hour)

@@ -144,13 +144,20 @@ function buildSchTime(currSchedule) {
   el_start = schName + 'StartTime'
   el_end = schName + 'EndTime'
 
-  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker" id="' + el_circuit + '"><option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
+  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker show-menu-arrow show-tick" id="' + el_circuit + '">'
+  //circuitSelectHTML += '<option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
   if (Object.keys(currCircuitArr).length > 1) {
     $.each(currCircuitArr, function(index, currCircuit) {
-      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
-        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
+      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number
+        if (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) {
+          circuitSelectHTML += ' class="selected" '
+        }
+        circuitSelectHTML += '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option>';
       }
     })
+    circuitSelectHTML += '<option data-divider="true"></option><option style="color: red;">DELETE</option>'
+    circuitSelectHTML += '</div>';
   }
 
   circuitSelectHTML += '</select>'
@@ -201,37 +208,55 @@ function buildEggTime(currSchedule) {
 
 
 
-  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker" id="' + schName + 'Circuit"><option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
+  circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker show-menu-arrow show-tick" id="' + schName + 'Circuit">'
+  //circuitSelectHTML += '<option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
   if (Object.keys(currCircuitArr).length > 1) {
     $.each(currCircuitArr, function(index, currCircuit) {
-      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
-        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number + '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option></div>';
+      if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+        circuitSelectHTML += '<option data-circuitnum="' + currCircuit.number + '" '
+        if (currCircuit.friendlyName.toUpperCase() !== currSchedule.friendlyName.toUpperCase()) {
+          circuitSelectHTML += ' class="selected" '
+        }
+        circuitSelectHTML += '>' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option>'
+
       }
     })
+    circuitSelectHTML += '<option data-divider="true"></option><option style="color: red;">DELETE</option>'
+    circuitSelectHTML += '</div>';
   }
 
-  hourSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker" id="' + schName + 'Hour"><option>' + strHours + '</option>'
-  for (var i = 1; i <= 12; i++) {
-    hourSelectHTML += '<option>' + i + '</option>';
+  hourSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker show-menu-arrow show-tick" id="' + schName + 'Hour">'
+  //hourSelectHTML += '<option>' + strHours + '</option>'
+  for (i = 1; i <= 11; i++) {
+    hourSelectHTML += '<option'
+    if (i === parseInt(strHours)) {
+      hourSelectHTML += ' class="selected" '
+    }
+    hourSelectHTML += '>' + i + '</option>';
   }
   hourSelectHTML += '</div>'
 
-  minSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker" id="' + schName + 'Min"><option>' + strMins + '</option>'
-  for (var i = 0; i <= 3; i++) {
-    minSelectHTML += '<option>' + i*15 + '</option>';
+  minSelectHTML = '<div class="input-group" style="width:55px"><select class="selectpicker show-menu-arrow show-tick" id="' + schName + 'Min">'
+  //minSelectHTML +=' <option>' + strMins + '</option>'
+  for (i = 0; i <= 3; i++) {
+    minSelectHTML += '<option '
+    if (i * 15 === parseInt(strMins)) {
+      minSelectHTML += ' class="selected" '
+    }
+    minSelectHTML += '>' + i * 15 + '</option>';
   }
   minSelectHTML += '</div>'
 
   strRowEdit = '<tr name="' + schName + '" id="' + schNameEdit + '"'
   if (!$('#editPaneleggtimer').hasClass('btn-success'))
     strRowEdit += 'style="display:none"'
-  strRowEdit += ' class="eggEdit" data-id="' + currSchedule.ID + '" data-circuitnum="' + currSchedule.CIRCUITNUM + ' " data-hour="' + strHours + '" data-min="' + strMins + '">'
+  strRowEdit += ' class="eggEdit" data-id="' + currSchedule.ID + '" data-circuitnum="' + currSchedule.CIRCUITNUM + ' " data-hour="' + strHours + '" data-min="' + parseInt(strMins) + '">'
 
-  // //strHTMLEdit = '<div class="input-group">'
+
   strHTMLEdit = '<td>' + currSchedule.ID + '</td>'
   strHTMLEdit += '<td>' + circuitSelectHTML + '</td>'
 
-  strHTMLEdit += '<td class="eggEditHour">'+ hourSelectHTML + '</td>'
+  strHTMLEdit += '<td class="eggEditHour">' + hourSelectHTML + '</td>'
   strHTMLEdit += '<td class="eggEditMin">' + minSelectHTML + '</td>'
   strHTMLEdit += '</tr>'
   return strRowStatic + strHTMLStatic + strRowEdit + strHTMLEdit;
@@ -492,59 +517,130 @@ function startSocketRx() {
       // Schedule/EggTimer to be updated => Wipe, then (Re)Build Below
       $('#schedules tr').not('tr:first').remove();
       $('#eggtimers tr').not('tr:first').remove();
+
+      idOfFirstNotUsed=-1
+
       // And (Re)Build Schedule and EggTimer tables / panels
       $.each(data, function(indx, currSchedule) {
         if (currSchedule === null) {
           //console.log("Schedule: Dataset empty.")
         } else {
           if (currSchedule !== "blank") {
-            if (currSchedule.MODE === "Schedule") {
-              // Schedule Event (if circuit used)
-              if (currSchedule.CIRCUIT !== 'NOT USED') {
+
+            // Schedule Event (if circuit used)
+            if (currSchedule.CIRCUIT !== 'NOT USED') {
+              if (currSchedule.MODE === "Schedule") {
                 $('#schedules tr:last').after(buildSchTime(currSchedule) + buildSchDays(currSchedule));
                 bindClockPicker('#schTime' + currSchedule.ID + 'StartTime', 'left')
                 bindClockPicker('#schTime' + currSchedule.ID + 'EndTime', 'right')
-                bindSelectPickerScheduleCircuit('#schTime' + currSchedule.ID + 'Circuit')
+                bindSelectPickerScheduleCircuit('#schTime' + currSchedule.ID + 'Circuit', currSchedule.friendlyName.capitalizeFirstLetter())
+              } else {
+                // EggTimer Event (if circuit used)
+
+                $('#eggtimers tr:last').after(buildEggTime(currSchedule));
+                splitInpStr = currSchedule.DURATION.split(":");
+                strHours = splitInpStr[0];
+                strMins = ('0' + parseInt(splitInpStr[1])).slice(-2);
+                bindSelectPickerEggTimerCircuit('#schEgg' + currSchedule.ID + 'Circuit', currSchedule.friendlyName.capitalizeFirstLetter())
+                bindSelectPickerHour('#schEgg' + currSchedule.ID + 'Hour', strHours)
+                bindSelectPickerMin('#schEgg' + currSchedule.ID + 'Min', parseInt(strMins))
+
               }
             } else {
-              // EggTimer Event (if circuit used)
-              if (currSchedule.CIRCUIT !== 'NOT USED') {
-                $('#eggtimers tr:last').after(buildEggTime(currSchedule));
-                bindSelectPickerEggTimerCircuit('#schEgg' + currSchedule.ID + 'Circuit')
-                bindSelectPickerHour('#schEgg' + currSchedule.ID + 'Hour')
-                bindSelectPickerMin('#schEgg' + currSchedule.ID + 'Min')
+              if (idOfFirstNotUsed===-1){
+                idOfFirstNotUsed = currSchedule.ID
               }
             }
           }
         }
       });
 
-      function bindSelectPickerScheduleCircuit(el) {
-        // To style only <select>s with the selectpicker class
-        $(el).selectpicker({
+      // Add last row to schedule/egg timer if there is an available slot
+      if (idOfFirstNotUsed!==-1){
+
+        circuitSelectScheduleHTML = '<div class="input-group" style="width:150px"><select class="selectpicker show-menu-arrow show-tick" id="addScheduleCircuit"><option>Not Used</option>'
+        circuitSelectEggTimerHTML = '<div class="input-group" style="width:150px"><select class="selectpicker show-menu-arrow show-tick" id="addEggTimerCircuit"><option>Not Used</option>'
+        if (Object.keys(currCircuitArr).length > 1) {
+          $.each(currCircuitArr, function(index, currCircuit) {
+            if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+              circuitSelectScheduleHTML += '<option data-circuitnum="' + currCircuit.number
+              circuitSelectEggTimerHTML += '<option data-circuitnum="' + currCircuit.number
+              circuitSelectScheduleHTML += '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option>';
+              circuitSelectEggTimerHTML += '">' + currCircuit.friendlyName.capitalizeFirstLetter() + '</option>';
+            }
+          })
+          circuitSelectScheduleHTML += '</div>';
+          circuitSelectEggTimerHTML += '</div>'
+        }
+
+        strEggTimer = '<tr class="eggEdit" '
+        if (!$('#editPaneleggtimer').hasClass('btn-success'))
+          strEggTimer += ' style="display:none" '
+        strEggTimer += '><td>' + idOfFirstNotUsed + '</td><td>'+ circuitSelectEggTimerHTML +'</td><td colspan=2><a tabindex="0" class="btn" role="button" data-toggle="popover" data-trigger="focus" title="Add an egg timer" data-content="Select a circuit to add an egg timer.  It will default to 2 hours, 0 mins and you can refine it from there.</p>  <p>Note: If slots are available, they will show in both egg timers and schedules.  Select in the appropriate section to add it.</p> <p>The option to add additional circuits will not appear if there are no available slots.</p>"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>Adding an egg timer</a></td></tr>'
+        $('#eggtimers').append(strEggTimer)
+        $('#addEggTimerCircuit').selectpicker({
           mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
         });
-        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
-          socket.emit('setScheduleCircuit', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'))
-          })
+        $('#addEggTimerCircuit').on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          socket.emit('setSchedule', idOfFirstNotUsed, $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
+          console.log('setSchedule', idOfFirstNotUsed, $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
+        })
+
+        strSchedule =  '<tr class="schEdit"'
+        if (!$('#editPanelschedule').hasClass('btn-success'))
+          strSchedule += ' style="display:none" '
+        strSchedule += '><td>' + idOfFirstNotUsed + '</td><td>'+ circuitSelectScheduleHTML +'</td><td colspan=2><a tabindex="0" class="btn" role="button" data-toggle="popover" data-trigger="focus" title="Add a schedule" data-content="Select a circuit to add a schedule.  It will default to run from 8am-9am on no days and you can refine it further from there.<p>Note: If slots are available, they will show in both egg timers and schedules.  Select in the appropriate section to add it.</p> <p>The option to add additional circuits will not appear if none are available.</p>"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>Adding a schedule</a></td></tr>'
+        $('#schedules').append(strSchedule)
+        $('#addScheduleCircuit').selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $('#addScheduleCircuit').on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          socket.emit('setSchedule', idOfFirstNotUsed, $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,128)
+          console.log('setSchedule', idOfFirstNotUsed, $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,0)
+        })
+
+        //enable all tooltips
+        $('[data-toggle="popover"]').popover({trigger: "hover click", html: true, container: 'body'});
       }
 
-      function bindSelectPickerEggTimerCircuit(el) {
+
+      function bindSelectPickerScheduleCircuit(el, _default) {
         // To style only <select>s with the selectpicker class
         $(el).selectpicker({
           mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
         });
+        $(el).selectpicker('val', _default)
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
-          socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
-          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
-          })
+          if ($(el).val() === "DELETE") {
+            socket.emit('deleteScheduleOrEggTimer', $(el).closest('tr').data('id'))
+          } else {
+            socket.emit('setScheduleCircuit', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'))
+          }
+        })
       }
 
-      function bindSelectPickerHour(el) {
+      function bindSelectPickerEggTimerCircuit(el, _default) {
         // To style only <select>s with the selectpicker class
         $(el).selectpicker({
           mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
         });
+        $(el).selectpicker('val', _default)
+        $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+          if ($(el).val() === "DELETE") {
+            socket.emit('deleteScheduleOrEggTimer', $(el).closest('tr').data('id'))
+          } else {
+            socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
+            //console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).find('option:selected').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).closest('tr').data('min'))
+          }
+        })
+      }
+
+      function bindSelectPickerHour(el, _default) {
+        // To style only <select>s with the selectpicker class
+        $(el).selectpicker({
+          mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+        });
+        $(el).selectpicker('val', _default)
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('min'))
           //console.log('egg id: %s  hour changed to %s.  circuit %s.  min %s', $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('min'))
@@ -553,11 +649,12 @@ function startSocketRx() {
       }
 
 
-      function bindSelectPickerMin(el) {
+      function bindSelectPickerMin(el, _default) {
         // To style only <select>s with the selectpicker class
         $(el).selectpicker({
           mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
         });
+        $(el).selectpicker('val', _default)
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
           console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())

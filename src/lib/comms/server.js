@@ -139,6 +139,15 @@ module.exports = function(container) {
             res.send(response)
           })
 
+          app.get('/schedule/delete/id/:id', function(req, res) {
+            var id = parseInt(req.params.id)
+              var response = {}
+              response.text = 'REST API received request to delete schedule or egg timer with ID:' + id
+              container.logger.info(response)
+              container.schedule.deleteScheduleOrEggTimer(id)
+              res.send(response)
+            })
+
           app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function(req, res) {
             var id = parseInt(req.params.id)
             var hour = parseInt(req.params.hour)
