@@ -42,7 +42,10 @@ describe('chlorinator controller', function() {
 
         it('sets chlorinator timer to run after 4 seconds at 0%', function() {
             //bottle.container.settings.chlorinator.desiredOutput = 0
-            getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve(0))
+            getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve({
+                "pool": 0,
+                "spa": 12
+            }))
             return bottle.container.chlorinator.init()
             .then(function(){
               bottle.container.chlorinatorController.startChlorinatorController()
@@ -60,7 +63,10 @@ describe('chlorinator controller', function() {
         });
 
         it('sets chlorinator timer to run after 4 seconds at 10%', function() {
-          getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve(10))
+          getChlorStub = sandbox.stub(bottle.container.configEditor, 'getChlorinatorDesiredOutput').returns(Promise.resolve({
+              "pool": 10,
+              "spa": 12
+          }))
           return bottle.container.chlorinator.init()
           .then(function(){
             bottle.container.chlorinatorController.startChlorinatorController()

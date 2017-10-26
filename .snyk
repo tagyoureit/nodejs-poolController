@@ -70,6 +70,22 @@ ignore:
     - serialport > node-pre-gyp > request > tunnel-agent:
         reason: None given
         expires: '2017-10-21T03:53:09.672Z'
+  'npm:debug:20170905':
+    - socket.io > debug:
+        reason: '-'
+        expires: '2017-11-24T15:40:17.408Z'
+    - socket.io > socket.io-parser > debug:
+        reason: '-'
+        expires: '2017-11-24T15:40:17.408Z'
+    - socket.io > socket.io-client > debug:
+        reason: '-'
+        expires: '2017-11-24T15:40:17.408Z'
+    - socket.io > socket.io-client > socket.io-parser > debug:
+        reason: '-'
+        expires: '2017-11-24T15:40:17.408Z'
+    - socket.io > socket.io-client > engine.io-client > debug:
+        reason: '-'
+        expires: '2017-11-24T15:40:17.408Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

@@ -45,6 +45,7 @@
     "influx": "^5.0.7",
     "jquery-ui-dist": "^1.12.1",
     "promised-io": "^0.3.5",
+    "socket.io": "^2.0.4",
     "underscore": "^1.8.3",
     "winston": "^2.2.0"
   },

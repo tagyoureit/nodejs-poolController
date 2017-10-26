@@ -202,12 +202,6 @@ function buildEggTime(currSchedule) {
 
   schNameEdit = schName + 'Edit'
 
-
-
-
-
-
-
   circuitSelectHTML = '<div class="input-group" style="width:150px"><select class="selectpicker show-menu-arrow show-tick" id="' + schName + 'Circuit">'
   //circuitSelectHTML += '<option>' + currSchedule.friendlyName.capitalizeFirstLetter() + '</option>'
   if (Object.keys(currCircuitArr).length > 1) {
@@ -583,7 +577,7 @@ function startSocketRx() {
         });
         $('#addEggTimerCircuit').on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setSchedule', idOfFirstNotUsed, $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
-          console.log('setSchedule', idOfFirstNotUsed, $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
+          //console.log('setSchedule', idOfFirstNotUsed, $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
           $('#addEggTimerCircuit').prop('disabled', true)
           $('#addEggTimerCircuit').selectpicker('refresh')
         })
@@ -598,7 +592,7 @@ function startSocketRx() {
         });
         $('#addScheduleCircuit').on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setSchedule', idOfFirstNotUsed, $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,128)
-          console.log('setSchedule', idOfFirstNotUsed, $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,0)
+          //console.log('setSchedule', idOfFirstNotUsed, $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,0)
           $('#addScheduleCircuit').prop('disabled', true)
           $('#addScheduleCircuit').selectpicker('refresh')
         })
@@ -652,7 +646,7 @@ function startSocketRx() {
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).val(), $(el).closest('tr').data('min'))
           //console.log('egg id: %s  hour changed to %s.  circuit %s.  min %s', $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('min'))
-          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).val(), $(el).closest('tr').data('min'))
+          //console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).val(), $(el).closest('tr').data('min'))
           $(el).prop('disabled', true)
           $(el).selectpicker('refresh')
         })
@@ -667,7 +661,7 @@ function startSocketRx() {
         $(el).selectpicker('val', _default)
         $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
           socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
-          console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
+          //console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
           $(el).prop('disabled', true)
           $(el).selectpicker('refresh')
         })

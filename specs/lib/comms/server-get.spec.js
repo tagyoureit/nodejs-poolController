@@ -64,7 +64,7 @@ describe('server', function() {
 
             it('returns pump status in a JSON', function(done) {
 
-                var pumpStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus', function() {
+                var pumpStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'pumpstatus.json')))
                 })
 
@@ -80,7 +80,7 @@ describe('server', function() {
 
 
             it('returns everything in a JSON', function(done) {
-                var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON', function() {
+                var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 requestPoolDataWithURL('all').then(function(obj) {
@@ -92,7 +92,7 @@ describe('server', function() {
             });
 
             it('returns circuits in a JSON', function(done) {
-                var circuitStub = sandbox.stub(bottle.container.circuit, 'getCurrentCircuits', function() {
+                var circuitStub = sandbox.stub(bottle.container.circuit, 'getCurrentCircuits').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'circuit.json')))
                 })
                 requestPoolDataWithURL('circuit').then(function(obj) {
@@ -102,7 +102,7 @@ describe('server', function() {
                 })
             });
             it('returns heat in a JSON', function(done) {
-                var heatStub = sandbox.stub(bottle.container.heat, 'getCurrentHeat', function() {
+                var heatStub = sandbox.stub(bottle.container.heat, 'getCurrentHeat').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'heat.json')))
                 })
                 requestPoolDataWithURL('heat').then(function(obj) {
@@ -113,7 +113,7 @@ describe('server', function() {
 
             });
             it('returns schedule in a JSON', function(done) {
-                var scheduleStub = sandbox.stub(bottle.container.schedule, 'getCurrentSchedule', function() {
+                var scheduleStub = sandbox.stub(bottle.container.schedule, 'getCurrentSchedule').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'schedule.json')))
                 })
                 requestPoolDataWithURL('schedule').then(function(obj) {
@@ -124,7 +124,7 @@ describe('server', function() {
 
             });
             it('returns temps in a JSON', function(done) {
-                var tempStub = sandbox.stub(bottle.container.temperatures, 'getTemperatures', function() {
+                var tempStub = sandbox.stub(bottle.container.temperatures, 'getTemperatures').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'temperatures.json')))
                 })
                 requestPoolDataWithURL('temperatures').then(function(obj) {
@@ -135,7 +135,7 @@ describe('server', function() {
 
             });
             it('returns time in a JSON', function(done) {
-                var timeStub = sandbox.stub(bottle.container.time, 'getTime', function() {
+                var timeStub = sandbox.stub(bottle.container.time, 'getTime').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'time.json')))
                 })
                 requestPoolDataWithURL('time').then(function(obj) {
@@ -146,7 +146,7 @@ describe('server', function() {
 
             });
             it('returns chlorinator in a JSON', function(done) {
-                var chlorStub = sandbox.stub(bottle.container.chlorinator, 'getChlorinatorStatus', function() {
+                var chlorStub = sandbox.stub(bottle.container.chlorinator, 'getChlorinatorStatus').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'chlorinator.json')))
                 })
                 requestPoolDataWithURL('chlorinator').then(function(obj) {
@@ -157,7 +157,7 @@ describe('server', function() {
 
             });
             it('returns circuit (9) in a JSON', function(done) {
-                var circuit9Stub = sandbox.stub(bottle.container.circuit, 'getCircuit', function() {
+                var circuit9Stub = sandbox.stub(bottle.container.circuit, 'getCircuit').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'circuit9.json')))
                 })
                 requestPoolDataWithURL('circuit/9').then(function(obj) {

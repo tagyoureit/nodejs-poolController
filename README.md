@@ -2,7 +2,7 @@
 # nodejs-poolController - Version 4.0.0
 
 
-[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # License
 
@@ -110,9 +110,9 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>toggleCircuit(equipment)</code> | toggles the variable `equipment` (as a circuit number)  |
 | To app | <code>search(mode, src, dest, action)</code> | Searches for specific packets that match all four bytes and outputs to the socket <code>searchResults</code>
 | To app | <code>sendPacket(packet)</code> | Send a `packet` as a string of values (xx,yy,zz,etc) to the bus in .  Pump and Controller packets should start with [SRC, DEST...].  Chlorinator packets should start with [16,2...]
-****| To app | <code>spasetpoint(spasetpoint)</code> | Change the `spa to setpoint` (degrees)
+| To app | <code>spasetpoint(spasetpoint)</code> | Change the `spa to setpoint` (degrees)
 | To app | <code>spaheatmode(spaheatmode)</code> | Change the `spa heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
-****| To app | <code>poolsetpoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
+| To app | <code>poolsetpoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
 | To app | <code>poolheatmode(poolheatmode)</code> | Change the `pool heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
 | To app | _deprecated_ ~~<code>pumpCommand(equip, program, value, duration)</code>~~ | Save `pump` (96=pump 1, 97=pump 2) to  `program`
 | To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
