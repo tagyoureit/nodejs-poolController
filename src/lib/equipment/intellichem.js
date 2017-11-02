@@ -74,7 +74,7 @@ module.exports = function(container) {
          'ORP': -1,
          'CYA': -1,
          'TOTALALKALINITY': -1,
-         'waterFlow': -1
+         'WATERFLOW': -1
        },
        'setpoint': {
          'PH': -1,
@@ -175,8 +175,10 @@ module.exports = function(container) {
         container.logger.silly('\nMsg# %s  IntelliChem packet %s', counter, JSON.stringify(data))
 
       intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
+      console.log('orp ', data[container.constants.intellichemPacketFields.ORPREADINGHI], data[container.constants.intellichemPacketFields.ORPREADINGLO])
       intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
       intellichem.readings.CYA = data[container.constants.intellichemPacketFields.CYAREADING]
+      intellichem.readings.WATERFLOW = data[container.constants.intellichemPacketFields.WATERFLOW]
       intellichem.readings.TOTALALKALINITY = (data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGHI] * 256) + data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGLO]
       intellichem.readings.SALT = container.settings.chlorinator ? container.chlorinator.getSaltPPM() : 0
 

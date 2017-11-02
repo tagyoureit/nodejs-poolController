@@ -605,8 +605,8 @@ module.exports = function(container) {
       ORPREADINGLO: 9,
       PHSETPOINTHI: 10,
       PHSETPOINTLO: 11,
-      ORPSETPOINTLO: 12,
-      ORPSETPOINTHI: 13,
+      ORPSETPOINTHI: 12,
+      ORPSETPOINTLO: 13,
       TANK1: 25,
       TANK2: 26,
       CALCIUMHARDNESSHI: 28,
@@ -614,6 +614,7 @@ module.exports = function(container) {
       CYAREADING: 31,
       TOTALALKALINITYREADINGHI: 32,
       TOTALALKALINITYREADINGLO: 33,
+      WATERFLOW: 35,
       MODE1: 38,
       MODE2: 39
     }
