@@ -607,16 +607,16 @@ module.exports = function(container) {
       PHSETPOINTLO: 11,
       ORPSETPOINTHI: 12,
       ORPSETPOINTLO: 13,
-      TANK1: 25,
-      TANK2: 26,
-      CALCIUMHARDNESSHI: 28,
-      CALCIUMHARDNESSLO: 29,
-      CYAREADING: 31,
-      TOTALALKALINITYREADINGHI: 32,
-      TOTALALKALINITYREADINGLO: 33,
-      WATERFLOW: 35,
-      MODE1: 38,
-      MODE2: 39
+      TANK1: 26,
+      TANK2: 27,
+      CALCIUMHARDNESSHI: 29,
+      CALCIUMHARDNESSLO: 30,
+      CYAREADING: 32,
+      TOTALALKALINITYREADINGHI: 33,
+      TOTALALKALINITYREADINGLO: 34,
+      WATERFLOW: 36,
+      MODE1: 40,
+      MODE2: 41
     }
 
     /*istanbul ignore next */
