@@ -34,7 +34,7 @@ describe('checks if there is a newer version available', function() {
             })
 
             it('#notifies of a new release available (remote > local)', function(done) {
-                this.timeout(5000)
+                this.timeout(10000) //times out on Travis with 5000 timeout.
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))

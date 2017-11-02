@@ -823,6 +823,7 @@ function handlePanels() {
 function handleButtons() {
 
   // Button Handling: gitState => Hide Code State (and flag upstream). Note, hidden to start (default, in index.html), unhide (change visibility) if state received.
+  $('#gitState').tooltip() //enable tooltip
   $('#gitState').click(function() {
     $('#gitState')[0].style.visibility = "hidden";
     socket.emit('updateVersionNotification', true);

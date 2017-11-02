@@ -38,7 +38,7 @@ module.exports = function(container) {
 
 
   var init = function() {
-    currentChlorinatorStatus = new Chlorinator(0,-1, -1, -1, -1, -1, -1, -1);
+    currentChlorinatorStatus = new Chlorinator(0, -1, -1, -1, -1, -1, -1, -1);
     return container.configEditor.getChlorinatorDesiredOutput()
       .then(function(output) {
         currentChlorinatorStatus.outputPoolPercent = output.pool
@@ -64,7 +64,6 @@ module.exports = function(container) {
     // 144: "Clean Salt Cell",
     // 145: "???"
     //MSb to LSb [ "Check Flow/PCB","Low Salt","Very Low Salt","High Current","Clean Cell","Low Voltage","Water Temp Low","No Comm","OK" ]
-
     var chlorStr = ''
     var needDelim = 0;
     if ((status === 0)) {
@@ -138,7 +137,7 @@ module.exports = function(container) {
     chlorinatorStatus.status = chlorinatorStatusStr(status)
     chlorinatorStatus.name = name;
 
-    if (currentChlorinatorStatus.saltPPM === -1 && currentChlorinatorStatus.installed===1) {
+    if (currentChlorinatorStatus.saltPPM === -1 && currentChlorinatorStatus.installed === 1) {
       currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
       if (container.settings.logChlorinator)
         container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
@@ -304,37 +303,7 @@ module.exports = function(container) {
 
           var saltPPM = data[4] * 50;
           var status = chlorinatorStatusStr(data[5])
-          // switch (data[5]) {
-          //     case 0: //ok
-          //         {
-          //             status = "Ok";
-          //             break;
-          //         }
-          //     case 1:
-          //         {
-          //             status = "No flow";
-          //             break;
-          //         }
-          //     case 2:
-          //         {
-          //             status = "Low Salt";
-          //             break;
-          //         }
-          //     case 4:
-          //         {
-          //             status = "High Salt";
-          //             break;
-          //         }
-          //     case 144:
-          //         {
-          //             status = "Clean Salt Cell"
-          //             break;
-          //         }
-          //     default:
-          //         {
-          //             status = "Unknown - Status code: " + data[5];
-          //         }
-          // }
+
           if (currentChlorinatorStatus.saltPPM !== saltPPM || currentChlorinatorStatus.status !== status) {
             if (container.settings.logChlorinator)
               container.logger.verbose('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
@@ -343,6 +312,10 @@ module.exports = function(container) {
             container.io.emitToClients('chlorinator')
 
           }
+
+          if (container.settings.logChlorinator)
+            container.logger.debug('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
+
 
           break
         }

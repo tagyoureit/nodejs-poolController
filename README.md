@@ -729,6 +729,8 @@ Docker Instructions
  * Support for up to 50 circuits, 8 pumps
  * Delay and Cancel Delay for circuits
 
+4.1 -
+ * Added set/delete/add schedule
 
 # Wish list
 1.  Still many messages to debug

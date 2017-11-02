@@ -123,6 +123,10 @@ module.exports = function(container) {
         io.sockets.emit('chlorinator', chlor)
     }
 
+    if (outputType === 'all') {
+        io.sockets.emit('all', container.helpers.allEquipmentInOneJSON())
+    }
+
     if (outputType === 'searchResults') {
       io.sockets.emit('searchResults', data);
     }

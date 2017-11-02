@@ -596,6 +596,28 @@ module.exports = function(container) {
         "DAYS": 12
     };
 
+    var intellichemPacketFields = {
+      DEST: 2,
+      ACTION: 3,
+      PHREADINGHI: 6,
+      PHREADINGLO: 7,
+      ORPREADINGHI: 8,
+      ORPREADINGLO: 9,
+      PHSETPOINTHI: 10,
+      PHSETPOINTLO: 11,
+      ORPSETPOINTLO: 12,
+      ORPSETPOINTHI: 13,
+      TANK1: 25,
+      TANK2: 26,
+      CALCIUMHARDNESSHI: 28,
+      CALCIUMHARDNESSLO: 29,
+      CYAREADING: 31,
+      TOTALALKALINITYREADINGHI: 32,
+      TOTALALKALINITYREADINGLO: 33,
+      MODE1: 38,
+      MODE2: 39
+    }
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: ants.js')
@@ -624,7 +646,8 @@ module.exports = function(container) {
         heatMode: heatMode,
         ctrl: ctrl,
         ctrlString: ctrlString,
-        schedulePacketBytes: schedulePacketBytes
+        schedulePacketBytes: schedulePacketBytes,
+        intellichemPacketFields: intellichemPacketFields
     }
 
 }
