@@ -448,7 +448,7 @@ module.exports = function(container) {
         231: 'Get Light group/positions',
         232: 'Get Settings, Heat Mode?',
         252: 'SW Version Info',
-        253: 'Get SW Version',
+        253: 'Get SW Version'
     }
 
     var strIntellibriteModes = {

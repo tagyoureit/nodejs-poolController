@@ -41,16 +41,16 @@ module.exports = function(container) {
   26-27 Tank levels; 21 is acid? 22 is chlorine?
   06 and 05
 
-  30-31 Chlorine setpoint
+  29-30 Chlorine setpoint
   90 is CH (90 = 400; 8b = 395) hi/lo bits
 
-  33
+  32
   00 is CYA (00 = 0; 9 = 9; c9 = 201) (does not appear to have hi/lo - 201 is max
 
-  34-35
+  33-34 - Total Alkalinity
   96 is TA (96 = 150)
 
-  34 - Water Flow Alarm (00 is ok; 01 is no flow)
+  36 - Water Flow Alarm (00 is ok; 01 is no flow)
   00 flow is OK
   01 flow is Alarm on (Water STOPPED)
 
@@ -68,156 +68,177 @@ module.exports = function(container) {
    */
 
 
-     var intellichem = {
-       'readings': {
-         'PH': -1,
-         'ORP': -1,
-         'CYA': -1,
-         'TOTALALKALINITY': -1,
-         'WATERFLOW': -1
-       },
-       'setpoint': {
-         'PH': -1,
-         'ORP': -1,
-         'CALCIUMHARDNESS': -1
-       },
-       'tankLevels': {
-         '1': -1,
-         '2': -1
-       },
-       'mode': {
-         '1': -1,
-         '2': -1
-       }
-     }
-
-
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loading: intellichem.js')
-
-    var intellichemPresent = 0;
-
-    function calculateCalciumHardnessFactor() {
-      var CH = 0;
-      var ppm = intellichem.setpoint.CALCIUMHARDNESS
-      if (ppm <= 25) CH = 1.0
-      else if (ppm <= 50) CH = 1.3
-      else if (ppm <= 75) CH = 1.5
-      else if (ppm <= 100) CH = 1.6
-      else if (ppm <= 125) CH = 1.7
-      else if (ppm <= 150) CH = 1.8
-      else if (ppm <= 200) CH = 1.9
-      else if (ppm <= 250) CH = 2.0
-      else if (ppm <= 300) CH = 2.1
-      else if (ppm <= 400) CH = 2.2
-      else if (ppm <= 800) CH = 2.5
-      return CH
+  var intellichem = {
+    'readings': {
+      'PH': -1,
+      'ORP': -1,
+      'CYA': -1,
+      'TOTALALKALINITY': -1,
+      'WATERFLOW': -1
+    },
+    'setpoint': {
+      'PH': -1,
+      'ORP': -1,
+      'CALCIUMHARDNESS': -1
+    },
+    'tankLevels': {
+      '1': -1,
+      '2': -1
+    },
+    'mode': {
+      '1': -1,
+      '2': -1
     }
+  }
 
-    function calculateTemperatureFactor() {
-      var TF = 0;
-      var temp = container.temperatures.getTemperatures().poolTemp
-      if (container.UOM.getUOMStr === 'Farenheit') {
-        if (temp <= 32) TF = 0.0
-        else if (temp <= 37) TF = 0.1
-        else if (temp <= 46) TF = 0.2
-        else if (temp <= 53) TF = 0.3
-        else if (temp <= 60) TF = 0.4
-        else if (temp <= 66) TF = 0.5
-        else if (temp <= 76) TF = 0.6
-        else if (temp <= 84) TF = 0.7
-        else if (temp <= 94) TF = 0.8
-        else if (temp <= 105) TF = 0.9
-      } else {
-        if (temp <= 0) TF = 0.0
-        else if (temp <= 2.8) TF = 0.1
-        else if (temp <= 7.8) TF = 0.2
-        else if (temp <= 11.7) TF = 0.3
-        else if (temp <= 15.6) TF = 0.4
-        else if (temp <= 18.9) TF = 0.5
-        else if (temp <= 24.4) TF = 0.6
-        else if (temp <= 28.9) TF = 0.7
-        else if (temp <= 34.4) TF = 0.8
-        else if (temp <= 40.6) TF = 0.9
+
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loading: intellichem.js')
+
+  var intellichemPresent = 0;
+
+  function calculateCalciumHardnessFactor() {
+    var CH = 0;
+    var ppm = intellichem.setpoint.CALCIUMHARDNESS
+    if (ppm <= 25) CH = 1.0
+    else if (ppm <= 50) CH = 1.3
+    else if (ppm <= 75) CH = 1.5
+    else if (ppm <= 100) CH = 1.6
+    else if (ppm <= 125) CH = 1.7
+    else if (ppm <= 150) CH = 1.8
+    else if (ppm <= 200) CH = 1.9
+    else if (ppm <= 250) CH = 2.0
+    else if (ppm <= 300) CH = 2.1
+    else if (ppm <= 400) CH = 2.2
+    else if (ppm <= 800) CH = 2.5
+    return CH
+  }
+
+  function calculateTemperatureFactor() {
+    var TF = 0;
+    var temp = container.temperatures.getTemperatures().poolTemp
+    if (container.UOM.getUOMStr === 'Farenheit') {
+      if (temp <= 32) TF = 0.0
+      else if (temp <= 37) TF = 0.1
+      else if (temp <= 46) TF = 0.2
+      else if (temp <= 53) TF = 0.3
+      else if (temp <= 60) TF = 0.4
+      else if (temp <= 66) TF = 0.5
+      else if (temp <= 76) TF = 0.6
+      else if (temp <= 84) TF = 0.7
+      else if (temp <= 94) TF = 0.8
+      else if (temp <= 105) TF = 0.9
+    } else {
+      if (temp <= 0) TF = 0.0
+      else if (temp <= 2.8) TF = 0.1
+      else if (temp <= 7.8) TF = 0.2
+      else if (temp <= 11.7) TF = 0.3
+      else if (temp <= 15.6) TF = 0.4
+      else if (temp <= 18.9) TF = 0.5
+      else if (temp <= 24.4) TF = 0.6
+      else if (temp <= 28.9) TF = 0.7
+      else if (temp <= 34.4) TF = 0.8
+      else if (temp <= 40.6) TF = 0.9
+    }
+    return TF
+  }
+
+  function correctedAlkalinity() {
+    return intellichem.readings.TOTALALKALINITY - (intellichem.readings.CYA / 3)
+  }
+
+  function calculateTotalCarbonateAlkalinity() {
+    var ppm = correctedAlkalinity()
+    var AF = 0;
+    if (ppm <= 25) AF = 1.4
+    else if (ppm <= 50) AF = 1.7
+    else if (ppm <= 75) AF = 1.9
+    else if (ppm <= 100) AF = 2.0
+    else if (ppm <= 125) AF = 2.1
+    else if (ppm <= 150) AF = 2.2
+    else if (ppm <= 200) AF = 2.3
+    else if (ppm <= 250) AF = 2.4
+    else if (ppm <= 300) AF = 2.5
+    else if (ppm <= 400) AF = 2.6
+    else if (ppm <= 800) AF = 2.9
+    return AF
+  }
+
+  function calculateTotalDisolvedSolidsFactor() {
+    // 12.1 for non-salt pools; 12.2 for salt pools
+    return container.settings.chlorinator.installed ? 12.2 : 12.1
+  }
+
+  function processIntellichemControllerPacket(data, counter) {
+    if (container.settings.logConfigMessages)
+      container.logger.silly('\nMsg# %s  IntelliChem packet %s', counter, JSON.stringify(data))
+
+    intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
+    intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
+    intellichem.readings.CYA = data[container.constants.intellichemPacketFields.CYAREADING]
+    intellichem.readings.WATERFLOW = data[container.constants.intellichemPacketFields.WATERFLOW]
+    intellichem.readings.TOTALALKALINITY = (data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGHI] * 256) + data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGLO]
+    intellichem.readings.SALT = container.settings.chlorinator ? container.chlorinator.getSaltPPM() : 0
+
+
+    intellichem.setpoint.PH = ((data[container.constants.intellichemPacketFields.PHSETPOINTHI] * 256) + data[container.constants.intellichemPacketFields.PHSETPOINTLO]) / 100
+    intellichem.setpoint.ORP = (data[container.constants.intellichemPacketFields.ORPSETPOINTHI] * 256) + data[container.constants.intellichemPacketFields.ORPSETPOINTLO]
+    intellichem.setpoint.CALCIUMHARDNESS = (data[container.constants.intellichemPacketFields.CALCIUMHARDNESSHI] * 256) + data[container.constants.intellichemPacketFields.CALCIUMHARDNESSLO]
+
+    intellichem.tankLevels[1] = data[container.constants.intellichemPacketFields.TANK1]
+    intellichem.tankLevels[2] = data[container.constants.intellichemPacketFields.TANK2]
+
+    intellichem.mode[1] = data[container.constants.intellichemPacketFields.MODE1]
+    intellichem.mode[2] = data[container.constants.intellichemPacketFields.MODE2]
+
+    container.logger.info('Intellichem packet found: \n\t', JSON.stringify(intellichem, null, 2))
+    intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() + calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor()) * 1000) / 1000
+    container.logger.info('Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())
+
+  }
+
+  function getIntellichem() {
+    return intellichem
+  }
+
+  var init = function() {
+    intellichem = {
+      'readings': {
+        'PH': -1,
+        'ORP': -1,
+        'CYA': -1,
+        'TOTALALKALINITY': -1,
+        'WATERFLOW': -1
+      },
+      'setpoint': {
+        'PH': -1,
+        'ORP': -1,
+        'CALCIUMHARDNESS': -1
+      },
+      'tankLevels': {
+        '1': -1,
+        '2': -1
+      },
+      'mode': {
+        '1': -1,
+        '2': -1
       }
-      return TF
     }
-
-    function correctedAlkalinity() {
-      return intellichem.readings.TOTALALKALINITY - (intellichem.readings.CYA / 3)
-    }
-
-    function calculateTotalCarbonateAlkalinity() {
-      var ppm = correctedAlkalinity()
-      var AF = 0;
-      if (ppm <= 25) AF = 1.4
-      else if (ppm <= 50) AF = 1.7
-      else if (ppm <= 75) AF = 1.9
-      else if (ppm <= 100) AF = 2.0
-      else if (ppm <= 125) AF = 2.1
-      else if (ppm <= 150) AF = 2.2
-      else if (ppm <= 200) AF = 2.3
-      else if (ppm <= 250) AF = 2.4
-      else if (ppm <= 300) AF = 2.5
-      else if (ppm <= 400) AF = 2.6
-      else if (ppm <= 800) AF = 2.9
-      return AF
-    }
-
-    function calculateTotalDisolvedSolidsFactor() {
-      // 12.1 for non-salt pools; 12.2 for salt pools
-      return container.settings.chlorinator.installed ? 12.2 : 12.1
-    }
-
-    function processIntellichemControllerPacket(data, counter){
-      if (container.settings.logConfigMessages)
-        container.logger.silly('\nMsg# %s  IntelliChem packet %s', counter, JSON.stringify(data))
-
-      intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
-      console.log('orp ', data[container.constants.intellichemPacketFields.ORPREADINGHI], data[container.constants.intellichemPacketFields.ORPREADINGLO])
-      intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
-      intellichem.readings.CYA = data[container.constants.intellichemPacketFields.CYAREADING]
-      intellichem.readings.WATERFLOW = data[container.constants.intellichemPacketFields.WATERFLOW]
-      intellichem.readings.TOTALALKALINITY = (data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGHI] * 256) + data[container.constants.intellichemPacketFields.TOTALALKALINITYREADINGLO]
-      intellichem.readings.SALT = container.settings.chlorinator ? container.chlorinator.getSaltPPM() : 0
-
-
-      intellichem.setpoint.PH = ((data[container.constants.intellichemPacketFields.PHSETPOINTHI] * 256) + data[container.constants.intellichemPacketFields.PHSETPOINTLO]) / 100
-      intellichem.setpoint.ORP = (data[container.constants.intellichemPacketFields.ORPSETPOINTHI] * 256) + data[container.constants.intellichemPacketFields.ORPSETPOINTLO]
-      intellichem.setpoint.CALCIUMHARDNESS = (data[container.constants.intellichemPacketFields.CALCIUMHARDNESSHI] * 256) + data[container.constants.intellichemPacketFields.CALCIUMHARDNESSLO]
-
-      intellichem.tankLevels[1] = data[container.constants.intellichemPacketFields.TANK1]
-      intellichem.tankLevels[2] = data[container.constants.intellichemPacketFields.TANK2]
-
-      intellichem.mode[1] = data[container.constants.intellichemPacketFields.MODE1]
-      intellichem.mode[2] = data[container.constants.intellichemPacketFields.MODE2]
-
-      container.logger.info('Intellichem packet found: \n\t', JSON.stringify(intellichem, null, 2))
-      intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() +  calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor())*1000)/1000
-      container.logger.info('Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())
-
-    }
-
-    function getIntellichem(){
-      return intellichem
-    }
-
-    var init =function() {
-          container.logger.debug('Initialized intellichem module')
-        }
+    container.logger.debug('Initialized intellichem module')
+  }
 
 
 
-    /*istanbul ignore next */
-    if (container.logModuleLoading)
-        container.logger.info('Loaded: intellichem.js')
+  /*istanbul ignore next */
+  if (container.logModuleLoading)
+    container.logger.info('Loaded: intellichem.js')
 
-    return {
-        init: init,
-        processIntellichemControllerPacket: processIntellichemControllerPacket,
-        getIntellichem: getIntellichem
-    }
+  return {
+    init: init,
+    processIntellichemControllerPacket: processIntellichemControllerPacket,
+    getIntellichem: getIntellichem
+  }
 
 
 }

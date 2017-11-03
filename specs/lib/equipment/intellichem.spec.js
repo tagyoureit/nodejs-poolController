@@ -10,57 +10,58 @@ describe('processes Intellichem packets', function() {
 
             before(function() {
               bottle.container.settings.logConfigMessages = 1
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logPacketWrites = 1
-                bottle.container.settings.logConsoleNotDecoded = 1
+                //bottle.container.settings.logMessageDecoding = 1
+                //bottle.container.settings.logPacketWrites = 1
+                //bottle.container.settings.logConsoleNotDecoded = 1
                 bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                //loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                //loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
 
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
-                isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
-                isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
-                isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
-                isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
-                writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
-                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
-                processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
-                processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
-                bottle.container.queuePacket.queuePacketsArrLength = 0
+                // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                // // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                // checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
+                // isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
+                // isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
+                // isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
+                // isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
+                // writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
+                // controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                // processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
+                // processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
+                // processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
+                //bottle.container.queuePacket.queuePacketsArrLength = 0
             })
 
             afterEach(function() {
-                bottle.container.queuePacket.queuePacketsArrLength = 0
+                //bottle.container.queuePacket.queuePacketsArrLength = 0
                 sandbox.restore()
 
             })
 
             after(function() {
               bottle.container.settings.logConfigMessages = 0
-                bottle.container.settings.logPacketWrites = 0
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logConsoleNotDecoded = 0
+                //bottle.container.settings.logPacketWrites = 0
+                //bottle.container.settings.logMessageDecoding = 0
+                //bottle.container.settings.logConsoleNotDecoded = 0
                 bottle.container.logger.transports.console.level = 'info';
             })
 
-            it('#packet should have these values', function() {
+            it('#SI should equal -0.31', function() {
 
                 //    bottle.container.decodeHelper.checksum(testarrayGOOD[0], 25, equip).should.be.true
 
                 bottle.container.controller_18.process(intellichemPackets[0], 0)
                 var json = bottle.container.intellichem.getIntellichem()
-                console.log('json for intellichem: ', JSON.stringify(json,null,2))
+                //console.log('json for intellichem: ', JSON.stringify(json,null,2))
+                json.readings.SI.should.equal(-0.31)
             })
 
 
