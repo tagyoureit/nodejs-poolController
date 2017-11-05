@@ -23,15 +23,7 @@ module.exports = function(container) {
     container.logger.info('Loading: 40.js')
 
   function process(data, counter) {
-    // Something to do with heat modes...
-    // 165,33,16,34,168,10,0,0,0,254,0,0,0,0,0,0,2,168 = manual heat mode off
-    // 165,33,16,34,168,10,0,0,0,254,1,0,0,0,0,0,2,169 = manual heat mode on
-
-    var manualHeatMode = data[10]===0?'On':'Off'
-
-    if (container.settings.logMessageDecoding)
-      container.logger.debug('Msg#: %s  Settings/Manual heat packet.  Manual Heat %s  Full packet: %s', counter, manualHeatMode , data);
-
+    container.heat.setSpaManualHeatMode(data)
 
     return true
   }

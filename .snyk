@@ -74,12 +74,21 @@ ignore:
     - socket.io > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
+      socket.io-client > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-parser > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
+      socket.io-client > socket.io-parser > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-client > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
+      socket.io-client > engine.io-client > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-client > socket.io-parser > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'

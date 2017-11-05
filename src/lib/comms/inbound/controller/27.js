@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Intellichlor status
+// Extended Pump Config
 module.exports = function(container) {
 
   /*istanbul ignore next */
@@ -189,7 +189,7 @@ module.exports = function(container) {
   function process(data, counter) {
 
 
-    if (container.settings.logChlorinator)
+    if (container.settings.logPumpMessages)
       container.logger.debug('Msg# %s   Pump Config (Extended) status packet: %s', counter, data)
 
 

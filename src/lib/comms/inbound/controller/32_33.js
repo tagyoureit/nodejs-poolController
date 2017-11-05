@@ -41,7 +41,7 @@ module.exports = function(container) {
       spasideRemote[controllerType].button2 = container.circuit.getCircuitName(data[8])
       spasideRemote[controllerType].button3 = container.circuit.getCircuitName(data[9])
       spasideRemote[controllerType].button4 = container.circuit.getCircuitName(data[10])
-      if (spasideRemote[controllerType].controllerType === 'is4') {
+      if (controllerType === 'is4') {
         //is4 packet has these bytes, but they don't appear to be used
         spasideRemote[controllerType].byte5 = 'Not used -- ' + data[11]
         spasideRemote[controllerType].byte6 = 'Not used -- ' + data[12]

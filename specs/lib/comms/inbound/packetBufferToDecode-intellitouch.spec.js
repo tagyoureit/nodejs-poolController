@@ -25,6 +25,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
                 socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
                 iOAOAStub = sandbox.spy(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
+                bottle.container.temperatures.init()
 
             })
 

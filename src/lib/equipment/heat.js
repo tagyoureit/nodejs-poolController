@@ -48,11 +48,12 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: heat.js')
 
-    function Heat(poolSetPoint, poolHeatMode, spaSetPoint, spaHeatMode) {
+    function Heat(poolSetPoint, poolHeatMode, spaSetPoint, spaManualHeatMode, spaHeatMode) {
         this.poolSetPoint = poolSetPoint;
         this.poolHeatMode = poolHeatMode;
         this.poolHeatModeStr = container.constants.heatModeStr[poolHeatMode]
         this.spaSetPoint = spaSetPoint;
+        this.spaManualHeatMode = spaManualHeatMode;
         this.spaHeatMode = spaHeatMode;
         this.spaHeatModeStr = container.constants.heatModeStr[spaHeatMode]
         this.heaterActive = 0
@@ -312,6 +313,20 @@ module.exports = function(container) {
 
     }
 
+    function setSpaManualHeatMode(data, counter){
+      // Something to do with heat modes...
+      // 165,33,16,34,168,10,0,0,0,254,0,0,0,0,0,0,2,168 = manual heat mode off
+      // 165,33,16,34,168,10,0,0,0,254,1,0,0,0,0,0,2,169 = manual heat mode on
+
+      var spaManualHeatMode = data[10]===0?'On':'Off'
+
+      currentHeat.spaManualHeatMode = spaManualHeatMode;
+
+      if (container.settings.logMessageDecoding)
+        container.logger.debug('Msg#: %s  Settings/Manual heat packet.  Manual Heat %s  Full packet: %s', counter, spaManualHeatMode , data);
+
+    }
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loaded: heat.js')
@@ -332,6 +347,7 @@ module.exports = function(container) {
         setPoolHeatmode: setPoolHeatmode,
         setHeatModeFromController: setHeatModeFromController,
         setHeatActiveFromController: setHeatActiveFromController,
-        setHeatModeAndSetPoints: setHeatModeAndSetPoints
+        setHeatModeAndSetPoints: setHeatModeAndSetPoints,
+        setSpaManualHeatMode: setSpaManualHeatMode
     }
 }
