@@ -751,13 +751,14 @@ function startSocketRx() {
 
 
     socket.on('intellichem', function(data) {
-        console.log('received intellichem:', data)
-        $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text:data.readings.ORP}))
+       // console.log('received intellichem:', data)
+        $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text:data.readings.ORP})).after($('<td/>', {html:'&nbsp;'}))
         $('#intellichemTable tr td:contains("ORP")').after($('<td/>', {text:data.readings.ORP})).after($('<td/>', {text:data.settings.ORP}))
         $('#intellichemTable tr td:contains("pH")').after($('<td/>', {text:data.readings.PH})).after($('<td/>', {text:data.settings.PH}))
-        $('#intellichemTable tr td:contains("Calcium Hardness")').after($('<td/>', {text:data.settings.CALCIUMHARDNESS}))
-        $('#intellichemTable tr td:contains("Total Alkalinity")').after($('<td/>', {text:data.settings.TOTALALKALINITY}))
-        $('#intellichemTable tr td:contains("CYA")').after($('<td/>', {text:data.settings.CYA}))
+        $('#intellichemTable tr td:contains("Calcium Hardness")').after($('<td/>', {text:data.settings.CALCIUMHARDNESS})).after($('<td/>', {html:'&nbsp;'}))
+        $('#intellichemTable tr td:contains("Total Alkalinity")').after($('<td/>', {text:data.settings.TOTALALKALINITY})).after($('<td/>', {html:'&nbsp;'}))
+        $('#intellichemTable tr td:contains("CYA")').after($('<td/>', {text:data.settings.CYA})).after($('<td/>', {html:'&nbsp;'}))
+        $('#intellichemTable tr td:contains("Water Flow")').after($('<td/>', {text:data.readings.WATERFLOW})).after($('<td/>', {html:'&nbsp;'}))
         $('#intellichemTable tr td:contains("Chlorine")').after($('<td/>', {text:data.tankLevels[1] + '/6'})).after($('<td/>', {text:data.mode[1]}))
         $('#intellichemTable tr td:contains("Acid")').after($('<td/>', {text:data.tankLevels[2]+ '/6'})).after($('<td/>', {text:data.mode[2]}))
         lastUpdate(true);
