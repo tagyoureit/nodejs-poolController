@@ -26,6 +26,9 @@
         },
         "debug": {
             "state": "visible"
+        },
+        "intellichem": {
+            "state": "visible"
         }
     },
     "equipConfig": {

@@ -26,10 +26,11 @@ module.exports = function(container) {
 
   var queuePacketsArr = []; //array to hold messages to send
 
-
+  function init(){
+      queuePacketsArr = []
+  }
 
   function queuePacket(message, callback) {
-
     if (container.settings.logPacketWrites) container.logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
 
     var response = {}
@@ -222,7 +223,8 @@ module.exports = function(container) {
     first: first,
     entireQueue: entireQueue,
     eject: eject,
-    sendThisPacket: sendThisPacket
+    sendThisPacket: sendThisPacket,
+      init: init
 
   }
 }

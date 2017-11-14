@@ -256,7 +256,7 @@ module.exports = function(container) {
         container.configEditor.updateExternalPumpProgram(_pump, program, value)
         currentPumpStatus[_pump].externalProgram[program] = value;
         if (container.settings.logPumpMessages)
-          container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, program, container.constants.ctrlString[from], value, JSON.stringify(data));
+          container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, container.constants.ctrlString[from], program, value, JSON.stringify(data));
       }
       container.io.emitToClients('pump')
       container.influx.writePumpData(currentPumpStatus)
@@ -568,11 +568,12 @@ module.exports = function(container) {
     }
   }
 
-var getFriendlyName = function(pump){
-  if (pump <= numPumps) {
-    return currentPumpStatus[pump].friendlyName;
+  var getFriendlyName = function(pump){
+    if (pump <= numPumps) {
+      return currentPumpStatus[pump].friendlyName;
+    }
+    else return currentPumpStatus[pump-95].friendlyName
   }
-}
 
   var updatePumpDuration = function(pump, _duration) {
     if (pump <= numPumps) {
@@ -597,7 +598,7 @@ var getFriendlyName = function(pump){
       }
       if (currentPumpStatus[index].currentrunning !== newCurrentRunning) {
         if (container.settings.logPumpMessages) {
-          container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    remainingduration: %s \r\n    to \r\n    Mode: %s     Value: %s    remainingduration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
+          container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    remaining duration: %s \r\n    to \r\n    Mode: %s     Value: %s    remainingduration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
             currentPumpStatus[index].currentrunning.remainingduration,
             program, value, duration)
         }

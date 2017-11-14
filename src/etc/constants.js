@@ -566,6 +566,7 @@ module.exports = function(container) {
         15: 'Broadcast',
         16: 'Main',
         32: 'Remote',
+        33: 'PoolControllerApp', //default address
         34: 'Wireless',
         96: 'Pump 1',
         97: 'Pump 2',

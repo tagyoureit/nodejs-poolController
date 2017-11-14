@@ -108,8 +108,8 @@
         "notifications": {
             "version": {
                 "remote": {
-                    "version": "4.0.0",
-                    "tag_name": "v4.0.0",
+                    "version": "4.1.200",
+                    "tag_name": "v4.1.200",
                     "dismissUntilNextRemoteVersionBump": false
                 }
             }

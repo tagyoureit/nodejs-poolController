@@ -268,7 +268,84 @@ module.exports = function(container) {
         container.io.emitToClients('pump')
     }
 
+// GPM
 
+  var pump1GPMTimerMode = function() {
+        var index = 1
+        var callback = 'pump' + index.toString() + 'GPMTimerMode'
+        if (container.pump.getCurrentRemainingDuration(index) > 0) {
+            //gpm timer has remaining duration
+            container.pump.updateCurrentRunningPumpDuration(index, -0.5)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s GPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
+
+            //this function was called via timer and there is still time left on the timer
+            container.pumpControllerMiddleware.runGPMSequence(index, container.pump.getCurrentRunningValue(1))
+
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            pump1Timer = setTimeout(pump1GPMTimerMode, 30 * 1000)
+
+        } else
+        if (container.pump.getCurrentRemainingDuration(index) === 0)
+
+        {
+            //gpm duration has finished
+            if (container.settings.logPumpMessages)
+                container.logger.info('Pump %s GPM Timer Finished.   Pump will shut down.', index)
+            //Timer = 0, we are done.  Pump should turn off automatically
+            clearTimer(index)
+        } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
+            //run until stopped
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s GPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
+            container.pumpControllerMiddleware.runGPMSequence(index, container.pump.getCurrentRunningValue(1))
+            pump1Timer = setTimeout(pump1GPMTimerMode, 30 * 1000)
+        }
+        container.io.emitToClients('pump')
+    }
+
+    var pump2GPMTimerMode = function() {
+        var index = 2
+        var callback = 'pump' + index.toString() + 'GPMTimerMode'
+        if (container.pump.getCurrentRemainingDuration(index) > 0) {
+            //gpm has remaining duration
+            container.pump.updateCurrentRunningPumpDuration(index, -0.5)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s GPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
+
+            //this function was called via timer and there is still time left on the timer
+            container.pumpControllerMiddleware.runGPMSequence(index, container.pump.getCurrentRunningValue(2))
+
+            // if (container.settings.logPumpTimers) container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            pump2Timer = setTimeout(pump2GPMTimerMode, 30 * 1000)
+
+        } else
+        if (container.pump.getCurrentRemainingDuration(index) === 0)
+
+        {
+            //gpm duration has finished
+            if (container.settings.logPumpMessages)
+                container.logger.info('Pump %s GPM Timer Finished.   Pump will shut down.', index)
+            clearTimer(index)
+        } else if (container.pump.getCurrentRemainingDuration(index) === -1) {
+            //run until stopped
+            // if (container.settings.logPumpTimers)
+            //     container.logger.verbose('%s: Setting 30s delay to run %s', callback, callback)
+            if (container.settings.logPumpMessages)
+                container.logger.verbose('App -> Pump %s: Sending Run @ %s GPM. %s minutes left. (%s)', index, container.pump.getCurrentRunningValue(index), container.pump.getCurrentRemainingDuration(index), callback);
+
+            container.pumpControllerMiddleware.runGPMSequence(index, container.pump.getCurrentRunningValue(2))
+            pump2Timer = setTimeout(pump2GPMTimerMode, 30 * 1000)
+        }
+        container.io.emitToClients('pump')
+    }
+
+ //END GPM
     var pump1PowerTimerMode = function() {
         var index = 1
         var callback = 'pump' + index.toString() + 'PowerTimerMode'
@@ -371,6 +448,32 @@ module.exports = function(container) {
     }
 
     //set the internal timer for pump controls
+    var startGPMTimer = function(index, gpm, duration) {
+        var padDuration = 0
+        if (duration > 0) {
+            padDuration = 0.5 //timer will decrement at first run.  add this so the full time is used.
+        } else if (duration === null || duration === undefined) {
+            duration = -1
+        }
+        if (index === 1) {
+            if (isPumpTimerRunning(1)) clearTimer(1)
+            container.pump.setCurrentRunning(index, 'gpm', gpm, duration)
+            duration += padDuration
+            pump1GPMTimerMode()
+            pump1TimerRunning = 1
+        } else if (index === 2) {
+            if (isPumpTimerRunning(2)) clearTimer(2)
+            container.pump.setCurrentRunning(index, 'gpm', gpm, duration)
+            duration += padDuration
+
+            pump2GPMTimerMode()
+            pump2TimerRunning = 1
+        } else {
+            container.logger.warn('Request to start pump GPM timer %s, but config.json numberOfPumps = %s', index, container.pump.numberOfPumps())
+        }
+    }
+
+    //set the internal timer for pump controls
     var startRPMTimer = function(index, rpm, duration) {
         var padDuration = 0
         if (duration > 0) {
@@ -427,6 +530,7 @@ module.exports = function(container) {
         startPowerTimer: startPowerTimer,
         startProgramTimer: startProgramTimer,
         startRPMTimer: startRPMTimer,
+        startGPMTimer: startGPMTimer,
         clearTimer: clearTimer,
         isPumpTimerRunning: isPumpTimerRunning,
         startPumpController: startPumpController

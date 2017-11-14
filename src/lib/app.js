@@ -187,6 +187,7 @@ var init = exports.init = function() {
     bottle.container.temperatures.init()
     bottle.container.UOM.init()
     bottle.container.valves.init()
+    bottle.container.intellichem.init()
 
     bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
     bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())

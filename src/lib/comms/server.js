@@ -28,36 +28,22 @@ module.exports = function(container) {
     var express, app, port, path, server
 
     function init() {
-         express = container.express
-         app = express();
-         port = process.env.PORT || 3000;
-         path = require('path').posix
-         server = undefined;
-        //if we re-initialize, clear out the server
-        if (container.settings.logReload) container.logger.info('calling express server init')
+        express = container.express
+        app = express();
+        port = process.env.PORT || 3000;
+        path = require('path').posix
+        server = undefined;
+        container.logger.debug('Starting up express server')
 
         // And Enable Authentication (if configured)
         if (container.settings.expressAuth === 1) {
-            // console.log('server requiring auth with file:', path.join(process.cwd(), container.settings.expressAuthFile))
 
             var auth = container.auth
             var basic = auth.basic({
                 file: path.join(process.cwd(), container.settings.expressAuthFile)
             });
             app.use(auth.connect(basic));
-            // basic.on('success', (result, req) => {
-            //     console.log(`User authenticated: ${result.user}`);
-            // });
-            //
-            // basic.on('fail', (result, req) => {
-            //     console.log(`User authentication failed: ${result.user}`);
-            // });
-            //
-            // basic.on('error', (error, req) => {
-            //     console.log(`Authentication error: ${error.code + " - " + error.message}`);
-            // });
         } else {
-            if (container.settings.logReload) container.logger.info('server NOT using auth')
             //reset auth settings
             app = undefined
             app = express()
@@ -73,7 +59,6 @@ module.exports = function(container) {
             };
             server = container.https.createServer(opt_https, app);
         } else
-            //var server = require('http').createServer(app);
             server = container.http.createServer(app);
 
         //hook to use custom routes
@@ -90,8 +75,6 @@ module.exports = function(container) {
         app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
         app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
         app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
-        // app.use('/bootstrap-slider', express.static(path.join(process.cwd(), '/node_modules/bootstrap-slider/dist/')));
-
 
 
         /*app.get('/status', function(req, res) {
@@ -130,76 +113,60 @@ module.exports = function(container) {
         })
 
         app.get('/schedule/toggle/id/:id/day/:day', function(req, res) {
-          var id = parseInt(req.params.id)
-          var day = req.params.day
+            var id = parseInt(req.params.id)
+            var day = req.params.day
             var response = {}
             response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id
             container.logger.info(response)
             container.schedule.toggleDay(id, day)
             res.send(response)
-          })
+        })
 
-          app.get('/schedule/delete/id/:id', function(req, res) {
+        app.get('/schedule/delete/id/:id', function(req, res) {
             var id = parseInt(req.params.id)
-              var response = {}
-              response.text = 'REST API received request to delete schedule or egg timer with ID:' + id
-              container.logger.info(response)
-              container.schedule.deleteScheduleOrEggTimer(id)
-              res.send(response)
-            })
+            var response = {}
+            response.text = 'REST API received request to delete schedule or egg timer with ID:' + id
+            container.logger.info(response)
+            container.schedule.deleteScheduleOrEggTimer(id)
+            res.send(response)
+        })
 
-          app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function(req, res) {
+        app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function(req, res) {
             var id = parseInt(req.params.id)
             var hour = parseInt(req.params.hour)
             var min = parseInt(req.params.min)
-              var response = {}
-              response.text = 'REST API received request to set ' + req.params.sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
-              container.logger.info(response)
-              container.schedule.setControllerScheduleStartOrEndTime(id, req.params.sOE, hour, min)
-              res.send(response)
-            })
+            var response = {}
+            response.text = 'REST API received request to set ' + req.params.sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
+            container.logger.info(response)
+            container.schedule.setControllerScheduleStartOrEndTime(id, req.params.sOE, hour, min)
+            res.send(response)
+        })
 
 
-          app.get('/schedule/set/id/:id/circuit/:circuit', function(req, res) {
+        app.get('/schedule/set/id/:id/circuit/:circuit', function(req, res) {
             var id = parseInt(req.params.id)
             var circuit = parseInt(req.params.circuit)
-              var response = {}
-              response.text = 'REST API received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
-              container.logger.info(response)
-              container.schedule.setControllerScheduleCircuit(id, circuit)
-              res.send(response)
-            })
+            var response = {}
+            response.text = 'REST API received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
+            container.logger.info(response)
+            container.schedule.setControllerScheduleCircuit(id, circuit)
+            res.send(response)
+        })
 
 
-            app.get('/eggtimer/set/id/:id/circuit/:circuit/hour/:hour/min/:min', function(req, res) {
-              var id = parseInt(req.params.id)
-              var circuit = parseInt(req.params.circuit)
-              var hour = parseInt(req.params.hour)
-              var min = parseInt(req.params.min)
-                var response = {}
-                response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + ' for ' + hour + ' hours, ' +min+' minutes'
-                container.logger.info(response)
-                container.schedule.setControllerEggTimer(id, circuit, hour, min)
-                res.send(response)
-              })
+        app.get('/eggtimer/set/id/:id/circuit/:circuit/hour/:hour/min/:min', function(req, res) {
+            var id = parseInt(req.params.id)
+            var circuit = parseInt(req.params.circuit)
+            var hr = parseInt(req.params.hour)
+            var min = parseInt(req.params.min)
+            var response = {}
+            response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + ' for ' + hr + ' hours, ' +min+' minutes'
+            container.logger.info(response)
+            container.schedule.setControllerEggTimer(id, circuit, hr, min)
+            res.send(response)
+        })
 
         app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
-          var id = parseInt(req.params.id)
-          var circuit = parseInt(req.params.circuit)
-          var starthh = parseInt(req.params.starthh)
-          var startmm = parseInt(req.params.startmm)
-          var endhh = parseInt(req.params.endhh)
-          var endmm = parseInt(req.params.endmm)
-          var days = parseInt(req.params.days)
-            var response = {}
-            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
-            container.logger.info(response)
-            container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
-            res.send(response)
-          })
-
-          // TODO:  merge above and this code into single function
-          app.get('/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:day', function(req, res) {
             var id = parseInt(req.params.id)
             var circuit = parseInt(req.params.circuit)
             var starthh = parseInt(req.params.starthh)
@@ -207,12 +174,28 @@ module.exports = function(container) {
             var endhh = parseInt(req.params.endhh)
             var endmm = parseInt(req.params.endmm)
             var days = parseInt(req.params.days)
-              var response = {}
-              response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
-              container.logger.info(response)
-              container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
-              res.send(response)
-          })
+            var response = {}
+            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+            container.logger.info(response)
+            container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
+            res.send(response)
+        })
+
+        // TODO:  merge above and this code into single function
+        app.get('/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
+            var id = parseInt(req.params.id)
+            var circuit = parseInt(req.params.circuit)
+            var starthh = parseInt(req.params.starthh)
+            var startmm = parseInt(req.params.startmm)
+            var endhh = parseInt(req.params.endhh)
+            var endmm = parseInt(req.params.endmm)
+            var days = parseInt(req.params.days)
+            var response = {}
+            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+            container.logger.info(response)
+            container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
+            res.send(response)
+        })
 
 
         app.get('/temperatures', function(req, res) {
@@ -260,6 +243,10 @@ module.exports = function(container) {
 
         app.get('/chlorinator', function(req, res) {
             res.send(container.chlorinator.getChlorinatorStatus())
+        })
+
+        app.get('/intellichem', function(req, res) {
+            res.send(container.intellichem.getCurrentIntellichem())
         })
 
         app.get('/chlorinator/:chlorinateLevel', function(req, res) {
@@ -368,25 +355,6 @@ module.exports = function(container) {
             })
 
         })
-
-        /* Return warning with invalid pump URL's  */
-        app.get('/pumpCommand/:index/:program', function(req, res) {
-            var index = parseInt(req.params.index)
-            //don't parseInt program because this could be an Int or 'on/off'
-            var program = req.params.program
-            container.logger.warn('Please update the URL to the new format: /pumpCommand/{run or save}/pump/' + index + '/program/' + program)
-            //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
-            var response = {}
-            response.text = 'REST API pumpCommand variables - index: ' + index + ', program: ' + program + ', value: null, duration: null'
-            response.pump = index
-            response.program = program
-            response.value = null
-            response.duration = null
-
-            container.pumpControllerMiddleware.pumpCommand(index, program, null, null)
-            res.send(response)
-        })
-        /* END Return warning with invalid pump URL's  */
 
         /* New pumpCommand API's  */
         //#1  Turn pump off
@@ -559,79 +527,78 @@ module.exports = function(container) {
         })
 
 //#11 Run pump at GPM for an indefinite duration
-app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function(req, res) {
-    var pump = parseInt(req.params.pump)
-    var gpm = parseInt(req.params.gpm)
-    var response = {}
-    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: null'
-    response.pump = pump
-    response.speed = gpm
-    response.duration = -1
-    // container.pumpControllerMiddleware.runGPMSequence(pump, gpm)
-    container.pumpControllerTimers.startGPMTimer(pump, gpm, -1)
-    res.send(response)
-})
+        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var gpm = parseInt(req.params.gpm)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: -1'
+            response.pump = pump
+            response.speed = gpm
+            response.duration = -1
+            // container.pumpControllerMiddleware.runGPMSequence(pump, gpm)
+            container.pumpControllerTimers.startGPMTimer(pump, gpm, -1)
+            res.send(response)
+        })
 
 //#12 Run pump at GPM for specified duration
-app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function(req, res) {
-    var pump = parseInt(req.params.pump)
-    var gpm = parseInt(req.params.gpm)
-    var duration = parseInt(req.params.duration)
-    var response = {}
-    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: ' + duration
-    response.pump = pump
-    response.value = gpm
-    response.duration = duration
-    container.pumpControllerTimers.startGPMTimer(pump, gpm, duration)
-    res.send(response)
-})
+        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var gpm = parseInt(req.params.gpm)
+            var duration = parseInt(req.params.duration)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: ' + duration
+            response.pump = pump
+            response.speed = gpm
+            response.duration = duration
+            container.pumpControllerTimers.startGPMTimer(pump, gpm, duration)
+            res.send(response)
+        })
 
 //#13  Save program to pump
-app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function(req, res) {
-    var pump = parseInt(req.params.pump)
-    var program = parseInt(req.params.program)
-    var speed = parseInt(req.params.speed)
-    var response = {}
-    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', gpm: ' + speed + ', duration: null'
-    response.pump = pump
-    response.program = program
-    response.speed = speed
-    response.duration = null
-    container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
-    res.send(response)
-})
+        app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var speed = parseInt(req.params.speed)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', gpm: ' + speed + ', duration: null'
+            response.pump = pump
+            response.program = program
+            response.speed = speed
+            response.duration = null
+            container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
+            res.send(response)
+        })
 
 //#14  Save and run program for indefinite duration
-app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function(req, res) {
-    var pump = parseInt(req.params.pump)
-    var program = parseInt(req.params.program)
-    var speed = parseInt(req.params.speed)
-    var duration = parseInt(req.params.duration)
-    var response = {}
-    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: indefinite'
-    response.pump = pump
-    response.program = program
-    response.speed = speed
-    response.duration = -1
-    container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1)
-    res.send(response)
-})
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var speed = parseInt(req.params.speed)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: indefinite'
+            response.pump = pump
+            response.program = program
+            response.speed = speed
+            response.duration = -1
+            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1)
+            res.send(response)
+        })
 
-//#14  Save and run program for specified duration
-app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function(req, res) {
-    var pump = parseInt(req.params.pump)
-    var program = parseInt(req.params.program)
-    var speed = parseInt(req.params.speed)
-    var duration = parseInt(req.params.duration)
-    var response = {}
-    response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
-    response.pump = pump
-    response.program = program
-    response.speed = speed
-    response.duration = duration
-    container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
-    res.send(response)
-})
+//#15  Save and run program for specified duration
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function(req, res) {
+            var pump = parseInt(req.params.pump)
+            var program = parseInt(req.params.program)
+            var speed = parseInt(req.params.speed)
+            var duration = parseInt(req.params.duration)
+            var response = {}
+            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
+            response.pump = pump
+            response.program = program
+            response.speed = speed
+            response.duration = duration
+            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
+            res.send(response)
+        })
 
         /* END New pumpCommand API's  */
 
@@ -663,51 +630,11 @@ app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:d
 
 
 
-
-
-
-
-
-
-        /*  Original pumpCommand API  */
-
-        app.get('/pumpCommand/:pump/:program/:speed', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var program = parseInt(req.params.program)
-            var value = parseInt(req.params.speed)
-            container.logger.warn('Please update the URL to the new format: /pumpCommand/{run or save}/pump/' + pump + '/program/' + program + '/rpm/' + value)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', rpm: ' + value + ', duration: null'
-            response.pump = pump
-            response.program = program
-            response.value = value
-            response.duration = null
-            container.pumpControllerMiddleware.pumpCommand(pump, program, value, null)
-            res.send(response)
-        })
-
-        app.get('/pumpCommand/:pump/:program/:speed/:duration', function(req, res) {
-            var pump = parseInt(req.params.pump)
-            var program = parseInt(req.params.program)
-            var speed = parseInt(req.params.speed)
-            var duration = parseInt(req.params.duration)
-            container.logger.warn('Please update the URL to the new format: /pumpCommand/{run or save}/pump/' + pump + '/program/' + program + '/rpm/' + speed + '/duration/' + duration)
-            var response = {}
-            response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
-            response.pump = pump
-            response.program = program
-            response.speed = speed
-            response.duration = duration
-            container.pumpControllerMiddleware.pumpCommand(pump, program, speed, duration)
-            res.send(response)
-        })
     }
     /*  END  Original pumpCommand API  */
     var close = function() {
-        if (container.settings.logReload) container.logger.info('calling server close')
         if (server !== undefined)
             server.close(function() {
-                if (container.settings.logReload) container.logger.info('server closed')
                 container.logger.verbose('Express Server closed. (was listening at port %d)', port);
             })
     }

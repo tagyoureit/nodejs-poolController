@@ -15,6 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*istanbul ignore next */
 module.exports = function(container) {
     var logger = container.logger
     var sp

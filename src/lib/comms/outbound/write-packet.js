@@ -35,6 +35,23 @@ module.exports = function(container) {
     } //keep track of how many times we skipped writing the packet
     var writePacketTimer // = new container.nanotimer
 
+
+
+    function init(){
+        // reset write queue
+        writeQueueActive = {
+            writeQueueActive: false
+        }
+        msgWriteCounter = {
+            counter: 0, //how many times the packet has been written to the bus
+            packetWrittenAt: 0, //var to hold the message counter variable when the message was sent.  Used to keep track of how many messages passed without a successful counter.
+            msgWrote: []
+        }
+        skipPacketWrittenCount = {
+            skipPacketWrittenCount: 0
+        }
+    }
+
     var ejectPacketAndReset = function() {
         container.queuePacket.eject()
         msgWriteCounter.counter = 0
@@ -202,7 +219,9 @@ module.exports = function(container) {
     return {
         isWriteQueueActive: isWriteQueueActive,
         preWritePacketHelper: preWritePacketHelper,
-        ejectPacketAndReset: ejectPacketAndReset
+        ejectPacketAndReset: ejectPacketAndReset,
+        postWritePacketHelper: postWritePacketHelper, //need this only for over writing the
+        init: init
     }
 
 

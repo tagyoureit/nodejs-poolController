@@ -64,7 +64,6 @@ module.exports = function(container) {
     //NOTE: This pump timer doesn't do what we think it does... I think.
     /* istanbul ignore next */
     function setPumpDuration(address, duration) {
-        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         var setTimerPacket = [165, 0, address, container.settings.appAddress, 1, 4, 3, 43, 0, 1];
         if (container.settings.logApi) container.logger.info('Sending Set a 30 second timer (safe mode enabled, timer will reset 2x/minute for a total of %s minutes): %s', duration, setTimerPacket);
 
@@ -73,7 +72,6 @@ module.exports = function(container) {
 
     //run program packet
     function runProgram(address, program) {
-        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
         //run program
         var runPrg = [1, 4, 3, 33, 0]
         runPrg.push(8 * program)
@@ -86,9 +84,25 @@ module.exports = function(container) {
 
     //run RPM packet
     function runRPM(address, rpm) {
-        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
+        var runPrg = []
+        // what type of pump?
+        var type = container.pump.getCurrentPumpStatus()[address-95].type
+        if (type==='VS'){
+            runPrg[0] = 1
+            runPrg[3] = 196
+        }
+        else if (type==='VSF') // VSF
+        {
+            runPrg[0] = 10
+            runPrg[3] = 196
+        }
+        else if (type==='VF'){
+            container.logger.error('Cannot set RPM on VF Pump')
+        }
+        runPrg[1]=4
+        runPrg[2]=2
         //run program
-        var runPrg = [1, 4, 2, 196]
+        //var runPrg = [1, 4, 2, 196]
         runPrg.push(Math.floor(rpm/256))
         runPrg.push(rpm%256)
 
@@ -98,8 +112,37 @@ module.exports = function(container) {
         container.queuePacket.queuePacket(runProgramPacket);
     }
 
+    //run GPM packet
+    function runGPM(address, gpm) {
+        var runPrg =[]
+        // what type of pump?
+        var type = container.pump.getCurrentPumpStatus()[address-95].type
+        if (type==='VF'){
+            runPrg[0] = 1
+            runPrg[3] = 228
+        }
+        else if (type==='VSF')
+        {
+            runPrg[0] = 9
+            runPrg[3] = 196
+        }
+        else if (type==='VS'){
+            container.logger.error('Cannot set GPM on VS Pump')
+        }
+        runPrg[1]=4
+        runPrg[2]=2
+        // run program
+        // var runPrg = [1, 4, 2, 196]
+        runPrg.push(Math.floor(gpm/256))
+        runPrg.push(gpm%256)
+
+        var runProgramPacket = [165, 0, address, container.settings.appAddress];
+        Array.prototype.push.apply(runProgramPacket, runPrg);
+        if (container.settings.logApi) container.logger.verbose('Sending run at GPM %s: %s', gpm, runProgramPacket)
+        container.queuePacket.queuePacket(runProgramPacket);
+    }
+
     function saveProgramOnPump(address, program, speed, setPrg) {
-        var index = container.pumpControllerMiddleware.pumpAddressToIndex(address)
 
         //save program on pump
         //set speed
@@ -139,7 +182,8 @@ module.exports = function(container) {
         saveProgramOnPump: saveProgramOnPump,
         requestPumpStatus: requestPumpStatus,
         setPumpDuration : setPumpDuration,
-        runRPM: runRPM
+        runRPM: runRPM,
+        runGPM: runGPM
 
 
     }

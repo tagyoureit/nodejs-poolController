@@ -47,8 +47,8 @@ describe('checks if there is a newer version available', function() {
                     myModule(bottle.container).check()
                         .then(function() {
                             loggerWarnStub.args[0][0].should.contain('Update available!')
-                            done()
-                        })
+
+                        }).then(done,done)
                 })
             })
 
@@ -90,12 +90,12 @@ describe('checks if there is a newer version available', function() {
                 // })
             // })
 
-            it('#sends updateAvailable with no data with dismissUntilNextRemoteVersionBump false', function(done) {
+            it('#sends updateAvailable with dismissUntilNextRemoteVersionBump false', function(done) {
 
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
-                var getVersionNotification = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({"version":"0.0.0","tag_name":"v0.0.0","dismissUntilNextRemoteVersionBump":true})
+                var getVersionNotification = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({"version":"0.0.0","tag_name":"v0.0.0","dismissUntilNextRemoteVersionBump":false})
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
@@ -103,14 +103,12 @@ describe('checks if there is a newer version available', function() {
                   bottle.container.io.emitToClients('updateAvailable')
 
                     client.on('updateAvailable', function(msg) {
-                        console.log('updateAvailable', msg)
-                        'i should not'.should.not.equal('be called')
+                        console.log(JSON.stringify(msg,null,2))
+                        msg.result.should.equal('newer')
                         client.disconnect()
                         done()
                     })
                 })
-                //if the above isn't called in 1.5 seconds, test passes.  Is there a better way to see if the socket was NOT called?
-                setTimeout(done, 1500)
             })
 
         })

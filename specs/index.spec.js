@@ -10,7 +10,7 @@ describe('nodejs-poolController', function() {
     describe('Loads/checks for a valid configuration file', function() {
 
       before(function() {
-                    bottle.container.settings.load()
+          bottle.container.settings.load()
           bottle.container.server.init()
           bottle.container.io.init()
           bottle.container.logger.transports.console.level = 'silly';

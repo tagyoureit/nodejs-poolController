@@ -37,13 +37,17 @@ describe('processes 17 (Schedule) packets', function() {
       })
 
       it('#Schedule 1 should have ID:1 START_TIME:9:25', function() {
-        bottle.container.packetBuffer.push(data[0])
+        global.schedules_chk.forEach(function(el){
+            bottle.container.packetBuffer.push(Buffer.from(el))
+        })
+
         clock.tick(1000)
         var json = bottle.container.schedule.getCurrentSchedule()
         //console.log('json for schedule 1: ', JSON.stringify(json,null,2))
         json[1].ID.should.equal(1)
-        json[1].START_TIME.should.equal("9:25")
+        json[1].START_TIME.should.equal("9:20")
         json[1].CIRCUIT.should.equal("POOL")
+        loggerInfoStub.args[0][1].should.contain("Schedules discovered:")
       })
 
 

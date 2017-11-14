@@ -29,7 +29,9 @@ module.exports = function(container) {
                 container.logger.silly('Msg# %s  Decoding pump packet %s', counter, data)
 
             switch (data[container.constants.packetFields.ACTION]) {
-                case 1: //Set speed setting
+                case 1: // Set speed setting (VS or VF)
+                case 9: // Set GPM on VSF
+                case 10: // Set RPM on VSF
                     {
                         container.pump_1.process(data, counter)
                         decoded = true;
@@ -67,7 +69,7 @@ module.exports = function(container) {
                     }
                 case 255:
                     {
-                        container.logger.warn('Msg# %s  Pump %s rejected the command. %s', counter, container.pump.getPumpNumber(data[3]), JSON.stringify(data))
+                        container.logger.warn('Msg# %s: %s rejected the command. %s', counter, container.pump.getFriendlyName(data[3]), JSON.stringify(data))
                         decoded = true;
                         break;
                     }

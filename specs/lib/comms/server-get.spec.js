@@ -74,20 +74,30 @@ describe('server', function() {
                     //console.log('pumpStub called x times: ', pumpStub.callCount)
                     pumpStub.callCount.should.eq(1)
                     obj[1].watts.should.eq(999);
-                    done()
-                })
+                }).then(done,done)
             });
 
 
-            it('returns everything in a JSON', function(done) {
+            it('returns everything in a JSON (/all)', function(done) {
                 var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 requestPoolDataWithURL('all').then(function(obj) {
                     allStub.callCount.should.eq(1)
                     obj.circuits[1].friendlyName.should.eq('SPA')
-                    done()
-                });
+                }).then(done,done);
+
+            });
+
+
+            it('returns everything in a JSON (/one)', function(done) {
+                var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
+                    return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
+                })
+                requestPoolDataWithURL('one').then(function(obj) {
+                    allStub.callCount.should.eq(1)
+                    obj.circuits[1].friendlyName.should.eq('SPA')
+                }).then(done,done);
 
             });
 
@@ -98,8 +108,7 @@ describe('server', function() {
                 requestPoolDataWithURL('circuit').then(function(obj) {
                     circuitStub.callCount.should.eq(1)
                     obj[1].number.should.eq(1)
-                    done()
-                })
+                }).then(done,done)
             });
             it('returns heat in a JSON', function(done) {
                 var heatStub = sandbox.stub(bottle.container.heat, 'getCurrentHeat').callsFake(function() {
@@ -108,8 +117,7 @@ describe('server', function() {
                 requestPoolDataWithURL('heat').then(function(obj) {
                     heatStub.callCount.should.eq(1)
                     obj.should.have.property('poolHeatMode');;
-                    done()
-                });
+                }).then(done,done);
 
             });
             it('returns schedule in a JSON', function(done) {
@@ -119,8 +127,7 @@ describe('server', function() {
                 requestPoolDataWithURL('schedule').then(function(obj) {
                     scheduleStub.callCount.should.eq(1)
                     obj[1].should.have.property('DURATION');
-                    done()
-                })
+                }).then(done,done)
 
             });
             it('returns temps in a JSON', function(done) {
@@ -130,8 +137,7 @@ describe('server', function() {
                 requestPoolDataWithURL('temperatures').then(function(obj) {
                     tempStub.callCount.should.eq(1)
                     obj.should.have.property('poolTemp');
-                    done()
-                });
+                }).then(done,done);
 
             });
             it('returns time in a JSON', function(done) {
@@ -141,8 +147,7 @@ describe('server', function() {
                 requestPoolDataWithURL('time').then(function(obj) {
                     timeStub.callCount.should.eq(1)
                     obj.should.have.property('controllerTime');;
-                    done()
-                });
+                }).then(done,done);
 
             });
             it('returns chlorinator in a JSON', function(done) {
@@ -152,8 +157,7 @@ describe('server', function() {
                 requestPoolDataWithURL('chlorinator').then(function(obj) {
                     chlorStub.callCount.should.eq(1)
                     obj.should.have.property('saltPPM');;
-                    done()
-                });
+                }).then(done,done);
 
             });
             it('returns circuit (9) in a JSON', function(done) {
@@ -163,14 +167,12 @@ describe('server', function() {
                 requestPoolDataWithURL('circuit/9').then(function(obj) {
                     circuit9Stub.callCount.should.eq(1)
                     obj.should.have.property('status');
-                    done()
-                });
+                }).then(done,done);
             });
             it('fails with circuit /circuit/21', function(done) {
                 requestPoolDataWithURL('circuit/21').then(function(obj) {
                     obj.should.eq('Not a valid circuit')
-                    done()
-                });
+                }).then(done,done);
             });
         });
 

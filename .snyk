@@ -5,25 +5,25 @@ ignore:
   'npm:brace-expansion:20170302':
     - serialport > node-pre-gyp > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.671Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update
-        expires: '2017-10-21T03:53:09.671Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar-pack > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.671Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar-pack > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.671Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.671Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar-pack > fstream-ignore > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.672Z'
+        expires: '2017-12-07T17:42:52.124Z'
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
-        expires: '2017-10-21T03:53:09.672Z'
+        expires: '2017-12-07T17:42:52.125Z'
     - serialport > node-pre-gyp > tar-pack > tar > fstream > rimraf > glob > minimatch > brace-expansion:
         reason: no update avail
         expires: '2017-07-17T17:20:45.694Z'
@@ -58,10 +58,13 @@ ignore:
     - serialport > node-pre-gyp > tar-pack > debug > ms:
         reason: None given
         expires: '2017-07-06T15:53:06.036Z'
+    - serialport > node-pre-gyp > tar-pack > debug > ms:
+        reason: None given
+        expires: '2017-12-07T17:42:52.124Z'
   'npm:qs:20170213':
     - serialport > node-pre-gyp > request > qs:
         reason: None given
-        expires: '2017-07-06T15:53:06.036Z'
+        expires: '2017-12-07T17:42:52.124Z'
   'npm:growl:20160721':
     - mocha > growl:
         reason: None given
@@ -69,32 +72,49 @@ ignore:
   'npm:tunnel-agent:20170305':
     - serialport > node-pre-gyp > request > tunnel-agent:
         reason: None given
-        expires: '2017-10-21T03:53:09.672Z'
+        expires: '2017-12-07T17:42:52.125Z'
   'npm:debug:20170905':
     - socket.io > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
-      socket.io-client > debug:
-        reason: None given
-        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-parser > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
-      socket.io-client > socket.io-parser > debug:
-        reason: None given
-        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-client > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
-      socket.io-client > engine.io-client > debug:
-        reason: None given
-        expires: '2017-12-03T11:46:02.400Z'
     - socket.io > socket.io-client > socket.io-parser > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
     - socket.io > socket.io-client > engine.io-client > debug:
         reason: '-'
         expires: '2017-11-24T15:40:17.408Z'
+    - socket.io-client > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
+    - socket.io-client > socket.io-parser > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
+    - socket.io-client > engine.io-client > debug:
+        reason: None given
+        expires: '2017-12-03T11:46:02.400Z'
+    - serialport > node-pre-gyp > tar-pack > debug:
+        reason: None given
+        expires: '2017-12-07T17:42:52.124Z'
+  'npm:tough-cookie:20170905':
+    - serialport > node-pre-gyp > request > tough-cookie:
+        reason: None given
+        expires: '2017-12-07T17:42:52.124Z'
+  'npm:ws:20171108':
+    - socket.io-client > engine.io-client > ws:
+        reason: None given
+        expires: '2017-12-11T06:22:14.512Z'
+    - socket.io > engine.io > ws:
+        reason: None given
+        expires: '2017-12-11T06:22:14.512Z'
+    - socket.io > socket.io-client > engine.io-client > ws:
+        reason: None given
+        expires: '2017-12-11T06:22:14.512Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':
