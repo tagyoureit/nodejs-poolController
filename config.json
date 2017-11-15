@@ -44,7 +44,7 @@
         },
         "chlorinator": {
             "installed": 1,
-            "desiredOutput": {"pool": -1, "spa":-1},
+            "desiredOutput": -1,
             "friendlyName": "",
             "id": {
                 "productName": "",
@@ -105,8 +105,8 @@
         "notifications": {
             "version": {
                 "remote": {
-                    "version": "3.1.13",
-                    "tag_name": "v3.1.13",
+                    "version": "4.0.0",
+                    "tag_name": "v4.0.0",
                     "dismissUntilNextRemoteVersionBump": false
                 }
             }
@@ -119,13 +119,14 @@
                 "fileLogLevel": "silly",
                 "fileName": "output.log"
             },
-            "logPumpMessages": 1,
+            "logPumpMessages": 0,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,
             "logConfigMessages": 0,
-            "logMessageDecoding": 1,
-            "logChlorinator": 1,
-            "logPacketWrites": 1,
+            "logMessageDecoding": 0,
+            "logChlorinator": 0,
+            "logIntellichem": 0,
+            "logPacketWrites": 0,
             "logPumpTimers": 0,
             "logApi": 0
         },

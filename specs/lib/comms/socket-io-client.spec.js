@@ -41,7 +41,6 @@ describe('socket.io basic tests', function() {
 
     it('#connects to the server', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
 
         client.on('connect', function(data) {
             // console.log('connected client:')
@@ -57,7 +56,6 @@ describe('socket.io basic tests', function() {
 
     it('#sets date/time', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
 
         client.on('connect', function(data) {
             // console.log('connected client:')
@@ -75,7 +73,6 @@ describe('socket.io basic tests', function() {
     it('#fails to set date/time (invalid input)', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
         })
         Promise.resolve()
@@ -89,7 +86,6 @@ describe('socket.io basic tests', function() {
 
     it('#sets a schedule', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
 
         client.on('connect', function(data) {
             // console.log('connected client:')
@@ -100,9 +96,7 @@ describe('socket.io basic tests', function() {
         Promise.resolve()
             .delay(500)
             .then(function(){
-                console.log('lis:', loggerInfoStub.args)
                 loggerInfoStub.args[0][0].text.should.contain('SOCKET')
-                console.log('qps:', queuePacketStub.args)
                 queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131 ])
                 queuePacketStub.callCount.should.equal(13) // request all schedules
             })
@@ -113,16 +107,14 @@ describe('socket.io basic tests', function() {
 
     it('#sends packets and checks the correct preamble is passed', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
+
         writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('sendPacket', JSON.parse('{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}'))
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
         })
 
         client.on('sendPacketResults', function(res) {
-            console.log('spr:', res)
             res.should.contain('165,0,96,16,6,1,10')
             res.should.contain('16,2,80,20,0,118')
             res.should.contain('16,34,134,2,9,0')
@@ -145,14 +137,12 @@ describe('socket.io basic tests', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('cancelDelay')
         })
 
         Promise.resolve()
             .delay(500)
             .then(function(){
-                console.log('queuepacket delay:', queuePacketStub.args)
                 queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 131, 1, 0 ])
             })
             .then(done,done)
@@ -162,7 +152,6 @@ describe('socket.io basic tests', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('resetConfigClient')
         })
         Promise.resolve()
@@ -177,7 +166,6 @@ describe('socket.io basic tests', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         var count = 0
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('search', 'start', 16, 15, 17)
         })
 
@@ -277,13 +265,11 @@ describe('socket.io basic tests', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function(data) {
-            // console.log('connected client:')
             client.emit('close')
         })
         Promise.resolve()
             .delay(200)
             .then(function(){
-                console.log('debug:', loggerDebugStub.args)
                 loggerDebugStub.args[0][0].should.eq('socket closed')
             })
             .then(done,done)
@@ -294,7 +280,6 @@ describe('socket.io basic tests', function() {
     it('#stops the Socket server', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         client.on('connect', function(data) {
-            // console.log('connected client:')
             bottle.container.io.stop()
 
         })

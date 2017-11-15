@@ -65,6 +65,7 @@ var logConsoleNotDecoded;
 var logConfigMessages;
 var logMessageDecoding;
 var logChlorinator;
+var logIntellichem;
 var logPacketWrites;
 var logPumpTimers;
 var logApi;
@@ -145,6 +146,7 @@ var load = exports.load = function() {
     logConfigMessages = exports.logConfigMessages = configFile.poolController.log.logConfigMessages;
     logMessageDecoding = exports.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
     logChlorinator = exports.logChlorinator = configFile.poolController.log.logChlorinator;
+    logIntellichem = exports.logIntellichem = configFile.poolController.log.logIntellichem;
     logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
     logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
     logApi = exports.logApi = configFile.poolController.log.logApi;
@@ -231,6 +233,7 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n var logConfigMessages = ' + logConfigMessages;
     settingsStr += '\n var logMessageDecoding = ' + logMessageDecoding;
     settingsStr += '\n var logChlorinator = ' + logChlorinator;
+    settingsStr += '\n var logIntellichem = ' + logIntellichem;
     settingsStr += '\n var logPacketWrites = ' + logPacketWrites;
     settingsStr += '\n var logPumpTimers = ' + logPumpTimers;
     settingsStr += '\n var logApi = ' + logApi;

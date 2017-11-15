@@ -129,6 +129,7 @@
             "logMessageDecoding": 0,
             "logChlorinator": 1,
             "logPacketWrites": 1,
+            "logIntellichem": 0,
             "logPumpTimers": 0,
             "logApi": 0
         },

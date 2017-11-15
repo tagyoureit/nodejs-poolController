@@ -150,8 +150,7 @@ module.exports = function(container) {
     }
 
     function processIntellichemControllerPacket(data, counter) {
-        if (container.settings.logConfigMessages)
-            container.logger.silly('\nMsg# %s  IntelliChem packet %s', counter, JSON.stringify(data))
+
 
         intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
         intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
@@ -170,11 +169,18 @@ module.exports = function(container) {
         intellichem.mode[1] = data[container.constants.intellichemPacketFields.MODE1]
         intellichem.mode[2] = data[container.constants.intellichemPacketFields.MODE2]
 
-        container.logger.info('Intellichem packet found: \n\t', JSON.stringify(intellichem, null, 2))
-        intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() + calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor()) * 1000) / 1000
-        container.logger.info('Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())
 
-        container.io.emitToClients('intellichem')
+        if (!container._.isEqual(intellichem.lastPacket, data)) {
+            intellichem.lastPacket = container._.clone(data)
+            intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() + calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor()) * 1000) / 1000
+            if (container.settings.logIntellichem) {
+                container.logger.info('Msg# %s  Intellichem packet found: \n\t', counter, JSON.stringify(container._.omit(intellichem, 'lastPacket'), null, 2))
+                container.logger.debug('Msg# %s  Intellichem packet: %s', counter, data)
+                container.logger.info('Msg# %s  Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', counter, intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())
+            }
+            container.io.emitToClients('intellichem')
+        }
+
     }
 
     function getCurrentIntellichem() {
@@ -204,7 +210,8 @@ module.exports = function(container) {
             'mode': {
                 '1': -1,
                 '2': -1
-            }
+            },
+            'lastPacket': []
         }
         container.logger.debug('Initialized intellichem module')
     }

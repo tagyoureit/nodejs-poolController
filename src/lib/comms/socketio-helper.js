@@ -579,7 +579,6 @@ module.exports = function(container) {
         container.logger.silly('total sockets in list: ', socketList.length)
 
         while (socketList.length!==0){
-            console.log('len socket', socketList.length)
             container.logger.silly('removing socket:', socketList[0].id)
             socketList[0].disconnect();
             var removed = socketList.shift()
