@@ -8,34 +8,35 @@
 </head>
 
 <body>
-    nodejs-poolController Pool Equipment Status
-    <p>
-        To see specific messagese here, use the variables below.  Currently, all three must be entered.
+nodejs-poolController Pool Equipment Status
+<p>
+    To see specific messagese here, use the variables below.  Leave any values blank for a wildcard.
 
 
-        <div id="search">
+<div id="search">
 
-            Destination:
-            <input type="text" id="searchDest" value="">
-            <br>
-            Source:
-            <input type="text" id="searchSrc" value="">
-            <br>
-            Action:
-            <input type="text" id="searchAction" value="">
-            <br>
-            <button id="start">Start Listening</button>
-            <button id="stop">Stop Listening</button>
-        </div>
+    Destination:
+    <input type="text" id="searchDest" value="">
+    <br>
+    Source:
+    <input type="text" id="searchSrc" value="">
+    <br>
+    Action:
+    <input type="text" id="searchAction" value="">
+    <br>
+    <button id="start">Start Listening</button>
+    <button id="stop">Stop Listening</button>
+    <button id="clear">Clear results</button>
+</div>
 
-        <div id="results">Results
+<div id="results">Results
 
-        </div>
+</div>
 
-        <!--<script src="/jquery-1.10.2.min.js"></script>-->
-        <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
-        <script src="../socket.io/socket.io.js"></script>
-        <script src="debug.js"></script>
+<!--<script src="/jquery-1.10.2.min.js"></script>-->
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="../socket.io/socket.io.js"></script>
+<script src="debug.js"></script>
 </body>
 
 </html>

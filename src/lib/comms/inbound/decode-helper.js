@@ -110,11 +110,11 @@ module.exports = function(container) {
             return (true);
 
         } else
-            //For pump response to set program 1 to 800 RPM
-            //                                               0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
-            //    17:29:44.943 DEBUG Msg# 8  Msg received: 165,0,16, 96, 1, 2, 3,32,1,59
-            //                      Msg written:           255,0,255,165,0,96,16, 1,4,3,39, 3,32, 1,103
-            if (container.queuePacket.first()[7] === 1 && chatter[container.constants.packetFields.ACTION] === 1) //Any commands with <01> are 4 bytes.  The responses are 2 bytes (after the length).  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
+        //For pump response to set program 1 to 800 RPM
+        //                                               0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
+        //    17:29:44.943 DEBUG Msg# 8  Msg received: 165,0,16, 96, 1, 2, 3,32,1,59
+        //                      Msg written:           255,0,255,165,0,96,16, 1,4,3,39, 3,32, 1,103
+        if (container.queuePacket.first()[7] === 1 && chatter[container.constants.packetFields.ACTION] === 1) //Any commands with <01> are 4 bytes.  The responses are 2 bytes (after the length).  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
         {
             if (container.queuePacket.first()[11] === chatter[6] && container.queuePacket.first()[12] === chatter[7]) {
                 return (true);
@@ -226,10 +226,26 @@ module.exports = function(container) {
 
     var decode = function(data, counter, packetType) {
         var decoded = false;
+        var searchMatch = true;
         //when searchMode (from socket.io) is in 'start' status, any matching packets will be set to the browser at http://machine.ip:3000/debug.html
         if (container.apiSearch.searchMode === 'start') {
-            if (container.apiSearch.searchAction === data[container.constants.packetFields.ACTION] && container.apiSearch.searchSrc === data[container.constants.packetFields.FROM] && container.apiSearch.searchDest === data[container.constants.packetFields.DEST]) {
-            var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify(data)
+            if (container.apiSearch.searchAction !== -1) {
+                if (container.apiSearch.searchAction !== data[container.constants.packetFields.ACTION]) {
+                    searchMatch = false
+                }
+            }
+            if (container.apiSearch.searchSrc !== -1) {
+                if (container.apiSearch.searchSrc !== data[container.constants.packetFields.FROM]) {
+                    searchMatch=false
+                }
+            }
+            if (container.apiSearch.searchDest !==-1) {
+                if (container.apiSearch.searchDest !== data[container.constants.packetFields.DEST]) {
+                    searchMatch = false
+                }
+            }
+            if (searchMatch===true){
+                var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify(data)
                 container.io.emitToClients('searchResults',
                     resultStr
                 )

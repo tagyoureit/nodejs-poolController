@@ -751,6 +751,47 @@ function startSocketRx() {
 
 
     socket.on('intellichem', function(data) {
+        //rebuild table
+        $('#intellichemTable').html('<thead>' +
+            '<th>' +
+            '<td>SI</td>' +
+            '</th>' +
+            '<tr>' +
+            '<th>Parameter</th>' +
+            '<th>pH</th>' +
+            '<th>ORP</th>' +
+            '</tr>' +
+            '</thead>' +
+            '<tbody>' +
+            '' +
+            '<tr>' +
+            '<td>Reading</td>' +
+            '</tr>' +
+            '<tr>' +
+            '<td>Setpoint</td>' +
+            '' +
+            '</tr>' +
+            '<tr>' +
+            '<td>Tank Level</td>' +
+            '</tr>' +
+            '<tr>' +
+            '<td>Mode</td>' +
+            '</tr>' +
+            '<tr>' +
+            '<td>Water Flow Alarm</td>' +
+            '</tr>' +
+            '<thead>' +
+            '<tr>' +
+            '<td>Calcium Hardness</td>' +
+            '</tr>' +
+            '<tr>' +
+            '<td>Total Alkalinity</td>' +
+            '</tr>' +
+            '<tr>' +
+            '<td>CYA</td>' +
+            '</tr>' +
+            '</tbody>')
+
         // console.log('received intellichem:', data)
         $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text:data.readings.ORP}))
         $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text:data.readings.ORP})).after($('<td/>', {text:data.readings.PH}))

@@ -14,7 +14,9 @@ $(function () {
 
     var socket = io();
 
-
+    $("#clear").click(function(){
+        $('#results').text('Results')
+    });
 
     $("#stop").click(function(){
         //alert('clicked stop')
@@ -23,10 +25,19 @@ $(function () {
 
     $("#start").click(function(){
         //alert ( $("#searchSrc").val() );
-        var src = $("#searchSrc").val();
-        var dest = $("#searchDest").val()
-        var action = $("#searchAction").val()
-        //alert('clicked start with values' + src + ' ' + dest + ' ' + action)
+        var src = -1
+        if ($("#searchSrc").val()!==''){
+            src =$("#searchSrc").val()
+        }
+        var dest = -1
+        if ($("#searchDest").val()!==''){
+            dest = $("#searchDest").val()
+        }
+        var action = -1
+        if ($("#searchAction").val()!==''){
+            action = $("#searchAction").val()
+        }
+        console.log('clicked start with values src: %s  dest: %s  action: %s', src,  dest, action)
         socket.emit('search','start',src,dest,action)
     })
 
