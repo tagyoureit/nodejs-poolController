@@ -78,7 +78,7 @@ describe('socket.io basic tests', function() {
         Promise.resolve()
             .delay(500)
             .then(function(){
-                loggerWarnStub.args[0][0].text.should.contain('FAIL:')
+                loggerWarnStub.args[1][0].text.should.contain('FAIL:')
             })
             .then(done,done)
 

@@ -535,7 +535,10 @@ module.exports = function(container) {
   // }
 
   var getCurrentPumpStatus = function() {
-    return currentPumpStatus
+      if (container.settings.useLegacyDataStructure === true)
+          return currentPumpStatus
+      else
+        return {'pumpnpm': currentPumpStatus}
   }
 
   var setDuration = function(index, _duration) {

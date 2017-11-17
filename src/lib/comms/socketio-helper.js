@@ -107,7 +107,7 @@ module.exports = function(container) {
             io.sockets.emit('heat',
                 heat
             )
-
+            container.logger.warn('heat socket will be deprecated.  Change to temp.')
         }
 
         if (outputType === 'schedule' || outputType === 'all') {
@@ -124,6 +124,10 @@ module.exports = function(container) {
                 io.sockets.emit('chlorinator', chlor)
         }
 
+        if (outputType === 'UOM' || outputType === 'all'){
+            io.sockets.emit('UOM', container.UOM.getUOM())
+        }
+
         if (outputType === 'all') {
             io.sockets.emit('all', container.helpers.allEquipmentInOneJSON())
         }
@@ -136,6 +140,10 @@ module.exports = function(container) {
             var intellichem = container.intellichem.getCurrentIntellichem()
                 io.sockets.emit('intellichem',
                     intellichem)
+        }
+
+        if (outputType === 'valves' || outputType === 'all'){
+            io.sockets.emit('valves', container.valves.getValves())
         }
     }
 

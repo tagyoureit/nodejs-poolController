@@ -14,7 +14,7 @@ var Bottle = global.Bottle = require('bottlejs')
 chai.should();
 // var expect = global.expect = chai.expect;
 // chai.config.includeStack = true;
-var _ = global._ = require('underscore');  //changed from lodash in 3.1.9
+var _ = global._ = require('underscore');
 var rp = global.rp = require('request-promise')
 global.bottle = Bottle.pop('poolController-Bottle');
 global.spy = sinon.spy()

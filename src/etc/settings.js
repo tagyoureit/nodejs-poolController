@@ -122,6 +122,8 @@ var load = exports.load = function() {
     pump = exports.pump = configFile.equipment.pump;
     /*   END Equipment   */
     appAddress = exports.appAddress = configFile.poolController.appAddress;
+    useLegacyDataStructure = exports.useLegacyDataStructure = configFile.poolController.useLegacyDataStructure;
+
     //Web
     expressPort = exports.expressPort = configFile.poolController.web.expressPort;
     expressTransport = exports.expressTransport = configFile.poolController.web.expressTransport;
@@ -208,6 +210,7 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n ';
     settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
     settingsStr += '\n var appAddress = ' + appAddress;
+    settingsStr += '\n var useLegacyDataStructure = ' + useLegacyDataStructure;
     settingsStr += '\n //-------  WEB SETUP -----------';
     settingsStr += '\n var expressPort = ' + expressPort;
     settingsStr += '\n var expressTransport = ' + expressTransport;

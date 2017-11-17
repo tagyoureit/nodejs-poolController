@@ -132,8 +132,11 @@ module.exports = function(container) {
         time[pumpStr] = time
     }
 
-    var getTime = function(callback) {
-        return time
+    var getTime = function() {
+        if (container.settings.useLegacyDataStructure === true)
+            return time
+        else
+            return {'time': time}
     }
 
 

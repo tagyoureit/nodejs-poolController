@@ -383,7 +383,7 @@ module.exports = function(container) {
         16: 'Heat Pump Status?',
         17: 'Schedule details',
         18: 'IntelliChem',
-        19: 'Intelli(?)',
+        19: 'Intelli(?)',  //Packet never seen...
         22: 'Get Intelliflo Spa Side Control',
         23: 'Pump Status',
         24: 'Pump Config',
@@ -558,7 +558,8 @@ module.exports = function(container) {
         PUMP13: 108,
         PUMP14: 109,
         PUMP15: 110,
-        PUMP16: 111
+        PUMP16: 111,
+        INTELLICHEM: 144
     }
 
     var ctrlString = {
@@ -584,6 +585,7 @@ module.exports = function(container) {
         109: 'Pump 14',
         110: 'Pump 15',
         111: 'Pump 16',
+        144: 'Intellichem',
         appAddress: 'nodejs-poolController Server'
     }
 

@@ -38,7 +38,10 @@ module.exports = function(container) {
     }
 
     function getValves() {
-        return valves
+        if (container.settings.useLegacyDataStructure === true)
+            return valves
+        else
+            return {'valves': valves}
     }
 
     /*istanbul ignore next */
