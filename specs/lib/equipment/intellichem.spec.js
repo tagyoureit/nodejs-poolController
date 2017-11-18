@@ -70,12 +70,12 @@ describe('processes Intellichem packets', function() {
                 bottle.container.controller_18.process(intellichemPackets[0], 0)
                 var json = bottle.container.intellichem.getCurrentIntellichem()
                 //console.log('json for intellichem: ', JSON.stringify(json,null,2))
-                json.readings.SI.should.equal(-0.31)
+                json.intellichem.readings.SI.should.equal(-0.31)
             })
 
             it('#Get Intellichem via API', function(done){
                 requestPoolDataWithURL('intellichem').then(function(obj) {
-                    obj.readings.SI.should.equal(-0.31)
+                    obj.intellichem.readings.SI.should.equal(-0.31)
                 }).then(done,done)
             })
 
@@ -93,7 +93,7 @@ describe('processes Intellichem packets', function() {
 
                 client.on('connect', function(data) {
                     client.on('intellichem', function(data){
-                        data.readings.SI.should.equal(-0.31)
+                        data.intellichem.readings.SI.should.equal(-0.31)
                         client.disconnect()
                         done()
                     })

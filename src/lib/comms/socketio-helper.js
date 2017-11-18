@@ -22,6 +22,7 @@ module.exports = function(container) {
 
 
     var server, io, socketList = [];
+    var warnonce = false;
 
 
     var emitToClients = function(outputType, data) {
@@ -92,6 +93,9 @@ module.exports = function(container) {
             io.sockets.emit('temp',
                 temp
             )
+            io.sockets.emit('temperature',
+                temp
+            )
             io.sockets.emit('temperatures', temp)
         }
 
@@ -107,7 +111,10 @@ module.exports = function(container) {
             io.sockets.emit('heat',
                 heat
             )
-            container.logger.warn('heat socket will be deprecated.  Change to temp.')
+            if (warnonce === false) {
+                container.logger.warn('heat socket will be deprecated.  Change to temp.')
+                once=true;
+            }
         }
 
         if (outputType === 'schedule' || outputType === 'all') {
@@ -144,6 +151,7 @@ module.exports = function(container) {
 
         if (outputType === 'valves' || outputType === 'all'){
             io.sockets.emit('valves', container.valves.getValves())
+            io.sockets.emit('valve', container.valves.getValves())
         }
     }
 

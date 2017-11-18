@@ -47,6 +47,10 @@ body {
 	min-width: 0px;
 }
 
+.pnlIntellichem {
+    min-width: 410px
+}
+
 /* Show the move cursor as the user moves the mouse over the panel header */
 #draggablePanelList .panel-heading {
 	cursor: move;

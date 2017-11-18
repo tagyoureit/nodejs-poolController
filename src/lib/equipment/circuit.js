@@ -448,10 +448,7 @@ module.exports = function(container) {
     }
 
     function getCurrentCircuits() {
-        if (container.settings.useLegacyDataStructure === true)
-            return currentCircuitArrObj
-        else
-            return {'circuits': currentCircuitArrObj}
+            return {'circuit': currentCircuitArrObj}
     }
 
 

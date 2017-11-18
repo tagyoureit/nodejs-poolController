@@ -59,9 +59,6 @@ module.exports = function(container) {
   }
 
   var getCurrentSchedule = function() {
-      if (container.settings.useLegacyDataStructure === true)
-          return currentSchedule
-      else
         return {'schedule':currentSchedule}
   }
 

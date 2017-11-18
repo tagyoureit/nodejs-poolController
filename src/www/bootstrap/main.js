@@ -650,6 +650,9 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
 // Function to configure communications sockets receive handling -> not called until clientConfig.json available (i.e. configuration complete)
 function startSocketRx() {
     socket.on('circuit', function(data) {
+        if (data.hasOwnProperty('circuit')){
+            data = data.circuit
+        }
         if (data !== null) {
             currCircuitArr = JSON.parse(JSON.stringify(data))
             $.each(data, function(indx, currCircuit) {
@@ -689,6 +692,9 @@ function startSocketRx() {
     });
 
     socket.on('pump', function(data) {
+        if (data.hasOwnProperty('pump')){
+            data = data.pump
+        }
         if (data !== null) {
             // check all pumps first to see if we need to hide the GPM row
             var showGPM = false;
@@ -751,6 +757,9 @@ function startSocketRx() {
 
 
     socket.on('intellichem', function(data) {
+        if (data.hasOwnProperty('intellichem')){
+            data = data.intellichem
+        }
         //rebuild table
         $('#intellichemTable').html('<thead>' +
             '<th>' +
@@ -858,19 +867,50 @@ function startSocketRx() {
         lastUpdate(true);
     });
 
-    socket.on('heat', function(data) {
-        if (data !== null) {
-            $('#poolHeatSetPoint').html(data.poolSetPoint);
-            $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
-            $('#poolHeatModeStr').html(data.poolHeatModeStr);
-            $('#spaHeatSetPoint').html(data.spaSetPoint);
-            $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
-            $('#spaHeatModeStr').html(data.spaHeatModeStr);
+    socket.on('temperature', function(data) {
+        if (data.hasOwnProperty('temperature')){
+            data = data.temperature
         }
+        $('#airTemp').html(data.airTemp);
+        $('#solarTemp').html(data.solarTemp);
+        if (data.solarTemp === 0)
+            $('#solarTemp').closest('tr').hide();
+        else
+            $('#solarTemp').closest('tr').show();
+        $('#poolCurrentTemp').html(data.poolTemp);
+        $('#spaCurrentTemp').html(data.spaTemp);
+        if (data.heaterActive === 1)
+            $('#stateHeater').html('On');
+        else
+            $('#stateHeater').html('Off');
+        if (data.freeze === 1)
+            $('#stateFreeze').html('On');
+        else
+            $('#stateFreeze').html('Off');
+        $('#poolHeatSetPoint').html(data.poolSetPoint);
+        $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
+        $('#poolHeatModeStr').html(data.poolHeatModeStr);
+        $('#spaHeatSetPoint').html(data.spaSetPoint);
+        $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
+        $('#spaHeatModeStr').html(data.spaHeatModeStr);
         lastUpdate(true);
     });
+    // socket.on('heat', function(data) {
+    //     if (data !== null) {
+    //         $('#poolHeatSetPoint').html(data.poolSetPoint);
+    //         $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
+    //         $('#poolHeatModeStr').html(data.poolHeatModeStr);
+    //         $('#spaHeatSetPoint').html(data.spaSetPoint);
+    //         $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
+    //         $('#spaHeatModeStr').html(data.spaHeatModeStr);
+    //     }
+    //     lastUpdate(true);
+    // });
 
     socket.on('chlorinator', function(data) {
+        if (data.hasOwnProperty('chlorinator')){
+            data = data.chlorinator
+        }
         //var data = {"saltPPM":2900,"currentOutput": 12, "outputPoolPercent":7,"outputSpaPercent":-1,"superChlorinate":0,"version":0,"name":"Intellichlor--40","status":"Unknown - Status code: 128"};
         if (data !== null) {
 
@@ -909,6 +949,9 @@ function startSocketRx() {
     });
 
     socket.on('schedule', function(data) {
+        if (data.hasOwnProperty('schedule')){
+            data = data.schedule
+        }
         if (data !== null) {
             // Schedule/EggTimer to be updated => Wipe, then (Re)Build Below
             $('#schedules tr').not('tr:first').remove();
@@ -957,6 +1000,9 @@ function startSocketRx() {
     });
 
     socket.on('time', function(data) {
+        if (data.hasOwnProperty('time')){
+            data = data.time
+        }
         // Update Date and Time (buttons) - custom formatted
         var newDT = new Date(data.controllerDateStr + ' ' + data.controllerTime)
         $('#currDate').val(newDT.getDate() + '-' + monthOfYearAsString(newDT.getMonth()) + '-' + newDT.getFullYear().toString().slice(-2));
@@ -988,26 +1034,6 @@ function startSocketRx() {
                 socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
             }
         });
-        lastUpdate(true);
-    });
-
-    socket.on('temp', function(data) {
-        $('#airTemp').html(data.airTemp);
-        $('#solarTemp').html(data.solarTemp);
-        if (data.solarTemp === 0)
-            $('#solarTemp').closest('tr').hide();
-        else
-            $('#solarTemp').closest('tr').show();
-        $('#poolCurrentTemp').html(data.poolTemp);
-        $('#spaCurrentTemp').html(data.spaTemp);
-        if (data.heaterActive === 1)
-            $('#stateHeater').html('On');
-        else
-            $('#stateHeater').html('Off');
-        if (data.freeze === 1)
-            $('#stateFreeze').html('On');
-        else
-            $('#stateFreeze').html('Off');
         lastUpdate(true);
     });
 

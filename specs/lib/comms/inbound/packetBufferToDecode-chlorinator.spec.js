@@ -56,16 +56,16 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorinatorPkt_chk = [255, 0, 255, 165, 16, 15, 16, 25, 22, 25, 9, 128, 23, 133, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 7, 232]
 
-                bottle.container.chlorinator.getChlorinatorStatus().saltPPM.should.eq(-1)
+                bottle.container.chlorinator.getChlorinatorStatus().chlorinator.saltPPM.should.eq(-1)
                 bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_chk))
 
                 // console.log('queuePacketStub: ', queuePacketStub.args)
-                bottle.container.chlorinator.getChlorinatorStatus().saltPPM.should.eq(1150)
+                bottle.container.chlorinator.getChlorinatorStatus().chlorinator.saltPPM.should.eq(1150)
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('chlorinator', function(data) {
                     // console.log('chlorinator:', data)
-                    data.saltPPM.should.eq(1150)
+                    data.chlorinator.saltPPM.should.eq(1150)
                     client.disconnect()
                     done()
                 })
@@ -83,15 +83,15 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                 bottle.container.configEditor.updateChlorinatorName(-1)
                     .then(function() {
                         bottle.container.chlorinator.init()
-                        bottle.container.chlorinator.getChlorinatorStatus().name.should.eq(-1)
+                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(-1)
                         bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_chk))
 
-                        bottle.container.chlorinator.getChlorinatorStatus().name.should.eq(`Intellichlor--40`)
+                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(`Intellichlor--40`)
 
                         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                         client.on('chlorinator', function(data) {
                             // console.log('chlorinator:', data)
-                            data.name.should.eq(`Intellichlor--40`)
+                            data.chlorinator.name.should.eq(`Intellichlor--40`)
                             client.disconnect()
                             done()
                         })
@@ -111,7 +111,7 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                     .then(function() {
                         bottle.container.chlorinator.init()
 
-                        bottle.container.chlorinator.getChlorinatorStatus().name.should.eq(-1)
+                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(-1)
                         bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_chk))
 
                         // console.log('queuePacketStub: ', queuePacketStub.args)
@@ -121,7 +121,7 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                         client.on('chlorinator', function(data) {
                             // console.log('chlorinator:', data)
-                            data.name.should.eq(-1)
+                            data.chlorinator.name.should.eq(-1)
                             client.disconnect()
                             done()
                         })
@@ -140,7 +140,7 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                     .then(function() {
                         bottle.container.chlorinator.init()
 
-                        bottle.container.chlorinator.getChlorinatorStatus().name.should.eq(-1)
+                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(-1)
                         bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_chk))
 
                         // console.log('queuePacketStub: ', queuePacketStub.args)
@@ -150,7 +150,7 @@ describe('chlorinator packets: recieves packets from buffer and follows them to 
                         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                         client.on('chlorinator', function(data) {
                             // console.log('chlorinator:', data)
-                            data.name.should.eq(-1)
+                            data.chlorinator.name.should.eq(-1)
                             client.disconnect()
                             done()
                         })

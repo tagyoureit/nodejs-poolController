@@ -109,7 +109,7 @@ describe('processes 17 (Schedule) packets', function() {
                  */
 
                 clock.tick(1000)
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for schedule 1: ', JSON.stringify(json,null,2))
                 json[1].watts.should.equal(412)
                 json[1].rpm.should.equal(1850)

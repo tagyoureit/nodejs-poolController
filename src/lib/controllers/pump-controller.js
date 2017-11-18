@@ -86,7 +86,7 @@ module.exports = function(container) {
     function runRPM(address, rpm) {
         var runPrg = []
         // what type of pump?
-        var type = container.pump.getCurrentPumpStatus()[address-95].type
+        var type = container.pump.getCurrentPumpStatus().pump[address-95].type
         if (type==='VS'){
             runPrg[0] = 1
             runPrg[3] = 196
@@ -116,7 +116,7 @@ module.exports = function(container) {
     function runGPM(address, gpm) {
         var runPrg =[]
         // what type of pump?
-        var type = container.pump.getCurrentPumpStatus()[address-95].type
+        var type = container.pump.getCurrentPumpStatus().pump[address-95].type
         if (type==='VF'){
             runPrg[0] = 1
             runPrg[3] = 228

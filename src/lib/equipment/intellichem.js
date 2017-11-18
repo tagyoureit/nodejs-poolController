@@ -184,10 +184,7 @@ module.exports = function(container) {
     }
 
     function getCurrentIntellichem() {
-        if (container.settings.useLegacyDataStructure === true)
-            return intellichem
-        else
-            return {'intellichem': intellichem}
+           return {'intellichem': intellichem}
     }
 
     var init = function() {

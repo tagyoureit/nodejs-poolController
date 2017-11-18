@@ -54,7 +54,7 @@ module.exports = function(container) {
             //For the first loop, we only check for types
             for (propName in this) {
                 //Check for inherited methods and properties - like .equals itself
-                //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
+                //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Globalcontainer._Objects/Object/hasOwnProperty
                 //Return false if the return value is different
                 if (this.hasOwnProperty(propName) != object2.hasOwnProperty(propName)) {
                     return false;
@@ -111,7 +111,7 @@ module.exports = function(container) {
             var diffString = '';
             for (propName in this) {
                 //Check for inherited methods and properties - like .equals itself
-                //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/hasOwnProperty
+                //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Globalcontainer._Objects/Object/hasOwnProperty
                 //Return false if the return value is different
                 if (this.hasOwnProperty(propName) != object2.hasOwnProperty(propName)) {
                     diffString += ' ' + this.hasOwnProperty(propName);
@@ -191,33 +191,16 @@ module.exports = function(container) {
     function allEquipmentInOneJSON() {
         var pool = {}
 
-        if (container.settings.useLegacyDataStructure === true) {
-            pool.circuits = container.circuit.getCurrentCircuits()
-            pool.heat = container.heat.getCurrentHeat()
-            pool.pumps = container.pump.getCurrentPumpStatus()
-            pool.schedule = container.schedule.getCurrentSchedule()
-            pool.temperatures = container.temperatures.getTemperatures()
-            pool.time = container.time.getTime()
-            pool.UOM = container.UOM.getUOM()
-            pool.valves = container.valves.getValves()
-            pool.chlorinator = container.chlorinator.getChlorinatorStatus()
-            pool.intellichem = container.intellichem.getCurrentIntellichem()
+            container._.extend(pool, container.circuit.getCurrentCircuits())
+            container._.extend(pool, container.pump.getCurrentPumpStatus())
+            container._.extend(pool, container.schedule.getCurrentSchedule())
+            container._.extend(pool, container.temperatures.getTemperatures())
+            container._.extend(pool, container.time.getTime())
+            container._.extend(pool, container.UOM.getUOM())
+            container._.extend(pool, container.valves.getValves())
+            container._.extend(pool, container.chlorinator.getChlorinatorStatus())
+            container._.extend(pool, container.intellichem.getCurrentIntellichem())
             return pool
-        }
-        else
-        {
-            _.extend(pool, container.circuit.getCurrentCircuits())
-            _.extend(pool,container.heat.getCurrentHeat())
-            _.extend(pool,container.pump.getCurrentPumpStatus())
-            _.extend(pool,container.schedule.getCurrentSchedule())
-            _.extend(pool,container.temperatures.getTemperatures())
-            _.extend(pool,container.time.getTime())
-            _.extend(pool,container.UOM.getUOM())
-            _.extend(pool,container.valves.getValves())
-            _.extend(pool,container.chlorinator.getChlorinatorStatus())
-            _.extend(pool,container.intellichem.getCurrentIntellichem())
-            return pool
-        }
     }
 
     return {

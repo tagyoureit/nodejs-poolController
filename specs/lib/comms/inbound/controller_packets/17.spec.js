@@ -42,7 +42,7 @@ describe('processes 17 (Schedule) packets', function() {
         })
 
         clock.tick(1000)
-        var json = bottle.container.schedule.getCurrentSchedule()
+        var json = bottle.container.schedule.getCurrentSchedule().schedule
         //console.log('json for schedule 1: ', JSON.stringify(json,null,2))
         json[1].ID.should.equal(1)
         json[1].START_TIME.should.equal("9:20")

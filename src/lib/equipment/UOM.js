@@ -43,9 +43,6 @@ module.exports = function(container) {
     }
 
     function getUOM() {
-        if (container.settings.useLegacyDataStructure === true)
-            return UOM
-        else
             return {'UOM': UOM}
     }
 

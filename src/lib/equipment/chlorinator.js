@@ -184,12 +184,7 @@ module.exports = function(container) {
   }
 
   function getChlorinatorStatus() {
-    if (container.settings.useLegacyDataStructure === true) {
-        return currentChlorinatorStatus
-    }
-    else{
       return {'chlorinator': currentChlorinatorStatus}
-    }
   }
 
   function setChlorinatorLevel(chlorLvl, callback) {

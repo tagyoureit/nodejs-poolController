@@ -44,29 +44,29 @@ describe('processes 17 (Schedule) packets', function() {
 
             it('#Pump 1 Program 1 should be set to 490', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump1SetProgram1RPM490Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[1].externalProgram[1].should.equal(490)
 
             })
             it('#Pump 1 Program 2 should be set to 500 and then 2500', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump1SetProgram2RPM500Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[1].externalProgram[2].should.equal(500)
                 bottle.container.packetBuffer.push(Buffer.from(global.pump1SetProgram2RPM2500Packet_chk))
-                json = bottle.container.pump.getCurrentPumpStatus()
+                json = bottle.container.pump.getCurrentPumpStatus().pump
                 json[1].externalProgram[2].should.equal(2500)
             })
             it('#Pump 1 Program 3 should be set to 2490', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump1SetProgram3RPM2490Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[1].externalProgram[3].should.equal(2490)
             })
             it('#Pump 1 Program 4 should be set to 2480', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump1SetProgram4RPM2480Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[1].externalProgram[4].should.equal(2480)
             })
@@ -74,21 +74,21 @@ describe('processes 17 (Schedule) packets', function() {
 
             it('#Pump 2 Program 1 should be set to 490', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump2SetProgram1RPM490Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[2].externalProgram[1].should.equal(490)
 
             })
             it('#Pump 2 Program 2 should be set to 2500', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump2SetProgram2RPM2500Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[2].externalProgram[2].should.equal(2500)
 
             })
             it('#Pump 2 Program 3 should be set to 2490', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump2SetProgram3RPM2490Packet_chk))
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[2].externalProgram[3].should.equal(2490)
             })
@@ -96,7 +96,7 @@ describe('processes 17 (Schedule) packets', function() {
             it('#Pump 2 Program 4 should be set to 3450', function() {
                 bottle.container.packetBuffer.push(Buffer.from(global.pump2SetProgram4RPM3450Packet_chk))
                 clock.tick(1000)
-                var json = bottle.container.pump.getCurrentPumpStatus()
+                var json = bottle.container.pump.getCurrentPumpStatus().pump
                 //console.log('json for pumps: ', JSON.stringify(json,null,2))
                 json[2].externalProgram[4].should.equal(3450)
 

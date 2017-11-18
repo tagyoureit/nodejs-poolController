@@ -41,7 +41,7 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
       it('#Circuit 1 should be a Spa Circuit', function() {
         bottle.container.packetBuffer.push(data[0])
         clock.tick(1000)
-        var json = bottle.container.circuit.getCurrentCircuits()
+        var json = bottle.container.circuit.getCurrentCircuits().circuit
         //console.log('json for circuit 1: ', JSON.stringify(json,null,2))
         json[1].number.should.equal(1)
         json[1].name.should.equal("SPA")

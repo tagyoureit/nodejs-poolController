@@ -90,7 +90,6 @@
     },
     "poolController": {
         "appAddress": 33,
-        "useLegacyDataStructure": true,
         "web": {
             "expressPort": 3000,
             "expressTransport": "http",

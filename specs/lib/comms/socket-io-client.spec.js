@@ -60,12 +60,15 @@ describe('socket.io basic tests', function() {
         client.on('connect', function(data) {
             // console.log('connected client:')
             client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
-            client.on('time', function(data){
-                data.controllerDateStr.should.eq('4/3/2018')
-                data.controllerDayOfWeekStr.should.eq('Tuesday')
-                client.disconnect()
-                done()
+            Promise.resolve().then(function(){
+                client.on('time', function(data){
+                    data.time.controllerDateStr.should.eq('4/3/2018')
+                    data.time.controllerDayOfWeekStr.should.eq('Tuesday')
+                    client.disconnect()
+                    done()
+                })
             })
+
 
         })
     })
@@ -76,7 +79,7 @@ describe('socket.io basic tests', function() {
             client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
         })
         Promise.resolve()
-            .delay(500)
+            .delay(100)
             .then(function(){
                 loggerWarnStub.args[1][0].text.should.contain('FAIL:')
             })
@@ -186,14 +189,13 @@ describe('socket.io basic tests', function() {
                 })
 
             })
-            .delay(200)
+            .delay(100)
             .then(function(){
                 (count>0).should.be.true
                 // console.log('should see results?')
                 //
                 // var json = bottle.container.schedule.getCurrentSchedule()
                 // console.log('json for schedule 1: ', JSON.stringify(json,null,2))
-
                 bottle.container.schedule.init()
             })
             .then(done,done)
@@ -361,8 +363,8 @@ describe('socket.io pump tests', function() {
             client.emit('all')
             client.on('all', function(msg) {
                 // console.log(msg)
-                msg.circuits.should.exist
-                msg.pumps.should.exist
+                msg.circuit.should.exist
+                msg.pump.should.exist
                 msg.schedule.should.exist
                 client.disconnect()
                 done()
@@ -379,8 +381,8 @@ describe('socket.io pump tests', function() {
             client.emit('one')
             client.on('one', function(msg) {
                 // console.log(msg)
-                msg.circuits.should.exist
-                msg.pumps.should.exist
+                msg.circuit.should.exist
+                msg.pump.should.exist
                 msg.schedule.should.exist
                 client.disconnect()
                 done()

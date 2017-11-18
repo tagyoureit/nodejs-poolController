@@ -45,7 +45,7 @@ describe('pump controller', function() {
 
                 bottle.container.settings.pump = config.equipment.pump;
                 bottle.container.pump.init()
-                var pumpStatus = bottle.container.pump.getCurrentPumpStatus()
+                var pumpStatus = bottle.container.pump.getCurrentPumpStatus().pump
                 pumpStatus[1].externalProgram[2].should.eq(2500)
                 pumpStatus[2].externalProgram[3].should.eq(3450)
             })
@@ -62,7 +62,7 @@ describe('pump controller', function() {
                 bottle.container.settings.pump = config.equipment.pump;
                 bottle.container.pump.init()
 
-                var pumpStatus = bottle.container.pump.getCurrentPumpStatus()
+                var pumpStatus = bottle.container.pump.getCurrentPumpStatus().pump
                 pumpStatus[1].externalProgram[2].should.eq(2500)
                 pumpStatus[2].externalProgram[3].should.eq(3450)
                 pumpStatus[16].pump.should.eq(16)

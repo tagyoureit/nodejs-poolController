@@ -62,7 +62,7 @@ describe('#sets various functions', function() {
 
             it('gets the date/time', function(done) {
                 requestPoolDataWithURL('datetime').then(function(obj) {
-                    obj.controllerTime.should.equal(-1)
+                    obj.time.controllerTime.should.equal(-1)
                 }).then(done,done)
             })
 
@@ -70,7 +70,7 @@ describe('#sets various functions', function() {
             it('sets a valid date/time', function(done) {
                 requestPoolDataWithURL('datetime/set/time/21/55/date/2/01/02/19/0').then(function(obj) {
                     obj.text.should.contain('REST API')
-                    var res = bottle.container.time.getTime()
+                    var res = bottle.container.time.getTime().time
                     res.controllerDateStr.should.eq('2/1/2019')
                     res.controllerDayOfWeekStr.should.eq('Monday')
                     queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 133, 8, 21, 55, 2, 1, 2, 19, 0, 0 ])
@@ -83,21 +83,21 @@ describe('#sets various functions', function() {
             it('fails to set a valid date/time with invalid time (should fail)', function(done) {
                 requestPoolDataWithURL('datetime/set/time/21/61/date/2/01/02/19/0').then(function(obj) {
                     obj.text.should.contain('FAIL')
-                    var res = bottle.container.time.getTime()
+                    var res = bottle.container.time.getTime().time
                     res.controllerTime.should.eq(-1)
                 }).then(done,done)
             })
             it('fails to set a valid date/time with invalid date (should fail)', function(done) {
                 requestPoolDataWithURL('datetime/set/time/21/31/date/128/01/02/19/0').then(function(obj) {
                     obj.text.should.contain('FAIL')
-                    var res = bottle.container.time.getTime()
+                    var res = bottle.container.time.getTime().time
                     res.controllerTime.should.eq(-1)
                 }).then(done,done)
             })
             it('fails to set a valid date/time with invalid dst (should fail)', function(done) {
                 requestPoolDataWithURL('datetime/set/time/21/31/date/8/01/02/19/3').then(function(obj) {
                     obj.text.should.contain('FAIL')
-                    var res = bottle.container.time.getTime()
+                    var res = bottle.container.time.getTime().time
                     res.controllerTime.should.eq(-1)
                 }).then(done,done)
             })

@@ -133,9 +133,6 @@ module.exports = function(container) {
     }
 
     var getTime = function() {
-        if (container.settings.useLegacyDataStructure === true)
-            return time
-        else
             return {'time': time}
     }
 

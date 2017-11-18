@@ -44,7 +44,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
 
             it('#should set/get the temperature', function(done) {
                 configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                bottle.container.temperatures.getTemperatures().poolTemp.should.eq(0)
+                bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(0)
                 bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
                 // console.log('logger args:', loggerVerboseStub.args)
@@ -58,13 +58,13 @@ describe('recieves packets from buffer and follows them to decoding', function()
 
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                client.on('temp', function(data) {
+                client.on('temperature', function(data) {
                     // console.log(data)
-                    data.poolTemp.should.eq(53)
+                    data.temperature.poolTemp.should.eq(53)
 
 
                     setTimeout(function() {
-                        bottle.container.temperatures.getTemperatures().poolTemp.should.eq(53)
+                        bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(53)
                     client.disconnect()
                         done()
                     }, 100)

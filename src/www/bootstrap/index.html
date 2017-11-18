@@ -55,6 +55,41 @@
 	</nav>
 </div>
 	<div id="draggablePanelList">
+
+		<div id="release" class="col-md-3 pnlRelease">
+			<a name="release" class="anchor"></a>
+			<div class="panel panel-warning">
+				<div class="panel-heading">Release Details
+					<a class="accordion-toggle" data-toggle="collapse" href="#collapseRelease"></a>
+					<button id="hidePanelrelease" class="btn btn-warning btn-xs" style="float: right;  margin-right: 20px;">Hide</button>
+				</div>
+				<div id="collapseRelease" class="panel-body panel-collapse collapse in">
+					<table class="table table-hover">
+						<thead>
+						<tr>
+							<th colspan="2">4.x-DEV release notes</th>
+						</tr>
+						</thead>
+						<tbody>
+						<tr>
+							<td>Intellichem</td>
+							<td>
+								<span>Intellichem packets and UI added</span>
+							</td>
+						</tr>
+						<tr>
+							<td>Socket/APIs</td>
+							<td>
+								<span>Sockets/API will now all be SINGULAR.  If you have custom apps that call circuits, schedules, etc please change them to circuit, schedule, etc.</span>
+								<span>Per <a href="https://github.com/tagyoureit/nodejs-poolController/issues/57">issue 57</a>, all sockets will transition to include a parent tag that describes the information.  This should make any code/logic easier in the future.</span>
+								</td>
+						</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		
 		<a name="systeminformation" class="anchor"></a>
 		<div id="system" class="col-md-2 pnlSystem">
 			<div class="panel panel-primary">

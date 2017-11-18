@@ -50,10 +50,7 @@ module.exports = function(container) {
     function getTemperatures(){
         var heat = container.heat.getCurrentHeat()
         var combine = _.extend(temperatures, heat)
-        if (container.settings.useLegacyDataStructure === true)
-            return combine
-        else
-            return {'temperatures': combine}
+            return {'temperature': combine}
     }
 
     /*istanbul ignore next */
