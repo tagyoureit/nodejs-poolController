@@ -6,6 +6,7 @@
 
 # Breaking changes in Dev release
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
+1. All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
 
 # License
 
@@ -108,31 +109,70 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
  ### APIs
  You can use Sockets.IO  (see the "basic UI" example).  Valid sockets:
 
-| Direction | Socket | URI | Description |
-| --- | --- | --- |
-| To app | <code>toggleCircuit(equipment)</code> | toggles the variable `equipment` (as a circuit number)  |
+ #### General
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To app | <code>echo(equipment)</code> | test socket
+| To client | <code>echo</code> | outputs the incoming echo (for testing)
 | To app | <code>search(mode, src, dest, action)</code> | Searches for specific packets that match all four bytes and outputs to the socket <code>searchResults</code>
-| To app | <code>sendPacket(packet)</code> | Send a `packet` as a string of values (xx,yy,zz,etc) to the bus in .  Pump and Controller packets should start with [SRC, DEST...].  Chlorinator packets should start with [16,2...]
-| To app | <code>spasetpoint(spasetpoint)</code> | Change the `spa to setpoint` (degrees)
-| To app | <code>spaheatmode(spaheatmode)</code> | Change the `spa heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
-| To app | <code>poolsetpoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
-| To app | <code>poolheatmode(poolheatmode)</code> | Change the `pool heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
-| To app | _deprecated_ ~~<code>pumpCommand(equip, program, value, duration)</code>~~ | Save `pump` (96=pump 1, 97=pump 2) to  `program`
-| To app | <code>setPumpCommand(action, pump, program, rpm, duration)</code> | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
-| To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
-| To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
-| To app | <code>updateVersionNotification(bool)</code> | true = do not send the updateAvailable socket until the next version is available.  false = send updateAvailable everytime.
-| To app | <code>cancelDelay</code>| Cancel and current circuit (valves/heater cool down?) delay.
 | To client | <code>searchResults</code> | outputs packets that match the <code>search</code> socket
-| To client | <code>circuit</code> | outputs an object of circuits and their status
-| To client | ~~<code>config</code>~~ | ~~outputs an object with the pool controller status~~ Deprecated.
-| To client | <code>pump</code> | outputs an object with the pump information
-| To client | ~~<code>heat</code>~~ | ~~outputs an object with the heat information~~ now included with temperatures
-| To client | <code>temperatures</code> | outputs an object with the temperatures, heat and set point information
-| To client | <code>schedule</code> | outputs an object with the schedule information
-| To client | <code>chlorinator</code> | outputs an object with the chlorinator information
+| To app | <code>sendPacket(packet)</code> | Send a `packet` as an array of values [xx,yy,zz...] to the bus.  Pump and Controller packets should start with [DEST, SRC,...].  Chlorinator packets should start with [16,2...]
+| To client | <code>all</code>| outputs an object with all equipment in one JSON
+| To app | <code>all</code>| sends all information in one socket
+| To client | <code>time</code> | outputs an object with the time and date information
+| To app | <code>setDateTime(hour, min, dow*, day, mon, yy, dst) | set the date/time on the controller.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
+| To app | <code>updateVersionNotification(bool)</code> | true = do not send the updateAvailable socket until the next version is available.  false = send updateAvailable everytime.
 | To client | <code>updateAvailable</code> | outputs an object with current running version vs latest published release on GitHub (local is the running app, remote is the GitHub version)
-| To client | <code>one</code> | outputs an object with all equipment in one JSON
+| To client | <code>valve</code> | outputs an object with the valve information
+| To client | <code>UOM</code> | outputs the unit of measure (C or F)
+
+
+ #### Circuits
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To client | <code>circuit</code> | outputs an object of circuits and their status
+| To app | <code>toggleCircuit(equipment)</code> | toggles the variable `equipment` (as a circuit number)  |
+| To app | <code>cancelDelay</code>| Cancel and current circuit (valves/heater cool down?) delay.
+
+
+ #### Temperatures and Heat
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To client | <code>temperature</code> | outputs an object with the temperatures, heat and set point information
+| To app | <code>setSpaSetPoint(spasetpoint)</code> | Change the `spa to setpoint` (degrees)
+| To app | <code>incrementSpaSetPoint(degrees)</code> | Increment the spa by [optional] degrees; default=1
+| To app | <code>decrementSpaSetPoint(degrees)</code> | Decrement the spa by [optional] degrees; default=1
+| To app | <code>spaheatmode(spaheatmode)</code> | Change the `spa heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
+| To app | <code>setPoolSetPoint(poolsetpoint)</code> | Change the `pool to setpoint` (degrees)
+| To app | <code>incrementPoolSetPoint(degrees)</code> | Increment the pool by [optional] degrees; default=1
+| To app | <code>decrementPoolSetPoint(degrees)</code> | Decrement the pool by [optional] degrees; default=1
+| To app | <code>poolheatmode(poolheatmode)</code> | Change the `pool heat mode` (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
+
+
+ #### Chlorinator and Intellichem
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To app | <code>setchlorinator(level)</code> | sets the level of output for chlorinator (pool only)
+| To client | <code>chlorinator</code> | outputs an object with the chlorinator information
+| To client | <code>intellichem</code> | outputs an object with the intellichem information
+
+ #### Pumps
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To client | <code>pump</code> | outputs an object with the pump information
+| To app | ~<code>setPumpCommand(action, pump, program, rpm, duration)</code>~ | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
+
+ #### Schedules
+| Direction | Socket  | Description |
+| --- | --- | ---  |
+| To client | <code>schedule</code> | outputs an object with the schedule information
+| To app | <code>setSchedule(id, circuit, starthh, startmm, endhh, endmm, dow*) | set the schedule on the controller for the particular schedule ID.  dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] or a combination thereof [3=Monday+Tuesday].  To set a schedule set a valid start and end time (hh:mm).  To set an egg timer, set the start time to 25:00 and the endtime to the duration (hh:mm) you want the egg timer to run.
+| To app | <code>toggleScheduleDay(id,dow)</code> | Toggle the day of schedule [id]. [dow] can be expressed as a single day (three letters, eg Sun; full name, eg Sunday; or dow as described in setSchedule.
+| To app | <code>deleteScheduleOrEggTimer(id)</code> | Delete the [id] with the corresponding schedule
+| To app | <code>setScheduleStartOrEndTime(id,sOE,hour,min)</code> | Edit schedule with [id]. sOE=`start` or `end`. hour in 24h notation 0-23. min 0-59.
+| To app | <code>setScheduleCircuit(id,circuit)</code> | Assign [circuit] (as id of circuit) to schedule [id]
+| To app | <code>setEggTimer(id,circuit,hour,min)</code> | Assign egg timer to schedule with [id], [circuit] as circuit id, and hour 0-23 and min 0-59.
+
 
 ***
 
@@ -185,7 +225,6 @@ See below for descriptions
                 "19": "",
                 "20": ""
             }
-
         },
         "chlorinator": {
             "installed": 1,
@@ -200,7 +239,7 @@ See below for descriptions
         },
         "pump": {
             "1": {
-                "type": "none",
+                "type": "VS",
                 "externalProgram": {
                     "1": -1,
                     "2": -1,
@@ -216,7 +255,7 @@ See below for descriptions
                 }
             },
             "2": {
-                "type": "none",
+                "type": "None",
                 "externalProgram": {
                     "1": -1,
                     "2": -1,
@@ -250,29 +289,38 @@ See below for descriptions
         "notifications": {
             "version": {
                 "remote": {
-                    "version": "0.0.0",
-                    "tag_name": "v0.0.0",
+                    "version": "4.0.0",
+                    "tag_name": "v4.0.0",
                     "dismissUntilNextRemoteVersionBump": false
                 }
             }
         },
         "log": {
-            "logLevel": "silly",
-            "socketLogLevel": "verbose",
+            "logLevel": "info",
+            "socketLogLevel": "info",
             "fileLog": {
                 "enable": 0,
                 "fileLogLevel": "silly",
                 "fileName": "output.log"
             },
-            "logPumpMessages": 1,
+            "logPumpMessages": 0,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,
             "logConfigMessages": 0,
-            "logMessageDecoding": 1,
-            "logChlorinator": 1,
-            "logPacketWrites": 1,
+            "logMessageDecoding": 0,
+            "logChlorinator": 0,
+            "logIntellichem": 0,
+            "logPacketWrites": 0,
             "logPumpTimers": 0,
             "logApi": 0
+        },
+        "database": {
+            "influx": {
+                "enabled": 0,
+                "host": "localhost",
+                "port": 8086,
+                "database": "pool"
+            }
         }
     },
     "integrations": {
@@ -307,7 +355,6 @@ See below for descriptions
         "level": "warn"
     }
 }
-
 ```
 
 ***
@@ -732,8 +779,11 @@ Docker Instructions
  * Support for up to 50 circuits, 8 pumps
  * Delay and Cancel Delay for circuits
 
-4.1 -
+4.x-DEV -
  * Added set/delete/add schedule
+ * All sockets/API now singular (`circuits`->`circuit`)
+ * All sockets/API data now returned with a JSON qualifier. EG `{pump:...}`, `{circuit:...}`
+ * Intellichem decoding and display
 
 # Wish list
 1.  Still many messages to debug
