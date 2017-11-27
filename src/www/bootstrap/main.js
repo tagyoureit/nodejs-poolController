@@ -1544,6 +1544,8 @@ function handleButtons() {
     $('#pump1Edit, #pump2Edit').click(function(){
         pumpManualButtonsEnableDisable($(this).data('pumpid'), 'enable')
         $('#pump'+ $(this).data('pumpid') + 'EditResume').show()
+
+        //TODO: change logic on socket.on('pump') so values don't update in edit mode.
     })
 
     $('#pump1EditResume, #pump2EditResume').click(function(){
