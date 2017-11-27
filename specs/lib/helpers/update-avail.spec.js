@@ -21,6 +21,7 @@ describe('checks if there is a newer version available', function() {
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 socketIOSpy = sandbox.stub(bottle.container.io, 'emitToClients')
+                bottle.container.updateAvailable.init()
             })
 
             afterEach(function() {
@@ -103,8 +104,8 @@ describe('checks if there is a newer version available', function() {
                   bottle.container.io.emitToClients('updateAvailable')
 
                     client.on('updateAvailable', function(msg) {
-                        console.log(JSON.stringify(msg,null,2))
-                        msg.result.should.equal('newer')
+                        //console.log(JSON.stringify(msg,null,2))
+                        msg.result.should.equal('older')
                         client.disconnect()
                         done()
                     })

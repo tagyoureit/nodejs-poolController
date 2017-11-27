@@ -226,6 +226,9 @@ module.exports = function(container) {
             return jsons
         }
     }
+    var init = function(){
+        jsons = {}
+    }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -233,6 +236,7 @@ module.exports = function(container) {
 
     return {
         check: check,
-        getResults: getResults
+        getResults: getResults,
+        init: init
     }
 }
