@@ -1,4 +1,4 @@
-describe('chlorinator packets: recieves packets from buffer and follows them to decoding', function() {
+describe('chlorinator packets: receives packets from buffer and follows them to decoding', function() {
 
 
     describe('#Without an intellitouch controller', function() {

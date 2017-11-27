@@ -624,6 +624,35 @@ String.prototype.toTitleCase = function() {
     });
 };
 
+function pumpManualButtonsEnableDisable(pump, mode){
+    pumpXRunProgram = '#pump' + pump + 'RunProgram'
+    pumpXRunDuration = '#pump' + pump + 'RunDuration'
+    pumpXProgram = '#pump' + pump + 'Program'
+    if (mode==='enable') {
+        if ($(pumpXRunDuration).spinner('instance') !== undefined)
+            $(pumpXRunDuration).spinner('enable')
+
+        if ($(pumpXProgram).find('option:selected').data('programid')===undefined){
+            $(pumpXRunProgram).attr('disabled', 'disabled')
+        }
+        else {
+            $(pumpXRunProgram).removeAttr('disabled') // make sure we turn off the button if no running programs
+        }
+        $(pumpXProgram).parent().children('button').removeAttr('disabled')
+        $('#pump' + pump + 'Edit').hide()
+        $('#pump' + pump + 'EditResume').hide()
+    }
+    else {
+        if ($(pumpXRunDuration).spinner('instance') !== undefined) {
+            $(pumpXRunDuration).spinner('disable')
+        }
+        $(pumpXRunProgram).attr('disabled', 'disabled')
+        $('#pump' + pump +  'Edit').show()
+        $('#pump' + pump + 'EditResume').hide()
+        $(pumpXProgram).parent().children('button').attr('disabled','disabled')
+    }
+}
+
 function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
     // Check for Leading Text
     if (typeof btnLeadingText === "undefined")
@@ -695,21 +724,151 @@ function startSocketRx() {
         if (data.hasOwnProperty('pump')){
             data = data.pump
         }
+
+        // reset virtualPumpController Header
+        $('#virtualPumpController thead tr').html($('<th/>',{html:'Parameter'}))
+
         if (data !== null) {
             // check all pumps first to see if we need to hide the GPM row
             var showGPM = false;
-            $.each(data, function(indx, currPump) {
-                if (currPump['type'].toUpperCase() === 'VF') {
-                    showGPM = true;
-                }
-            })
 
             // Build Pump table / panel
             $.each(data, function(indx, currPump) {
-                if (currPump === null) {
+                if (currPump === null || currPump['type'] === "None") {
+                    showHideVirtualPumpCol = ".virtualPump"+currPump["pump"]
+                    $(showHideVirtualPumpCol).hide()
                     //console.log("Pump: Dataset empty.")
                 } else {
                     if (currPump !== "blank") {
+
+                        // append virtual pump controller friendlyname + programs
+                        if (currPump.virtualController==='disabled') {
+                            $('#pumpEdit, .pumpEdit').hide()
+                        }
+                        else {
+                            $('#pumpEdit, .pumpEdit').show()
+                            $('#virtualPumpController thead tr').append($('<th/>', {
+                                html: currPump["friendlyName"],
+                                "data-id": currPump["pump"]
+                            }))
+                            showHideVirtualPumpCol = ".virtualPump" + currPump["pump"]
+                            $(showHideVirtualPumpCol).show()
+
+                            //$('#virtualPumpController tbody tr td:eq(' + currPump["pump"] + ')').replaceWith($('<td/>', {html:currPump["type"], "data-id":currPump["pump"]}))
+
+                            $('#pumpType[data-pumpid="' + currPump["pump"] + '"]').selectpicker('val', currPump["type"])
+
+
+                            if (currPump["type"] === "VS") {
+                                $('#virtualPumpController').find('.virtualPumpSpeedType[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('span.gpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('span.rpm[data-pumpid="' + currPump['pump'] + '"]').css('display', '')
+                            }
+                            else if (currPump["type"] === "VF") {
+                                $('#virtualPumpController').find('.virtualPumpSpeedType[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('span.gpm[data-pumpid="' + currPump['pump'] + '"]').css('display', '')
+                                $('#virtualPumpController').find('span.rpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                            }
+                            else if (currPump["type"] === "None") {
+                                $('#virtualPumpController').find('span.gpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('span.rpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('.virtualPumpSpeedType[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                            }
+                            else if (currPump["type"] === "VSF") {
+                                $('#virtualPumpController').find('span.gpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('span.rpm[data-pumpid="' + currPump['pump'] + '"]').css('display', 'none')
+                                $('#virtualPumpController').find('.virtualPumpSpeedType[data-pumpid="' + currPump['pump'] + '"]').css('display', '')
+                            }
+
+                            var pumpXProgram = '#pump' +currPump['pump'] + 'Program'
+                            var speedType;
+                            // update edit params
+                            $.each(currPump["externalProgram"], function (extPrgIndx, currPrg) {
+                                // this check is for VSF pumps.
+                                var speedType = ''
+                                if (currPump["type"] === 'VSF') {
+                                    if (currPrg < 150) {
+                                        speedType = 'gpm'
+                                    }
+                                    else {
+                                        speedType = 'rpm'
+                                    }
+                                    var vpSpeedType = $('.virtualPumpSpeedType[data-pumpid=' + currPump["pump"] + '][data-speedtype="' + speedType + '"][data-program=' + extPrgIndx + ']')
+                                    vpSpeedType.addClass('btn-primary').siblings().removeClass('btn-primary')
+                                }
+                                else if (currPump["type"] === 'VF') {
+                                    speedType = 'gpm'
+                                    if (currPrg > 150 || currPrg < 15) {
+                                        currPrg = 30 // set to default value that is valid
+                                        socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 30)
+                                    }
+                                }
+                                else if (currPump["type"] === 'VS') {
+                                    speedType = 'rpm'
+                                    if (currPrg > 3450 || currPrg < 450) {
+                                        currPrg = 1000 // set to default value that is valid
+                                        socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 1000)
+                                    }
+                                }
+                                var vpSpeed = '.virtualPumpSpeed[data-pumpid="' + currPump["pump"] + '"][data-program="' + extPrgIndx + '"]'
+                                updateVirtualPumpSpinner(vpSpeed, currPrg)
+
+
+                                // if we are here and it's the first index, remove all previous options and rebuild in "select a program"
+                                if (parseInt(extPrgIndx)===1) {
+                                    $(pumpXProgram).find('option').remove()
+                                    $(pumpXProgram).append($('<option/>', {text: 'Program'}))
+                                    $('#pump'+currPump['pump']+'RunProgram').attr('disabled','disabled')
+                                }
+
+                                // build string for current programs; append to options
+                                thisPrg = extPrgIndx + ': ' + currPrg + ' ' + speedType
+                                $(pumpXProgram).append($('<option/>', {
+                                    "data-programid": extPrgIndx,
+                                    "data-pumpid": currPump["pump"],
+                                    text: thisPrg
+                                }))
+                                $(pumpXProgram).selectpicker('refresh')
+
+                            })
+                            // if the current extPrgIndx is the current running program, set the values in 'select a program' and duration
+                            pumpXRunProgram = '#pump'+ currPump['pump'] + 'RunProgram'
+                            pumpXRunDuration = '#pump'+ currPump['pump'] + 'RunDuration'
+                            if (currPump.currentrunning.mode === 'off') {
+                                $(pumpXRunProgram).removeClass('btn-success')
+                                pumpManualButtonsEnableDisable(currPump['pump'],'enable')
+                                $('#pump' + currPump['pump'] + 'StopProgram').attr('disabled','disabled')
+
+                            } else {
+                                if (currPump.externalProgram[currPump.currentrunning.value]<150)
+                                    speedType='gpm'
+                                else
+                                    speedType='rpm'
+                                thisPrg = currPump.currentrunning.value + ': ' + currPump.externalProgram[currPump.currentrunning.value] + ' ' + speedType
+                                $(pumpXProgram).selectpicker('val', thisPrg)
+                                $(pumpXProgram).selectpicker('refresh')
+
+                                remainingduration = Math.ceil(parseInt(currPump.currentrunning.remainingduration))
+
+                                if ($(pumpXRunDuration).spinner('instance') !== undefined) {
+                                    $(pumpXRunDuration).spinner('value', remainingduration)
+                                }
+                                $(pumpXRunProgram).addClass('btn-success')
+                                pumpManualButtonsEnableDisable(currPump['pump'],'disable')
+                                $('#pump' + currPump['pump'] + 'StopProgram').removeAttr('disabled')
+
+                            }
+                        }
+                        $('#pumpProgram1, #pumpProgram2').selectpicker({
+                            mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+                        })
+                        $('#pumpProgram1, #pumpProgram2').selectpicker('refresh');
+
+                        // end virtual pump controller edits
+
+                        if (currPump['type'].toUpperCase() === 'VF') {
+                            showGPM = true;
+                        }
                         // New Pump Data (Object) ... make sure pumpParams has been read / processed (i.e. is available)
                         if (typeof(pumpParams) !== "undefined") {
                             if (typeof(currPump["friendlyName"]) !== "undefined") {
@@ -806,13 +965,13 @@ function startSocketRx() {
         $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text:data.readings.ORP})).after($('<td/>', {text:data.readings.PH}))
         $('#intellichemTable tr td:contains("Setpoint")')
             .after($('<td/>')
-                        .append($('<button/>', {id:'ORPMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementORP"})
-                                .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                        )
-                        .append($('<span/>', {text:data.settings.ORP}))
-                        .append($('<button/>', {id:'ORPPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementORP"})
-                            .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                        )
+                .append($('<button/>', {id:'ORPMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementORP"})
+                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                )
+                .append($('<span/>', {text:data.settings.ORP}))
+                .append($('<button/>', {id:'ORPPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementORP"})
+                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                )
             )
 
 
@@ -826,7 +985,7 @@ function startSocketRx() {
                     .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
                 )
             )
-        
+
 
         $('#intellichemTable tr td:contains("Tank Level")')
             .after($('<td/>', {text:data.tankLevels[2]+ '/6'})).after($('<td/>', {text:data.tankLevels[1] + '/6'}))
@@ -841,7 +1000,7 @@ function startSocketRx() {
                     .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
                 )
             )
-     $('#intellichemTable tr td:contains("Calcium Hardness")')
+        $('#intellichemTable tr td:contains("Calcium Hardness")')
             .after($('<td/>', {colspan:2})
                 .append($('<button/>', {id:'CHMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementCH"})
                     .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
@@ -987,8 +1146,9 @@ function startSocketRx() {
                 insertAddEggTimer(data[idOfFirstNotUsed], idOfFirstNotUsed)
             }
 
-            //enable all tooltips
+            //enable all popovers and tooltips
             $('[data-toggle="popover"]').popover({trigger: "hover click", html: true, container: 'body'});
+            $('[data-toggle="tooltip"]').tooltip()
         }
 
         lastUpdate(true);
@@ -1034,6 +1194,24 @@ function startSocketRx() {
                 socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
             }
         });
+
+        socket.on('connect', function(){
+            // won't fire on initial connect (timing issue?), but will fire on any subsequent reconnects
+            //console.log('Socket.IO connection ID:', socket.id)
+        })
+        socket.on('connection_timeout', function(timeout){
+            console.log('Socket.IO connection timeout:', timeout)
+        })
+        socket.on('reconnect_attempt', function(){
+            console.log('Socket.IO is attempting to reconnect to the server')
+        })
+        socket.on('reconnect', function(attempt){
+            console.log('Socket.IO successfully reconnected after %s attempts ', attempt)
+        })
+        socket.on('disconnect', function(){
+            console.log('Socket.IO received a disconnect from the server')
+        })
+
         lastUpdate(true);
     });
 
@@ -1100,14 +1278,13 @@ function handlePanels() {
 function handleButtons() {
 
     // Button Handling: gitState => Hide Code State (and flag upstream). Note, hidden to start (default, in index.html), unhide (change visibility) if state received.
-    $('#gitState').tooltip() //enable tooltip
-    $('#gitState').click(function() {
+    $('#gitState').click(function () {
         $('#gitState')[0].style.visibility = "hidden";
         socket.emit('updateVersionNotification', true);
     });
 
     // Button Handling: Hide Panel, and Store / Update Config (so hidden permanently, unless reset!)
-    $('button').click(function(btnSelected) {
+    $('button').click(function (btnSelected) {
         var btnID = btnSelected.target.id;
         // If Panel Hide selected => then do it!
         if (btnID.search('hidePanel') === 0) {
@@ -1119,14 +1296,14 @@ function handleButtons() {
     });
 
     // Schedule day toggle: bind to the parent event as the children are dynamically created
-    $('#schedules').on('click', '.schDay', function() {
+    $('#schedules').on('click', '.schDay', function () {
         socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay"))
     })
 
     // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
-    $('#btnResetLayout').click(function() {
+    $('#btnResetLayout').click(function () {
         socket.emit('updateVersionNotification', false);
-        $.getJSON('configClient.json', function(json) {
+        $.getJSON('configClient.json', function (json) {
             // Panel Data Retrieved, now reset all of them to visible (store to configClient.json, and make visible immediately)
             for (var currPanel in json.panelState) {
                 socket.emit('setConfigClient', 'panelState', currPanel, 'state', 'visible')
@@ -1137,18 +1314,18 @@ function handleButtons() {
     });
 
     // Button Handling: Pool, Spa => On/Off
-    $('#poolState, #spaState').on('click', 'button', function() {
+    $('#poolState, #spaState').on('click', 'button', function () {
         setEquipmentStatus($(this).data($(this).attr('id')));
     });
 
     // Button Handling: Pool / Spa, Temperature SetPoint
-    $('#poolSetpoint, #spaSetpoint').on('click', 'button', function() {
+    $('#poolSetpoint, #spaSetpoint').on('click', 'button', function () {
         socket.emit($(this).data('socket'), $(this).data('adjust'));
     });
 
 
     // Button Handling: Pool / Spa, Heater Mode
-    $('#poolHeatMode, #spaHeatMode').on('click', 'button', function() {
+    $('#poolHeatMode, #spaHeatMode').on('click', 'button', function () {
         var currButtonPressed = $(this).attr('id');
         if (currButtonPressed.includes('HeatMode')) {
             var strHeatMode = currButtonPressed.slice(0, currButtonPressed.indexOf('HeatMode')) + 'HeatMode';
@@ -1159,7 +1336,7 @@ function handleButtons() {
     });
 
     // Button Handling: Features => On/Off
-    $('#features').on('click', 'button', function() {
+    $('#features').on('click', 'button', function () {
 
         if ($(this).html() === 'Delay') {
             socket.emit('cancelDelay')
@@ -1169,7 +1346,7 @@ function handleButtons() {
     });
 
     // Button Handling: Debug Log => On/Off
-    $('#debugEnable').click(function() {
+    $('#debugEnable').click(function () {
         if ($('#debug').is(":visible") === true) {
             $('#debug').hide();
             setStatusButton($('#debugEnable'), 0, 'Debug:<br/>');
@@ -1183,13 +1360,13 @@ function handleButtons() {
 
     // Debug Log, KeyPress => Select All (for copy and paste, select log window, press SHFT-A)
     // Reference, from https://www.sanwebe.com/2014/04/select-all-text-in-element-on-click => Remove "older ie".
-    $('#txtDebug').keypress(function(event) {
+    $('#txtDebug').keypress(function (event) {
         if (event.key === "A") {
             var sel, range;
             var el = $(this)[0];
             sel = window.getSelection();
             if (sel.toString() === '') { //no text selection
-                window.setTimeout(function() {
+                window.setTimeout(function () {
                     range = document.createRange(); //range object
                     range.selectNodeContents(el); //sets Range
                     sel.removeAllRanges(); //remove all ranges from selection
@@ -1200,80 +1377,230 @@ function handleButtons() {
     });
 
     // Button Handling: Debug Log => Clear!
-    $('#debugClear').click(function() {
+    $('#debugClear').click(function () {
         $('#txtDebug').html('<b>DEBUG LOG ... <br />');
     });
 
     // Button Handling: Modal, Save Settings for Chlorinator ... and second function, so keypress (Enter Key) fires input
-    $('#SaveChanges').click(function() {
+    $('#SaveChanges').click(function () {
         $('#modalChlorinator').modal('hide');
         var chlorSetting = parseFloat($('#modalChlorInput')[0].value);
         if ((chlorSetting >= 0) && (chlorSetting <= 101))
             socket.emit('setchlorinator', chlorSetting);
     });
-    $('#modalChlorinator').keypress(function(key) {
+    $('#modalChlorinator').keypress(function (key) {
         if (key.which === 13)
             $('#SaveChanges').click();
     })
 
     //set active menu item
-    $(".nav li").on("click", function() {
+    $(".nav li").on("click", function () {
         $(".nav li").removeClass("active");
         $(this).addClass("active");
     });
     //and collapse navbar when selecting
-    $('.navbar-collapse a').click(function() {
+    $('.navbar-collapse a').click(function () {
         $(".navbar-collapse").collapse('hide');
     });
 
-    $('#editPanelschedule').click(function() {
+    $('#editPanelschedule').click(function () {
         if ($('#editPanelschedule').hasClass('btn-success'))
         // static
         {
             $('#editPanelschedule').removeClass('btn-success')
             $('.schEdit').hide()
             $('.schStatic').show()
-            $('#schedule').css('display','')
+            $('#schedule').css('display', '')
         } else
         // edit
         {
             $('#editPanelschedule').addClass('btn-success')
             $('.schEdit').show()
             $('.schStatic').hide()
-            $('#schedule').css('display','table')
+            $('#schedule').css('display', 'table')
         }
 
     })
 
-    $('#editPaneleggtimer').click(function() {
+    $('#editPaneleggtimer').click(function () {
         if ($('#editPaneleggtimer').hasClass('btn-success'))
         // static
         {
             $('#editPaneleggtimer').removeClass('btn-success')
             $('.eggEdit').hide()
             $('.eggStatic').show()
-            $('#eggtimer').css('display','')  //TODO: with short widths, this will extend the size of the box.  but with wide widths, it will make it only as small as it needs to be.  Leaving this tag on all the time has the opposite effect.  (EG when screen is 860px wide vs 1100px
+            $('#eggtimer').css('display', '')  //TODO: with short widths, this will extend the size of the box.  but with wide widths, it will make it only as small as it needs to be.  Leaving this tag on all the time has the opposite effect.  (EG when screen is 860px wide vs 1100px
         } else
         // edit
         {
             $('#editPaneleggtimer').addClass('btn-success')
             $('.eggEdit').show()
             $('.eggStatic').hide()
-            $('#eggtimer').css('display','table')
+            $('#eggtimer').css('display', 'table')
         }
 
     })
 
+
+    $('#pump1StopProgram, #pump2StopProgram').click(function(){
+        // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
+        socket.emit('pumpCommandOff', $(this).data("pumpid"))
+    })
+
+    $('#pump1RunProgram, #pump2RunProgram').click(function(){
+            // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
+              socket.emit('pumpCommandRunProgram', $(this).data("pumpid"), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'),$('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'))
+    })
+
+    $('#pump1Program, #pump2Program').on('changed.bs.select', function(){
+
+        if ($('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid')===undefined){
+            $('#pump' + $(this).data('pumpid') + 'RunProgram').attr('disabled', 'disabled')
+        }
+        else {
+            $('#pump' + $(this).data('pumpid') + 'RunProgram').removeAttr('disabled')
+
+        }
+
+    })
+
+    // mock Globalize numberFormat for mins and secs using jQuery spinner ...
+    if (!window.Globalize) window.Globalize = {
+        format: function(number, format) {
+            if (number===-1)
+                return "Manual"
+            number = String(this.parseFloat(number, 10) * 1);
+            if (number<60){
+                hours='00'
+            }
+            else {
+                hours = Math.floor(number/60)
+                if (hours<10)
+                    hours = '0'+hours
+            }
+            mins = number - parseInt(hours)*60//number % 60
+            if (mins<10)
+                mins = '0'+mins
+            number = hours + ':' + mins
+            return number;
+        },
+        parseFloat: function(number, radix) {
+            if (number==='Manual')
+                return -1
+            else if (typeof number==='number' || number===undefined){
+                return number
+            }
+            else {
+                splitInpStr = number.split(":");
+                number = (parseInt(splitInpStr[0]*60))+parseInt(splitInpStr[1])
+                return parseFloat(number, radix || 10);
+            }
+        }
+    };
+
+    $( "#pump1RunDuration, #pump2RunDuration" ).spinner({
+        step: 1,
+        page: 15,
+        min: -1,
+        max: 4320,
+        numberFormat: 'HHmm',
+        value: '00:00',
+        change: Globalize.format()
+    }).val('Manual');
+
+
+    $('.virtualPumpSpeed').on("spinchange", function (e, ui) {
+        // console.log('virtual pump spin change', e, ui)
+        // console.log('vpsc this:', $(this).spinner('value'), $(this))
+        // console.log('vpsc data:', $(this).data('program'), $(this).data('pumpid'))
+        socket.emit('setPumpProgramSpeed', $(this).data('pumpid'), $(this).data('program'), $(this).spinner('value'))
+    })
+
+
+    $('.virtualPumpSpeedType').on('click', function (e) {
+        $(this).toggleClass('btn-primary')  //add button color to "this" button
+        $(this).siblings().toggleClass('btn-primary') //remove button color from sibling
+        var el = '.virtualPumpSpeed[data-pumpid="' + $(this).data("pumpid") + '"][data-program="' + $(this).data('program') + '"]'
+        if ($(this).data('speedtype') === 'gpm') {
+            updateVirtualPumpSpinner(el, 30)
+            socket.emit('setPumpProgramSpeed', $(this).data('pumpid'), $(this).data('program'), 30)
+        }
+        else {
+            updateVirtualPumpSpinner(el, 1000)
+            socket.emit('setPumpProgramSpeed', $(this).data('pumpid'), $(this).data('program'), 1000)
+        }
+    })
+
+
+    $('#pumpType[data-pumpid="1"], #pumpType[data-pumpid="2"]').selectpicker({
+        mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+    });
+
+    $('#pumpType[data-pumpid="1"], #pumpType[data-pumpid="2"]').on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+        console.log('pump %s type:', $(this).data('pumpid'), $(this).val())
+        socket.emit('setPumpType', $(this).data('pumpid'), $(this).val())
+    })
+
+    $('#pump1Edit, #pump2Edit').click(function(){
+        pumpManualButtonsEnableDisable($(this).data('pumpid'), 'enable')
+        $('#pump'+ $(this).data('pumpid') + 'EditResume').show()
+    })
+
+    $('#pump1EditResume, #pump2EditResume').click(function(){
+        pumpManualButtonsEnableDisable($(this).data('pumpid'), 'disable')
+    })
 }
 
+
+
+function updateVirtualPumpSpinner(el, val) {
+    // keep these values hardcoded or else we run into scoping issues
+    if (val < 150) {
+        $(el).spinner({
+            //min: 15,
+            //max: 130,
+            step: 1,
+            page: 5,
+            spin: function( event, ui ) {
+                if ( ui.value > 130 ) {
+                    $( this ).spinner( "value", 15 );
+                    return false;
+                } else if ( ui.value < 15 ) {
+                    $( this ).spinner( "value", 130 );
+                    return false;
+                }
+            }}).val(val)
+    }
+    else {
+        $(el).spinner({
+            //min: 450,
+            //max: 3450,
+            step: 10,
+            page: 20,
+            spin: function( event, ui ) {
+                if ( ui.value > 3450 ) {
+                    $( this ).spinner( "value", 450 );
+                    return false;
+                } else if ( ui.value < 450 ) {
+                    $( this ).spinner( "value", 3450 );
+                    return false;
+                }
+            }}).val(val)
+    }
+}
+
+
+
+var reconnectTimer=false
 // Refresh / Update status button (showing last message / information received)
 function lastUpdate(reset) {
+
     var tmeCurrent = Date.now();
     if (typeof(tmeLastUpd) === "undefined")
         tmeLastUpd = tmeCurrent;
     tmeDelta = (tmeCurrent - tmeLastUpd) / 1000;
     domDelta = $('#tmrLastUpd')
-    domDelta[0].innerHTML = 'Last Update<br/>' + tmeDelta.toFixed(1) + ' secs ago';
+    domDelta[0].innerHTML = 'Last Update<br/>' + tmeDelta.toFixed(0) + ' secs ago';
 
     if (typeof(generalParams) !== "undefined") {
         if (tmeDelta <= generalParams.tmeSuccess) {
@@ -1290,8 +1617,16 @@ function lastUpdate(reset) {
             domDelta.addClass('btn-danger');
         }
     }
-    if (reset === true)
+    if (reset === true) {
         tmeLastUpd = tmeCurrent;
+        reconnectTimer = false
+    }
+    if (tmeDelta>=20){
+        if (reconnectTimer === false) {
+            socket.open()
+            reconnectTimer=true
+        }
+    }
 }
 
 
@@ -1303,6 +1638,10 @@ $(function() {
     setInterval(function() {
         lastUpdate(false)
     }, 1000);
+
+    // Avoid namespace conflicts
+    var bootstrapButton = jQuery.fn.button.noConflict() // return $.fn.button to previously assigned value
+    jQuery.fn.bootstrapBtn = bootstrapButton // give $().bootstrapBtn the Bootstrap functionality
 
     // Set up draggable options => allow to move panels around
     var panelList = $('#draggablePanelList');
@@ -1332,7 +1671,7 @@ $(function() {
         // General JS Parameters (for this code)
         generalParams = json.generalParams;
         // And Now, initialize Socket IO (as client configuration in place now)
-        socket = io();
+        socket = io({reconnectionDelay:20000, reconnection:true, reconnectionDelayMax: 20000});
         startSocketRx();
         // Finally, initialize Panel and button handling
         handlePanels();

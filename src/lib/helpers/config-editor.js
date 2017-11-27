@@ -53,10 +53,30 @@ module.exports = function(container) {
         }
     }
 
+    var updatePumpType = function(_pump, _type) {
+        return init()
+            .then(function(data) {
+                data.equipment.pump[_pump].type = _type
+                container.settings.pump[_pump].type = _type //TODO: we should re-read the file from disk at this point?
+                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+            })
+            .then(function() {
+                container.logger.verbose('Updated pump %s type %s', _pump, _type, location)
+                container.pump.init()
+                container.pumpControllerTimers.startPumpController()
+                container.io.emitToClients('pump')
+
+            })
+            .catch(function(err) {
+                container.logger.warn('Error updating pump type settings %s: ', location, err)
+            })
+    }
+
     var updateExternalPumpProgram = function(_pump, program, rpm) {
         return init()
             .then(function(data) {
                 data.equipment.pump[_pump].externalProgram[program] = rpm
+                container.settings.pump[_pump].externalProgram[program] = rpm
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -70,7 +90,7 @@ module.exports = function(container) {
     var updatePumpProgramGPM = function(_pump, program, gpm) {
         return init()
             .then(function(data) {
-                data.equipment.pump[_pump].programGPM[program] = gpm
+                data.equipment.pump[_pump].programGPM[program] = gpm  //TODO: this does not exist.  can we get rid of it?
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -86,6 +106,7 @@ var updateChlorinatorInstalled = function(installed) {
     return init()
         .then(function(data) {
             data.equipment.chlorinator.installed = installed
+            container.settings.chlorinater.installed = installed
             return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
         })
         .then(function() {
@@ -104,6 +125,8 @@ var updateChlorinatorInstalled = function(installed) {
                 data.equipment.chlorinator.desiredOutput = {}
                 data.equipment.chlorinator.desiredOutput.pool = pool
                 data.equipment.chlorinator.desiredOutput.spa = spa
+                container.settings.equipment.chlorinator.desiredOutput.pool = pool
+                container.settings.equipment.chlorinator.desiredOutput.spa = spa
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -119,6 +142,7 @@ var updateChlorinatorInstalled = function(installed) {
         return init()
             .then(function(data) {
                 data.equipment.chlorinator.id.productName = name
+                container.settings.equipment.chlorinator.id.productName = name
                 return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
@@ -214,6 +238,7 @@ var updateChlorinatorInstalled = function(installed) {
     return {
         init: init,
         updateExternalPumpProgram: updateExternalPumpProgram,
+        updatePumpType: updatePumpType,
         updatePumpProgramGPM: updatePumpProgramGPM,
         updateVersionNotification: updateVersionNotification,
         updateChlorinatorInstalled: updateChlorinatorInstalled,

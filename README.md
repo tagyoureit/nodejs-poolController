@@ -161,6 +161,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | --- | --- | ---  |
 | To client | <code>pump</code> | outputs an object with the pump information
 | To app | ~<code>setPumpCommand(action, pump, program, rpm, duration)</code>~ | action=off,run, save, saverun; pump=1 or 2, program = 1 to 4, rpm = 450-3450, duration in minutes (or null for indefinite); leave parameters as null for any values that are not relevant.  For example, to run program 4 on pump 1, call setPumpCommand('run',1,4,null,null)
+| To app | <code>setPumpType(pump, type)</code> | Set [pump] to [type] (one of `VS`,`VF`,`VSF`,`None`)
 
  #### Schedules
 | Direction | Socket  | Description |
@@ -780,7 +781,7 @@ Docker Instructions
  * Delay and Cancel Delay for circuits
 
 4.x-DEV -
- * Added set/delete/add schedule
+ * Added add/delete/edit schedule
  * All sockets/API now singular (`circuits`->`circuit`)
  * All sockets/API data now returned with a JSON qualifier. EG `{pump:...}`, `{circuit:...}`
  * Intellichem decoding and display

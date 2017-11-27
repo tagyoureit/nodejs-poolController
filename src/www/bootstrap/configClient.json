@@ -28,7 +28,7 @@
             "state": "visible"
         },
         "intellichem": {
-            "state": "visible"
+            "state": "hidden"
         },
         "release": {
             "state": "visible"

@@ -44,7 +44,10 @@
         },
         "chlorinator": {
             "installed": 1,
-            "desiredOutput": -1,
+            "desiredOutput": {
+                "pool": -1,
+                "spa": -1
+            },
             "friendlyName": "",
             "id": {
                 "productName": "",
@@ -71,7 +74,7 @@
                 }
             },
             "2": {
-                "type": "None",
+                "type": "VS",
                 "externalProgram": {
                     "1": -1,
                     "2": -1,
@@ -100,7 +103,8 @@
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 0,
             "netHost": "raspberrypi",
-            "netPort": 9801
+            "netPort": 9801,
+            "inactivityRetry": 10
         },
         "notifications": {
             "version": {

@@ -136,6 +136,11 @@ var load = exports.load = function() {
     netPort = exports.netPort = configFile.poolController.network.netPort;
     netHost = exports.netHost = configFile.poolController.network.netHost;
 
+    if (configFile.poolController.network.hasOwnProperty('inactivityRetry')) {
+        inactivityRetry = exports.inactivityRetry = configFile.poolController.network.inactivityRetry;
+    }
+    else
+        inactivityRetry = exports.inactivityRetry = 10
 
     //Logs
     logLevel = exports.logLevel = configFile.poolController.log.logLevel;
@@ -222,6 +227,7 @@ var displaySettingsMsg = exports.displaySettingsMsg = function() {
     settingsStr += '\n var rs485Port = ' + rs485Port;
     settingsStr += '\n var netHost = ' + netHost;
     settingsStr += '\n var netPort = ' + netPort;
+    settingsStr += '\n var timeout = ' + inactivityRetry;
     settingsStr += '\n //-------  END NETWORK SETUP -----------';
     settingsStr += '\n ';
     settingsStr += '\n //-------  LOG SETUP -----------';

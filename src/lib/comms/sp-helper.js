@@ -19,13 +19,19 @@
 module.exports = function(container) {
     var logger = container.logger
     var sp
+    var connectionTimer;
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')
 
-    function init() {
-
+    function init(timeOut) {
+        if (connectionTimer!==null) {
+            clearTimeout(connectionTimer)
+        }
         if (container.settings.netConnect === 0) {
+            if (timeOut==='timeout'){
+                logger.error('Serial port connection lost.  Will retry every %s seconds to reconnect.', container.settings.inactivityRetry)
+            }
             var serialport = container.serialport
             sp = new serialport(container.settings.rs485Port, {
                 baudrate: 9600,
@@ -39,17 +45,44 @@ module.exports = function(container) {
             });
             sp.open(function(err) {
                 if (err) {
-                    setTimeout(init, 10*1000)
+                    connectionTimer = setTimeout(init, 10*1000)
                     return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                 }
             })
+            sp.on('open', function() {
+                if (timeOut==='retry_timeout')
+                    logger.verbose('Serial port not receiving data.  Will retry connection...')
+                else if (timeOut!=='timeout')
+                    logger.verbose('Serial Port opened');
+
+
+            })
         } else {
+            if (timeOut==='timeout'){
+                logger.error('Net connect (socat) connection lost.  Will retry every %s seconds to reconnect.',container.settings.inactivityRetry)
+            }
             sp = new container.net.Socket();
             sp.connect(container.settings.netPort, container.settings.netHost, function() {
-                logger.info('Network connected to: ' + container.settings.netHost + ':' + container.settings.netPort);
+                if (timeOut==='retry_timeout')
+                    logger.verbose('Net connect (socat) not receiving data.  Will retry connection...')
+                else if (timeOut!=='timeout')
+                    logger.info('Net connect (socat) connected to: ' + container.settings.netHost + ':' + container.settings.netPort);
             });
 
+            // sp.setTimeout(container.settings.inactivityRetry*1000, function(){
+            //     sp.destroy()
+            //     if (timeOut==='timeout')
+            //         init('retry_timeout')
+            //     else
+            //         init('timeout')
+            // })
+            // sp.on('timeout',function(){
+            //     console.log('serial port net connect timeout')
+            // })
+
         }
+        connectionTimer = setTimeout(init, container.settings.inactivityRetry*1000, 'retry_timeout')
+
 
 
         sp.on('data', function(data) {
@@ -64,7 +97,7 @@ module.exports = function(container) {
         });
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
-            setTimeout(init, 10*1000)
+            connectionTimer = setTimeout(init, 10*1000)
         })
 
 
@@ -80,9 +113,7 @@ module.exports = function(container) {
 
         });*/
 
-        sp.on('open', function() {
-            logger.verbose('Serial Port opened');
-        })
+
 
     }
 
@@ -96,17 +127,17 @@ module.exports = function(container) {
     }
 
     var drainSP = function(callback){
-      sp.drain(callback)
+        sp.drain(callback)
     }
 
     var close = function(callback) {
         if (container.settings.netConnect === 0) {
             sp.close(function(err) {
-              if (err) {
-                  return "Error closing sp: " + err
-              } else {
-                  return "Serialport closed."
-              }
+                if (err) {
+                    return "Error closing sp: " + err
+                } else {
+                    return "Serialport closed."
+                }
             })
         } else {
             sp.end()
@@ -114,6 +145,14 @@ module.exports = function(container) {
             //console.log('sp destroyed?; ', sp.destroyed)
         }
 
+    }
+
+    var resetConnectionTimer = function(){
+        if (connectionTimer!==null) {
+            clearTimeout(connectionTimer)
+        }
+        // if (container.settings.netConnect === 0)
+        connectionTimer = setTimeout(init, container.settings.inactivityRetry*1000, 'timeout')
     }
 
 
@@ -128,6 +167,7 @@ module.exports = function(container) {
         writeNET: writeNET,
         writeSP: writeSP,
         drainSP: drainSP,
-        close: close
+        close: close,
+        resetConnectionTimer: resetConnectionTimer
     }
 }

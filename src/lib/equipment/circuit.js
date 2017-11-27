@@ -338,7 +338,6 @@ module.exports = function(container) {
     }
 
     function assignCircuitDelayFromControllerStatus(_delay, counter) {
-        logger.info("CHECKING DELAY!  %s", _delay)
         for (var i = 1; i <= numberOfCircuits; i++) {
             if (currentCircuitArrObj[i].delay === undefined) {
                 if (i === _delay) {
@@ -509,7 +508,8 @@ module.exports = function(container) {
     }
 
     var setControllerLightGroup = function(_lightGroupPacketArr, counter) {
-        container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
+        if (container.settings.logConfigMessages)
+            container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
 
         var _temp = {} //temporary object to hold light group/position assignments
         for (var i = 0; i <= 7; i++) {

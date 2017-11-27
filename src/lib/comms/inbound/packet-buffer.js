@@ -35,6 +35,7 @@ module.exports = function(container) {
           container.receiveBuffer.iterateOverArrayOfArrays()
               //testbufferArrayOfArrays=[]
       }
+      container.sp.resetConnectionTimer()
     }
 
     function pop(){

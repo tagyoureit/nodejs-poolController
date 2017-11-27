@@ -60,7 +60,7 @@ module.exports = function(container) {
     return -1
   }
 
-  var validRPM = function(index, val) {
+  var validSpeed = function(index, val) {
     if (val === null) {
       return false
     } else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
@@ -71,32 +71,56 @@ module.exports = function(container) {
         container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
         return false
       }
-    } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
-
-      container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
-      return false
-
+    }
+    // else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
+    //
+    //   container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
+    //   return false
+    //
+    // }
+    // else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
+    // {
+    //
+    //     container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
+    //     return false
+    //
+    // }
+    else if (container.pump.pumpType(index) === 'VF') {
+        if (val >= 15 && val <= 130)
+            return true
+        else {
+            container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
+            return false
+        }
+    }
+    else if (container.pump.pumpType(index) === 'VSF') {
+        if ((val >= 15 && val <= 130) || (val >= 450 && val <= 3450))
+            return true
+        else {
+            container.logger.warn('Invalid GPM/RPM/Pump Type.  Pump type is %s and requested to save Speed %s', container.pump.pumpType(index), val)
+            return false
+        }
     }
   }
 
-  var validGPM = function(index, val) {
-    if (val === null) {
-      return false
-    } else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
-    {
-
-      container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
-      return false
-
-    } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
-      if (val >= 15 && val <= 130)
-        return true
-      else {
-        container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
-        return false
-      }
-    }
-  }
+  // var validGPM = function(index, val) {
+  //   if (val === null) {
+  //     return false
+  //   } else if (container.pump.pumpType(index) === 'VS') //pump is speed or speed/flow
+  //   {
+  //
+  //     container.logger.warn('Invalid RPM/Pump Type.  Pump type is %s and requested to save RPM %s', container.pump.pumpType(index), val)
+  //     return false
+  //
+  //   } else if (container.pump.pumpType(index) === 'VF' || container.pump.pumpType(index) === 'VSF') {
+  //     if (val >= 15 && val <= 130)
+  //       return true
+  //     else {
+  //       container.logger.warn('Invalid GPM/Pump Type.  Pump type is %s and requested to save GPM %s', container.pump.pumpType(index), val)
+  //       return false
+  //     }
+  //   }
+  // }
 
   var validProgram = function(program) {
     if (program >= 1 && program <= 4)
@@ -178,22 +202,22 @@ module.exports = function(container) {
   /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
 
   //function to save the program & speed
-  var pumpCommandSaveProgram = function(index, program, rpm) {
+  var pumpCommandSaveProgram = function(index, program, speed) {
     var address = pumpIndexToAddress(index)
     if (address > -1 && validProgram(program)) {
       //set program packet
-      if (validRPM(index, rpm)) {
-        if (container.settings.logApi) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM', index, address, program, rpm);
+      if (validSpeed(index, speed)) {
+        if (container.settings.logApi) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM/GPM', index, address, program, speed);
 
         container.pumpController.setPumpToRemoteControl(address)
-        container.pumpController.saveProgramOnPump(address, program, rpm)
-        container.pump.saveProgram(index, program, rpm)
+        container.pumpController.saveProgramOnPump(address, program, speed)
+        container.pump.saveProgram(index, program, speed)
         endPumpCommandSequence(address)
         container.io.emitToClients('pump')
         return true
 
       } else {
-        if (container.settings.logApi) container.logger.warn('FAIL: RPM provided (%s) is outside of tolerances.', rpm)
+        if (container.settings.logApi) container.logger.warn('FAIL: RPM/GPM provided (%s) is outside of tolerances.', rpm)
         return false
       }
     }

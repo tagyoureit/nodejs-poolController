@@ -95,22 +95,24 @@ module.exports = function(container) {
       if (_pump <= numPumps) {
         currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(container.settings.pump[_pump].externalProgram))
         currentPumpStatus[_pump].type = JSON.parse(JSON.stringify(container.settings.pump[_pump].type))
-
-
-
             if (container.settings.pump[_pump].friendlyName !== "") {
               currentPumpStatus[_pump].friendlyName = container.settings.pump[_pump].friendlyName
             } else {
               currentPumpStatus[_pump].friendlyName = currentPumpStatus[_pump].name
             }
-
-
       }
     }
   }
 
+var setVirtualControllerStatus = function(status) {
+    for (var _pump in container.settings.pump) {
+        if (_pump <= numPumps) {
+            currentPumpStatus[_pump].virtualController = status
+        }
+    }
+}
 
-  var init = function() {
+    var init = function() {
     if (container.settings.logPumpMessages)
       if (currentPumpStatus === undefined) {
         container.logger.silly('initializing pumps for first time')
@@ -119,21 +121,11 @@ module.exports = function(container) {
       container.logger.silly('will reset pumps...')
     }
 
-    //if (numPumps === -1) {  //NOTE: Not sure why this is here.  If we are doing a reset then numPumps will be > -1 and we will never actuall reset the number of pumps.
-    // this code might be better with additional logic.  It assumes that pumps will all have the lowest address for valid types (eg: VS, VF, none, none, etc).
-    // Is it possible that is a bad assumption and the pumps could be addressed in a random order (eg: VS, none, VF, none, VSF, etc)
-    // This logic will currently grab the "last" pump in the array that isn't none and assume that is the number of pumps.
     for (var _pump in container.settings.pump) {
       if (container.settings.pump[_pump].type !== 'none') {
         numPumps = parseInt(_pump)
       }
-      //}
-
-
-
     }
-
-
 
     // this is poor coding.  either use the object as a function or just declare it is an object.
     pump1 = JSON.parse(JSON.stringify(template))
@@ -643,6 +635,7 @@ module.exports = function(container) {
     getPumpNumber: getPumpNumber,
     getPumpConfiguration: getPumpConfiguration,
     getFriendlyName: getFriendlyName,
+    setVirtualControllerStatus:setVirtualControllerStatus,
     init: init
   }
 }

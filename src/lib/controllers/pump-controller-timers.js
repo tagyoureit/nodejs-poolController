@@ -71,6 +71,7 @@ module.exports = function(container) {
         if (container.settings.virtual.pumpController === 'never') {
             //never start if the value is never
             if (container.settings.logPumpTimers) container.logger.warn('Not starting pump off timers because virtual.pumpController=never')
+            container.pump.setVirtualControllerStatus('disabled')
             return false
         } else
         if (container.settings.virtual.pumpController === 'always' || !(container.settings.intellicom.installed || container.settings.intellitouch.installed)) {
@@ -81,11 +82,13 @@ module.exports = function(container) {
 
             if (container.settings.logPumpTimers) container.logger.info('Starting virtual pump off timers for %s pump(s).', container.pump.numberOfPumps())
             //must give a short delay to allow the port to open
-            //this 30 second pause is necessary to let the SP and Server open/start
+            //this 4 second pause is necessary to let the SP and Server open/start
+            container.pump.setVirtualControllerStatus('enabled')
             setTimeout(pumpStatusCheck,4*1000)
             return true
         } else {
             if (container.settings.logPumpTimers) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.virtual.pumpController, container.settings.intellitouch.installed, container.settings.intellicom.installed)
+            container.pump.setVirtualControllerStatus('disabled')
         }
     }
 

@@ -73,9 +73,9 @@ module.exports = function(container) {
         // Routing
         app.use(express.static(path.join(process.cwd(), 'src/www')));
         app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
-        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
+        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/')));
+        app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
         app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
-
 
         /*app.get('/status', function(req, res) {
             res.send(container.status.getCurrentStatus())
@@ -356,6 +356,17 @@ module.exports = function(container) {
 
         })
 
+        app.get('pumpCommand/pump/:pump/type/:type', function(pump, type){
+            var pump = parseInt(req.params.pump)
+            var type = type
+            var response = {}
+            response.text = 'Socket setPumpType variables - pump: ' + pump + ', type: ' + type
+            response.pump = pump
+            response.type = type
+            container.configEditor.updatePumpType(pump, type)
+            container.logger.info(response)
+        })
+
         /* New pumpCommand API's  */
         //#1  Turn pump off
         app.get('/pumpCommand/off/pump/:pump', function(req, res) {
@@ -431,7 +442,6 @@ module.exports = function(container) {
             response.pump = pump
             response.program = program
             response.duration = -1
-            // container.pumpControllerMiddleware.runProgramSequence(pump, program)
             container.pumpControllerTimers.startProgramTimer(pump, program, -1)
             res.send(response)
         })
@@ -446,7 +456,6 @@ module.exports = function(container) {
             response.pump = pump
             response.program = program
             response.duration = duration
-            // container.pumpControllerMiddleware.runProgramSequenceForDuration(pump, program, duration)
             container.pumpControllerTimers.startProgramTimer(pump, program, duration)
             res.send(response)
         })

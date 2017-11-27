@@ -113,7 +113,7 @@ module.exports = function(container) {
             )
             if (warnonce === false) {
                 container.logger.warn('heat socket will be deprecated.  Change to temp.')
-                once=true;
+                warnonce=true;
             }
         }
 
@@ -145,8 +145,8 @@ module.exports = function(container) {
 
         if (outputType === 'intellichem' || outputType === 'all') {
             var intellichem = container.intellichem.getCurrentIntellichem()
-                io.sockets.emit('intellichem',
-                    intellichem)
+            io.sockets.emit('intellichem',
+                intellichem)
         }
 
         if (outputType === 'valves' || outputType === 'all'){
@@ -488,6 +488,169 @@ module.exports = function(container) {
                 // }
               })
         */
+            /* New pumpCommand API's  */
+            //#1  Turn pump off
+            socket.on('pumpCommandOff', function(pump) {
+                var pump = parseInt(pump)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', power: off, duration: null'
+                response.pump = pump
+                response.value = null
+                response.duration = -1
+                container.pumpControllerTimers.clearTimer(pump)
+                container.logger.info(response)
+            })
+
+            //#2  Run pump indefinitely.
+            //#3  Run pump for a duration
+            socket.on('pumpCommandRun', function(_pump, _duration) {
+                var pump = parseInt(_pump)
+                var duration=-1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', power: on, duration: ' + duration
+                response.pump = pump
+                response.value = 1
+                response.duration = _duration
+                container.pumpControllerTimers.startPowerTimer(pump, duration) //-1 for indefinite duration
+                container.logger.info(response)
+            })
+
+            //#4  Run pump program for indefinite duration
+            //#5  Run pump program for a specified
+            socket.on('pumpCommandRunProgram', function(_pump, _program, _duration) {
+                var pump = parseInt(_pump)
+                var program = parseInt(_program)
+                var duration = -1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+
+                //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', program: ' + program + ', value: null, duration: '+ duration
+                response.pump = pump
+                response.program = program
+                response.duration = duration
+                container.pumpControllerTimers.startProgramTimer(pump, program, duration)
+                container.logger.info(response)
+            })
+
+            //#6 Run pump at RPM for an indefinite duration
+            //#7 Run pump at RPM for specified duration
+            socket.on('pumpCommandRunRpm' , function(_pump,_rpm,_duration) {
+                var pump = parseInt(_pump)
+                var rpm = parseInt(_rpm)
+                var duration = -1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', rpm: ' + rpm + ', duration: ' + duration
+                response.pump = pump
+                response.value = rpm
+                response.duration = duration
+                container.pumpControllerTimers.startRPMTimer(pump, rpm, duration)
+                container.logger.info(response)
+            })
+
+            //#8  Save program to pump
+            socket.on('setPumpProgramSpeed', function(pump, program, speed){
+                var pump = parseInt(pump)
+                var program = parseInt(program)
+                var speed = parseInt(speed)
+                var response = {}
+                response.text = 'Socket setPumpProgramSpeed variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: n/a'
+                response.pump = pump
+                response.program = program
+                response.speed = speed
+                response.duration = null
+                container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
+                container.logger.info(response)
+            })
+
+            //#9  Save and run program for indefinite duration
+            //#10  Save and run program for specified duration
+            socket.on('pumpCommandSaveRunRpm', function(_pump,_program,_speed,_duration) {
+                var pump = parseInt(_pump)
+                var program = parseInt(_program)
+                var speed = parseInt(_speed)
+                var duration = -1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
+                response.pump = pump
+                response.program = program
+                response.speed = speed
+                response.duration = duration
+                container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
+                container.logger.info(response)
+            })
+
+            //#11 Run pump at GPM for an indefinite duration
+            //#12 Run pump at GPM for specified duration
+            socket.on('pumpCommandRunGpm', function(_pump,_gpm,_duration) {
+                var pump = parseInt(_pump)
+                var gpm = parseInt(_gpm)
+                var duration = -1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', gpm: ' + gpm + ', duration: ' + duration
+                response.pump = pump
+                response.speed = gpm
+                response.duration = duration
+                container.pumpControllerTimers.startGPMTimer(pump, gpm, duration)
+                container.logger.info(response)
+            })
+
+            //#13  Save program to pump
+            socket.on('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+                var pump = parseInt(_pump)
+                var program = parseInt(_program)
+                var speed = parseInt(_speed)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', program: ' + program + ', gpm: ' + speed + ', duration: null'
+                response.pump = pump
+                response.program = program
+                response.speed = speed
+                response.duration = null
+                container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
+                container.logger.info(response)
+            })
+
+            //#14  Save and run program for indefinite duration
+            //#15  Save and run program for specified duration
+            socket.on('pumpCommandSaveRunGpm', function(_pump,_program,_speed,_duration) {
+                var pump = parseInt(_pump)
+                var program = parseInt(_program)
+                var speed = parseInt(_speed)
+                var duration = -1
+                if (_duration!==null || _duration!==undefined)
+                    duration=parseInt(_duration)
+                var response = {}
+                response.text = 'Socket pumpCommand variables - pump: ' + pump + ', program: ' + program + ', speed: ' + speed + ', duration: ' + duration
+                response.pump = pump
+                response.program = program
+                response.speed = speed
+                response.duration = duration
+                container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
+                container.logger.info(response)
+            })
+            
+            socket.on('setPumpType', function(pump, type){
+                var pump = parseInt(pump)
+                var type = type
+                var response = {}
+                response.text = 'Socket setPumpType variables - pump: ' + pump + ', type: ' + type
+                response.pump = pump
+                response.type = type
+                container.configEditor.updatePumpType(pump, type)
+                container.logger.info(response)
+            })
+
+
+
             socket.on('setDateTime', function(hh, mm, dow, dd, mon, yy, dst) {
                 var hour = parseInt(hh)
                 var min = parseInt(mm)
@@ -531,7 +694,7 @@ module.exports = function(container) {
             socket.on('toggleScheduleDay', function(id, day) {
                 id = parseInt(id)
                 var response = {}
-                response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id
+                response.text = 'Socket received request to toggle day ' + day + ' on schedule with ID:' + id
                 container.logger.info(response)
                 container.schedule.toggleDay(id, day)
             })
@@ -539,7 +702,7 @@ module.exports = function(container) {
             socket.on('deleteScheduleOrEggTimer', function(id) {
                 id = parseInt(id)
                 var response = {}
-                response.text = 'REST API received request delete schedule with ID:' + id
+                response.text = 'Socket received request delete schedule with ID:' + id
                 container.logger.info(response)
                 container.schedule.deleteScheduleOrEggTimer(id)
             })
@@ -549,7 +712,7 @@ module.exports = function(container) {
                 hour = parseInt(hour)
                 min = parseInt(min)
                 var response = {}
-                response.text = 'REST API received request to set ' + sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
+                response.text = 'Socket received request to set ' + sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min
                 container.logger.info(response)
                 container.schedule.setControllerScheduleStartOrEndTime(id, sOE, hour, min)
             })
@@ -558,7 +721,7 @@ module.exports = function(container) {
                 id = parseInt(id)
                 circuit = parseInt(circuit)
                 var response = {}
-                response.text = 'REST API received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
+                response.text = 'Socket received request to set circuit on schedule with ID (' + id + ') to ' + container.circuit.getFriendlyName(circuit)
                 container.logger.info(response)
                 container.schedule.setControllerScheduleCircuit(id, circuit)
             })
@@ -569,7 +732,7 @@ module.exports = function(container) {
                 hour = parseInt(hour)
                 min = parseInt(min)
                 var response = {}
-                response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + 'for ' + hour + ' hours, ' +min+' minutes'
+                response.text = 'Socket received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + 'for ' + hour + ' hours, ' +min+' minutes'
                 container.logger.info(response)
                 container.schedule.setControllerEggTimer(id, circuit, hour, min)
             })

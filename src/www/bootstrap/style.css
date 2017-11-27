@@ -32,7 +32,7 @@ body {
 }
 
 .pnlPump {
-	min-width: 0px;
+	min-width: 360px;
 }
 
 .pnlSchedule {
@@ -91,6 +91,10 @@ body {
 element will only be visible upon scrolling */
 .navbar-fixed-bottom .navbar-collapse, .navbar-fixed-top .navbar-collapse {
   max-height: 380px;
+}
+
+.inline-block{
+    display:inline-block;
 }
 
 @media (max-width: 991px) {
