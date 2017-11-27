@@ -97,6 +97,12 @@ element will only be visible upon scrolling */
     display:inline-block;
 }
 
+.btn-primary-outline {
+    background-color: transparent;
+    border-color: #ccc;
+    color: red;
+}
+
 @media (max-width: 991px) {
     .navbar-header {
         float: none;

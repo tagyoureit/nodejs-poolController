@@ -488,6 +488,11 @@ module.exports = function(container) {
                 // }
               })
         */
+
+            socket.on('pump', function() {
+                emitToClients('pump')
+            })
+
             /* New pumpCommand API's  */
             //#1  Turn pump off
             socket.on('pumpCommandOff', function(pump) {
@@ -637,7 +642,7 @@ module.exports = function(container) {
                 container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
                 container.logger.info(response)
             })
-            
+
             socket.on('setPumpType', function(pump, type){
                 var pump = parseInt(pump)
                 var type = type

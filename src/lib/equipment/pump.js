@@ -595,6 +595,7 @@ var setVirtualControllerStatus = function(status) {
             program, value, duration)
         }
         currentPumpStatus[index].currentrunning = JSON.parse(JSON.stringify(newCurrentRunning))
+          container.io.emitToClients('pump')
       }
     }
   }

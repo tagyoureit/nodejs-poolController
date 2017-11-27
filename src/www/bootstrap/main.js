@@ -5,7 +5,7 @@ var autoDST; // Flag for Automatic DST (0 = manual, 1 = automatic)
 var tmeLastUpd; // Time of Last Update (last socket message received)
 var socket; // Socket IO (don't initalize communications until clientConfig.json received!)
 var currCircuitArr; // keep a local copy of circuits so we can use them to allow schedule changes
-
+var prevPumpMode = {1:{mode:'',value:''}, 2:{mode:'',value:''}};  // keep track of the previous virtualpumpcontroller modes
 /**
  * jQuery.browser.mobile (http://detectmobilebrowser.com/)
  *
@@ -780,85 +780,100 @@ function startSocketRx() {
                                 $('#virtualPumpController').find('.virtualPumpSpeedType[data-pumpid="' + currPump['pump'] + '"]').css('display', '')
                             }
 
+
+
                             var pumpXProgram = '#pump' +currPump['pump'] + 'Program'
                             var speedType;
-                            // update edit params
-                            $.each(currPump["externalProgram"], function (extPrgIndx, currPrg) {
-                                // this check is for VSF pumps.
-                                var speedType = ''
-                                if (currPump["type"] === 'VSF') {
-                                    if (currPrg < 150) {
+
+
+                            console.log('pump: %s  edit.is(\':visible\'):%s  .mode!==:%s .value!==:%s  all: %s', currPump['pump'], $('#pump'+currPump['pump']+'Edit').is(':visible'), prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode, prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value, $('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value)
+                            // only update the pump values if we are not editing while the current program is running, or while there is not a change in states
+                            if ($('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
+
+                                // update edit params in modal edit page
+                                $.each(currPump["externalProgram"], function (extPrgIndx, currPrg) {
+                                    // this check is for VSF pumps.
+                                    var speedType = ''
+                                    if (currPump["type"] === 'VSF') {
+                                        if (currPrg < 150) {
+                                            speedType = 'gpm'
+                                        }
+                                        else {
+                                            speedType = 'rpm'
+                                        }
+                                        var vpSpeedType = $('.virtualPumpSpeedType[data-pumpid=' + currPump["pump"] + '][data-speedtype="' + speedType + '"][data-program=' + extPrgIndx + ']')
+                                        vpSpeedType.addClass('btn-primary').siblings().removeClass('btn-primary')
+                                    }
+                                    else if (currPump["type"] === 'VF') {
                                         speedType = 'gpm'
+                                        if (currPrg > 150 || currPrg < 15) {
+                                            currPrg = 30 // set to default value that is valid
+                                            socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 30)
+                                        }
                                     }
-                                    else {
+                                    else if (currPump["type"] === 'VS') {
                                         speedType = 'rpm'
+                                        if (currPrg > 3450 || currPrg < 450) {
+                                            currPrg = 1000 // set to default value that is valid
+                                            socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 1000)
+                                        }
                                     }
-                                    var vpSpeedType = $('.virtualPumpSpeedType[data-pumpid=' + currPump["pump"] + '][data-speedtype="' + speedType + '"][data-program=' + extPrgIndx + ']')
-                                    vpSpeedType.addClass('btn-primary').siblings().removeClass('btn-primary')
-                                }
-                                else if (currPump["type"] === 'VF') {
-                                    speedType = 'gpm'
-                                    if (currPrg > 150 || currPrg < 15) {
-                                        currPrg = 30 // set to default value that is valid
-                                        socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 30)
+                                    var vpSpeed = '.virtualPumpSpeed[data-pumpid="' + currPump["pump"] + '"][data-program="' + extPrgIndx + '"]'
+                                    updateVirtualPumpSpinner(vpSpeed, currPrg)
+                                    // end updates for modal edit page
+
+                                    // start updates for virtual pump controller in main Pumps panel
+                                    // if we are here and it's the first index, remove all previous options and rebuild in "select a program"
+                                    if (parseInt(extPrgIndx) === 1){ // && !(prevPumpMode[currPump['pump']].value==='program' && currPump.currentrunning.value==='off')) {
+                                        $(pumpXProgram).find('option').remove()
+                                        $(pumpXProgram).append($('<option/>', {text: 'Program'}))
+                                        $('#pump' + currPump['pump'] + 'RunProgram').attr('disabled', 'disabled')
                                     }
-                                }
-                                else if (currPump["type"] === 'VS') {
-                                    speedType = 'rpm'
-                                    if (currPrg > 3450 || currPrg < 450) {
-                                        currPrg = 1000 // set to default value that is valid
-                                        socket.emit('setPumpProgramSpeed', currPump["pump"], extPrgIndx, 1000)
+
+                                        // build string for current programs; append to options
+                                        thisPrg = extPrgIndx + ': ' + currPrg + ' ' + speedType
+                                        $(pumpXProgram).append($('<option/>', {
+                                            "data-programid": extPrgIndx,
+                                            "data-pumpid": currPump["pump"],
+                                            text: thisPrg
+                                        }))
+                                        $(pumpXProgram).selectpicker('refresh')
+
+                                    thisPrg = currPump.currentrunning.value + ': ' + currPump.externalProgram[currPump.currentrunning.value] + ' ' + speedType
+                                   // if (prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
+                                        $(pumpXProgram).selectpicker('val', thisPrg)
+                                        $(pumpXProgram).selectpicker('refresh')
+                                    //}
+                                })
+                                // if the current extPrgIndx is the current running program, set the values in 'select a program' and duration
+                                pumpXRunProgram = '#pump' + currPump['pump'] + 'RunProgram'
+                                pumpXRunDuration = '#pump' + currPump['pump'] + 'RunDuration'
+                                if (currPump.currentrunning.mode === 'off') {
+                                    $(pumpXRunProgram).removeClass('btn-success')
+                                    pumpManualButtonsEnableDisable(currPump['pump'], 'enable')
+                                    $('#pump' + currPump['pump'] + 'StopProgram').hide() //.attr('disabled', 'disabled')
+
+                                } else {
+                                    if (currPump.externalProgram[currPump.currentrunning.value] < 150)
+                                        speedType = 'gpm'
+                                    else
+                                        speedType = 'rpm'
+
+                                    remainingduration = Math.ceil(parseInt(currPump.currentrunning.remainingduration))
+
+                                    if ($(pumpXRunDuration).spinner('instance') !== undefined) {
+                                        $(pumpXRunDuration).spinner('value', remainingduration)
                                     }
+                                    $(pumpXRunProgram).addClass('btn-success')
+                                    pumpManualButtonsEnableDisable(currPump['pump'], 'disable')
+                                    $('#pump' + currPump['pump'] + 'StopProgram').show() //.removeAttr('disabled')
+
                                 }
-                                var vpSpeed = '.virtualPumpSpeed[data-pumpid="' + currPump["pump"] + '"][data-program="' + extPrgIndx + '"]'
-                                updateVirtualPumpSpinner(vpSpeed, currPrg)
-
-
-                                // if we are here and it's the first index, remove all previous options and rebuild in "select a program"
-                                if (parseInt(extPrgIndx)===1) {
-                                    $(pumpXProgram).find('option').remove()
-                                    $(pumpXProgram).append($('<option/>', {text: 'Program'}))
-                                    $('#pump'+currPump['pump']+'RunProgram').attr('disabled','disabled')
-                                }
-
-                                // build string for current programs; append to options
-                                thisPrg = extPrgIndx + ': ' + currPrg + ' ' + speedType
-                                $(pumpXProgram).append($('<option/>', {
-                                    "data-programid": extPrgIndx,
-                                    "data-pumpid": currPump["pump"],
-                                    text: thisPrg
-                                }))
-                                $(pumpXProgram).selectpicker('refresh')
-
-                            })
-                            // if the current extPrgIndx is the current running program, set the values in 'select a program' and duration
-                            pumpXRunProgram = '#pump'+ currPump['pump'] + 'RunProgram'
-                            pumpXRunDuration = '#pump'+ currPump['pump'] + 'RunDuration'
-                            if (currPump.currentrunning.mode === 'off') {
-                                $(pumpXRunProgram).removeClass('btn-success')
-                                pumpManualButtonsEnableDisable(currPump['pump'],'enable')
-                                $('#pump' + currPump['pump'] + 'StopProgram').attr('disabled','disabled')
-
-                            } else {
-                                if (currPump.externalProgram[currPump.currentrunning.value]<150)
-                                    speedType='gpm'
-                                else
-                                    speedType='rpm'
-                                thisPrg = currPump.currentrunning.value + ': ' + currPump.externalProgram[currPump.currentrunning.value] + ' ' + speedType
-                                $(pumpXProgram).selectpicker('val', thisPrg)
-                                $(pumpXProgram).selectpicker('refresh')
-
-                                remainingduration = Math.ceil(parseInt(currPump.currentrunning.remainingduration))
-
-                                if ($(pumpXRunDuration).spinner('instance') !== undefined) {
-                                    $(pumpXRunDuration).spinner('value', remainingduration)
-                                }
-                                $(pumpXRunProgram).addClass('btn-success')
-                                pumpManualButtonsEnableDisable(currPump['pump'],'disable')
-                                $('#pump' + currPump['pump'] + 'StopProgram').removeAttr('disabled')
 
                             }
                         }
+                        prevPumpMode[currPump['pump']].mode=currPump.currentrunning.mode
+                        prevPumpMode[currPump['pump']].value=currPump.currentrunning.value
                         $('#pumpProgram1, #pumpProgram2').selectpicker({
                             mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
                         })
@@ -1448,8 +1463,8 @@ function handleButtons() {
     })
 
     $('#pump1RunProgram, #pump2RunProgram').click(function(){
-            // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
-              socket.emit('pumpCommandRunProgram', $(this).data("pumpid"), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'),$('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'))
+        // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
+        socket.emit('pumpCommandRunProgram', $(this).data("pumpid"), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'),$('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'))
     })
 
     $('#pump1Program, #pump2Program').on('changed.bs.select', function(){
@@ -1544,12 +1559,13 @@ function handleButtons() {
     $('#pump1Edit, #pump2Edit').click(function(){
         pumpManualButtonsEnableDisable($(this).data('pumpid'), 'enable')
         $('#pump'+ $(this).data('pumpid') + 'EditResume').show()
-
-        //TODO: change logic on socket.on('pump') so values don't update in edit mode.
     })
 
     $('#pump1EditResume, #pump2EditResume').click(function(){
         pumpManualButtonsEnableDisable($(this).data('pumpid'), 'disable')
+        prevPumpMode[$(this).data('pumpid')].mode = ''
+        prevPumpMode[$(this).data('pumpid')].value = ''
+        socket.emit('pump')
     })
 }
 

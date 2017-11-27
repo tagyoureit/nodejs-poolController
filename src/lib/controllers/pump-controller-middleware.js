@@ -217,11 +217,11 @@ module.exports = function(container) {
         return true
 
       } else {
-        if (container.settings.logApi) container.logger.warn('FAIL: RPM/GPM provided (%s) is outside of tolerances.', rpm)
+        if (container.settings.logApi) container.logger.warn('FAIL: RPM/GPM provided (%s) is outside of tolerances.', speed)
         return false
       }
     }
-    container.logger.warn('FAIL: User request to save pump %s (address %s) to Program %s as %s RPM', index, address, program, rpm);
+    container.logger.warn('FAIL: User request to save pump %s (address %s) to Program %s as %s RPM/GPM', index, address, program, speed);
     return false
   }
 
