@@ -341,7 +341,7 @@ describe('#set functions', function() {
                 it('API #6: runs pump 1, rpm 1000', function (done) {
 
                     requestPoolDataWithURL('pumpCommand/run/pump/1/rpm/1000').then(function (obj) {
-                        console.log('obj: ', obj)
+                        //console.log('obj: ', obj)
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         obj.duration.should.eq(-1)

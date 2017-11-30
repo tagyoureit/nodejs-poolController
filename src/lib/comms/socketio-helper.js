@@ -37,22 +37,13 @@ module.exports = function(container) {
             var Promise = container.promise
             Promise.resolve()
                 .then(function() {
-                    return container.configEditor.getVersionNotification()
-                })
-                .then(function(remote) {
+                    remote = container.configEditor.getVersionNotification()
                     if (remote.dismissUntilNextRemoteVersionBump !== true) {
                         // true = means that we will suppress the update until the next available version bump
-                        return Promise.resolve()
-                            .then(function() {
-                                return container.updateAvailable.getResults()
-                            })
-                            .then(function(updateAvail) {
-                                // console.log('updateAvail', updateAvail)
-                                return io.sockets.emit('updateAvailable', updateAvail)
-                            })
+                        updateAvail = container.updateAvailable.getResults()
 
+                        io.sockets.emit('updateAvailable', updateAvail)
                     }
-
                 })
                 /*istanbul ignore next */
                 .catch(function(err) {
@@ -166,7 +157,6 @@ module.exports = function(container) {
             socketList.push(socket);
             // socket.emit('socket_is_connected', 'You are connected!');
             socket.once('close', function() {
-                console.log('socket closed')
                 container.logger.debug('socket closed');
                 socketList.splice(socketList.indexOf(socket), 1);
             });

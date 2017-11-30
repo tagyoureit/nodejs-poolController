@@ -39,7 +39,7 @@ module.exports = function(container) {
 
   var init = function() {
     currentChlorinatorStatus = new Chlorinator(0, -1, -1, -1, -1, -1, -1, -1);
-    return container.configEditor.getChlorinatorDesiredOutput()
+    container.configEditor.getChlorinatorDesiredOutput()
       .then(function(output) {
         currentChlorinatorStatus.outputPoolPercent = output.pool
         currentChlorinatorStatus.outputSpaPercent = output.spa

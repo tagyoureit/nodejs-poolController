@@ -16,27 +16,33 @@
  */
 
 
-var fs = require('fs'),
-    path = require('path').posix,
-    Promise = require('bluebird'),
-    request = Promise.promisify(require("request")),
-    _ = require('underscore')
-    Promise.promisifyAll(fs)
 
 
-var userAgent = 'tagyoureit-nodejs-poolController-app',
-    jsons = {},
-    gitApiHost = 'api.github.com',
-    gitLatestReleaseJSONPath = 'repos/tagyoureit/nodejs-poolController/releases/latest',
-    data = '',
-    location = path.join(process.cwd(), '/package.json')
 
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: update_avail.js')
 
-    var compareLocalToRemoteVersion = exports.compareLocalToRemoteVersion = function() {
+    var userAgent = 'tagyoureit-nodejs-poolController-app',
+        jsons = {},
+        gitApiHost = 'api.github.com',
+        gitLatestReleaseJSONPath = 'repos/tagyoureit/nodejs-poolController/releases/latest',
+        location = container.path.join(process.cwd(), '/package.json')
+
+
+    var //fs = require('fs'),
+        //path = require('path').posix,
+        //Promise = require('bluebird'),
+        Promise = container.promise
+    Promise.promisifyAll(container.fs)
+        request = Promise.promisify(require("request"))
+        //_ = require('underscore')
+       // Promise.promisifyAll(fs)
+
+
+    // = exports.compareLocalToRemoteVersion
+    var compareLocalToRemoteVersion  = function() {
         container.logger.silly('update_avail: versions discovered: ', jsons)
         var clientVersion = jsons.local.version,
             remoteVersion = jsons.remote.version,
@@ -124,7 +130,7 @@ module.exports = function(container) {
     }
 
     var getVersionFromJson = function(data) {
-        if (!_.isObject(data)) {
+        if (!container._.isObject(data)) {
             data = JSON.parse(data)
         }
 
@@ -135,23 +141,7 @@ module.exports = function(container) {
         return data['version']
     }
 
-    //this var outside of the scope of loadLocalVersion so it can be overwritten by test units.
 
-    var loadLocalVersion = exports.loadLocalVersion = function() {
-
-        container.logger.silly('update_avail: reading local version at:', location)
-
-        return fs.readFileAsync(location, 'utf-8')
-            .then(function(data) {
-                jsons.local = {
-                    'version': getVersionFromJson(data)
-                }
-            })
-            .catch(function(error) {
-                container.logger.warn('update_avail: Error reading local package.json: ', error)
-            })
-
-    }
 
     var parseLatestReleaseJson = function(data) {
         var jsonsReturn = {
@@ -199,9 +189,8 @@ module.exports = function(container) {
     }
 
     var check = function() {
-        if (Object.keys(jsons).length === 0) {
-            return loadLocalVersion()
-                .then(getLatestReleaseJson)
+       // if (Object.keys(jsons).length === 0) {
+            return getLatestReleaseJson()
                 .then(compareLocalToSavedLocalVersion)
                 .then(compareLocalToRemoteVersion)
                 .then(emitResults)
@@ -212,22 +201,42 @@ module.exports = function(container) {
                     function(err) {
                         container.logger.error('Error getting version information for local or remote systems.', err)
                     })
-        } else {
-            return emitResults(jsons)
-        }
+        // } else {
+        //     return emitResults(jsons)
+        // }
     }
 
     var getResults = function() {
         if (Object.keys(jsons).length === 0) {
-            return check().then(function(res) {
+            init()
+                .then(function(res) {
                 return res
             })
         } else {
             return jsons
         }
     }
-    var init = function(){
+    var init = function(_location){
         jsons = {}
+        tempLocation = ''
+        if (_location===undefined)
+            tempLocation = location
+        else
+            tempLocation = container.path.join(process.cwd(), _location)
+
+        container.logger.silly('update_avail: reading local version at:', location)
+
+        return container.fs.readFileAsync(tempLocation, 'utf-8')
+            .then(function(data) {
+                jsons.local = {
+                    'version': getVersionFromJson(data)
+                }
+            })
+            .then(check)
+            .catch(function(error) {
+                container.logger.warn('update_avail: Error reading local package.json: ', error)
+            })
+
     }
 
     /*istanbul ignore next */

@@ -10,9 +10,12 @@ describe('nodejs-poolController', function() {
     describe('Loads/checks for a valid configuration file', function() {
 
       before(function() {
-          bottle.container.settings.load()
-          bottle.container.server.init()
-          bottle.container.io.init()
+          return bottle.container.settings.load()
+              .then(function(){
+                  bottle.container.server.init()
+                  bottle.container.io.init()
+              })
+
           bottle.container.logger.transports.console.level = 'silly';
       });
 
@@ -34,6 +37,7 @@ describe('nodejs-poolController', function() {
 
       after(function() {
           bottle.container.time.init()
+          bottle.container.configEditor.init()
           bottle.container.server.close()
           bottle.container.logger.transports.console.level = 'info';
       })
@@ -55,21 +59,34 @@ describe('nodejs-poolController', function() {
         })
 
         it('#fails to load an invalid configuration file', function(done) {
-            var myModule = rewire(path.join(process.cwd(), '/src/etc/settings.js'))
-            myModule.__with__({
-                'envParam': path.join(process.cwd(),'./specs/assets/config/config.OUTDATED.json')
-            })(function() {
-                var stub = sinon.spy(myModule, 'load')
-                try {
-                    myModule.load()
-                } catch (e) {
+            // var myModule = rewire(path.join(process.cwd(), '/src/etc/settings.js'))
+            // myModule.__with__({
+            //     'envParam': path.join(process.cwd(),'./specs/assets/config/config.OUTDATED.json')
+            // })(function() {
+            //     var stub = sinon.spy(myModule, 'load')
+            //     try {
+            //         myModule.load()
+            //     } catch (e) {
+            //
+            //     }
+            //     stub.threw().should.be.true
+            //     stub.restore()
+            //     done()
+            //
+            // })
 
-                }
-                stub.threw().should.be.true
-                stub.restore()
-                done()
+                bottle.container.configEditor.init('/specs/assets/config/config.OUTDATED.json')
+                    .then(function(){
+                        console.log('break point 1')
+                        return bottle.container.settings.load()
+                    })
+                    .catch(function(err){
+                        console.log('err::', err)
+                    })
+                    .then(done,done)
 
-            })
+
+
         })
 
         it('#loads/checks all instances of variables to store state', function() {

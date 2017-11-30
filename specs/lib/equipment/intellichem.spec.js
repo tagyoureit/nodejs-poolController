@@ -46,10 +46,10 @@ describe('processes Intellichem packets', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             })
 

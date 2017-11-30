@@ -26,7 +26,7 @@ if (bottle.container.logModuleLoading)
     console.log('Loading: integrations.js')
 
 
-var configFile = bottle.container.settings.getConfig();
+//var configFile = bottle.container.settings.getConfig();
 
 //['../integrations'].forEach(dir)
 
@@ -63,13 +63,9 @@ function stripJS(name) {
 
 var init = exports.init = function() {
     walk(__dirname + '/../integrations', function(filePath, name, stat) {
-        // do something with "filePath"...
-        //console.log('filePath: ', filePath)
-        //console.log('name: ', name)
-        //console.log('strippedName: ', stripJS(name))
-        //console.log('stat: ', stat)
+
         var shortName = stripJS(name)
-        if (configFile.integrations[shortName] === 1) {
+        if (bottle.container.settings.integrations[shortName] === 1) {
             bottle.factory(shortName, require(filePath)) //add the integration to Bottle
             bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
             bottle.container[shortName].init()

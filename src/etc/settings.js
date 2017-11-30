@@ -80,10 +80,11 @@ var checkForOldConfigFile = function() {
     try {
         //the throw will throw an error parsing the file, the catch will catch an error reading the file.
         if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController") ||
-        !(configFile.poolController).hasOwnProperty("database")) {
+            !(configFile.poolController).hasOwnProperty("database")) {
             throw new Error('Your configuration file is out of date.  Please update to the latest version.')
         }
     } catch (err) {
+        console.log('threw error!', err)
         throw new Error(err)
     }
 }
@@ -95,78 +96,98 @@ var load = exports.load = function() {
     } else {
         configurationFile = exports.configurationFile = envParam
     }
-    try {
-        configFile = JSON.parse(fs.readFileSync(configurationFile, 'utf-8'));
-    } catch (err) {
-        console.log('Error reading config file:', err)
-    }
 
-    checkForOldConfigFile()
+    return Promise.resolve()
+        .then(function () {
+            return bottle.container.configEditor.init(configurationFile)
 
-    /*   Equipment   */
-    //Controller
-    equipment = exports.equipment = configFile.equipment
-    controller = exports.controller = configFile.equipment.controller
-    intellicom = exports.intellicom = configFile.equipment.controller.intellicom;
-    intellitouch = exports.intellitouch = configFile.equipment.controller.intellitouch;
-    virtual = exports.virtual = configFile.equipment.controller.virtual
-    virtualPumpController = exports.virtualPumpController = configFile.equipment.controller.virtual.pumpController
-    virtualChlorinatorController = exports.virtualChlorinatorController = configFile.equipment.controller.virtual.chlorinatorController
+            // try {
+            //     configFile = JSON.parse(fs.readFileSync(configurationFile, 'utf-8'));
+            // } catch (err) {
+            //     console.log('Error reading config file:', err)
+            // }
 
-    circuitFriendlyNames = exports.circuitFriendlyNames = configFile.equipment.controller.circuitFriendlyNames
-
-    //chlorinator
-    chlorinator = exports.chlorinator = configFile.equipment.chlorinator;
-
-    //pump(s)
-    pump = exports.pump = configFile.equipment.pump;
-    /*   END Equipment   */
-    appAddress = exports.appAddress = configFile.poolController.appAddress;
-
-    //Web
-    expressPort = exports.expressPort = configFile.poolController.web.expressPort;
-    expressTransport = exports.expressTransport = configFile.poolController.web.expressTransport;
-    expressAuth = exports.expressAuth = configFile.poolController.web.expressAuth;
-    expressAuthFile = exports.expressAuthFile = configFile.poolController.web.expressAuthFile;
+        })
+        .then(function (data) {
+            configFile = JSON.parse(JSON.stringify(data))
+            return checkForOldConfigFile()
+        })
+        .then(function () {
 
 
-    //Network
-    netConnect = exports.netConnect = configFile.poolController.network.netConnect;
-    rs485Port = exports.rs485Port = configFile.poolController.network.rs485Port;
-    netPort = exports.netPort = configFile.poolController.network.netPort;
-    netHost = exports.netHost = configFile.poolController.network.netHost;
+            /*   Equipment   */
+            //Controller
+            equipment = exports.equipment = configFile.equipment
+            controller = exports.controller = configFile.equipment.controller
+            intellicom = exports.intellicom = configFile.equipment.controller.intellicom;
+            intellitouch = exports.intellitouch = configFile.equipment.controller.intellitouch;
+            virtual = exports.virtual = configFile.equipment.controller.virtual
+            virtualPumpController = exports.virtualPumpController = configFile.equipment.controller.virtual.pumpController
+            virtualChlorinatorController = exports.virtualChlorinatorController = configFile.equipment.controller.virtual.chlorinatorController
 
-    if (configFile.poolController.network.hasOwnProperty('inactivityRetry')) {
-        inactivityRetry = exports.inactivityRetry = configFile.poolController.network.inactivityRetry;
-    }
-    else
-        inactivityRetry = exports.inactivityRetry = 10
+            circuitFriendlyNames = exports.circuitFriendlyNames = configFile.equipment.controller.circuitFriendlyNames
 
-    //Logs
-    logLevel = exports.logLevel = configFile.poolController.log.logLevel;
-    socketLogLevel = exports.socketLogLevel = configFile.poolController.log.socketLogLevel;
-    fileLog = exports.fileLog = configFile.poolController.log.fileLog;
-    logPumpMessages = exports.logPumpMessages = configFile.poolController.log.logPumpMessages;
-    logDuplicateMessages = exports.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
-    logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
-    logConfigMessages = exports.logConfigMessages = configFile.poolController.log.logConfigMessages;
-    logMessageDecoding = exports.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
-    logChlorinator = exports.logChlorinator = configFile.poolController.log.logChlorinator;
-    logIntellichem = exports.logIntellichem = configFile.poolController.log.logIntellichem;
-    logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
-    logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
-    logApi = exports.logApi = configFile.poolController.log.logApi;
+            //chlorinator
+            chlorinator = exports.chlorinator = configFile.equipment.chlorinator;
 
-    // Database
-    influxEnabled = exports.influxEnabled = configFile.poolController.database.influx.enabled;
-    influxHost = exports.influxHost = configFile.poolController.database.influx.host;
-    influxPort = exports.influxPort = configFile.poolController.database.influx.port;
-    influxDB = exports.influxDB = configFile.poolController.database.influx.database;
+            //pump(s)
+            pump = exports.pump = configFile.equipment.pump;
+            /*   END Equipment   */
+            appAddress = exports.appAddress = configFile.poolController.appAddress;
+
+            //Web
+            expressPort = exports.expressPort = configFile.poolController.web.expressPort;
+            expressTransport = exports.expressTransport = configFile.poolController.web.expressTransport;
+            expressAuth = exports.expressAuth = configFile.poolController.web.expressAuth;
+            expressAuthFile = exports.expressAuthFile = configFile.poolController.web.expressAuthFile;
+
+
+            //Network
+            netConnect = exports.netConnect = configFile.poolController.network.netConnect;
+            rs485Port = exports.rs485Port = configFile.poolController.network.rs485Port;
+            netPort = exports.netPort = configFile.poolController.network.netPort;
+            netHost = exports.netHost = configFile.poolController.network.netHost;
+
+            if (configFile.poolController.network.hasOwnProperty('inactivityRetry')) {
+                inactivityRetry = exports.inactivityRetry = configFile.poolController.network.inactivityRetry;
+            }
+            else
+                inactivityRetry = exports.inactivityRetry = 10
+
+            //Logs
+            logLevel = exports.logLevel = configFile.poolController.log.logLevel;
+            socketLogLevel = exports.socketLogLevel = configFile.poolController.log.socketLogLevel;
+            fileLog = exports.fileLog = configFile.poolController.log.fileLog;
+            logPumpMessages = exports.logPumpMessages = configFile.poolController.log.logPumpMessages;
+            logDuplicateMessages = exports.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
+            logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
+            logConfigMessages = exports.logConfigMessages = configFile.poolController.log.logConfigMessages;
+            logMessageDecoding = exports.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
+            logChlorinator = exports.logChlorinator = configFile.poolController.log.logChlorinator;
+            logIntellichem = exports.logIntellichem = configFile.poolController.log.logIntellichem;
+            logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
+            logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
+            logApi = exports.logApi = configFile.poolController.log.logApi;
+
+            // Database
+            influxEnabled = exports.influxEnabled = configFile.poolController.database.influx.enabled;
+            influxHost = exports.influxHost = configFile.poolController.database.influx.host;
+            influxPort = exports.influxPort = configFile.poolController.database.influx.port;
+            influxDB = exports.influxDB = configFile.poolController.database.influx.database;
+
+            // Integrations
+            integrations = exports.integrations = configFile.integrations;
+        })
+        .catch(function(err){
+            console.log('Error in settings:', err)
+        })
 }
 
-var getConfig = exports.getConfig = function() {
-    return configFile
-}
+
+
+// var getConfig = exports.getConfig = function() {
+//     return configFile
+// }
 
 
 

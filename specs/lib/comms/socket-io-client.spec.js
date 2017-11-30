@@ -314,6 +314,7 @@ describe('socket.io pump tests', function() {
         bottle.container.settings.logPumpMessages = 1
         bottle.container.settings.logPumpTimers = 1
         bottle.container.logger.transports.console.level = 'silly'
+        bottle.container.configEditor.init('/specs/assets/config/config.json')
         bottle.container.server.init()
         bottle.container.io.init()
     });

@@ -15,50 +15,51 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
-
-var //fsio = require('promised-io/fs'),
-    config,
-    dir = '/',
+var
+    config = {},
     file,
-    path = require('path').posix,
+    //path = require('path').posix,
     location
 
-var Promise = require('bluebird'),
-    fs = require('fs')
-Promise.promisifyAll(fs)
 
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: config-editor.js')
 
-    file = exports.file = container.settings.configurationFile //exported for API Test #8
-    location = path.join(process.cwd(), dir, file)
+
+    var //Promise = require('bluebird'),
+//        fs = require('fs')
+    //Promise.promisifyAll(fs)
+    Promise = container.promise
+    pfs = Promise.promisifyAll(container.fs)
+
+    //file = exports.file = container.settings.configurationFile //exported for API Test #8
 
 
-    var init = function() {
-        if (config) {
-          return Promise.resolve(config)
-        }
-        else {
-            return fs.readFileAsync(location, 'utf-8')
-                .then(function(data) {
-                    config = JSON.parse(data)
-                    return config
-                })
-                .catch(function(err){
-                  container.logger.error('Error reading %s.  %s', location, err)
-                })
-        }
+    var init = function(_location) {
+        if (_location===undefined)
+            location = container.path.join(process.cwd(), container.settings.configurationFile)
+        else
+            location = container.path.join(process.cwd(), _location)
+
+        config = {}
+        return pfs.readFileAsync(location, 'utf-8')
+            .then(function(data) {
+                config = JSON.parse(data)
+                return config
+            })
+            .catch(function(err){
+                container.logger.error('Error reading %s.  %s', location, err)
+            })
     }
 
     var updatePumpType = function(_pump, _type) {
-        return init()
-            .then(function(data) {
-                data.equipment.pump[_pump].type = _type
+        return Promise.resolve()
+            .then(function() {
+                config.equipment.pump[_pump].type = _type
                 container.settings.pump[_pump].type = _type //TODO: we should re-read the file from disk at this point?
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Updated pump %s type %s', _pump, _type, location)
@@ -73,11 +74,11 @@ module.exports = function(container) {
     }
 
     var updateExternalPumpProgram = function(_pump, program, rpm) {
-        return init()
-            .then(function(data) {
-                data.equipment.pump[_pump].externalProgram[program] = rpm
+        return Promise.resolve()
+            .then(function() {
+                config.equipment.pump[_pump].externalProgram[program] = rpm
                 container.settings.pump[_pump].externalProgram[program] = rpm
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Updated pump RPM settings %s', location)
@@ -87,47 +88,47 @@ module.exports = function(container) {
             })
     }
 
-    var updatePumpProgramGPM = function(_pump, program, gpm) {
-        return init()
-            .then(function(data) {
-                data.equipment.pump[_pump].programGPM[program] = gpm  //TODO: this does not exist.  can we get rid of it?
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+    // var updatePumpProgramGPM = function(_pump, program, gpm) {
+    //     return Promise.resolve()
+    //         .then(function() {
+    //             config.equipment.pump[_pump].programGPM[program] = gpm  //TODO: this does not exist.  can we get rid of it?
+    //             return fs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
+    //         })
+    //         .then(function() {
+    //             container.logger.verbose('Updated pump GPM settings %s', location)
+    //         })
+    //         .catch(function(err) {
+    //             container.logger.warn('Error updating config GPM pump settings %s: ', location, err)
+    //         })
+    // }
+
+
+    var updateChlorinatorInstalled = function(installed) {
+        Promise.resolve()
+            .then(function() {
+                config.equipment.chlorinator.installed = installed
+                container.settings.chlorinator.installed = installed
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
-                container.logger.verbose('Updated pump GPM settings %s', location)
+                if (container.settings.logChlorinator)
+                    container.logger.verbose('Updated chlorinator settings (installed) %s', location)
             })
             .catch(function(err) {
-                container.logger.warn('Error updating config GPM pump settings %s: ', location, err)
+                container.logger.warn('Error updating chlorinator installed %s: ', location, err)
             })
     }
 
 
-var updateChlorinatorInstalled = function(installed) {
-    return init()
-        .then(function(data) {
-            data.equipment.chlorinator.installed = installed
-            container.settings.chlorinater.installed = installed
-            return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
-        })
-        .then(function() {
-            if (container.settings.logChlorinator)
-                container.logger.verbose('Updated chlorinator settings (installed) %s', location)
-        })
-        .catch(function(err) {
-            container.logger.warn('Error updating chlorinator settings %s: ', location, err)
-        })
-}
-
-
     var updateChlorinatorDesiredOutput = function(pool, spa) {
-        return init()
-            .then(function(data) {
-                data.equipment.chlorinator.desiredOutput = {}
-                data.equipment.chlorinator.desiredOutput.pool = pool
-                data.equipment.chlorinator.desiredOutput.spa = spa
+        Promise.resolve()
+            .then(function() {
+                config.equipment.chlorinator.desiredOutput = {}
+                config.equipment.chlorinator.desiredOutput.pool = pool
+                config.equipment.chlorinator.desiredOutput.spa = spa
                 container.settings.equipment.chlorinator.desiredOutput.pool = pool
                 container.settings.equipment.chlorinator.desiredOutput.spa = spa
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
                 if (container.settings.logChlorinator)
@@ -139,31 +140,28 @@ var updateChlorinatorInstalled = function(installed) {
     }
 
     var updateChlorinatorName = function(name) {
-        return init()
-            .then(function(data) {
-                data.equipment.chlorinator.id.productName = name
+        Promise.resolve()
+            .then(function() {
+                config.equipment.chlorinator.id.productName = name
                 container.settings.equipment.chlorinator.id.productName = name
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Updated chlorinator settings (name) %s', location)
             })
             .catch(function(err) {
-                container.logger.warn('Error updating chlorinator settings %s: ', location, err)
+                container.logger.warn('Error updating chlorinator name %s: ', location, err)
             })
     }
 
     var updateVersionNotification = function(dismissUntilNextRemoteVersionBump) {
-        return init()
-            .then(function(data) {
-                data.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
+        return Promise.resolve()
+            .then(function() {
+                config.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
                 var results = container.updateAvailable.getResults()
-                data.poolController.notifications.version.remote.version = results.remote.version
-                data.poolController.notifications.version.remote.tag_name = results.remote.tag_name
-                return Promise.resolve(data)
-            })
-            .then(function(data) {
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                config.poolController.notifications.version.remote.version = results.remote.version
+                config.poolController.notifications.version.remote.tag_name = results.remote.tag_name
+                return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
                 return container.logger.verbose('Updated version notification settings %s', location)
@@ -174,8 +172,8 @@ var updateChlorinatorInstalled = function(installed) {
     }
 
     var getPumpExternalProgram = function(_pump) {
-        return init()
-            .then(function(config) {
+        return Promise.resolve()
+            .then(function() {
                 return config.equipment.pump[_pump].externalProgram
             })
             .catch(function(err) {
@@ -184,23 +182,20 @@ var updateChlorinatorInstalled = function(installed) {
     }
 
     var getChlorinatorDesiredOutput = function() {
-        return init()
-            .then(function(config) {
-              // following is to support changing from
-              // "desiredOutput": -1,
-              // to
-              // "desiredOutput": {"pool": -1, "spa":-1},
+        return Promise.resolve()
+            .then(function() {
+                // following is to support changing from
+                // "desiredOutput": -1,
+                // to
+                // "desiredOutput": {"pool": -1, "spa":-1},
                 if (Number.isInteger(config.equipment.chlorinator.desiredOutput)){
-                  return updateChlorinatorDesiredOutput(config.equipment.chlorinator.desiredOutput,-1)
-                  .then(function() {
-                    return init()
-                  })
-                  .then(function() {
-                    return config.equipment.chlorinator.desiredOutput
-                  })
+                    return updateChlorinatorDesiredOutput(config.equipment.chlorinator.desiredOutput,-1)
+                        .then(function() {
+                            return config.equipment.chlorinator.desiredOutput
+                        })
                 }
                 else {
-                  return config.equipment.chlorinator.desiredOutput
+                    return config.equipment.chlorinator.desiredOutput
                 }
 
             })
@@ -209,8 +204,8 @@ var updateChlorinatorInstalled = function(installed) {
             })
     }
     var getChlorinatorName = function() {
-        return init()
-            .then(function(config) {
+        return Promise.resolve()
+            .then(function() {
                 return config.equipment.chlorinator.id.productName
             })
             .catch(function(err) {
@@ -219,13 +214,7 @@ var updateChlorinatorInstalled = function(installed) {
     }
 
     var getVersionNotification = function() {
-        return init(config)
-            .then(function() {
-                return config.poolController.notifications.version.remote
-            })
-            .catch(function(err) {
-                container.logger.error('Something went wrong getting version notification from config file.', err)
-            })
+        return config.poolController.notifications.version.remote
     }
 
 
@@ -239,7 +228,7 @@ var updateChlorinatorInstalled = function(installed) {
         init: init,
         updateExternalPumpProgram: updateExternalPumpProgram,
         updatePumpType: updatePumpType,
-        updatePumpProgramGPM: updatePumpProgramGPM,
+        //updatePumpProgramGPM: updatePumpProgramGPM,
         updateVersionNotification: updateVersionNotification,
         updateChlorinatorInstalled: updateChlorinatorInstalled,
         updateChlorinatorDesiredOutput: updateChlorinatorDesiredOutput,

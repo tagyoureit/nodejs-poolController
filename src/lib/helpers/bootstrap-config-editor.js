@@ -18,20 +18,35 @@
 //TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
 
 var configClient,
-    dir = '/src/www/bootstrap',
-    file = 'configClient.json',
+    file = '/src/www/bootstrap/configClient.json',
     path = require('path').posix,
     location
 
-var Promise = require('bluebird'),
-    fs = require('fs')
-Promise.promisifyAll(fs)
+// var Promise = require('bluebird'),
+//     fs = require('fs')
+// Promise.promisifyAll(fs)
 
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: bootstrap-config-editor.js')
-    location = path.join(process.cwd(), dir, file)
+
+    var Promise = container.promise,
+        //fs = require('fs')
+    pfs =  Promise.promisifyAll(container.fs)
+
+
+    location = path.join(process.cwd(), file)
+
+    var init = function(_location){
+        if (_location===undefined)
+            location = path.join(process.cwd(), file)
+        else
+            location = path.join(process.cwd(), _location)
+
+        configClient = {}
+        return readConfigClient()
+    }
 
     var resetPanelState = function() {
         for (var key in configClient.panelState) {
@@ -40,10 +55,10 @@ module.exports = function(container) {
     }
 
     var readConfigClient = function() {
-        if (configClient) {
+        if (configClient.hasOwnProperty('panelState')) {
             return Promise.resolve(configClient)
         } else {
-            return fs.readFileAsync(location, 'utf-8').then(function(data) {
+            return pfs.readFileAsync(location, 'utf-8').then(function(data) {
                 configClient = JSON.parse(data)
                 return Promise.resolve(configClient)
             })
@@ -62,7 +77,7 @@ module.exports = function(container) {
 
             })
             .then(function(data){
-              return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+              return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Updated configClient.json.')
@@ -78,7 +93,7 @@ module.exports = function(container) {
                 for (var key in data.panelState) {
                     data.panelState[key].state = "visible"
                 }
-                return fs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Reset bootstrap configClient.json')
@@ -97,6 +112,7 @@ module.exports = function(container) {
 
     return {
         update: update,
-        reset: reset
+        reset: reset,
+        init: init
     }
 }

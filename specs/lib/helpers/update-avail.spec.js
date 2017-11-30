@@ -20,11 +20,14 @@ describe('checks if there is a newer version available', function() {
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                socketIOSpy = sandbox.stub(bottle.container.io, 'emitToClients')
-                bottle.container.updateAvailable.init()
+                socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
+                getVersionNotification = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({"version":"0.0.0","tag_name":"v0.0.0","dismissUntilNextRemoteVersionBump":false})
+
+                //bottle.container.updateAvailable.init()
             })
 
             afterEach(function() {
+                nock.cleanAll();
                 sandbox.restore()
 
             })
@@ -40,76 +43,89 @@ describe('checks if there is a newer version available', function() {
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
 
-                //need to use rewire so variables are not already set
-                var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
-                myModule.__with__({
-                    'location': path.join(process.cwd(), '/specs/assets/package.json')
-                })(function() {
-                    myModule(bottle.container).check()
-                        .then(function() {
-                            loggerWarnStub.args[0][0].should.contain('Update available!')
+                // //need to use rewire so variables are not already set
+                // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
+                // myModule.__with__({
+                //     'location': path.join(process.cwd(), '/specs/assets/package.json')
+                // })(function() {
+                //     myModule(bottle.container).check()
+                //         .then(function() {
+                //             loggerWarnStub.args[0][0].should.contain('Update available!')
+                //
+                //         }).then(done,done)
+                // })
 
-                        }).then(done,done)
-                })
+                //need to use rewire so variables are not already set
+                //var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
+                Promise.resolve()
+                    .then(function(){
+                        return bottle.container.updateAvailable.init('/specs/assets/package.json')
+                    })
+                    .then(function(){
+                        loggerWarnStub.args[0][0].should.contain('Update available!')
+                    })
+                    .then(done,done)
             })
 
             // it('#returns with equal versions', function(done) {
-                // this.timeout(5000)
-                // var scope = nock('https://api.github.com')
-                //     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
-                //     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
-                //
-                // //need to use rewire so variables are not already set
-                // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
-                // myModule.__with__({
-                //     'location': path.join(process.cwd(), '/specs/assets/package.json')
-                // })(function() {
-                //     myModule(bottle.container).check()
-                //         .then(function() {
-                //             loggerInfoStub.args[0][0].should.contain('is the same as the')
-                //             done()
-                //         })
-                // })
+            // this.timeout(5000)
+            // var scope = nock('https://api.github.com')
+            //     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
+            //     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
+            //
+            // //need to use rewire so variables are not already set
+            // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
+            // myModule.__with__({
+            //     'location': path.join(process.cwd(), '/specs/assets/package.json')
+            // })(function() {
+            //     myModule(bottle.container).check()
+            //         .then(function() {
+            //             loggerInfoStub.args[0][0].should.contain('is the same as the')
+            //             done()
+            //         })
+            // })
             // })
 
             // it('#returns with newer version running locally (newer < remote)', function(done) {
-                // this.timeout(5000)
-                // var scope = nock('https://api.github.com')
-                //     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
-                //     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
-                //
-                // //need to use rewire so variables are not already set
-                // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
-                // myModule.__with__({
-                //     'location': path.join(process.cwd(), '/specs/assets/package.json')
-                // })(function() {
-                //     myModule(bottle.container).check()
-                //         .then(function() {
-                //             loggerInfoStub.args[0][0].should.contain('You are running a newer release')
-                //             done()
-                //         })
-                // })
+            // this.timeout(5000)
+            // var scope = nock('https://api.github.com')
+            //     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
+            //     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
+            //
+            // //need to use rewire so variables are not already set
+            // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
+            // myModule.__with__({
+            //     'location': path.join(process.cwd(), '/specs/assets/package.json')
+            // })(function() {
+            //     myModule(bottle.container).check()
+            //         .then(function() {
+            //             loggerInfoStub.args[0][0].should.contain('You are running a newer release')
+            //             done()
+            //         })
+            // })
             // })
 
             it('#sends updateAvailable with dismissUntilNextRemoteVersionBump false', function(done) {
 
                 var scope = nock('https://api.github.com')
+                    .persist()
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
-                var getVersionNotification = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({"version":"0.0.0","tag_name":"v0.0.0","dismissUntilNextRemoteVersionBump":false})
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-                client.on('connect', function(data) {
-                  bottle.container.io.emitToClients('updateAvailable')
-
-                    client.on('updateAvailable', function(msg) {
-                        //console.log(JSON.stringify(msg,null,2))
-                        msg.result.should.equal('older')
-                        client.disconnect()
-                        done()
+                Promise.resolve()
+                    .then(function(){
+                        client.on('connect', function(data) {
+                            bottle.container.io.emitToClients('updateAvailable')
+                        })
+                        client.on('updateAvailable', function(msg) {
+                            msg.result.should.equal('older')
+                            client.disconnect()
+                        })
                     })
-                })
+                    .then(done,done)
+
             })
 
         })

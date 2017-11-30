@@ -67,6 +67,11 @@ bottle.factory('socket', function() {
 bottle.factory('_', function() {
     return require('underscore')
 })
+
+bottle.factory('path',function(){
+    return require('path').posix
+})
+
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 
 //HELPERS
@@ -162,43 +167,48 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 var init = exports.init = function() {
     //Call the modules to initialize them
-
-    bottle.container.settings.load()
-    bottle.container.server.init()
-    bottle.container.io.init()
-    bottle.container.sp.init()
-
-
-    bottle.container.logger.info('initializing logger')
-    bottle.container.winstonToIO.init()
-    bottle.container.integrations.init()
-    bottle.container.updateAvailable.check()
+    return Promise.resolve()
+        .then(bottle.container.settings.load)
+        .then(function(){
+            bottle.container.server.init()
+            bottle.container.io.init()
+            bottle.container.sp.init()
 
 
-    // initialize variables to hold status
-    bottle.container.pump.init()
-    bottle.container.chlorinator.init()
-    bottle.container.heat.init()
-    bottle.container.time.init()
-    bottle.container.schedule.init()
-    bottle.container.circuit.init()
-    bottle.container.customNames.init()
-    bottle.container.intellitouch.init()
-    bottle.container.temperatures.init()
-    bottle.container.UOM.init()
-    bottle.container.valves.init()
-    bottle.container.intellichem.init()
+            bottle.container.logger.info('initializing logger')
+            bottle.container.winstonToIO.init()
+            bottle.container.bootstrapConfigEditor.init()
+            bottle.container.integrations.init()
 
-    bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
-    bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
+            bottle.container.updateAvailable.init()
 
-    bottle.container.configEditor.init()
 
-    //logic if we start the virtual pump/chlorinator controller is in the function
-    bottle.container.pumpControllerTimers.startPumpController()
-    bottle.container.chlorinatorController.startChlorinatorController()
+            // initialize variables to hold status
+            bottle.container.pump.init()
+            bottle.container.chlorinator.init()
+            bottle.container.heat.init()
+            bottle.container.time.init()
+            bottle.container.schedule.init()
+            bottle.container.circuit.init()
+            bottle.container.customNames.init()
+            bottle.container.intellitouch.init()
+            bottle.container.temperatures.init()
+            bottle.container.UOM.init()
+            bottle.container.valves.init()
+            bottle.container.intellichem.init()
 
-    bottle.container.helpers
+            bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
+            bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
+
+            bottle.container.configEditor.init()
+
+            //logic if we start the virtual pump/chlorinator controller is in the function
+            bottle.container.pumpControllerTimers.startPumpController()
+            bottle.container.chlorinatorController.startChlorinatorController()
+
+            bottle.container.helpers
+
+        })
 
 }
 

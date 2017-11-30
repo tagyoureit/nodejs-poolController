@@ -3,7 +3,7 @@ var fs = require('fs'),
     path = require('path').posix,
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
-var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/bootstrap-config-editor.js'))
+//var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/bootstrap-config-editor.js'))
 
 describe('updates/resets bootstrap configClient.json', function() {
     context('when called with the internal function', function() {
@@ -15,31 +15,41 @@ describe('updates/resets bootstrap configClient.json', function() {
             })
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/configClient.json'))
-                    .then(function(orig) {
-                        return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), orig)
+                return Promise.resolve()
+                    .then(function(){
+                        sandbox = sinon.sandbox.create()
+                        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                        var origFile = '/specs/assets/config/configClient.json'
+                        var copyFile = '/specs/assets/config/_configClient.json'
+                        return fs.readFileAsync(path.join(process.cwd(), origFile))
+                            .then(function(orig) {
+                                return fs.writeFileAsync(path.join(process.cwd(), copyFile), orig)
+                            })
+                            .then(function() {
+                                return fs.readFileAsync(path.join(process.cwd(), copyFile), 'utf-8')
+                            })
+                            // .then(function(copy) {
+                            //     console.log('just copied _configClient', copy)
+                            // })
+                            .then(function(){
+                                bottle.container.bootstrapConfigEditor.init(copyFile)
+                            })
+                            .catch(function(err) {
+                                /* istanbul ignore next */
+                                console.log('oops, we hit an error', err)
+                            })
                     })
-                    .then(function() {
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
-                    })
-                    // .then(function(copy) {
-                    //     console.log('just copied _configClient', copy)
-                    // })
-                    .catch(function(err) {
-                        /* istanbul ignore next */
-                        console.log('oops, we hit an error', err)
-                    })
+
             })
 
             afterEach(function() {
                 sandbox.restore()
                 return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'))
+                    .then(bottle.container.bootstrapConfigEditor.init)
                 // .then(function() {
                 //     console.log('file removed')
                 // })
@@ -50,86 +60,149 @@ describe('updates/resets bootstrap configClient.json', function() {
 
             })
 
-            it('changes system state from visible to hidden',
-                function(done) {
-                    myModule.__with__({
-                        'dir': '/specs/assets/config',
-                        'file': '_configClient.json'
+            it('changes system state from visible to hidden', function(done) {
+                // myModule.__with__({
+                //     'dir': '/specs/assets/config',
+                //     'file': '_configClient.json'
+                //
+                // })(function() {
+                //     myModule(bottle.container).update('panelState', 'system', 'state', 'hidden')
+                //     setTimeout(function() {
+                //         //need delay to allow for file to write to disk
+                //         return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                //             .then(function(changed) {
+                //                 changed = JSON.parse(changed)
+                //                 changed.panelState.system.state.should.eq('hidden')
+                //                 done()
+                //             })
+                //
+                //     }, 150)
+                //
+                // })
 
-                    })(function() {
-                        myModule(bottle.container).update('panelState', 'system', 'state', 'hidden')
-                        setTimeout(function() {
-                            //need delay to allow for file to write to disk
-                            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
-                                .then(function(changed) {
-                                    changed = JSON.parse(changed)
-                                    changed.panelState.system.state.should.eq('hidden')
-                                    done()
-                                })
-
-                        }, 150)
-
+                bottle.container.bootstrapConfigEditor.init('/specs/assets/config/_configClient.json')
+                    .then(function(){
+                        return bottle.container.bootstrapConfigEditor.update('panelState', 'system', 'state', 'hidden')
                     })
-                });
+                    .then(function(){
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                    })
+                    .then(function(changed) {
+                        changed = JSON.parse(changed)
+                        changed.panelState.system.state.should.eq('hidden')
+                    })
+                    .then(done,done)
+
+
+
+            });
 
 
             it('changes hideAUX state from visible (false) to hidden (true)', function(done) {
-                myModule.__with__({
-                    'dir': '/specs/assets/config',
-                    'file': '_configClient.json'
+                // myModule.__with__({
+                //     'dir': '/specs/assets/config',
+                //     'file': '_configClient.json'
+                //
+                // })(function() {
+                //     myModule(bottle.container).update('generalParams', 'hideAUX', null, true)
+                //     setTimeout(function() {
+                //         return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                //             .then(function(changed) {
+                //                 changed = JSON.parse(changed)
+                //                 changed.generalParams.hideAUX.should.eq(true)
+                //                 done()
+                //             })
+                //
+                //     }, 150)
+                // })
 
-                })(function() {
-                    myModule(bottle.container).update('generalParams', 'hideAUX', null, true)
-                    setTimeout(function() {
+
+                //---
+                bottle.container.bootstrapConfigEditor.init('/specs/assets/config/_configClient.json')
+                    .then(function(){
+                        return bottle.container.bootstrapConfigEditor.update('generalParams', 'hideAUX', null, true)
+                    })
+                    .then(function(){
                         return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
-                            .then(function(changed) {
-                                changed = JSON.parse(changed)
-                                changed.generalParams.hideAUX.should.eq(true)
-                                done()
-                            })
+                    })
+                    .then(function(changed) {
+                        changed = JSON.parse(changed)
+                        changed.generalParams.hideAUX.should.eq(true)
+                        return
+                    })
+                    .then(done,done)
 
-                    }, 150)
-                })
+
+                //---
+
             });
 
             it('receives a property it cannot find (should fail)', function(done) {
-                myModule.__with__({
-                    'dir': '/specs/assets/config',
-                    'file': '_configClient.json'
+                // myModule.__with__({
+                //     'dir': '/specs/assets/config',
+                //     'file': '_configClient.json'
+                //
+                // })(function() {
+                //     myModule(bottle.container).update('not', 'here', null, true)
+                //     setTimeout(function() {
+                //
+                //         var original = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/configClient.json'), 'utf-8')
+                //         var changed = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                //         changed.should.eq(original)
+                //         loggerWarnStub.callCount.should.eq(1)
+                //         done()
+                //
+                //     }, 150)
+                //
+                // })
 
-                })(function() {
-                    myModule(bottle.container).update('not', 'here', null, true)
-                    setTimeout(function() {
-
+                bottle.container.bootstrapConfigEditor.init('/specs/assets/config/_configClient.json')
+                    .then(function(){
+                        return bottle.container.bootstrapConfigEditor.update('not', 'here', null, true)
+                    })
+                    .then(function() {
                         var original = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/configClient.json'), 'utf-8')
                         var changed = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                        // these are both returned as strings (not parsed) so we can directly compare them
                         changed.should.eq(original)
-                        loggerWarnStub.callCount.should.eq(1)
-                        done()
+                    })
+                    .then(done,done)
 
-                    }, 150)
-
-                })
             });
 
 
             it('resets all panelStates to visible', function(done) {
-                myModule.__with__({
-                    'dir': '/specs/assets/config',
-                    'file': '_configClient.json'
+                // myModule.__with__({
+                //     'dir': '/specs/assets/config',
+                //     'file': '_configClient.json'
+                //
+                // })(function() {
+                //     myModule(bottle.container).reset()
+                //     setTimeout(function() {
+                //         var changed = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
+                //         changed = JSON.parse(changed)
+                //         for (var key in changed.panelState) {
+                //             changed.panelState[key].state.should.eq("visible")
+                //         }
+                //         done()
+                //     }, 150)
+                //
+                // })
 
-                })(function() {
-                    myModule(bottle.container).reset()
-                    setTimeout(function() {
+                bottle.container.bootstrapConfigEditor.init('/specs/assets/config/_configClient.json')
+                    .then(function(){
+                        return bottle.container.bootstrapConfigEditor.reset()
+                    })
+                    .then(function() {
                         var changed = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
                         changed = JSON.parse(changed)
                         for (var key in changed.panelState) {
                             changed.panelState[key].state.should.eq("visible")
                         }
-                        done()
-                    }, 150)
+                    })
+                    .then(done,done)
 
-                })
+
             });
 
         })
@@ -146,11 +219,11 @@ describe('updates/resets bootstrap configClient.json', function() {
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
                 bceStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'update')
                 return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/configClient.json'))
                     .then(function(orig) {
@@ -188,48 +261,65 @@ describe('updates/resets bootstrap configClient.json', function() {
                   no good way I know of to rewire the internal variables if not calling the function directly.
                   So long as we test the function above, this should be sufficient.
                   */
-                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                client.on('connect', function(data) {
-                    // console.log('connected client:')
-                    client.emit('setConfigClient', 'panelState', 'system', 'state', 'hidden')
-                    client.disconnect()
-                    setTimeout(function() {
+                Promise.resolve()
+                    .then(function(){
+                        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+                        client.on('connect', function(data) {
+                            // console.log('connected client:')
+                            client.emit('setConfigClient', 'panelState', 'system', 'state', 'hidden')
+                            client.disconnect()
+
+                        })
+                    })
+                    .delay(100)
+                    .then( function() {
                         bceStub.callCount.should.eq(1)
                         bceStub.args[0].should.contain.members(['panelState', 'system', 'state', 'hidden'])
-                        done()
-                    }, 75)
-                })
+
+                    })
+                    .then(done,done)
+
             });
 
 
             it('changes hideAUX state from visible (false) to hidden (true)', function(done) {
 
-                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                client.on('connect', function(data) {
-                    // console.log('connected client:')
-                    client.emit('setConfigClient', 'generalParams', 'hideAUX', null, true)
-                    client.disconnect()
-                    setTimeout(function() {
+                Promise.resolve()
+                    .then(function(){
+                        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+                        client.on('connect', function(data) {
+                            // console.log('connected client:')
+                            client.emit('setConfigClient', 'generalParams', 'hideAUX', null, true)
+                            client.disconnect()
+                        })
+                    })
+                    .delay(100)
+                    .then(function(){
                         bceStub.callCount.should.eq(1)
                         bceStub.args[0].should.contain.members(['generalParams', 'hideAUX', null, true])
-                        done()
-                    }, 250)
-                })
+                    })
+                    .then(done,done)
             });
 
             it('receives a property it cannot find (should fail)', function(done) {
-                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-
-                client.on('connect', function(data) {
-                    // console.log('connected client:')
-                    client.emit('setConfigClient', 'not', 'here', null, true)
-                    client.disconnect()
-                    setTimeout(function() {
+                var client;
+                Promise.resolve()
+                    .then(function(){
+                        client = global.ioclient.connect(global.socketURL, global.socketOptions)
+                        client.on('connect', function(data) {
+                            // console.log('connected client:')
+                            client.emit('setConfigClient', 'not', 'here', null, true)
+                            client.disconnect()
+                        })
+                    })
+                    .delay(120)
+                    .then(function(){
                         bceStub.callCount.should.eq(1)
                         bceStub.args[0].should.contain.members(['not', 'here', null, true])
-                        done()
-                    }, 75)
-                })
+                    })
+                    .then(done,done)
+
+
             });
         })
     })
