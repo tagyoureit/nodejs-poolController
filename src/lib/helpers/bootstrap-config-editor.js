@@ -60,20 +60,24 @@ module.exports = function(container) {
         } else {
             return pfs.readFileAsync(location, 'utf-8').then(function(data) {
                 configClient = JSON.parse(data)
-                return Promise.resolve(configClient)
+                return configClient
             })
+                .catch(function(err){
+                    container.logger.warn('Error reading %s file:',location, err.message)
+                })
         }
     }
 
     var update = function(a, b, c, d) {
-        return readConfigClient()
+       return Promise.resolve()
+            .then(readConfigClient)
             .then(function(data) {
                 if (c === null || c === undefined) {
                     data[a][b] = d
                 } else {
                     data[a][b][c] = d
                 }
-                return Promise.resolve(data)
+                return data
 
             })
             .then(function(data){
@@ -83,8 +87,9 @@ module.exports = function(container) {
                 container.logger.verbose('Updated configClient.json.')
             })
             .catch(function(err) {
-                container.logger.warn('Error updating bootstrap configClient.json: ', err)
+                container.logger.warn('Error updating bootstrap %s: %s', location, err.message)
             })
+
     }
 
     var reset = function() {
@@ -99,7 +104,7 @@ module.exports = function(container) {
                 container.logger.verbose('Reset bootstrap configClient.json')
             })
             .catch(function(err) {
-                container.logger.warn('Error resetting bootstrap configClient.json: ', err)
+                container.logger.warn('Error resetting bootstrap %s: ',location, err.message)
             })
     }
 

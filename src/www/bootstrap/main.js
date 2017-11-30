@@ -786,7 +786,7 @@ function startSocketRx() {
                             var speedType;
 
 
-                            console.log('pump: %s  edit.is(\':visible\'):%s  .mode!==:%s .value!==:%s  all: %s', currPump['pump'], $('#pump'+currPump['pump']+'Edit').is(':visible'), prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode, prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value, $('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value)
+                            //console.log('pump: %s  edit.is(\':visible\'):%s  .mode!==:%s .value!==:%s  all: %s', currPump['pump'], $('#pump'+currPump['pump']+'Edit').is(':visible'), prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode, prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value, $('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value)
                             // only update the pump values if we are not editing while the current program is running, or while there is not a change in states
                             if ($('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
 
@@ -1552,7 +1552,7 @@ function handleButtons() {
     });
 
     $('#pumpType[data-pumpid="1"], #pumpType[data-pumpid="2"]').on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
-        console.log('pump %s type:', $(this).data('pumpid'), $(this).val())
+        //console.log('pump %s type:', $(this).data('pumpid'), $(this).val())
         socket.emit('setPumpType', $(this).data('pumpid'), $(this).val())
     })
 
