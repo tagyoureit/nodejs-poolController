@@ -3,7 +3,6 @@ var fs = require('fs'),
     path = require('path').posix,
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
-var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/config-editor.js'))
 
 describe('updates config.json variables', function() {
     context('when called with the internal function', function () {
@@ -133,21 +132,6 @@ describe('updates config.json variables', function() {
         // })
 
         it('#gets pumpExternalProgram', function (done) {
-            //     myModule.__with__({
-            //         'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
-            //     })(function() {
-            //         return myModule(bottle.container).getPumpExternalProgram(1)
-            //             .then(function(data) {
-            //                 data[1].should.eq(1000)
-            //                 done()
-            //             })
-            //             .catch(function(err) {
-            //             /* istanbul ignore next */
-            //                 console.log('error with getting pumpExternalProgram notification:', err)
-            //             })
-            //     })
-            // })
-
             bottle.container.configEditor.init('/specs/assets/config/config.json')
                 .then(function () {
                     return bottle.container.configEditor.getPumpExternalProgram(1)

@@ -92,21 +92,23 @@ module.exports = function(container) {
         {
             pktType = container.whichPacket.outbound(container.queuePacket.first())
             if (pktType === 'pump') {
-                logger.error('Aborting pump packet \'%s\'.  Tried %s times to write %s', container.constants.strPumpActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
+                logger.error('Aborting pump packet %s.  Tried %s times to write %s', container.constants.strPumpActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
 
             }
             //chlorinator
             else if (pktType === 'chlorinator') {
-                logger.error('Aborting chlorinator packet \'%s\'.  Tried %s times to write %s', container.constants.strChlorinatorActions[container.queuePacket.first()[3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
+                logger.error('Aborting chlorinator packet %s.  Tried %s times to write %s', container.constants.strChlorinatorActions[container.queuePacket.first()[3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
 
             }
             //controller packet
             else {
-                logger.error('Aborting controller packet \'%s\'.  Tried %s times to write %s', container.constants.strControllerActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
+                logger.error('Aborting controller packet %s.  Tried %s times to write %s', container.constants.strControllerActions[container.queuePacket.first()[container.constants.packetFields.ACTION + 3]], msgWriteCounter.counter, msgWriteCounter.msgWrote)
 
             }
+            if (container.settings.logPacketWrites) logger.silly('postWritePacketHelper: Tries===%s.  Will eject current packet from the queue.', msgWriteCounter.counter)
+
             ejectPacketAndReset()
-            if (container.settings.logPacketWrites) logger.silly('postWritePacketHelper: Tries===10.  Shifted queuePacketsArr.  \nWrite queue now: %s\nmsgWriteCounter:', container.queuePacket.entireQueue(), msgWriteCounter)
+            console.log('container.qp.entirePacket', container.queuePacket.entireQueue())
             //let's reconsider if we want to change the logging levels, or just fail silently/gracefully?
             if (container.settings.logLevel === "info" || container.settings.logLevel === "warn" || container.settings.logLevel === "error") {
                 var prevLevel = container.settings.logLevel

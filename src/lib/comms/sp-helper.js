@@ -46,6 +46,7 @@ module.exports = function(container) {
             sp.open(function(err) {
                 if (err) {
                     connectionTimer = setTimeout(init, 10*1000)
+                    connectionTimer.unref()
                     return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                 }
             })
@@ -82,6 +83,7 @@ module.exports = function(container) {
 
         }
         connectionTimer = setTimeout(init, container.settings.inactivityRetry*1000, 'retry_timeout')
+        connectionTimer.unref()
 
 
 
@@ -98,6 +100,7 @@ module.exports = function(container) {
         sp.on('error', function(err) {
             logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
             connectionTimer = setTimeout(init, 10*1000)
+            connectionTimer.unref()
         })
 
 
@@ -131,20 +134,28 @@ module.exports = function(container) {
     }
 
     var close = function(callback) {
-        if (container.settings.netConnect === 0) {
-            sp.close(function(err) {
-                if (err) {
-                    return "Error closing sp: " + err
-                } else {
-                    return "Serialport closed."
-                }
-            })
-        } else {
-            sp.end()
-            sp.destroy()
-            //console.log('sp destroyed?; ', sp.destroyed)
+        if (connectionTimer!==null) {
+            clearTimeout(connectionTimer)
         }
+        if (sp!==undefined) {
+            if (container.settings.netConnect === 0) {
+                if (!sp.destroyed) {
+                    sp.close(function (err) {
+                        if (err) {
+                            return "Error closing sp: " + err
+                        } else {
+                            return "Serialport closed."
+                        }
+                    })
 
+                }
+            } else {
+                sp.unref()
+                sp.destroy()
+                container.logger.debug('Net socket closed')
+            }
+
+        }
     }
 
     var resetConnectionTimer = function(){
@@ -153,6 +164,7 @@ module.exports = function(container) {
         }
         // if (container.settings.netConnect === 0)
         connectionTimer = setTimeout(init, container.settings.inactivityRetry*1000, 'timeout')
+        connectionTimer.unref()
     }
 
 

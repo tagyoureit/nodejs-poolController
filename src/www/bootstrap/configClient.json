@@ -1,10 +1,10 @@
 {
     "panelState": {
         "system": {
-            "state": "hidden"
+            "state": "visible"
         },
         "pool": {
-            "state": "hidden"
+            "state": "visible"
         },
         "spa": {
             "state": "visible"
@@ -19,19 +19,19 @@
             "state": "visible"
         },
         "schedule": {
-            "state": "visible"
+            "state": "hidden"
         },
         "eggtimer": {
-            "state": "visible"
+            "state": "hidden"
         },
         "debug": {
             "state": "visible"
         },
         "intellichem": {
-            "state": "hidden"
+            "state": "visible"
         },
         "release": {
-            "state": "hidden"
+            "state": "visible"
         }
     },
     "equipConfig": {

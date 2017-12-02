@@ -1,4 +1,4 @@
-describe('recieves packets from buffer and follows them to decoding', function() {
+describe('receives packets from buffer and follows them to decoding', function() {
 
 
     describe('#When packets arrive', function() {
@@ -6,11 +6,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
 
             before(function() {
 
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logPumpMessages = 1
-                bottle.container.logger.transports.console.level = 'silly';
-                bottle.container.server.init()
-                bottle.container.io.init()
+                global.initAll()
             });
 
             beforeEach(function() {
@@ -36,10 +32,7 @@ describe('recieves packets from buffer and follows them to decoding', function()
             })
 
             after(function() {
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logPumpMessages = 0
-                bottle.container.logger.transports.console.level = 'info'
-                bottle.container.server.close()
+                global.stopAll()
             })
 
             it('#decodes pump 1 power off command from the controller', function(done) {

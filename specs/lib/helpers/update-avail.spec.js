@@ -35,6 +35,7 @@ describe('checks if there is a newer version available', function() {
             after(function() {
                 bottle.container.logger.transports.console.level = 'info'
                 bottle.container.server.close()
+                global.stopAll()
             })
 
             it('#notifies of a new release available (remote > local)', function(done) {

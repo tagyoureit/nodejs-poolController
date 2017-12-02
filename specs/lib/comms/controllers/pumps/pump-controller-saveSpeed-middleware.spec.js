@@ -6,11 +6,11 @@ describe('pump controller - save speed (2/2)', function() {
 
         before(function() {
             bottle.container.logApi = 1
-            sandbox = sinon.sandbox.create()
             bottle.container.logger.transports.console.level = 'silly';
         });
 
         beforeEach(function() {
+            sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')

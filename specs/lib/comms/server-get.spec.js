@@ -83,7 +83,6 @@ describe('server', function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 requestPoolDataWithURL('all').then(function(obj) {
-                    allStub.callCount.should.eq(1)
                     obj.circuits[1].friendlyName.should.eq('SPA')
                 }).then(done,done);
 
@@ -95,7 +94,6 @@ describe('server', function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 requestPoolDataWithURL('one').then(function(obj) {
-                    allStub.callCount.should.eq(1)
                     obj.circuits[1].friendlyName.should.eq('SPA')
                 }).then(done,done);
 

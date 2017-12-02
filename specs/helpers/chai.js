@@ -4,7 +4,6 @@ var chai = global.chai = require('chai');
 global.sinon = require('sinon')
 // global.sinonChai = require("sinon-chai");
 var nock = global.nock = require('nock')
-var rewire = global.rewire = require("rewire");
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
 
@@ -35,6 +34,7 @@ Promise = global.Promise = require('bluebird')
 var pumpCommands = require(__dirname + '/pumpCommands.js')
 var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')
 var bufferCapture = require(__dirname + '/bufferCapture.js')
+var initialize = global.initialize = require(__dirname + '/initialize.js')
 
 var fs = global.fs = require('promised-io/fs')
 

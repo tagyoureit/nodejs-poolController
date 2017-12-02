@@ -27,6 +27,7 @@ module.exports = function(container) {
   var queuePacketsArr = []; //array to hold messages to send
 
   function init(){
+      if (container.settings.logPacketWrites) container.logger.silly('Resetting queuepackets array')
       queuePacketsArr = []
   }
 
@@ -169,7 +170,9 @@ module.exports = function(container) {
 
   function eject() {
     if (queuePacketsArr.length > 0) {
-      queuePacketsArr.shift();
+      ejected = queuePacketsArr.shift();
+        if (container.settings.logPacketWrites) container.logger.silly('queuePacket.eject: Removed %s from queuePacketsArr. Length of remaining queue: %s ', ejected, queuePacketsArr.length)
+
     }
   }
 

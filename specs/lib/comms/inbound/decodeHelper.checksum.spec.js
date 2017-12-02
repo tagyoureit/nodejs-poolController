@@ -93,46 +93,6 @@ describe('decodeHelper processes controller packets', function() {
             })
 
 
-
-            it('#isResponse should return false', function() {
-
-                // var checksumStub = sinon.stub()
-                // checksumStub.returns(true)
-                // var successfulAckStub = sinon.stub()
-                //
-                // var isResponseStub = sinon.stub()
-                // isResponseStub.returns(true)
-                // var decodeStub = sinon.stub()
-                //
-                // //myModule.__set__("checksum", checksumStub)
-                //
-                // myModule.__with__({
-                //     'checksum': function() {
-                //         return 'hello'
-                //     },
-                //     //'fred': function(){console.log('WAS CALLED')},
-                //     'bottle.container': {
-                //         'queuePacket': {
-                //             'first': function() {
-                //                 return [255, 0, 255, 165, 0, 96, 16, 1, 4, 3, 39, 3, 32, 1, 103]
-                //             }
-                //         },
-                //         'logger': {
-                //             silly: function() {},
-                //             error: function() {}
-                //         }
-                //     },
-                //     'decode': decodeStub,
-                //
-                //     'isResponse': isResponseStub,
-                //     'successfulAck': successfulAckStub
-
-                // })(function() {
-                for (var i = 0; i < testarrayGOOD.length; i++) {
-
-                }
-                // })
-            })
         })
     })
 })

@@ -678,6 +678,10 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
 
 // Function to configure communications sockets receive handling -> not called until clientConfig.json available (i.e. configuration complete)
 function startSocketRx() {
+
+    socket.on('all', function(data){
+        console.log('ALLLLL', data)
+    })
     socket.on('circuit', function(data) {
         if (data.hasOwnProperty('circuit')){
             data = data.circuit
@@ -830,19 +834,19 @@ function startSocketRx() {
                                         $('#pump' + currPump['pump'] + 'RunProgram').attr('disabled', 'disabled')
                                     }
 
-                                        // build string for current programs; append to options
-                                        thisPrg = extPrgIndx + ': ' + currPrg + ' ' + speedType
-                                        $(pumpXProgram).append($('<option/>', {
-                                            "data-programid": extPrgIndx,
-                                            "data-pumpid": currPump["pump"],
-                                            text: thisPrg
-                                        }))
-                                        $(pumpXProgram).selectpicker('refresh')
+                                    // build string for current programs; append to options
+                                    thisPrg = extPrgIndx + ': ' + currPrg + ' ' + speedType
+                                    $(pumpXProgram).append($('<option/>', {
+                                        "data-programid": extPrgIndx,
+                                        "data-pumpid": currPump["pump"],
+                                        text: thisPrg
+                                    }))
+                                    $(pumpXProgram).selectpicker('refresh')
 
                                     thisPrg = currPump.currentrunning.value + ': ' + currPump.externalProgram[currPump.currentrunning.value] + ' ' + speedType
-                                   // if (prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
-                                        $(pumpXProgram).selectpicker('val', thisPrg)
-                                        $(pumpXProgram).selectpicker('refresh')
+                                    // if (prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
+                                    $(pumpXProgram).selectpicker('val', thisPrg)
+                                    $(pumpXProgram).selectpicker('refresh')
                                     //}
                                 })
                                 // if the current extPrgIndx is the current running program, set the values in 'select a program' and duration
@@ -1069,17 +1073,17 @@ function startSocketRx() {
         $('#spaHeatModeStr').html(data.spaHeatModeStr);
         lastUpdate(true);
     });
-    // socket.on('heat', function(data) {
-    //     if (data !== null) {
-    //         $('#poolHeatSetPoint').html(data.poolSetPoint);
-    //         $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
-    //         $('#poolHeatModeStr').html(data.poolHeatModeStr);
-    //         $('#spaHeatSetPoint').html(data.spaSetPoint);
-    //         $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
-    //         $('#spaHeatModeStr').html(data.spaHeatModeStr);
-    //     }
-    //     lastUpdate(true);
-    // });
+// socket.on('heat', function(data) {
+//     if (data !== null) {
+//         $('#poolHeatSetPoint').html(data.poolSetPoint);
+//         $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
+//         $('#poolHeatModeStr').html(data.poolHeatModeStr);
+//         $('#spaHeatSetPoint').html(data.spaSetPoint);
+//         $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
+//         $('#spaHeatModeStr').html(data.spaHeatModeStr);
+//     }
+//     lastUpdate(true);
+// });
 
     socket.on('chlorinator', function(data) {
         if (data.hasOwnProperty('chlorinator')){

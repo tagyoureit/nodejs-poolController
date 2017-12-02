@@ -77,16 +77,9 @@ describe('nodejs-poolController', function() {
 
                 bottle.container.configEditor.init('/specs/assets/config/config.OUTDATED.json')
                     .then(function(){
-                        console.log('break point 1')
                         return bottle.container.settings.load()
                     })
-                    .catch(function(err){
-                        console.log('err::', err)
-                    })
                     .then(done,done)
-
-
-
         })
 
         it('#loads/checks all instances of variables to store state', function() {

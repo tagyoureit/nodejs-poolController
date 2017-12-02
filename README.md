@@ -46,6 +46,14 @@ nodejs-poolController is an application to communicate and control your Pentair 
 
 ***
 
+## Plug-ins
+Extend nodejs-Poolcontroller with these additional integration points
+* [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
+* [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag
+
+
+***
+
 ## Installation Instructions
 
 **This code requires a physical [RS485](#module_nodejs-poolController--RS485) adapter to work.**

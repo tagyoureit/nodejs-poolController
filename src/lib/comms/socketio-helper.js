@@ -56,6 +56,7 @@ module.exports = function(container) {
             io.sockets.emit('one',
                 one
             )
+            io.sockets.emit('all', one)
         }
 
         if (outputType === 'circuit' || outputType === 'all') {

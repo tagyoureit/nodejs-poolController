@@ -33,7 +33,6 @@ describe('server', function() {
                 bottle.container.server.init()
                 bottle.container.heat.init()
                 bottle.container.temperatures.init()
-                bottle.container.packetBuffer.push(data[0])
                 bottle.container.logger.transports.console.level = 'silly';
             })
 
@@ -47,6 +46,13 @@ describe('server', function() {
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                bottle.container.queuePacket.init()
+                bottle.container.packetBuffer.push(data[0])
+
+
             })
 
             afterEach(function() {

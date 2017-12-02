@@ -1,6 +1,6 @@
 var fields = ['pump', 'watts','rpm', 'airTemp', 'run', 'poolTemp', 'spaTemp', 'poolHeatMode', 'spaHeatMode', 'runmode', 'HEATER_ACTIVE'];
 var io = require('socket.io-client');
-var socket = io.connect('https://localhost:3000', {secure: true, reconnect: true, rejectUnauthorized : false});
+var socket = io.connect('http://localhost:3000', {secure: false, reconnect: true, rejectUnauthorized : false});
 
 // Add a connect listener
 //socket.on('connect', function (socket) {
@@ -24,3 +24,10 @@ socket.on('pump', function (data) {
         //process.exit();
     }
 });
+
+socket.on('all', function(data){
+    console.log('all data', data)
+})
+setInterval(function(){
+    console.log('waiting...')
+}, 1000)

@@ -30,22 +30,25 @@ describe('server', function() {
             before(function() {
                 bottle.container.server.init()
                 bottle.container.schedule.init()
-                global.schedules_chk.forEach(function(el){
-                    bottle.container.packetBuffer.push(Buffer.from(el))
-                })
+
                 bottle.container.logger.transports.console.level = 'silly';
             })
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                writeNETPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                global.schedules_chk.forEach(function(el){
+                    bottle.container.packetBuffer.push(Buffer.from(el))
+                })
             })
 
             afterEach(function() {

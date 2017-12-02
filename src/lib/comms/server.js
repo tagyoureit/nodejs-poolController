@@ -83,10 +83,12 @@ module.exports = function(container) {
 
         app.get('/all', function(req, res) {
             res.send(container.helpers.allEquipmentInOneJSON())
+            container.io.emitToClients('all')
         })
 
         app.get('/one', function(req, res) {
             res.send(container.helpers.allEquipmentInOneJSON())
+            container.io.emitToClients('all')
         })
 
         /*istanbul ignore next */

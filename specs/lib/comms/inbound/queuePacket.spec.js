@@ -11,6 +11,8 @@ describe('decodeHelper processes controller packets', function() {
                 bottle.container.settings.logMessageDecoding = 1
                 bottle.container.settings.logPacketWrites = 1
                 bottle.container.settings.logConsoleNotDecoded = 1
+                bottle.container.queuePacket.init()
+                bottle.container.writePacket.init()
                 bottle.container.logger.transports.console.level = 'silly';
             });
 
@@ -32,7 +34,9 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             afterEach(function() {
-                bottle.container.queuePacket.queuePacketsArrLength = 0
+                bottle.container.queuePacket.init()
+                bottle.container.writePacket.init()
+
                 bottle.container.queuePacket.eject()
                 sandbox.restore()
 

@@ -241,3 +241,8 @@ process.on('SIGINT', function() {
         })
 
 });
+
+global.exit_nodejs_poolController = function(){
+    console.log('in process exit')
+    process.exit()
+}
