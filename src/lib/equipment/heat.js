@@ -185,15 +185,13 @@ module.exports = function(container) {
             updateHeatMode = (currentHeat.spaHeatMode << 2) | heatmode;
             updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
             container.queuePacket.queuePacket(updateHeat);
-            //TODO: replace heatmode INT with string
-            container.logger.info('User request to update pool heat mode to %s', heatmode)
+            container.logger.info('User request to update pool heat mode to %s', container.constants.heatModeStr[heatmode])
         } else {
             //spaSetPoint
             updateHeatMode = (parseInt(heatmode) << 2) | currentHeat.poolHeatMode;
             updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
             container.queuePacket.queuePacket(updateHeat);
-            //TODO: replace heatmode INT with string
-            container.logger.info('User request to update spa heat mode to %s', heatmode)
+            container.logger.info('User request to update spa heat mode to %s', container.constants.heatModeStr[heatmode])
         }
         container.io.emitToClients('heat')
     }

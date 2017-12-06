@@ -254,6 +254,10 @@ function recurseSet(obj, arr, value){
         return settingsStr
     }
 
+    var getConfig = function(){
+        return configFile
+    }
+
     /* istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loaded: settings.js')
@@ -263,6 +267,8 @@ function recurseSet(obj, arr, value){
         get: get,
         set: set,
         displayIntroMsg: displayIntroMsg,
-        displaySettingsMsg: displaySettingsMsg
+        displaySettingsMsg: displaySettingsMsg,
+        getConfig: getConfig
+
     }
 }
