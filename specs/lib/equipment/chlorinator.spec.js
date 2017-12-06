@@ -3,7 +3,7 @@ describe('chlorinator tests', function() {
     //var spied = sinon.spy(bottle.container.chlorinator.setChlorinatorLevel)
     var equip = 'controller'
     before(function() {
-        bottle.container.settings.set('virtual.chlorinatorController', "default")
+        bottle.container.settings.set('virtual.chlorinatorController', "always")
         bottle.container.settings.set('chlorinator.installed',1)
         bottle.container.settings.set('intellitouch.installed',0)
         bottle.container.settings.set('intellicom', 0)
@@ -24,15 +24,14 @@ describe('chlorinator tests', function() {
         emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
 
         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
-
-            // bottle.container.chlorinatorController.startChlorinatorController()
+        bottle.container.chlorinatorController.startChlorinatorController()
     })
 
     afterEach(function() {
         //restore the sandbox after each function
         bottle.container.chlorinatorController.clearTimer()
         sandbox.restore()
-        bottle.container.logger.transports.console.level = 'info';
+
 
     })
 
