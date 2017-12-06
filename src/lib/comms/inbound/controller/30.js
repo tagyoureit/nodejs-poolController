@@ -52,7 +52,7 @@ module.exports = function(container) {
 
 
 
-    if (container.settings.logMessageDecoding)
+    if (container.settings.get('logMessageDecoding'))
       container.logger.debug('Msg#: %s  High speed circuits.  %s  Full packet: %s', counter, JSON.stringify(highSpeedCircuits, null, 2), data);
 
     return true

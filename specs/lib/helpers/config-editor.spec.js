@@ -9,7 +9,7 @@ describe('updates config.json variables', function() {
 
 
         before(function () {
-            bottle.container.logger.transports.console.level = 'silly';
+            return global.initAll()
 
         })
 
@@ -52,7 +52,7 @@ describe('updates config.json variables', function() {
         })
 
         after(function () {
-            bottle.container.logger.transports.console.level = 'info';
+            return global.stopAll()
 
         })
 
@@ -148,10 +148,11 @@ describe('updates config.json variables', function() {
         describe('#updates config.json', function () {
 
             before(function () {
-                bottle.container.logger.transports.console.level = 'silly';
-
-                bottle.container.server.init()
-                bottle.container.io.init()
+                return global.initAll()
+                // bottle.container.logger.transports.console.level = 'silly';
+                //
+                // bottle.container.server.init()
+                // bottle.container.io.init()
             })
 
             beforeEach(function () {
@@ -180,9 +181,9 @@ describe('updates config.json variables', function() {
             })
 
             after(function () {
-                bottle.container.server.close()
-                bottle.container.logger.transports.console.level = 'info';
-
+                // bottle.container.server.close()
+                // bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
             })
 
             it('#updates dismissUntilNextRemoteVersionBump to true', function (done) {

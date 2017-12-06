@@ -3,10 +3,7 @@ describe('socket.io basic tests', function() {
 
 
     before(function() {
-
-        bottle.container.server.init()
-        bottle.container.io.init()
-        bottle.container.logger.transports.console.level = 'silly';
+        return global.initAll()
     });
 
     beforeEach(function() {
@@ -33,9 +30,7 @@ describe('socket.io basic tests', function() {
     })
 
     after(function() {
-        bottle.container.time.init()
-        bottle.container.server.close()
-        bottle.container.logger.transports.console.level = 'info';
+        return global.stopAll()
     })
 
 
@@ -84,7 +79,6 @@ describe('socket.io basic tests', function() {
                 loggerWarnStub.args[0][0].text.should.contain('FAIL:')
             })
             .then(done,done)
-
     })
 
     it('#sets a schedule', function(done) {
@@ -97,7 +91,7 @@ describe('socket.io basic tests', function() {
         })
 
         Promise.resolve()
-            .delay(500)
+            .delay(50)
             .then(function(){
                 loggerInfoStub.args[0][0].text.should.contain('SOCKET')
                 queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131 ])
@@ -109,6 +103,17 @@ describe('socket.io basic tests', function() {
     })
 
     it('#sends packets and checks the correct preamble is passed', function(done) {
+        global.waitForSocketResponse('sendPacketResults')
+            .then(function(res){
+                res.should.contain('165,0,96,16,6,1,10')
+                res.should.contain('16,2,80,20,0,118')
+                res.should.contain('16,34,134,2,9,0')
+                queuePacketStub.args[0][0].should.deep.eq([165, 0, 96, 16, 6, 1, 10])
+                queuePacketStub.args[1][0].should.deep.eq([16, 2, 80, 20, 0, 118])
+                queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
+            })
+            .then(done,done)
+
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
@@ -116,21 +121,6 @@ describe('socket.io basic tests', function() {
             client.emit('sendPacket', JSON.parse('{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}'))
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
         })
-
-        client.on('sendPacketResults', function(res) {
-            res.should.contain('165,0,96,16,6,1,10')
-            res.should.contain('16,2,80,20,0,118')
-            res.should.contain('16,34,134,2,9,0')
-        })
-        Promise.resolve()
-            .delay(500)
-            .then(function(){
-                queuePacketStub.args[0][0].should.deep.eq([165, 0, 96, 16, 6, 1, 10])
-                queuePacketStub.args[1][0].should.deep.eq([16, 2, 80, 20, 0, 118])
-                queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
-                client.disconnect()
-            }).then(done,done)
-
     })
 
 
@@ -144,7 +134,7 @@ describe('socket.io basic tests', function() {
         })
 
         Promise.resolve()
-            .delay(500)
+            .delay(50)
             .then(function(){
                 queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 131, 1, 0 ])
             })
@@ -158,7 +148,7 @@ describe('socket.io basic tests', function() {
             client.emit('resetConfigClient')
         })
         Promise.resolve()
-            .delay(200)
+            .delay(50)
             .then(function(){
                 bootstrapConfigEditorStub.calledOnce
             })
@@ -182,7 +172,6 @@ describe('socket.io basic tests', function() {
 
         })
         Promise.resolve()
-            .delay(100)
             .then(function(){
                 global.schedules_chk.forEach(function(el){
                     bottle.container.packetBuffer.push(Buffer.from(el))
@@ -194,9 +183,10 @@ describe('socket.io basic tests', function() {
                 (count>0).should.be.true
                 // console.log('should see results?')
                 //
-                // var json = bottle.container.schedule.getCurrentSchedule()
+                var json = bottle.container.schedule.getCurrentSchedule()
                 // console.log('json for schedule 1: ', JSON.stringify(json,null,2))
-                bottle.container.schedule.init()
+                //bottle.container.schedule.init()
+                json.schedule[11].DAYS.should.contain('Sunday Monday Tuesday Wednesday Thursday Friday Saturday')
             })
             .then(done,done)
 
@@ -267,42 +257,44 @@ describe('socket.io basic tests', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function(data) {
-            client.emit('close')
+            client.emit('close', client.id)
         })
         Promise.resolve()
-            .delay(200)
             .then(function(){
-                loggerDebugStub.args[0][0].should.eq('socket closed')
-            })
-            .then(done,done)
-    })
-
-
-
-    it('#stops the Socket server', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        client.on('connect', function(data) {
-            bottle.container.io.stop()
-
-        })
-        client.on('connect_error', function(err_data){
-            err_data.type.should.eq('TransportError')
-        })
-        Promise.resolve()
-            .delay(100)
-            .then(function(){
-
-                client.open(function(new_data){
-                    console.log('client opened', new_data)
+                client.on('disconnect', function(data) {
+                    loggerDebugStub.args[0][0].should.eq('socket closed')
                 })
             })
-            .delay(500)
-            .then(function(){
-                bottle.container.server.init()
-                bottle.container.io.init()
-            })
             .then(done,done)
     })
+
+
+
+    // it('#stops the Socket server', function(done) {
+    //     var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+    //     var _err_data
+    //     client.on('connect', function(data) {
+    //         bottle.container.io.stop()
+    //     })
+    //     client.on('connect_error', function(err_data){
+    //         _err_data = JSON.parse(JSON.stringify(err_data))
+    //     })
+    //     Promise.resolve()
+    //         .delay(50)
+    //         .then(function(){
+    //             console.log('trying to open client again')
+    //             client.open(function(new_data){
+    //                 console.log('client opened', new_data)
+    //             })
+    //         })
+    //         .delay(50)
+    //         .then(function(){
+    //             bottle.container.server.init()
+    //             bottle.container.io.init()
+    //             _err_data.type.should.eq('TransportError')
+    //         })
+    //         .then(done,done)
+    // })
 })
 
 
@@ -311,12 +303,8 @@ describe('socket.io pump tests', function() {
 
 
     before(function() {
-        bottle.container.settings.logPumpMessages = 1
-        bottle.container.settings.logPumpTimers = 1
-        bottle.container.logger.transports.console.level = 'silly'
         bottle.container.configEditor.init('/specs/assets/config/config.json')
-        bottle.container.server.init()
-        bottle.container.io.init()
+        return global.initAll()
     });
 
     beforeEach(function() {
@@ -345,50 +333,30 @@ describe('socket.io pump tests', function() {
     })
 
     after(function() {
-        bottle.container.time.init()
-        bottle.container.settings.logPumpTimers = 0
-        bottle.container.settings.logPumpMessages = 0
-        bottle.container.logger.transports.console.level = 'info'
-        bottle.container.server.close()
+        return global.stopAll()
     })
 
 
 
 
     it('#requests all config (all)', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
-
-        client.on('connect', function(data) {
-            // console.log('connected client:')
-            client.emit('all')
-            client.on('all', function(msg) {
-                // console.log(msg)
-                msg.circuit.should.exist
-                msg.pump.should.exist
-                msg.schedule.should.exist
-                client.disconnect()
-                done()
+        global.waitForSocketResponse('all')
+            .then(function(data){
+                data.circuit.should.exist
+                data.pump.should.exist
+                data.schedule.should.exist
             })
-        })
+            .then(done,done)
     })
 
     it('#requests all config (one)', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // var client =  global.ioclient.connect('http://localhost:3000');
-
-        client.on('connect', function(data) {
-            // console.log('connected client:')
-            client.emit('one')
-            client.on('one', function(msg) {
-                // console.log(msg)
-                msg.circuit.should.exist
-                msg.pump.should.exist
-                msg.schedule.should.exist
-                client.disconnect()
-                done()
+        global.waitForSocketResponse('one')
+            .then(function(data){
+                data.circuit.should.exist
+                data.pump.should.exist
+                data.schedule.should.exist
             })
-        })
+            .then(done,done)
     })
 
 })

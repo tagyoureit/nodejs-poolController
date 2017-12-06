@@ -25,7 +25,7 @@ module.exports = function(container) {
     function processPumpPacket(data, counter, packetType) {
         {
 
-            if (container.settings.logPumpMessages)
+            if (container.settings.get('logPumpMessages'))
                 container.logger.silly('Msg# %s  Decoding pump packet %s', counter, data)
 
             switch (data[container.constants.packetFields.ACTION]) {
@@ -75,7 +75,7 @@ module.exports = function(container) {
                     }
                 default:
                     {
-                        if (container.settings.logPumpMessages)
+                        if (container.settings.get('logPumpMessages'))
                             container.logger.verbose('Msg# %s is UNKNOWN: %s', counter, JSON.stringify(data));
                         decoded = false;
                     }

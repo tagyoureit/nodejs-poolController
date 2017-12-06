@@ -139,7 +139,7 @@ module.exports = function(container) {
 
     if (currentChlorinatorStatus.saltPPM === -1 && currentChlorinatorStatus.installed === 1) {
       currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
-      if (container.settings.logChlorinator)
+      if (container.settings.get('logChlorinator'))
         container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
       container.configEditor.updateChlorinatorInstalled(chlorinatorStatus.installed)
       container.configEditor.updateChlorinatorName(chlorinatorStatus.name)
@@ -147,10 +147,10 @@ module.exports = function(container) {
       container.io.emitToClients('chlorinator');
     } else
     if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
-      if (container.settings.logChlorinator)
+      if (container.settings.get('logChlorinator'))
         container.logger.debug('Msg# %s   Chlorinator status has not changed. ', counter)
     } else {
-      if (container.settings.logChlorinator) {
+      if (container.settings.get('logChlorinator')) {
         container.logger.verbose('Msg# %s   Chlorinator status changed \nfrom: %s \nto: %s ', counter,
           // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
           JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
@@ -188,8 +188,10 @@ module.exports = function(container) {
   }
 
   function setChlorinatorLevel(chlorLvl, callback) {
+
+    //NOTE: do we really need to do this logic?  If the controller is on, it will request the updates.  If the virtual controller is enabled, it should be active anyway.
     var response = {}
-    if (container.settings.chlorinator.installed) {
+    if (container.settings.get('chlorinator').installed) {
       if (chlorLvl >= 0 && chlorLvl <= 101) {
         currentChlorinatorStatus.outputPoolPercent = chlorLvl
         if (currentChlorinatorStatus.outputPoolPercent === 0) {
@@ -207,8 +209,11 @@ module.exports = function(container) {
         }
         container.configEditor.updateChlorinatorDesiredOutput(chlorLvl, currentChlorinatorStatus.outputSpaPercent)
         container.io.emitToClients('chlorinator')
-        container.chlorinatorController.chlorinatorStatusCheck()
-        if (container.settings.logChlorinator) {
+        if (container.chlorinatorController.isChlorinatorTimerRunning())
+          container.chlorinatorController.chlorinatorStatusCheck()  //This is causing problems if the chlorinator is offline (repeated calls to send status packet.)
+          else
+            container.queuePacket.queuePacket([16, 2, 80, 17, chlorLvl])
+        if (container.settings.get('logChlorinator')) {
           container.logger.info(response)
         }
 
@@ -217,7 +222,7 @@ module.exports = function(container) {
         response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
         response.status = this.status
         response.value = currentChlorinatorStatus.outputPoolPercent
-        if (container.settings.logChlorinator) {
+        if (container.settings.get('logChlorinator')) {
           container.logger.warn(response)
         }
       }
@@ -248,14 +253,14 @@ module.exports = function(container) {
     switch (data[container.constants.chlorinatorPacketFields.ACTION]) {
       case 0: //Get status of Chlorinator
         {
-          if (container.settings.logChlorinator)
+          if (container.settings.get('logChlorinator'))
             container.logger.verbose('Msg# %s   %s --> %s: Please provide status: %s', counter, from, destination, data)
 
           break;
         }
       case 1: //Response to get status
         {
-          if (container.settings.logChlorinator)
+          if (container.settings.get('logChlorinator'))
             container.logger.verbose('Msg# %s   %s --> %s: I am here: %s', counter, from, destination, data)
 
           break;
@@ -269,7 +274,7 @@ module.exports = function(container) {
           }
 
           if (currentChlorinatorStatus.name !== name && currentChlorinatorStatus.version !== version) {
-            if (container.settings.logChlorinator)
+            if (container.settings.get('logChlorinator'))
               container.logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
             currentChlorinatorStatus.name = name
             currentChlorinatorStatus.version = version
@@ -289,7 +294,7 @@ module.exports = function(container) {
             superChlorinate = 0
           }
           if (currentChlorinatorStatus.currentOutput !== currentOutput || currentChlorinatorStatus.superChlorinate !== superChlorinate) {
-            if (container.settings.logChlorinator)
+            if (container.settings.get('logChlorinator'))
               container.logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, superChlorinate === 'On' ? 'Super Chlorinate' : currentOutput, data);
             currentChlorinatorStatus.currentOutput = currentOutput
             currentChlorinatorStatus.superChlorinate = superChlorinate
@@ -305,7 +310,7 @@ module.exports = function(container) {
           var status = chlorinatorStatusStr(data[5])
 
           if (currentChlorinatorStatus.saltPPM !== saltPPM || currentChlorinatorStatus.status !== status) {
-            if (container.settings.logChlorinator)
+            if (container.settings.get('logChlorinator'))
               container.logger.verbose('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
             currentChlorinatorStatus.saltPPM = saltPPM
             currentChlorinatorStatus.status = status
@@ -313,7 +318,7 @@ module.exports = function(container) {
 
           }
 
-          if (container.settings.logChlorinator)
+          if (container.settings.get('logChlorinator'))
             container.logger.debug('Msg# %s   %s --> %s: Current Salt level is %s PPM: %s', counter, from, destination, saltPPM, data);
 
 
@@ -321,7 +326,7 @@ module.exports = function(container) {
         }
       case 20: //Get version
         {
-          if (container.settings.logChlorinator)
+          if (container.settings.get('logChlorinator'))
             container.logger.verbose('Msg# %s   %s --> %s: What is your version?: %s', counter, from, destination, data)
           break
         }
@@ -330,7 +335,7 @@ module.exports = function(container) {
           currentOutput = data[6] / 10;
 
           if (currentChlorinatorStatus.currentOutput !== currentOutput) {
-            if (container.settings.logChlorinator)
+            if (container.settings.get('logChlorinator'))
               container.logger.verbose('Msg# %s   %s --> %s: Set current output to %s %: %s', counter, from, destination, currentOutput, data);
             currentChlorinatorStatus.currentOutput = currentOutput
             container.io.emitToClients('chlorinator')
@@ -339,7 +344,7 @@ module.exports = function(container) {
         }
       default:
         {
-          if (container.settings.logChlorinator)
+          if (container.settings.get('logChlorinator'))
             container.logger.verbose('Msg# %s   %s --> %s: Other chlorinator packet?: %s', counter, from, destination, data)
         }
     }
@@ -351,7 +356,7 @@ module.exports = function(container) {
     {
       container.logger.verbose('Queueing messages to retrieve Salt Cell Name (AquaRite or OEM)')
       //get salt cell name
-      if (container.settings.logPacketWrites) {
+      if (container.settings.get('logPacketWrites')) {
         container.logger.debug('decode: Queueing packet to retrieve Chlorinator Salt Cell Name: [16, 2, 80, 20, 0]')
       }
       container.queuePacket.queuePacket([16, 2, 80, 20, 0]);

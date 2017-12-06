@@ -53,7 +53,7 @@ module.exports = function(container) {
             }
         }
 
-        if (container.settings.logConfigMessages) {
+        if (container.settings.get('logConfigMessages')) {
             logger.silly('Msg# %s  Custom Circuit Name Raw:  %s  & Decoded: %s', counter, JSON.stringify(nameBytes), customName)
                 //logger.verbose('Msg# %s  Custom Circuit Name Decoded: "%s"', counter, customName)
         }

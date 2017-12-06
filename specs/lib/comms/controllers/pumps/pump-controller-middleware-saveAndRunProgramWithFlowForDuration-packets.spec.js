@@ -10,21 +10,27 @@ describe('pump controller - save and run program with flow for duration', functi
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-          return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VF.json'))
-              .then(function(pumpVF) {
-                  return JSON.parse(pumpVF)
-              })
-              .then(function(parsed) {
-                  bottle.container.settings.pump = parsed
-                  return bottle.container.pump.init()
-              })
-              .catch(function(err) {
-                  /* istanbul ignore next */
-                  console.log('oops, we hit an error', err)
-              })
-            bottle.container.logApi = 1
+            return global.initAll()
+                .then(function(){
 
-            bottle.container.logger.transports.console.level = 'silly';
+                    return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VF.json'))
+                        .then(function(pumpVF) {
+                            return JSON.parse(pumpVF)
+                        })
+                        .then(function(parsed) {
+                            bottle.container.settings.set('pump', parsed)
+                            return bottle.container.pump.init()
+                        })
+                        .catch(function(err) {
+                            /* istanbul ignore next */
+                            console.log('oops, we hit an error', err)
+                        })
+
+                })
+
+            // bottle.container.logApi = 1
+            //
+            // bottle.container.logger.transports.console.level = 'silly';
 
 
         });
@@ -49,7 +55,8 @@ describe('pump controller - save and run program with flow for duration', functi
         })
 
         afterEach(function() {
-            bottle.container.pump.init()
+            // bottle.container.pump.init()
+            return global.stopAll()
             //restore the sandbox after each function
             sandbox.restore()
         })

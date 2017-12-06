@@ -3,7 +3,7 @@ var path = global.path = require('path').posix
 var chai = global.chai = require('chai');
 global.sinon = require('sinon')
 // global.sinonChai = require("sinon-chai");
-var nock = global.nock = require('nock')
+// var nock = global.nock = require('nock')
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
 
@@ -29,7 +29,7 @@ Promise = global.Promise = require('bluebird')
  ioclient = global.ioclient = require('socket.io-client')
  socketURL = global.socketURL = 'http://localhost:3000'
  socketOptions = global.socketOptions = {'transports': ['websocket'],
-'force new connection': false}
+'force new connection': true}
 
 var pumpCommands = require(__dirname + '/pumpCommands.js')
 var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')

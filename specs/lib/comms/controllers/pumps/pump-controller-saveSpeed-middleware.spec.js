@@ -5,8 +5,8 @@ describe('pump controller - save speed (2/2)', function() {
 
 
         before(function() {
-            bottle.container.logApi = 1
-            bottle.container.logger.transports.console.level = 'silly';
+            return global.initAll()
+
         });
 
         beforeEach(function() {
@@ -16,11 +16,7 @@ describe('pump controller - save speed (2/2)', function() {
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
-            //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
-            endPumpCommandStub = sandbox.stub()
-            //setPumpToLocalControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToLocalControl')
-            //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
+           //endPumpCommandStub = sandbox.stub()
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             setPumpToRemoteControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
@@ -38,8 +34,9 @@ describe('pump controller - save speed (2/2)', function() {
         })
 
         after(function() {
-            bottle.container.logger.transports.console.level = 'info';
-            bottle.container.logApi = 0
+            // bottle.container.logger.transports.console.level = 'info';
+            // bottle.container.logApi = 0
+            return global.stopAll()
         })
 
 

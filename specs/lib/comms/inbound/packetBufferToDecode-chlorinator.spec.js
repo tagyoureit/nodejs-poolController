@@ -5,13 +5,14 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
         context('via serialport or Socat and ending with Socket.io', function() {
 
             before(function() {
+                return global.initAll()
 
-                bottle.container.settings.logChlorinator = 1
-                bottle.container.settings.logPumpMessages = 1
-                bottle.container.settings.intellitouch.installed = 0
-                bottle.container.server.init()
-                bottle.container.io.init()
-                bottle.container.logger.transports.console.level = 'silly';
+                // bottle.container.settings.logChlorinator = 1
+                // bottle.container.settings.logPumpMessages = 1
+                // bottle.container.settings.intellitouch.installed = 0
+                // bottle.container.server.init()
+                // bottle.container.io.init()
+                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
@@ -44,11 +45,13 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             })
 
             after(function() {
-                bottle.container.settings.logChlorinator = 0
-                bottle.container.settings.logPumpMessages = 0
-                bottle.container.logger.transports.console.level = 'info'
-                bottle.container.settings.intellitouch.installed = 1
-                bottle.container.server.close()
+                return global.stopAll()
+
+                // bottle.container.settings.logChlorinator = 0
+                // bottle.container.settings.logPumpMessages = 0
+                // bottle.container.logger.transports.console.level = 'info'
+                // bottle.container.settings.intellitouch.installed = 1
+                // bottle.container.server.close()
             })
 
             it('#decodes status messages received from Intellichlor', function(done) {
@@ -148,7 +151,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
                 // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
-                bottle.container.settings.intellitouch.installed = 0
+                bottle.container.settings.set('intellitouch.installed', 0)
                 isRunningStub = sandbox.stub(bottle.container.chlorinatorController, 'isChlorinatorTimerRunning').returns(1)
                 var chlorinatorPkt_chk = [255, 0, 255, 16, 2, 0, 1, 0, 0, 19, 16, 3]
                 Promise.resolve()

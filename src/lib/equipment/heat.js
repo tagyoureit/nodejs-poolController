@@ -48,7 +48,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: heat.js')
 
-    function Heat(poolSetPoint, poolHeatMode, spaSetPoint, spaManualHeatMode, spaHeatMode) {
+    function Heat(poolSetPoint, poolHeatMode, spaSetPoint, spaHeatMode, spaManualHeatMode) {
         this.poolSetPoint = poolSetPoint;
         this.poolHeatMode = poolHeatMode;
         this.poolHeatModeStr = container.constants.heatModeStr[poolHeatMode]
@@ -90,20 +90,20 @@ module.exports = function(container) {
 
     function setHeatActiveFromController(data) {
         if (data === 0) {
-            Heat.heaterActive = 0
+            currentHeat.heaterActive = 0
         } else
         if (data === 32) {
-            Heat.heaterActive = 1
+            currentHeat.heaterActive = 1
         } else {
-            Heat.heaterActive = -1 //Unknown
+            currentHeat.heaterActive = -1 //Unknown
         }
     }
 
     function setHeatModeFromController(poolHeat, spaHeat) {
-        Heat.poolHeatMode = poolHeat
-        Heat.poolHeatModeStr = container.constants.heatModeStr[poolHeat]
-        Heat.spaHeatMode = spaHeat
-        Heat.spaHeatModeStr = container.constants.heatModeStr[spaHeat]
+        currentHeat.poolHeatMode = poolHeat
+        currentHeat.poolHeatModeStr = container.constants.heatModeStr[poolHeat]
+        currentHeat.spaHeatMode = spaHeat
+        currentHeat.spaHeatModeStr = container.constants.heatModeStr[spaHeat]
     }
 
     function getCurrentHeat() {
@@ -115,8 +115,8 @@ module.exports = function(container) {
 
         if (currentHeat.poolSetPoint === undefined) {
             copyHeat(heat)
-            if (container.settings.logConfigMessages)
-                container.logger.info('Msg# %s   Pool/Spa heat set point discovered:  \n  Pool heat mode: %s @ %s degrees \n  Spa heat mode: %s at %s degrees', counter, currentHeat.poolHeatModeStr, currentHeat.poolSetPoint, currentHeat.spaHeatModeStr, currentHeat.spaSetPoint);
+            if (container.settings.get('logConfigMessages'))
+                container.logger.info('Msg# %s   Pool/Spa heat set point discovered:  \n  Pool heat mode: %s @ %s degrees \n  Spa heat mode: %s @ %s degrees', counter, currentHeat.poolHeatModeStr, currentHeat.poolSetPoint, currentHeat.spaHeatModeStr, currentHeat.spaSetPoint);
 
             container.io.emitToClients('heat');
         } else {
@@ -125,7 +125,7 @@ module.exports = function(container) {
                 container.logger.debug('Msg# %s   Pool/Spa heat set point HAS NOT CHANGED:  pool heat mode: %s @ %s degrees; spa heat mode %s at %s degrees', counter, currentHeat.poolHeatModeStr, currentHeat.poolSetPoint, currentHeat.spaHeatModeStr, currentHeat.spaSetPoint)
             } else {
 
-                if (container.settings.logConfigMessages) {
+                if (container.settings.get('logConfigMessages')) {
                     container.logger.verbose('Msg# %s   Pool/Spa heat set point changed:  pool heat mode: %s @ %s degrees; spa heat mode %s at %s degrees', counter, heat.poolHeatModeStr, heat.poolSetPoint, heat.spaHeatModeStr, heat.spaSetPoint);
                     container.logger.info('Msg# %s  Change in Pool/Spa Heat Mode:  %s', counter, currentHeat.whatsDifferent(heat))
                 }
@@ -166,10 +166,10 @@ module.exports = function(container) {
         var updateHeatMode = (currentHeat.spaHeatMode << 2) | currentHeat.poolHeatMode;
         var updateHeat;
         if (equip === 'pool') {
-            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, parseInt(change), currentHeat.spaSetPoint, updateHeatMode, 0]
+            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, parseInt(change), currentHeat.spaSetPoint, updateHeatMode, 0]
             container.logger.info('User request to update %s set point to %s', equip, currentHeat.poolSetPoint + change)
         } else {
-            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, parseInt(change), updateHeatMode, 0]
+            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, parseInt(change), updateHeatMode, 0]
             container.logger.info('User request to update %s set point to %s', equip, currentHeat.spaSetPoint + change)
         }
         container.queuePacket.queuePacket(updateHeat);
@@ -183,14 +183,14 @@ module.exports = function(container) {
             updateHeat
         if (equip === 'pool') {
             updateHeatMode = (currentHeat.spaHeatMode << 2) | heatmode;
-            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
+            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
             container.queuePacket.queuePacket(updateHeat);
             //TODO: replace heatmode INT with string
             container.logger.info('User request to update pool heat mode to %s', heatmode)
         } else {
             //spaSetPoint
             updateHeatMode = (parseInt(heatmode) << 2) | currentHeat.poolHeatMode;
-            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
+            updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
             container.queuePacket.queuePacket(updateHeat);
             //TODO: replace heatmode INT with string
             container.logger.info('User request to update spa heat mode to %s', heatmode)
@@ -213,7 +213,7 @@ module.exports = function(container) {
 
             } else {
                 var updateHeatMode = (currentHeat.spaHeatMode << 2) | currentHeat.poolHeatMode;
-                var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, setpoint, updateHeatMode, 0]
+                var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, setpoint, updateHeatMode, 0]
                 container.logger.info('User request to update spa set point to %s', setpoint, updateHeat)
                 container.queuePacket.queuePacket(updateHeat);
 
@@ -244,7 +244,7 @@ module.exports = function(container) {
 
     function setSpaHeatmode(heatmode, callback) {
         var updateHeatMode = (heatmode << 2) | currentHeat.poolHeatMode;
-        var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
+        var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
         container.queuePacket.queuePacket(updateHeat);
 
         container.logger.info('User request to update spa heat mode to %s', container.constants.heatModeStr[heatmode], updateHeat)
@@ -268,7 +268,7 @@ module.exports = function(container) {
         } else {
             setpoint = parseInt(setpoint)
             var updateHeatMode = (currentHeat.spaHeatMode << 2) | currentHeat.poolHeatMode;
-            var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, setpoint, currentHeat.spaSetPoint, updateHeatMode, 0]
+            var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, setpoint, currentHeat.spaSetPoint, updateHeatMode, 0]
             container.queuePacket.queuePacket(updateHeat);
 
             response.text = 'User request to update pool heat set point to ' + setpoint + ': ' + updateHeat
@@ -299,7 +299,7 @@ module.exports = function(container) {
     function setPoolHeatmode(heatmode, callback) {
 
         var updateHeatMode = (currentHeat.spaHeatMode << 2) | heatmode;
-        var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
+        var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
         container.queuePacket.queuePacket(updateHeat);
 
         var response = {}
@@ -318,11 +318,11 @@ module.exports = function(container) {
       // 165,33,16,34,168,10,0,0,0,254,0,0,0,0,0,0,2,168 = manual heat mode off
       // 165,33,16,34,168,10,0,0,0,254,1,0,0,0,0,0,2,169 = manual heat mode on
 
-      var spaManualHeatMode = data[10]===0?'On':'Off'
+      var spaManualHeatMode = data[10]===0?'Off':'On'
 
       currentHeat.spaManualHeatMode = spaManualHeatMode;
 
-      if (container.settings.logMessageDecoding)
+      if (container.settings.get('logMessageDecoding'))
         container.logger.debug('Msg#: %s  Settings/Manual heat packet.  Manual Heat %s  Full packet: %s', counter, spaManualHeatMode , data);
 
     }

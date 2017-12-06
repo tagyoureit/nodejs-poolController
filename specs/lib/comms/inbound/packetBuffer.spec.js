@@ -5,10 +5,11 @@ describe('packetBuffer receives raw packets from serial bus', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.server.init()
-                bottle.container.io.init()
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
+                // bottle.container.settings.logMessageDecoding = 1
+                // bottle.container.server.init()
+                // bottle.container.io.init()
+                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
@@ -46,10 +47,11 @@ describe('packetBuffer receives raw packets from serial bus', function() {
             })
 
             after(function() {
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.time.init()
-                bottle.container.server.close()
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
+                // bottle.container.settings.logMessageDecoding = 0
+                // bottle.container.time.init()
+                // bottle.container.server.close()
+                // bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#should accept all packets and kick off processing buffer', function() {

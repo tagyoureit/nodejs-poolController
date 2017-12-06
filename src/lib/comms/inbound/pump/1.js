@@ -22,7 +22,6 @@ module.exports = function(container) {
         container.logger.info('Loading: (pump)1.js')
 
 
-    var s = container.settings
     var logger = container.logger
 
 
@@ -124,7 +123,7 @@ module.exports = function(container) {
                 else rpmGpm = 'Unknown speed'
 
                 setAmount = data[8] * 256 + data[9];
-                if (s.logPumpMessages)
+                if (container.settings.get('logPumpMessages'))
                     logger.verbose('Msg# %s   %s --> %s: Set Speed to %s %s: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], container.constants.ctrlString[data[container.constants.packetFields.DEST]], setAmount, rpmGpm, JSON.stringify(data));
             } else {
                 str1 = '[' + data[6] + ',' + data[7] + ']';

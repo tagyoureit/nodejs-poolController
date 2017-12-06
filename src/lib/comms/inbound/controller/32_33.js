@@ -71,7 +71,7 @@ module.exports = function(container) {
 
 
     // write out the packet when the 33 message appears.  It always follows the 32/is4 and 32/is10.
-    if (container.settings.logMessageDecoding && controllerType === 'quicktouch')
+    if (container.settings.get('logMessageDecoding') && controllerType === 'quicktouch')
       container.logger.debug('Msg#: %s  All spa side controllers: %s', counter, JSON.stringify(spasideRemote, null, 2));
 
 

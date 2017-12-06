@@ -9,20 +9,22 @@ describe('pump controller - save and run program with speed for duration', funct
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
-                .then(function(pumpVS) {
-                    return JSON.parse(pumpVS)
-                })
-                .then(function(parsed) {
-                    bottle.container.settings.pump = parsed
-                    return bottle.container.pump.init()
-                })
-                .catch(function(err) {
-                    /* istanbul ignore next */
-                    console.log('oops, we hit an error', err)
-                })
-            bottle.container.logApi = 1
-            bottle.container.logger.transports.console.level = 'silly';
+            return global.initAll()
+                .then(function(){
+
+                fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+                    .then(function(pumpVS) {
+                        return JSON.parse(pumpVS)
+                    })
+                    .then(function(parsed) {
+                        bottle.container.settings.set('pump', parsed)
+                        return bottle.container.pump.init()
+                    })
+                    .catch(function(err) {
+                        /* istanbul ignore next */
+                        console.log('oops, we hit an error', err)
+                    })
+            })
 
         });
 
@@ -33,11 +35,7 @@ describe('pump controller - save and run program with speed for duration', funct
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
-            //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()
-            //setPumpToLocalControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToLocalControl')
-            //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
@@ -45,14 +43,13 @@ describe('pump controller - save and run program with speed for duration', funct
         })
 
         afterEach(function() {
-            bottle.container.pump.init()
-            //restore the sandbox after each function
-            sandbox.restore()
+
+                    return sandbox.restore()
+
         })
 
         after(function() {
-            bottle.container.logApi = 0
-            bottle.container.logger.transports.console.level = 'info';
+            return global.stopAll()
         })
 
 
@@ -95,7 +92,6 @@ describe('pump controller - save and run program with speed for duration', funct
             queuePacketStub.args[6][0].should.deep.equal(global.pump1RequestStatusPacket)
 
             bottle.container.pumpControllerTimers.clearTimer(1)
-            return
 
         });
 
@@ -133,7 +129,6 @@ describe('pump controller - save and run program with speed for duration', funct
             queuePacketStub.args[5][0].should.deep.equal(global.pump1PowerOnPacket)
             queuePacketStub.args[6][0].should.deep.equal(global.pump1RequestStatusPacket)
             bottle.container.pumpControllerTimers.clearTimer(1)
-            return
 
         });
 
@@ -174,7 +169,6 @@ describe('pump controller - save and run program with speed for duration', funct
             queuePacketStub.args[5][0].should.deep.equal(global.pump2PowerOnPacket)
             queuePacketStub.args[6][0].should.deep.equal(global.pump2RequestStatusPacket)
             bottle.container.pumpControllerTimers.clearTimer(2)
-            return
 
         });
 

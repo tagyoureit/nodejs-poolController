@@ -17,7 +17,6 @@
 
 module.exports = function(container) {
     var logger = container.logger
-    var s = container.settings
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -38,7 +37,7 @@ module.exports = function(container) {
     var pushBufferToArray = function() {
 
         bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
-        if (s.logMessageDecoding)
+        if (container.settings.get('logMessageDecoding'))
             logger.silly('pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT AoA to BTP')
 
 
@@ -51,12 +50,13 @@ module.exports = function(container) {
         var preambleStd = [255, 165];
         var preambleChlorinator = [16, 2]
         var breakLoop = false
+        var logMessageDecoding = container.settings.get('logMessageDecoding')
 
         processingBuffer.processingBuffer = true; //we don't want this function to run asynchronously beyond this point or it will start to process the same array multiple times
 
         pushBufferToArray()
 
-        if (s.logMessageDecoding) {
+        if (logMessageDecoding) {
             logger.silly('iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess);
         }
 
@@ -71,30 +71,30 @@ module.exports = function(container) {
 
                 if (chatterlen >= 100) //we should never get a packet greater than or equal to 50.  So if the chatterlen is greater than that let's shift the array and retry
                 {
-                    if (s.logMessageDecoding) logger.silly('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=100) Length: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
+                    if (container.settings.get('logMessageDecoding')) logger.silly('iOAOA: Will shift first element out of bufferToProcess because it appears there is an invalid length packet (>=100) Length: %s  Packet: %s', bufferToProcess[6], bufferToProcess)
                     bufferToProcess.shift() //remove the first byte so we look for the next [255,165] in the array.
 
                 } else if ((bufferToProcess.length - chatterlen) <= 0) {
-                    if (s.logMessageDecoding)
+                    if (logMessageDecoding)
                         logger.silly('Msg#  n/a   Incomplete message in bufferToProcess. %s', bufferToProcess)
                     if (container.packetBuffer.length > 0) {
                         pushBufferToArray()
                     } else {
-                        if (s.logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because (bufferToProcess.length(%s) - chatterlen) <= 0(%s): %s', bufferToProcess.length, chatterlen === undefined || ((bufferToProcess.length - chatterlen), chatterlen === undefined || (bufferToProcess.length - chatterlen) <= 0))
+                        if (logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because (bufferToProcess.length(%s) - chatterlen) <= 0(%s): %s', bufferToProcess.length, chatterlen === undefined || ((bufferToProcess.length - chatterlen), chatterlen === undefined || (bufferToProcess.length - chatterlen) <= 0))
                         breakLoop = true //do nothing, but exit until we get a second buffer to concat
                     }
                 } else
                 if (chatterlen === undefined || isNaN(chatterlen)) {
-                    if (s.logMessageDecoding)
+                    if (logMessageDecoding)
                         logger.silly('Msg#  n/a   chatterlen NaN: %s.', bufferToProcess)
                     if (container.packetBuffer.length > 0) {
                         pushBufferToArray()
                     } else {
-                        if (s.logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because isNan(chatterlen) is %s.  bufferToProcess:', chatterlen, bufferToProcess)
+                        if (logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because isNan(chatterlen) is %s.  bufferToProcess:', chatterlen, bufferToProcess)
                         breakLoop = true //do nothing, but exit until we get a second buffer to concat
                     }
                 } else {
-                    if (s.logMessageDecoding)
+                    if (logMessageDecoding)
                         logger.silly('iOAOA: Think we have a packet. bufferToProcess: %s  chatterlen: %s', bufferToProcess, chatterlen)
                     msgCounter.counter += 1;
                     bufferToProcess.shift() //remove the 255 byte
@@ -104,12 +104,12 @@ module.exports = function(container) {
                     //if (((chatter[2] === container.constants.ctrl.PUMP1 || chatter[2] === container.constants.ctrl.PUMP2)) || chatter[3] === container.constants.ctrl.PUMP1 || chatter[3] === container.constants.ctrl.PUMP2) {
                   if (((chatter[2] >= container.constants.ctrl.PUMP1 && chatter[2] <= container.constants.ctrl.PUMP16)) || (chatter[3] >= container.constants.ctrl.PUMP1 && chatter[3] <= container.constants.ctrl.PUMP16)) {
                         packetType = 'pump'
-                        if (s.logMessageDecoding && s.logPumpMessages)
+                        if (logMessageDecoding && container.settings.get('logPumpMessages'))
                             logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                     } else {
                         packetType = 'controller';
                         container.intellitouch.setPreambleByte(chatter[1]); //we dynamically adjust this based on what the controller is using.  It is also different for the pumps (should always be 0 for pump messages)
-                        if (s.logMessageDecoding)
+                        if (logMessageDecoding)
                             logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                     }
 
@@ -137,7 +137,7 @@ module.exports = function(container) {
                         //if we get here, kill the buffer because we never get a partial chlorinator packet.
                         bufferToProcess.splice(0, i)
                         breakLoop = true
-                        if (s.logMessageDecoding) logger.silly('Aborting chlorinator packet because we reached the end of the buffer.')
+                        if (logMessageDecoding) logger.silly('Aborting chlorinator packet because we reached the end of the buffer.')
                     } else {
                         packetType = 'chlorinator';
                         chatter.push(bufferToProcess[i]);
@@ -147,7 +147,7 @@ module.exports = function(container) {
                             chatter.push(bufferToProcess[i + 1]);
                             i += 2;
                             msgCounter.counter += 1;
-                            if (s.logMessageDecoding && s.logChlorinator)
+                            if (logMessageDecoding && container.settings.get('logChlorinator'))
                                 logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
                             container.decodeHelper.processChecksum(chatter, msgCounter.counter, 'chlorinator');
                             bufferToProcess.splice(0, i)
@@ -162,25 +162,25 @@ module.exports = function(container) {
             }
 
         }
-                            if (s.logMessageDecoding)
+                            if (container.settings.get('logMessageDecoding'))
         logger.silly('iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\ncontainer.packetBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, container.packetBuffer.length(), bufferToProcess.length, container.packetBuffer.length() === 0 && bufferToProcess.length > 0)
         if (breakLoop) {
             processingBuffer.processingBuffer = false;
-            if (s.logMessageDecoding)
+            if (logMessageDecoding)
                 logger.silly('iOAOA: Exiting because breakLoop: %s', breakLoop)
         } else
         if (bufferToProcess.length > 0) {
-            if (s.logMessageDecoding)
+            if (logMessageDecoding)
                 logger.silly('iOAOA: Recursing back into iOAOA because no bufferToProcess.length > 0: %s', bufferToProcess.length > 0)
             iterateOverArrayOfArrays()
         } else
         if (container.packetBuffer.length() === 0) {
             processingBuffer.processingBuffer = false;
-            if (s.logMessageDecoding)
+            if (logMessageDecoding)
                 logger.silly('iOAOA: Exiting out of loop because no further incoming buffers to append. container.packetBuffer.length() === 0 (%s) ', container.packetBuffer.length() === 0)
 
         } else {
-            if (s.logMessageDecoding)
+            if (logMessageDecoding)
                 logger.silly('iOAOA: Recursing back into iOAOA because no other conditions met.')
             iterateOverArrayOfArrays()
         }

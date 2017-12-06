@@ -25,7 +25,7 @@ module.exports = function(container) {
         function process(data, counter) {
 
 
-                if (container.settings.logChlorinator)
+                if (container.settings.get('logChlorinator'))
                     container.logger.debug('Msg# %s   Chlorinator status packet: %s', counter, data)
 
                 // set packet

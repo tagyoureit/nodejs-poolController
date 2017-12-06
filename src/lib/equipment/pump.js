@@ -86,17 +86,18 @@ module.exports = function(container) {
   var getPumpConfiguration = function() {
       //get pump Configution
       for (var i = 1; i <= container.pump.numberOfPumps(); i++) {
-          container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 219, 1, i]);
+          container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 219, 1, i]);
       }
   }
 
   var loadProgramsFromConfig = function() {
-    for (var _pump in container.settings.pump) {
+    pumpConfig = container.settings.get('pump')
+    for (var _pump in pumpConfig) {
       if (_pump <= numPumps) {
-        currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(container.settings.pump[_pump].externalProgram))
-        currentPumpStatus[_pump].type = JSON.parse(JSON.stringify(container.settings.pump[_pump].type))
-            if (container.settings.pump[_pump].friendlyName !== "") {
-              currentPumpStatus[_pump].friendlyName = container.settings.pump[_pump].friendlyName
+        currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(pumpConfig[_pump].externalProgram))
+        currentPumpStatus[_pump].type = JSON.parse(JSON.stringify(pumpConfig[_pump].type))
+            if (pumpConfig[_pump].friendlyName !== "") {
+              currentPumpStatus[_pump].friendlyName = pumpConfig[_pump].friendlyName
             } else {
               currentPumpStatus[_pump].friendlyName = currentPumpStatus[_pump].name
             }
@@ -105,7 +106,7 @@ module.exports = function(container) {
   }
 
 var setVirtualControllerStatus = function(status) {
-    for (var _pump in container.settings.pump) {
+    for (var _pump in container.settings.get('pump')) {
         if (_pump <= numPumps) {
             currentPumpStatus[_pump].virtualController = status
         }
@@ -113,7 +114,8 @@ var setVirtualControllerStatus = function(status) {
 }
 
     var init = function() {
-    if (container.settings.logPumpMessages)
+    pumpConfig = container.settings.get('pump')
+    if (container.settings.get('logPumpMessages'))
       if (currentPumpStatus === undefined) {
         container.logger.silly('initializing pumps for first time')
       }
@@ -121,8 +123,8 @@ var setVirtualControllerStatus = function(status) {
       container.logger.silly('will reset pumps...')
     }
 
-    for (var _pump in container.settings.pump) {
-      if (container.settings.pump[_pump].type !== 'none') {
+    for (var _pump in pumpConfig) {
+      if (pumpConfig[_pump].type !== 'none') {
         numPumps = parseInt(_pump)
       }
     }
@@ -141,7 +143,7 @@ var setVirtualControllerStatus = function(status) {
 
     loadProgramsFromConfig()
 
-    if (container.settings.logPumpMessages)
+    if (container.settings.get('logPumpMessages'))
       container.logger.silly('just reset pumps...')
   }
 
@@ -181,7 +183,7 @@ var setVirtualControllerStatus = function(status) {
   var significantWattsChange = function(pump, watts, counter) {
     if (pump <= numPumps) {
       if ((Math.abs((watts - currentPumpStatus[pump].watts) / watts)) > (5 / 100)) {
-        if (container.settings.logPumpMessages) container.logger.info('Msg# %s   Pump %s watts changed >5%: %s --> %s \n', counter, pump, currentPumpStatus[pump].watts, watts)
+        if (container.settings.get('logPumpMessages')) container.logger.info('Msg# %s   Pump %s watts changed >5%: %s --> %s \n', counter, pump, currentPumpStatus[pump].watts, watts)
         return true
       }
       return false
@@ -209,7 +211,7 @@ var setVirtualControllerStatus = function(status) {
   }
 
   function pumpACK(data, from, counter) {
-    if (container.settings.logPumpMessages)
+    if (container.settings.get('logPumpMessages'))
       container.logger.verbose('Msg# %s   %s responded with acknowledgement: %s', counter, container.constants.ctrlString[from], JSON.stringify(data));
   }
 
@@ -219,7 +221,7 @@ var setVirtualControllerStatus = function(status) {
     if (pump <= numPumps) {
       if (currentPumpStatus[pump].currentprogram !== program) {
         currentPumpStatus[pump].currentprogram = program;
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s: Set Current Program to %s %s', counter, container.constants.ctrlString[from], program.toString(), JSON.stringify(data));
       }
       container.io.emitToClients('pump')
@@ -247,7 +249,7 @@ var setVirtualControllerStatus = function(status) {
       if (currentPumpStatus[_pump].externalProgram[program] !== value) {
         container.configEditor.updateExternalPumpProgram(_pump, program, value)
         currentPumpStatus[_pump].externalProgram[program] = value;
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, container.constants.ctrlString[from], program, value, JSON.stringify(data));
       }
       container.io.emitToClients('pump')
@@ -265,10 +267,10 @@ var setVirtualControllerStatus = function(status) {
       // if (data[container.constants.packetFields.DEST] === 96 || data[container.constants.packetFields.DEST] === 97) //Command to the pump
       if (packetToPump(data)) // command to the pump
       {
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s --> %s: Remote control - %s pump control panel: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], remoteControlStr, JSON.stringify(data));
       } else {
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s: Remote control -  %s pump control panel: %s', counter, container.constants.ctrlString[from], remoteControlStr, JSON.stringify(data));
       }
       currentPumpStatus[pump].remotecontrol = remotecontrol
@@ -359,7 +361,7 @@ var setVirtualControllerStatus = function(status) {
         }
         if (currentPumpStatus[pump].mode !== mode) {
           currentPumpStatus[pump].mode = mode;
-          if (container.settings.logPumpMessages)
+          if (container.settings.get('logPumpMessages'))
             container.logger.verbose('Msg# %s   %s --> %s: Set pump mode to _%s_: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], mode, JSON.stringify(data));
         }
         container.io.emitToClients('pump')
@@ -367,7 +369,7 @@ var setVirtualControllerStatus = function(status) {
 
 
       } else {
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s confirming it is in mode %s: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], data[container.constants.packetFields.CMD], JSON.stringify(data));
       }
     }
@@ -383,12 +385,12 @@ var setVirtualControllerStatus = function(status) {
       // if (data[container.constants.packetFields.DEST] === 96 || data[container.constants.packetFields.DEST] === 97) //Command to the pump
       if (packetToPump(data)) // command to the pump
       {
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s --> %s: Pump power to %s: %s', counter, container.constants.ctrlString[from], container.constants.ctrlString[data[container.constants.packetFields.DEST]], powerStr, JSON.stringify(data));
       } else {
         if (currentPumpStatus[pump].power !== power) {
           currentPumpStatus[pump].power = power;
-          if (container.settings.logPumpMessages)
+          if (container.settings.get('logPumpMessages'))
             container.logger.verbose('Msg# %s   %s: Pump power %s: %s', counter, container.constants.ctrlString[from], powerStr, JSON.stringify(data));
           container.io.emitToClients('pump')
           container.influx.writePumpData(currentPumpStatus)
@@ -398,7 +400,7 @@ var setVirtualControllerStatus = function(status) {
   }
 
   function provideStatus(data, counter) {
-    if (container.settings.logPumpMessages)
+    if (container.settings.get('logPumpMessages'))
       container.logger.verbose('Msg# %s   %s --> %s: Provide status: %s', counter, container.constants.ctrlString[data[container.constants.packetFields.FROM]], container.constants.ctrlString[data[container.constants.packetFields.DEST]], JSON.stringify(data));
   }
 
@@ -465,7 +467,7 @@ var setVirtualControllerStatus = function(status) {
           currentPumpStatus[pump].timer = timer
         }
 
-        if (container.settings.logPumpMessages)
+        if (container.settings.get('logPumpMessages'))
           container.logger.verbose('\n Msg# %s  %s Status changed %s : ', counter, container.constants.ctrlString[pump + 95], whatsDifferent, data, '\n');
 
       }
@@ -589,7 +591,7 @@ var setVirtualControllerStatus = function(status) {
         'remainingduration': duration
       }
       if (currentPumpStatus[index].currentrunning !== newCurrentRunning) {
-        if (container.settings.logPumpMessages) {
+        if (container.settings.get('logPumpMessages')) {
           container.logger.info('Pump %s program changing from: \r\n    Mode: %s     Value: %s    remaining duration: %s \r\n    to \r\n    Mode: %s     Value: %s    remainingduration: %s', index, currentPumpStatus[index].currentrunning.mode, currentPumpStatus[index].currentrunning.value,
             currentPumpStatus[index].currentrunning.remainingduration,
             program, value, duration)

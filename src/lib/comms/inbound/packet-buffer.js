@@ -20,7 +20,7 @@
 
 module.exports = function(container) {
     var logger = container.logger
-    var s = container.settings
+
 
 
     var bufferArrayOfArrays = container.dequeue;

@@ -27,7 +27,7 @@ module.exports = function(container) {
     function process(data, counter) {
 
         var circuit = data[container.constants.namePacketFields.NUMBER]
-        if (container.settings.logMessageDecoding) logger.silly('Msg# %s  Get Circuit Info  %s', counter, JSON.stringify(data))
+        if (container.settings.get('logMessageDecoding')) logger.silly('Msg# %s  Get Circuit Info  %s', counter, JSON.stringify(data))
 
         container.circuit.setCircuitFromController(circuit, data[container.constants.namePacketFields.NAME], data[container.constants.namePacketFields.CIRCUITFUNCTION], counter)
         return true

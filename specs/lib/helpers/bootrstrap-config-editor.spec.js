@@ -10,9 +10,10 @@ describe('updates/resets bootstrap configClient.json', function() {
 
 
         before(function () {
-            bottle.container.server.init()
-            bottle.container.io.init()
-            bottle.container.logger.transports.console.level = 'silly';
+            return global.initAll()
+            // bottle.container.server.init()
+            // bottle.container.io.init()
+            // bottle.container.logger.transports.console.level = 'silly';
         })
 
         beforeEach(function () {
@@ -60,8 +61,9 @@ describe('updates/resets bootstrap configClient.json', function() {
         })
 
         after(function () {
-            bottle.container.logger.transports.console.level = 'info';
-            bottle.container.server.close()
+            // bottle.container.logger.transports.console.level = 'info';
+            // bottle.container.server.close()
+            return global.stopAll()
         })
         describe('#updates panelState', function() {
             it('changes system state from visible to hidden', function (done) {
@@ -69,6 +71,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     .then(function () {
                         return bottle.container.bootstrapConfigEditor.update('panelState', 'system', 'state', 'hidden')
                     })
+                    .delay(50)
                     .then(function () {
                         return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
                     })
@@ -118,6 +121,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     .then(function () {
                         return bottle.container.bootstrapConfigEditor.reset()
                     })
+                    .delay(50)
                     .then(function () {
                         var changed = fs.readFileSync(path.join(process.cwd(), '/specs/assets/config/_configClient.json'), 'utf-8')
                         changed = JSON.parse(changed)
@@ -159,7 +163,6 @@ describe('updates/resets bootstrap configClient.json', function() {
 
 
                 it('changes hideAUX state from visible (false) to hidden (true)', function(done) {
-
 
                     var client;
                     Promise.resolve()

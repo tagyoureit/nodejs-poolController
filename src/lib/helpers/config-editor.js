@@ -15,34 +15,24 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var
-    config = {},
-    file,
-    //path = require('path').posix,
+var config = {},
     location
 
 
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: config-editor.js')
+        // container.logger.info('Loading: config-editor.js')
+        console.log('Loading: config-editor.js')
 
-
-    var //Promise = require('bluebird'),
-//        fs = require('fs')
-    //Promise.promisifyAll(fs)
     Promise = container.promise
     pfs = Promise.promisifyAll(container.fs)
 
-    //file = exports.file = container.settings.configurationFile //exported for API Test #8
-
-
     var init = function(_location) {
         if (_location===undefined)
-            location = container.path.join(process.cwd(), container.settings.configurationFile)
+            location = container.path.join(process.cwd(), container.settings.get('configurationFile'))
         else
             location = container.path.join(process.cwd(), _location)
-
         config = {}
         return pfs.readFileAsync(location, 'utf-8')
             .then(function(data) {
@@ -58,7 +48,7 @@ module.exports = function(container) {
         return Promise.resolve()
             .then(function() {
                 config.equipment.pump[_pump].type = _type
-                container.settings.pump[_pump].type = _type //TODO: we should re-read the file from disk at this point?
+                container.settings.get('pump')[_pump].type = _type //TODO: we should re-read the file from disk at this point?
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -77,7 +67,7 @@ module.exports = function(container) {
         return Promise.resolve()
             .then(function() {
                 config.equipment.pump[_pump].externalProgram[program] = rpm
-                container.settings.pump[_pump].externalProgram[program] = rpm
+                container.settings.get('pump')[_pump].externalProgram[program] = rpm
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -107,11 +97,11 @@ module.exports = function(container) {
         Promise.resolve()
             .then(function() {
                 config.equipment.chlorinator.installed = installed
-                container.settings.chlorinator.installed = installed
+                container.settings.get('chlorinator').installed = installed
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
-                if (container.settings.logChlorinator)
+                if (container.settings.get('logChlorinator'))
                     container.logger.verbose('Updated chlorinator settings (installed) %s', location)
             })
             .catch(function(err) {
@@ -126,12 +116,12 @@ module.exports = function(container) {
                 config.equipment.chlorinator.desiredOutput = {}
                 config.equipment.chlorinator.desiredOutput.pool = pool
                 config.equipment.chlorinator.desiredOutput.spa = spa
-                container.settings.equipment.chlorinator.desiredOutput.pool = pool
-                container.settings.equipment.chlorinator.desiredOutput.spa = spa
+                container.settings.get().equipment.chlorinator.desiredOutput.pool = pool
+                container.settings.get().equipment.chlorinator.desiredOutput.spa = spa
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
-                if (container.settings.logChlorinator)
+                if (container.settings.get('logChlorinator'))
                     container.logger.verbose('Updated chlorinator settings (desired output) %s', location)
             })
             .catch(function(err) {
@@ -143,7 +133,7 @@ module.exports = function(container) {
         Promise.resolve()
             .then(function() {
                 config.equipment.chlorinator.id.productName = name
-                container.settings.equipment.chlorinator.id.productName = name
+                container.settings.get('equipment').chlorinator.id.productName = name
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -201,6 +191,7 @@ module.exports = function(container) {
             })
             .catch(function(err) {
                 container.logger.error('Something went wrong getting chlorinator desiredOutput from config file.', err)
+                console.log(err)
             })
     }
     var getChlorinatorName = function() {
@@ -210,6 +201,7 @@ module.exports = function(container) {
             })
             .catch(function(err) {
                 container.logger.error('Something went wrong getting chlorinator product name from config file.', err)
+                console.log(err)
             })
     }
 
@@ -221,7 +213,8 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: config-editor.js')
+        // container.logger.info('Loaded: config-editor.js')
+        console.log('Loaded: config-editor.js')
 
 
     return {

@@ -146,7 +146,7 @@ module.exports = function(container) {
 
     function calculateTotalDisolvedSolidsFactor() {
         // 12.1 for non-salt pools; 12.2 for salt pools
-        return container.settings.chlorinator.installed ? 12.2 : 12.1
+        return container.settings.get('chlorinator').installed ? 12.2 : 12.1
     }
 
     function processIntellichemControllerPacket(data, counter) {
@@ -173,7 +173,7 @@ module.exports = function(container) {
         if (!container._.isEqual(intellichem.lastPacket, data)) {
             intellichem.lastPacket = container._.clone(data)
             intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() + calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor()) * 1000) / 1000
-            if (container.settings.logIntellichem) {
+            if (container.settings.get('logIntellichem')) {
                 container.logger.info('Msg# %s  Intellichem packet found: \n\t', counter, JSON.stringify(container._.omit(intellichem, 'lastPacket'), null, 2))
                 container.logger.debug('Msg# %s  Intellichem packet: %s', counter, data)
                 container.logger.info('Msg# %s  Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', counter, intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())

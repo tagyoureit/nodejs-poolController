@@ -3,13 +3,11 @@ describe('chlorinator tests', function() {
     //var spied = sinon.spy(bottle.container.chlorinator.setChlorinatorLevel)
     var equip = 'controller'
     before(function() {
-        bottle.container.settings.virtual.chlorinatorController = "default"
-        bottle.container.settings.chlorinator.installed = 1
-        bottle.container.settings.intellitouch.installed = 0
-        bottle.container.settings.intellicom = 0
-        bottle.container.settings.logChlorinator = 1
-        bottle.container.logger.transports.console.level = 'silly';
-
+        bottle.container.settings.set('virtual.chlorinatorController', "default")
+        bottle.container.settings.set('chlorinator.installed',1)
+        bottle.container.settings.set('intellitouch.installed',0)
+        bottle.container.settings.set('intellicom', 0)
+        return global.initAll()
     });
 
     beforeEach(function() {
@@ -39,13 +37,12 @@ describe('chlorinator tests', function() {
     })
 
     after(function() {
-        bottle.container.settings.virtual.chlorinatorController = "default"
-        bottle.container.settings.chlorinator.installed = 0
-        bottle.container.settings.intellitouch.installed = 1
-        bottle.container.settings.intellicom = 0
-        bottle.container.settings.logChlorinator = 0
+        bottle.container.settings.set('virtual.chlorinatorController', "default")
+        bottle.container.settings.set('chlorinator.installed', 0)
+        bottle.container.settings.set('intellitouch.installed', 1)
+        bottle.container.settings.set('intellicom', 0)
         bottle.container.chlorinatorController.clearTimer()
-
+        return global.stopAll()
     })
 
     describe('#setChlorinatorLevel returns objects', function() {

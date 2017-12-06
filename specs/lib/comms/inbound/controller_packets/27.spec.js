@@ -7,10 +7,11 @@ describe('processes 27 (Extended Pump Config) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        bottle.container.settings.logMessageDecoding = 1
-        bottle.container.settings.logConfigMessages = 1
-        bottle.container.settings.logPumpMessages = 1
-        bottle.container.logger.transports.console.level = 'silly';
+        return global.initAll()
+        // bottle.container.settings.logMessageDecoding = 1
+        // bottle.container.settings.logConfigMessages = 1
+        // bottle.container.settings.logPumpMessages = 1
+        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -31,10 +32,11 @@ describe('processes 27 (Extended Pump Config) packets', function() {
       })
 
       after(function() {
-        bottle.container.settings.logMessageDecoding = 0
-        bottle.container.settings.logConfigMessages = 0
-        bottle.container.settings.logPumpMessages = 0
-        bottle.container.logger.transports.console.level = 'info';
+        return global.stopAll()
+        // bottle.container.settings.logMessageDecoding = 0
+        // bottle.container.settings.logConfigMessages = 0
+        // bottle.container.settings.logPumpMessages = 0
+        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Extended Pump Configurations Received for VS/VSF', function() {

@@ -15,268 +15,254 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var Bottle = require('bottlejs');
-var bottle = Bottle.pop('poolController-Bottle');
-var fs = bottle.container.fs
-var path = require('path').posix
+// var Bottle = require('bottlejs');
+// var bottle = Bottle.pop('poolController-Bottle');
+module.exports = function(container) {
+    var _settings = {}
+    var fs = container.fs
+    var path = require('path').posix
 
-/* istanbul ignore next */
-if (bottle.container.logModuleLoading)
-    console.log('Loading: settings.js')
-
-var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
-var appVersion = packageJson.version
-var configurationFile
-
-
-/*        EQUIPMENT        */
-//-------  EQUIPMENT SETUP -----------
-
-var equipment, controller, intellicom, intellitouch, virtual, virtualPumpController, virtualChlorinatorController
-
-var circuitFriendlyNames;
-
-var chlorinator;
-
-var pump;
-//-------  END EQUIPMENT SETUP -----------
-
-
-/*   POOL CONTROLLER SECTION  */
-var appAddress
-//-------  WEB SETUP -----------
-// Setup for Web items
-var netConnect, rs485Port, netPort, netHost;
-//-------  END MISC SETUP -----------
-
-
-//-------  NETWORK SETUP -----------
-// Setup for Network Connection (socat or nc)
-var expressPort, expressTransport, expressAuth, expressAuthFile;
-//-------  END NETWORK SETUP -----------
-
-//-------  LOG SETUP -----------
-//Change the following log message levels as needed
-var logLevel;
-var socketLogLevel, fileLog;
-var logPumpMessages;
-var logDuplicateMessages;
-var logConsoleNotDecoded;
-var logConfigMessages;
-var logMessageDecoding;
-var logChlorinator;
-var logIntellichem;
-var logPacketWrites;
-var logPumpTimers;
-var logApi;
-//-------  END EQUIPMENT SETUP -----------
-
-var influxEnabled, influxHost, influxPort, influxDB
-
-var envParam = process.argv[2];
-var configFile;
-
-var checkForOldConfigFile = function() {
-    try {
-        //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-        if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController") ||
-            !(configFile.poolController).hasOwnProperty("database")) {
-            throw new Error('Your configuration file is out of date.  Please update to the latest version.')
-        }
-    } catch (err) {
-        console.log('threw error!', err)
-        throw new Error(err)
-    }
-}
-
-var load = exports.load = function() {
     /* istanbul ignore next */
-    if (envParam === undefined) {
-        configurationFile = exports.configurationFile = 'config.json';
-    } else {
-        configurationFile = exports.configurationFile = envParam
+    if (container.logModuleLoading)
+        console.log('Loading: settings.js')
+
+    var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
+    _settings.appVersion = packageJson.version
+
+
+    var envParam = process.argv[2];
+    var configFile;
+
+    var checkForOldConfigFile = function () {
+        try {
+            //the throw will throw an error parsing the file, the catch will catch an error reading the file.
+            if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController") ||
+                !(configFile.poolController).hasOwnProperty("database")) {
+                throw new Error('Your configuration file is out of date.  Please update to the latest version.')
+            }
+        } catch (err) {
+            console.log('threw error!', err)
+            throw new Error(err)
+        }
     }
 
-    return Promise.resolve()
-        .then(function () {
-            return bottle.container.configEditor.init(configurationFile)
-
-            // try {
-            //     configFile = JSON.parse(fs.readFileSync(configurationFile, 'utf-8'));
-            // } catch (err) {
-            //     console.log('Error reading config file:', err)
-            // }
-
-        })
-        .then(function (data) {
-            configFile = JSON.parse(JSON.stringify(data))
-            return checkForOldConfigFile()
-        })
-        .then(function () {
-
-
-            /*   Equipment   */
-            //Controller
-            equipment = exports.equipment = configFile.equipment
-            controller = exports.controller = configFile.equipment.controller
-            intellicom = exports.intellicom = configFile.equipment.controller.intellicom;
-            intellitouch = exports.intellitouch = configFile.equipment.controller.intellitouch;
-            virtual = exports.virtual = configFile.equipment.controller.virtual
-            virtualPumpController = exports.virtualPumpController = configFile.equipment.controller.virtual.pumpController
-            virtualChlorinatorController = exports.virtualChlorinatorController = configFile.equipment.controller.virtual.chlorinatorController
-
-            circuitFriendlyNames = exports.circuitFriendlyNames = configFile.equipment.controller.circuitFriendlyNames
-
-            //chlorinator
-            chlorinator = exports.chlorinator = configFile.equipment.chlorinator;
-
-            //pump(s)
-            pump = exports.pump = configFile.equipment.pump;
-            /*   END Equipment   */
-            appAddress = exports.appAddress = configFile.poolController.appAddress;
-
-            //Web
-            expressPort = exports.expressPort = configFile.poolController.web.expressPort;
-            expressTransport = exports.expressTransport = configFile.poolController.web.expressTransport;
-            expressAuth = exports.expressAuth = configFile.poolController.web.expressAuth;
-            expressAuthFile = exports.expressAuthFile = configFile.poolController.web.expressAuthFile;
-
-
-            //Network
-            netConnect = exports.netConnect = configFile.poolController.network.netConnect;
-            rs485Port = exports.rs485Port = configFile.poolController.network.rs485Port;
-            netPort = exports.netPort = configFile.poolController.network.netPort;
-            netHost = exports.netHost = configFile.poolController.network.netHost;
-
-            if (configFile.poolController.network.hasOwnProperty('inactivityRetry')) {
-                inactivityRetry = exports.inactivityRetry = configFile.poolController.network.inactivityRetry;
+    var get = function(param) {
+        if (param === undefined)
+            return _settings
+        else if (param.indexOf('.') !== -1) {
+            tempCopy = JSON.parse(JSON.stringify(_settings))
+            var arr = param.split('.')
+            while (arr.length) {
+                tempCopy = tempCopy[arr.shift()]
             }
-            else
-                inactivityRetry = exports.inactivityRetry = 10
+            return tempCopy
+        }
+        else
+            return _settings[param]
+    }
 
-            //Logs
-            logLevel = exports.logLevel = configFile.poolController.log.logLevel;
-            socketLogLevel = exports.socketLogLevel = configFile.poolController.log.socketLogLevel;
-            fileLog = exports.fileLog = configFile.poolController.log.fileLog;
-            logPumpMessages = exports.logPumpMessages = configFile.poolController.log.logPumpMessages;
-            logDuplicateMessages = exports.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
-            logConsoleNotDecoded = exports.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
-            logConfigMessages = exports.logConfigMessages = configFile.poolController.log.logConfigMessages;
-            logMessageDecoding = exports.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
-            logChlorinator = exports.logChlorinator = configFile.poolController.log.logChlorinator;
-            logIntellichem = exports.logIntellichem = configFile.poolController.log.logIntellichem;
-            logPacketWrites = exports.logPacketWrites = configFile.poolController.log.logPacketWrites;
-            logPumpTimers = exports.logPumpTimers = configFile.poolController.log.logPumpTimers;
-            logApi = exports.logApi = configFile.poolController.log.logApi;
+    var set = function(param, value){
+        if (value===undefined)
+            container.logger.warn('Trying to set settings parameter %s with no value.', value)
+        else if (param.indexOf('.')!==-1) {
+            recurseSet(_settings, param.split('.'), value)
+        }
+        else {
+            _settings[param]=value
+        }
+    }
 
-            // Database
-            influxEnabled = exports.influxEnabled = configFile.poolController.database.influx.enabled;
-            influxHost = exports.influxHost = configFile.poolController.database.influx.host;
-            influxPort = exports.influxPort = configFile.poolController.database.influx.port;
-            influxDB = exports.influxDB = configFile.poolController.database.influx.database;
-
-            // Integrations
-            integrations = exports.integrations = configFile.integrations;
-        })
-        .catch(function(err){
-            console.log('Error in settings:', err)
-        })
+function recurseSet(obj, arr, value){
+    if (arr.length>1) {
+            recurseSet(obj[arr.shift()], arr, value)
+        }
+    else{
+        obj[arr[0]]=value
+    }
 }
 
+    var load = function () {
+        /* istanbul ignore next */
+        if (envParam === undefined) {
+            _settings.configurationFile = exports.configurationFile = 'config.json';
+        } else {
+            _settings.configurationFile = exports.configurationFile = envParam
+        }
+        return Promise.resolve()
+            .then(function () {
+                return container.configEditor.init(_settings.configurationFile)
+
+            })
+            .then(function (data) {
+                configFile = JSON.parse(JSON.stringify(data))
+                return checkForOldConfigFile()
+            })
+            .then(function () {
+
+                /*   Equipment   */
+                //Controller
+                _settings.equipment = configFile.equipment
+                _settings.controller = configFile.equipment.controller
+                _settings.intellicom = configFile.equipment.controller.intellicom;
+                _settings.intellitouch = configFile.equipment.controller.intellitouch;
+                _settings.virtual = configFile.equipment.controller.virtual
+                _settings.virtualPumpController = configFile.equipment.controller.virtual.pumpController
+                _settings.virtualChlorinatorController = configFile.equipment.controller.virtual.chlorinatorController
+
+                _settings.circuitFriendlyNames = configFile.equipment.controller.circuitFriendlyNames
+
+                //chlorinator
+                _settings.chlorinator = configFile.equipment.chlorinator;
+
+                //pump(s)
+                _settings.pump = configFile.equipment.pump;
+                /*   END Equipment   */
+                _settings.appAddress = configFile.poolController.appAddress;
+
+                //Web
+                _settings.expressPort = configFile.poolController.web.expressPort;
+                _settings.expressTransport = configFile.poolController.web.expressTransport;
+                _settings.expressAuth = configFile.poolController.web.expressAuth;
+                _settings.expressAuthFile = configFile.poolController.web.expressAuthFile;
 
 
-// var getConfig = exports.getConfig = function() {
-//     return configFile
-// }
+                //Network
+                _settings.netConnect = configFile.poolController.network.netConnect;
+                _settings.rs485Port = configFile.poolController.network.rs485Port;
+                _settings.netPort = configFile.poolController.network.netPort;
+                _settings.netHost = configFile.poolController.network.netHost;
 
+                if (configFile.poolController.network.hasOwnProperty('inactivityRetry')) {
+                    _settings.inactivityRetry = configFile.poolController.network.inactivityRetry;
+                }
+                else
+                    _settings.inactivityRetry = 10
 
+                //Logs
+                _settings.logLevel = configFile.poolController.log.logLevel;
+                _settings.socketLogLevel = configFile.poolController.log.socketLogLevel;
+                _settings.fileLog = configFile.poolController.log.fileLog;
+                _settings.logPumpMessages = configFile.poolController.log.logPumpMessages;
+                _settings.logDuplicateMessages = configFile.poolController.log.logDuplicateMessages;
+                _settings.logConsoleNotDecoded = configFile.poolController.log.logConsoleNotDecoded;
+                _settings.logConfigMessages = configFile.poolController.log.logConfigMessages;
+                _settings.logMessageDecoding = configFile.poolController.log.logMessageDecoding;
+                _settings.logChlorinator = configFile.poolController.log.logChlorinator;
+                _settings.logIntellichem = configFile.poolController.log.logIntellichem;
+                _settings.logPacketWrites = configFile.poolController.log.logPacketWrites;
+                _settings.logPumpTimers = configFile.poolController.log.logPumpTimers;
+                _settings.logApi = configFile.poolController.log.logApi;
 
-var displayIntroMsg = exports.displayIntroMsg = function() {
-    var introMsg;
-    introMsg = '\n*******************************';
-    introMsg += '\n poolController in brief (for full details, see README.md):';
-    introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
-    introMsg += '\n It will dynamically load as the information is parsed.  '
-    introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
-    introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
-    introMsg += '\n                  always: poolController pump controller will always start'
-    introMsg += '\n                  never: poolController pump controller will never start'
+                // Database
+                _settings.influxEnabled = configFile.poolController.database.influx.enabled;
+                _settings.influxHost = configFile.poolController.database.influx.host;
+                _settings.influxPort = configFile.poolController.database.influx.port;
+                _settings.influxDB = configFile.poolController.database.influx.database;
 
-    introMsg += '\n'
-    introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
-    introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
-    introMsg += '\n it will abort the packet and go to the next one.';
-    introMsg += '\n'
+                // Integrations
+                _settings.integrations = configFile.integrations;
 
-    introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-    introMsg += '\n Visit http://_your_machine_name_:3000 for a web interface '
-    introMsg += '*******************************\n'
-    return introMsg
+            })
+            .catch(function (err) {
+                console.log('Error in settings:', err)
+            })
+    }
+
+    var displayIntroMsg = function () {
+        var introMsg;
+        introMsg = '\n*******************************';
+        introMsg += '\n poolController in brief (for full details, see README.md):';
+        introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
+        introMsg += '\n It will dynamically load as the information is parsed.  '
+        introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
+        introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
+        introMsg += '\n                  always: poolController pump controller will always start'
+        introMsg += '\n                  never: poolController pump controller will never start'
+
+        introMsg += '\n'
+        introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
+        introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
+        introMsg += '\n it will abort the packet and go to the next one.';
+        introMsg += '\n'
+
+        introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
+        introMsg += '\n Visit http://_your_machine_name_:3000 for a web interface '
+        introMsg += '*******************************\n'
+        return introMsg
+    }
+
+    var displaySettingsMsg = function () {
+        var settingsStr;
+
+        settingsStr = '' // \n*******************************';
+        settingsStr += '\n Version: ' + _settings.appVersion;
+        settingsStr += '\n Config File: ' + _settings.configurationFile
+        settingsStr += '\n ';
+        settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
+        settingsStr += '\n var intellicom = ' + JSON.stringify(_settings.intellicom, null, 4);
+        settingsStr += '\n var intellitouch = ' + JSON.stringify(_settings.intellitouch, null, 4);
+        settingsStr += '\n var virtual = ' + JSON.stringify(_settings.virtual, null, 4);
+        settingsStr += '\n var controller.id = ' + JSON.stringify(_settings.controller.id, null, 4);
+        settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(_settings.circuitFriendlyNames, null, 4)
+        settingsStr += '\n'
+        settingsStr += '\n var chlorinator = ' + JSON.stringify(_settings.chlorinator, null, 4);
+        settingsStr += '\n'
+        settingsStr += '\n var pump = ' + JSON.stringify(_settings.pump, null, 4)
+        settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
+        settingsStr += '\n ';
+        settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
+        settingsStr += '\n var appAddress = ' + _settings.appAddress;
+        settingsStr += '\n //-------  WEB SETUP -----------';
+        settingsStr += '\n var expressPort = ' + _settings.expressPort;
+        settingsStr += '\n var expressTransport = ' + _settings.expressTransport;
+        settingsStr += '\n var expressAuth = ' + _settings.expressAuth;
+        settingsStr += '\n var expressAuthFile = ' + _settings.expressAuthFile;
+        settingsStr += '\n //-------  END MISC SETUP -----------';
+        settingsStr += '\n ';
+        settingsStr += '\n //-------  NETWORK SETUP -----------';
+        settingsStr += '\n // Setup for Network Connection (socat or nc)';
+        settingsStr += '\n var netConnect = ' + _settings.netConnect;
+        settingsStr += '\n var rs485Port = ' + _settings.rs485Port;
+        settingsStr += '\n var netHost = ' + _settings.netHost;
+        settingsStr += '\n var netPort = ' + _settings.netPort;
+        settingsStr += '\n var timeout = ' + _settings.inactivityRetry;
+        settingsStr += '\n //-------  END NETWORK SETUP -----------';
+        settingsStr += '\n ';
+        settingsStr += '\n //-------  LOG SETUP -----------';
+        settingsStr += '\n var logLevel = ' + _settings.logLevel;
+        settingsStr += '\n var socketLogLevel = ' + _settings.socketLogLevel;
+        settingsStr += '\n var fileLog = ' + JSON.stringify(_settings.fileLog);
+        settingsStr += '\n var logPumpMessages = ' + _settings.logPumpMessages;
+        settingsStr += '\n var logDuplicateMessages = ' + _settings.logDuplicateMessages;
+        settingsStr += '\n var logConsoleNotDecoded = ' + _settings.logConsoleNotDecoded;
+        settingsStr += '\n var logConfigMessages = ' + _settings.logConfigMessages;
+        settingsStr += '\n var logMessageDecoding = ' + _settings.logMessageDecoding;
+        settingsStr += '\n var logChlorinator = ' + _settings.logChlorinator;
+        settingsStr += '\n var logIntellichem = ' + _settings.logIntellichem;
+        settingsStr += '\n var logPacketWrites = ' + _settings.logPacketWrites;
+        settingsStr += '\n var logPumpTimers = ' + _settings.logPumpTimers;
+        settingsStr += '\n var logApi = ' + _settings.logApi;
+        settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
+        settingsStr += '\n ';
+        settingsStr += '\n //-------  DATABASE SETUP -----------';
+        settingsStr += '\n var influxEnabled = ' + _settings.influxEnabled;
+        settingsStr += '\n var influxHost = ' + _settings.influxHost;
+        settingsStr += '\n var influxPort = ' + _settings.influxPort;
+        settingsStr += '\n var influxDB = ' + _settings.influxDB;
+        settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
+        //settingsStr += '\n*******************************';
+        return settingsStr
+    }
+
+    /* istanbul ignore next */
+    if (container.logModuleLoading)
+        console.log('Loaded: settings.js')
+
+    return {
+        load: load,
+        get: get,
+        set: set,
+        displayIntroMsg: displayIntroMsg,
+        displaySettingsMsg: displaySettingsMsg
+    }
 }
-
-var displaySettingsMsg = exports.displaySettingsMsg = function() {
-    var settingsStr;
-
-    settingsStr = '' // \n*******************************';
-    settingsStr += '\n Version: ' + appVersion;
-    settingsStr += '\n Config File: ' + configurationFile
-    settingsStr += '\n ';
-    settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
-    settingsStr += '\n var intellicom = ' + JSON.stringify(intellicom, null, 4);
-    settingsStr += '\n var intellitouch = ' + JSON.stringify(intellitouch, null, 4);
-    settingsStr += '\n var virtual = ' + JSON.stringify(virtual, null, 4);
-    settingsStr += '\n var controller.id = ' + JSON.stringify(controller.id, null, 4);
-    settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(circuitFriendlyNames, null, 4)
-    settingsStr += '\n'
-    settingsStr += '\n var chlorinator = ' + JSON.stringify(chlorinator, null, 4);
-    settingsStr += '\n'
-    settingsStr += '\n var pump = ' + JSON.stringify(pump, null, 4)
-    settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
-    settingsStr += '\n ';
-    settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
-    settingsStr += '\n var appAddress = ' + appAddress;
-    settingsStr += '\n //-------  WEB SETUP -----------';
-    settingsStr += '\n var expressPort = ' + expressPort;
-    settingsStr += '\n var expressTransport = ' + expressTransport;
-    settingsStr += '\n var expressAuth = ' + expressAuth;
-    settingsStr += '\n var expressAuthFile = ' + expressAuthFile;
-    settingsStr += '\n //-------  END MISC SETUP -----------';
-    settingsStr += '\n ';
-    settingsStr += '\n //-------  NETWORK SETUP -----------';
-    settingsStr += '\n // Setup for Network Connection (socat or nc)';
-    settingsStr += '\n var netConnect = ' + netConnect;
-    settingsStr += '\n var rs485Port = ' + rs485Port;
-    settingsStr += '\n var netHost = ' + netHost;
-    settingsStr += '\n var netPort = ' + netPort;
-    settingsStr += '\n var timeout = ' + inactivityRetry;
-    settingsStr += '\n //-------  END NETWORK SETUP -----------';
-    settingsStr += '\n ';
-    settingsStr += '\n //-------  LOG SETUP -----------';
-    settingsStr += '\n var logLevel = ' + logLevel;
-    settingsStr += '\n var socketLogLevel = ' + socketLogLevel;
-    settingsStr += '\n var fileLog = ' + JSON.stringify(fileLog);
-    settingsStr += '\n var logPumpMessages = ' + logPumpMessages;
-    settingsStr += '\n var logDuplicateMessages = ' + logDuplicateMessages;
-    settingsStr += '\n var logConsoleNotDecoded = ' + logConsoleNotDecoded;
-    settingsStr += '\n var logConfigMessages = ' + logConfigMessages;
-    settingsStr += '\n var logMessageDecoding = ' + logMessageDecoding;
-    settingsStr += '\n var logChlorinator = ' + logChlorinator;
-    settingsStr += '\n var logIntellichem = ' + logIntellichem;
-    settingsStr += '\n var logPacketWrites = ' + logPacketWrites;
-    settingsStr += '\n var logPumpTimers = ' + logPumpTimers;
-    settingsStr += '\n var logApi = ' + logApi;
-    settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
-    settingsStr += '\n ';
-    settingsStr += '\n //-------  DATABASE SETUP -----------';
-    settingsStr += '\n var influxEnabled = ' + influxEnabled;
-    settingsStr += '\n var influxHost = ' + influxHost;
-    settingsStr += '\n var influxPort = ' + influxPort;
-    settingsStr += '\n var influxDB = ' + influxDB;
-    settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
-    //settingsStr += '\n*******************************';
-    return settingsStr
-}
-
-/* istanbul ignore next */
-if (bottle.container.logModuleLoading)
-    console.log('Loaded: settings.js')

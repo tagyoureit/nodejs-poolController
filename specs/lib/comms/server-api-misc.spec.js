@@ -1,35 +1,10 @@
-var URL = 'http://localhost:3000/'
-var sandbox;
-
-function requestPoolDataWithURL(endpoint) {
-    //console.log('pending - request sent for ' + endpoint)
-    return getAllPoolData(endpoint).then(
-        function(response) {
-            //  console.log('success - received data for %s request: %s', endpoint, JSON.stringify(response.body));
-            return response.body;
-        }
-    );
-};
-
-function getAllPoolData(endpoint) {
-    var options = {
-        method: 'GET',
-        uri: URL + endpoint,
-        resolveWithFullResponse: true,
-        json: true
-    };
-    return rp(options);
-};
-
-
 describe('server', function() {
     describe('#circuit api calls', function() {
 
         context('with a URL', function() {
 
             before(function() {
-                bottle.container.server.init()
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
             })
 
             beforeEach(function() {
@@ -52,8 +27,8 @@ describe('server', function() {
             })
 
             after(function() {
-                bottle.container.server.close()
-                bottle.container.logger.transports.console.level = 'info'
+
+                return global.stopAll()
             })
 
             it('sends a user provided pump packet', function(done) {
@@ -64,7 +39,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(global.pump1PowerOn_chk)
                 }).then(done,done)
             });
@@ -77,7 +52,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(global.schedules_chk[0])
                 }).then(done,done)
             });
@@ -90,7 +65,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(chlorPkt)
                 }).then(done,done)
             });

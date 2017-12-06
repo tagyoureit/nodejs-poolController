@@ -86,10 +86,10 @@ module.exports = function(container) {
 
 
         if (currentStatusBytes.length === 0) {
-            if (container.settings.logConfigMessages) logger.verbose('\n ', printStatus(data));
+            if (container.settings.get('logConfigMessages')) logger.verbose('\n ', printStatus(data));
         } else
 
-        if (container.settings.logConfigMessages) {
+        if (container.settings.get('logConfigMessages')) {
             logger.verbose('-->EQUIPMENT Msg# %s   \n', counter)
             logger.verbose('Msg# %s: \n', counter, printStatus(currentStatusBytes, data));
         }
@@ -166,13 +166,14 @@ module.exports = function(container) {
     //internal method to apply the friendly name
     var getCircuitFriendlyNames = function() {
         var useFriendlyName
+        var configFriendlyNames = container.settings.get('circuitFriendlyNames')
         for (var i = 1; i <= numberOfCircuits; i++) {
-            if (container.settings.circuitFriendlyNames[i] === "") {
+            if (configFriendlyNames[i] === "") {
                 useFriendlyName = false
             } else {
                 //for now, UI doesn't support renaming 'pool' or 'spa'.  Check for that here.
-                if ((currentCircuitArrObj[i].circuitFunction === "Spa" && container.settings.circuitFriendlyNames[i] !== "Spa") ||
-                    (currentCircuitArrObj[i].circuitFunction === "Pool" && container.settings.circuitFriendlyNames[i] !== "Pool")) {
+                if ((currentCircuitArrObj[i].circuitFunction === "Spa" && configFriendlyNames[i] !== "Spa") ||
+                    (currentCircuitArrObj[i].circuitFunction === "Pool" && configFriendlyNames[i] !== "Pool")) {
                     logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[i].circuitFunction)
                     useFriendlyName = false
                 } else {
@@ -180,7 +181,7 @@ module.exports = function(container) {
                 }
             }
             if (useFriendlyName) {
-                currentCircuitArrObj[i].friendlyName = container.settings.circuitFriendlyNames[i].toUpperCase()
+                currentCircuitArrObj[i].friendlyName = configFriendlyNames[i].toUpperCase()
             } else {
                 currentCircuitArrObj[i].friendlyName = currentCircuitArrObj[i].name
             }
@@ -245,7 +246,7 @@ module.exports = function(container) {
         if (!(results === "Nothing!" || currentCircuitArrObj[circuit].name === 'NOT USED')) {
             logger.verbose('Msg# %s   Circuit %s change:  %s', counter, circuit.name, results)
 
-            if (container.settings.logConfigMessages) {
+            if (container.settings.get('logConfigMessages')) {
 
                 if (circuit.status === undefined) {
                     logger.debug('Msg# %s  Circuit %s:   Name: %s  Function: %s  Status: (not received yet)  Freeze Protection: %s', counter, currentCircuitArrObj[circuit].number, currentCircuitArrObj[circuit].name, currentCircuitArrObj[circuit].circuitFunction, currentCircuitArrObj[circuit].freeze)
@@ -348,7 +349,7 @@ module.exports = function(container) {
             } else if (i === _delay) {
                 if (currentCircuitArrObj[i].delay === 0) {
                     // change in delay from 'no delay' to delay
-                    if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  No Delay --> Delay', counter, i)
+                    if (container.settings.get('logConfigMessages')) logger.info('Msg# %s   Delay for Circuit %s changed from :  No Delay --> Delay', counter, i)
                     currentCircuitArrObj[i].delay = 1
                     container.io.emitToClients('circuit')
                 }
@@ -356,7 +357,7 @@ module.exports = function(container) {
             } else if (i !== _delay) {
                 if (currentCircuitArrObj[i].delay === 1) {
                     // change in delay from delay to 'no delay'
-                    if (container.settings.logConfigMessages) logger.info('Msg# %s   Delay for Circuit %s changed from :  Delay --> No Delay', counter, i)
+                    if (container.settings.get('logConfigMessages')) logger.info('Msg# %s   Delay for Circuit %s changed from :  Delay --> No Delay', counter, i)
                     currentCircuitArrObj[i].delay = 0
                     container.io.emitToClients('circuit')
                 }
@@ -387,7 +388,7 @@ module.exports = function(container) {
                     //     logger.silly('Decode Case 2:   i: %s  j:  %s  j + (i * 8) + 1: %s   equip: %s', i, j, j + (i * 8) + 1, equip)
                     circuitArrObj[j + (i * 8) + 1] = {}
                     circuitArrObj[j + (i * 8) + 1].status = (equip & (1 << (j))) >> j ? 1 : 0
-                    if (container.settings.logConfigMessages) logger.silly('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, circuitArrObj[j + (i * 8) + 1].status)
+                    if (container.settings.get('logConfigMessages')) logger.silly('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, circuitArrObj[j + (i * 8) + 1].status)
                 }
             }
         }
@@ -406,7 +407,7 @@ module.exports = function(container) {
             for (i = 1; i <= numberOfCircuits; i++) {
                 if (currentCircuitArrObj[i].status === circuitArrObj[i].status) {
                     //nothing changed
-                    if (container.settings.logMessageDecoding) {
+                    if (container.settings.get('logMessageDecoding')) {
                         if (sendInitialBroadcast.haveCircuitNames) {
                             logger.silly('Msg# %s   NO change in circuit %s', counter, currentCircuitArrObj[i].name)
                         } else {
@@ -415,7 +416,7 @@ module.exports = function(container) {
                     }
                 } else {
 
-                    if (container.settings.logMessageDecoding) {
+                    if (container.settings.get('logMessageDecoding')) {
 
                         var results = "Status: " + statusToString(currentCircuitArrObj[i].status) + " --> " + statusToString(circuitArrObj[i].status)
                         if (sendInitialBroadcast.haveCircuitNames) {
@@ -454,7 +455,7 @@ module.exports = function(container) {
     function toggleCircuit(circuit, callback) {
         circuit = parseInt(circuit)
         var desiredStatus = currentCircuitArrObj[circuit].status === 1 ? 0 : 1;
-        var toggleCircuitPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 134, 2, circuit, desiredStatus];
+        var toggleCircuitPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 134, 2, circuit, desiredStatus];
         container.queuePacket.queuePacket(toggleCircuitPacket);
         var response = {}
         response.text = 'User request to toggle ' + currentCircuitArrObj[circuit].name + ' to '
@@ -473,7 +474,7 @@ module.exports = function(container) {
         circuit = parseInt(circuit)
         state = parseInt(state)
         var desiredStatus = state
-        var toggleCircuitPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 134, 2, circuit, desiredStatus];
+        var toggleCircuitPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 134, 2, circuit, desiredStatus];
         container.queuePacket.queuePacket(toggleCircuitPacket);
         var response = {}
         response.text = 'User request to set ' + currentCircuitArrObj[circuit].name + ' to '
@@ -508,7 +509,7 @@ module.exports = function(container) {
     }
 
     var setControllerLightGroup = function(_lightGroupPacketArr, counter) {
-        if (container.settings.logConfigMessages)
+        if (container.settings.get('logConfigMessages'))
             container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
 
         var _temp = {} //temporary object to hold light group/position assignments
@@ -533,7 +534,7 @@ module.exports = function(container) {
                 changed = 1
                 lightGroup[key].group = new Light(0, 'off', 0)
                 currentCircuitArrObj[key].light = new Light(0, 'off', 0)
-                if (container.settings.logConfigMessages)
+                if (container.settings.get('logConfigMessages'))
                     container.logger.verbose('Msg# %s  Light group deleted on circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
             } else
             if (_temp.hasOwnProperty(key)) {
@@ -545,11 +546,11 @@ module.exports = function(container) {
                     changed = 1
                     lightGroup[key].group = _temp[key].group
                     currentCircuitArrObj[key].light.group = _temp[key].group
-                    if (container.settings.logConfigMessages)
+                    if (container.settings.get('logConfigMessages'))
                         container.logger.verbose('Msg# %s  Light group added or changed for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
                 } else if (lightGroup[key].group !== _temp[key].group) {
                     // if it is the same, then no change
-                    if (container.settings.logConfigMessages)
+                    if (container.settings.get('logConfigMessages'))
                         container.logger.silly('Msg# %s  No change in light group for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, lightGroup[key])
                 }
             }
@@ -561,7 +562,7 @@ module.exports = function(container) {
     }
 
     function setDelayCancel(callback) {
-        var delayCancelPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 131, 1, 0];
+        var delayCancelPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 131, 1, 0];
         container.queuePacket.queuePacket(delayCancelPacket);
         var response = {}
         response.text = 'User request to cancel delay'

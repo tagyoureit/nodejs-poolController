@@ -42,7 +42,7 @@ module.exports = function(container) {
       packet[23] = data[23] //check bit l -- don't really care about this
       if (!container._.isEqual(packet, data)) {
         // something has changed
-        if (container.settings.logMessageDecoding)
+        if (container.settings.get('logMessageDecoding'))
           container.logger.warn('Msg# %s   Set %s: ***Something changed besides known packets***.  \n\tPacket: %s\n\tData: %s', counter, currentAction, packet, data)
       }
     }
@@ -58,11 +58,11 @@ module.exports = function(container) {
         pumpFriendlyName = 'None';
       }
 
-      if (container.settings.logMessageDecoding)
+      if (container.settings.get('logMessageDecoding'))
         container.logger.debug('Msg# %s   Set %s: Pump %s (%s) step size is %s RPM.  Packet: %s', counter, currentAction, pumpFriendlyName, pump, stepSize, data)
 
     } else { // no change
-      if (container.settings.logMessageDecoding)
+      if (container.settings.get('logMessageDecoding'))
         container.logger.silly('Msg# %s   No change in Set %s: Pump %s (%s) step size is %s.  Packet: %s', counter, currentAction, pumpFriendlyName, pump, stepSize, data)
     }
 

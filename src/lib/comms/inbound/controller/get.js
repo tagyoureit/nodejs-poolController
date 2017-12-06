@@ -25,7 +25,7 @@ module.exports = function(container) {
   function process(data, counter) {
 
 
-    if (container.settings.logMessageDecoding) {
+    if (container.settings.get('logMessageDecoding')) {
       var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
 
       container.logger.verbose('Msg# %s   Controller packet is a %s packet: %s', counter, currentAction, data)

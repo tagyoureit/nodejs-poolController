@@ -36,11 +36,11 @@ module.exports = function(container) {
         container.logger.debug('Starting up express server')
 
         // And Enable Authentication (if configured)
-        if (container.settings.expressAuth === 1) {
+        if (container.settings.get('expressAuth') === 1) {
 
             var auth = container.auth
             var basic = auth.basic({
-                file: path.join(process.cwd(), container.settings.expressAuthFile)
+                file: path.join(process.cwd(), container.settings.get('expressAuthFile'))
             });
             app.use(auth.connect(basic));
         } else {
@@ -50,7 +50,7 @@ module.exports = function(container) {
         }
 
         // Create Server (and set https options if https is selected)
-        if (container.settings.expressTransport === 'https') {
+        if (container.settings.get('expressTransport')=== 'https') {
             var opt_https = {
                 key: container.fs.readFileSync(path.join(process.cwd(), '/data/server.key')),
                 cert: container.fs.readFileSync(path.join(process.cwd(), '/data/server.crt')),
@@ -65,7 +65,7 @@ module.exports = function(container) {
         var customRoutes = require(path.join(process.cwd(), 'src/integrations/customExpressRoutes'))
         customRoutes.init(app)
 
-        server.listen(port, function logRes() {
+        server.listen(port, function () {
             container.logger.verbose('Express Server listening at port %d', port);
         });
 
@@ -201,6 +201,9 @@ module.exports = function(container) {
 
 
         app.get('/temperatures', function(req, res) {
+            res.send(container.temperatures.getTemperatures())
+        })
+        app.get('/temperature', function(req, res) {
             res.send(container.temperatures.getTemperatures())
         })
 
@@ -639,7 +642,7 @@ module.exports = function(container) {
 
         /* END Invalid pump commands -- sends response */
 
-
+    return
 
     }
     /*  END  Original pumpCommand API  */

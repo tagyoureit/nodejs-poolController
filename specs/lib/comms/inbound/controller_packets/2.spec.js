@@ -9,14 +9,15 @@ describe('processes 2 (Status) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                bottle.container.settings.logConfigMessages = 1
-                bottle.container.settings.logDuplicateMessages = 1
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
+                // bottle.container.settings.logConfigMessages = 1
+                // bottle.container.settings.logDuplicateMessages = 1
+                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
+                //clock = sandbox.useFakeTimers()
                 // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
 
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
@@ -24,6 +25,9 @@ describe('processes 2 (Status) packets', function() {
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
+                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
+
                 bottle.container.circuit.init()
             })
 
@@ -33,20 +37,44 @@ describe('processes 2 (Status) packets', function() {
             })
 
             after(function() {
-                bottle.container.circuit.init()
-                bottle.container.settings.logConfigMessages = 0
-                bottle.container.settings.logDuplicateMessages = 0
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
+                // bottle.container.circuit.init()
+                // bottle.container.settings.logConfigMessages = 0
+                // bottle.container.settings.logDuplicateMessages = 0
+                // bottle.container.logger.transports.console.level = 'info';
             })
 
-            it('#Processes a controller status packet', function() {
-                bottle.container.packetBuffer.push(data[0])
-                loggerSillyStub.args[5][3].should.equal(1) // circuit 6 is on.
-                bottle.container.packetBuffer.push(data[0])
-                loggerVerboseStub.args[1][0].should.contain('Duplicate broadcast.')
-
+            it('#Processes a controller status packet', function(done) {
+                Promise.resolve()
+                    .then(function(){
+                        return bottle.container.packetBuffer.push(data[0])
+                    })
+                    .delay(50)
+                    .then(
+                        function(){
+                            bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
+                            bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
+                        })
+                    .then(done, done)
             })
 
+            it('#Processes a Duplicate Broadcast controller status packet', function(done) {
+                Promise.resolve()
+                    .then(function(){
+                        return bottle.container.packetBuffer.push(data[0])
+                    })
+                    .then(function(){
+                        return bottle.container.packetBuffer.push(data[0])
+                    })
+                    .delay(50)
+                    .then(
+                        function(){
+                            bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
+                            bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
+                            loggerVerboseStub.args[1][0].should.contain('Duplicate broadcast.')
+                        })
+                    .then(done, done)
+            })
 
         })
     })

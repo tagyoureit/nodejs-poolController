@@ -26,12 +26,6 @@ module.exports = function(container) {
 
 
     var emitToClients = function(outputType, data) {
-        //container.logger.warn('EMIT: %s', outputType)
-
-        //This code move to the INTEGRATIONS folder
-        /*if (container.settings.ISYController) {
-            container.ISYHelper.emit(outputType)
-        }*/
 
         if (outputType === 'updateAvailable' || outputType === 'all') {
             var Promise = container.promise
@@ -53,9 +47,7 @@ module.exports = function(container) {
 
         if (outputType === 'one' || outputType === 'all') {
             var one = container.helpers.allEquipmentInOneJSON()
-            io.sockets.emit('one',
-                one
-            )
+            io.sockets.emit('one', one)
             io.sockets.emit('all', one)
         }
 
@@ -93,9 +85,7 @@ module.exports = function(container) {
 
         if (outputType === 'pump' || outputType === 'all') {
             var pumpStatus = container.pump.getCurrentPumpStatus()
-            io.sockets.emit('pump',
-                pumpStatus
-            )
+            io.sockets.emit('pump', pumpStatus)
         }
 
         if (outputType === 'heat' || outputType === 'all') {
@@ -150,20 +140,42 @@ module.exports = function(container) {
     var init = function() {
         //var Server = require('./server.js'),
         //var io = require('socket.io')(container.server.server);
+        ///stop()
         server = container.server.getServer()
         io = container.socket(server)
         socketList = [];
+        container.logger.verbose('Socket.IO server listening. ')
 
-        io.on('connection', function(socket){ //, error) {
+        io.on('error', function(err){
+            container.logger.error('Something went wrong with the Socket.IO server error.  ', err.message)
+            console.log(err)
+        })
+        io.on('connect_error', function(err){
+            container.logger.error('Something went wrong with the Socket.IO server connect_error.  ', err.message)
+            console.log(err)
+        })
+        io.on('reconnect_failed', function(err){
+            container.logger.error('Something went wrong with the Socket.IO server reconnect_failed.  ', err.message)
+            console.log(err)
+        })
+
+        io.on('connection', function(socket){
             socketList.push(socket);
             // socket.emit('socket_is_connected', 'You are connected!');
-            socket.once('close', function() {
-                container.logger.debug('socket closed');
-                socketList.splice(socketList.indexOf(socket), 1);
+            socket.on('error', function() {
+                container.logger.error('Error with socket: ', error)
+            })
+
+            socket.on('close', function(myid) {
+                for (var i=0; i<socketList.length; i++){
+                    if (socketList[i].id===myid){
+                        container.logger.debug('socket closed');
+                        socketList[i].disconnect();
+                        socketList.splice(socketList[i], 1);
+                    }
+                }
+
             });
-            // socket.on('error', function() {
-            //     container.logger.error('Error with socket: ', error)
-            // })
 
             socket.on('echo', function(msg) {
                 socket.emit('echo', msg)
@@ -232,7 +244,7 @@ module.exports = function(container) {
 
                     if (incomingPacket[packet][0] === 16 && incomingPacket[packet][1] === container.constants.ctrl.CHLORINATOR) {
                         sendPacket = incomingPacket[packet]
-                        if (container.settings.logApi) container.logger.silly('packet (chlorinator) now: ', packet)
+                        if (container.settings.get('logApi')) container.logger.silly('packet (chlorinator) now: ', packet)
                     } else {
                         if (incomingPacket[packet][0] === 96 || incomingPacket[packet][0] === 97 || incomingPacket[packet][1] === 96 || incomingPacket[packet][1] === 97)
                         //if a message to the pumps, use 165,0
@@ -574,6 +586,9 @@ module.exports = function(container) {
 
             emitToClients('all')
         });
+
+
+
     }
 
     var stop = function() {
@@ -589,7 +604,10 @@ module.exports = function(container) {
             container.logger.silly('socket removed:', removed.id)
         }
         container.logger.silly('All sockets removed from connection')
-        io.close();
+        if (io) {
+            io.close();
+        }
+        io = undefined
         container.logger.debug('Socket IO Server closed')
     }
 
@@ -597,7 +615,7 @@ module.exports = function(container) {
 
     var emitDebugLog = function(msg) {
         //console.log('EMITTING DEBUG LOG: %s', msg)
-        io.sockets.emit('outputLog', msg)
+        emitToClients('outputLog', msg)
     }
 
     /*istanbul ignore next */
@@ -605,7 +623,7 @@ module.exports = function(container) {
         container.logger.info('Loaded: socketio-helper.js')
 
     return {
-        io: io,
+        //io: io,
         init: init,
         stop: stop,
         emitToClients: emitToClients,

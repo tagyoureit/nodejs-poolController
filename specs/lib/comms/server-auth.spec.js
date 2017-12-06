@@ -13,14 +13,11 @@ describe('server', function() {
             before(function() {
 
                 //stop the express server and restart with authentication
-                bottle.container.settings.expressAuth = 1
-                bottle.container.settings.expressAuthFile = '/specs/assets/server/users.htpasswd'
-                bottle.container.settings.expressDir = '/bootstrap'
-                bottle.container.settings.logReload = 1
-                // bottle.container.server.close()
-                bottle.container.server.init()
-                bottle.container.logger.transports.console.level = 'silly';
-
+                bottle.container.settings.set('expressAuth', 1)
+                bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
+                bottle.container.settings.set('expressDir', '/bootstrap')
+                bottle.container.settings.set('logReload', 1)
+                return global.initAll()
             })
 
             beforeEach(function() {
@@ -37,13 +34,11 @@ describe('server', function() {
             })
 
             after(function() {
-                //stop the express server and restart without authentication
-                bottle.container.settings.expressAuth = 0
-                bottle.container.settings.expressAuthFile = ''
-                bottle.container.server.close()
-                bottle.container.logger.transports.console.level = 'info';
-                bottle.container.settings.logReload = 0
-                // bottle.container.server.init()
+                // set express server to restart without authentication
+                bottle.container.settings.set('expressAuth', 0)
+                bottle.container.settings.set('expressAuthFile', '')
+                bottle.container.settings.set('logReload', 0)
+                return global.stopAll()
             })
 
             it('fails with no authorization provided', function(done) {
@@ -127,10 +122,10 @@ describe('server', function() {
             before(function() {
                 protocol = 'https://'
                 //stop the express server and restart with authentication
-                bottle.container.settings.expressAuth = 0
-                bottle.container.settings.expressAuthFile = '/specs/assets/server/users.htpasswd'
-                bottle.container.settings.expressDir = '/bootstrap'
-                bottle.container.settings.expressTransport = 'https'
+                bottle.container.settings.set('expressAuth', 0)
+                bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
+                bottle.container.settings.set('expressDir', '/bootstrap')
+                bottle.container.settings.set('expressTransport', 'https')
                 // bottle.container.server.close()
 
                 bottle.container.logger.transports.console.level = 'silly';
@@ -153,12 +148,13 @@ describe('server', function() {
 
             after(function() {
                 //stop the express server and restart without authentication
-                bottle.container.settings.expressAuth = 0
-                bottle.container.settings.expressAuthFile = ''
-                bottle.container.server.close()
-                bottle.container.logger.transports.console.level = 'info';
-                bottle.container.settings.expressTransport = 'http'
+                bottle.container.settings.set('expressAuth', 0)
+                bottle.container.settings.set('expressAuthFile', '')
+                // bottle.container.server.close()
+                // bottle.container.logger.transports.console.level = 'info';
+                bottle.container.settings.set('expressTransport', 'http')
                 // bottle.container.server.init()
+                return global.stopAll()
             })
 
 

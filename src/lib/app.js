@@ -18,12 +18,36 @@ bottle.service('fs', function() {
     return require('fs')
 })
 
+//ETC
+bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
+bottle.factory('settings', require(__dirname + '/../etc/settings.js'))
+// bottle.middleware(function(settings, next){
+//     //Object.getOwnPropertyNames(bottle.container.settings)
+//     console.log('Settings was accessed!')
+//     console.log('next', next.toString())
+//     next();
+// })
+
+bottle.factory('configEditor', require(__dirname + '/helpers/config-editor.js'))
+bottle.factory('constants', require(__dirname + '/../etc/constants.js'))
+
+//LOGGER
+bottle.factory('dateFormat', function() {
+    return require('dateformat')
+}) //for log formatting
+bottle.factory('util', function() {
+    return require('util')
+})
+bottle.factory('winston', function() {
+    return require('winston')
+})
+bottle.factory('logger', require(__dirname + '/logger/winston-helper.js'))
+bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
+
 //API
 bottle.constant('apiSearch', require(__dirname + '/api/api-search.js'))
 
-//ETC
-bottle.constant('settings', require(__dirname + '/../etc/settings.js'))
-bottle.factory('constants', require(__dirname + '/../etc/constants.js'))
+
 
 //INTEGRATIONS
 bottle.factory('integrations', function() {
@@ -78,8 +102,6 @@ bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
-bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
-bottle.factory('configEditor', require(__dirname + '/helpers/config-editor.js'))
 
 
 //COMMS/INBOUND
@@ -152,31 +174,25 @@ bottle.factory('schedule', require(__dirname + '/equipment/schedule.js'))
 bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js'))
 bottle.factory('intellichem', require(__dirname + '/equipment/intellichem.js'))
 
-//LOGGER
-bottle.factory('dateFormat', function() {
-    return require('dateformat')
-}) //for log formatting
-bottle.factory('util', function() {
-    return require('util')
-})
-bottle.factory('winston', function() {
-    return require('winston')
-})
-bottle.factory('logger', require(__dirname + '/logger/winston-helper.js'))
-bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 
 var init = exports.init = function() {
     //Call the modules to initialize them
+    Promise = bottle.container.promise
     return Promise.resolve()
-        .then(bottle.container.settings.load)
+        .delay(50)
         .then(function(){
+            return bottle.container.settings.load()
+        })
+
+        .then(function(){
+
             bottle.container.server.init()
             bottle.container.io.init()
+            bottle.container.winstonToIO.init()
             bottle.container.sp.init()
 
 
             bottle.container.logger.info('initializing logger')
-            bottle.container.winstonToIO.init()
             bottle.container.bootstrapConfigEditor.init()
             bottle.container.integrations.init()
 
@@ -200,7 +216,6 @@ var init = exports.init = function() {
             bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
             bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
 
-            bottle.container.configEditor.init()
 
             //logic if we start the virtual pump/chlorinator controller is in the function
             bottle.container.pumpControllerTimers.startPumpController()
@@ -209,6 +224,10 @@ var init = exports.init = function() {
             bottle.container.helpers
 
         })
+        .catch(function(err){
+            console.log('Error with initialization:', err)
+        })
+
 
 }
 

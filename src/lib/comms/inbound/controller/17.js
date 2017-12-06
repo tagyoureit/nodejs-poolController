@@ -30,7 +30,7 @@ module.exports = function(container) {
 
         container.schedule.addScheduleDetails(data[container.constants.schedulePacketBytes.ID], data[container.constants.schedulePacketBytes.CIRCUIT], data[container.constants.schedulePacketBytes.DAYS], data[container.constants.schedulePacketBytes.TIME1], data[container.constants.schedulePacketBytes.TIME2], data[container.constants.schedulePacketBytes.TIME3], data[container.constants.schedulePacketBytes.TIME4], data, counter)
 
-        if (container.settings.logConfigMessages)
+        if (container.settings.get('logConfigMessages'))
             container.logger.silly('\nMsg# %s  Schedule packet %s', counter, JSON.stringify(data))
 
         var decoded = true;

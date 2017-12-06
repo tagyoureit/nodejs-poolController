@@ -3,11 +3,12 @@ describe('chlorinator controller', function() {
     describe('#startChlorinatorController starts the timer for 1 or 2 chlorinators', function() {
 
         before(function() {
-            bottle.container.settings.virtual.chlorinatorController = "default"
-            bottle.container.settings.chlorinator.installed = 1
-            bottle.container.settings.logChlorinator = 1
-            bottle.container.settings.intellitouch.installed = 0
-            bottle.container.settings.intellicom.installed = 0
+            return global.initAll()
+            // bottle.container.settings.virtual.chlorinatorController = "default"
+            // bottle.container.settings.chlorinator.installed = 1
+            // bottle.container.settings.logChlorinator = 1
+            // bottle.container.settings.intellitouch.installed = 0
+            // bottle.container.settings.intellicom.installed = 0
 
         });
 
@@ -33,11 +34,11 @@ describe('chlorinator controller', function() {
         })
 
         after(function() {
-            bottle.container.settings.virtual.chlorinatorController = "default"
-            bottle.container.settings.intellitouch.installed = 1
-            bottle.container.settings.intellicom = 0
-            bottle.container.settings.logChlorinator = 0
-
+            // bottle.container.settings.virtual.chlorinatorController = "default"
+            // bottle.container.settings.intellitouch.installed = 1
+            // bottle.container.settings.intellicom = 0
+            // bottle.container.settings.logChlorinator = 0
+            return global.stopAll()
         })
 
         it('sets chlorinator timer to run after 4 seconds at 0%', function() {

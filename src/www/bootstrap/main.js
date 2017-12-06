@@ -678,10 +678,6 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
 
 // Function to configure communications sockets receive handling -> not called until clientConfig.json available (i.e. configuration complete)
 function startSocketRx() {
-
-    socket.on('all', function(data){
-        console.log('ALLLLL', data)
-    })
     socket.on('circuit', function(data) {
         if (data.hasOwnProperty('circuit')){
             data = data.circuit

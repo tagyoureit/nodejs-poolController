@@ -32,7 +32,7 @@ module.exports = function(container) {
     var valveBFriendlyName = container.circuit.getFriendlyName(data[11])
 
 
-    if (container.settings.logMessageDecoding)
+    if (container.settings.get('logMessageDecoding'))
       container.logger.debug('Msg#: %s  Valves status.  Valve B --> %s (%s)  Full packet: %s', counter, valveBFriendlyName, valveBName, data);
 
     return true

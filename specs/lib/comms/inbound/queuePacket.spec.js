@@ -1,29 +1,26 @@
 describe('decodeHelper processes controller packets', function() {
     var pumpPacket = [165, 0, 96, 16, 6, 1, 10],
         chlorinatorPacket = [16, 2, 80, 20, 0],
-        controllerPacket = [165, 99, 16, 34, 134, 2, 9, 0]
+        controllerPacket = [165, 99, 16, 34, 134, 2, 9, 0],
+        heaterPacket = [ 165, 33, 16, 33, 136, 4, 70, 91, 1, 0 ]
 
 
 
     describe('#When queueing packets', function() {
         context('with write queue active = false (should write packets)', function() {
             before(function() {
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logPacketWrites = 1
-                bottle.container.settings.logConsoleNotDecoded = 1
-                bottle.container.queuePacket.init()
-                bottle.container.writePacket.init()
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
+                loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+                loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
 
                 queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
@@ -43,10 +40,7 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             after(function() {
-                bottle.container.settings.logPacketWrites = 0
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logConsoleNotDecoded = 0
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
             })
 
             it('#queuePacket should try to write a chlorinator packet with checksum', function(done) {
@@ -54,12 +48,12 @@ describe('decodeHelper processes controller packets', function() {
                     .then(function(){
                         return bottle.container.queuePacket.queuePacket(chlorinatorPacket)
                     })
+                    .delay(25)
                     .then(function(){
-                        return bottle.container.queuePacket.first().should.deep.eq([16, 2, 80, 20, 0, 118, 16, 3])
-                    })
-                    .then(function(){
+                        bottle.container.queuePacket.first().should.deep.eq([16, 2, 80, 20, 0, 118, 16, 3])
                         return bottle.container.queuePacket.eject()
                     })
+
                     .then(done,done)
 
             })
@@ -79,6 +73,16 @@ describe('decodeHelper processes controller packets', function() {
                 bottle.container.queuePacket.eject()
 
             })
+
+            it('#queuePacket should try to write a heat packet with checksum that will trigger a get temperature', function() {
+                bottle.container.queuePacket.queuePacket(heaterPacket)
+                //console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
+                bottle.container.queuePacket.first().should.deep.eq([255, 0, 255, 165, 33, 16, 33, 136, 4, 70, 91, 1, 0, 2, 37])
+                bottle.container.queuePacket.eject()
+                loggerErrorStub.callCount.should.eq(0)
+                console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
+
+            })
         })
     })
 
@@ -91,11 +95,8 @@ describe('decodeHelper processes controller packets', function() {
                 controllerPacket = [165, 99, 16, 34, 134, 2, 9, 0]
             before(function() {
 
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logPacketWrites = 1
-                bottle.container.settings.logConsoleNotDecoded = 1
-                bottle.container.settings.netConnect = 0 //serial port, and not net connect
-                bottle.container.logger.transports.console.level = 'silly';
+                bottle.container.settings.set('netConnect', 0) //serial port, and not net connect
+                return global.initAll()
             });
 
             beforeEach(function() {
@@ -111,7 +112,7 @@ describe('decodeHelper processes controller packets', function() {
                 queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 //writeQueueActiveStub = sandbox.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
-                //writeNetPacketStub = sandbox.spy(bottle.container.sp, 'writeNET')
+                writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
 
                 bottle.container.queuePacket.queuePacketsArrLength = 0
@@ -125,10 +126,7 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             after(function() {
-                bottle.container.settings.logPacketWrites = 0
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logConsoleNotDecoded = 0
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
             })
 
             it('#queuePacket should try to abort the write after 10 tries', function() {

@@ -171,7 +171,7 @@ module.exports = function(container) {
         currentSchedule[id] = schedule
         container.io.emitToClients('schedule')
       } else {
-        if (container.settings.logConfigMessages)
+        if (container.settings.get('logConfigMessages'))
           logger.debug('Msg# %s:  Schedule %s has not changed.', counter, id)
       }
     }
@@ -189,14 +189,14 @@ module.exports = function(container) {
 
   var getControllerScheduleByID = function(id) {
     container.logger.verbose('Queueing packet to retrieve schedule by id %s', id)
-    container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, id]);
+    container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 209, 1, id]);
   }
 
   var getControllerScheduleAll = function() {
     //get schedules
     for (var i = 1; i <= numberOfSchedules; i++) {
 
-      container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
+      container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 209, 1, i]);
     }
   }
 
@@ -216,7 +216,7 @@ module.exports = function(container) {
 
       container.logger.info(scheduleStr)
 
-      container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 145, 7, id, circuit, starthh, startmm, endhh, endmm, days]);
+      container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 145, 7, id, circuit, starthh, startmm, endhh, endmm, days]);
       getControllerScheduleAll()
     } else {
       container.logger.warn('Aborting Queue set schedule packet with an invalid value: ', id, circuit, starthh, startmm, endhh, endmm, days + 128)
@@ -231,7 +231,7 @@ module.exports = function(container) {
     for (var i = 0; i <= numberOfSchedules; i++) {
       if (currentSchedule.CIRCUIT === circuit) {
         container.logger.verbose('Queueing packet to retrieve schedule %s by circuit id %s', i, circuit)
-        container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 209, 1, i]);
+        container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 209, 1, i]);
       }
     }
   }
@@ -262,7 +262,7 @@ module.exports = function(container) {
     var new_days = currentSchedule[id].BYTES[container.constants.schedulePacketBytes.DAYS]
     new_days = new_days ^= dayIndex
 
-    if (container.settings.logApi)
+    if (container.settings.get('logApi'))
       container.logger.info("Schedule change requested for %s (id:%s). Toggle Day(s) %s: \n\tFrom: %s \n\tTo: %s", currentSchedule[id].friendlyName, id, day, dayStr(old_days), dayStr(new_days))
     setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
       currentSchedule[id].BYTES[container.constants.schedulePacketBytes.CIRCUIT], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],
@@ -274,7 +274,7 @@ module.exports = function(container) {
     // this function will take a schedule ID set the start or end time.
     // time should be sent in 24hr format.  EG 4:01pm = 16, 1
 
-    if (container.settings.logApi)
+    if (container.settings.get('logApi'))
       container.logger.info("Schedule change requested for %s (id:%s). Set %s time to %s:%s", currentSchedule[id].friendlyName, id, startOrEnd, hour, min)
 
     if (startOrEnd === 'start') {
@@ -293,7 +293,7 @@ module.exports = function(container) {
     // this function will take a schedule ID set the circuit and duration.
     // time should be sent in 24hr format.  EG 4:01pm = 16, 1
 
-    if (container.settings.logApi)
+    if (container.settings.get('logApi'))
       container.logger.info("Egg Timer change requested for %s (id:%s). Set %s duration to %s hours, %s minutes", currentSchedule[id].friendlyName, id, hour, min)
 
       setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
@@ -305,7 +305,7 @@ module.exports = function(container) {
     // this function will take a schedule ID and change the circuit
 
 
-    if (container.settings.logApi)
+    if (container.settings.get('logApi'))
       container.logger.info("Schedule change requested for %s (id:%s). Change circuit to: %s", currentSchedule[id].CIRCUIT, id, container.circuit.getFriendlyName(circuit))
     setControllerSchedule(currentSchedule[id].BYTES[container.constants.schedulePacketBytes.ID],
       circuit, currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME1], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME2], currentSchedule[id].BYTES[container.constants.schedulePacketBytes.TIME3],

@@ -28,8 +28,8 @@ module.exports = function(container) {
         return isRunning
     }
 
-    function chlorinatorStatusCheck() {
 
+    function chlorinatorStatusCheck() {
         var desiredChlorinatorOutput = container.chlorinator.getDesiredChlorinatorOutput() === -1 ? 0 : container.chlorinator.getDesiredChlorinatorOutput();
 
         if (desiredChlorinatorOutput >= 0 && desiredChlorinatorOutput <= 101) {
@@ -41,11 +41,11 @@ module.exports = function(container) {
                 clearTimeout(chlorinatorTimer)
 
             //if 0, then only check every 30 mins; else resend the packet every 4 seconds as a keep-alive
-            if (desiredChlorinatorOutput === 0) {
-                chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 30 * 1000) //30 minutes
-            } else {
-                chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000) // every 4 seconds
-            }
+            recheckTime = desiredChlorinatorOutput === 0?30:4
+            if (container.settings.get('logChlorinator'))
+                container.logger.silly('Checking chlorinator status every %s minutes on a timer.', recheckTime)
+            chlorinatorTimer = setTimeout(chlorinatorStatusCheck, recheckTime * 1000) //30 minutes
+
             isRunning = 1
             return true
         } else {
@@ -63,15 +63,15 @@ module.exports = function(container) {
     }
 
     function startChlorinatorController() {
-        if (container.settings.chlorinator.installed) {
-            if (container.settings.virtual.chlorinatorController === 'always' || !(container.settings.intellicom.installed || container.settings.intellitouch.installed)) {
-                if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller starting.')
+        if (container.settings.get('chlorinator.installed')) {
+            if (container.settings.get('virtual.chlorinatorController') === 'always' || !(container.settings.get('intellicom.installed') || container.settings.get('intellitouch.installed'))) {
+                if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller starting.')
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
             } else {
-                if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller not starting because it is set to default and another controller (Intellitouch/Intellicom) is present.')
+                if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is set to default and another controller (Intellitouch/Intellicom) is present.')
             }
         } else {
-            if (container.settings.logChlorinator) container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
+            if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
         }
 
         return true

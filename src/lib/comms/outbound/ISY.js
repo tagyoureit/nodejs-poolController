@@ -21,7 +21,7 @@
 module.exports = function(container) {
 
     var logger = container.logger
-    var ISYConfig = container.settings.ISYConfig
+    var ISYConfig = container.settings.get('ISYConfig')
     var ISYTimer //= new container.nanotimer
 
     //var ISYConfig; //object to hold ISY variables.

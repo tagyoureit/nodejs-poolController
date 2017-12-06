@@ -105,7 +105,7 @@ module.exports = function(container) {
             container.io.emitToClients('time')
             time.controllerTime = timeStr;
         } else {
-            if (container.settings.logConfigMessages) container.logger.debug('No change in time.')
+            if (container.settings.get('logConfigMessages')) container.logger.debug('No change in time.')
         }
 
     }
@@ -113,7 +113,7 @@ module.exports = function(container) {
     var setDateTime = function(hour, min, dayofweek, day, month, year, autodst, callback) {
         setControllerDate(dayofweek, day, month, year, autodst)
         setControllerTime(hour, min)
-        var setDateTimePacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, 133, 8, hour, min, dayofweek, day, month, year, 0, autodst];
+        var setDateTimePacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 133, 8, hour, min, dayofweek, day, month, year, 0, autodst];
         container.queuePacket.queuePacket(setDateTimePacket);
         var response = {}
         response.text = 'User request to set date and time to '

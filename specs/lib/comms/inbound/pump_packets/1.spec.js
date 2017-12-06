@@ -11,9 +11,10 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                bottle.container.settings.logMessageDecoding = 1
-                bottle.container.settings.logPumpMessages = 1
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
+                // bottle.container.settings.logMessageDecoding = 1
+                // bottle.container.settings.logPumpMessages = 1
+                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
@@ -36,10 +37,11 @@ describe('processes 17 (Schedule) packets', function() {
             })
 
             after(function() {
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logPumpMessages = 0
-                bottle.container.pump.init()
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
+                // bottle.container.settings.logMessageDecoding = 0
+                // bottle.container.settings.logPumpMessages = 0
+                // bottle.container.pump.init()
+                // bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#Pump 1 Program 1 should be set to 490', function() {

@@ -21,7 +21,6 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: (pump)2.js')
 
-    var s = container.settings
     var logger = container.logger
 
     function process(pumpStatus, data) {

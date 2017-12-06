@@ -3,11 +3,8 @@ describe('pump controller', function() {
     describe('#startPumpController starts the timer for 1 or 2 pumps', function() {
 
         before(function() {
-            bottle.container.logger.transports.console.level = 'silly';
-            bottle.container.settings.logApi = 1
-            bottle.container.settings.logPumpTimers = 1
-            bottle.container.settings.intellitouch.installed = 0
-            bottle.container.settings.intellicom.installed = 0
+            return global.initAll()
+
 
         })
 
@@ -33,18 +30,14 @@ describe('pump controller', function() {
         })
 
         after(function() {
-            bottle.container.logger.transports.console.level = 'info';
-            bottle.container.settings.logApi = 0
-            bottle.container.settings.logPumpTimers = 0
-            bottle.container.settings.intellitouch.installed = 1
-            bottle.container.settings.intellicom.installed = 0
+            return global.stopAll()
         })
 
         it('starts pump 1 timer to check for status every 30 seconds', function() {
             this.timeout(5000)
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(1)
 
-            bottle.container.settings.virtual.pumpController = 'always' //TODO: add test for 'default' and 'never'
+            bottle.container.settings.set('virtual.pumpController', 'always') //TODO: add test for 'default' and 'never'
             bottle.container.pumpControllerTimers.startPumpController()
 
             clock.tick(29 * 1000)
@@ -72,7 +65,8 @@ describe('pump controller', function() {
         it('starts pump 1 & 2 timers to check for status every 30 seconds', function() {
             this.timeout(5000)
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(2)
-            bottle.container.settings.virtual.pumpController = 'always' //TODO: add test for 'default' and 'never'
+            bottle.container.settings.set('virtual.pumpController','always')
+            //TODO: add test for 'default' and 'never'
 
             bottle.container.pumpControllerTimers.startPumpController()
 
@@ -101,18 +95,18 @@ describe('pump controller', function() {
 
         it('does not start virtual.pumpController with never setting', function() {
 
-            bottle.container.settings.virtual.pumpController = 'never'
+            bottle.container.settings.set('virtual.pumpController','never')
             bottle.container.pumpControllerTimers.startPumpController()
 
             clock.tick(10 * 1000)
             setPumpRemoteStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
-            bottle.container.settings.virtual.pumpController = 'default'
+            bottle.container.settings.set('virtual.pumpController', 'default')
         });
 
         it('starts pump 1 & 2 timers to check for status every 30 seconds with virtual.pumpController set to always', function() {
-            bottle.container.settings.virtual.pumpController = 'always'
-            bottle.container.settings.intellitouch.installed = 1
+            bottle.container.settings.set('virtual.pumpController', 'always')
+            bottle.container.settings.set('intellitouch.installed', 1)
             numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(2)
 
 
@@ -144,8 +138,8 @@ describe('pump controller', function() {
             requestPumpStatusStub.callCount.should.eq(22)
             requestPumpStatusStub.args[2][0].should.eq(96)
             requestPumpStatusStub.args[3][0].should.eq(97)
-            bottle.container.settings.virtual.pumpController = 'default'
-            bottle.container.settings.intellitouch.installed = 0
+            bottle.container.settings.set('virtual.pumpController', 'default')
+            bottle.container.settings.set('intellitouch.installed', 0)
         });
 
         it('runs pump 1 at 1000 rpm for 5 minute', function() {

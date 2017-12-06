@@ -28,7 +28,7 @@ module.exports = function(container) {
     currentSchedule = container.currentSchedule
     customNameArr = container.circuit.customNameArr
     c = container.constants
-    s = container.settings
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -39,7 +39,7 @@ module.exports = function(container) {
     return {
         process: function(data, counter) {
             //Software/Bootloader Revision
-            if (s.logConfigMessages) {
+            if (container.settings.get('logConfigMessages')) {
                 logger.info('Controller Bootloader Revision: %s  Full Packet: %s', data[11] + '.' + data[12] + data[13], JSON.stringify(data))
             }
             var decoded = true

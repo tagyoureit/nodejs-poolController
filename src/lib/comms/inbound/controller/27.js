@@ -189,7 +189,7 @@ module.exports = function(container) {
   function process(data, counter) {
 
 
-    if (container.settings.logPumpMessages)
+    if (container.settings.get('logPumpMessages'))
       container.logger.debug('Msg# %s   Pump Config (Extended) status packet: %s', counter, data)
 
 

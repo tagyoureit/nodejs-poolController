@@ -100,10 +100,10 @@ module.exports = function(container) {
 
 
         if (currentStatusBytes.length === 0) {
-            if (container.settings.logConfigMessages) container.logger.verbose('\n ', printStatus(data));
+            if (container.settings.get('logConfigMessages')) container.logger.verbose('\n ', printStatus(data));
         } else
         if (data !== currentStatusBytes) {
-            if (container.settings.logConfigMessages) {
+            if (container.settings.get('logConfigMessages')) {
                 container.logger.verbose('-->EQUIPMENT Msg# %s   \n', counter)
                 container.logger.verbose('Msg# %s: \n', counter, printStatus(currentStatusBytes, data));
             }

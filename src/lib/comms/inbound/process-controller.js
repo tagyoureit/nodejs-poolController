@@ -212,11 +212,11 @@ module.exports = function(container) {
 
           var currentAction = container.constants.strControllerActions[data[container.constants.packetFields.ACTION]]
           if (currentAction !== undefined) {
-            if (container.settings.logConsoleNotDecoded)
+            if (container.settings.get('logConsoleNotDecoded'))
               container.logger.verbose('Msg# %s   Controller packet is known to be a %s packet: %s', counter, currentAction, data)
             decoded = true
           } else {
-            if (container.settings.logConsoleNotDecoded)
+            if (container.settings.get('logConsoleNotDecoded'))
               container.logger.verbose('Msg# %s  Identifier %s is NOT DEFINED and NOT DECODED packet: %s', counter, data[3], data)
             decoded = true
 

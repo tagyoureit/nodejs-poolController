@@ -5,8 +5,7 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function() {
 
             before(function() {
-
-                global.initAll()
+                return global.initAll()
             });
 
             beforeEach(function() {
@@ -16,7 +15,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                bottle.container.pump.init()
+                // bottle.container.pump.init()
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
                 socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
@@ -25,25 +24,21 @@ describe('receives packets from buffer and follows them to decoding', function()
                 writeQueueActiveStub = sandbox.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
                 writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
-                bottle.container.queuePacket.queuePacketsArrLength = 0
-                bottle.container.temperatures.init()
+                // bottle.container.queuePacket.queuePacketsArrLength = 0
+
 
             })
 
             afterEach(function() {
-
+                bottle.container.temperatures.init()
                 bottle.container.pump.init()
-                bottle.container.queuePacket.queuePacketsArrLength = 0
-                bottle.container.queuePacket.eject()
+                bottle.container.queuePacket.init()
                 sandbox.restore()
 
             })
 
             after(function() {
-                bottle.container.settings.logMessageDecoding = 0
-                bottle.container.settings.logConfigMessages = 0
-                bottle.container.logger.transports.console.level = 'info'
-                bottle.container.server.close()
+                return global.stopAll()
             })
 
 
@@ -54,16 +49,15 @@ describe('receives packets from buffer and follows them to decoding', function()
                         configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
                         bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(0)
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
-                        client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                        client.on('temperature', function(data) {
-                            data.temperature.poolTemp.should.eq(53)
-                        })
+
                     })
-                    .delay(50)
                     .then(function(){
-                        bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(53)
-                        client.disconnect()
+                        return global.waitForSocketResponse('temperature')
                     })
+                    .then(function(data){
+                        data.temperature.poolTemp.should.eq(53)
+                        bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(53)
+                     })
                     .then(done,done)
             })
 

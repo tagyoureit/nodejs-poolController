@@ -34,12 +34,12 @@ module.exports = function(container) {
         return Promise.resolve()
             .then(function() {
                 return
-                    if (!container.settings.pump.standalone) {
+                    if (!container.settings.get('pump').standalone) {
                         //only clear timers if we go from 1 or 2 pumps to 0 pumps
                         container.pumpControllerTimers.clearTimer(1)
                         container.pumpControllerTimers.clearTimer(2)
                     }
-                if (!container.settings.chlorinator.standalone) {
+                if (!container.settings.get('chlorinator').standalone) {
                     container.chlorinatorController.clearTimer()
                 }
             })
@@ -83,13 +83,13 @@ module.exports = function(container) {
           container.logger.warn('Settings: ', container.settings.displaySettingsMsg())
           container.sp.init()
 
-          if (container.settings.pump.standalone && !container.settings.intellicom.installed && !container.settings.intellitouch.installed) {
+          if (container.settings.get('pump.standalone') && !container.settings.get('intellicom.installed') && !container.settings.get('intellitouch.installed')) {
               container.pumpControllerTimers.startPumpController()
           }
-          if (container.settings.chlorinator.standalone) {
+          if (container.settings.get('chlorinator.standalone')) {
               container.chlorinatorController.startChlorinatorController()
           }
-          if (container.settings.intellitouch.installed) {
+          if (container.settings.get('intellitouch.installed')) {
               container.intellitouch.getControllerConfiguration()
           }
 

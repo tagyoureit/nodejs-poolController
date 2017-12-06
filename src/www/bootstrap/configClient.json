@@ -19,10 +19,10 @@
             "state": "visible"
         },
         "schedule": {
-            "state": "hidden"
+            "state": "visible"
         },
         "eggtimer": {
-            "state": "hidden"
+            "state": "visible"
         },
         "debug": {
             "state": "visible"

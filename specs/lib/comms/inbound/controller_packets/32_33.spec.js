@@ -12,9 +12,10 @@ describe('processes 32_33 (Spa Side Remotes) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        bottle.container.settings.logMessageDecoding = 1
-        bottle.container.settings.logConfigMessages = 1
-        bottle.container.logger.transports.console.level = 'silly';
+        return global.initAll()
+        // bottle.container.settings.logMessageDecoding = 1
+        // bottle.container.settings.logConfigMessages = 1
+        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -22,10 +23,13 @@ describe('processes 32_33 (Spa Side Remotes) packets', function() {
         clock = sandbox.useFakeTimers()
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+          loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+          loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+          loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+          loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+          writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
+          writeNETPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
+          controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
       })
 
@@ -35,9 +39,10 @@ describe('processes 32_33 (Spa Side Remotes) packets', function() {
       })
 
       after(function() {
-        bottle.container.settings.logMessageDecoding = 0
-        bottle.container.settings.logConfigMessages = 0
-        bottle.container.logger.transports.console.level = 'info';
+        return global.stopAll()
+        // bottle.container.settings.logMessageDecoding = 0
+        // bottle.container.settings.logConfigMessages = 0
+        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Spa side remote is4/is10/Quicktouch', function() {

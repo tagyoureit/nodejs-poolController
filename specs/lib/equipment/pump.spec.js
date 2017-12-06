@@ -7,12 +7,8 @@ var fs = require('fs'),
 Promise.promisifyAll(fs)
 
 describe('pump controller', function() {
-
-
-
     before(function() {
-        bottle.container.logger.transports.console.level = 'silly';
-        bottle.container.logPumpMessages = 1
+        return global.initAll()
     });
 
     beforeEach(function() {
@@ -31,8 +27,7 @@ describe('pump controller', function() {
     })
 
     after(function() {
-        bottle.container.logger.transports.console.level = 'info'
-        bottle.container.logPumpMessages = 0
+        return global.stopAll()
     })
 
     it('initializes the pump variables', function() {
@@ -43,7 +38,7 @@ describe('pump controller', function() {
             })
             .then(function(config) {
 
-                bottle.container.settings.pump = config.equipment.pump;
+                bottle.container.settings.set('pump',config.equipment.pump);
                 bottle.container.pump.init()
                 var pumpStatus = bottle.container.pump.getCurrentPumpStatus().pump
                 pumpStatus[1].externalProgram[2].should.eq(2500)
@@ -59,7 +54,7 @@ describe('pump controller', function() {
             })
             .then(function(config) {
 
-                bottle.container.settings.pump = config.equipment.pump;
+                bottle.container.settings.set('pump', config.equipment.pump);
                 bottle.container.pump.init()
 
                 var pumpStatus = bottle.container.pump.getCurrentPumpStatus().pump

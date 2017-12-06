@@ -9,8 +9,9 @@ describe('processes 17 (Schedule) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        bottle.container.settings.logConfigMessages = 1
-        bottle.container.logger.transports.console.level = 'silly';
+        return global.initAll()
+        // bottle.container.settings.logConfigMessages = 1
+        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -23,6 +24,7 @@ describe('processes 17 (Schedule) packets', function() {
         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
         bottle.container.schedule.init()
       })
 
@@ -32,8 +34,9 @@ describe('processes 17 (Schedule) packets', function() {
       })
 
       after(function() {
-        bottle.container.settings.logConfigMessages = 0
-        bottle.container.logger.transports.console.level = 'info';
+        return global.stopAll()
+        // bottle.container.settings.logConfigMessages = 0
+        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Schedule 1 should have ID:1 START_TIME:9:25', function() {

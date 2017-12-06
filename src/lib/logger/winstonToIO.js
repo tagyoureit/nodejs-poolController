@@ -38,7 +38,7 @@ module.exports = function() {
         util.inherits(winstonToIO, winston.Transport)
 
         var winstonToIOOptions = {
-            level: bottle.container.settings.socketLogLevel,
+            level: bottle.container.settings.get('socketLogLevel'),
             customFormatter: function(level, message, meta) {
                 // Return string will be passed to logger.
                 return dateFormat(Date.now(), "HH:MM:ss.l") + ' ' + level.toUpperCase() + ' ' + (undefined !== message ? message.split('\n').join('<br \>') : '') +

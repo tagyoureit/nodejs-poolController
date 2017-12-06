@@ -32,10 +32,10 @@ module.exports = function(container) {
 
     if ((data[6] >> 7) !== pumpOffDuringValveOperation || pumpOffDuringValveOperation === -1) {
       pumpOffDuringValveOperation = data[6] >> 7
-      if (container.settings.logMessageDecoding)
+      if (container.settings.get('logMessageDecoding'))
         container.logger.debug('Msg#: %s  Delay Status packet. pumpOffDuringValveOperation: %s  Full packet: %s', counter, pumpOffDuringValveOperation===1?'on':'off', data);
     } else {
-        if (container.settings.logMessageDecoding)
+        if (container.settings.get('logMessageDecoding'))
           container.logger.debug('Msg#: %s  Delay Status packet, but something unknown changed.  Full packet: %s', counter, data);
 
     }

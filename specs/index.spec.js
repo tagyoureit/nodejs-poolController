@@ -11,12 +11,10 @@ describe('nodejs-poolController', function() {
 
       before(function() {
           return bottle.container.settings.load()
-              .then(function(){
-                  bottle.container.server.init()
-                  bottle.container.io.init()
-              })
+              // .then(global.initAll)
 
-          bottle.container.logger.transports.console.level = 'silly';
+
+          //bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -36,10 +34,11 @@ describe('nodejs-poolController', function() {
       })
 
       after(function() {
-          bottle.container.time.init()
-          bottle.container.configEditor.init()
-          bottle.container.server.close()
-          bottle.container.logger.transports.console.level = 'info';
+            //return global.stopAll()
+          // bottle.container.time.init()
+          // bottle.container.configEditor.init()
+          // bottle.container.server.close()
+          // bottle.container.logger.transports.console.level = 'info';
       })
 
         it('#loads a valid file', function() {

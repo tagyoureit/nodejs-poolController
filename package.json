@@ -38,7 +38,7 @@
   "dependencies": {
     "bluebird": "^3.5.0",
     "bootstrap": "^3.3.7",
-    "bottlejs": "^1.6.1",
+    "bottlejs": "^1.6.2",
     "dateformat": "^2.0.0",
     "dequeue": "^1.0.5",
     "express": "^4.15.3",
@@ -52,7 +52,7 @@
     "request-promise": "^4.2.1",
     "serialport": "^4.0.7",
     "socket.io": "^2.0.4",
-    "socket.io-client": "^2.0.2",
+    "socket.io-client": "^2.0.4",
     "underscore": "^1.8.3",
     "winston": "^2.2.0"
   },
@@ -69,7 +69,7 @@
     "request-promise": "^4.2.2",
     "sinon": "^4.1.2",
     "snyk": "^1.33.0",
-    "socket.io-client": "^2.0.3"
+    "socket.io-client": "^2.0.4"
   },
   "snyk": true
 }

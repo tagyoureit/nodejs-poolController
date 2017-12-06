@@ -26,7 +26,7 @@ module.exports = function(container) {
 
     var init =function() {
       controllerSettings = {
-        'appAddress': container.settings.appAddress,
+        'appAddress': container.settings.get('appAddress'),
         'needConfiguration': 1, //variable to let the program know we need the configuration from the Intellitouch
         'preambleByte': -1 //variable to hold the 2nd preamble byte... it used to by 10 for me.  Now it is 16.  Very strange.  So here is a variable to find it.
     }
@@ -84,7 +84,7 @@ module.exports = function(container) {
     function checkIfNeedControllerConfiguration() {
        if (controllerSettings.needConfiguration) {
 
-           if (container.settings.intellitouch.installed) // ONLY check the configuration if the controller is Intellitouch (address 16)
+           if (container.settings.get('intellitouch.installed')) // ONLY check the configuration if the controller is Intellitouch (address 16)
            {
                if (controllerSettings.preambleByte !== -1) {
 
@@ -94,7 +94,7 @@ module.exports = function(container) {
 
            } else {
 
-               if (container.settings.intellicom.installed) {
+               if (container.settings.get('get')('intellicom.installed')) {
                    container.logger.info('IntellicomII Controller installed.  No configuration request messages sent.')
                } else {
                    container.logger.info('No pool controller (Intellitouch or IntelliComII) detected.  No configuration request messages sent.')

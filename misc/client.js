@@ -1,4 +1,3 @@
-var fields = ['pump', 'watts','rpm', 'airTemp', 'run', 'poolTemp', 'spaTemp', 'poolHeatMode', 'spaHeatMode', 'runmode', 'HEATER_ACTIVE'];
 var io = require('socket.io-client');
 var socket = io.connect('http://localhost:3000', {secure: false, reconnect: true, rejectUnauthorized : false});
 
@@ -8,26 +7,17 @@ var socket = io.connect('http://localhost:3000', {secure: false, reconnect: true
 //});
 
 socket.on('circuit', function(data){
-  console.log('FROM SOCKET CLIENT: ' + data)
+    console.log('"Circuit" socket example.  Count of circuits: ' + Object.keys(data.circuit).length)
 })
 
 // Listen for circuit data, then exit ...
 socket.on('pump', function (data) {
-    console.log(data);
-    if (Object.keys(data).length > 0) {
-        for (var key in fields) {
-            currData = data[fields[key]];
-            if (typeof(currData) === 'string')
-                currData = currData.toLowerCase();
-            console.log('FROM SOCKET CLIENT: ' + currData);
-        }
-        //process.exit();
-    }
+    console.log('"Pump" socket data example. ')
 });
 
 socket.on('all', function(data){
-    console.log('all data', data)
+    console.log('"All" socket data... ')
 })
 setInterval(function(){
-    console.log('waiting...')
-}, 1000)
+    console.log('waiting... (5 seconds)')
+}, 5000)

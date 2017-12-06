@@ -48,8 +48,8 @@ module.exports = function(container) {
                   status.poolHeatMode2 = c.heatModeStr[data[c.controllerStatusPacketFields.UNKNOWN] & 3]; //mask the data[6] with 0011
                   status.spaHeatMode2 = c.heatModeStr[(data[c.controllerStatusPacketFields.UNKNOWN] & 12) >> 2]; //mask the data[6] with 1100 and shift right two places
 
-                                                              //mask the data[6] with 0011                           mask the data[6] with 1100 and shift right two places
-                  container.heat.setHeatModeFromController(data[c.controllerStatusPacketFields.HEATER_MODE]&3, (data[c.controllerStatusPacketFields.HEATER_MODE] & 12) >> 2)
+                                                              //mask the data[6] with 0011                            shift right two places for 1100 mask (11xx-->11)
+                  container.heat.setHeatModeFromController(data[c.controllerStatusPacketFields.HEATER_MODE]&3, data[c.controllerStatusPacketFields.HEATER_MODE] >> 2)
                   container.valves.setValves(data)
 
                   status.runmode = c.strRunMode[data[c.controllerStatusPacketFields.UOM] & 129]; // more here?
@@ -69,7 +69,7 @@ module.exports = function(container) {
                   //container.io.emitToClients('circuit')
 
               } else {
-                  if (container.settings.logDuplicateMessages)
+                  if (container.settings.get('logDuplicateMessages'))
                       logger.verbose('Msg# %s   Duplicate broadcast.', counter)
               }
 

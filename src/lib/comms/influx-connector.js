@@ -22,15 +22,15 @@ module.exports = function(container) {
 
   var Influx = require('influx')
   var conn = {
-    host: container.settings.influxHost,
-    port: container.settings.influxPort,
-    database: container.settings.influxDB
+    host: container.settings.get('influxHost'),
+    port: container.settings.get('influxPort'),
+    database: container.settings.get('influxDB')
   }
 
   var influx = new Influx.InfluxDB(conn)
 
   var writeChlorinator = function(data) {
-    if (container.settings.influxEnabled) {
+    if (container.settings.get('influxEnabled')) {
       if (data.name !== -'-1') {
         influx.writePoints([{
             measurement: 'chlorinator',
@@ -61,7 +61,7 @@ module.exports = function(container) {
 
   //write individual circuit data
   var writeCircuit = function(data) {
-    if (container.settings.influxEnabled) {
+    if (container.settings.get('influxEnabled')) {
       var data_array = []
 
 
@@ -103,7 +103,7 @@ module.exports = function(container) {
 
   //write individual pump data
   function writePumpData(data) {
-    if (container.settings.influxEnabled) {
+    if (container.settings.get('influxEnabled')) {
       var data_array = []
       for (var key in data) {
         if (typeof(data[key].rpm) === 'number') {
@@ -141,7 +141,7 @@ module.exports = function(container) {
 
 
   function writeTemperatureData(data) {
-    if (container.settings.influxEnabled) {
+    if (container.settings.get('influxEnabled')) {
       influx.writePoints([{
           'measurement': 'temperatures',
           'tags': {

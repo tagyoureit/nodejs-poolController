@@ -9,9 +9,10 @@ describe('processes 8 (Heat mode/set point) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        bottle.container.settings.logConfigMessages = 1
-        bottle.container.settings.logMessageDecoding = 1
-        bottle.container.logger.transports.console.level = 'silly';
+        return global.initAll()
+        // bottle.container.settings.logConfigMessages = 1
+        // bottle.container.settings.logMessageDecoding = 1
+        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -33,9 +34,10 @@ describe('processes 8 (Heat mode/set point) packets', function() {
       })
 
       after(function() {
-        bottle.container.settings.logConfigMessages = 0
-        bottle.container.settings.logMessageDecoding = 0
-        bottle.container.logger.transports.console.level = 'info';
+        return global.stopAll()
+        // bottle.container.settings.logConfigMessages = 0
+        // bottle.container.settings.logMessageDecoding = 0
+        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Pool set point should be Solar Only @ 89 degrees', function() {

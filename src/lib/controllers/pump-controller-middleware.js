@@ -207,7 +207,7 @@ module.exports = function(container) {
     if (address > -1 && validProgram(program)) {
       //set program packet
       if (validSpeed(index, speed)) {
-        if (container.settings.logApi) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM/GPM', index, address, program, speed);
+        if (container.settings.get('logApi')) container.logger.verbose('User request to save pump %s (address %s) to Program %s as %s RPM/GPM', index, address, program, speed);
 
         container.pumpController.setPumpToRemoteControl(address)
         container.pumpController.saveProgramOnPump(address, program, speed)
@@ -217,7 +217,7 @@ module.exports = function(container) {
         return true
 
       } else {
-        if (container.settings.logApi) container.logger.warn('FAIL: RPM/GPM provided (%s) is outside of tolerances.', speed)
+        if (container.settings.get('logApi')) container.logger.warn('FAIL: RPM/GPM provided (%s) is outside of tolerances.', speed)
         return false
       }
     }
@@ -229,7 +229,7 @@ module.exports = function(container) {
   function pumpCommandSaveAndRunProgramWithValueForDuration(index, program, rpm, duration) {
     var address = pumpIndexToAddress(index)
     if (address > -1) {
-      if (container.settings.logApi) container.logger.verbose('Request to set pump %s (address: %s) to Program %s @ %s RPM for %s minutes', index, address, program, rpm, duration);
+      if (container.settings.get('logApi')) container.logger.verbose('Request to set pump %s (address: %s) to Program %s @ %s RPM for %s minutes', index, address, program, rpm, duration);
       pumpCommandSaveProgram(index, program, rpm)
       container.pumpControllerTimers.startProgramTimer(index, program, duration)
       return true

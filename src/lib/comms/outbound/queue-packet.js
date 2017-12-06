@@ -27,12 +27,13 @@ module.exports = function(container) {
   var queuePacketsArr = []; //array to hold messages to send
 
   function init(){
-      if (container.settings.logPacketWrites) container.logger.silly('Resetting queuepackets array')
+      if (container.settings.get('logPacketWrites')) container.logger.silly('Resetting queuepackets array')
       queuePacketsArr = []
   }
 
   function queuePacket(message, callback) {
-    if (container.settings.logPacketWrites) container.logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
+    var logPacketWrites = container.settings.get('logPacketWrites')
+    if (logPacketWrites) container.logger.debug('queuePacket: Adding checksum and validating packet to be written %s', message)
 
     var response = {}
 
@@ -60,7 +61,7 @@ module.exports = function(container) {
       Array.prototype.push.apply(packet, message);
 
       //if we request to "SET" a variable on the HEAT STATUS & TIME
-      if ((packet[7] === 136 || packet[7] === 133) && container.settings.intellitouch.installed) {
+      if ((packet[7] === 136 || packet[7] === 133) && container.settings.get('intellitouch.installed')) {
         requestGet = 1;
       }
     }
@@ -106,19 +107,19 @@ module.exports = function(container) {
       // changes to support 16 pumps
       // if (packet[container.constants.packetFields.DEST + 3] === 96 || packet[container.constants.packetFields.DEST + 3] === 97) {
       if (packet[container.constants.packetFields.DEST + 3] >= container.constants.ctrl.PUMP1 && packet[container.constants.packetFields.DEST + 3] <= container.constants.ctrl.PUMP16) {
-        if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Pump Message \'%s\' to send: %s', container.constants.strPumpActions[packet[container.constants.packetFields.ACTION + 3]], packet)
+        if (logPacketWrites) container.logger.verbose('Just Queued Pump Message \'%s\' to send: %s', container.constants.strPumpActions[packet[container.constants.packetFields.ACTION + 3]], packet)
         response.text = 'Pump packet queued: ' + packet
         response.status = 'ok'
       }
       //chlorinator
       else if (packet[0] === 16) {
-        if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Chlorinator Message \'%s\' to send: %s', container.constants.strChlorinatorActions[packet[3]], packet)
+        if (logPacketWrites) container.logger.verbose('Just Queued Chlorinator Message \'%s\' to send: %s', container.constants.strChlorinatorActions[packet[3]], packet)
         response.text = 'Chlorinator packet queued: ' + packet
         response.status = 'ok'
       }
       //controller packet
       else {
-        if (container.settings.logPacketWrites) container.logger.verbose('Just Queued Message \'%s\' to send: %s', container.constants.strControllerActions[packet[container.constants.packetFields.ACTION + 3]], packet)
+        if (logPacketWrites) container.logger.verbose('Just Queued Message \'%s\' to send: %s', container.constants.strControllerActions[packet[container.constants.packetFields.ACTION + 3]], packet)
         response.text = 'Controller packet queued: ' + packet
         response.status = 'ok'
       }
@@ -129,15 +130,15 @@ module.exports = function(container) {
 
     if (requestGet) {
       //request the GET version of the SET packet
-      var getPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.appAddress, packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
-      if (container.settings.logPacketWrites) container.logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
+      var getPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
+      if (logPacketWrites) container.logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
       queuePacket(getPacket);
 
       //var statusPacket = [165, preambleByte, 16, 34, 194, 1, 0]
       //container.logger.debug('Queueing messages to retrieve \'%s\'', container.constants.strControllerActions[statusPacket[container.constants.packetFields.ACTION]])
       //queuePacket(statusPacket);
     }
-    if (container.settings.logPacketWrites) container.logger.silly('queuePacket: Message: %s now has checksum added: %s', message, packet)
+    if (logPacketWrites) container.logger.silly('queuePacket: Message: %s now has checksum added: %s', message, packet)
 
     //if length > 0 then we will loop through from isResponse
     if (!container.writePacket.isWriteQueueActive())
@@ -171,7 +172,7 @@ module.exports = function(container) {
   function eject() {
     if (queuePacketsArr.length > 0) {
       ejected = queuePacketsArr.shift();
-        if (container.settings.logPacketWrites) container.logger.silly('queuePacket.eject: Removed %s from queuePacketsArr. Length of remaining queue: %s ', ejected, queuePacketsArr.length)
+        if (container.settings.get('logPacketWrites')) container.logger.silly('queuePacket.eject: Removed %s from queuePacketsArr. Length of remaining queue: %s ', ejected, queuePacketsArr.length)
 
     }
   }

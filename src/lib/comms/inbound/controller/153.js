@@ -23,8 +23,8 @@ module.exports = function(container) {
         container.logger.info('Loading: 153.js')
 
     var logger = container.logger
-    var c = container.constants
-    var s = container.settings
+
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -33,7 +33,7 @@ module.exports = function(container) {
     return {
         process: function(data, counter) {
 
-            if (s.logChlorinator)
+            if (container.settings.get('logChlorinator'))
                 logger.info('Msg# %s   Set Intellichlor packet: %s', counter, data)
             var decoded = true;
             return decoded

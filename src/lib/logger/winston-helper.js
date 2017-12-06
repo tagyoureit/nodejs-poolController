@@ -41,17 +41,16 @@ module.exports = function(container) {
                         (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
                 },
                 colorize: true,
-                level: container.settings.logLevel,
+                level: container.settings.get('logLevel'),
                 stderrLevels: []
             })
         ]
     });
 
-    if (container.settings.fileLog.enable === 1) {
+    if (container.settings.get('fileLog').enable === 1) {
         var path = require('path').posix
-        var _level = container.settings.fileLog.fileLogLevel
-        var file = path.join(process.cwd(), container.settings.fileLog.fileName)
-        console.log('file', file)
+        var _level = container.settings.get('fileLog.fileLogLevel')
+        var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
 
         var options = {
             timestamp: function() {

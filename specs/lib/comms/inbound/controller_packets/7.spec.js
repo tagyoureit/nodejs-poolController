@@ -10,8 +10,9 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                bottle.container.settings.logConfigMessages = 1
-                bottle.container.logger.transports.console.level = 'silly';
+                return global.initAll()
+                // bottle.container.settings.logConfigMessages = 1
+                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
@@ -33,9 +34,10 @@ describe('processes 17 (Schedule) packets', function() {
             })
 
             after(function() {
-                bottle.container.pump.init()
-                bottle.container.settings.logConfigMessages = 0
-                bottle.container.logger.transports.console.level = 'info';
+                return global.stopAll()
+                // bottle.container.pump.init()
+                // bottle.container.settings.logConfigMessages = 0
+                // bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#Pump 1 and 2 status should be logged', function() {

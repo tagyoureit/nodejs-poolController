@@ -5,12 +5,11 @@ describe('pump controller - save speed (1/2)', function() {
 
 
         before(function() {
-            bottle.container.logApi = 1
-            sandbox = sinon.sandbox.create()
-            bottle.container.logger.transports.console.level = 'silly';
+            return global.initAll()
         });
 
         beforeEach(function() {
+            sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
@@ -32,8 +31,9 @@ describe('pump controller - save speed (1/2)', function() {
         })
 
         after(function() {
-            bottle.container.logApi = 0
-            bottle.container.logger.transports.console.level = 'info';
+            // bottle.container.logApi = 0
+            // bottle.container.logger.transports.console.level = 'info';
+            return global.stopAll()
         })
 
 
