@@ -16,13 +16,13 @@ describe('chlorinator controller', function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
 
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+            //queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
         })
 

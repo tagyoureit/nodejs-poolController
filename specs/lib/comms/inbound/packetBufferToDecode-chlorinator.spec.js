@@ -6,13 +6,6 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
 
             before(function() {
                 return global.initAll()
-
-                // bottle.container.settings.logChlorinator = 1
-                // bottle.container.settings.logPumpMessages = 1
-                // bottle.container.settings.intellitouch.installed = 0
-                // bottle.container.server.init()
-                // bottle.container.io.init()
-                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
@@ -20,7 +13,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                 sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -46,12 +39,6 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
 
             after(function() {
                 return global.stopAll()
-
-                // bottle.container.settings.logChlorinator = 0
-                // bottle.container.settings.logPumpMessages = 0
-                // bottle.container.logger.transports.console.level = 'info'
-                // bottle.container.settings.intellitouch.installed = 1
-                // bottle.container.server.close()
             })
 
             it('#decodes status messages received from Intellichlor', function(done) {

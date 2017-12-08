@@ -9,37 +9,42 @@ describe('nodejs-poolController', function() {
 
     describe('Loads/checks for a valid configuration file', function() {
 
-      before(function() {
-          return bottle.container.settings.load()
-              // .then(global.initAll)
+        before(function() {
+            return bottle.container.settings.load()
+                .then(function(){
+                    //bottle.container.logger.init()
+                    return global.initAll()
+                })
+
+        })
 
 
-          //bottle.container.logger.transports.console.level = 'silly';
-      });
+        beforeEach(function() {
+            sandbox = sinon.sandbox.create()
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+            loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+            updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
 
-      beforeEach(function() {
-          sandbox = sinon.sandbox.create()
-          loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-          loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-          loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-          loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-          loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-          updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+        })
 
-      })
+        afterEach(function() {
+            //restore the sandbox after each function
+            sandbox.restore()
+        })
 
-      afterEach(function() {
-          //restore the sandbox after each function
-          sandbox.restore()
-      })
+        after(function() {
+            return global.stopAll()
+        })
 
-      after(function() {
-            //return global.stopAll()
-          // bottle.container.time.init()
-          // bottle.container.configEditor.init()
-          // bottle.container.server.close()
-          // bottle.container.logger.transports.console.level = 'info';
-      })
+        it('#should load logger', function() {
+
+            bottle.container.logger.should.exist
+
+        })
 
         it('#loads a valid file', function() {
             var processStub = sinon.stub(process, 'exit')
@@ -49,11 +54,6 @@ describe('nodejs-poolController', function() {
 
         it('#bottle should exist', function() {
             bottle.should.exist
-
-        })
-
-        it('#should load logger', function() {
-            bottle.container.logger.should.exist
 
         })
 
@@ -74,11 +74,15 @@ describe('nodejs-poolController', function() {
             //
             // })
 
-                bottle.container.configEditor.init('/specs/assets/config/config.OUTDATED.json')
-                    .then(function(){
-                        return bottle.container.settings.load()
-                    })
-                    .then(done,done)
+            bottle.container.configEditor.init('/specs/assets/config/templates/config.OUTDATED.json')
+                .then(function(){
+                    return bottle.container.settings.load()
+                })
+                //TODO: this should catch an error
+                .catch(function(err){
+                    console.log('err', err.msg)
+                })
+                .then(done,done)
         })
 
         it('#loads/checks all instances of variables to store state', function() {
@@ -97,12 +101,13 @@ describe('nodejs-poolController', function() {
         })
 
         it('#loads/checks helper functions', function() {
+            bottle.container.logger.init()
             bottle.container.winstonToIO.init()
             bottle.container.helpers
             bottle.container.integrations.init()
-            bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
-            bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
         })
+
+
 
     })
 

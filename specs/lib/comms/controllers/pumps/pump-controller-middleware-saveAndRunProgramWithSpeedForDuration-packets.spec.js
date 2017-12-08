@@ -1,3 +1,4 @@
+//TODO: clean up global promises, fs, io...
 var fs = require('fs'),
     // fsio = require('promised-io/fs'),
     path = require('path').posix,
@@ -9,42 +10,45 @@ describe('pump controller - save and run program with speed for duration', funct
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return global.initAll()
-                .then(function(){
 
-                fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
-                    .then(function(pumpVS) {
-                        return JSON.parse(pumpVS)
-                    })
-                    .then(function(parsed) {
-                        bottle.container.settings.set('pump', parsed)
-                        return bottle.container.pump.init()
-                    })
-                    .catch(function(err) {
-                        /* istanbul ignore next */
-                        console.log('oops, we hit an error', err)
-                    })
-            })
+
+            // fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+            //     .then(function(pumpVS) {
+            //         return JSON.parse(pumpVS)
+            //     })
+            //     .then(function(parsed) {
+            //         bottle.container.settings.set('pump', parsed)
+            //         return bottle.container.pump.init()
+            //     })
+            //     .then(global.initAll)
+            //     .catch(function(err) {
+            //         /* istanbul ignore next */
+            //         console.log('oops, we hit an error', err)
+            //     })
+            return global.initAll(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
 
         });
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            endPumpCommandStub = sandbox.stub()
-            emitToClientsStub = sandbox.stub(bottle.container.io.emit)
+            loggerInfostub = sandbox.stub(bottle.container.logger, 'info')
+
+            loggerVerbosestub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugstub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillystub = sandbox.stub(bottle.container.logger, 'silly')
+
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+            loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+            //endPumpCommandStub = sandbox.stub()
+            //emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+            //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
         })
 
         afterEach(function() {
 
-                    return sandbox.restore()
+            return sandbox.restore()
 
         })
 
@@ -79,8 +83,6 @@ describe('pump controller - save and run program with speed for duration', funct
             queuePacketStub.callCount:  9
 
             */
-            // console.log('logger 1: ', loggerInfoStub.args)
-            //  console.log('run 1: ', queuePacketStub.args)
             queuePacketStub.callCount.should.eq(7)
             queuePacketStub.args[0][0].should.deep.equal(global.pump1RemotePacket)
             queuePacketStub.args[1][0].should.deep.equal(global.pump1SetProgram1RPM1000Packet)
@@ -96,7 +98,6 @@ describe('pump controller - save and run program with speed for duration', funct
         });
 
         it('runs pump 1 program 2 at 500 rpm for 60 minutes', function() {
-
             var index = 1
             var program = 2
             var speed = 500

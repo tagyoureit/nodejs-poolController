@@ -12,7 +12,7 @@ describe('server', function() {
                 clock = sandbox.useFakeTimers()
                 sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')

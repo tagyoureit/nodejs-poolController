@@ -27,21 +27,15 @@ describe('pump controller - save and run program with flow for duration', functi
                         })
 
                 })
-
-            // bottle.container.logApi = 1
-            //
-            // bottle.container.logger.transports.console.level = 'silly';
-
-
         });
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
             loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()
@@ -55,15 +49,13 @@ describe('pump controller - save and run program with flow for duration', functi
         })
 
         afterEach(function() {
-            // bottle.container.pump.init()
-            return global.stopAll()
+            bottle.container.pump.init()
             //restore the sandbox after each function
             sandbox.restore()
         })
 
         after(function() {
-            bottle.container.logApi = 0
-            bottle.container.logger.transports.console.level = 'info';
+            return global.stopAll()
         })
 
 

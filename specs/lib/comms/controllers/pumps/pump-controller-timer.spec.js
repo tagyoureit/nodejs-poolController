@@ -13,7 +13,7 @@ describe('pump controller', function() {
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             clock = sandbox.useFakeTimers()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -94,6 +94,8 @@ describe('pump controller', function() {
         });
 
         it('does not start virtual.pumpController with never setting', function() {
+            loggerWarnStub.restore()
+            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
 
             bottle.container.settings.set('virtual.pumpController','never')
             bottle.container.pumpControllerTimers.startPumpController()
@@ -101,6 +103,8 @@ describe('pump controller', function() {
             clock.tick(10 * 1000)
             setPumpRemoteStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
+            loggerWarnStub.callCount.should.eq(1)
+
             bottle.container.settings.set('virtual.pumpController', 'default')
         });
 

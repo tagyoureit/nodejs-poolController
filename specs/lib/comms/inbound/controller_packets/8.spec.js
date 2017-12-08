@@ -10,9 +10,6 @@ describe('processes 8 (Heat mode/set point) packets', function() {
 
       before(function() {
         return global.initAll()
-        // bottle.container.settings.logConfigMessages = 1
-        // bottle.container.settings.logMessageDecoding = 1
-        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -21,10 +18,11 @@ describe('processes 8 (Heat mode/set point) packets', function() {
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         //circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
+        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
         bottle.container.heat.init()
       })
 
@@ -35,13 +33,12 @@ describe('processes 8 (Heat mode/set point) packets', function() {
 
       after(function() {
         return global.stopAll()
-        // bottle.container.settings.logConfigMessages = 0
-        // bottle.container.settings.logMessageDecoding = 0
-        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Pool set point should be Solar Only @ 89 degrees', function() {
-        bottle.container.packetBuffer.push(data[0])
+
+
+          bottle.container.packetBuffer.push(data[0])
         clock.tick(1000)
         var json = bottle.container.temperatures.getTemperatures().temperature
         //console.log('json for heat: ', JSON.stringify(json,null,2))

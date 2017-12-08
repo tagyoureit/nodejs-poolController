@@ -20,11 +20,13 @@ module.exports = function(container) {
     var logger = container.logger
     var sp
     var connectionTimer;
+    var useMockBinding = false
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')
 
     function init(timeOut) {
+        useMockBinding = false
         if (connectionTimer!==null) {
             clearTimeout(connectionTimer)
         }
@@ -36,8 +38,8 @@ module.exports = function(container) {
                 }
                 var serialport = container.serialport
                 sp = new serialport(container.settings.get('rs485Port'), {
-                    baudrate: 9600,
-                    databits: 8,
+                    baudRate: 9600,
+                    dataBits: 8,
                     parity: 'none',
                     stopBits: 1,
                     flowControl: false,
@@ -48,7 +50,6 @@ module.exports = function(container) {
                 sp.open(function (err) {
                     if (err) {
                         connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000)
-                        connectionTimer.unref()
                         return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                     }
                 })
@@ -58,8 +59,15 @@ module.exports = function(container) {
                     else if (timeOut !== 'timeout')
                         logger.verbose('Serial Port opened');
 
-
                 })
+                sp.on('readable', function () {
+                    container.packetBuffer.push(sp.read())
+
+                    // data = sp.read()
+                    // console.log('Data in Buffer as Hex:', data);
+                    // console.log('Data as JSON:', JSON.stringify(data.toJSON()))
+                });
+
             } else {
                 if (timeOut === 'timeout') {
                     logger.error('Net connect (socat) connection lost.  Will retry every %s seconds to reconnect.', container.settings.get('inactivityRetry'))
@@ -71,52 +79,47 @@ module.exports = function(container) {
                     else if (timeOut !== 'timeout')
                         logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
                 });
+                sp.on('data', function (data) {
+                    //Push the incoming array onto the end of the dequeue array
+                    container.packetBuffer.push(data)
 
-                // sp.setTimeout(container.settings.get('inactivityRetry')*1000, function(){
-                //     sp.destroy()
-                //     if (timeOut==='timeout')
-                //         init('retry_timeout')
-                //     else
-                //         init('timeout')
-                // })
-                // sp.on('timeout',function(){
-                //     console.log('serial port net connect timeout')
-                // })
+                    // console.log('Data in Buffer as Hex:', data);
+                    // console.log('Data as JSON:', JSON.stringify(data.toJSON()))
+
+                });
 
             }
             connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000, 'retry_timeout')
-            connectionTimer.unref()
 
 
-            sp.on('data', function (data) {
-                //Push the incoming array onto the end of the dequeue array
-                //bufferArrayOfArrays.push(Array.prototype.slice.call(data));
-                //process.stdout.write(JSON.stringify(data.toJSON())  + '\n');
-                container.packetBuffer.push(data)
-
-                //console.log(JSON.stringify(data.toJSON()))
-                //console.log(data)
-
-            });
+            // error is a common function for Net and Serialport
             sp.on('error', function (err) {
                 logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
                 connectionTimer = setTimeout(init, 10 * 1000)
-                connectionTimer.unref()
             })
-
-
-            //TEST function:  This function should simply output whatever comes into the serialport.  Comment out the one above and use this one if you want to test what serialport logs.
-            /*
-            var bufferArrayOfArrays = [];
-            sp.on('data', function (data) {
-                console.log('Input: ', JSON.stringify(data.toJSON().data) + '\n');
-                bufferArrayOfArrays.push(Array.prototype.slice.call(data));
-                console.log('Array: \n[[%s]]\n\n', bufferArrayOfArrays.join('],\n['))
-
-            });*/
 
         }
 
+    }
+
+    //for testing
+    var mockSPBinding = function(){
+        useMockBinding = true
+        SerialPort = require('serialport/test');
+        MockBinding = SerialPort.Binding
+        var portPath = 'FAKE_PORT'
+        MockBinding.createPort(portPath, {echo:false, record:true})
+        sp = new SerialPort(portPath)
+        sp.on('open', function(){
+            //container.logger.silly('Mock SerialPort is now open.')  // Commented out because during testing, this will return after we enable logging.
+        })
+        sp.on('readable', function () {
+            container.packetBuffer.push(sp.read())
+        });
+        sp.on('error', function (err) {
+            container.logger.error('Error with Mock SerialPort: %s.  Will retry in 10 seconds', err.message)
+        })
+        return sp
     }
 
     var writeNET = function(data, type, callback) {
@@ -125,7 +128,16 @@ module.exports = function(container) {
     }
 
     var writeSP = function(data, callback) {
-        sp.write(data, callback)
+        // if (sp!=null) {
+        //     if (typeof sp.write == 'function')
+                sp.write(data, callback)
+        //     else
+        //     //For testing we might have a closed port...
+        //         container.logger.warn('Aborting writeSP packet %s because SP does not have write method.', data, callback.toString() )
+        // }
+        // else
+        //     container.logger.warn('Aborting writeSP packet %s because SP is not defined.', data)
+
     }
 
     var drainSP = function(callback){
@@ -136,24 +148,29 @@ module.exports = function(container) {
         if (connectionTimer!==null) {
             clearTimeout(connectionTimer)
         }
-        if (sp!==undefined) {
-            if (container.settings.get('netConnect') === 0) {
-                if (!sp.destroyed) {
-                    sp.close(function (err) {
-                        if (err) {
-                            return "Error closing sp: " + err
-                        } else {
-                            return "Serialport closed."
-                        }
-                    })
+        if (useMockBinding){
+            MockBinding.reset()
+        }
+        else {
+            // TODO: following was over complicated due to testing inaccuracies.  Might be able to simplify this moving forward.
+            if (sp !== undefined) {
+                if (container.settings.get('netConnect') === 0) {
+                    if (!sp.destroy) {
+                        sp.close(function (err) {
+                            if (err) {
+                                return "Error closing sp: " + err
+                            } else {
+                                return "Serialport closed."
+                            }
+                        })
 
+                    }
+                } else {
+                    sp.destroy()
+                    container.logger.debug('Net socket closed')
                 }
-            } else {
-                sp.unref()
-                sp.destroy()
-                container.logger.debug('Net socket closed')
-            }
 
+            }
         }
     }
 
@@ -161,9 +178,8 @@ module.exports = function(container) {
         if (connectionTimer!==null) {
             clearTimeout(connectionTimer)
         }
-        // if (container.settings.get('netConnect') === 0)
-        connectionTimer = setTimeout(init, container.settings.get('inactivityRetry')*1000, 'timeout')
-        connectionTimer.unref()
+        if (!useMockBinding)
+            connectionTimer = setTimeout(init, container.settings.get('inactivityRetry')*1000, 'timeout')
     }
 
 
@@ -179,6 +195,7 @@ module.exports = function(container) {
         writeSP: writeSP,
         drainSP: drainSP,
         close: close,
-        resetConnectionTimer: resetConnectionTimer
+        resetConnectionTimer: resetConnectionTimer,
+        mockSPBinding: mockSPBinding
     }
 }

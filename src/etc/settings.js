@@ -19,32 +19,18 @@
 // var bottle = Bottle.pop('poolController-Bottle');
 module.exports = function(container) {
     var _settings = {}
-    var fs = container.fs
     var path = require('path').posix
 
     /* istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loading: settings.js')
 
-    var packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
+    var packageJson = JSON.parse(container.fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
     _settings.appVersion = packageJson.version
 
 
     var envParam = process.argv[2];
     var configFile;
-
-    var checkForOldConfigFile = function () {
-        try {
-            //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-            if (configFile.hasOwnProperty("Equipment") || configFile.equipment.hasOwnProperty("numberOfPumps") || configFile.equipment.hasOwnProperty("pumpOnly") || configFile.equipment.hasOwnProperty("intellicom") || configFile.equipment.hasOwnProperty("intellitouch") || !configFile.hasOwnProperty("poolController") ||
-                !(configFile.poolController).hasOwnProperty("database")) {
-                throw new Error('Your configuration file is out of date.  Please update to the latest version.')
-            }
-        } catch (err) {
-            console.log('threw error!', err)
-            throw new Error(err)
-        }
-    }
 
     var get = function(param) {
         if (param === undefined)
@@ -72,30 +58,32 @@ module.exports = function(container) {
         }
     }
 
-function recurseSet(obj, arr, value){
-    if (arr.length>1) {
+    function recurseSet(obj, arr, value){
+        if (arr.length>1) {
             recurseSet(obj[arr.shift()], arr, value)
         }
-    else{
-        obj[arr[0]]=value
-    }
-}
-
-    var load = function () {
-        /* istanbul ignore next */
-        if (envParam === undefined) {
-            _settings.configurationFile = exports.configurationFile = 'config.json';
-        } else {
-            _settings.configurationFile = exports.configurationFile = envParam
+        else{
+            obj[arr[0]]=value
         }
+    }
+
+    var load = function (configLocation) {
         return Promise.resolve()
             .then(function () {
+                if (configLocation){
+                    _settings.configurationFile = configLocation;
+                }
+                else if (envParam) {
+                    _settings.configurationFile  = envParam
+                } else {
+                    _settings.configurationFile = 'config.json';
+                }
+                //console.log('Loading settings with config file: ', _settings.configurationFile) //do not have access to logger yet.  Uncomment if we need to debug this.
                 return container.configEditor.init(_settings.configurationFile)
 
             })
-            .then(function (data) {
-                configFile = JSON.parse(JSON.stringify(data))
-                return checkForOldConfigFile()
+            .then(function (parsedData) {
+                return configFile = JSON.parse(JSON.stringify(parsedData))
             })
             .then(function () {
 
@@ -164,7 +152,7 @@ function recurseSet(obj, arr, value){
 
             })
             .catch(function (err) {
-                console.log('Error in settings:', err)
+                console.error('Error in settings:', err)
             })
     }
 

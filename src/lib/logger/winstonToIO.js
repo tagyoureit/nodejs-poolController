@@ -55,7 +55,6 @@ module.exports = function() {
             bottle.container.io.emitDebugLog(msg)
             callback(null, true)
         }
-        //bottle.container.logger.addCustomLogger(winstonToIO, winstonToIOOptions)
         bottle.container.logger.add(winstonToIO, winstonToIOOptions)
     }
     return {

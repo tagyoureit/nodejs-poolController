@@ -22,7 +22,7 @@ module.exports = function(container) {
 
 
     var server, io, socketList = [];
-    var warnonce = false;
+
 
 
     var emitToClients = function(outputType, data) {
@@ -93,10 +93,6 @@ module.exports = function(container) {
             io.sockets.emit('heat',
                 heat
             )
-            if (warnonce === false) {
-                container.logger.warn('heat socket will be deprecated.  Change to temp.')
-                warnonce=true;
-            }
         }
 
         if (outputType === 'schedule' || outputType === 'all') {
@@ -228,7 +224,7 @@ module.exports = function(container) {
             })
 
             socket.on('resetConfigClient', function() {
-                container.logger.info('reset called')
+                container.logger.info('Socket received:  Reset bootstrap config')
                 container.bootstrapConfigEditor.reset()
             })
 
@@ -604,11 +600,16 @@ module.exports = function(container) {
             container.logger.silly('socket removed:', removed.id)
         }
         container.logger.silly('All sockets removed from connection')
-        if (io) {
-            io.close();
+
+        if (typeof io.engine.close == 'function') {
+            io.engine.close();
+            container.logger.debug('Socket IO Server closed')
         }
-        io = undefined
-        container.logger.debug('Socket IO Server closed')
+        else {
+            console.log('why are we calling close now????')
+        }
+        // io = undefined
+
     }
 
 

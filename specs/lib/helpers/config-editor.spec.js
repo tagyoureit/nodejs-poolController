@@ -16,39 +16,16 @@ describe('updates config.json variables', function() {
         beforeEach(function () {
             sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'))
-                .then(function (orig) {
-                    return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
-                })
-                // .then(function() {
-                //     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
-                // })
-                // .then(function(copy) {
-                //     console.log('just copied _', copy)
-                // })
-                .catch(function (err) {
-                    /* istanbul ignore next */
-                    console.log('oops, we hit an error', err)
-                })
+            return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
         })
 
         afterEach(function () {
             sandbox.restore()
-            return Promise.resolve()
-                .then(function () {
-                    return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'))
-                })
-                // .then(function() {
-                //     console.log('file removed')
-                // })
-                .catch(function (err) {
-                    /* istanbul ignore next */
-                    console.log('Error removing file:', err)
-                })
+            return global.removeShadowConfigFile()
         })
 
         after(function () {
@@ -132,7 +109,7 @@ describe('updates config.json variables', function() {
         // })
 
         it('#gets pumpExternalProgram', function (done) {
-            bottle.container.configEditor.init('/specs/assets/config/config.json')
+            bottle.container.configEditor.init('/specs/assets/config/_config.json')
                 .then(function () {
                     return bottle.container.configEditor.getPumpExternalProgram(1)
                 })
@@ -149,40 +126,27 @@ describe('updates config.json variables', function() {
 
             before(function () {
                 return global.initAll()
-                // bottle.container.logger.transports.console.level = 'silly';
-                //
-                // bottle.container.server.init()
-                // bottle.container.io.init()
             })
 
             beforeEach(function () {
                 sandbox = sinon.sandbox.create()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
                 ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotification')
-                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'))
-                    .then(function (orig) {
-                        return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
-                    })
-                    .catch(function (err) {
-                        /* istanbul ignore next */
-                        console.log('oops, we hit an error', err)
-                    })
+                return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
 
             })
 
             afterEach(function () {
                 sandbox.restore()
-                return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'))
+                return global.removeShadowConfigFile()
 
             })
 
             after(function () {
-                // bottle.container.server.close()
-                // bottle.container.logger.transports.console.level = 'info';
                 return global.stopAll()
             })
 

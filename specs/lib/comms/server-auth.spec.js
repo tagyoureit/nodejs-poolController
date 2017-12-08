@@ -23,7 +23,7 @@ describe('server', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -128,13 +128,13 @@ describe('server', function() {
                 bottle.container.settings.set('expressTransport', 'https')
                 // bottle.container.server.close()
 
-                bottle.container.logger.transports.console.level = 'silly';
+                bottle.container.logger.changeLevel('console', 'silly')
             })
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -150,10 +150,7 @@ describe('server', function() {
                 //stop the express server and restart without authentication
                 bottle.container.settings.set('expressAuth', 0)
                 bottle.container.settings.set('expressAuthFile', '')
-                // bottle.container.server.close()
-                // bottle.container.logger.transports.console.level = 'info';
                 bottle.container.settings.set('expressTransport', 'http')
-                // bottle.container.server.init()
                 return global.stopAll()
             })
 

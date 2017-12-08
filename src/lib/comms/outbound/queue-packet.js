@@ -27,7 +27,7 @@ module.exports = function(container) {
   var queuePacketsArr = []; //array to hold messages to send
 
   function init(){
-      if (container.settings.get('logPacketWrites')) container.logger.silly('Resetting queuepackets array')
+      if (container.settings.get('logPacketWrites')) container.logger.silly('Resetting queuepackets array and flushing queue')
       queuePacketsArr = []
   }
 

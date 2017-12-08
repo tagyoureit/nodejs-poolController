@@ -10,8 +10,6 @@ describe('processes 17 (Schedule) packets', function() {
 
       before(function() {
         return global.initAll()
-        // bottle.container.settings.logConfigMessages = 1
-        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -20,7 +18,7 @@ describe('processes 17 (Schedule) packets', function() {
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -35,8 +33,6 @@ describe('processes 17 (Schedule) packets', function() {
 
       after(function() {
         return global.stopAll()
-        // bottle.container.settings.logConfigMessages = 0
-        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Schedule 1 should have ID:1 START_TIME:9:25', function() {

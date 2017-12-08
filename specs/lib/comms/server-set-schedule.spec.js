@@ -11,7 +11,7 @@ describe('#sets various functions', function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -32,14 +32,15 @@ describe('#sets various functions', function() {
         context('with the HTTP REST API', function() {
 
 
-            it('sets a valid schedule 12', function(done) {
-                global.requestPoolDataWithURL('schedule/set/12/5/13/20/13/40/131').then(function(obj) {
+            it('sets a valid schedule 12', function() {
+                return global.requestPoolDataWithURL('schedule/set/12/5/13/20/13/40/131')
+                    .then(function(obj) {
                     obj.text.should.contain('REST API')
                     //                    console.log('queuePacketStub', queuePacketStub.args)
                     queuePacketStub.args[0][0].should.contain.members([165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131])
                     queuePacketStub.args[1][0].should.contain.members([165, 99, 16, 33, 209, 1, 1])
                     queuePacketStub.args[12][0].should.contain.members([165, 99, 16, 33, 209, 1, 12])
-                    done()
+
                 })
             })
 

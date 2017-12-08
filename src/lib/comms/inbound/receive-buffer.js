@@ -102,7 +102,7 @@ module.exports = function(container) {
 
                     // convert code to support up to 16 pumps
                     //if (((chatter[2] === container.constants.ctrl.PUMP1 || chatter[2] === container.constants.ctrl.PUMP2)) || chatter[3] === container.constants.ctrl.PUMP1 || chatter[3] === container.constants.ctrl.PUMP2) {
-                  if (((chatter[2] >= container.constants.ctrl.PUMP1 && chatter[2] <= container.constants.ctrl.PUMP16)) || (chatter[3] >= container.constants.ctrl.PUMP1 && chatter[3] <= container.constants.ctrl.PUMP16)) {
+                    if (((chatter[2] >= container.constants.ctrl.PUMP1 && chatter[2] <= container.constants.ctrl.PUMP16)) || (chatter[3] >= container.constants.ctrl.PUMP1 && chatter[3] <= container.constants.ctrl.PUMP16)) {
                         packetType = 'pump'
                         if (logMessageDecoding && container.settings.get('logPumpMessages'))
                             logger.debug('Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter)
@@ -162,8 +162,8 @@ module.exports = function(container) {
             }
 
         }
-                            if (container.settings.get('logMessageDecoding'))
-        logger.silly('iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\ncontainer.packetBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, container.packetBuffer.length(), bufferToProcess.length, container.packetBuffer.length() === 0 && bufferToProcess.length > 0)
+        if (container.settings.get('logMessageDecoding'))
+            logger.silly('iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\ncontainer.packetBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, container.packetBuffer.length(), bufferToProcess.length, container.packetBuffer.length() === 0 && bufferToProcess.length > 0)
         if (breakLoop) {
             processingBuffer.processingBuffer = false;
             if (logMessageDecoding)
@@ -176,6 +176,7 @@ module.exports = function(container) {
         } else
         if (container.packetBuffer.length() === 0) {
             processingBuffer.processingBuffer = false;
+            Promise.resolve(notifyResolve)
             if (logMessageDecoding)
                 logger.silly('iOAOA: Exiting out of loop because no further incoming buffers to append. container.packetBuffer.length() === 0 (%s) ', container.packetBuffer.length() === 0)
 
@@ -198,6 +199,26 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         logger.info('Loaded: receive-buffer.js')
 
+    var clear = function(){
+        bufferToProcess = []
+    }
+
+    var isActive = function(){
+        return processingBuffer.processingBuffer
+    }
+
+    var notifyResolve, notifyReject
+    var notifyWhenDone = function(){
+        if (!isActive()) {
+            return Promise.resolve()
+        }
+        else {
+            return new Promise(function (resolve, reject) {
+                notifyResolve = resolve
+                notifyReject = reject
+            })
+        }
+    }
 
     return {
         //processingBuffer, //flag to tell us if we are processing the buffer currently
@@ -206,6 +227,9 @@ module.exports = function(container) {
         //bufferToProcess,
         getBufferToProcessLength: getBufferToProcessLength,
         iterateOverArrayOfArrays: iterateOverArrayOfArrays,
-        getCurrentMsgCounter: getCurrentMsgCounter
+        getCurrentMsgCounter: getCurrentMsgCounter,
+        clear: clear,
+        isActive: isActive,
+        notifyWhenDone: notifyWhenDone
     }
 }

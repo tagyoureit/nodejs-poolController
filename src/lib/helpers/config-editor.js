@@ -22,11 +22,33 @@ var config = {},
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        // container.logger.info('Loading: config-editor.js')
+    // container.logger.info('Loading: config-editor.js')
         console.log('Loading: config-editor.js')
 
     Promise = container.promise
     pfs = Promise.promisifyAll(container.fs)
+
+    var checkForOldConfigFile = function () {
+        return new Promise(function(resolve, reject){
+            try {
+                //the throw will throw an error parsing the file, the catch will catch an error reading the file.
+                if (config.hasOwnProperty("poolController") ||
+                    (config.poolController).hasOwnProperty("database")){
+                    reject(_settings.configurationFile + ' is missing newer properties')
+                }
+                if (config.hasOwnProperty("Equipment") || config.equipment.hasOwnProperty("numberOfPumps") || config.equipment.hasOwnProperty("pumpOnly") || config.equipment.hasOwnProperty("intellicom") || config.equipment.hasOwnProperty("intellitouch") ) {
+
+                    throw new Error('Your configuration file is out of date.  Please update to the latest version.')
+                    reject(_settings.configurationFile + ' includes some properties in configFile that are outdates')
+
+                }
+            } catch (err) {
+                // ok to catch error because we are looking for non-existent properties
+                // console.log('threw error!', err)
+            }
+            resolve()
+        })
+    }
 
     var init = function(_location) {
         if (_location===undefined)
@@ -36,7 +58,10 @@ module.exports = function(container) {
         config = {}
         return pfs.readFileAsync(location, 'utf-8')
             .then(function(data) {
-                config = JSON.parse(data)
+               return config = JSON.parse(data)
+            })
+            .then(checkForOldConfigFile)
+            .then(function(){
                 return config
             })
             .catch(function(err){
@@ -49,6 +74,9 @@ module.exports = function(container) {
             .then(function() {
                 config.equipment.pump[_pump].type = _type
                 container.settings.get('pump')[_pump].type = _type //TODO: we should re-read the file from disk at this point?
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -68,6 +96,9 @@ module.exports = function(container) {
             .then(function() {
                 config.equipment.pump[_pump].externalProgram[program] = rpm
                 container.settings.get('pump')[_pump].externalProgram[program] = rpm
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -98,6 +129,9 @@ module.exports = function(container) {
             .then(function() {
                 config.equipment.chlorinator.installed = installed
                 container.settings.get('chlorinator').installed = installed
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -118,6 +152,9 @@ module.exports = function(container) {
                 config.equipment.chlorinator.desiredOutput.spa = spa
                 container.settings.get().equipment.chlorinator.desiredOutput.pool = pool
                 container.settings.get().equipment.chlorinator.desiredOutput.spa = spa
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -134,6 +171,9 @@ module.exports = function(container) {
             .then(function() {
                 config.equipment.chlorinator.id.productName = name
                 container.settings.get('equipment').chlorinator.id.productName = name
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -151,6 +191,9 @@ module.exports = function(container) {
                 var results = container.updateAvailable.getResults()
                 config.poolController.notifications.version.remote.version = results.remote.version
                 config.poolController.notifications.version.remote.tag_name = results.remote.tag_name
+            })
+            .then(container.helpers.testJson)
+            .then(function(){
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
@@ -213,7 +256,7 @@ module.exports = function(container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        // container.logger.info('Loaded: config-editor.js')
+    // container.logger.info('Loaded: config-editor.js')
         console.log('Loaded: config-editor.js')
 
 

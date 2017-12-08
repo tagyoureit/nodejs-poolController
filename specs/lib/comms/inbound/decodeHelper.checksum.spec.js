@@ -18,17 +18,13 @@ describe('decodeHelper processes controller packets', function() {
 
             before(function() {
                 return global.initAll()
-                // bottle.container.settings.logMessageDecoding = 1
-                // bottle.container.settings.logPacketWrites = 1
-                // bottle.container.settings.logConsoleNotDecoded = 1
-                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -56,10 +52,6 @@ describe('decodeHelper processes controller packets', function() {
 
             after(function() {
                 return global.stopAll()
-                // bottle.container.settings.logPacketWrites = 0
-                // bottle.container.settings.logMessageDecoding = 0
-                // bottle.container.settings.logConsoleNotDecoded = 0
-                // bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#checksum should return true with various controller packets', function() {
@@ -71,19 +63,20 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             it('#checksum should return false with various invalid controller packets', function() {
+                // suppress warnings for bad packets
+                loggerWarnStub.restore()
+                loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+
                 for (var i = 0; i < testarrayBAD.length; i++) {
                     bottle.container.decodeHelper.checksum(testarrayBAD[i], 25, equip).should.be.false
                 }
+                loggerWarnStub.callCount.should.equal(3)
             })
 
 
 
 
             it('should try to decode the packet as a controller packet', function() {
-
-                // bottle.container.settings.logMessageDecoding = 1
-                // bottle.container.logger.transports.console.level = 'silly'
-
                 for (var i = 0; i < testarrayGOOD.length; i++) {
                     bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
                     // console.log('testarrayGOOD:', testarrayGOOD[i])

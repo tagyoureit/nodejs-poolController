@@ -22,9 +22,6 @@ var configClient,
     path = require('path').posix,
     location
 
-// var Promise = require('bluebird'),
-//     fs = require('fs')
-// Promise.promisifyAll(fs)
 
 module.exports = function(container) {
     /*istanbul ignore next */
@@ -33,7 +30,7 @@ module.exports = function(container) {
 
     var Promise = container.promise,
         //fs = require('fs')
-    pfs =  Promise.promisifyAll(container.fs)
+        pfs =  Promise.promisifyAll(container.fs)
 
 
     location = path.join(process.cwd(), file)
@@ -43,7 +40,6 @@ module.exports = function(container) {
             location = path.join(process.cwd(), file)
         else
             location = path.join(process.cwd(), _location)
-
         configClient = {}
         return readConfigClient()
     }
@@ -55,21 +51,20 @@ module.exports = function(container) {
     }
 
     var readConfigClient = function() {
-        if (configClient.hasOwnProperty('panelState')) {
-            return Promise.resolve(configClient)
-        } else {
-            return pfs.readFileAsync(location, 'utf-8').then(function(data) {
+        return pfs.readFileAsync(location, 'utf-8')
+            .then(container.helpers.testJson)
+            .then(function (data) {
                 configClient = JSON.parse(data)
                 return configClient
             })
-                .catch(function(err){
-                    container.logger.warn('Error reading %s file:',location, err.message)
-                })
-        }
+            .catch(function (err) {
+                container.logger.warn('Error reading %s file:', location, err.message)
+            })
+
     }
 
     var update = function(a, b, c, d) {
-       return Promise.resolve()
+        return Promise.resolve()
             .then(readConfigClient)
             .then(function(data) {
                 if (c === null || c === undefined) {
@@ -78,10 +73,10 @@ module.exports = function(container) {
                     data[a][b][c] = d
                 }
                 return data
-
             })
+            .then(container.helpers.testJson)
             .then(function(data){
-              return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
+                return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
                 container.logger.verbose('Updated configClient.json.')
@@ -89,7 +84,6 @@ module.exports = function(container) {
             .catch(function(err) {
                 container.logger.warn('Error updating bootstrap %s: %s', location, err.message)
             })
-
     }
 
     var reset = function() {
@@ -98,17 +92,21 @@ module.exports = function(container) {
                 for (var key in data.panelState) {
                     data.panelState[key].state = "visible"
                 }
+                return data
+            })
+            .then(container.helpers.testJson)
+            .then(function(data){
                 return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
             .then(function() {
+                container.io.emitToClients('all')
                 container.logger.verbose('Reset bootstrap configClient.json')
             })
             .catch(function(err) {
                 container.logger.warn('Error resetting bootstrap %s: ',location, err.message)
+                console.log('err', err)
             })
     }
-
-
 
     /*istanbul ignore next */
     if (container.logModuleLoading)

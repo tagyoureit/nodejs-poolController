@@ -6,14 +6,14 @@
 //     describe('#sets the friendlyNames', function() {
 //
 //       before(function() {
-//           bottle.container.logger.transports.console.level = 'silly';
+//           global.initAll()
 //       });
 //
 //       beforeEach(function() {
 //           sandbox = sinon.sandbox.create()
 //           clock = sandbox.useFakeTimers()
 //           loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//           loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+//           loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
 //           loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
 //           loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
 //           loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -24,7 +24,7 @@
 //         })
 //
 //         after(function() {
-//             bottle.container.logger.transports.console.level = 'info'
+//             global.stopAll()
 //         })
 //
 //         it('sets the names for circuits other than pool and spa', function() {
@@ -61,14 +61,14 @@
 //     describe('#functions that get and set circuits', function() {
 //
 //       before(function() {
-//           bottle.container.logger.transports.console.level = 'silly';
+//           global.initAll()
 //       });
 //
 //       beforeEach(function() {
 //           sandbox = sinon.sandbox.create()
 //           clock = sandbox.useFakeTimers()
 //           loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//           loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+//           loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
 //           loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
 //           loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
 //           loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -79,7 +79,7 @@
 //         })
 //
 //         after(function() {
-//             bottle.container.logger.transports.console.level = 'info'
+//             global.stopAll()
 //         })
 //
 //         it('gets a circuit (1)', function() {

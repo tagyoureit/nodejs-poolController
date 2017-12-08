@@ -13,7 +13,7 @@ describe('#set functions', function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -136,19 +136,13 @@ describe('#set functions', function() {
 
             before(function () {
                 return global.initAll()
-                // bottle.container.settings.logPumpMessages = 1
-                // bottle.container.settings.logPumpTimers = 1
-                // bottle.container.logger.transports.console.level = 'silly'
-                // bottle.container.settings.intellitouch.installed = 0
-                // bottle.container.settings.intellicom.installed = 0
-                // bottle.container.server.init()
             });
 
             beforeEach(function () {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -168,12 +162,6 @@ describe('#set functions', function() {
 
             after(function () {
                 return global.stopAll()
-                // bottle.container.settings.logPumpTimers = 0
-                // bottle.container.settings.logPumpMessages = 0
-                // bottle.container.logger.transports.console.level = 'info'
-                // bottle.container.settings.intellitouch.installed = 1
-                // bottle.container.settings.intellicom.installed = 0
-                // bottle.container.server.close()
             })
             context('with the current HTTP REST API', function () {
 
@@ -626,19 +614,13 @@ describe('#set functions', function() {
 
             before(function () {
                 return global.initAll()
-                // bottle.container.settings.expressAuth = 0
-                // bottle.container.settings.expressAuthFile = ''
-                // bottle.container.logger.transports.console.level = 'silly';
-                // bottle.container.settings.intellitouch.installed = 0
-                // bottle.container.settings.intellicom.installed = 0
-                // bottle.container.server.init()
             });
 
             beforeEach(function(){
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -663,13 +645,6 @@ describe('#set functions', function() {
 
             after(function () {
                 return global.stopAll()
-                // bottle.container.settings.intellitouch.installed = 1
-                // bottle.container.settings.intellicom.installed = 0
-                // bottle.container.logger.transports.console.level = 'info';
-                // bottle.container.server.close()
-                //
-                // bottle.container.settings.logPumpTimers = 1
-                // bottle.container.settings.logPumpMessages = 1
             })
 
 
@@ -730,19 +705,13 @@ describe('#set functions', function() {
 
             before(function () {
                 return global.initAll()
-                // bottle.container.settings.expressAuth = 0
-                // bottle.container.settings.expressAuthFile = ''
-                // bottle.container.logger.transports.console.level = 'silly';
-                // bottle.container.settings.intellitouch.installed = 0
-                // bottle.container.settings.intellicom.installed = 0
-                // bottle.container.server.init()
             });
 
             beforeEach(function(){
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -773,13 +742,6 @@ describe('#set functions', function() {
 
         after(function () {
             return global.stopAll()
-            // bottle.container.settings.intellitouch.installed = 1
-            // bottle.container.settings.intellicom.installed = 0
-            // bottle.container.logger.transports.console.level = 'info';
-            // bottle.container.server.close()
-            //
-            // bottle.container.settings.logPumpTimers = 1
-            // bottle.container.settings.logPumpMessages = 1
         })
 
 

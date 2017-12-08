@@ -44,7 +44,10 @@
         },
         "chlorinator": {
             "installed": 1,
-            "desiredOutput": 101,
+            "desiredOutput": {
+                "pool": 101,
+                "spa": -1
+            },
             "friendlyName": "",
             "id": {
                 "productName": -1,

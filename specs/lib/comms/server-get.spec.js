@@ -12,7 +12,7 @@ describe('server', function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -88,7 +88,7 @@ describe('server', function() {
                 })
                 global.requestPoolDataWithURL('heat').then(function(obj) {
                     heatStub.callCount.should.eq(1)
-                    obj.should.have.property('poolHeatMode');;
+                    obj.temperature.should.have.property('poolHeatMode');;
                 }).then(done,done);
 
             });

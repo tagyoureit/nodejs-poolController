@@ -29,14 +29,14 @@ Promise = global.Promise = require('bluebird')
  ioclient = global.ioclient = require('socket.io-client')
  socketURL = global.socketURL = 'http://localhost:3000'
  socketOptions = global.socketOptions = {'transports': ['websocket'],
-'force new connection': true}
+'forceNew': true}
 
 var pumpCommands = require(__dirname + '/pumpCommands.js')
 var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')
 var bufferCapture = require(__dirname + '/bufferCapture.js')
 var initialize = global.initialize = require(__dirname + '/initialize.js')
 
-var fs = global.fs = require('promised-io/fs')
+fs = global.fs = require('promised-io/fs')
 
  fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
     .then(function(data) {

@@ -38,6 +38,10 @@ module.exports = function(container) {
 
 
     function init(){
+        if (container.settings.get('logPacketWrites')) container.logger.silly('Init writePacket and flushing any existing packets.')
+        if (writePacketTimer!==null)
+            clearTimeout(writePacketTimer)
+
         // reset write queue
         writeQueueActive = {
             writeQueueActive: false
@@ -60,14 +64,14 @@ module.exports = function(container) {
     }
 
     var postWritePacketHelper = function() {
-    var pktType
+        var pktType
         var logPacketWrites = container.settings.get('logPacketWrites')
         if (msgWriteCounter.counter === 0) {
             //if we are here because we wrote a packet, but it is the first time, then the counter will be 0 and we need to set the variables for later comparison
             msgWriteCounter.packetWrittenAt = container.receiveBuffer.getCurrentMsgCounter();
             msgWriteCounter.msgWrote = container.queuePacket.first().slice(0)
             msgWriteCounter.counter++
-                if (logPacketWrites) logger.debug('postWritePacketHelper: First time writing packet.', msgWriteCounter)
+            if (logPacketWrites) logger.debug('postWritePacketHelper: First time writing packet.', msgWriteCounter)
         } else
         if (msgWriteCounter.counter === 5) //if we get to 5 retries, then throw an Error.
         {
@@ -113,11 +117,11 @@ module.exports = function(container) {
                 var prevLevel = container.settings.get('logLevel')
                 logger.warn('Setting logging level to Debug.  Will revert to previous level in 2 minutes.')
                 container.settings.set('logLevel', 'debug')
-                logger.transports.console.level = 'debug';
+                logger.changelLevel('console', 'debug');
                 setTimeout(function(){
-                  logger.warn('Setting logging level to %s', prevLevel)
-                  container.settings.set('logLevel', prevLevel)
-                  logger.transports.console.level = prevLevel;
+                    logger.warn('Setting logging level to %s', prevLevel)
+                    container.settings.set('logLevel', prevLevel)
+                    logger.changeLevel('console', prevLevel);
                 }, 2*60*1000)
             }
         } else //we should get here between 1-4 packet writes
@@ -159,7 +163,7 @@ module.exports = function(container) {
             else if (container.receiveBuffer.getCurrentMsgCounter() - msgWriteCounter.packetWrittenAt <= 4) {
                 if (logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) because we have not processed four incoming messages since the last write. Packet: %s', skipPacketWrittenCount.skipPacketWrittenCount, container.queuePacket.first())
                 skipPacketWrittenCount.skipPacketWrittenCount++
-                    writePacketTimer = setTimeout(container.writePacket.preWritePacketHelper, 150)
+                writePacketTimer = setTimeout(container.writePacket.preWritePacketHelper, 150)
             }
             //if the incoming buffer (bufferArrayOfArrays)>=2
             //OR
@@ -167,7 +171,7 @@ module.exports = function(container) {
             else if (container.packetBuffer.length() >= 2 || container.receiveBuffer.getBufferToProcessLength() >= 50) {
                 //skipPacketWrittenCount>=2;  we've skipped writting it twice already, so write it now.
                 skipPacketWrittenCount.skipPacketWrittenCount++
-                    if (logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) due to \n1. bufferArrayOfArrays.length>=2: %s (%s) \n2. bufferToProcess.length>=50:  %s (%s)', skipPacketWrittenCount.skipPacketWrittenCount, container.packetBuffer.length() >= 2, container.packetBuffer.length(), container.receiveBuffer.getBufferToProcessLength() >= 50, container.receiveBuffer.getBufferToProcessLength())
+                if (logPacketWrites) logger.silly('preWritePacketHelper: Skipping write packet %s time(s) due to \n1. bufferArrayOfArrays.length>=2: %s (%s) \n2. bufferToProcess.length>=50:  %s (%s)', skipPacketWrittenCount.skipPacketWrittenCount, container.packetBuffer.length() >= 2, container.packetBuffer.length(), container.receiveBuffer.getBufferToProcessLength() >= 50, container.receiveBuffer.getBufferToProcessLength())
                 writePacketTimer = setTimeout(container.writePacket.preWritePacketHelper, 150)
             } else
             //if none of the conditions above are met, let's write the packet

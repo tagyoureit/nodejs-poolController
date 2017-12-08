@@ -45,9 +45,16 @@ module.exports = function(container) {
     function length() {
       return bufferArrayOfArrays.length
     }
+    function clear() {
+        container.logger.silly('Emptying the packet buffer queue')
+        bufferArrayOfArrays.empty()
+        container.receiveBuffer.clear()
+    }
 
 return{
     push : push,
     pop : pop,
-    length : length }
+    length : length,
+    clear: clear
+    }
 }

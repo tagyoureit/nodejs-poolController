@@ -57,6 +57,7 @@ module.exports = function(container) {
             })
             .catch(function(err){
               console.log('Error stopping services:', err)
+                return Promise.resolve()
             })
 
     }

@@ -4,13 +4,13 @@
             "state": "visible"
         },
         "pool": {
-            "state": "visible"
+            "state": "collapsed"
         },
         "spa": {
-            "state": "visible"
+            "state": "hidden"
         },
         "chlorinator": {
-            "state": "visible"
+            "state": "broken"
         },
         "features": {
             "state": "visible"
@@ -30,7 +30,7 @@
         "intellichem": {
             "state": "visible"
         },
-        "release": {
+        "release":{
             "state": "visible"
         }
     },

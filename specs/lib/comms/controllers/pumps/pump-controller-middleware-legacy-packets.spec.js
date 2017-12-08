@@ -5,11 +5,7 @@
 //
 //
 //         before(function() {
-//             bottle.container.pump.init()
-//             bottle.container.settings.logApi = 1
-//             bottle.container.settings.logPumpTimers = 1
-//             bottle.container.settings.logPumpMessages = 1
-//             bottle.container.logger.transports.console.level = 'silly';
+//             global.initAll()
 //
 //         });
 //
@@ -17,7 +13,7 @@
 //             sandbox = sinon.sandbox.create()
 //             clock = sandbox.useFakeTimers()
 //             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+//             loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
 //             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
 //             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
 //             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -37,10 +33,7 @@
 //         })
 //
 //         after(function() {
-//             bottle.container.settings.logApi = 0
-//             bottle.container.settings.logPumpTimers = 0
-//             bottle.container.settings.logPumpMessages = 0
-//             bottle.container.logger.transports.console.level = 'info';
+//             global.stopAll()
 //         })
 //
 //

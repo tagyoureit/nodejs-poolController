@@ -11,22 +11,13 @@ describe('processes Intellichem packets', function() {
 
             before(function() {
                 return global.initAll()
-                // bottle.container.settings.logConfigMessages = 1
-                // bottle.container.settings.logIntellichem = 1
-                // //bottle.container.settings.logMessageDecoding = 1
-                // //bottle.container.settings.logPacketWrites = 1
-                // //bottle.container.settings.logConsoleNotDecoded = 1
-                // bottle.container.logger.transports.console.level = 'silly';
-                // bottle.container.server.init()
-                // bottle.container.io.init()
-                // bottle.container.intellichem.init()
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')

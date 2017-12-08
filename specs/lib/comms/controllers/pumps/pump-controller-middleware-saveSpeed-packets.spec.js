@@ -11,7 +11,7 @@ describe('pump controller - save speed (1/2)', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -31,8 +31,6 @@ describe('pump controller - save speed (1/2)', function() {
         })
 
         after(function() {
-            // bottle.container.logApi = 0
-            // bottle.container.logger.transports.console.level = 'info';
             return global.stopAll()
         })
 
@@ -63,7 +61,6 @@ describe('pump controller - save speed (1/2)', function() {
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
             queuePacketStub.args[1][0].should.deep.equal([165, 0, 96, 33, 1, 4, 3, 39, 3, 232])
             queuePacketStub.args[2][0].should.deep.equal([165, 0, 96, 33, 7, 0])
-            return
 
         });
 
@@ -90,7 +87,6 @@ describe('pump controller - save speed (1/2)', function() {
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
             queuePacketStub.args[1][0].should.deep.equal([165, 0, 96, 33, 1, 4, 3, 40, 1, 244])
             queuePacketStub.args[2][0].should.deep.equal([165, 0, 96, 33, 7, 0])
-            return
 
         });
 
@@ -120,8 +116,6 @@ describe('pump controller - save speed (1/2)', function() {
             queuePacketStub.args[0][0].should.deep.equal([165, 0, 97, 33, 4, 1, 255])
             queuePacketStub.args[1][0].should.deep.equal([165, 0, 97, 33, 1, 4, 3, 42, 13, 122])
             queuePacketStub.args[2][0].should.deep.equal([165, 0, 97, 33, 7, 0])
-            return
-
         });
 
 

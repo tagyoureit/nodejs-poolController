@@ -185,12 +185,12 @@ var init = exports.init = function() {
         })
 
         .then(function(){
+            bottle.container.logger.init()
+            bottle.container.winstonToIO.init()
 
             bottle.container.server.init()
             bottle.container.io.init()
-            bottle.container.winstonToIO.init()
             bottle.container.sp.init()
-
 
             bottle.container.logger.info('initializing logger')
             bottle.container.bootstrapConfigEditor.init()
@@ -214,8 +214,7 @@ var init = exports.init = function() {
             bottle.container.intellichem.init()
 
             bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
-            bottle.container.logger.warn('Settings: ', bottle.container.settings.displaySettingsMsg())
-
+            bottle.container.logger.info('Settings: ', bottle.container.settings.displaySettingsMsg())
 
             //logic if we start the virtual pump/chlorinator controller is in the function
             bottle.container.pumpControllerTimers.startPumpController()
@@ -254,7 +253,7 @@ if (process.platform === "win32") {
 
 process.on('SIGINT', function() {
     console.log('Shutting down open processes')
-    bottle.container.reload.stop()
+    return bottle.container.reload.stop()
         .then(function() {
             process.exit();
         })

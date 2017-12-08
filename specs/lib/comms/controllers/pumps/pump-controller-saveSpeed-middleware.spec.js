@@ -6,13 +6,12 @@ describe('pump controller - save speed (2/2)', function() {
 
         before(function() {
             return global.initAll()
-
         });
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -34,8 +33,6 @@ describe('pump controller - save speed (2/2)', function() {
         })
 
         after(function() {
-            // bottle.container.logger.transports.console.level = 'info';
-            // bottle.container.logApi = 0
             return global.stopAll()
         })
 
@@ -66,24 +63,12 @@ describe('pump controller - save speed (2/2)', function() {
             //pump 1 (96) should be set to remote
 
 
-            // console.log('setPumpToRemoteControlStub.args: ', setPumpToRemoteControlStub.args)
-            // console.log('loggerInfo: ', loggerInfoStub.args)
-            // console.log('loggerWarn: ', loggerWarnStub.args)
-            // console.log('loggerVerbose: ', loggerVerboseStub.args)
             setPumpToRemoteControlStub.args[0][0].should.eq(96)
-
             saveProgramOnPumpStub.args[0][0].should.eq(96)
             saveProgramOnPumpStub.args[0][1].should.eq(program)
             saveProgramOnPumpStub.args[0][2].should.eq(speed)
             //or
             saveProgramOnPumpStub.alwaysCalledWith(96, 1, 1000).should.be.true
-
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            //loggerInfoOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
 
             //set pump to local
             // setPumpToLocalControlStub.args[0][0].should.eq(96)
@@ -93,7 +78,6 @@ describe('pump controller - save speed (2/2)', function() {
 
             //and finally emit to any clients
             emitToClientsStub.alwaysCalledWith('pump')
-            return
 
         });
 
@@ -132,13 +116,6 @@ describe('pump controller - save speed (2/2)', function() {
             //or
             saveProgramOnPumpStub.alwaysCalledWith(96, 2, 1000).should.be.true
 
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
-
             //set pump to local
             // setPumpToLocalControlStub.args[0][0].should.eq(96)
             setPumpToLocalControlStub.callCount.should.eq(0)
@@ -147,8 +124,6 @@ describe('pump controller - save speed (2/2)', function() {
 
             //and finally emit to any clients
             emitToClientsStub.alwaysCalledWith('pump')
-            return
-
         });
 
         it('sets pump 2 program 2 to 2000 rpm', function() {
@@ -185,13 +160,6 @@ describe('pump controller - save speed (2/2)', function() {
             //or
             saveProgramOnPumpStub.alwaysCalledWith(97, 2, 2000).should.be.true
 
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            // loggerOutput.should.eq('User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
-
             //set pump to local
             // setPumpToLocalControlStub.args[0][0].should.eq(97)
             setPumpToLocalControlStub.callCount.should.eq(0)
@@ -200,15 +168,14 @@ describe('pump controller - save speed (2/2)', function() {
 
             //and finally emit to any clients
             emitToClientsStub.alwaysCalledWith('pump')
-            return
-
         });
 
 
 
         it('sets pump 1 program 5 to 1000 rpm (should fail)', function() {
 
-
+            loggerWarnStub.restore()
+            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 5
             var speed = 1000
@@ -221,22 +188,14 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            // loggerOutput.should.eq('FAIL: User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
-
-            return
-
+            loggerWarnStub.callCount.should.equal(1)
         });
 
 
         it('sets pump 55 program 1 to 1000 rpm (should fail)', function() {
 
-
+            loggerWarnStub.restore()
+            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 55
             var program = 1
             var speed = 1000
@@ -249,20 +208,13 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            // loggerOutput.should.eq('FAIL: User request to save pump ' + index + ' (index ' + index + ') to Program ' + program + ' as ' + speed + ' RPM')
-            return
-
+            loggerWarnStub.callCount.should.equal(1)
         });
 
         it('sets pump 1 program 1 to 5000 rpm (should fail)', function() {
 
-
+            loggerWarnStub.restore()
+            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 1
             var speed = 5000
@@ -275,13 +227,7 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-            //log output should equal string
-            // var loggerOutput = loggerInfoStub.args[0][0].replace('%s', loggerInfoStub.args[0][1])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][2])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][3])
-            // loggerOutput = loggerOutput.replace('%s', loggerInfoStub.args[0][4])
-            //  loggerOutput.should.eq('FAIL: RPM provided (' + speed + ') is outside of tolerances.')
-            return
+            loggerWarnStub.callCount.should.equal(2)
         })
     });
 

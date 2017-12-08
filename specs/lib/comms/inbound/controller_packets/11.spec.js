@@ -11,9 +11,6 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
 
       before(function() {
         return global.initAll()
-        // bottle.container.settings.logConfigMessages = 1
-        // bottle.container.settings.logMessageDecoding = 1
-        // bottle.container.logger.transports.console.level = 'silly';
       });
 
       beforeEach(function() {
@@ -21,7 +18,7 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
         clock = sandbox.useFakeTimers()
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -35,9 +32,6 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
 
       after(function() {
         return global.stopAll()
-        // bottle.container.settings.logConfigMessages = 0
-        // bottle.container.settings.logMessageDecoding = 0
-        // bottle.container.logger.transports.console.level = 'info';
       })
 
       it('#Circuit 1 should be a Spa Circuit', function() {

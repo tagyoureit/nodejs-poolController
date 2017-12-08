@@ -14,7 +14,7 @@ describe('chlorinator tests', function() {
         sandbox = sinon.sandbox.create()
         clock = sandbox.useFakeTimers()
         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -106,8 +106,11 @@ describe('chlorinator tests', function() {
         });
 
         it('@102% (should fail -- does not change previous state)', function() {
+            loggerWarnStub.restore()
+            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var res = bottle.container.chlorinator.setChlorinatorLevel(102)
             res.text.should.contain('FAIL')
+            loggerWarnStub.callCount.should.equal(1)
 
         });
     })

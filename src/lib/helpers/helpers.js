@@ -187,6 +187,21 @@ module.exports = function(container) {
         return copy;
     }
 
+    testJson = function(data) {
+        // This function is used to validate/parse data before we read it or write it to a file
+        // We use this in a try/catch in a promise so we correctly return a reject from a synchronous function
+        return new Promise(function (resolve, reject) {
+            try {
+                console.log('a')
+                a = JSON.parse(JSON.stringify(data))
+                resolve(a)
+            }
+            catch(err){
+                console.log('err in testJson', err)
+                reject(err)
+            }
+        })
+    }
 
     function allEquipmentInOneJSON() {
         var pool = {}

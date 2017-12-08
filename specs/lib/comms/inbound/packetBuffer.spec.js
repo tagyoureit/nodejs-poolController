@@ -6,17 +6,13 @@ describe('packetBuffer receives raw packets from serial bus', function() {
 
             before(function() {
                 return global.initAll()
-                // bottle.container.settings.logMessageDecoding = 1
-                // bottle.container.server.init()
-                // bottle.container.io.init()
-                // bottle.container.logger.transports.console.level = 'silly';
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
@@ -48,10 +44,6 @@ describe('packetBuffer receives raw packets from serial bus', function() {
 
             after(function() {
                 return global.stopAll()
-                // bottle.container.settings.logMessageDecoding = 0
-                // bottle.container.time.init()
-                // bottle.container.server.close()
-                // bottle.container.logger.transports.console.level = 'info';
             })
 
             it('#should accept all packets and kick off processing buffer', function() {
