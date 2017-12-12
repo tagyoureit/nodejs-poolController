@@ -66,6 +66,7 @@ module.exports = function(container) {
         if (container.settings.get('chlorinator.installed')) {
             if (container.settings.get('virtual.chlorinatorController') === 'always' || !(container.settings.get('intellicom.installed') || container.settings.get('intellitouch.installed'))) {
                 if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller starting.')
+                isRunning = 1
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
             } else {
                 if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is set to default and another controller (Intellitouch/Intellicom) is present.')
@@ -74,7 +75,6 @@ module.exports = function(container) {
             if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
         }
 
-        return true
     }
     /*istanbul ignore next */
     if (container.logModuleLoading)

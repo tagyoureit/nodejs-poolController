@@ -187,20 +187,16 @@ module.exports = function(container) {
         return copy;
     }
 
-    testJson = function(data) {
-        // This function is used to validate/parse data before we read it or write it to a file
-        // We use this in a try/catch in a promise so we correctly return a reject from a synchronous function
-        return new Promise(function (resolve, reject) {
+    var testJson = function(data) {
+        // This function is used to validate/parse data before write to a file
             try {
-                console.log('a')
-                a = JSON.parse(JSON.stringify(data))
-                resolve(a)
+                JSON.parse(JSON.stringify(data))
+                return true
             }
             catch(err){
                 console.log('err in testJson', err)
-                reject(err)
+                return false
             }
-        })
     }
 
     function allEquipmentInOneJSON() {
@@ -219,7 +215,8 @@ module.exports = function(container) {
 
     return {
         formatTime: formatTime,
-        allEquipmentInOneJSON: allEquipmentInOneJSON
+        allEquipmentInOneJSON: allEquipmentInOneJSON,
+        testJson: testJson
     }
 
 }

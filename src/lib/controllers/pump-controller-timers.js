@@ -74,7 +74,7 @@ module.exports = function(container) {
             container.pump.setVirtualControllerStatus('disabled')
             return false
         } else
-        if (container.settings.get('virtual').pumpController === 'always' || !(container.settings.get('intellicom').installed || container.settings.get('intellitouch').installed)) {
+        if (container.settings.get('virtual').pumpController === 'always' || !(container.settings.get('intellicom.installed') || container.settings.get('intellitouch.installed'))) {
             //start if the value is always, or (with default) the values of both intellicom and intellitouch are 0 (not [either/both not present])
 
             // if (container.settings.get('logPumpTimers')) container.logger.silly('setInterval(pumpStatusCheck, 30 * 1000, %s', container.pump.numberOfPumps())
@@ -87,7 +87,7 @@ module.exports = function(container) {
             setTimeout(pumpStatusCheck,4*1000)
             return true
         } else {
-            if (container.settings.get('logPumpTimers')) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.get('virtual').pumpController, container.settings.get('intellitouch').installed, container.settings.get('intellicom').installed)
+            if (container.settings.get('logPumpTimers')) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.get('virtual').pumpController, container.settings.get('intellitouch.installed'), container.settings.get('intellicom.installed'))
             container.pump.setVirtualControllerStatus('disabled')
         }
     }

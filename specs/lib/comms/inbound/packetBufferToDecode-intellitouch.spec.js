@@ -1,20 +1,25 @@
 describe('receives packets from buffer and follows them to decoding', function() {
 
 
-    describe('#When packets arrive', function() {
-        context('via serialport or Socat and ending with Socket.io', function() {
+    describe('#When packets arrive', function () {
+        context('via serialport or Socat and ending with Socket.io', function () {
 
-            before(function() {
+            before(function () {
                 return global.initAll()
-            });
+                    .then(function () {
+                        return global.useShadowConfigFile('/specs/assets/config/templates/config_intellitouch.json')
+                    })
+            })
 
-            beforeEach(function() {
+            beforeEach(function () {
                 sandbox = sinon.sandbox.create()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 // bottle.container.pump.init()
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
@@ -29,7 +34,7 @@ describe('receives packets from buffer and follows them to decoding', function()
 
             })
 
-            afterEach(function() {
+            afterEach(function () {
                 bottle.container.temperatures.init()
                 bottle.container.pump.init()
                 bottle.container.queuePacket.init()
@@ -37,31 +42,34 @@ describe('receives packets from buffer and follows them to decoding', function()
 
             })
 
-            after(function() {
-                return global.stopAll()
+            after(function () {
+                return global.removeShadowConfigFile()
+                    .then(function () {
+                        return global.stopAll()
+                    })
             })
 
 
-            it('#should set/get the temperature', function(done) {
+            it('#should set/get the temperature', function (done) {
                 var client;
                 Promise.resolve()
-                    .then(function(){
+                    .then(function () {
                         configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
                         bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(0)
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
                     })
-                    .then(function(){
+                    .then(function () {
                         return global.waitForSocketResponse('temperature')
                     })
-                    .then(function(data){
+                    .then(function (data) {
                         data.temperature.poolTemp.should.eq(53)
                         bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(53)
-                     })
-                    .then(done,done)
+                    })
+                    .then(done, done)
             })
 
-            it('#should recognize an ACK after sending a controller packet', function(done) {
+            it('#should recognize an ACK after sending a controller packet', function (done) {
 
                 /*
                 09:57:30.478 DEBUG successfulAck: Incoming packet is a match.
@@ -80,19 +88,19 @@ describe('receives packets from buffer and follows them to decoding', function()
                 ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
-                    .then(function() {
-                        bottle.container.queuePacket.queuePacket([165,33,16, 33, 203, 1, 19])
+                    .then(function () {
+                        bottle.container.queuePacket.queuePacket([165, 33, 16, 33, 203, 1, 19])
                     })
                     .delay(50)
-                    .then(function(){
-                        bottle.container.packetBuffer.push(new Buffer([255,0,255,165,33,15,16,11,5,19,0,0,0,0,1,8]))
+                    .then(function () {
+                        bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 33, 15, 16, 11, 5, 19, 0, 0, 0, 0, 1, 8]))
                         ejectAndResetSpy.calledOnce.should.be.true
                     })
-                    .then(done,done)
+                    .then(done, done)
             })
 
 
-            it('#should recognize an ACK after sending a chlorinator packet', function(done) {
+            it('#should recognize an ACK after sending a chlorinator packet', function (done) {
 
                 /*
 
@@ -113,20 +121,19 @@ describe('receives packets from buffer and follows them to decoding', function()
                 ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
-                    .then(function() {
-                        bottle.container.queuePacket.queuePacket([16,2,80,17,10,125,16,3])
+                    .then(function () {
+                        bottle.container.queuePacket.queuePacket([16, 2, 80, 17, 10, 125, 16, 3])
                     })
                     .delay(50)
-                    .then(function(){
-                        bottle.container.packetBuffer.push(new Buffer([16,2,0,18,31,132,199,16,3]))
+                    .then(function () {
+                        bottle.container.packetBuffer.push(new Buffer([16, 2, 0, 18, 31, 132, 199, 16, 3]))
                         ejectAndResetSpy.calledOnce.should.be.true
                     })
-                    .then(done,done)
+                    .then(done, done)
             })
 
 
-
-            it('#should recognize an ACK after sending a pump packet', function(done) {
+            it('#should recognize an ACK after sending a pump packet', function (done) {
 
                 /*
                 7:09:47.298 INFO Pump 1 program changing from:
@@ -146,15 +153,19 @@ describe('receives packets from buffer and follows them to decoding', function()
                 ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
-                    .then(function() {
-                        bottle.container.queuePacket.queuePacket([165,0,96,33,4,1,255])
+                    .then(function () {
+                        bottle.container.queuePacket.queuePacket([165, 0, 96, 33, 4, 1, 255])
                     })
                     .delay(50)
-                    .then(function() {
-                        bottle.container.packetBuffer.push(new Buffer([255,0,255,165,0,33,96,4,1,255,2,42]))
-                        ejectAndResetSpy.calledOnce.should.be.true
+                    .then(function () {
+                        bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 0, 33, 96, 4, 1, 255, 2, 42]))
                     })
-                    .then(done,done)
+                    .delay(50)
+                    .then(function () {
+                        ejectAndResetSpy.calledOnce.should.be.true
+
+                    })
+                    .then(done, done)
             })
 
         })

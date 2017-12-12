@@ -43,9 +43,9 @@
             }
         },
         "chlorinator": {
-            "installed": 1,
+            "installed": 0,
             "desiredOutput": {
-                "pool": 101,
+                "pool": 9,
                 "spa": 12
             },
             "friendlyName": "",
@@ -108,9 +108,9 @@
         "notifications": {
             "version": {
                 "remote": {
-                    "version": "4.0.0",
-                    "tag_name": "v4.0.0",
-                    "dismissUntilNextRemoteVersionBump": true
+                    "version": "4.1.200",
+                    "tag_name": "v4.1.200",
+                    "dismissUntilNextRemoteVersionBump": false
                 }
             }
         },

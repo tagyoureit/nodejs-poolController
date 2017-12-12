@@ -68,8 +68,9 @@ module.exports = function(container) {
     }
 
     var load = function (configLocation) {
+
         return Promise.resolve()
-            .then(function () {
+            .then(function(){
                 if (configLocation){
                     _settings.configurationFile = configLocation;
                 }
@@ -78,14 +79,14 @@ module.exports = function(container) {
                 } else {
                     _settings.configurationFile = 'config.json';
                 }
-                //console.log('Loading settings with config file: ', _settings.configurationFile) //do not have access to logger yet.  Uncomment if we need to debug this.
+                container.logger.silly('Loading settings with config file: ', _settings.configurationFile) //do not have access to logger yet.  Uncomment if we need to debug this.
+            })
+            .then(function(){
                 return container.configEditor.init(_settings.configurationFile)
 
             })
             .then(function (parsedData) {
-                return configFile = JSON.parse(JSON.stringify(parsedData))
-            })
-            .then(function () {
+                configFile = JSON.parse(JSON.stringify(parsedData))
 
                 /*   Equipment   */
                 //Controller
@@ -149,12 +150,12 @@ module.exports = function(container) {
 
                 // Integrations
                 _settings.integrations = configFile.integrations;
+                container.logger.silly('Finished loading settings.')
+                return 'Finished Loading Settings'
+            })
 
-            })
-            .catch(function (err) {
-                console.error('Error in settings:', err)
-            })
     }
+
 
     var displayIntroMsg = function () {
         var introMsg;

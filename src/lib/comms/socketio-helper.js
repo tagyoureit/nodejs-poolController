@@ -26,12 +26,14 @@ module.exports = function(container) {
 
 
     var emitToClients = function(outputType, data) {
-
+        container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
             var Promise = container.promise
             Promise.resolve()
                 .then(function() {
+
                     remote = container.configEditor.getVersionNotification()
+                    container.logger.silly('Socket.IO emitting updateAvail', remote)
                     if (remote.dismissUntilNextRemoteVersionBump !== true) {
                         // true = means that we will suppress the update until the next available version bump
                         updateAvail = container.updateAvailable.getResults()

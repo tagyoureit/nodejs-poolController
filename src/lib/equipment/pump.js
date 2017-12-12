@@ -115,13 +115,6 @@ var setVirtualControllerStatus = function(status) {
 
     var init = function() {
     pumpConfig = container.settings.get('pump')
-    if (container.settings.get('logPumpMessages'))
-      if (currentPumpStatus === undefined) {
-        container.logger.silly('initializing pumps for first time')
-      }
-    else {
-      container.logger.silly('will reset pumps...')
-    }
 
     for (var _pump in pumpConfig) {
       if (pumpConfig[_pump].type !== 'none') {
@@ -144,7 +137,7 @@ var setVirtualControllerStatus = function(status) {
     loadProgramsFromConfig()
 
     if (container.settings.get('logPumpMessages'))
-      container.logger.silly('just reset pumps...')
+      container.logger.silly('Pump settings reset')
   }
 
   var pumpType = function(index) {

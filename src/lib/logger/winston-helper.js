@@ -45,7 +45,9 @@ module.exports = function(container) {
                     },
                     colorize: true,
                     level: container.settings.get('logLevel'),
-                    stderrLevels: []
+                    stderrLevels: [],
+                    handleExceptions: true,
+                    humanReadableUnhandledException: true
                 })
             ]
         });
@@ -75,29 +77,54 @@ module.exports = function(container) {
     }
 
     function error(msg){
-        logger.error.apply(this, arguments)
+        if (logger===undefined){
+            console.log('Error: ',arguments)
+        }
+        else
+            logger.error.apply(this, arguments)
     }
 
     function warn(msg){
+        if (logger===undefined){
+            console.log('Warn: ',arguments)
+        }
+        else
         logger.warn.apply(this, arguments)
     }
     function silly(msg){
-        logger.silly.apply(this, arguments)
+        if (logger===undefined){
+            console.log('Silly: ',arguments)
+        }
+        else
+            logger.silly.apply(this, arguments)
     }
     function debug(msg){
+        if (logger===undefined){
+            console.log('Debug: ',arguments)
+        }
+        else
         logger.debug.apply(this, arguments)
     }
     function verbose(msg){
+        if (logger===undefined){
+            console.log('Verbose: ',arguments)
+        }
+        else
         logger.verbose.apply(this, arguments)
     }
     function info(msg){
+        if (logger===undefined){
+            console.log('Info: ',arguments)
+        }
+        else
         logger.info.apply(this, arguments)
     }
 
     function changeLevel(transport, lvl){
         //when testing, we may call this first
         if (logger===undefined)
-            init()
+            //init() //calling init here may lead to retrieving settings which we don't have yet... so print a message and move on
+            console.log('Error trying to call chargeLevel when winston is not yet initialized')
         logger.transports[transport].level = lvl;
     }
     function add(transport, options){

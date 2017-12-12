@@ -10,11 +10,11 @@ describe('nodejs-poolController', function() {
     describe('Loads/checks for a valid configuration file', function() {
 
         before(function() {
-            return bottle.container.settings.load()
-                .then(function(){
-                    //bottle.container.logger.init()
-                    return global.initAll()
-                })
+
+
+            //    bottle.container.settings.load()
+            //         bottle.container.logger.init()
+            // return global.initAll()
 
         })
 
@@ -38,66 +38,73 @@ describe('nodejs-poolController', function() {
 
         after(function() {
             return global.stopAll()
+                // .then(global.removeShadowConfigFile)
+                .finally(function(){
+                    console.log('Finished Index.spec.js')
+                })
+        })
+
+        it('#should load settings', function() {
+            console.log('starting should load settings')
+            return Promise.resolve()
+                .then(bottle.container.settings.load)
+                .then(function(res){
+                    bottle.container.settings.get('intellitouch.installed').should.equal(0)
+                })
         })
 
         it('#should load logger', function() {
-
+            bottle.container.logger.init()
+            bottle.container.logger.info("I can output to the console, woot!")
             bottle.container.logger.should.exist
 
         })
 
-        it('#loads a valid file', function() {
-            var processStub = sinon.stub(process, 'exit')
-            bottle.container.settings.load()
-            processStub.restore()
-        })
 
         it('#bottle should exist', function() {
             bottle.should.exist
 
         })
 
-        it('#fails to load an invalid configuration file', function(done) {
-            // var myModule = rewire(path.join(process.cwd(), '/src/etc/settings.js'))
-            // myModule.__with__({
-            //     'envParam': path.join(process.cwd(),'./specs/assets/config/config.OUTDATED.json')
-            // })(function() {
-            //     var stub = sinon.spy(myModule, 'load')
-            //     try {
-            //         myModule.load()
-            //     } catch (e) {
-            //
-            //     }
-            //     stub.threw().should.be.true
-            //     stub.restore()
-            //     done()
-            //
-            // })
+        it('#fails to load an invalid configuration file', function() {
+            // stub exit so we don't... well, exit
+            exitStub = sandbox.stub(global, 'exit_nodejs_poolController')
+            // stub Error so we stub the invalid properties output
+            loggerErrorStub.restore()
+            loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
 
-            bottle.container.configEditor.init('/specs/assets/config/templates/config.OUTDATED.json')
+            return bottle.container.configEditor.init('/specs/assets/config/templates/config.OUTDATED.json')
                 .then(function(){
-                    return bottle.container.settings.load()
+                    exitStub.callCount.should.equal(3)  // because we stub the exit, it will fire 3 times
+
                 })
-                //TODO: this should catch an error
-                .catch(function(err){
-                    console.log('err', err.msg)
-                })
-                .then(done,done)
         })
 
         it('#loads/checks all instances of variables to store state', function() {
             //initialize variables to hold status
-            bottle.container.chlorinator.init()
-            bottle.container.heat.init()
-            bottle.container.time.init()
-            bottle.container.pump.init()
-            bottle.container.schedule.init()
-            bottle.container.circuit.init()
-            bottle.container.customNames.init()
-            bottle.container.intellitouch.init()
-            bottle.container.temperatures.init()
-            bottle.container.UOM.init()
-            bottle.container.valves.init()
+            return new Promise(function(resolve,reject){
+                return bottle.container.settings.load()
+                    .then(bottle.container.chlorinator.init)
+                    .then(function(){
+                        bottle.container.heat.init()
+                        bottle.container.time.init()
+                        bottle.container.pump.init()
+                        bottle.container.schedule.init()
+                        bottle.container.circuit.init()
+                        bottle.container.customNames.init()
+                        bottle.container.intellitouch.init()
+                        bottle.container.temperatures.init()
+                        bottle.container.UOM.init()
+                        bottle.container.valves.init()
+                    })
+                    .then(resolve)
+                    .catch(function(err){
+                        reject(err)
+                    })
+
+
+            })
+
         })
 
         it('#loads/checks helper functions', function() {

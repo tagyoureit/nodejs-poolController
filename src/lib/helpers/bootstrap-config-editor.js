@@ -52,7 +52,6 @@ module.exports = function(container) {
 
     var readConfigClient = function() {
         return pfs.readFileAsync(location, 'utf-8')
-            .then(container.helpers.testJson)
             .then(function (data) {
                 configClient = JSON.parse(data)
                 return configClient
@@ -72,9 +71,11 @@ module.exports = function(container) {
                 } else {
                     data[a][b][c] = d
                 }
+                if (!container.helpers.testJson(data)) {
+                    throw new Error('Error with update bootstrap config format.  Aborting write.')
+                }
                 return data
             })
-            .then(container.helpers.testJson)
             .then(function(data){
                 return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })
@@ -92,9 +93,11 @@ module.exports = function(container) {
                 for (var key in data.panelState) {
                     data.panelState[key].state = "visible"
                 }
+                if (!container.helpers.testJson(data)) {
+                    throw new Error('Error with readConfigClient bootstrap config format.  Aborting write.')
+                }
                 return data
             })
-            .then(container.helpers.testJson)
             .then(function(data){
                 return pfs.writeFileAsync(location, JSON.stringify(data, null, 4), 'utf-8')
             })

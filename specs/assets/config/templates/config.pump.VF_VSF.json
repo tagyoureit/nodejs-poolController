@@ -57,16 +57,15 @@
             }
         },
         "pump": {
-
             "1": {
                 "externalProgram": {
-                    "1": 1000,
-                    "2": 2500,
+                    "1": 55,
+                    "2": 10,
                     "3": -1,
-                    "4": 3000
+                    "4": 130
                 },
                 "friendlyName": "",
-                "type": "VS",
+                "type": "VF",
                 "id": {
                     "productName": "",
                     "productNumber": "",
@@ -76,13 +75,13 @@
             },
             "2": {
                 "externalProgram": {
-                    "1": 1010,
-                    "2": 2500,
-                    "3": 3450,
-                    "4": -1
+                    "1": 20,
+                    "2": 40,
+                    "3": 2500,
+                    "4": 3450
                 },
                 "friendlyName": "",
-                "type": "VS",
+                "type": "VSF",
                 "id": {
                     "productName": "",
                     "productNumber": "",

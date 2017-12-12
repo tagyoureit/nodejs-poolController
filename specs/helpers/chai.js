@@ -3,7 +3,7 @@ var path = global.path = require('path').posix
 var chai = global.chai = require('chai');
 global.sinon = require('sinon')
 // global.sinonChai = require("sinon-chai");
-// var nock = global.nock = require('nock')
+var nock = global.nock = require('nock')
 var nodejspoolcontroller = require(path.join(process.cwd(),'/src/lib/app'))
 var Bottle = global.Bottle = require('bottlejs')
 

@@ -24,16 +24,16 @@
                 "2": "",
                 "3": "",
                 "4": "",
-                "5": "Waterfall Medium Low",
+                "5": "",
                 "6": "",
                 "7": "",
                 "8": "",
                 "9": "",
                 "10": "",
                 "11": "",
-                "12": "Waterfall Low",
-                "13": "Waterfall Medium",
-                "14": "Waterfall High",
+                "12": "",
+                "13": "",
+                "14": "",
                 "15": "",
                 "16": "",
                 "17": "",
@@ -57,16 +57,15 @@
             }
         },
         "pump": {
-
             "1": {
+                "type": "VS",
                 "externalProgram": {
                     "1": 1000,
                     "2": 2500,
-                    "3": -1,
+                    "3": 2000,
                     "4": 3000
                 },
                 "friendlyName": "",
-                "type": "VS",
                 "id": {
                     "productName": "",
                     "productNumber": "",
@@ -75,14 +74,14 @@
                 }
             },
             "2": {
+                "type": "VS",
                 "externalProgram": {
                     "1": 1010,
                     "2": 2500,
                     "3": 3450,
-                    "4": -1
+                    "4": 1000
                 },
                 "friendlyName": "",
-                "type": "VS",
                 "id": {
                     "productName": "",
                     "productNumber": "",
@@ -109,8 +108,8 @@
         "notifications": {
             "version": {
                 "remote": {
-                    "version": "4.0.0",
-                    "tag_name": "v4.0.0",
+                    "version": "4.1.0",
+                    "tag_name": "v4.1.0",
                     "dismissUntilNextRemoteVersionBump": true
                 }
             }
@@ -123,13 +122,13 @@
                 "fileLogLevel": "silly",
                 "fileName": "output.log"
             },
-            "logPumpMessages": 1,
+            "logPumpMessages": 0,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,
             "logConfigMessages": 0,
             "logMessageDecoding": 0,
-            "logChlorinator": 1,
-            "logPacketWrites": 1,
+            "logChlorinator": 0,
+            "logPacketWrites": 0,
             "logIntellichem": 0,
             "logPumpTimers": 0,
             "logApi": 0

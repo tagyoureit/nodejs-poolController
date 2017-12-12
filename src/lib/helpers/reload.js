@@ -90,9 +90,6 @@ module.exports = function(container) {
           if (container.settings.get('chlorinator.standalone')) {
               container.chlorinatorController.startChlorinatorController()
           }
-          if (container.settings.get('intellitouch.installed')) {
-              container.intellitouch.getControllerConfiguration()
-          }
 
           if (reset) {
               container.chlorinator.init()

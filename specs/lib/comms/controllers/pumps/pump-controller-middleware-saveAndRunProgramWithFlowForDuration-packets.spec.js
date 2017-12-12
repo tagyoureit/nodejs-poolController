@@ -11,22 +11,24 @@ describe('pump controller - save and run program with flow for duration', functi
 
         before(function() {
             return global.initAll()
-                .then(function(){
-
-                    return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VF.json'))
-                        .then(function(pumpVF) {
-                            return JSON.parse(pumpVF)
-                        })
-                        .then(function(parsed) {
-                            bottle.container.settings.set('pump', parsed)
-                            return bottle.container.pump.init()
-                        })
-                        .catch(function(err) {
-                            /* istanbul ignore next */
-                            console.log('oops, we hit an error', err)
-                        })
-
+                .then(function(){return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')})
+                .then(function() {
+                    return bottle.container.pump.init()
                 })
+            // return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VF_VSF.json'))
+            //     .then(function(pumpVF) {
+            //         return JSON.parse(pumpVF)
+            //     })
+            //     .then(function(parsed) {
+            //         bottle.container.settings.set('pump', parsed)
+            //         return bottle.container.pump.init()
+            //     })
+            //     .catch(function(err) {
+            //         /* istanbul ignore next */
+            //         console.log('oops, we hit an error', err)
+            //     })
+
+
         });
 
         beforeEach(function() {
@@ -55,14 +57,16 @@ describe('pump controller - save and run program with flow for duration', functi
         })
 
         after(function() {
-            return global.stopAll()
+            return global.removeShadowConfigFile()
+                .then(global.stopAll)
+
         })
 
 
         // it('runs pump 1 program 1 at 15 gpm for 1 minute', function() {
-        //
-        //
-        //
+
+
+
         //     var index = 1
         //     var program = 1
         //     var flow = 15

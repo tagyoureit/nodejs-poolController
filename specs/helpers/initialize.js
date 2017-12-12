@@ -4,50 +4,50 @@ var fs = require('fs'),
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
 
-logDebug = 0
+logDebug = 1
 
 initAll = function(configLocation) {
 
 
-    return new Promise(function(resolve, reject) {
-        if (logDebug) {
-            console.log('###Starting Init All###')
+    return Promise.resolve()
+        .then(function () {
+            if (logDebug) {
+                bottle.container.logger.debug('###Starting Init All###')
+                enableLogging()
+            }
+            else
+                disableLogging()
+        })
+        .then(bottle.container.server.init)  // async
+        .then(function () {
+            sp = bottle.container.sp.mockSPBinding() // synchronous
+
+            bottle.container.heat.init() // synchronous
+            bottle.container.time.init() // synchronous
+            bottle.container.pump.init() // synchronous
+            bottle.container.schedule.init() // synchronous
+            bottle.container.circuit.init() // synchronous
+            bottle.container.customNames.init() // synchronous
+            bottle.container.intellitouch.init() // synchronous
+            bottle.container.temperatures.init() // synchronous
+            bottle.container.UOM.init() // synchronous
+            bottle.container.valves.init() // synchronous
+            bottle.container.queuePacket.init() // synchronous
+            bottle.container.writePacket.init() // synchronous
+            bottle.container.intellitouch.init() // synchronous
+            bottle.container.intellichem.init() // synchronous
+            bottle.container.io.init() // synchronous
             enableLogging()
-        }
-        else
-            disableLogging()
+        })
+        .then(bottle.container.chlorinator.init) // updated... synchronous
+        .catch(function (err) {
+            bottle.container.logger.error('Error in global.initAll. ', err)
+        })
+        .finally(function () {
+            if (logDebug) bottle.container.logger.debug('###Done Init All###')
+        })
 
-        return bottle.container.server.init()
-            .then(function () {
-                sp = bottle.container.sp.mockSPBinding()
-                bottle.container.chlorinator.init()
-                bottle.container.heat.init()
-                bottle.container.time.init()
-                bottle.container.pump.init()
-                bottle.container.schedule.init()
-                bottle.container.circuit.init()
-                bottle.container.customNames.init()
-                bottle.container.intellitouch.init()
-                bottle.container.temperatures.init()
-                bottle.container.UOM.init()
-                bottle.container.valves.init()
-                bottle.container.queuePacket.init()
-                bottle.container.writePacket.init()
-                bottle.container.intellichem.init()
-                bottle.container.io.init()
-                return enableLogging()
-            })
-            .catch(function (err) {
-                console.error('Error in global.initAll. ', err)
-            })
-            .finally(function () {
-                if (logDebug) console.log('###Done Init All###')
-                resolve()
-            })
-    })
 }
-
-
 
 
 var spyLogger = function(){
@@ -56,36 +56,34 @@ var spyLogger = function(){
 
 
 stopAll = function() {
-    return new Promise(function(resolve, reject) {
-        if (logDebug){
-            console.log('***Starting Stop All***')
+return Promise.resolve()
+    .then(function(){
+        if (logDebug) {
+            bottle.container.logger.debug('***Starting Stop All***')
             enableLogging()
         }
         else
             disableLogging()
-
-
-        return Promise.delay(1900)
-            .then(bottle.container.server.close)
-            .then(function () {
-                bottle.container.packetBuffer.clear()
-                bottle.container.writePacket.init()
-                bottle.container.queuePacket.init()
-                bottle.container.sp.close()
-
-            })
-            .catch(function (err) {
-                console.error('Error in stopAll.', err)
-            })
-            .finally(function () {
-                if (logDebug)
-                    console.log('***Stop All Completed***')
-                resolve()
-            })
+    })
+    .then(bottle.container.server.close)
+    .then(function(){
+        bottle.container.chlorinatorController.clearTimer()
+        bottle.container.writePacket.init()
+        bottle.container.packetBuffer.clear()
+        bottle.container.queuePacket.init()
+        bottle.container.sp.close()
+    })
+    .catch(function(err) {
+        bottle.container.logger.error('Error in stopAll.', err)
+    })
+    .finally(function(){
+        if (logDebug)
+            bottle.container.logger.debug('***Stop All Completed***')
     })
 }
 
 var enableLogging = function(){
+
     bottle.container.logger.changeLevel('console', 'silly')
     bottle.container.settings.set('logPumpMessages',1)
     bottle.container.settings.set('logDuplicateMessages', 1)
@@ -116,47 +114,101 @@ var disableLogging = function(){
 }
 
 useShadowConfigFile = function(location) {
-    return fs.readFileAsync(path.join(process.cwd(), location))
+    //use console.log in here because logger may not be initialiazed first run
+    return Promise.resolve()
+        .then(function(){
+            bottle.container.logger.debug('useShadowConfigFile: Shadow file to be used:', location)
+            return fs.readFileAsync(path.join(process.cwd(), location))
+        })
         .then(function (orig) {
             return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
         })
         .then(function() {
-            if (logDebug)
-            return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+             if (logDebug)
+                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+
+                    .then(function(copy) {
+                        bottle.container.logger.silly('Shadow file: just copied %s to _config.json ', location, copy.length)
+                    })
         })
-        .then(function(copy) {
-            if (logDebug)
-            container.logger.debug('Shadow file: just copied %s to _config.json ', location, copy.length)
+        .then(function(){
+
+            return bottle.container.settings.load('/specs/assets/config/_config.json')
+
         })
-        .then(bottle.container.settings.load(location))
         .catch(function (err) {
             /* istanbul ignore next */
-            console.log('oops, we hit an error in useShadowConfigFile', err)
+            bottle.container.logger.error('oops, we hit an error in useShadowConfigFile', err)
+        })
+        .finally(function(){
+            if (logDebug) {
+                bottle.container.logger.debug('useShadowConfigFile: Complete')
+                enableLogging()
+            }
+            else
+                disableLogging()
+
         })
 }
 
 removeShadowConfigFile = function(){
-    return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'))
-    // .then(function() {
-    //     console.log('file removed')
-    // })
-        .then(bottle.container.settings.load)
+
+    return Promise.resolve()
+        .then(function(){
+            if (logDebug) {
+                bottle.container.logger.debug('***Starting removeShadowConfig***')
+                enableLogging()
+            }
+            else
+                disableLogging()
+        })
+        .then(function(){
+            shadowLocation = path.join(process.cwd(), '/specs/assets/config/_config.json')
+            try {
+
+                a = fs.statSync(shadowLocation)
+                bottle.container.logger.silly('file stats', a)
+                return fs.unlinkAsync(shadowLocation)
+                    .then(function() {
+                        if (logDebug)
+                            bottle.container.logger.silly('_config.json file removed')
+                    })
+                    .then(bottle.container.settings.load)
+            }
+            catch(err){
+                bottle.container.logger.error('File /specs/assets/config/_config.json does not exist.', err)
+                return false
+            }
+        })
+        // .then(function(bool){
+        //     console.log('file /specs/assets/config/_config.json exists?? ', bool)
+        //     if (bool){
+        //
+        //     }
+        // })
+
         .catch(function (err) {
             /* istanbul ignore next */
-            console.log('Error removing file:', err)
+            bottle.container.logger.error('Error removing file:', err)
+        })
+        .finally(function(){
+            bottle.container.logger.debug('***Finished removeShadowConfig***')
         })
 }
 
 waitForSocketResponse = function(_which) {
+    var myResolve, myReject
+    setTimeout(function(){
+        myReject(new Error('timeout in waitForSocketResponse to ' + _which + ' call'))
+    },1500)  //in case no response, reject the promise
+    client = global.ioclient.connect(global.socketURL, global.socketOptions)
+    client.on(_which, function (data) {
+        client.disconnect()
+        myResolve(data)
+    })
     return new Promise(function (resolve, reject) {
-        setTimeout(function(){
-            reject(new Error('timeout in waitForSocketResponse to ' + _which + ' call'))
-        },1500)  //in case no response, reject the promise
-        client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        client.on(_which, function (data) {
-            client.disconnect()
-            resolve(data)
-        })
+        myResolve = resolve
+        myReject = reject
     })
 }
 

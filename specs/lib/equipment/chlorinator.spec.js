@@ -6,7 +6,7 @@ describe('chlorinator tests', function() {
         bottle.container.settings.set('virtual.chlorinatorController', "always")
         bottle.container.settings.set('chlorinator.installed',1)
         bottle.container.settings.set('intellitouch.installed',0)
-        bottle.container.settings.set('intellicom', 0)
+        bottle.container.settings.set('intellicom.installed', 0)
         return global.initAll()
     });
 
@@ -39,7 +39,7 @@ describe('chlorinator tests', function() {
         bottle.container.settings.set('virtual.chlorinatorController', "default")
         bottle.container.settings.set('chlorinator.installed', 0)
         bottle.container.settings.set('intellitouch.installed', 1)
-        bottle.container.settings.set('intellicom', 0)
+        bottle.container.settings.set('intellicom.installed', 0)
         bottle.container.chlorinatorController.clearTimer()
         return global.stopAll()
     })

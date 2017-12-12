@@ -39,6 +39,8 @@ module.exports = function() {
 
         var winstonToIOOptions = {
             level: bottle.container.settings.get('socketLogLevel'),
+            handleExceptions: true,
+            humanReadableUnhandledException: true,
             customFormatter: function(level, message, meta) {
                 // Return string will be passed to logger.
                 return dateFormat(Date.now(), "HH:MM:ss.l") + ' ' + level.toUpperCase() + ' ' + (undefined !== message ? message.split('\n').join('<br \>') : '') +

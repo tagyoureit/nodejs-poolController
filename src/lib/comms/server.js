@@ -672,24 +672,25 @@ module.exports = function(container) {
             })
 
             /* END Invalid pump commands -- sends response */
+            resolve()
         })
 
 
     }
     /*  END  Original pumpCommand API  */
     var close = function() {
-        return new Promise(function (resolve, reject) {
+
             if (server !== undefined) {
                 server.close(function () {
                     container.logger.verbose('Express Server closed. (was listening at port %d)', port);
-                    resolve()
+
                 })
             }
             else {
                 console.warn('Trying to close express server, but it is not running.')
-                resolve()
+
             }
-        })
+
     }
 
     var getServer = function() {

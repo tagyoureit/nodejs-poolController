@@ -117,7 +117,7 @@ module.exports = function(container) {
                 var prevLevel = container.settings.get('logLevel')
                 logger.warn('Setting logging level to Debug.  Will revert to previous level in 2 minutes.')
                 container.settings.set('logLevel', 'debug')
-                logger.changelLevel('console', 'debug');
+                logger.changeLevel('console', 'debug');
                 setTimeout(function(){
                     logger.warn('Setting logging level to %s', prevLevel)
                     container.settings.set('logLevel', prevLevel)

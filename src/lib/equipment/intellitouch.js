@@ -70,6 +70,7 @@ module.exports = function(container) {
 
         container.logger.verbose('Queueing messages to retrieve pump configurations')
         container.pump.getPumpConfiguration()
+        return true
 
     }
 
@@ -87,21 +88,22 @@ module.exports = function(container) {
            if (container.settings.get('intellitouch.installed')) // ONLY check the configuration if the controller is Intellitouch (address 16)
            {
                if (controllerSettings.preambleByte !== -1) {
-
-                   getControllerConfiguration()
+                   // need to use full path here or Mocha/Sinon won't recognize the call to the function in the same Bottle.
+                   container.intellitouch.getControllerConfiguration()
                    controllerSettings.needConfiguration = 0; //we will no longer request the configuration.  Need this first in case multiple packets come through.
                }
-
            } else {
-
                if (container.settings.get('intellicom.installed')) {
                    container.logger.info('IntellicomII Controller installed.  No configuration request messages sent.')
                } else {
                    container.logger.info('No pool controller (Intellitouch or IntelliComII) detected.  No configuration request messages sent.')
                }
                controllerSettings.needConfiguration = 0; //we will no longer request the configuration.  Need this first in case multiple packets come through.
+               return controllerSettings.needConfiguration
            }
+
        }
+        return controllerSettings.needConfiguration
    }
 
 

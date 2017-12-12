@@ -224,7 +224,7 @@ var init = exports.init = function() {
 
         })
         .catch(function(err){
-            console.log('Error with initialization:', err)
+            bottle.container.logger.error('Error with initialization:', err)
         })
 
 
