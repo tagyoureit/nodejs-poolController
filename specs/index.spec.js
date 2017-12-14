@@ -11,11 +11,6 @@ describe('nodejs-poolController', function() {
 
         before(function() {
 
-
-            //    bottle.container.settings.load()
-            //         bottle.container.logger.init()
-            // return global.initAll()
-
         })
 
 
@@ -38,10 +33,6 @@ describe('nodejs-poolController', function() {
 
         after(function() {
             return global.stopAll()
-                // .then(global.removeShadowConfigFile)
-                .finally(function(){
-                    console.log('Finished Index.spec.js')
-                })
         })
 
         it('#should load settings', function() {
@@ -112,8 +103,68 @@ describe('nodejs-poolController', function() {
             bottle.container.winstonToIO.init()
             bottle.container.helpers
             bottle.container.integrations.init()
+            bottle.container.settings.displayIntroMsg()
+            bottle.container.settings.displaySettingsMsg()
+            bottle.container.settings.getConfig()
+            bottle.container.settings.set('missing_val')
         })
 
+        it('#tests internal logDebug for debugging testing', function(){
+            var priorLogDebug = global.logDebug
+            return Promise.resolve()
+                .then(function(){
+
+                    changeLogDebug(1)
+                })
+                .then(global.initAll)
+                .then(global.stopAll)
+                .then(function(){
+                    return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+                })
+                .then(global.removeShadowConfigFile)
+                .then(function(){
+                    changeLogDebug(priorLogDebug)
+                })
+
+        })
+
+        it('#throws an error with invalid config', function(){
+            var priorLogDebug = global.logDebug
+            return Promise.resolve()
+                .then(function(){
+                    changeLogDebug(1)
+                })
+                .then(global.initAll)
+                .then(global.stopAll)
+                .then(function(){
+                    return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+                })
+                .then(global.removeShadowConfigFile)
+                .then(function(){
+                    sandbox.restore()
+                    sandbox = sinon.sandbox.create()
+                    loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                    loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                    loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                    loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                    loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                    loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
+
+
+
+                })
+                .then(global.removeShadowConfigFile)  // should throw an error
+                .then(function(){
+                    // should throw an error
+
+                    return global.useShadowConfigFile('/specs/assets/config/templates/config_not_here.json')
+                })
+                .then(function(){
+                    loggerErrorStub.callCount.should.equal(2)
+                    changeLogDebug(priorLogDebug)
+                })
+
+        })
 
 
     })

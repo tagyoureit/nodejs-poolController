@@ -84,7 +84,11 @@ module.exports = function(container) {
             //must give a short delay to allow the port to open
             //this 4 second pause is necessary to let the SP and Server open/start
             container.pump.setVirtualControllerStatus('enabled')
-            setTimeout(pumpStatusCheck,4*1000)
+            pumpStatusTimer = setTimeout(pumpStatusCheck,4*1000)
+            if (_startPumpController === 1) {
+                // make sure we only call the startPumpController once
+                _startPumpController = 0
+            }
             return true
         } else {
             if (container.settings.get('logPumpTimers')) container.logger.verbose('Not starting virtual pump off timer. (virtualPumpContoller: %s, Intellitouch: %s, Intellicom: %s).', container.settings.get('virtual').pumpController, container.settings.get('intellitouch.installed'), container.settings.get('intellicom.installed'))
@@ -92,18 +96,30 @@ module.exports = function(container) {
         }
     }
 
-
+    var stopPumpController = function(){
+        if (container.settings.get('logPumpTimers')) container.logger.verbose('Stopping virtual pump controller.')
+        container.pump.setVirtualControllerStatus('disabled')
+        clearTimer(pumpStatusCheck)
+        if (pump1TimerRunning) clearTimer(1)
+        if (pump2TimerRunning) clearTimer(2)
+        _startPumpController = 1
+    }
 
     //clear the internal timer for pump control
     var clearTimer = function(index) {
-        container.pump.setCurrentRunning(index, 'off', 0, -1)
-        container.pumpControllerMiddleware.runProgramSequence(index, 0)
-        container.pumpControllerMiddleware.runPowerSequence(index, 0)
+
+
         if (index === 1 && pump1TimerRunning) {
             clearTimeout(pump1Timer);
+            container.pump.setCurrentRunning(index, 'off', 0, -1)
+            container.pumpControllerMiddleware.runProgramSequence(index, 0)
+            container.pumpControllerMiddleware.runPowerSequence(index, 0)
             _startPumpController = 1
             pump1TimerRunning = 0
         } else if (index === 2 && pump2TimerRunning) {
+            container.pump.setCurrentRunning(index, 'off', 0, -1)
+            container.pumpControllerMiddleware.runProgramSequence(index, 0)
+            container.pumpControllerMiddleware.runPowerSequence(index, 0)
             clearTimeout(pump2Timer);
             _startPumpController = 1
             pump2TimerRunning = 0
@@ -273,7 +289,7 @@ module.exports = function(container) {
 
 // GPM
 
-  var pump1GPMTimerMode = function() {
+    var pump1GPMTimerMode = function() {
         var index = 1
         var callback = 'pump' + index.toString() + 'GPMTimerMode'
         if (container.pump.getCurrentRemainingDuration(index) > 0) {
@@ -348,7 +364,7 @@ module.exports = function(container) {
         container.io.emitToClients('pump')
     }
 
- //END GPM
+    //END GPM
     var pump1PowerTimerMode = function() {
         var index = 1
         var callback = 'pump' + index.toString() + 'PowerTimerMode'
@@ -536,7 +552,8 @@ module.exports = function(container) {
         startGPMTimer: startGPMTimer,
         clearTimer: clearTimer,
         isPumpTimerRunning: isPumpTimerRunning,
-        startPumpController: startPumpController
+        startPumpController: startPumpController,
+        stopPumpController: stopPumpController
     }
 
 }

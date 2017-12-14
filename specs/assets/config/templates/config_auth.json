@@ -45,8 +45,8 @@
         "chlorinator": {
             "installed": 0,
             "desiredOutput": {
-                "pool": -1,
-                "spa": -1
+                "pool": 0,
+                "spa": 11
             },
             "friendlyName": "",
             "id": {
@@ -96,15 +96,14 @@
         "web": {
             "expressPort": 3000,
             "expressTransport": "http",
-            "expressAuth": 0,
-            "expressAuthFile": "/users.htpasswd"
+            "expressAuth": 1,
+            "expressAuthFile": "/specs/assets/server/users.htpasswd"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 1,
             "netHost": "raspberrypi",
-            "netPort": 9801,
-            "inactivityRetry": 10
+            "netPort": 9801
         },
         "notifications": {
             "version": {
@@ -132,7 +131,8 @@
             "logPacketWrites": 0,
             "logIntellichem": 0,
             "logPumpTimers": 0,
-            "logApi": 0
+            "logApi": 0,
+            "logReload": 0
         },
         "database": {
             "influx": {

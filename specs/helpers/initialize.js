@@ -4,19 +4,22 @@ var fs = require('fs'),
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
 
-logDebug = 1
+logDebug = 0
 
-initAll = function(configLocation) {
+changeLogDebug = function(val){
+    logDebug = val
+}
 
+initAll = function() {
 
     return Promise.resolve()
         .then(function () {
             if (logDebug) {
                 bottle.container.logger.debug('###Starting Init All###')
-                enableLogging()
+                return enableLogging()
             }
             else
-                disableLogging()
+                return disableLogging()
         })
         .then(bottle.container.server.init)  // async
         .then(function () {
@@ -40,7 +43,7 @@ initAll = function(configLocation) {
             enableLogging()
         })
         .then(bottle.container.chlorinator.init) // updated... synchronous
-        .catch(function (err) {
+        .catch( /* istanbul ignore next */ function (err) {
             bottle.container.logger.error('Error in global.initAll. ', err)
         })
         .finally(function () {
@@ -50,40 +53,41 @@ initAll = function(configLocation) {
 }
 
 
-var spyLogger = function(){
+var spyLogger = function(sinon){
 
 }
 
 
 stopAll = function() {
-return Promise.resolve()
-    .then(function(){
-        if (logDebug) {
-            bottle.container.logger.debug('***Starting Stop All***')
-            enableLogging()
-        }
-        else
-            disableLogging()
-    })
-    .then(bottle.container.server.close)
-    .then(function(){
-        bottle.container.chlorinatorController.clearTimer()
-        bottle.container.writePacket.init()
-        bottle.container.packetBuffer.clear()
-        bottle.container.queuePacket.init()
-        bottle.container.sp.close()
-    })
-    .catch(function(err) {
-        bottle.container.logger.error('Error in stopAll.', err)
-    })
-    .finally(function(){
-        if (logDebug)
-            bottle.container.logger.debug('***Stop All Completed***')
-    })
+    return Promise.resolve()
+        .then(function(){
+            if (logDebug) {
+                bottle.container.logger.debug('***Starting Stop All***')
+                enableLogging()
+            }
+            else
+                disableLogging()
+        })
+        .then(bottle.container.server.close)
+        .then(function(){
+            bottle.container.chlorinatorController.clearTimer()
+            bottle.container.writePacket.init()
+            bottle.container.packetBuffer.clear()
+            bottle.container.queuePacket.init()
+            bottle.container.sp.close()
+        })
+        .catch( /* istanbul ignore next */ function(err) {
+            bottle.container.logger.error('Error in stopAll.', err)
+        })
+        .finally(function(){
+            if (logDebug)
+                bottle.container.logger.debug('***Stop All Completed***')
+        })
 }
 
 var enableLogging = function(){
-
+    if (logDebug)
+        bottle.container.logger.silly('enableLogging')
     bottle.container.logger.changeLevel('console', 'silly')
     bottle.container.settings.set('logPumpMessages',1)
     bottle.container.settings.set('logDuplicateMessages', 1)
@@ -99,6 +103,8 @@ var enableLogging = function(){
 }
 
 var disableLogging = function(){
+    if (logDebug)
+        bottle.container.logger.silly('disableLogging')
     bottle.container.logger.changeLevel('console','info')
     bottle.container.settings.set('logPumpMessages',0)
     bottle.container.settings.set('logDuplicateMessages', 0)
@@ -117,14 +123,15 @@ useShadowConfigFile = function(location) {
     //use console.log in here because logger may not be initialiazed first run
     return Promise.resolve()
         .then(function(){
-            bottle.container.logger.debug('useShadowConfigFile: Shadow file to be used:', location)
+            if (logDebug)
+                bottle.container.logger.debug('useShadowConfigFile: Shadow file to be used:', location)
             return fs.readFileAsync(path.join(process.cwd(), location))
         })
         .then(function (orig) {
             return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
         })
         .then(function() {
-             if (logDebug)
+            if (logDebug)
                 return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
 
                     .then(function(copy) {
@@ -132,15 +139,13 @@ useShadowConfigFile = function(location) {
                     })
         })
         .then(function(){
-
             return bottle.container.settings.load('/specs/assets/config/_config.json')
-
         })
-        .catch(function (err) {
-            /* istanbul ignore next */
+        .catch( /* istanbul ignore next */ function (err) {
             bottle.container.logger.error('oops, we hit an error in useShadowConfigFile', err)
         })
         .finally(function(){
+            /* istanbul ignore next */
             if (logDebug) {
                 bottle.container.logger.debug('useShadowConfigFile: Complete')
                 enableLogging()
@@ -155,6 +160,7 @@ removeShadowConfigFile = function(){
 
     return Promise.resolve()
         .then(function(){
+            /* istanbul ignore next */
             if (logDebug) {
                 bottle.container.logger.debug('***Starting removeShadowConfig***')
                 enableLogging()
@@ -170,14 +176,15 @@ removeShadowConfigFile = function(){
                 bottle.container.logger.silly('file stats', a)
                 return fs.unlinkAsync(shadowLocation)
                     .then(function() {
+                        /* istanbul ignore next */
                         if (logDebug)
                             bottle.container.logger.silly('_config.json file removed')
                     })
                     .then(bottle.container.settings.load)
             }
+
             catch(err){
-                bottle.container.logger.error('File /specs/assets/config/_config.json does not exist.', err)
-                return false
+                throw new Error('File /specs/assets/config/_config.json does not exist.', err)
             }
         })
         // .then(function(bool){
@@ -188,7 +195,6 @@ removeShadowConfigFile = function(){
         // })
 
         .catch(function (err) {
-            /* istanbul ignore next */
             bottle.container.logger.error('Error removing file:', err)
         })
         .finally(function(){

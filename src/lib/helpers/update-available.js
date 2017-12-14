@@ -103,7 +103,6 @@ module.exports = function(container) {
                         remoteVerArr
                     //compare the version numbers sequentially (major, minor, patch) to make sure there is a newer version and not just a different version
                     //nice to have the try block here in case we can't split the result
-                    console.log('MAATCH??', configJsonRemote.version, configJsonRemote.version==='')
                     if (configJsonRemote.version === '') configJsonRemote.version = '0.0.0'
 
                     configJsonVerArr = configJsonRemote.version.split(".").map(function(val) {

@@ -11,7 +11,7 @@
             },
             "virtual": {
                 "pumpController": "default",
-                "chlorinatorController": "default"
+                "chlorinatorController": "always"
             },
             "id": {
                 "productName": "",
@@ -43,10 +43,10 @@
             }
         },
         "chlorinator": {
-            "installed": 0,
+            "installed": 1,
             "desiredOutput": {
-                "pool": -1,
-                "spa": -1
+                "pool": 0,
+                "spa": 11
             },
             "friendlyName": "",
             "id": {
@@ -103,8 +103,7 @@
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 1,
             "netHost": "raspberrypi",
-            "netPort": 9801,
-            "inactivityRetry": 10
+            "netPort": 9801
         },
         "notifications": {
             "version": {

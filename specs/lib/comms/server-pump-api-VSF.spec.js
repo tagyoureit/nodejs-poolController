@@ -37,9 +37,6 @@ describe('#sends pump commands to a VSF pump', function () {
 
                 })
                 .catch(function(e){console.log('error!!!', e)})
-                .finally(function(){
-                    console.log('______Finished BeforeEach______')
-                })
 
         })
 

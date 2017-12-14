@@ -163,7 +163,7 @@ describe('socket.io basic tests', function() {
                 myResolve()
             })
         var myResolve, myReject
-        var a = setTimeout(function(){myReject()}, 1500)
+        var a = setTimeout(function(){myReject(new Error('Socket Timeout error'))}, 1500)
         return new Promise(function(resolve, reject){
             myResolve = resolve
             myReject = reject

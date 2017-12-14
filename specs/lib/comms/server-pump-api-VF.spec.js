@@ -34,9 +34,6 @@ describe('#sends pump commands to a VF pump', function () {
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 })
                 .catch(function(e){console.log('error!!!', e)})
-                .finally(function(){
-                    bottle.container.logger.silly('______Finished BeforeEach______')
-                })
 
         })
 

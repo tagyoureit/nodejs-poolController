@@ -103,7 +103,8 @@
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 1,
             "netHost": "raspberrypi",
-            "netPort": 9801
+            "netPort": 9801,
+            "inactivityRetry": 10
         },
         "notifications": {
             "version": {

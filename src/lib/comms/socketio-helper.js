@@ -282,7 +282,7 @@ module.exports = function(container) {
 
 
             socket.on('spaheatmode', function(spaheatmode) {
-                container.heat.changeHeatMode(spaheatmode)
+                container.heat.changeHeatMode(parseInt(spaheatmode))
 
             })
 

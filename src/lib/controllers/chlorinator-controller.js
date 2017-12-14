@@ -43,7 +43,7 @@ module.exports = function(container) {
             //if 0, then only check every 30 mins; else resend the packet every 4 seconds as a keep-alive
             recheckTime = desiredChlorinatorOutput === 0?30:4
             if (container.settings.get('logChlorinator'))
-                container.logger.silly('Checking chlorinator status every %s minutes on a timer.', recheckTime)
+                container.logger.silly('Will check chlorinator status again in %s minutes.', recheckTime)
             chlorinatorTimer = setTimeout(chlorinatorStatusCheck, recheckTime * 1000) //30 minutes
 
             isRunning = 1

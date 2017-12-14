@@ -237,7 +237,7 @@ var init = exports.init = function() {
 // Exit process cleanly.  From http://stackoverflow.com/questions/10021373/what-is-the-windows-equivalent-of-process-onsigint-in-node-js
 process.on('exit', function() {
     //handle your on exit code
-    console.log("Exited nodejs-poolController cleanly");
+    console.log("nodejs-poolController has closed successfully.");
 });
 
 if (process.platform === "win32") {
@@ -261,6 +261,5 @@ process.on('SIGINT', function() {
 });
 
 global.exit_nodejs_poolController = function(){
-    console.log('in process exit')
     process.exit()
 }

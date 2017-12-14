@@ -39,7 +39,13 @@ module.exports = function(container) {
 
             // And Enable Authentication (if configured)
             if (container.settings.get('expressAuth') === 1) {
-
+                try{
+                    container.fs.statSync(path.join(process.cwd(), container.settings.get('expressAuthFile')))
+                }
+                catch(err){
+                    container.logger.error('expressAuth enabled, but missing %s file.', path.join(process.cwd(), container.settings.get('expressAuthFile')), err)
+                    global.exit_nodejs_poolController()
+                }
                 var auth = container.auth
                 var basic = auth.basic({
                     file: path.join(process.cwd(), container.settings.get('expressAuthFile'))
@@ -53,6 +59,15 @@ module.exports = function(container) {
 
             // Create Server (and set https options if https is selected)
             if (container.settings.get('expressTransport')=== 'https') {
+
+                try{
+                    container.fs.statSync(path.join(process.cwd(), '/data/server.key'))
+                    container.fs.statSync(path.join(process.cwd(), '/data/server.crt'))
+                }
+                catch(err){
+                    container.logger.error('https enabled, but missing either/both of the following: \n\t%s \n\t%s', path.join(process.cwd(), '/data/server.key'), path.join(process.cwd(), '/data/server.crt'), err)
+                    global.exit_nodejs_poolController()
+                }
                 var opt_https = {
                     key: container.fs.readFileSync(path.join(process.cwd(), '/data/server.key')),
                     cert: container.fs.readFileSync(path.join(process.cwd(), '/data/server.crt')),

@@ -73,6 +73,18 @@ module.exports = function(container) {
         })
 
 
+        // following is to support changing from
+        // "desiredOutput": -1,
+        // to
+        // "desiredOutput": {"pool": -1, "spa":-1},
+
+
+        if (typeof config.equipment.chlorinator.desiredOutput==='number') {
+            container.logger.error('\x1b[31m %s config file has outdated property config.equipment.chlorinator.desiredOutput.\x1b[0m', location)
+            global.exit_nodejs_poolController()
+        }
+
+
     }
 
     var init = function(_location) {
@@ -275,19 +287,8 @@ module.exports = function(container) {
         }
     }
     var getChlorinatorDesiredOutput = function() {
-        // following is to support changing from
-        // "desiredOutput": -1,
-        // to
-        // "desiredOutput": {"pool": -1, "spa":-1},
 
-        if (Number.isInteger(config.equipment.chlorinator.desiredOutput)) {
-            return updateChlorinatorDesiredOutput(config.equipment.chlorinator.desiredOutput, -1).then(function(){
-                return config.equipment.chlorinator.desiredOutput
-            })
-        }
-        else
             return config.equipment.chlorinator.desiredOutput
-
 
 
     }
