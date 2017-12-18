@@ -15,14 +15,15 @@ describe('decodeHelper processes controller packets', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
-
-                queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                // loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                // loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                // loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+                //
+                // queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 writeQueueActiveStub = sandbox.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
                 writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
@@ -79,7 +80,7 @@ describe('decodeHelper processes controller packets', function() {
                 //console.log('bottle.container.queuePacket.first()', bottle.container.queuePacket.first())
                 bottle.container.queuePacket.first().should.deep.eq([255, 0, 255, 165, 33, 16, 33, 136, 4, 70, 91, 1, 0, 2, 37])
                 bottle.container.queuePacket.eject()
-                loggerErrorStub.callCount.should.eq(0)
+                loggers.loggerErrorStub.callCount.should.eq(0)
             })
         })
     })
@@ -100,14 +101,15 @@ describe('decodeHelper processes controller packets', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
-
-                queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'stub')
+                // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                // loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                // loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                // loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+                //
+                // queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 //writeQueueActiveStub = sandbox.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
                 writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
@@ -132,9 +134,9 @@ describe('decodeHelper processes controller packets', function() {
                 bottle.container.queuePacket.queuePacket(controllerPacket)
                 bottle.container.queuePacket.first().should.deep.eq([255, 0, 255, 165, 99, 16, 34, 134, 2, 9, 0, 1, 203])
                 clock.tick(5000)
-                loggerWarnStub.calledOnce
-                loggerErrorStub.calledOnce
-                loggerErrorStub.args[0][0].should.contain('Aborting controller packet')
+                loggers.loggerWarnStub.calledOnce
+                loggers.loggerErrorStub.calledOnce
+                loggers.loggerErrorStub.args[0][0].should.contain('Aborting controller packet')
                 //console.log('container.writePacket.isWriteQueueActive()', bottle.container.writePacket.isWriteQueueActive())
             })
         })

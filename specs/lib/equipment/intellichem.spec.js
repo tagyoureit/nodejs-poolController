@@ -15,7 +15,7 @@ describe('processes Intellichem packets', function() {
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
+                //clock = sandbox.useFakeTimers()
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
@@ -33,10 +33,21 @@ describe('processes Intellichem packets', function() {
             })
 
             it('#SI should equal -0.31', function() {
-                bottle.container.controller_18.process(intellichemPackets[0], 0)
-                var json = bottle.container.intellichem.getCurrentIntellichem()
-                //console.log('json for intellichem: ', JSON.stringify(json,null,2))
-                json.intellichem.readings.SI.should.equal(-0.31)
+                return Promise.resolve()
+                    .then(function(){
+                        bottle.container.controller_18.process(intellichemPackets[0], 0)
+
+                    })
+                    .delay(50)
+                    .then(function(){
+                        var json = bottle.container.intellichem.getCurrentIntellichem()
+                        //console.log('json for intellichem: ', JSON.stringify(json,null,2))
+                        json.intellichem.readings.SI.should.equal(-0.31)
+                    })
+                    .catch(function(err){
+                        return Promise.reject(new Error('timeout: ' + err))
+                    })
+
             })
 
             it('#Get Intellichem via API', function(done){
@@ -47,11 +58,23 @@ describe('processes Intellichem packets', function() {
             })
 
             it('#Will not log output with the same packet received twice', function(){
-                loggerDebugStub.callCount.should.eq(0)
-                bottle.container.controller_18.process(intellichemPackets[0], 1)
-                loggerDebugStub.callCount.should.eq(0)
-                bottle.container.controller_18.process(intellichemPackets[1], 2)
-                loggerDebugStub.callCount.should.eq(1)
+                return Promise.resolve()
+                    .then(function(){
+                        loggerDebugStub.callCount.should.eq(0)
+                        bottle.container.controller_18.process(intellichemPackets[0], 1)
+
+
+                    })
+                    .delay(50)
+                    .then(function(){
+                        loggerDebugStub.callCount.should.eq(0)
+                        bottle.container.controller_18.process(intellichemPackets[1], 2)
+                    })
+                    .delay(50)
+                    .then(function(){
+                        loggerDebugStub.callCount.should.eq(1)
+                    })
+
             })
 
             it('#Get Intellichem via Socket', function(done){

@@ -8,7 +8,7 @@ describe('#sets various functions', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             clock = sandbox.useFakeTimers()
-            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'stub')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 
@@ -43,6 +43,37 @@ describe('#sets various functions', function() {
                         res.controllerDateStr.should.eq('2/1/2019')
                         res.controllerDayOfWeekStr.should.eq('Monday')
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 133, 8, 21, 55, 2, 1, 2, 19, 0, 0 ])
+                    })
+                    .then(done,done)
+            })
+        })
+        context('with an invalid HTTP REST call', function() {
+
+
+            it('fails to set a valid date/time with invalid time (should fail)', function(done) {
+                global.requestPoolDataWithURL('datetime/set/time/21/61/date/2/01/02/19/0')
+                    .then(function(obj) {
+                        obj.text.should.contain('FAIL')
+                        var res = bottle.container.time.getTime().time
+                        res.controllerTime.should.eq(-1)
+                    })
+                    .then(done,done)
+            })
+            it('fails to set a valid date/time with invalid date (should fail)', function(done) {
+                global.requestPoolDataWithURL('datetime/set/time/21/31/date/128/01/02/19/0')
+                    .then(function(obj) {
+                        obj.text.should.contain('FAIL')
+                        var res = bottle.container.time.getTime().time
+                        res.controllerTime.should.eq(-1)
+                    })
+                    .then(done,done)
+            })
+            it('fails to set a valid date/time with invalid dst (should fail)', function(done) {
+                global.requestPoolDataWithURL('datetime/set/time/21/31/date/8/01/02/19/3')
+                    .then(function(obj) {
+                        obj.text.should.contain('FAIL')
+                        var res = bottle.container.time.getTime().time
+                        res.controllerTime.should.eq(-1)
                     })
                     .then(done,done)
             })

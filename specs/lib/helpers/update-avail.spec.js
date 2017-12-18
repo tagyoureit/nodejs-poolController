@@ -14,15 +14,14 @@ describe('checks if there is a newer version available', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
 
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
 
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 return global.initAll()
+                    .then(function(){
+                        sandbox = sinon.sandbox.create()
+
+                        loggers = setupLoggerStubOrSpy(sandbox, 'spy', 'spy')
+                    })
 
             })
 
@@ -258,26 +257,7 @@ describe('checks if there is a newer version available', function() {
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                Promise.resolve()
-                    .then(function(){return global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')})
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
-                    .then(function(){
 
-
-                        client.on('connect', function(data) {
-                            bottle.container.io.emitToClients('updateAvailable')
-                        })
-                        client.on('updateAvailable', function(msg) {
-                            msg.result.should.equal('equal')
-                            client.disconnect()
-                            clearTimeout(a)
-                            scope.done()
-
-                            myReject(new Error('should not receive an emit'))
-
-                        })
-                        return
-                    })
 
                 var myResolve, myReject
                 var a = setTimeout(function() {
@@ -287,8 +267,30 @@ describe('checks if there is a newer version available', function() {
                     myResolve()
                 },1800)
                 return new Promise(function(resolve,reject){
-                    myResolve = resolve
-                    myReject = reject
+
+                    return global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                        .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                        .delay(50)
+                        .then(function(){
+                            myResolve = resolve
+                            myReject = reject
+
+                            client.on('connect', function(data) {
+                                bottle.container.io.emitToClients('updateAvailable')
+                            })
+                            client.on('updateAvailable', function(msg) {
+                                msg.result.should.equal('equal')
+                                client.disconnect()
+                                clearTimeout(a)
+                                scope.done()
+
+                                myReject(new Error('should not receive an emit'))
+
+                            })
+                        })
+                        .catch(function(err){
+                            bottle.container.logger.error('Error!', err)
+                        })
                 })
 
             })

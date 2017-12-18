@@ -53,6 +53,7 @@ describe('server', function() {
 
 
             it('returns everything in a JSON (/all)', function(done) {
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
                 var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
@@ -64,6 +65,8 @@ describe('server', function() {
 
 
             it('returns everything in a JSON (/one)', function(done) {
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+
                 var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
@@ -102,16 +105,7 @@ describe('server', function() {
                 }).then(done,done)
 
             });
-            it('returns temps in a JSON', function(done) {
-                var tempStub = sandbox.stub(bottle.container.temperatures, 'getTemperatures').callsFake(function() {
-                    return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'temperatures.json')))
-                })
-                global.requestPoolDataWithURL('temperatures').then(function(obj) {
-                    tempStub.callCount.should.eq(1)
-                    obj.should.have.property('poolTemp');
-                }).then(done,done);
 
-            });
             it('returns time in a JSON', function(done) {
                 var timeStub = sandbox.stub(bottle.container.time, 'getTime').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'time.json')))

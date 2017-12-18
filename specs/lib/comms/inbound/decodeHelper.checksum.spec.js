@@ -23,11 +23,9 @@ describe('decodeHelper processes controller packets', function() {
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                // suppress warnings for bad packets
+                sandbox.restore()
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
 
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
@@ -63,24 +61,16 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             it('#checksum should return false with various invalid controller packets', function() {
-                // suppress warnings for bad packets
-                loggerWarnStub.restore()
-                loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
-
                 for (var i = 0; i < testarrayBAD.length; i++) {
                     bottle.container.decodeHelper.checksum(testarrayBAD[i], 25, equip).should.be.false
                 }
-                loggerWarnStub.callCount.should.equal(3)
+
             })
-
-
 
 
             it('should try to decode the packet as a controller packet', function() {
                 for (var i = 0; i < testarrayGOOD.length; i++) {
                     bottle.container.decodeHelper.processChecksum(testarrayGOOD[i], i * 10, equip)
-                    // console.log('testarrayGOOD:', testarrayGOOD[i])
-                    // console.log('processControllerPacketStub.args', processControllerPacketStub.args)
                     processControllerPacketStub.args[i][0].should.contain.members(testarrayGOOD[i])
                     processPumpPacketStub.callCount.should.eq(0)
                     processChlorinatorPacketStub.callCount.should.eq(0)

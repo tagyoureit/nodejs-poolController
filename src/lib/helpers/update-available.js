@@ -22,7 +22,7 @@
 module.exports = function(container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: update_avail.js')
+        container.logger.info('Loading: updateAvail.js')
 
     var userAgent = 'tagyoureit-nodejs-poolController-app',
         jsons = {},
@@ -44,12 +44,12 @@ module.exports = function(container) {
     // = exports.compareLocalToRemoteVersion
     var compareLocalToRemoteVersion  = function() {
         return new Promise(function(resolve, reject){
-            container.logger.silly('update_avail: versions discovered: ', jsons)
+            container.logger.silly('updateAvail: versions discovered: ', jsons)
             var clientVersion = jsons.local.version,
                 remoteVersion = jsons.remote.version,
                 clientVerArr,
                 remoteVerArr
-            // container.logger.silly('update_avail: local ver: %s    latest published release ver: %s', clientVersion, remoteVersion)
+            // container.logger.silly('updateAvail: local ver: %s    latest published release ver: %s', clientVersion, remoteVersion)
             //compare the version numbers sequentially (major, minor, patch) to make sure there is a newer version and not just a different version
             //nice to have the try block here in case we can't split the result
             try {
@@ -61,7 +61,7 @@ module.exports = function(container) {
                 });
             } catch (err) {
                 /*istanbul ignore next */
-                container.logger.warn('update_avail: error comparing versions: ', err)
+                container.logger.warn('updateAvail: error comparing versions: ', err)
                 /*istanbul ignore next */
                 reject(new Error(err))
             }
@@ -129,12 +129,12 @@ module.exports = function(container) {
                         }
                     }
                     if (configJsonVerCompare === 'equal') {
-                        container.logger.silly('update_avail: no change in current remote version compared to local cached config.json version of app')
+                        container.logger.silly('updateAvail: no change in current remote version compared to local cached config.json version of app')
                     } else if (configJsonVerCompare === 'older') {
                         container.logger.info('Remote version of nodejs-poolController has been updated to %s.  Resetting local updateVersionNotification in config.json.', jsons.remote.version)
                         return container.configEditor.updateVersionNotification(false, jsons.remote)
                     } else if (configJsonVerCompare === 'newer') {
-                        container.logger.silly('update_avail: The local version is newer than the GitHub release.  Probably running a dev build.')
+                        container.logger.silly('updateAvail: The local version is newer than the GitHub release.  Probably running a dev build.')
                     }
                 }).then(resolve)
         })
@@ -206,7 +206,7 @@ module.exports = function(container) {
             .then(compareLocalToRemoteVersion)
             .then(emitResults)
             .then(function() {
-                container.logger.silly('update_avail: finished successfully')
+                container.logger.silly('updateAvail: finished successfully')
                 return jsons
             })
             .catch( /*istanbul ignore next */ function(err) {
@@ -236,7 +236,7 @@ module.exports = function(container) {
         else
             location = container.path.join(process.cwd(), _location)
 
-        container.logger.silly('update_avail: reading local version at:', location)
+        container.logger.silly('updateAvail: reading local version at:', location)
 
         return container.fs.readFileAsync(location, 'utf-8')
             .then(function(data) {
@@ -246,7 +246,7 @@ module.exports = function(container) {
             })
             .then(check)
             .catch( /*istanbul ignore next */ function(error) {
-                container.logger.warn('update_avail: Error reading local package.json: ', error)
+                container.logger.warn('updateAvail: Error reading local package.json: ', error)
             })
 
     }

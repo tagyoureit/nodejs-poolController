@@ -79,13 +79,13 @@ module.exports = function(container) {
         if (!validChatter) {
             (countChecksumMismatch.counter) ++
             if (container.settings.get('logMessageDecoding')) {
-                if (countChecksumMismatch.counter === 1) {
-                    container.logger.silly('Msg# %s  Always get a first mismatch when opening the port.  Ignoring.', counter)
-                } else {
-                    container.logger.debug('Msg# %s   Packet collision on bus detected. (Count of collissions: %s)', counter, countChecksumMismatch.counter)
-                    container.logger.warn('Msg# %s   Mismatch #%s on checksum:   %s!=%s   %s', counter, countChecksumMismatch.counter, chatterdatachecksum, databytes, chatterCopy);
+                // if (countChecksumMismatch.counter === 1) {
+                //     container.logger.silly('Msg# %s  Always get a first mismatch when opening the port.  Ignoring.', counter)
+                // } else {
+                    container.logger.silly('Msg# %s   Packet collision on bus detected. (Count of collissions: %s)', counter, countChecksumMismatch.counter)
+                    container.logger.verbose('Msg# %s   Mismatch #%s on checksum:   %s!=%s   %s', counter, countChecksumMismatch.counter, chatterdatachecksum, databytes, chatterCopy);
 
-                }
+                // }
             }
 
         } else {

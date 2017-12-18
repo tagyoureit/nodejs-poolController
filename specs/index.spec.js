@@ -20,7 +20,7 @@ describe('nodejs-poolController', function() {
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
             loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
 
@@ -106,15 +106,16 @@ describe('nodejs-poolController', function() {
             bottle.container.settings.displayIntroMsg()
             bottle.container.settings.displaySettingsMsg()
             bottle.container.settings.getConfig()
-            bottle.container.settings.set('missing_val')
+            bottle.container.settings.set('myvalismissing')
         })
 
+
         it('#tests internal logDebug for debugging testing', function(){
-            var priorLogDebug = global.logDebug
+            var priorLogInitAndStop = global.logInitAndStop
             return Promise.resolve()
                 .then(function(){
 
-                    changeLogDebug(1)
+                    changeInitAndStop(1)
                 })
                 .then(global.initAll)
                 .then(global.stopAll)
@@ -123,16 +124,16 @@ describe('nodejs-poolController', function() {
                 })
                 .then(global.removeShadowConfigFile)
                 .then(function(){
-                    changeLogDebug(priorLogDebug)
+                    changeInitAndStop(priorLogInitAndStop)
                 })
 
         })
 
         it('#throws an error with invalid config', function(){
-            var priorLogDebug = global.logDebug
+            var priorLogInitAndStop = global.logInitAndStop
             return Promise.resolve()
                 .then(function(){
-                    changeLogDebug(1)
+                    changeInitAndStop(1)
                 })
                 .then(global.initAll)
                 .then(global.stopAll)
@@ -161,7 +162,7 @@ describe('nodejs-poolController', function() {
                 })
                 .then(function(){
                     loggerErrorStub.callCount.should.equal(2)
-                    changeLogDebug(priorLogDebug)
+                    changeInitAndStop(priorLogInitAndStop)
                 })
 
         })

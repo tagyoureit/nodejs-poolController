@@ -54,7 +54,7 @@ nodejs-poolController is an application to communicate and control your Pentair 
 Extend nodejs-Poolcontroller with these additional integration points
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag
-
+* [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 
 ***
 
