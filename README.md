@@ -5,6 +5,7 @@
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftagyoureit%2Fnodejs-poolController.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftagyoureit%2Fnodejs-poolController?ref=badge_shield)
 
 # License
 
@@ -24,6 +25,9 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftagyoureit%2Fnodejs-poolController.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftagyoureit%2Fnodejs-poolController?ref=badge_large)
 
 ## What is nodejs-poolController
 
