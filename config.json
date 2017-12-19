@@ -141,6 +141,7 @@
             "logIntellichem": 0,
             "logPacketWrites": 0,
             "logPumpTimers": 0,
+            "logReload": 0,
             "logApi": 0
         },
         "database": {

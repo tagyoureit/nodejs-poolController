@@ -43,16 +43,10 @@ module.exports = function(container) {
                     container.chlorinatorController.clearTimer()
                 }
             })
-            .then(function() {
-                return container.server.close()
-            })
-            .then(function() {
-                return container.io.stop()
-            })
-            .then(function() {
-                container.sp.close()
-            })
+            .then(container.server.closeAll)
+
             .then(function(){
+                container.sp.close()
                 console.log('nodejs-poolController services stopped successfully')
             })
             .catch(function(err){
@@ -65,20 +59,21 @@ module.exports = function(container) {
     var reload = function(reset, callback) {
         //reset is a variable to also reset the status of objects.
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
-            This will _NOT_ restart the express (web) server and will not affect bootstrap, auth, or ssl.'
+            This will _NOT_ restart the express (web) auth and will not affect bootstrap, auth, or ssl.'
         var res = reloadStr + '<p>'
         res += 'Intro: <p>' + container.settings.displayIntroMsg() + '<p>'
         res += 'Settings: <p>' + container.settings.displaySettingsMsg() + '<p>'
 
 
         stop()
-        .then(function(){
-          /*  RELOAD STUFF
-           */
-          container.settings.load()
-
-          container.server.init()
-          container.io.init()
+        .then(function() {
+            /*  RELOAD STUFF
+             */
+            container.settings.load()
+        })
+            .then(container.server.init)
+            .then(function(){
+          //container.io.init()
 
           container.logger.info('Intro: ', container.settings.displayIntroMsg())
           container.logger.warn('Settings: ', container.settings.displaySettingsMsg())

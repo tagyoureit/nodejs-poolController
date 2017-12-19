@@ -189,7 +189,7 @@ var init = exports.init = function() {
             bottle.container.winstonToIO.init()
 
             bottle.container.server.init()
-            bottle.container.io.init()
+            //bottle.container.io.init()
             bottle.container.sp.init()
 
             bottle.container.logger.info('initializing logger')
@@ -225,6 +225,7 @@ var init = exports.init = function() {
         })
         .catch(function(err){
             bottle.container.logger.error('Error with initialization:', err)
+            console.error(err)
         })
 
 

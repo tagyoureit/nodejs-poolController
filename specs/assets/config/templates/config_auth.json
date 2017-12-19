@@ -93,11 +93,20 @@
     },
     "poolController": {
         "appAddress": 33,
-        "web": {
+        "http": {
+            "enabled": 1,
             "expressPort": 3000,
-            "expressTransport": "http",
+            "redirectToHttps": 0,
             "expressAuth": 1,
-            "expressAuthFile": "/specs/assets/server/users.htpasswd"
+            "expressAuthFile": "/specs/assets/auth/users.htpasswd"
+        },
+        "https": {
+            "enabled": 0,
+            "expressPort": 3001,
+            "expressAuth": 0,
+            "expressAuthFile": "/specs/assets/auth/users.htpasswd",
+            "expressKeyFile": "/specs/assets/data/server.key",
+            "expressCertFile": "/specs/assets/data/server.crt"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",

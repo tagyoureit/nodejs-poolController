@@ -43,7 +43,7 @@ describe('socket.io basic tests', function() {
     })
 
 
-    it('#connects to the server', function() {
+    it('#connects to the auth', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         client.on('connect', function (data) {
             // console.log('connected client:')
@@ -161,6 +161,11 @@ describe('socket.io basic tests', function() {
                 queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
                 clearTimeout(a)
                 myResolve()
+            })
+            .catch(function(err){
+                bottle.container.logger.error('Should not get here when checking preamble')
+                console.log(err)
+                myReject(err)
             })
         var myResolve, myReject
         var a = setTimeout(function(){myReject(new Error('Socket Timeout error'))}, 1500)
@@ -285,7 +290,7 @@ describe('socket.io basic tests', function() {
 
 
 // })
-    it('#closes a connection from the server', function() {
+    it('#closes a connection from the auth', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function() {
@@ -330,7 +335,7 @@ describe('socket.io basic tests', function() {
 
     })
 
-// it('#stops the Socket server', function(done) {
+// it('#stops the Socket auth', function(done) {
 //     var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 //     var _err_data
 //     client.on('connect', function(data) {
@@ -349,7 +354,7 @@ describe('socket.io basic tests', function() {
 //         })
 //         .delay(50)
 //         .then(function(){
-//             bottle.container.server.init()
+//             bottle.container.auth.init()
 //             bottle.container.io.init()
 //             _err_data.type.should.eq('TransportError')
 //         })

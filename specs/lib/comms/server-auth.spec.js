@@ -1,18 +1,18 @@
 // var protocol = 'https://'
-// var server = 'localhost:3000/'
+// var auth = 'localhost:3000/'
 //
 // var sandbox,
 //     user = '',
 //     password = ''
 //
-// sourceCrtFile = path.join(process.cwd(), '/specs/assets/data/server.crt')
-// targetCrtFile =path.join(process.cwd(), '/data/server.crt')
-// sourceKeyFile = path.join(process.cwd(), '/specs/assets/data/server.key')
-// targetKeyFile =path.join(process.cwd(), '/data/server.key')
+// sourceCrtFile = path.join(process.cwd(), '/specs/assets/data/auth.crt')
+// targetCrtFile =path.join(process.cwd(), '/data/auth.crt')
+// sourceKeyFile = path.join(process.cwd(), '/specs/assets/data/auth.key')
+// targetKeyFile =path.join(process.cwd(), '/data/auth.key')
 //
 //
 //
-// describe('server', function() {
+// describe('auth', function() {
 //     describe('#with authorization', function() {
 //
 //         context('by a URL', function() {
@@ -22,9 +22,9 @@
 //                     .then(global.initAll)
 //                 // return Promise.resolve().then(
 //                 //     function(){
-//                 //         //stop the express server and restart with authentication
+//                 //         //stop the express auth and restart with authentication
 //                 //         bottle.container.settings.set('expressAuth', 1)
-//                 //         bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
+//                 //         bottle.container.settings.set('expressAuthFile', '/specs/assets/auth/users.htpasswd')
 //                 //         bottle.container.settings.set('expressDir', '/bootstrap')
 //                 //         bottle.container.settings.set('logReload', 1)
 //                 //     })
@@ -49,7 +49,7 @@
 //             after(function() {
 //                 return global.removeShadowConfigFile()
 //                     .then(global.stopAll)
-//                 // // set express server to restart without authentication
+//                 // // set express auth to restart without authentication
 //                 // bottle.container.settings.set('expressAuth', 0)
 //                 // bottle.container.settings.set('expressAuthFile', '')
 //                 // bottle.container.settings.set('logReload', 0)
@@ -59,7 +59,7 @@
 //             it('fails with no authorization provided', function(done) {
 //                 var options = {
 //                     method: 'GET',
-//                     uri: protocol + server + 'pump',
+//                     uri: protocol + auth + 'pump',
 //                     resolveWithFullResponse: true,
 //                     json: true,
 //                 };
@@ -88,7 +88,7 @@
 //
 //                 var options = {
 //                     method: 'GET',
-//                     uri: protocol + user + ':' + password + '@' + server + 'pump',
+//                     uri: protocol + user + ':' + password + '@' + auth + 'pump',
 //                     resolveWithFullResponse: true,
 //                     json: true,
 //                 };
@@ -108,7 +108,7 @@
 //
 //                 var options = {
 //                     method: 'GET',
-//                     uri: protocol + user + ':' + password + '@' + server + 'pump',
+//                     uri: protocol + user + ':' + password + '@' + auth + 'pump',
 //                     resolveWithFullResponse: true,
 //                     json: true,
 //                 };
@@ -144,12 +144,12 @@
 //                 //         fs.writeFileSync(targetKeyFile, fs.readFileSync(sourceKeyFile));
 //                 //     })
 //                 //
-//                 //stop the express server and restart with authentication
+//                 //stop the express auth and restart with authentication
 //                 bottle.container.settings.set('expressAuth', 0)
-//                 bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
+//                 bottle.container.settings.set('expressAuthFile', '/specs/assets/auth/users.htpasswd')
 //                 bottle.container.settings.set('expressDir', '/bootstrap')
 //                 bottle.container.settings.set('expressTransport', 'https')
-//                 // bottle.container.server.close()
+//                 // bottle.container.auth.closeAll()
 //
 //                 bottle.container.logger.changeLevel('console', 'silly')
 //             })
@@ -170,7 +170,7 @@
 //             })
 //
 //             after(function() {
-//                 //stop the express server and restart without authentication
+//                 //stop the express auth and restart without authentication
 //                 bottle.container.settings.set('expressAuth', 0)
 //                 bottle.container.settings.set('expressAuthFile', '')
 //                 bottle.container.settings.set('expressTransport', 'http')
@@ -179,19 +179,19 @@
 //
 //
 //
-//             it('starts server with https, but fails ', function(done) {
+//             it('starts auth with https, but fails ', function(done) {
 //                 //we cannot test this successfully because the browser won't trust the self-signed cert.
 //
-//                 var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.key'))
-//                 var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))
+//                 var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/auth.key'))
+//                 var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/auth.crt'))
 //                 var fileStub = sandbox.stub(bottle.container.fs, 'readFileSync')
 //                 fileStub.onCall(0).returns(key)
 //                 fileStub.onCall(1).returns(crt)
-//                 bottle.container.server.init()
+//                 bottle.container.auth.init()
 //
 //                 var options = {
 //                     method: 'GET',
-//                     uri: protocol + server,
+//                     uri: protocol + auth,
 //                     resolveWithFullResponse: true,
 //                     json: true,
 //                     ca: [fs.readFileSync(targetKeyFile, {encoding: 'utf-8'})]
@@ -231,9 +231,9 @@ describe('tests https and authorization', function() {
             before(function() {
                 return global.useShadowConfigFile('/specs/assets/config/templates/config_auth.json')
                     .then(global.initAll)
-                // //stop the express server and restart with authentication
+                // //stop the express auth and restart with authentication
                 // bottle.container.settings.set('expressAuth', 1)
-                // bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
+                // bottle.container.settings.set('expressAuthFile', '/specs/assets/auth/users.htpasswd')
                 // bottle.container.settings.set('expressDir', '/bootstrap')
                 // bottle.container.settings.set('logReload', 1)
                 // return global.initAll()
@@ -255,7 +255,7 @@ describe('tests https and authorization', function() {
             after(function() {
                 return global.removeShadowConfigFile()
                     .then(global.stopAll)
-                // // set express server to restart without authentication
+                // // set express auth to restart without authentication
                 // bottle.container.settings.set('expressAuth', 0)
                 // bottle.container.settings.set('expressAuthFile', '')
                 // bottle.container.settings.set('logReload', 0)
@@ -337,17 +337,20 @@ describe('tests https and authorization', function() {
     });
 
 
-    describe('#with https', function() {
+    describe('#with https and auth', function() {
 
         context('by a URL', function() {
             before(function() {
                 protocol = 'https://'
-                //stop the express server and restart with authentication
-                bottle.container.settings.set('expressAuth', 0)
-                bottle.container.settings.set('expressAuthFile', '/specs/assets/server/users.htpasswd')
-                bottle.container.settings.set('expressDir', '/bootstrap')
-                bottle.container.settings.set('expressTransport', 'https')
-                // bottle.container.server.close()
+                return global.useShadowConfigFile('/specs/assets/config/templates/https.json')
+                    .then(global.initAll)
+
+                //stop the express auth and restart with authentication
+                // bottle.container.settings.set('expressAuth', 0)
+                // bottle.container.settings.set('expressAuthFile', '/specs/assets/auth/users.htpasswd')
+                // bottle.container.settings.set('expressDir', '/bootstrap')
+                // bottle.container.settings.set('expressTransport', 'https')
+                // bottle.container.auth.closeAll()
 
                 bottle.container.logger.changeLevel('console', 'silly')
             })
@@ -368,33 +371,33 @@ describe('tests https and authorization', function() {
             })
 
             after(function() {
-                //stop the express server and restart without authentication
-                bottle.container.settings.set('expressAuth', 0)
-                bottle.container.settings.set('expressAuthFile', '')
-                bottle.container.settings.set('expressTransport', 'http')
+                //stop the express auth and restart without authentication
+                // bottle.container.settings.set('expressAuth', 0)
+                // bottle.container.settings.set('expressAuthFile', '')
+                // bottle.container.settings.set('expressTransport', 'http')
                 return global.stopAll()
             })
 
 
 
-            it('starts server with https, but fails ', function(done) {
+            it('starts auth with https, but fails ', function(done) {
                 //we cannot test this successfully because the browser won't trust the self-signed cert.
 
-                var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.key'))
-                var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))
-                var fsStat = sandbox.stub(bottle.container.fs, 'statSync')
+                // var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.key'))
+                // var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))
+                // var fsStat = sandbox.stub(bottle.container.fs, 'statSync')
 
-                var fileStub = sandbox.stub(bottle.container.fs, 'readFileSync')
-                fileStub.onCall(0).returns(key)
-                fileStub.onCall(1).returns(crt)
-                bottle.container.server.init()
+                // var fileStub = sandbox.stub(bottle.container.fs, 'readFileSync')
+                // fileStub.onCall(0).returns(key)
+                // fileStub.onCall(1).returns(crt)
+
 
                 var options = {
                     method: 'GET',
                     uri: protocol + server,
                     resolveWithFullResponse: true,
                     json: true,
-                    ca: [crt],
+                    ca: [bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))],
                     rejectUnauthorized: true,
                     requestCert: true,
                     agent: false
@@ -402,8 +405,8 @@ describe('tests https and authorization', function() {
 
 
                 var promise = global.rp(options)
-                promise
-                    .then(
+                //bottle.container.server.init()
+                  promise.then(
                         function(res) {
                             res.req.connection.encrypted.should.be.true
                         })

@@ -108,7 +108,7 @@ module.exports = function(container) {
 
         return Promise.all(serversPromise)
             .then(function () {
-                console.log('Server starting complete.')
+                bottle.container.logger.debug('Server starting complete.')
             })
 
 

@@ -119,7 +119,7 @@ module.exports = function(container) {
         response.text = 'User request to set date and time to '
         response.text += hour + ':' + min + ' ' + dayofweek + ', ' + month + '/' + day + '/20' + year + ' (mm/dd/yyyy)'
         container.logger.info(response)
-        //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+        //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
         if (callback !== undefined) {
             callback(response)
         }

@@ -463,7 +463,7 @@ module.exports = function(container) {
         response.status = desiredStatus === 1 ? 'on' : 'off';
         response.value = desiredStatus
         logger.info(response)
-        //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+        //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
         if (callback !== undefined) {
             callback(response)
         }
@@ -482,7 +482,7 @@ module.exports = function(container) {
         response.status = desiredStatus === 1 ? 'on' : 'off';
         response.value = desiredStatus
         logger.info(response)
-        //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+        //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
         if (callback !== undefined) {
             callback(response)
         }
@@ -569,7 +569,7 @@ module.exports = function(container) {
         response.status = 'Sent';
         response.value = 0
         logger.info(response)
-        //callback will be present when we are responding back to the Express server and showing the user a message.  But not with SocketIO call where we will just log it.
+        //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
         if (callback !== undefined) {
             callback(response)
         }

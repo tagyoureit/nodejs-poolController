@@ -6,7 +6,7 @@ Promise.promisifyAll(fs)
 
 logging = 0  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
 
-logInitAndStop = 0 //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
+logInitAndStop = 1 //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
 
 changeInitAndStop = function(val){
     logInitAndStop = val
@@ -41,7 +41,7 @@ initAll = function() {
             bottle.container.writePacket.init() // synchronous
             bottle.container.intellitouch.init() // synchronous
             bottle.container.intellichem.init() // synchronous
-            bottle.container.io.init() // synchronous
+            //bottle.container.io.init() // synchronous
         })
         .then(bottle.container.chlorinator.init) // updated... synchronous
         .delay(20) //allow for all processes to start before enable logging or moving to tests
@@ -71,7 +71,7 @@ stopAll = function() {
             }
             else disableLogging()
         })
-        .then(bottle.container.server.close)
+        .then(bottle.container.server.closeAll)
         .then(function(){
             bottle.container.chlorinatorController.clearTimer()
             bottle.container.writePacket.init()

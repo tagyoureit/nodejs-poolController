@@ -42,7 +42,7 @@ $(function () {
     })
 
 
-    // Whenever the server emits 'searchResults', update the page
+    // Whenever the auth emits 'searchResults', update the page
 
     socket.on('searchResults', function (data) {
         //alert('received data %s', data)

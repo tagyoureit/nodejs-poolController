@@ -43,7 +43,7 @@ $(function() {
     });
 
 
-    // Whenever the server emits 'searchResults', update the page
+    // Whenever the auth emits 'searchResults', update the page
 
     socket.on('sendPacketResults', function(data) {
         $("#results").append("<p>" + data + "</p>");
