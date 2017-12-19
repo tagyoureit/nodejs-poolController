@@ -151,6 +151,14 @@
             "chlorinator": {
                 "saltPPM": 16
             },
+            "circuit": {
+                "2": {
+                    "status": 3
+                },
+                "3": {
+                    "status": 2
+                }
+            },
             "pump": {
                 "1": {
                     "watts": 25,
