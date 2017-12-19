@@ -24,7 +24,6 @@ module.exports = function(container) {
     var server, io, socketList = [];
 
 
-
     var emitToClients = function(outputType, data) {
         container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
@@ -139,7 +138,7 @@ module.exports = function(container) {
         //var Server = require('./server.js'),
         //var io = require('socket.io')(container.server.server);
         ///stop()
-        server = container.server.getServer()
+        server = container.server.getServer()[0]
         io = container.socket(server)
         socketList = [];
         container.logger.verbose('Socket.IO server listening. ')
