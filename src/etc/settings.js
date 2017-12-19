@@ -110,6 +110,7 @@ module.exports = function(container) {
 
                 //Web
                 _settings.httpEnabled = configFile.poolController.http.enabled;
+                _settings.redirectToHttps = configFile.poolController.http.redirectToHttps;
                 _settings.httpExpressPort = configFile.poolController.http.expressPort;
                 _settings.httpExpressAuth = configFile.poolController.http.expressAuth;
                 _settings.httpExpressAuthFile = configFile.poolController.http.expressAuthFile;
@@ -117,6 +118,9 @@ module.exports = function(container) {
                 _settings.httpsExpressPort = configFile.poolController.https.expressPort;
                 _settings.httpsExpressAuth = configFile.poolController.https.expressAuth;
                 _settings.httpsExpressAuthFile = configFile.poolController.https.expressAuthFile;
+                _settings.httpsExpressKeyFile = configFile.poolController.https.expressKeyFile;
+                _settings.httpsExpressCertFile = configFile.poolController.https.expressCertFile;
+
 
                 //Network
                 _settings.netConnect = configFile.poolController.network.netConnect;

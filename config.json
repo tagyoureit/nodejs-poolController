@@ -95,20 +95,23 @@
         "appAddress": 33,
         "http": {
             "enabled": 1,
-            "expressPort": 3001,
+            "expressPort": 3000,
+            "redirectToHttps": 0,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd"
         },
         "https": {
             "enabled": 1,
-            "expressPort": 3000,
-            "expressAuth": 1,
-            "expressAuthFile": "/users.htpasswd"
+            "expressPort": 3001,
+            "expressAuth": 0,
+            "expressAuthFile": "/users.htpasswd",
+            "expressKeyFile": "/specs/assets/data/server.key",
+            "expressCertFile": "/specs/assets/data/server.crt"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
-            "netConnect": 1,
-            "netHost": "atticServer",
+            "netConnect": 0,
+            "netHost": "raspberrypi",
             "netPort": 9801,
             "inactivityRetry": 10
         },
