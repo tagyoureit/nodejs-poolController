@@ -105,8 +105,8 @@
             "expressPort": 3001,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd",
-            "expressKeyFile": "/specs/assets/data/server.key",
-            "expressCertFile": "/specs/assets/data/server.crt"
+            "expressKeyFile": "/data/server.key",
+            "expressCertFile": "/data/server.crt"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
@@ -166,6 +166,14 @@
             "chlorinator": {
                 "saltPPM": 16
             },
+            "circuit": {
+                "2": {
+                    "status": 3
+                },
+                "3": {
+                    "status": 2
+                }
+            },
             "pump": {
                 "1": {
                     "watts": 25,
@@ -177,7 +185,7 @@
                     "program4rpm": 13,
                     "power": 14,
                     "timer": 15
-                }
+                },
             }
         }
     },

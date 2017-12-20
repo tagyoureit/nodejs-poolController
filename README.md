@@ -5,6 +5,7 @@
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
+1. Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
 1. A UI for standalone pumps
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
 1. All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
@@ -55,6 +56,7 @@ Extend nodejs-Poolcontroller with these additional integration points
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
+* [ISY](https://github.com/tagyoureit/nodejs-poolController/blob/4.x-DEV/src/integrations/socketISY.js) included with this app.  Original credit to @blueman2
 
 ***
 
@@ -85,7 +87,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 ## Web Interfaces
 
-  - A slick [Bootstrap](http://getbootstrap.com/) interface by [@arrmo](https://github.com/arrmo). Set variable: <code>["expressDir": "/bootstrap"](#module_nodejs-poolController--config)</code>  
+  - A slick [Bootstrap](http://getbootstrap.com/) interface by [@arrmo](https://github.com/arrmo). Set variable: <code>["expressDir": "/bootstrap"](#module_nodejs-poolController--config)</code>
   - A boring, basic, functional interface. Set variable:  <code>["expressDir": "/public"](#module_nodejs-poolController--config)</code>
   To choose, set the `expressDir` variable in the 'config.json'.  Load both interfaces from `http://localhost:3000/index.html`
 
@@ -104,7 +106,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 ##  REST Interface & Socket.IO
 
 
- You can also call REST URI's like:  
+ You can also call REST URI's like:
  * Get circuit status: /circuit/# to get the status of circuit '#'
  * Toggle circuit status: /circuit/#/toggle to get the toggle circuit '#'
  * ~~Get system status: /status~~ Depricated.
@@ -440,7 +442,7 @@ For more detail, the app will first determine if the circuit is using one of the
 
 
 ### pump
-Enumerated object of the pumps.  
+Enumerated object of the pumps.
 * `type`:
    1. `none`: if you do not have this pump
    1. `VF`: if you have a Variable Flow model pump
@@ -459,7 +461,7 @@ The pumps don't seem to care what number you use, but Intellitouch won't respond
 
 ### web
 * `expressPort`: set to the value that you want the web pages to be served to.  3000 = http://localhost:3000
-* `expressTransport`: `http` for unencrypted traffic.  `https` for encryption.  
+* `expressTransport`: `http` for unencrypted traffic.  `https` for encryption.
 * `expressAuth`: `0` for no username/password.  `1` for username/password.
 * `expressAuthFile` : `/users.htpasswd` If you have `expressAuth=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
 
@@ -474,7 +476,7 @@ The pumps don't seem to care what number you use, but Intellitouch won't respond
 Section for how/when the app will notify you about certain actions/conditions.
 
 #### version
-The app will check to see if you have the latest published release.  
+The app will check to see if you have the latest published release.
 * `version`: Latest published version
 * `tag_name`: Tag of latest published version
 * `dismissUntilNextRemoteVersionBump`: Silence the notifications until version/tag_name changes again.
@@ -509,7 +511,7 @@ Settings for the console, UI and file logs.
 * `logPumpTimers`: 1 = log debug messages about pump timers, 0 = hide
 
 ### Integrations
-See below for Integration instructions.  
+See below for Integration instructions.
 * `integrations`:
   1. `_name_of_module_`: `1` to enable, `0` to disable
 * `_name_of_module_`: configuration options to be used by the integration component
@@ -521,7 +523,7 @@ See below for Integration instructions.
 
 ## RS485 Adapter
 
-1. This code **REQUIRES** a RS485 serial module.  There are plenty of sites out there that describe the RS485 and differences from RS232 so I won't go into detail here.  
+1. This code **REQUIRES** a RS485 serial module.  There are plenty of sites out there that describe the RS485 and differences from RS232 so I won't go into detail here.
 The inexpensive [JBTek](https://www.amazon.com/gp/product/B00NKAJGZM/ref=oh_aui_search_detailpage?ie=UTF8&psc=1) adapter works great.
 
 2.  Connect the DATA+ and DATA-.
@@ -626,7 +628,7 @@ To display the messages below, change the logging level to `VERBOSE` and enable 
                               T   E   D   H   R   N   1   2   3                       S           E   P   P   N       P   P           D                           H   L
 Orig:               165, 16, 15, 16,  2, 29,  8, 57,  0, 64,  0,  0,  0,  0,  0,  0,  3,  0, 64,  4, 61, 61, 32,  0, 49, 45,  0,  0,  4,  0,  0,137,192,  0, 13,  4,13
  New:               165, 16, 15, 16,  2, 29,  8, 57,  0, 65,  0,  0,  0,  0,  0,  0,  3,  0, 64,  4, 61, 61, 32,  0, 49, 45,  0,  0,  4,  0,  0,137,192,  0, 13,  4,14
-Diff:                                                     *                                                                                                        
+Diff:                                                     *
 
 08:47:51.609 DEBUG No change in time.
 08:47:51.624 VERBOSE Msg# 266   Circuit PATH LIGHTS change:  Status: Off --> On
@@ -653,7 +655,7 @@ The `outputSocketToConsoleExample` is a very simple module that echos out a few 
 
 ## Socat
 
-Want to have a RaspberryPi Zero, or other $5 computer, sitting by your pool equipment while the main code runs elsewhere on your network?  
+Want to have a RaspberryPi Zero, or other $5 computer, sitting by your pool equipment while the main code runs elsewhere on your network?
 Or want to help get involved with the project and debug in an app like [Netbeans](https://netbeans.org/)?
 
 @arrmo was super slick in getting this to run.
@@ -713,7 +715,7 @@ Configuration is saved automatically to `./src/www/bootstrap/configClient.json` 
 
 ## InfluxDB
 
-["InfluxDB"](https://github.com/influxdata/influxdb) is an open-source time series database that make storage of all pool data extremely easy.  Much thanks to ["@johnny2678"](https://github.com/johnny2678) for pointing me in this direction!  
+["InfluxDB"](https://github.com/influxdata/influxdb) is an open-source time series database that make storage of all pool data extremely easy.  Much thanks to ["@johnny2678"](https://github.com/johnny2678) for pointing me in this direction!
 
 Direct Install
 1. Follow install instructions from ["Influx install instructions"](https://docs.influxdata.com/influxdb/v1.2/introduction/installation/)
@@ -731,9 +733,9 @@ Docker Instructions
 # Versions
 0.0.1 - This version was the first cut at the code
 
-0.0.2 - Many, many improvements.  
+0.0.2 - Many, many improvements.
 
-* No duplicate messages!  I realized the way my code was running that I was parsing the same message multiple times.  The code now slices the buffer after each message that is parsed.  
+* No duplicate messages!  I realized the way my code was running that I was parsing the same message multiple times.  The code now slices the buffer after each message that is parsed.
 * Logging.  The program now uses Winston to have different logs.  The Pentair bus has a LOT of messages.  All the output, debug messages, etc, are being saved to 'pentair_full_dump.log' and successful messages are being logged to 'pentair_info.log'.  I will update these names, but if you want less logging, set the transports to ```level: 'error'``` from 'level: 'silly'.  It's just silly how much it logs at this level!
 * Decoding.  The code is getting pretty good at understanding the basic message types.  There are some that I know and still have to decode; some that I know mostly what they do, and some that are still mysteries!  Please help here.
 
@@ -766,13 +768,13 @@ Docker Instructions
 
 0.0.9 -
 * Added REST API and Sockets.io call to change heat set point and change heat mode
-* Updated UI to reflect new Socket calls (you can now change the heat mode and pool temp).  
+* Updated UI to reflect new Socket calls (you can now change the heat mode and pool temp).
 * Updated SerialPort to 4.0.1.
 
 0.1.0 -
 * Something weird happened and my Intellitouch stopped responding to packets starting with 255,0,255,165,10,DEST,SRC...  The 10 changed to a 16.  I don't know why, but it drove me crazy for 5 days.  Now the app dynamically reads this packet.
-* Much more information debugged for my friends over at CocoonTech.  
-* Bug fixes galore.  More clear logging messages.  
+* Much more information debugged for my friends over at CocoonTech.
+* Bug fixes galore.  More clear logging messages.
 
 0.1.1 -
 * For those of you with stand-alone pumps you can now control them!
@@ -827,7 +829,7 @@ Docker Instructions
 
 # Wish list
 1.  Still many messages to debug
-2.  Alexa, Siri integration coming soon!  
+2.  Alexa, Siri integration coming soon!
 3.  Integration directly with Screenlogic (IP based).  Awesome job @ceisenach.  https://github.com/ceisenach/screenlogic_over_ip
 
 
@@ -839,6 +841,6 @@ If you read through the below links, you'll quickly learn that the packets can v
 
 1.  [Jason Young](http://www.sdyoung.com/home/decoding-the-pentair-easytouch-rs-485-protocol) (Read both posts, they are a great baseline for knowledge)
 2.  [Michael (lastname unknown)](http://cocoontech.com/forums/topic/13548-intelliflow-pump-rs485-protocol/?p=159671) - Registration required.  Jason Young used this material for his understanding in the protocol as well.  There is a very detailed .txt file with great information ~~that I won't post unless I get permission~~. Looks like it was publicly posted to [Pastebin](http://pastebin.com/uiAmvNjG).
-3.  [Michael Usner](https://github.com/michaelusner/Home-Device-Controller) for taking the work of both of the above and turning it into Javascript code.  
+3.  [Michael Usner](https://github.com/michaelusner/Home-Device-Controller) for taking the work of both of the above and turning it into Javascript code.
 4.  [rflemming](https://github.com/rflemming) for being the first to contribute some changes to the code.
 5.  Awesome help from @arrmo and @blueman2 on Gitter

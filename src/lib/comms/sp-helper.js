@@ -55,8 +55,9 @@ module.exports = function(container) {
                 })
                 sp.on('open', function () {
                     if (timeOut === 'retry_timeout')
-                        logger.verbose('Serial port not receiving data.  Will retry connection...')
-                    else if (timeOut !== 'timeout')
+                        logger.info('Serial port recovering from lost connection.')
+                    else
+                        if (timeOut !== 'timeout')
                         logger.verbose('Serial Port opened');
 
                 })
@@ -75,7 +76,7 @@ module.exports = function(container) {
                 sp = new container.net.Socket();
                 sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
                     if (timeOut === 'retry_timeout')
-                        logger.verbose('Net connect (socat) not receiving data.  Will retry connection...')
+                        logger.info('Net connect (socat) recovering from lost connection.')
                     else if (timeOut !== 'timeout')
                         logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
                 });

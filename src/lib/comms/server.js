@@ -65,7 +65,7 @@ module.exports = function(container) {
                     servers[type].server = container.http.createServer(servers[type].app);
 
                 // Configure Server
-                if (type==='http'  && container.settings.get('redirectToHttps')){
+                if (type==='http'  && container.settings.get('httpRedirectToHttps')){
 
                     servers[type].app.get('*', function(req, res) {
                         var host = req.get('Host');

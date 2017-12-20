@@ -13,13 +13,8 @@ describe('receives packets from buffer and follows them to decoding', function()
 
             beforeEach(function () {
                 sandbox = sinon.sandbox.create()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
 
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 // bottle.container.pump.init()
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
@@ -30,6 +25,8 @@ describe('receives packets from buffer and follows them to decoding', function()
                 writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
                 // bottle.container.queuePacket.queuePacketsArrLength = 0
+                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
 
 
             })
@@ -54,7 +51,6 @@ describe('receives packets from buffer and follows them to decoding', function()
                 var client;
                 Promise.resolve()
                     .then(function () {
-                        configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
                         bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(0)
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
@@ -84,8 +80,6 @@ describe('receives packets from buffer and follows them to decoding', function()
                                            Match?: true
                 09:57:30.595 DEBUG successfulAck: Incoming packet is a match.
                  */
-                configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
                     .then(function () {
@@ -117,8 +111,6 @@ describe('receives packets from buffer and follows them to decoding', function()
                                            Msg written: 16,2,80,17,10,125,16,3
                                            Match?: true
                  */
-                configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
                     .then(function () {
@@ -149,8 +141,6 @@ describe('receives packets from buffer and follows them to decoding', function()
                            Match?: true
 
                  */
-                configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
                 var client;
                 Promise.resolve()
                     .then(function () {
@@ -167,7 +157,26 @@ describe('receives packets from buffer and follows them to decoding', function()
                     })
                     .then(done, done)
             })
+            it('#processes an known get packet (these are not processed by this app; but triggers default case in process-controller.js', function(done) {
+                Promise.resolve()
+                    .then(function(){
+                        tempPkt = [255,0,255,165,33,15,16,208,13,51,51,58,70,92,0,0,0,55,0,0,0,0,3,59]
+                        bottle.container.packetBuffer.push(new Buffer(tempPkt))
+                        // anything to test here?  or just for code coverage?
+                    })
+                    .then(done,done)
 
+            })
+            it('#processes an unknown packet (these are not processed by this app; but triggers default case in process-controller.js', function(done) {
+                Promise.resolve()
+                    .then(function(){
+                        tempPkt = [255,0,255,165,33,15,16,190,13,51,51,58,70,92,0,0,0,55,0,0,0,0,3,41]
+                        bottle.container.packetBuffer.push(new Buffer(tempPkt))
+                        // anything to test here?  or just for code coverage?
+                    })
+                    .then(done,done)
+
+            })
         })
     })
 })

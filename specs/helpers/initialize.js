@@ -6,7 +6,7 @@ Promise.promisifyAll(fs)
 
 logging = 0  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
 
-logInitAndStop = 1 //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
+logInitAndStop = 0 //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
 
 changeInitAndStop = function(val){
     logInitAndStop = val
@@ -47,6 +47,7 @@ initAll = function() {
         .delay(20) //allow for all processes to start before enable logging or moving to tests
         .catch( /* istanbul ignore next */ function (err) {
             bottle.container.logger.error('Error in global.initAll. ', err)
+            console.error(err)
         })
         .finally(function () {
             bottle.container.logger.debug('###Done Init All###')

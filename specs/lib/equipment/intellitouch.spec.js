@@ -60,5 +60,7 @@ describe('processes Intellitouch packets', function() {
             bottle.container.intellitouch.getControllerConfiguration()
 
         })
+
+
     })
 })

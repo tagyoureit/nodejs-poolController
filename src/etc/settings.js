@@ -110,7 +110,7 @@ module.exports = function(container) {
 
                 //Web
                 _settings.httpEnabled = configFile.poolController.http.enabled;
-                _settings.redirectToHttps = configFile.poolController.http.redirectToHttps;
+                _settings.httpRedirectToHttps = configFile.poolController.http.httpRedirectToHttps;
                 _settings.httpExpressPort = configFile.poolController.http.expressPort;
                 _settings.httpExpressAuth = configFile.poolController.http.expressAuth;
                 _settings.httpExpressAuthFile = configFile.poolController.http.expressAuthFile;

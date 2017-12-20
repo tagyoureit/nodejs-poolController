@@ -43,7 +43,6 @@
     "dateformat": "^3.0.2",
     "dequeue": "^1.0.5",
     "express": "^4.15.3",
-    "globalize": "^1.3.0",
     "http-auth": "^3.1.3",
     "influx": "^5.0.7",
     "jquery": "^3.2.1",

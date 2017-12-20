@@ -1,7 +1,7 @@
 describe('processes Intellichem packets', function() {
     var intellichemPackets = [
-        [165,16,15,16,18,41,2,227,2,175,2,238,2,188,0,0,0,2,0,0,0,42,0,4,0,92,6,5,24,1,144,0,0,0,150,20,0,81,0,0,101,32,60,1,0,0,0,7,116],
-        [165,16,15,16,18,41,2,227,2,175,2,238,2,188,0,0,0,2,0,0,0,42,0,4,0,92,6,5,24,1,144,0,0,0,150,20,0,81,0,0,101,32,61,1,0,0,0,7,117]
+        [255,0,255,165,16,15,16,18,41,2,227,2,175,2,238,2,188,0,0,0,2,0,0,0,42,0,4,0,92,6,5,24,1,144,0,0,0,150,20,0,81,0,0,101,32,60,1,0,0,0,7,80],
+        [255,0,255,165,16,15,16,18,41,2,227,2,175,2,238,2,188,0,0,0,2,0,0,0,42,0,4,0,92,6,5,24,1,144,0,0,0,150,20,0,81,0,0,101,32,61,1,0,0,0,7,81]
 
     ]
     var equip = 'controller'
@@ -15,12 +15,7 @@ describe('processes Intellichem packets', function() {
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                //clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
             })
 
             afterEach(function() {
@@ -35,13 +30,12 @@ describe('processes Intellichem packets', function() {
             it('#SI should equal -0.31', function() {
                 return Promise.resolve()
                     .then(function(){
-                        bottle.container.controller_18.process(intellichemPackets[0], 0)
+                        bottle.container.packetBuffer.push(new Buffer(intellichemPackets[0]))
 
                     })
                     .delay(50)
                     .then(function(){
                         var json = bottle.container.intellichem.getCurrentIntellichem()
-                        //console.log('json for intellichem: ', JSON.stringify(json,null,2))
                         json.intellichem.readings.SI.should.equal(-0.31)
                     })
                     .catch(function(err){
@@ -60,19 +54,18 @@ describe('processes Intellichem packets', function() {
             it('#Will not log output with the same packet received twice', function(){
                 return Promise.resolve()
                     .then(function(){
-                        loggerDebugStub.callCount.should.eq(0)
-                        bottle.container.controller_18.process(intellichemPackets[0], 1)
-
+                        loggers.loggerInfoStub.callCount.should.eq(0)
+                        bottle.container.packetBuffer.push(new Buffer(intellichemPackets[0]))
 
                     })
                     .delay(50)
                     .then(function(){
-                        loggerDebugStub.callCount.should.eq(0)
-                        bottle.container.controller_18.process(intellichemPackets[1], 2)
+                        loggers.loggerInfoStub.callCount.should.eq(0)
+                        bottle.container.packetBuffer.push(new Buffer(intellichemPackets[1]))
                     })
                     .delay(50)
                     .then(function(){
-                        loggerDebugStub.callCount.should.eq(1)
+                        loggers.loggerInfoStub.callCount.should.eq(2)
                     })
 
             })

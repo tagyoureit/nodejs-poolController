@@ -104,7 +104,7 @@
             "enabled": 1,
             "expressPort": 3001,
             "expressAuth": 1,
-            "expressAuthFile": "/users.htpasswd",
+            "expressAuthFile": "/specs/assets/auth/users.htpasswd",
             "expressKeyFile": "/specs/assets/data/server.key",
             "expressCertFile": "/specs/assets/data/server.crt"
         },
