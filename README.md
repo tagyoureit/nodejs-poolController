@@ -270,7 +270,10 @@ See below for descriptions
         },
         "chlorinator": {
             "installed": 1,
-            "desiredOutput": -1,
+            "desiredOutput": {
+                "pool": -1,
+                "spa": -1
+            },
             "friendlyName": "",
             "id": {
                 "productName": "",
@@ -297,7 +300,7 @@ See below for descriptions
                 }
             },
             "2": {
-                "type": "None",
+                "type": "VS",
                 "externalProgram": {
                     "1": -1,
                     "2": -1,
@@ -316,17 +319,27 @@ See below for descriptions
     },
     "poolController": {
         "appAddress": 33,
-        "web": {
+        "http": {
+            "enabled": 1,
             "expressPort": 3000,
-            "expressTransport": "http",
+            "redirectToHttps": 0,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd"
+        },
+        "https": {
+            "enabled": 1,
+            "expressPort": 3001,
+            "expressAuth": 0,
+            "expressAuthFile": "/users.htpasswd",
+            "expressKeyFile": "/data/server.key",
+            "expressCertFile": "/data/server.crt"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 0,
             "netHost": "raspberrypi",
-            "netPort": 9801
+            "netPort": 9801,
+            "inactivityRetry": 10
         },
         "notifications": {
             "version": {
@@ -354,6 +367,7 @@ See below for descriptions
             "logIntellichem": 0,
             "logPacketWrites": 0,
             "logPumpTimers": 0,
+            "logReload": 0,
             "logApi": 0
         },
         "database": {
@@ -378,6 +392,14 @@ See below for descriptions
             "chlorinator": {
                 "saltPPM": 16
             },
+            "circuit": {
+                "2": {
+                    "status": 3
+                },
+                "3": {
+                    "status": 2
+                }
+            },
             "pump": {
                 "1": {
                     "watts": 25,
@@ -389,7 +411,7 @@ See below for descriptions
                     "program4rpm": 13,
                     "power": 14,
                     "timer": 15
-                }
+                },
             }
         }
     },
@@ -459,11 +481,20 @@ The address on the serial bus that this app will use.
 The pumps don't seem to care what number you use, but Intellitouch won't respond unless this address is one of 32, 33, 34.
 
 
-### web
+### http
+* `enabled`: 1 for yes, 0 for no
 * `expressPort`: set to the value that you want the web pages to be served to.  3000 = http://localhost:3000
-* `expressTransport`: `http` for unencrypted traffic.  `https` for encryption.
+* `redirectToHttps`: 1 for yes, 0 for no.  If this is 1, all other options except for the port will be ignored.
 * `expressAuth`: `0` for no username/password.  `1` for username/password.
-* `expressAuthFile` : `/users.htpasswd` If you have `expressAuth=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
+* `expressAuthFile` : input the path to the file.  By default, `/users.htpasswd`. If you have `expressAuth=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
+
+### https
+* `enabled`: 1 for yes, 0 for no
+* `expressPort`: set to the value that you want the web pages to be served to.  3001 = https://localhost:3001
+* `expressKeyFile`: path to CA Key file
+* `expressCertFile`: path to CA Cert file
+* `expressAuth`: `0` for no username/password.  `1` for username/password.
+* `expressAuthFile` : input the path to the file.  By default, `/users.htpasswd`. If you have `expressAuth=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
 
 ### network
 * `rs485Port`: If you are running the code on the same machine as your local rs485 adapter, set the address of the adapter here.  Typically `/dev/ttyUSB0` on Unix machines.
@@ -471,6 +502,7 @@ The pumps don't seem to care what number you use, but Intellitouch won't respond
         1. `netConnect`: `1` to enable or `0` to disable.  If you enable this option, it will NOT connect to the local RS485 adapter
         1. `netHost`: Name/IP of your remote computer.  EG `raspberrypi`
         1. `"netPort":`: `9801` is a standard port
+* `inactivityRetry` : time in seconds to retry a connection to the port (RS485 or Socat) if a connection is lost.  Default is 10 seconds.
 
 ### notifications
 Section for how/when the app will notify you about certain actions/conditions.
@@ -509,6 +541,7 @@ Settings for the console, UI and file logs.
 (If you have Intellitouch, status will be received from the controller directly)
 * `logPacketWrites`: 1 = log debug messages about packet writes, 0 = hide
 * `logPumpTimers`: 1 = log debug messages about pump timers, 0 = hide
+* `logReload`: 1 = log requests to reload the application, 0 = hide
 
 ### Integrations
 See below for Integration instructions.
