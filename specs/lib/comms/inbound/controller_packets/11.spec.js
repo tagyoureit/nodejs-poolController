@@ -14,14 +14,9 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
       });
 
       beforeEach(function() {
-        sandbox = sinon.sandbox.create()
+          loggers = setupLoggerStubOrSpy('stub', 'spy')
         clock = sandbox.useFakeTimers()
-        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
         bottle.container.circuit.init()
       })
 

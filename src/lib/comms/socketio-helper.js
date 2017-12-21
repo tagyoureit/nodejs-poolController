@@ -36,7 +36,7 @@ module.exports = function(container) {
         container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
             var remote = container.configEditor.getVersionNotification()
-            container.logger.silly('Socket.IO emitting updateAvail', remote)
+            container.logger.silly('Socket.IO checking if we need to output updateAvail: (%s - will send if false)', remote.dismissUntilNextRemoteVersionBump)
             if (remote.dismissUntilNextRemoteVersionBump !== true) {
                 // true = means that we will suppress the update until the next available version bump
                 container.updateAvailable.getResultsAsync()
@@ -154,6 +154,7 @@ module.exports = function(container) {
         })
 
         io[type].on('connection', function(socket) {
+            container.logger.silly('New SOCKET.IO Client connected, ',socket.id)
             socketHandler(socket, type)
         })
         io[type+'Enabled']=1

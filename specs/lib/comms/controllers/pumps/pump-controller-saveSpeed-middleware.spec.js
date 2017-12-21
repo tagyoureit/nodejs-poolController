@@ -9,8 +9,8 @@ describe('pump controller - save speed (2/2)', function() {
         });
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
-            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+            // sandbox = sinon.sandbox.create()
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
            //endPumpCommandStub = sandbox.stub()
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')

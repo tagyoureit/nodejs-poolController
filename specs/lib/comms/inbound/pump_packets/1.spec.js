@@ -15,16 +15,12 @@ describe('processes 17 (Schedule) packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
                 configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
                 bottle.container.pump.init()
             })
 

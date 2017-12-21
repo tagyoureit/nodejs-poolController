@@ -14,8 +14,8 @@ describe('updates/resets bootstrap configClient.json', function() {
 
         beforeEach(function () {
 
-            sandbox = sinon.sandbox.create()
-            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+            // sandbox = sinon.sandbox.create()
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
             var origFile = '/specs/assets/bootstrapConfig/configClient.json'

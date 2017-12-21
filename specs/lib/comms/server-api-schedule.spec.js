@@ -8,14 +8,10 @@ describe('server', function() {
             })
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
                 sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 writeNETPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
@@ -25,12 +21,14 @@ describe('server', function() {
             })
 
             afterEach(function() {
+
                 bottle.container.writePacket.init()
                 bottle.container.queuePacket.init()
                 sandbox.restore()
             })
 
             after(function() {
+
                 return global.stopAllAsync()
             })
 

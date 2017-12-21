@@ -16,10 +16,11 @@ describe('processes 32_33 (Spa Side Remotes) packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+
 
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
                 writeNETPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')

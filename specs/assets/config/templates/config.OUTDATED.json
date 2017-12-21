@@ -16,7 +16,7 @@
     },
     "Network": {
         "rs485Port": "/dev/ttyUSB0",
-        "netConnect": 1,
+        "netConnect": 0,
         "netHost": "raspberrypi",
         "netPort": 9801
     },

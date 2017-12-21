@@ -9,33 +9,34 @@ describe('socket.io basic tests', function() {
     beforeEach(function() {
 
 
-        sandbox = sinon.sandbox.create()
-        // // clock = sandbox.useFakeTimers()  //do not use with setTimeout... if we want to enable, then use Promise.delay(int)
-        // bottle.container.time.init()
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
-        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
-        pWPHStub = sandbox.stub(bottle.container.writePacket,'preWritePacketHelper')
-        // updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-        // bootstrapConfigEditorStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'reset')
-        writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
-        controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
 
         return global.initAllAsync()
+            .then(function(){
+                sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub','stub')
+                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
+                pWPHStub = sandbox.stub(bottle.container.writePacket,'preWritePacketHelper')
+                // updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                // bootstrapConfigEditorStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'reset')
+                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
+                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+
+            })
 
     })
 
     afterEach(function() {
         //restore the sandbox after each function
         //console.log('full queue', bottle.container.queuePacket.fullQ)
-        sandbox.restore()
-        return global.stopAllAsync()
+
+        return Promise.resolve()
+            .then(sandbox.restore())
+            .then(global.stopAllAsync)
+            .catch(function(err){
+                console.error(err)
+            })
     })
 
     after(function() {
@@ -95,24 +96,38 @@ describe('socket.io basic tests', function() {
     it('#fails to set date/time (invalid input)', function() {
         // loggerWarnStub.restore()loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
 
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        client.on('connect', function() {
-            client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
-            client.disconnect()
-        })
-        var myResolve, myReject
-        var a = setTimeout(function(){myReject()}, 1950)
-        setTimeout(function () {
-            loggerWarnStub.args[0][0].text.should.contain('FAIL:')
-            loggerWarnStub.callCount.should.eq(1)
+        // var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+        // client.on('connect', function() {
+        //     client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
+        //     client.disconnect()
+        // })
+        // var myResolve, myReject
+        // var a = setTimeout(function(){myReject()}, 1950)
+        // setTimeout(function () {
+        //     loggerWarnStub.args[0][0].text.should.contain('FAIL:')
+        //     loggerWarnStub.callCount.should.eq(1)
+        //
+        //     clearTimeout(a)
+        //     myResolve()
+        // }, 1900)
+        // return new Promise(function(resolve, reject) {
+        //     myResolve = resolve
+        //     myReject = reject
+        // })
 
-            clearTimeout(a)
-            myResolve()
-        }, 1900)
-        return new Promise(function(resolve, reject) {
-            myResolve = resolve
-            myReject = reject
-        })
+        return Promise.resolve()
+            .then(function(){
+                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+                client.on('connect', function() {
+                    client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
+                    client.disconnect()
+                })
+            })
+            .delay(50)
+            .then(function(){
+                loggers.loggerWarnStub.args[0][0].text.should.contain('FAIL:')
+                loggers.loggerWarnStub.callCount.should.eq(1)
+            })
     })
 
 

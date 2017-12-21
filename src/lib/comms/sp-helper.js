@@ -135,7 +135,6 @@ module.exports = function(container) {
     }
 
     var writeSP = function(data, callback) {
-
         sp.write(data, callback)
 
 

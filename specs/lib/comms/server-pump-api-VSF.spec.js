@@ -12,13 +12,9 @@ describe('#sends pump commands to a VSF pump', function () {
                   return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
                 }).then(bottle.container.pump.init)
                 .then(function(){
-                    sandbox = sinon.sandbox.create()
+                    loggers = setupLoggerStubOrSpy('stub', 'spy')
                     clock = sandbox.useFakeTimers()
-                    loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                    loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                    loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                    loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                    loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                     // getCurrentStatusStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({
                     //     "pump": {

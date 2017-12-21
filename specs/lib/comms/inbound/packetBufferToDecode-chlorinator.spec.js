@@ -12,7 +12,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                 return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
-                        loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                        loggers = setupLoggerStubOrSpy('stub','stub')
 
                         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
 
@@ -31,11 +31,10 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
 
             afterEach(function () {
                 return Promise.resolve()
-                    .then(function () {
-                        sandbox.restore()
-
+                    .then(function(){
+                        return sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
+                    .then(function(){ return global.removeShadowConfigFileAsync()})
                     .then(function () {
 
                         return bottle.container.chlorinator.init()
@@ -44,7 +43,10 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                     .then(function () {
                         return bottle.container.chlorinatorController.clearTimer()
                     })
-
+                    .catch(function(err){
+                        console.error('Error in after each:', err)
+                        sandbox.restore()
+                    })
 
             })
 
@@ -77,7 +79,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                     })
             })
 
-            it('#decodes status messages received from Intellichlor, and does not request name on subsequent chlorinator packets', function () {
+            it('#decodes status messages received from Intellichlor, and does not request name on subsequent chlorinator packets', function (done) {
 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
                 // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
@@ -97,38 +99,39 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                 var chlorinatorPkt2_Controller = [255, 0, 255, 16, 2, 0, 3, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 188, 16, 3]
 
                 var client;
-                return Promise.resolve()
+                // return Promise.resolve()
+                //
+                //     .then(function () {
 
-                    .then(function () {
+                // bottle.container.configEditor.updateChlorinatorNameAsync(-1)
+                // bottle.container.chlorinator.init()
+                bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(-1)
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
+                bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_Controller))
+                bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt2_Controller))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
 
-                        // bottle.container.configEditor.updateChlorinatorNameAsync(-1)
-                        // bottle.container.chlorinator.init()
-                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(-1)
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
-                        bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt_Controller))
-                        bottle.container.packetBuffer.push(new Buffer(chlorinatorPkt2_Controller))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_StatusResponse))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt2_StatusResponse))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_SetGeneratePercent))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt2_SetGeneratePercent))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_GetVersion))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_GetStatus))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_SetSuperChlor))
+                bottle.container.packetBuffer.push(new Buffer(chlorPkt_chk))
+                // })
+                // .delay(50)
+                // .then(function () {
+                clock.tick(1000)
+                bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(`Intellichlor--40`)
 
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt2_StatusResponse))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_SetGeneratePercent))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt2_SetGeneratePercent))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_GetVersion))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_GetStatus))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_SetSuperChlor))
-                        bottle.container.packetBuffer.push(new Buffer(chlorPkt_chk))
-                    })
-                    .delay(50)
-                    .then(function () {
-
-                        bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq(`Intellichlor--40`)
-
-                        client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                        client.on('chlorinator', function (data) {
-                            data.chlorinator.name.should.eq(`Intellichlor--40`)
-                            client.disconnect()
-                        })
-                    })
+                client = global.ioclient.connect(global.socketURL, global.socketOptions)
+                client.on('chlorinator', function (data) {
+                    data.chlorinator.name.should.eq(`Intellichlor--40`)
+                    client.disconnect()
+                    done()
+                })
+                // })
 
 
             })
@@ -172,8 +175,8 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             beforeEach(function() {
                 return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_intellitouch.json')
                     .then(function(){
-                        sandbox = sinon.sandbox.create()
-                        loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                        // sandbox = sinon.sandbox.create()
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
 
                         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
 

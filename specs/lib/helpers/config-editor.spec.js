@@ -10,22 +10,34 @@ describe('updates config.json variables', function() {
 
         before(function () {
             return global.initAllAsync()
+                .then(console.log('done with before'))
 
         })
 
         beforeEach(function () {
-            sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
             return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
+                .then(function(){
+                    console.log('in beforeeach')
+                    // sandbox = sinon.sandbox.create()
+                    loggers = setupLoggerStubOrSpy('stub', 'spy')
+                })
         })
 
         afterEach(function () {
-            sandbox.restore()
-            return global.removeShadowConfigFileAsync()
+
+            return Promise.resolve()
+                .then(function(){
+                    console.log('befor sandbx restro')
+                    sandbox.restore()
+                    console.log('after sandbox restore')
+
+                })
+                .then(global.removeShadowConfigFileAsync)
+                .then(console.log('don with afterEach'))
+                .catch(function(err){
+                    console.log(err)
+                })
         })
 
         after(function () {
@@ -129,20 +141,23 @@ describe('updates config.json variables', function() {
             })
 
             beforeEach(function () {
-                sandbox = sinon.sandbox.create()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotificationAsync')
+
                 return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
+                    .then(function(){
+                        // sandbox = sinon.sandbox.create()
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
+                        ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotificationAsync')
+                    })
 
             })
 
             afterEach(function () {
-                sandbox.restore()
-                return global.removeShadowConfigFileAsync()
+
+                return Promise.resolve()
+                    .then(function(){
+                        sandbox.restore()
+                    })
+                    .then(global.removeShadowConfigFileAsync)
 
             })
 

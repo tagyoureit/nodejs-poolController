@@ -9,11 +9,12 @@ describe('pump controller', function() {
         })
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
+            // sandbox = sinon.sandbox.create()
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
+
+
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             clock = sandbox.useFakeTimers()
-            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
-
 
             setPumpRemoteStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')

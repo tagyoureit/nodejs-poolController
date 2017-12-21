@@ -30,15 +30,7 @@ describe('pump controller - save and run program with speed for duration', funct
         });
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
-            loggerInfostub = sandbox.stub(bottle.container.logger, 'info')
-
-            loggerVerbosestub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugstub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillystub = sandbox.stub(bottle.container.logger, 'silly')
-
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+            
             //endPumpCommandStub = sandbox.stub()
             //emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')

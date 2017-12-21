@@ -11,14 +11,10 @@ describe('processes 27 (Extended Pump Config) packets', function() {
       });
 
       beforeEach(function() {
-        sandbox = sinon.sandbox.create()
+          loggers = setupLoggerStubOrSpy('stub', 'spy')
         clock = sandbox.useFakeTimers()
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
 
       })
 
@@ -50,15 +46,15 @@ describe('processes 27 (Extended Pump Config) packets', function() {
 
         clock.tick(1000)
 
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[1].type.should.equal("VS")
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[1].circuit_slot[1].rpm.should.equal(1770)
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[1].circuit_slot[1].name.should.equal("SPA")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[1].type.should.equal("VS")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[1].circuit_slot[1].rpm.should.equal(1770)
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[1].circuit_slot[1].name.should.equal("SPA")
 
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].type.should.equal("VSF")
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].gpm.should.equal(33)
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].name.should.equal("SPA")
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[2].rpm.should.equal(1040)
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[2].name.should.equal("JETS")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].type.should.equal("VSF")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].gpm.should.equal(33)
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].name.should.equal("SPA")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[2].rpm.should.equal(1040)
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[2].name.should.equal("JETS")
 
 
       })
@@ -82,10 +78,10 @@ describe('processes 27 (Extended Pump Config) packets', function() {
         })
 
         clock.tick(1000)
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].type.should.equal("VF")
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].gpm.should.equal(29)
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].name.should.equal("SPA")
-        JSON.parse(loggerInfoStub.args[loggerInfoStub.args.length - 1][1])[2].filtering.filter.poolSize.should.equal(15000)
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].type.should.equal("VF")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].gpm.should.equal(29)
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].circuit_slot[1].name.should.equal("SPA")
+        JSON.parse(loggers.loggerInfoStub.args[loggers.loggerInfoStub.args.length - 1][1])[2].filtering.filter.poolSize.should.equal(15000)
       })
 
     })

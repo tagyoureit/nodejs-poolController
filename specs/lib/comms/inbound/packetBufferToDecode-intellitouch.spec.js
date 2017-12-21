@@ -12,8 +12,8 @@ describe('receives packets from buffer and follows them to decoding', function()
             })
 
             beforeEach(function () {
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                // sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
 
                 // bottle.container.pump.init()
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))

@@ -8,13 +8,9 @@ describe('#sets various functions', function() {
         });
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
             clock = sandbox.useFakeTimers()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
         })

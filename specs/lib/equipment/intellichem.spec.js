@@ -14,8 +14,8 @@ describe('processes Intellichem packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                // sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             })
 
             afterEach(function() {

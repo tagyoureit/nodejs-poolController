@@ -12,10 +12,8 @@ describe('#Tests a VS pump', function() {
             beforeEach(function(){
                 return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VS.json')
                     .then(function(){
-                        sandbox = sinon.sandbox.create()
+                        loggers = setupLoggerStubOrSpy('stub','stub')
                         clock = sandbox.useFakeTimers()
-                        loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
-
                         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                         getCurrentStatusStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({"pump":{
                                 "1": {type: 'VS'},
@@ -120,7 +118,7 @@ describe('#Tests a VS pump', function() {
                 }).then(done, done)
             })
 
-            it('API #3: turns on pump 2 for a duration', function (done) {
+            it('API #3: turns on pump 2 for a duration of 30 mins', function (done) {
                 global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/duration/30').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
@@ -147,9 +145,10 @@ describe('#Tests a VS pump', function() {
             });
 
             beforeEach(function () {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
@@ -496,162 +495,128 @@ describe('#Tests a VS pump', function() {
 
         })
 
-            describe('#sends pump commands that fail', function () {
+        describe('#sends pump commands that fail', function () {
 
-                before(function () {
-                    return global.initAllAsync()
-                });
+            before(function () {
+                return global.initAllAsync()
+            });
 
-                beforeEach(function () {
-                    sandbox = sinon.sandbox.create()
-                    clock = sandbox.useFakeTimers()
-                    loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'stub')
-                    queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                    // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                    socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                    configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
-                })
+            beforeEach(function () {
+                sandbox = sinon.sandbox.create()
+                clock = sandbox.useFakeTimers()
+                loggers = setupLoggerStubOrSpy('stub','stub')
+                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+            })
 
-                afterEach(function () {
-                    //restore the sandbox after each function
-                    bottle.container.pumpControllerTimers.clearTimer(1)
-                    bottle.container.pumpControllerTimers.clearTimer(2)
-                    sandbox.restore()
-
-                })
-
-                after(function () {
-                    return global.stopAllAsync()
-                })
-                context('with the current HTTP REST API', function () {
-
-
-
-                    it('API #13: saves program 3 as 27GPM', function (done) {
-                        this.timeout(5 * 1000)
-                        global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/3/gpm/27').then(function (obj) {
-                            obj.text.should.contain('REST API')
-                            obj.pump.should.eq(1)
-                            obj.program.should.eq(3)
-                            obj.speed.should.eq(27)
-                            clock.tick(59 * 1000) //+59 sec min
-
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-
-                            clock.tick(59 * 60 * 1000) //+1 hr
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                        }).then(done, done)
-                    })
-
-                    it('API #14: saves and run program 4 as 28GPM for indefinite duration', function (done) {
-                        //[ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
-                        // [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 32 ] ],
-                        //     [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
-                        //     [ [ 165, 0, 96, 33, 7, 0 ] ] ]
-                        this.timeout(5 * 1000)
-                        global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28').then(function (obj) {
-                            obj.text.should.contain('REST API')
-                            obj.pump.should.eq(1)
-                            obj.program.should.eq(4)
-                            obj.speed.should.eq(28)
-                            obj.duration.should.eq(-1)
-                            clock.tick(59 * 1000) //+59 sec min
-
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-
-                            clock.tick(59 * 60 * 1000) //+1 hr
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                            queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
-                            queuePacketStub.args[1][0].should.deep.equal([165, 0, 96, 33, 1, 4, 3, 33, 0, 32])
-                            queuePacketStub.args[2][0].should.deep.equal([165, 0, 96, 33, 6, 1, 10])
-                            queuePacketStub.args[3][0].should.deep.equal([165, 0, 96, 33, 7, 0])
-
-                        }).then(done, done)
-                    })
-
-
-                    it('API #15: saves and run program 4 as 28GPM for 3 mins', function (done) {
-                        // api 15: {"text":"REST API pumpCommand variables - pump: 1, program: 4, speed: 28, duration: 3","pump":1,"program":4,"speed":28,"duration":3}
-                        // qps: [ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
-                        //     [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 32 ] ],
-                        //     [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
-                        //      [ [ 165, 0, 96, 33, 7, 0 ] ] ]
-                        this.timeout(5 * 1000)
-                        global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28/duration/3').then(function (obj) {
-                            obj.text.should.contain('REST API')
-                            obj.pump.should.eq(1)
-                            obj.program.should.eq(4)
-                            obj.speed.should.eq(28)
-                            obj.duration.should.eq(3)
-                            queuePacketStub.args[0][0].should.deep.equal([165, 0, 96, 33, 4, 1, 255])
-                            queuePacketStub.args[1][0].should.deep.equal([165, 0, 96, 33, 1, 4, 3, 33, 0, 32])
-                            queuePacketStub.args[2][0].should.deep.equal([165, 0, 96, 33, 6, 1, 10])
-                            queuePacketStub.args[3][0].should.deep.equal([165, 0, 96, 33, 7, 0])
-                            clock.tick(59 * 1000) //+59 sec min
-
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(2)
-
-                            clock.tick(59 * 60 * 1000) //+1 hr
-                            bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                        }).then(done, done)
-                    })
-                })
-
-                context('with invalid URIs', function () {
-
-                    // it('sets pump 1 program 1 to 1000 rpm', function(done) {
-
-                    //     global.requestPoolDataWithURLAsync('pumpCommand/1/1/1000').then(function(obj) {
-                    //         // console.log('obj: ', obj)
-                    //         obj.text.should.contain('REST API')
-                    //         obj.pump.should.eq(1)
-                    //         obj.program.should.eq(1)
-                    //         obj.value.should.eq(1000)
-                    //         loggerWarnStub.calledOnce.should.be.true
-                    //         clock.tick(60 * 1000) //+1 min
-                    //
-                    //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    //
-                    //         clock.tick(59 * 60 * 1000) //+1 hr
-                    //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
-                    //         done()
-                    //     });
-                    // });
-
-
-                    it('saves pump 1 at rpm 1000 (should fail // no program)', function (done) {
-
-                        global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1').then(function (obj) {
-
-                            obj.text.should.contain('FAIL');
-                        }).then(done, done)
-                    });
-                })
-                it('saves pump 1 and rpm 1 (should fail // no program)', function (done) {
-
-                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
-                        // console.log('obj: ', obj)
-                        obj.text.should.contain('Please provide the program')
-                    }).then(done, done)
-                });
-                it('saves pump 1 to program 1 (should fail)', function (done) {
-
-                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1').then(function (obj) {
-                        // console.log('obj: ', obj)
-                        obj.text.should.contain('FAIL')
-                    }).then(done, done)
-                });
-
+            afterEach(function () {
+                //restore the sandbox after each function
+                bottle.container.pumpControllerTimers.clearTimer(1)
+                bottle.container.pumpControllerTimers.clearTimer(2)
+                sandbox.restore()
 
             })
 
+            after(function () {
+                return global.stopAllAsync()
+            })
+            context('with the current HTTP REST API, but sending GPM to a VS pump, Should Fail', function () {
 
 
+
+                it('API #13: saves program 3 as 27GPM', function (done) {
+                    this.timeout(5 * 1000)
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/3/gpm/27').then(function (obj) {
+                        console.log('obj', obj.toString())
+                        obj.text.should.contain('FAIL');
+                    }).then(done, done)
+                })
+
+                it('API #14: saves and run program 4 as 28GPM for indefinite duration', function (done) {
+                    //[ [ [ 165, 0, 96, 33, 4, 1, 255 ] ],
+                    // [ [ 165, 0, 96, 33, 1, 4, 3, 33, 0, 32 ] ],
+                    //     [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
+                    //     [ [ 165, 0, 96, 33, 7, 0 ] ] ]
+                    this.timeout(5 * 1000)
+                    global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28').then(function (obj) {
+                        console.log('obj', obj.toString())
+                        obj.text.should.contain('FAIL');
+
+                    }).then(done, done)
+                })
+
+
+                it('API #15: saves and run program 4 as 28GPM for 3 mins', function (done) {
+                      this.timeout(5 * 1000)
+                    global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28/duration/3')
+                        .then(function (obj) {
+                            console.log('obj', JSON.stringify(obj))
+                            obj.text.should.contain('FAIL');
+                        })
+                        .then(done,done)
+                })
+            })
+
+            context('with invalid URIs', function () {
+
+                // it('sets pump 1 program 1 to 1000 rpm', function(done) {
+
+                //     global.requestPoolDataWithURLAsync('pumpCommand/1/1/1000').then(function(obj) {
+                //         // console.log('obj: ', obj)
+                //         obj.text.should.contain('REST API')
+                //         obj.pump.should.eq(1)
+                //         obj.program.should.eq(1)
+                //         obj.value.should.eq(1000)
+                //         loggerWarnStub.calledOnce.should.be.true
+                //         clock.tick(60 * 1000) //+1 min
+                //
+                //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                //
+                //         clock.tick(59 * 60 * 1000) //+1 hr
+                //         bottle.container.pump.getCurrentRemainingDuration(1).should.eq(-1)
+                //         done()
+                //     });
+                // });
+
+
+                it('saves pump 1 at program 1 (should fail // no speed)', function (done) {
+
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1').then(function (obj) {
+
+                        obj.text.should.contain('FAIL');
+                    }).then(done, done)
+                });
+
+                it('saves pump 1 and rpm 1000 (should fail // no program)', function (done) {
+
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
+
+                        obj.text.should.contain('Please provide the program')
+                    }).then(done, done)
+                });
+                it('saves speed 1000 to program 1 (should fail // no pump)', function (done) {
+
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/program/1/rpm/1000').then(function (obj) {
+                        throw Error('Should Fail Here')
+                    })
+                        .catch(function(err){
+                            err.message.should.contain('404')
+                        })
+                        .then(done, done)
+                });
+            })
 
         })
 
 
 
 
-
     })
+
+
+
+
+
+})

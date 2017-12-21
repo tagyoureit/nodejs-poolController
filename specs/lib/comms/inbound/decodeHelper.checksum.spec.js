@@ -21,11 +21,12 @@ describe('decodeHelper processes controller packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
                 // suppress warnings for bad packets
                 // sandbox.restore()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+
 
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')

@@ -6,18 +6,16 @@ describe('server', function() {
 
             before(function() {
                 return global.initAllAsync()
+                    .catch(function(err){
+                        console.log('before all error:', err)
+                    })
             })
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
+                loggers = setupLoggerStubOrSpy('stub','stub')
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+
             })
 
             afterEach(function() {
@@ -33,7 +31,11 @@ describe('server', function() {
 
 
             it('toggle circuit 1', function(done) {
-                global.requestPoolDataWithURLAsync('circuit/1/toggle').then(function(obj) {
+                global.requestPoolDataWithURLAsync('circuit/1/toggle')
+                    .delay(50)
+                    .then(function(obj) {
+                //     console.log('logger?', loggers)
+                //         console.log('sandbox', sandbox)
                     writeSPPacketStub.args[0][0].should.deep.equal([ 255, 0, 255, 165, 33, 16, 33, 134, 2, 1, 1, 1, 129 ])
                 }).then(done,done)
             });

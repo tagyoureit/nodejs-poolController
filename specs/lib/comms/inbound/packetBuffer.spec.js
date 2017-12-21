@@ -9,13 +9,9 @@ describe('packetBuffer receives raw packets from serial bus', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
                 // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 // checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')

@@ -6,9 +6,10 @@ describe('#sets various functions', function() {
         });
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
-            clock = sandbox.useFakeTimers()
-            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+            // sandbox = sinon.sandbox.create()
+
+            loggers = setupLoggerStubOrSpy('stub', 'stub')
+            clock = sandbox.useFakeTimers();
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 

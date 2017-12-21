@@ -32,12 +32,8 @@ describe('pump controller - save and run program with flow for duration', functi
         });
 
         beforeEach(function() {
-            sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+            // sandbox = sinon.sandbox.create()
+            
             //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()

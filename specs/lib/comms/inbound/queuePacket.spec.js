@@ -13,9 +13,9 @@ describe('decodeHelper processes controller packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
@@ -99,9 +99,9 @@ describe('decodeHelper processes controller packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                loggers = setupLoggerStubOrSpy('stub', 'stub')
                 clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'stub')
+
                 // loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
                 // loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
                 // loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')

@@ -223,8 +223,6 @@ module.exports = function(container) {
             if (Object.keys(jsons).length === 0) {
                 return initAsync()
                     .then(function(res) {
-                        console.log('res???', res)
-                        console.log('jsons', jsons)
                         resolve(res)
                     })
             } else {

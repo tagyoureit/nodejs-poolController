@@ -17,11 +17,11 @@ describe('nodejs-poolController', function() {
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+            loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-            loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
         })
@@ -29,10 +29,12 @@ describe('nodejs-poolController', function() {
         afterEach(function() {
             //restore the sandbox after each function
             sandbox.restore()
+            //console.log('afterEach')
         })
 
         after(function() {
-            return global.stopAllAsync()
+            //console.log('after All')
+            //return global.stopAllAsync()
         })
 
         it('#should load settings', function() {
@@ -138,14 +140,7 @@ describe('nodejs-poolController', function() {
                 .then(global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json'))
                 .then(global.removeShadowConfigFileAsync)
                 .then(function(){
-                    sandbox.restore()
-                    sandbox = sinon.sandbox.create()
-                    loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                    loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                    loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                    loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                    loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                    loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
+                    setupLoggerStubOrSpy('stub', 'stub')
                 })
                 .then(global.removeShadowConfigFileAsync)  // should throw an error
                 .then(global.useShadowConfigFileAsync('/specs/assets/config/templates/config_not_here.json'))

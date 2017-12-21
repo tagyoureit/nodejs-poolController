@@ -13,10 +13,10 @@ describe('processes 2 (Status) packets', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
                 // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 // writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
                 // writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
 

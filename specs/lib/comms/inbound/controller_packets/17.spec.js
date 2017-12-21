@@ -13,15 +13,11 @@ describe('processes 17 (Schedule) packets', function() {
       });
 
       beforeEach(function() {
-        sandbox = sinon.sandbox.create()
+          loggers = setupLoggerStubOrSpy('stub', 'spy')
         clock = sandbox.useFakeTimers()
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
         controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
         bottle.container.schedule.init()
       })
@@ -46,7 +42,7 @@ describe('processes 17 (Schedule) packets', function() {
         json[1].ID.should.equal(1)
         json[1].START_TIME.should.equal("9:20")
         json[1].CIRCUIT.should.equal("POOL")
-        loggerInfoStub.args[0][1].should.contain("Schedules discovered:")
+        loggers.loggerInfoStub.args[0][1].should.contain("Schedules discovered:")
       })
 
 

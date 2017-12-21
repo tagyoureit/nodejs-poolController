@@ -4,9 +4,20 @@ var fs = require('fs'),
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
 
-logging = 0  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
+logging = 0;  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
+logInitAndStop = 0; //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
+sandbox = sinon.sandbox.create()
+/* Very important - when writing tests the order must be:
+        Before functions
+        1. initAllAsync
+        2. useShadowConfigAsync (if needed)
+        3. create sandbox and call setupSandbox
 
-logInitAndStop = 1 //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
+        After functions:
+        1. Restore sandbox
+        2. removeShadowConfig
+        3. stopAllAsync
+ */
 
 changeInitAndStop = function(val){
     logInitAndStop = val
@@ -22,8 +33,7 @@ initAllAsync = function() {
                 bottle.container.logger.debug('###Starting Init All###')
             }
             else {
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
         })
         .then(bottle.container.server.initAsync)  // async
@@ -53,7 +63,7 @@ initAllAsync = function() {
             console.error(err)
         })
         .finally(function () {
-            // bottle.container.logger.debug('###Done Init All###')
+            // console.log('###Done Init All###')
             // enableLogging()
             // if (logging) enableLogging()
             if (logInitAndStop) {
@@ -77,11 +87,7 @@ stopAllAsync = function() {
                 bottle.container.logger.debug('***Starting Stop All***')
             }
             else {
-                if (sandbox.fakes.length>0){
-                    bottle.container.logger.info('NEED TO UNSTUB FUNCTIONS')
-                }
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
         })
         .then(bottle.container.server.closeAllAsync)
@@ -95,9 +101,10 @@ stopAllAsync = function() {
 
         .catch( /* istanbul ignore next */ function(err) {
             bottle.container.logger.error('Error in stopAllAsync.', err)
-            // console.log(err)
+            console.log(err)
         })
         .finally(function(){
+            // console.log('***Stop All Completed***')
             if (logInitAndStop) {
                 bottle.container.logger.debug('***Stop All Completed***')
                 disableLogging()
@@ -151,9 +158,7 @@ useShadowConfigFileAsync = function(location) {
                 enableLogging()
             }
             else {
-                console.log('log init and stop (disabled) creating sandbox in use shadow config')
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
             return fs.readFileAsync(path.join(process.cwd(), location))
         })
@@ -172,6 +177,7 @@ useShadowConfigFileAsync = function(location) {
         })
         .catch( /* istanbul ignore next */ function (err) {
             bottle.container.logger.error('oops, we hit an error in useShadowConfigFileAsync', err)
+            console.error(err)
         })
         .finally(function(){
             if (logInitAndStop) {
@@ -190,15 +196,13 @@ removeShadowConfigFileAsync = function(){
 
     return Promise.resolve()
         .then(function(){
-            /* istanbul ignore next */
             if (logInitAndStop) {
                 snapshotLogging = logging
                 enableLogging()
                 bottle.container.logger.debug('***Starting removeShadowConfig***')
             }
             else {
-                sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
         })
         .then(function(){
@@ -264,19 +268,19 @@ requestPoolDataWithURLAsync = function(endpoint, URL) {
     };
     return rp(options)
         .then(function(response){
-            console.log('returning response.body', response.body)
             return response.body
         })
         .catch(function(err){
             bottle.container.logger.error('Error with requestPoolDataWithURLAsync.', err.toString())
-            throw new Error(err.toString())
+            throw new Error(err)
         })
 }
 
-setupLoggerStubOrSpy = function(sandbox, normalLvL, errorLvl){
-
-
+setupLoggerStubOrSpy = function(normalLvL, errorLvl){
+    sandbox.restore()
+    sandbox = sinon.sandbox.create()
     enableLogging()
+
     if (normalLvL===undefined){
         if (logInitAndStop === 0){
             normalLvL = 'stub'

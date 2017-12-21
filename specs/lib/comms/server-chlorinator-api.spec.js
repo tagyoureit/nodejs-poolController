@@ -14,16 +14,14 @@ describe('#set functions', function() {
             });
 
             beforeEach(function () {
-                sandbox = sinon.sandbox.create()
+                // sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy(sandbox, 'spy', 'spy')
+                loggers = setupLoggerStubOrSpy('stub','stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             })
 
             afterEach(function () {
-                //restore the sandbox after each function
-
                 sandbox.restore()
 
             })
@@ -61,12 +59,11 @@ describe('#set functions', function() {
             });
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
-                //clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy(sandbox, 'spy', 'spy')
+                loggers = setupLoggerStubOrSpy('stub','stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
                 configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateChlorinatorDesiredOutputAsync')
+                getVersionNotificationStub = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({'dismissUntilNextRemoteVersionBump': true})
 
             })
 
@@ -74,6 +71,9 @@ describe('#set functions', function() {
                 //restore the sandbox after each function
                 bottle.container.chlorinator.setChlorinatorLevelAsync(0)
                 bottle.container.chlorinatorController.clearTimer()
+                // Clear out the write queues
+                bottle.container.queuePacket.init()
+                bottle.container.writePacket.init()
                 sandbox.restore()
             })
 
@@ -91,18 +91,13 @@ describe('#set functions', function() {
                 return global.requestPoolDataWithURLAsync('chlorinator/50')
                     .delay(50)
                     .then(function(result) {
-                        console.log('AAAAAAAAAA')
                         result.status.should.eq('on')
                         result.value.should.eq(50)
                         queuePacketStub.callCount.should.eq(1)
                         queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 50])
-console.log('here')
                     })
                     .catch(function(err){
                         bottle.container.logger.error(err.toString())
-                    })
-                    .finally(function(){
-                        console.log('BBBBBBBBBB')
                     })
             })
             it('starts chlorinator at 100%', function(done) {

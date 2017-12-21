@@ -9,16 +9,11 @@ describe('server', function() {
             })
 
             beforeEach(function() {
-                sandbox = sinon.sandbox.create()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
             })
 
             afterEach(function() {
-                sandbox.restore()
+                // sandbox.restore()
             })
 
             after(function() {

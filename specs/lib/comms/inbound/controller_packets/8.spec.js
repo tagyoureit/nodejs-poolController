@@ -13,16 +13,11 @@ describe('processes 8 (Heat mode/set point) packets', function() {
       });
 
       beforeEach(function() {
-        sandbox = sinon.sandbox.create()
+          loggers = setupLoggerStubOrSpy('stub', 'spy')
         clock = sandbox.useFakeTimers()
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         //circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
 
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
         bottle.container.heat.init()
       })
 

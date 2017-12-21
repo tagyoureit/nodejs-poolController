@@ -688,8 +688,15 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = null
-            container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)
-            res.send(response)
+            if (container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed))
+            {
+                res.send(response)
+
+            }
+            else {
+                response.text = 'FAIL: ' + response.text
+                res.send(response)
+            }
         })
 
 //#14  Save and run program for indefinite duration
@@ -703,8 +710,12 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = -1
-            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1)
-            res.send(response)
+            if (container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, -1))
+                res.send(response)
+            else {
+                response.text = 'FAIL: ' + response.text
+                res.send(response)
+            }
         })
 
 //#15  Save and run program for specified duration
@@ -720,8 +731,14 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = duration
-            container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)
-            res.send(response)
+            if (container.pumpControllerMiddleware.pumpCommandSaveAndRunProgramWithValueForDuration(pump, program, speed, duration)) {
+                res.send(response)
+            }
+            else {
+                response.text = 'FAIL: ' + response.text
+                res.send(response)
+            }
+
         })
 
         /* END New pumpCommand API's  */

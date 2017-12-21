@@ -4,17 +4,11 @@ describe('pump controller initialized', function() {
     });
 
     beforeEach(function () {
-        sandbox = sinon.sandbox.create()
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+        loggers = setupLoggerStubOrSpy('stub', 'spy')
     })
 
     afterEach(function () {
-        sandbox.restore()
+        // sandbox.restore()
     })
 
     after(function () {
@@ -36,13 +30,9 @@ describe('pump controller initializes with 16 pumps', function() {
     });
 
     beforeEach(function() {
-        sandbox = sinon.sandbox.create()
+        loggers = setupLoggerStubOrSpy('stub', 'spy')
         clock = sandbox.useFakeTimers()
-        loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+
         ioStub = sandbox.stub(bottle.container.io, 'emitToClients')
     })
 
