@@ -54,10 +54,13 @@ module.exports = function(container) {
                     }
                 })
                 sp.on('open', function () {
-                    if (timeOut === 'retry_timeout')
+                    if (timeOut === 'retry_timeout') {
                         logger.info('Serial port recovering from lost connection.')
+                        container.queuePacket.init()
+                        container.writePacket.init()
+                    }
                     else
-                        if (timeOut !== 'timeout')
+                    if (timeOut !== 'timeout')
                         logger.verbose('Serial Port opened');
 
                 })
@@ -75,8 +78,11 @@ module.exports = function(container) {
                 }
                 sp = new container.net.Socket();
                 sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
-                    if (timeOut === 'retry_timeout')
+                    if (timeOut === 'retry_timeout') {
                         logger.info('Net connect (socat) recovering from lost connection.')
+                        container.queuePacket.init()
+                        container.writePacket.init()
+                    }
                     else if (timeOut !== 'timeout')
                         logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
                 });
@@ -129,15 +135,9 @@ module.exports = function(container) {
     }
 
     var writeSP = function(data, callback) {
-        // if (sp!=null) {
-        //     if (typeof sp.write == 'function')
-                sp.write(data, callback)
-        //     else
-        //     //For testing we might have a closed port...
-        //         container.logger.warn('Aborting writeSP packet %s because SP does not have write method.', data, callback.toString() )
-        // }
-        // else
-        //     container.logger.warn('Aborting writeSP packet %s because SP is not defined.', data)
+
+        sp.write(data, callback)
+
 
     }
 
@@ -200,3 +200,93 @@ module.exports = function(container) {
         mockSPBinding: mockSPBinding
     }
 }
+
+
+/*
+
+sp is connecting? false
+sp all Socket {
+  connecting: false,
+  _hadError: false,
+  _handle:
+   TCP {
+     bytesRead: 593,
+     _externalStream: {},
+     fd: 16,
+     reading: true,
+     owner: [Circular],
+     onread: [Function: onread],
+     onconnection: null,
+     writeQueueSize: 0 },
+  _parent: null,
+  _host: null,
+  _readableState:
+   ReadableState {
+     objectMode: false,
+     highWaterMark: 16384,
+     buffer: BufferList { head: null, tail: null, length: 0 },
+     length: 0,
+     pipes: null,
+     pipesCount: 0,
+     flowing: true,
+     ended: false,
+     endEmitted: false,
+     reading: true,
+     sync: false,
+     needReadable: true,
+     emittedReadable: false,
+     readableListening: false,
+     resumeScheduled: false,
+     defaultEncoding: 'utf8',
+     ranOut: false,
+     awaitDrain: 0,
+     readingMore: false,
+     decoder: null,
+     encoding: null },
+  readable: true,
+  domain: null,
+  _events:
+   { end: { [Function: g] listener: [Function: onend] },
+     finish: [Function: onSocketFinish],
+     _socketEnd: [Function: onSocketEnd],
+     data: [Function],
+     error: [Function] },
+  _eventsCount: 5,
+  _maxListeners: undefined,
+  _writableState:
+   WritableState {
+     objectMode: false,
+     highWaterMark: 16384,
+     needDrain: false,
+     ending: false,
+     ended: false,
+     finished: false,
+     decodeStrings: false,
+     defaultEncoding: 'utf8',
+     length: 0,
+     writing: false,
+     corked: 0,
+     sync: false,
+     bufferProcessing: false,
+     onwrite: [Function],
+     writecb: null,
+     writelen: 0,
+     bufferedRequest: null,
+     lastBufferedRequest: null,
+     pendingcb: 0,
+     prefinished: false,
+     errorEmitted: false,
+     bufferedRequestCount: 0,
+     corkedRequestsFree: CorkedRequest { next: null, entry: null, finish: [Function] } },
+  writable: true,
+  allowHalfOpen: false,
+  destroyed: false,
+  _bytesDispatched: 204,
+  _sockname: null,
+  _pendingData: null,
+  _pendingEncoding: '',
+  server: null,
+  _server: null,
+  read: [Function],
+  _consuming: true }
+ */

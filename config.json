@@ -101,7 +101,7 @@
             "expressAuthFile": "/users.htpasswd"
         },
         "https": {
-            "enabled": 1,
+            "enabled": 0,
             "expressPort": 3001,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd",
