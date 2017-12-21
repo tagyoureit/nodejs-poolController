@@ -9,7 +9,7 @@ describe('processes 17 (Schedule) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        return global.initAll()
+        return global.initAllAsync()
       });
 
       beforeEach(function() {
@@ -32,7 +32,7 @@ describe('processes 17 (Schedule) packets', function() {
       })
 
       after(function() {
-        return global.stopAll()
+        return global.stopAllAsync()
       })
 
       it('#Schedule 1 should have ID:1 START_TIME:9:25', function() {

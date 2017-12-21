@@ -2,7 +2,7 @@ describe('#sets various functions', function() {
     describe('#sets the date/time', function() {
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
         });
 
         beforeEach(function() {
@@ -21,13 +21,13 @@ describe('#sets various functions', function() {
         })
 
         after(function() {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
 
         context('with the HTTP REST API', function() {
 
             it('gets the date/time', function(done) {
-                global.requestPoolDataWithURL('datetime')
+                global.requestPoolDataWithURLAsync('datetime')
                     .then(function(obj) {
                         obj.time.controllerTime.should.equal(-1)
                     })
@@ -36,7 +36,7 @@ describe('#sets various functions', function() {
 
 
             it('sets a valid date/time', function(done) {
-                global.requestPoolDataWithURL('datetime/set/time/21/55/date/2/01/02/19/0')
+                global.requestPoolDataWithURLAsync('datetime/set/time/21/55/date/2/01/02/19/0')
                     .then(function(obj) {
                         obj.text.should.contain('REST API')
                         var res = bottle.container.time.getTime().time

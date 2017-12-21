@@ -41,8 +41,8 @@ module.exports = function(container) {
     // Promise.promisifyAll(fs)
 
 
-    // = exports.compareLocalToRemoteVersion
-    var compareLocalToRemoteVersion  = function() {
+    // = exports.compareLocalToRemoteVersionAsync
+    var compareLocalToRemoteVersionAsync  = function() {
         return new Promise(function(resolve, reject){
             container.logger.silly('updateAvail: versions discovered: ', jsons)
             var clientVersion = jsons.local.version,
@@ -88,7 +88,7 @@ module.exports = function(container) {
 
     }
 
-    var compareLocalToSavedLocalVersion = function() {
+    var compareLocalToSavedLocalVersionAsync = function() {
         return new Promise(function(resolve, reject){
             Promise.resolve()
                 .then(function(){
@@ -131,8 +131,8 @@ module.exports = function(container) {
                     if (configJsonVerCompare === 'equal') {
                         container.logger.silly('updateAvail: no change in current remote version compared to local cached config.json version of app')
                     } else if (configJsonVerCompare === 'older') {
-                        container.logger.info('Remote version of nodejs-poolController has been updated to %s.  Resetting local updateVersionNotification in config.json.', jsons.remote.version)
-                        return container.configEditor.updateVersionNotification(false, jsons.remote)
+                        container.logger.info('Remote version of nodejs-poolController has been updated to %s.  Resetting local updateVersionNotificationAsync in config.json.', jsons.remote.version)
+                        return container.configEditor.updateVersionNotificationAsync(false, jsons.remote)
                     } else if (configJsonVerCompare === 'newer') {
                         container.logger.silly('updateAvail: The local version is newer than the GitHub release.  Probably running a dev build.')
                     }
@@ -156,7 +156,7 @@ module.exports = function(container) {
 
 
 
-    var getLatestReleaseJson = function() {
+    var getLatestReleaseJsonAsync = function() {
 
         var options = {
             method: 'GET',
@@ -199,11 +199,11 @@ module.exports = function(container) {
         container.io.emitToClients('updateAvailable')
     }
 
-    var check = function() {
+    var checkAsync = function() {
         // if (Object.keys(jsons).length === 0) {
-        return getLatestReleaseJson()
-            .then(compareLocalToSavedLocalVersion)
-            .then(compareLocalToRemoteVersion)
+        return getLatestReleaseJsonAsync()
+            .then(compareLocalToSavedLocalVersionAsync)
+            .then(compareLocalToRemoteVersionAsync)
             .then(emitResults)
             .then(function() {
                 container.logger.silly('updateAvail: finished successfully')
@@ -218,34 +218,47 @@ module.exports = function(container) {
         // }
     }
 
-    var getResults = function() {
-        if (Object.keys(jsons).length === 0) {
-            init()
-                .then(function(res) {
-                    return res
-                })
-        } else {
-            return jsons
-        }
+    var getResultsAsync = function() {
+        return new Promise(function(resolve, reject){
+            if (Object.keys(jsons).length === 0) {
+                return initAsync()
+                    .then(function(res) {
+                        console.log('res???', res)
+                        console.log('jsons', jsons)
+                        resolve(res)
+                    })
+            } else {
+                resolve(jsons)
+            }
+
+        })
     }
-    var init = function(_location){
-        jsons = {}
-        location = ''
-        if (_location===undefined)
-            location = container.path.join(process.cwd(), '/package.json')
-        else
-            location = container.path.join(process.cwd(), _location)
+    var initAsync = function(_location){
 
-        container.logger.silly('updateAvail: reading local version at:', location)
+        return Promise.resolve()
+            .then(function(){
+                jsons = {}
+                location = ''
+                if (_location===undefined)
+                    location = container.path.join(process.cwd(), '/package.json')
+                else
+                    location = container.path.join(process.cwd(), _location)
 
-        return container.fs.readFileAsync(location, 'utf-8')
+                container.logger.silly('updateAvail: reading local version at:', location)
+                return location
+            })
+            .then(function(location){return container.fs.readFileAsync(location, 'utf-8')})
             .then(function(data) {
                 jsons.local = {
                     'version': getVersionFromJson(data)
                 }
             })
-            .then(check)
+            .then(checkAsync)
+            .then(function(){
+                return jsons
+            })
             .catch( /*istanbul ignore next */ function(error) {
+                console.error(error)
                 container.logger.warn('updateAvail: Error reading local package.json: ', error)
             })
 
@@ -256,8 +269,8 @@ module.exports = function(container) {
         container.logger.info('Loaded: update-avail.js')
 
     return {
-        check: check,
-        getResults: getResults,
-        init: init
+        checkAsync: checkAsync,
+        getResultsAsync: getResultsAsync,
+        initAsync: initAsync
     }
 }

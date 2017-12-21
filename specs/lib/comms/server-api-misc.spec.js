@@ -4,7 +4,7 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             })
 
             beforeEach(function() {
@@ -28,7 +28,7 @@ describe('server', function() {
 
             after(function() {
 
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('sends a user provided pump packet', function(done) {
@@ -39,7 +39,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURLAsync('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(global.pump1PowerOn_chk)
                 }).then(done,done)
             });
@@ -52,7 +52,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURLAsync('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(global.schedules_chk[0])
                 }).then(done,done)
             });
@@ -65,7 +65,7 @@ describe('server', function() {
                     packetWithDash += el + '-'
                 })
                 packetWithDash=packetWithDash.slice(0,-1) //remove last -
-                global.requestPoolDataWithURL('sendthispacket/'+packetWithDash).then(function(obj) {
+                global.requestPoolDataWithURLAsync('sendthispacket/'+packetWithDash).then(function(obj) {
                     writeSPPacketStub.args[0][0].should.deep.equal(chlorPkt)
                 }).then(done,done)
             });

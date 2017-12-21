@@ -9,7 +9,7 @@ describe('processes 8 (Heat mode/set point) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        return global.initAll()
+        return global.initAllAsync()
       });
 
       beforeEach(function() {
@@ -32,7 +32,7 @@ describe('processes 8 (Heat mode/set point) packets', function() {
       })
 
       after(function() {
-        return global.stopAll()
+        return global.stopAllAsync()
       })
 
       it('#Pool set point should be Solar Only @ 89 degrees', function() {

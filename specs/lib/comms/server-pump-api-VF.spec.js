@@ -15,9 +15,9 @@ describe('#sends pump commands to a VF pump', function () {
             // })
             // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
             //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            return global.initAll()
+            return global.initAllAsync()
                 .then(function(){
-                    return global.useShadowConfigFile('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
                 })
                 .then(bottle.container.pump.init)
                 .then(function(){
@@ -43,8 +43,8 @@ describe('#sends pump commands to a VF pump', function () {
             // bottle.container.queuePacket.init()
             // bottle.container.writePacket.init()
             sandbox.restore()
-            return global.stopAll()
-                .then(global.removeShadowConfigFile)
+            return global.stopAllAsync()
+                .then(global.removeShadowConfigFileAsync)
                 .finally(function(){
                     console.log('Finished sends pump commands to a VF pump with a HTTP REST API')
                 })
@@ -61,7 +61,7 @@ describe('#sends pump commands to a VF pump', function () {
             //     [ [ 165, 0, 96, 33, 1, 4, 2, 196, 0, 20 ] ],
             // [ [ 165, 0, 96, 33, 7, 0 ] ] ]
             this.timeout(5 * 1000)
-            return global.requestPoolDataWithURL('pumpCommand/run/pump/1/gpm/20')
+            return global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/gpm/20')
                 .then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(1)
@@ -87,7 +87,7 @@ describe('#sends pump commands to a VF pump', function () {
             //     [ [ 165, 0, 96, 33, 1, 4, 2, 196, 0, 25 ] ],
             //     [ [ 165, 0, 96, 33, 7, 0 ] ] ]
             this.timeout(5 * 1000)
-            global.requestPoolDataWithURL('pumpCommand/run/pump/1/gpm/25/duration/5').then(function (obj) {
+            global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/gpm/25/duration/5').then(function (obj) {
                 obj.text.should.contain('REST API')
                 obj.pump.should.eq(1)
                 obj.speed.should.eq(25)

@@ -5,9 +5,9 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function () {
 
             before(function () {
-                return global.initAll()
+                return global.initAllAsync()
                     .then(function () {
-                        return global.useShadowConfigFile('/specs/assets/config/templates/config_intellitouch.json')
+                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_intellitouch.json')
                     })
             })
 
@@ -16,7 +16,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                 loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
 
                 // bottle.container.pump.init()
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
                 receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
                 socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
                 iOAOAStub = sandbox.spy(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
@@ -40,9 +40,9 @@ describe('receives packets from buffer and follows them to decoding', function()
             })
 
             after(function () {
-                return global.removeShadowConfigFile()
+                return global.removeShadowConfigFileAsync()
                     .then(function () {
-                        return global.stopAll()
+                        return global.stopAllAsync()
                     })
             })
 
@@ -56,7 +56,7 @@ describe('receives packets from buffer and follows them to decoding', function()
 
                     })
                     .then(function () {
-                        return global.waitForSocketResponse('temperature')
+                        return global.waitForSocketResponseAsync('temperature')
                     })
                     .then(function (data) {
                         data.temperature.poolTemp.should.eq(53)

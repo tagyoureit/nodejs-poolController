@@ -7,7 +7,7 @@ describe('processes 27 (Extended Pump Config) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        return global.initAll()
+        return global.initAllAsync()
       });
 
       beforeEach(function() {
@@ -28,7 +28,7 @@ describe('processes 27 (Extended Pump Config) packets', function() {
       })
 
       after(function() {
-        return global.stopAll()
+        return global.stopAllAsync()
       })
 
       it('#Extended Pump Configurations Received for VS/VSF', function() {

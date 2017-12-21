@@ -10,7 +10,7 @@ describe('processes Intellichem packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -24,7 +24,7 @@ describe('processes Intellichem packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#SI should equal -0.31', function() {
@@ -45,7 +45,7 @@ describe('processes Intellichem packets', function() {
             })
 
             it('#Get Intellichem via API', function(done){
-                global.requestPoolDataWithURL('intellichem')
+                global.requestPoolDataWithURLAsync('intellichem')
                     .then(function(obj) {
                         obj.intellichem.readings.SI.should.equal(-0.31)
                     }).then(done,done)
@@ -71,7 +71,7 @@ describe('processes Intellichem packets', function() {
             })
 
             it('#Get Intellichem via Socket', function(done){
-                global.waitForSocketResponse('intellichem')
+                global.waitForSocketResponseAsync('intellichem')
                     .then(function(data){
                         data.intellichem.readings.SI.should.equal(-0.31)
                     })

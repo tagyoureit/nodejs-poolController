@@ -9,7 +9,7 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             })
 
             beforeEach(function() {
@@ -37,12 +37,12 @@ describe('server', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
 
             it('set spa heat to 103', function(done) {
-                global.requestPoolDataWithURL('spaheat/setpoint/103')
+                global.requestPoolDataWithURLAsync('spaheat/setpoint/103')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 70, 103, 7, 0])
                     })
@@ -50,7 +50,7 @@ describe('server', function() {
             });
 
             it('increment spa heat by 1', function(done) {
-                global.requestPoolDataWithURL('spaheat/increment')
+                global.requestPoolDataWithURLAsync('spaheat/increment')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 70, 101, 7, 0 ])
                     })
@@ -59,7 +59,7 @@ describe('server', function() {
 
             it('increment spa heat by 2', function(done) {
 
-                global.requestPoolDataWithURL('spaheat/increment/2')
+                global.requestPoolDataWithURLAsync('spaheat/increment/2')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 70, 102, 7, 0 ])
                     })
@@ -67,7 +67,7 @@ describe('server', function() {
             });
 
             it('decrement spa heat by 1', function(done) {
-                global.requestPoolDataWithURL('spaheat/decrement')
+                global.requestPoolDataWithURLAsync('spaheat/decrement')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 70, 99, 7, 0 ])
                     })
@@ -76,7 +76,7 @@ describe('server', function() {
             });
 
             it('decrement spa heat by 5', function(done) {
-                global.requestPoolDataWithURL('spaheat/decrement/5')
+                global.requestPoolDataWithURLAsync('spaheat/decrement/5')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 70, 95, 7, 0 ])
                     })
@@ -84,19 +84,19 @@ describe('server', function() {
             });
 
             it('set spa heat mode to 0 (off)', function(done) {
-                global.requestPoolDataWithURL('spaheat/mode/0').then(function(obj) {
+                global.requestPoolDataWithURLAsync('spaheat/mode/0').then(function(obj) {
                     queuePacketStub.args[0][0].should.deep.equal([  165, 33, 16, 33, 136, 4, 70, 100, 3, 0 ])
                 }).then(done,done)
             });
 
             it('set spa heat mode to 1 (heater)', function(done) {
-                global.requestPoolDataWithURL('spaheat/mode/1').then(function(obj) {
+                global.requestPoolDataWithURLAsync('spaheat/mode/1').then(function(obj) {
                     queuePacketStub.args[0][0].should.deep.equal([  165, 33, 16, 33, 136, 4, 70, 100, 7, 0 ])
                 }).then(done,done)
             });
 
             it('set pool heat to 82', function(done) {
-                global.requestPoolDataWithURL('poolheat/setpoint/82')
+                global.requestPoolDataWithURLAsync('poolheat/setpoint/82')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 82, 100, 7, 0])
                     })
@@ -104,7 +104,7 @@ describe('server', function() {
             });
 
             it('increment pool heat by 1', function(done) {
-                global.requestPoolDataWithURL('poolheat/increment')
+                global.requestPoolDataWithURLAsync('poolheat/increment')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 71, 100, 7, 0 ])
                     })
@@ -113,7 +113,7 @@ describe('server', function() {
 
             it('increment pool heat by 2', function(done) {
 
-                global.requestPoolDataWithURL('poolheat/increment/2')
+                global.requestPoolDataWithURLAsync('poolheat/increment/2')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 72, 100, 7, 0 ])
                     })
@@ -121,7 +121,7 @@ describe('server', function() {
             });
 
             it('decrement pool heat by 1', function(done) {
-                global.requestPoolDataWithURL('poolheat/decrement')
+                global.requestPoolDataWithURLAsync('poolheat/decrement')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 69, 100, 7, 0 ])
                     })
@@ -130,7 +130,7 @@ describe('server', function() {
             });
 
             it('decrement pool heat by 5', function(done) {
-                global.requestPoolDataWithURL('poolheat/decrement/5')
+                global.requestPoolDataWithURLAsync('poolheat/decrement/5')
                     .then(function(obj) {
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 136, 4, 65, 100, 7, 0 ])
                     })
@@ -138,7 +138,7 @@ describe('server', function() {
             });
 
             it('set pool heat mode to 0 (off)', function(done) {
-                global.requestPoolDataWithURL('poolheat/mode/0').then(function(obj) {
+                global.requestPoolDataWithURLAsync('poolheat/mode/0').then(function(obj) {
                     queuePacketStub.args[0][0].should.deep.equal([  165, 33, 16, 33, 136, 4, 70, 100, 4, 0])
                 }).then(done,done)
             });
@@ -146,7 +146,7 @@ describe('server', function() {
 
 
             it('set pool heat mode to 1 (heater)', function(done) {
-                global.requestPoolDataWithURL('poolheat/mode/1').then(function(obj) {
+                global.requestPoolDataWithURLAsync('poolheat/mode/1').then(function(obj) {
                     queuePacketStub.args[0][0].should.deep.equal([  165, 33, 16, 33, 136, 4, 70, 100, 5, 0 ]
                     )
                 }).then(done,done)

@@ -9,19 +9,14 @@ describe('updates/resets bootstrap configClient.json', function() {
 
 
         before(function () {
-            return global.initAll()
+            return global.initAllAsync()
         })
 
         beforeEach(function () {
 
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerErrorStub = sandbox.spy(bottle.container.logger,'error')
-            updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
+            updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
             var origFile = '/specs/assets/bootstrapConfig/configClient.json'
             var copyFile = '/specs/assets/bootstrapConfig/_configClient.json'
@@ -56,8 +51,9 @@ describe('updates/resets bootstrap configClient.json', function() {
         })
 
         after(function () {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
+
         describe('#updates panelState', function() {
 
             it('#resets the Bootstrap UI Config file', function() {
@@ -97,7 +93,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                 var myResolve, myReject
                 bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.update('panelState', 'system', 'state', 'hidden')
+                        return bottle.container.bootstrapConfigEditor.updateAsync('panelState', 'system', 'state', 'hidden')
                     })
                     .delay(50)
                     .then(function () {
@@ -125,7 +121,7 @@ describe('updates/resets bootstrap configClient.json', function() {
             it('changes hideAUX state from visible (false) to hidden (true)', function (done) {
                 bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.update('generalParams', 'hideAUX', null, true)
+                        return bottle.container.bootstrapConfigEditor.updateAsync('generalParams', 'hideAUX', null, true)
                     })
                     .delay(50)
                     .then(function () {
@@ -144,7 +140,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     .then(function () {
                         loggerWarnStub.restore()
                         loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                        return bottle.container.bootstrapConfigEditor.update('not', 'here', null, true)
+                        return bottle.container.bootstrapConfigEditor.updateAsync('not', 'here', null, true)
                     })
                     .delay(50)
                     .then(function () {
@@ -174,7 +170,7 @@ describe('updates/resets bootstrap configClient.json', function() {
             it('resets all panelStates to visible', function (done) {
                 bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.reset()
+                        return bottle.container.bootstrapConfigEditor.resetAsync()
                     })
                     .delay(50)
                     .then(function () {

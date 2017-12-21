@@ -5,7 +5,7 @@ describe('packetBuffer receives raw packets from serial bus', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -41,7 +41,7 @@ describe('packetBuffer receives raw packets from serial bus', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#should accept all packets and kick off processing buffer', function() {

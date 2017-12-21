@@ -6,11 +6,11 @@ describe('#Tests a VS pump', function() {
         context('with a HTTP REST API', function () {
 
             before(function () {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function(){
-                return global.useShadowConfigFile('/specs/assets/config/templates/config.pump.VS.json')
+                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VS.json')
                     .then(function(){
                         sandbox = sinon.sandbox.create()
                         clock = sandbox.useFakeTimers()
@@ -41,13 +41,13 @@ describe('#Tests a VS pump', function() {
             })
 
             after(function () {
-                return global.stopAll()
-                    .then(global.removeShadowConfigFile)
+                return global.stopAllAsync()
+                    .then(global.removeShadowConfigFileAsync)
             })
 
             it('API #1: turns off pump 1', function (done) {
 
-                global.requestPoolDataWithURL('pumpCommand/off/pump/1').then(function (obj) {
+                global.requestPoolDataWithURLAsync('pumpCommand/off/pump/1').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(1)
                     // obj.duration.should.eq(600)
@@ -65,7 +65,7 @@ describe('#Tests a VS pump', function() {
 
             it('API #1: turns off pump 2', function (done) {
 
-                global.requestPoolDataWithURL('pumpCommand/off/pump/2').then(function (obj) {
+                global.requestPoolDataWithURLAsync('pumpCommand/off/pump/2').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
                     // obj.duration.should.eq(600)
@@ -84,7 +84,7 @@ describe('#Tests a VS pump', function() {
 
             it('API #2: turns on pump 1', function (done) {
 
-                global.requestPoolDataWithURL('pumpCommand/run/pump/1').then(function (obj) {
+                global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(1)
                     // obj.duration.should.eq(600)
@@ -104,7 +104,7 @@ describe('#Tests a VS pump', function() {
 
             it('API #2: turns on pump 2', function (done) {
                 this.timeout(4 * 1000)
-                global.requestPoolDataWithURL('pumpCommand/run/pump/2').then(function (obj) {
+                global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
                     // obj.duration.should.eq(600)
@@ -121,7 +121,7 @@ describe('#Tests a VS pump', function() {
             })
 
             it('API #3: turns on pump 2 for a duration', function (done) {
-                global.requestPoolDataWithURL('pumpCommand/run/pump/2/duration/30').then(function (obj) {
+                global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/duration/30').then(function (obj) {
                     obj.text.should.contain('REST API')
                     obj.pump.should.eq(2)
                     // obj.duration.should.eq(600)
@@ -143,7 +143,7 @@ describe('#Tests a VS pump', function() {
         describe('#sends pump commands', function () {
 
             before(function () {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function () {
@@ -153,7 +153,7 @@ describe('#Tests a VS pump', function() {
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
             })
 
             afterEach(function () {
@@ -165,14 +165,14 @@ describe('#Tests a VS pump', function() {
             })
 
             after(function () {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
             context('with the current HTTP REST API', function () {
 
 
                 it('API #3: turns on pump 1 for 15 minutes', function (done) {
                     this.timeout(4 * 1000)
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/1/duration/15').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/duration/15').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         // obj.duration.should.eq(600)
@@ -192,7 +192,7 @@ describe('#Tests a VS pump', function() {
                 })
 
                 // it('API #4: runs pump 1, program 1', function(done) {
-                //     global.requestPoolDataWithURL('pumpCommand/1/1').then(function(result) {
+                //     global.requestPoolDataWithURLAsync('pumpCommand/1/1').then(function(result) {
                 //         // console.log('loggerInfoStub called with: ', loggerInfoStub.args)
                 //         // console.log('loggerWarnStub called with: ', loggerWarnStub.args)
                 //         // console.log('pumpCommandStub called with: ', pumpCommandStub.args)
@@ -208,7 +208,7 @@ describe('#Tests a VS pump', function() {
                 // });
                 it('API #4: runs pump 1, program 1 (NEW URL)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/1/program/1').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/program/1').then(function (obj) {
                         // console.log('obj: ', obj)
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
@@ -223,7 +223,7 @@ describe('#Tests a VS pump', function() {
                 });
                 it('API #4: runs pump 2, program 1 (NEW URL)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/2/program/4').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/program/4').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(2)
                         obj.program.should.eq(4)
@@ -239,7 +239,7 @@ describe('#Tests a VS pump', function() {
                 });
                 it('API #5: runs pump 1, program 1 for 2 minutes (NEW URL)', function (done) {
                     this.timeout(4 * 1000)
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/2').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/program/1/duration/2').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         obj.program.should.eq(1)
@@ -256,7 +256,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #5: runs pump 1, program 1 for 600 minutes ', function () {
 
-                    return global.requestPoolDataWithURL('pumpCommand/run/pump/1/program/1/duration/600').then(function (obj) {
+                    return global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/program/1/duration/600').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         obj.duration.should.eq(600)
@@ -272,7 +272,7 @@ describe('#Tests a VS pump', function() {
                 })
                 it('API #5: runs pump 1, program 2 for 10 minutes ', function () {
                     this.timeout(4 * 1000)
-                    return global.requestPoolDataWithURL('pumpCommand/run/pump/1/program/2/duration/10')
+                    return global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/program/2/duration/10')
                         .then(function (obj) {
                             obj.text.should.contain('REST API')
                             obj.pump.should.eq(1)
@@ -291,7 +291,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #6: runs pump 1, rpm 1000', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/1/rpm/1000').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/rpm/1000').then(function (obj) {
                         //console.log('obj: ', obj)
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
@@ -310,7 +310,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #6: runs pump 2, rpm 1000', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/2/rpm/1000').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/rpm/1000').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(2)
                         // obj.duration.should.eq(600)
@@ -326,7 +326,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #7: runs pump 2, rpm 1000 for 600 minutes ', function (done) {
                     this.timeout(10 * 1000)
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/2/rpm/1000/duration/600').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/rpm/1000/duration/600').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(2)
                         obj.duration.should.eq(600)
@@ -345,7 +345,7 @@ describe('#Tests a VS pump', function() {
                 })
                 it('API #7: runs pump 2, rpm 1000, duration 600, then turns it off', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/run/pump/2/rpm/1000/duration/600').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/rpm/1000/duration/600').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(2)
                         // obj.duration.should.eq(600)
@@ -358,7 +358,7 @@ describe('#Tests a VS pump', function() {
                         clock.tick(59 * 60 * 1000) //+59:59
                         bottle.container.pump.getCurrentRemainingDuration(2).should.eq(540)
                     }).then(function () {
-                        global.requestPoolDataWithURL('pumpCommand/off/pump/2').then(function (obj) {
+                        global.requestPoolDataWithURLAsync('pumpCommand/off/pump/2').then(function (obj) {
                             clock.tick(1 * 1000)
                             bottle.container.pump.getCurrentRemainingDuration(2).should.eq(-1)
                             bottle.container.pump.getCurrentRunningValue(2).should.eq(0)
@@ -369,7 +369,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #8: saves pump 1 program 1 to 1000 rpm (NEW URL)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/save/pump/1/program/1/rpm/1010')
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1/rpm/1010')
                         .then(function (obj) {
                             obj.text.should.contain('REST API')
                             obj.pump.should.eq(1)
@@ -386,7 +386,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #9: saves and runs pump 1 to program 3 at 2000 rpm for unspecified (NEW URL)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/3/rpm/2000/').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/3/rpm/2000/').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         obj.program.should.eq(3)
@@ -405,7 +405,7 @@ describe('#Tests a VS pump', function() {
 
                 it('API #10: saves and runs pump 1 to program 1 at 1000 rpm for 2 minutes (NEW URL)', function (done) {
                     this.timeout(5 * 1000)
-                    global.requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/1/rpm/1000/duration/2').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/1/rpm/1000/duration/2').then(function (obj) {
                         obj.text.should.contain('REST API')
                         obj.pump.should.eq(1)
                         obj.program.should.eq(1)
@@ -424,7 +424,7 @@ describe('#Tests a VS pump', function() {
 
                     Promise.resolve()
                         .then(function () {
-                            return global.requestPoolDataWithURL('pumpCommand/run/pump/1/rpm/1000/duration/5')
+                            return global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/rpm/1000/duration/5')
                         })
                         .then(function (obj) {
                             obj.text.should.contain('REST API')
@@ -441,7 +441,7 @@ describe('#Tests a VS pump', function() {
                             bottle.container.pump.getCurrentRemainingDuration(1).should.eq(1.5)
                             return
                         }).then(function () {
-                        return global.requestPoolDataWithURL('pumpCommand/off/pump/1')
+                        return global.requestPoolDataWithURLAsync('pumpCommand/off/pump/1')
                     })
                         .then(function (obj) {
                             //clock.tick(1 * 1000)
@@ -454,7 +454,7 @@ describe('#Tests a VS pump', function() {
                             return
                         })
                         .then(function () {
-                            return global.requestPoolDataWithURL('pumpCommand/run/pump/1/rpm/2500/duration/3')
+                            return global.requestPoolDataWithURLAsync('pumpCommand/run/pump/1/rpm/2500/duration/3')
 
                         })
                         .then(function (obj) {
@@ -499,7 +499,7 @@ describe('#Tests a VS pump', function() {
             describe('#sends pump commands that fail', function () {
 
                 before(function () {
-                    return global.initAll()
+                    return global.initAllAsync()
                 });
 
                 beforeEach(function () {
@@ -509,7 +509,7 @@ describe('#Tests a VS pump', function() {
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                     // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                     socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                    configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+                    configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
                 })
 
                 afterEach(function () {
@@ -521,7 +521,7 @@ describe('#Tests a VS pump', function() {
                 })
 
                 after(function () {
-                    return global.stopAll()
+                    return global.stopAllAsync()
                 })
                 context('with the current HTTP REST API', function () {
 
@@ -529,7 +529,7 @@ describe('#Tests a VS pump', function() {
 
                     it('API #13: saves program 3 as 27GPM', function (done) {
                         this.timeout(5 * 1000)
-                        global.requestPoolDataWithURL('pumpCommand/save/pump/1/program/3/gpm/27').then(function (obj) {
+                        global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/3/gpm/27').then(function (obj) {
                             obj.text.should.contain('REST API')
                             obj.pump.should.eq(1)
                             obj.program.should.eq(3)
@@ -549,7 +549,7 @@ describe('#Tests a VS pump', function() {
                         //     [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
                         //     [ [ 165, 0, 96, 33, 7, 0 ] ] ]
                         this.timeout(5 * 1000)
-                        global.requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/4/gpm/28').then(function (obj) {
+                        global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28').then(function (obj) {
                             obj.text.should.contain('REST API')
                             obj.pump.should.eq(1)
                             obj.program.should.eq(4)
@@ -577,7 +577,7 @@ describe('#Tests a VS pump', function() {
                         //     [ [ 165, 0, 96, 33, 6, 1, 10 ] ],
                         //      [ [ 165, 0, 96, 33, 7, 0 ] ] ]
                         this.timeout(5 * 1000)
-                        global.requestPoolDataWithURL('pumpCommand/saverun/pump/1/program/4/gpm/28/duration/3').then(function (obj) {
+                        global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28/duration/3').then(function (obj) {
                             obj.text.should.contain('REST API')
                             obj.pump.should.eq(1)
                             obj.program.should.eq(4)
@@ -601,7 +601,7 @@ describe('#Tests a VS pump', function() {
 
                     // it('sets pump 1 program 1 to 1000 rpm', function(done) {
 
-                    //     global.requestPoolDataWithURL('pumpCommand/1/1/1000').then(function(obj) {
+                    //     global.requestPoolDataWithURLAsync('pumpCommand/1/1/1000').then(function(obj) {
                     //         // console.log('obj: ', obj)
                     //         obj.text.should.contain('REST API')
                     //         obj.pump.should.eq(1)
@@ -621,7 +621,7 @@ describe('#Tests a VS pump', function() {
 
                     it('saves pump 1 at rpm 1000 (should fail // no program)', function (done) {
 
-                        global.requestPoolDataWithURL('pumpCommand/save/pump/1/program/1').then(function (obj) {
+                        global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1').then(function (obj) {
 
                             obj.text.should.contain('FAIL');
                         }).then(done, done)
@@ -629,14 +629,14 @@ describe('#Tests a VS pump', function() {
                 })
                 it('saves pump 1 and rpm 1 (should fail // no program)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
                         // console.log('obj: ', obj)
                         obj.text.should.contain('Please provide the program')
                     }).then(done, done)
                 });
                 it('saves pump 1 to program 1 (should fail)', function (done) {
 
-                    global.requestPoolDataWithURL('pumpCommand/save/pump/1/program/1').then(function (obj) {
+                    global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/1').then(function (obj) {
                         // console.log('obj: ', obj)
                         obj.text.should.contain('FAIL')
                     }).then(done, done)

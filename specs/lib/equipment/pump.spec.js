@@ -1,6 +1,6 @@
 describe('pump controller initialized', function() {
     before(function () {
-        return global.initAll()
+        return global.initAllAsync()
     });
 
     beforeEach(function () {
@@ -18,7 +18,7 @@ describe('pump controller initialized', function() {
     })
 
     after(function () {
-        return global.stopAll()
+        return global.stopAllAsync()
     })
 
     it('initializes the pump variables', function () {
@@ -31,8 +31,8 @@ describe('pump controller initialized', function() {
 describe('pump controller initializes with 16 pumps', function() {
 
     before(function() {
-        return global.useShadowConfigFile('/specs/assets/config/templates/config_16_pumps.json')
-            .then(global.initAll)
+        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_16_pumps.json')
+            .then(global.initAllAsync)
     });
 
     beforeEach(function() {
@@ -51,8 +51,8 @@ describe('pump controller initializes with 16 pumps', function() {
     })
 
     after(function() {
-        return global.removeShadowConfigFile()
-            .then(global.stopAll)
+        return global.removeShadowConfigFileAsync()
+            .then(global.stopAllAsync)
     })
     it('initializes the pump variables with 16 pumps', function() {
         var pumpStatus = bottle.container.pump.getCurrentPumpStatus().pump

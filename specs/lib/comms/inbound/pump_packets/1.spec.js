@@ -11,13 +11,13 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
                 loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
@@ -34,7 +34,7 @@ describe('processes 17 (Schedule) packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#Pump 1 Program 1 should be set to 490', function() {

@@ -10,14 +10,14 @@ describe('tests https and authorization', function() {
 
         context('by a URL', function () {
             before(function () {
-                return global.useShadowConfigFile('/specs/assets/config/templates/config_auth.json')
-                    .then(global.initAll)
+                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_auth.json')
+                    .then(global.initAllAsync)
                 // //stop the express auth and restart with authentication
                 // bottle.container.settings.set('expressAuth', 1)
                 // bottle.container.settings.set('expressAuthFile', '/specs/assets/auth/users.htpasswd')
                 // bottle.container.settings.set('expressDir', '/bootstrap')
                 // bottle.container.settings.set('logReload', 1)
-                // return global.initAll()
+                // return global.initAllAsync()
             })
 
             beforeEach(function () {
@@ -34,13 +34,13 @@ describe('tests https and authorization', function() {
             })
 
             after(function () {
-                return global.removeShadowConfigFile()
-                    .then(global.stopAll)
+                return global.removeShadowConfigFileAsync()
+                    .then(global.stopAllAsync)
                 // // set express auth to restart without authentication
                 // bottle.container.settings.set('expressAuth', 0)
                 // bottle.container.settings.set('expressAuthFile', '')
                 // bottle.container.settings.set('logReload', 0)
-                // return global.stopAll()
+                // return global.stopAllAsync()
             })
 
             it('fails with no authorization provided', function (done) {
@@ -124,8 +124,8 @@ describe('tests https and authorization', function() {
             before(function () {
                 protocol = 'https://'
                 server = 'localhost:3001/'
-                return global.useShadowConfigFile('/specs/assets/config/templates/config_https.json')
-                    .then(global.initAll)
+                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_https.json')
+                    .then(global.initAllAsync)
 
                 //stop the express auth and restart with authentication
                 // bottle.container.settings.set('expressAuth', 0)
@@ -157,8 +157,8 @@ describe('tests https and authorization', function() {
                 // bottle.container.settings.set('expressAuth', 0)
                 // bottle.container.settings.set('expressAuthFile', '')
                 // bottle.container.settings.set('expressTransport', 'http')
-                return global.removeShadowConfigFile()
-                    .then(global.stopAll)
+                return global.removeShadowConfigFileAsync()
+                    .then(global.stopAllAsync)
             })
 
 
@@ -186,7 +186,7 @@ describe('tests https and authorization', function() {
 
 
                 var promise = global.rp(options)
-                //bottle.container.server.init()
+                //bottle.container.server.initAsync()
                 promise.then(
                     function (res) {
                         res.req.connection.encrypted.should.be.true
@@ -292,11 +292,11 @@ describe('tests https and authorization', function() {
                 before(function () {
                     protocol = 'http://'
                     server = 'localhost:3000/'
-                    return global.useShadowConfigFile('/specs/assets/config/templates/config_https.json')
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_https.json')
                         .then(function () {
                             bottle.container.settings.set('httpRedirectToHttps', 1)
                         })
-                        .then(global.initAll)
+                        .then(global.initAllAsync)
 
                     //stop the express auth and restart with authentication
                     // bottle.container.settings.set('expressAuth', 0)
@@ -328,8 +328,8 @@ describe('tests https and authorization', function() {
                     // bottle.container.settings.set('expressAuth', 0)
                     // bottle.container.settings.set('expressAuthFile', '')
                     // bottle.container.settings.set('expressTransport', 'http')
-                    return global.removeShadowConfigFile()
-                        .then(global.stopAll)
+                    return global.removeShadowConfigFileAsync()
+                        .then(global.stopAllAsync)
                 })
 
 

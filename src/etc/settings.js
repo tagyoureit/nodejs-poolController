@@ -67,7 +67,7 @@ module.exports = function(container) {
         }
     }
 
-    var load = function (configLocation) {
+    var loadAsync = function (configLocation) {
 
         return Promise.resolve()
             .then(function(){
@@ -82,7 +82,7 @@ module.exports = function(container) {
                 container.logger.silly('Loading settings with config file: ', _settings.configurationFile) //do not have access to logger yet.  Uncomment if we need to debug this.
             })
             .then(function(){
-                return container.configEditor.init(_settings.configurationFile)
+                return container.configEditor.initAsync(_settings.configurationFile)
 
             })
             .then(function (parsedData) {
@@ -259,7 +259,7 @@ module.exports = function(container) {
         console.log('Loaded: settings.js')
 
     return {
-        load: load,
+        loadAsync: loadAsync,
         get: get,
         set: set,
         displayIntroMsg: displayIntroMsg,

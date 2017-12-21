@@ -136,9 +136,9 @@ module.exports = function(container) {
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             if (container.settings.get('logChlorinator'))
                 container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
-            container.configEditor.updateChlorinatorInstalled(chlorinatorStatus.installed)
-            container.configEditor.updateChlorinatorName(chlorinatorStatus.name)
-            container.configEditor.updateChlorinatorDesiredOutput(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
+            container.configEditor.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
+            container.configEditor.updateChlorinatorNameAsync(chlorinatorStatus.name)
+            container.configEditor.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
             container.io.emitToClients('chlorinator');
         } else if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
             if (container.settings.get('logChlorinator'))
@@ -149,9 +149,9 @@ module.exports = function(container) {
                     // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
                     JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
             }
-            container.configEditor.updateChlorinatorInstalled(chlorinatorStatus.installed)
-            container.configEditor.updateChlorinatorName(chlorinatorStatus.name)
-            container.configEditor.updateChlorinatorDesiredOutput(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
+            container.configEditor.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
+            container.configEditor.updateChlorinatorNameAsync(chlorinatorStatus.name)
+            container.configEditor.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             container.io.emitToClients('chlorinator');
         }
@@ -181,60 +181,83 @@ module.exports = function(container) {
         return {'chlorinator': currentChlorinatorStatus}
     }
 
-    function setChlorinatorLevel(chlorLvl, callback) {
-
+    function setChlorinatorLevelAsync(chlorLvl, callback) {
+        //TODO: Refactor to be better async/promise return
         //NOTE: do we really need to do this logic?  If the controller is on, it will request the updates.  If the virtual controller is enabled, it should be active anyway.
         var response = {}
-        if (container.settings.get('chlorinator').installed) {
-            if (chlorLvl >= 0 && chlorLvl <= 101) {
-                currentChlorinatorStatus.outputPoolPercent = chlorLvl
-                if (currentChlorinatorStatus.outputPoolPercent === 0) {
-                    response.text = 'Chlorinator set to off.  Chlorinator will be queried every 30 mins for PPM'
-                    response.status = 'off'
-                    response.value = 0
-                } else if (currentChlorinatorStatus.outputPoolPercent >= 1 && currentChlorinatorStatus.outputPoolPercent <= 100) {
-                    response.text = 'Chlorinator set to ' + currentChlorinatorStatus.outputPoolPercent + '%.'
-                    response.status = 'on'
-                    response.value = currentChlorinatorStatus.outputPoolPercent
-                } else if (currentChlorinatorStatus.outputPoolPercent === 101) {
-                    response.text = 'Chlorinator set to super chlorinate'
-                    response.status = 'on'
-                    response.value = currentChlorinatorStatus.outputPoolPercent
-                }
-                container.configEditor.updateChlorinatorDesiredOutput(chlorLvl, currentChlorinatorStatus.outputSpaPercent)
-                container.io.emitToClients('chlorinator')
-                if (container.chlorinatorController.isChlorinatorTimerRunning())
-                    container.chlorinatorController.chlorinatorStatusCheck()  //This is causing problems if the chlorinator is offline (repeated calls to send status packet.)
-                else
-                    container.queuePacket.queuePacket([16, 2, 80, 17, chlorLvl])
-                if (container.settings.get('logChlorinator')) {
-                    container.logger.info(response)
-                }
+        return Promise.resolve()
+            .then(function() {
+                if (container.settings.get('chlorinator').installed) {
+                    if (chlorLvl >= 0 && chlorLvl <= 101) {
+                        return Promise.resolve()
+                            .then(function () {
+                                currentChlorinatorStatus.outputPoolPercent = chlorLvl
+                                if (currentChlorinatorStatus.outputPoolPercent === 0) {
+                                    response.text = 'Chlorinator set to off.  Chlorinator will be queried every 30 mins for PPM'
+                                    response.status = 'off'
+                                    response.value = 0
+                                } else if (currentChlorinatorStatus.outputPoolPercent >= 1 && currentChlorinatorStatus.outputPoolPercent <= 100) {
+                                    response.text = 'Chlorinator set to ' + currentChlorinatorStatus.outputPoolPercent + '%.'
+                                    response.status = 'on'
+                                    response.value = currentChlorinatorStatus.outputPoolPercent
+                                } else if (currentChlorinatorStatus.outputPoolPercent === 101) {
+                                    response.text = 'Chlorinator set to super chlorinate'
+                                    response.status = 'on'
+                                    response.value = currentChlorinatorStatus.outputPoolPercent
+                                }
+                            })
+                            .then(container.configEditor.updateChlorinatorDesiredOutputAsync(chlorLvl, currentChlorinatorStatus.outputSpaPercent))
+                            .then(function () {
+                                container.io.emitToClients('chlorinator')
+                                if (container.chlorinatorController.isChlorinatorTimerRunning())
+                                    container.chlorinatorController.chlorinatorStatusCheck()  //This is causing problems if the chlorinator is offline (repeated calls to send status packet.)
+                                else
+                                    container.queuePacket.queuePacket([16, 2, 80, 17, chlorLvl])
+                                if (container.settings.get('logChlorinator')) {
+                                    container.logger.info(response)
+                                }
+                                return response
+                            })
+                    }
+                    else {
 
-            } else {
-
-                response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
-                response.status = this.status
-                response.value = currentChlorinatorStatus.outputPoolPercent
-                if (container.settings.get('logChlorinator')) {
-                    container.logger.warn(response)
+                        response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
+                        response.status = this.status
+                        response.value = currentChlorinatorStatus.outputPoolPercent
+                        if (container.settings.get('logChlorinator')) {
+                            container.logger.warn(response)
+                        }
+                        return Promise.resolve(response)
+                    }
                 }
-            }
-        } else {
-            response.text = 'FAIL: Chlorinator not enabled.  Set Chlorinator=1 in config.json'
-        }
-        if (callback !== undefined) {
-            callback(response)
-        }
-        return response
+                else {
+                    // chlor NOT installed
+                    response.text = 'FAIL: Chlorinator not enabled.  Set Chlorinator=1 in config.json'
+                    return Promise.resolve(response)
+                }
+            })
+
+
+
     }
+// }
+// } else {
+//
+// }
+// if (callback !== undefined) {
+//     callback(response)
+// }
+// return response
+// })
+
+// }
 
     function getDesiredChlorinatorOutput() {
         return currentChlorinatorStatus.outputPoolPercent
     }
 
     function setChlorinatorStatusFromChlorinator(data, counter) {
-
+//TODO: refactor to be a better promise/async return
         var destination, from, currentOutput;
         if (data[container.constants.chlorinatorPacketFields.DEST] === 80) {
             destination = 'Salt cell';
@@ -275,7 +298,7 @@ module.exports = function(container) {
                         container.logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
                     currentChlorinatorStatus.name = name
                     currentChlorinatorStatus.version = version
-                    container.configEditor.updateChlorinatorName(name)
+                    container.configEditor.updateChlorinatorNameAsync(name)
                     container.io.emitToClients('chlorinator')
                 }
 
@@ -350,7 +373,7 @@ module.exports = function(container) {
             .then(function () {
                 if (currentChlorinatorStatus.installed === 0) {
                     currentChlorinatorStatus.installed = 1
-                    return container.configEditor.updateChlorinatorInstalled(currentChlorinatorStatus.installed)
+                    return container.configEditor.updateChlorinatorInstalledAsync(currentChlorinatorStatus.installed)
                         .then(function () {
                             container.chlorinatorController.startChlorinatorController()
                         })
@@ -394,7 +417,7 @@ module.exports = function(container) {
         getChlorinatorNameByBytes: getChlorinatorNameByBytes,
         getSaltPPM: getSaltPPM,
         getChlorinatorStatus: getChlorinatorStatus,
-        setChlorinatorLevel: setChlorinatorLevel
+        setChlorinatorLevelAsync: setChlorinatorLevelAsync
 
     }
 }

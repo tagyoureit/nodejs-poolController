@@ -10,7 +10,7 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
     context('via serialport or Socat', function() {
 
       before(function() {
-        return global.initAll()
+        return global.initAllAsync()
       });
 
       beforeEach(function() {
@@ -31,7 +31,7 @@ describe('processes 32 (Circuit Name/Function) packets', function() {
       })
 
       after(function() {
-        return global.stopAll()
+        return global.stopAllAsync()
       })
 
       it('#Circuit 1 should be a Spa Circuit', function() {

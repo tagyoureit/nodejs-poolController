@@ -240,7 +240,7 @@ var setVirtualControllerStatus = function(status) {
     var _pump = getPumpNumber(data)
     if (_pump <= numPumps) {
       if (currentPumpStatus[_pump].externalProgram[program] !== value) {
-        container.configEditor.updateExternalPumpProgram(_pump, program, value)
+        container.configEditor.updateExternalPumpProgramAsync(_pump, program, value)
         currentPumpStatus[_pump].externalProgram[program] = value;
         if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, container.constants.ctrlString[from], program, value, JSON.stringify(data));
@@ -513,7 +513,7 @@ var setVirtualControllerStatus = function(status) {
 
       // var str = 'program' + program + 'rpm';
       currentPumpStatus[pump].externalProgram[program] = val;
-      container.configEditor.updateExternalPumpProgram(pump, program, val)
+      container.configEditor.updateExternalPumpProgramAsync(pump, program, val)
     }
   }
   // var setCurrentRPM = function(index, rpm) {

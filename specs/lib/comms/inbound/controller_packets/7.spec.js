@@ -10,7 +10,7 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -32,7 +32,7 @@ describe('processes 17 (Schedule) packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#Pump 1 and 2 status should be logged', function() {

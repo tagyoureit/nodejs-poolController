@@ -16,7 +16,7 @@ describe('checks if there is a newer version available', function() {
             beforeEach(function() {
 
 
-                return global.initAll()
+                return global.initAllAsync()
                     .then(function(){
                         sandbox = sinon.sandbox.create()
 
@@ -26,10 +26,14 @@ describe('checks if there is a newer version available', function() {
             })
 
             afterEach(function() {
-                nock.cleanAll();
-                sandbox.restore()
-                return global.removeShadowConfigFile()
-                    .then(global.stopAll)
+
+                return Promise.resolve()
+                    .then(function(){
+                        nock.cleanAll();
+                        sandbox.restore()
+                    })
+                    .then(global.removeShadowConfigFileAsync)
+                    .then(global.stopAllAsync)
             })
 
             after(function() {
@@ -53,12 +57,13 @@ describe('checks if there is a newer version available', function() {
 
                 Promise.resolve()
                     .then(function(){
-                        return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
                     })
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
-                    .then(function(){
-                        //check internally we return the right value
-                        bottle.container.updateAvailable.getResults().result.should.eq('older')
+                    .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
+                    .then(function(){return bottle.container.updateAvailable.getResultsAsync()})
+                    .then(function(res){
+
+                        res.result.should.eq('older')
                     })
                     // check the file now has the right version stored
                     .then(function(){return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')})
@@ -71,6 +76,7 @@ describe('checks if there is a newer version available', function() {
                     })
 
                     .catch(function(err){
+                        console.error(err)
                         'error'.should.equal('not an error')
                         myReject(new Error(err))
                     })
@@ -98,13 +104,16 @@ describe('checks if there is a newer version available', function() {
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
 
                 Promise.resolve()
-                    .then(function(){return global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_blank.json')})
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                    .then(function(){return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_blank.json')})
+                    .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
 
 
                     .then(function(){
                         //check internally we return the right value
-                        bottle.container.updateAvailable.getResults().result.should.eq('older')
+                        return bottle.container.updateAvailable.getResultsAsync()
+                    })
+                    .then(function(res){
+                        res.result.should.eq('older')
                     })
                     // check the file now has the right version stored
                     .then(function(){return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')})
@@ -172,8 +181,8 @@ describe('checks if there is a newer version available', function() {
                 // })
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-                global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                    .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
                     .then(function(){
 
 
@@ -181,6 +190,7 @@ describe('checks if there is a newer version available', function() {
                             bottle.container.io.emitToClients('updateAvailable')
                         })
                         client.on('updateAvailable', function(msg) {
+                            console.log('msg.....', msg)
                             msg.result.should.equal('newer')
                             client.disconnect()
                             clearTimeout(a)
@@ -216,8 +226,8 @@ describe('checks if there is a newer version available', function() {
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 Promise.resolve()
-                    .then(function(){return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')})
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                    .then(function(){return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')})
+                    .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
                     .then(function(){
                         client.on('connect', function(data) {
                             bottle.container.io.emitToClients('updateAvailable')
@@ -261,15 +271,20 @@ describe('checks if there is a newer version available', function() {
 
                 var myResolve, myReject
                 var a = setTimeout(function() {
-                    client.disconnect()
-                    scope.done()
-                    bottle.container.updateAvailable.getResults().result.should.equal('equal')
-                    myResolve()
+
+                    return bottle.container.updateAvailable.getResultsAsync()
+                        .then(function(res){
+                            client.disconnect()
+                            scope.done()
+                            res.result.should.equal('equal')
+                            myResolve()
+                        })
+
                 },1800)
                 return new Promise(function(resolve,reject){
 
-                    return global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
-                        .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                        .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
                         .delay(50)
                         .then(function(){
                             myResolve = resolve
@@ -307,8 +322,8 @@ describe('checks if there is a newer version available', function() {
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
 
                 Promise.resolve()
-                    .then(function(){return global.useShadowConfigFile('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')})
-                    .then(function(){return bottle.container.updateAvailable.init('/specs/assets/package.json')})
+                    .then(function(){return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')})
+                    .then(function(){return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')})
                     .then(function(){
                         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 

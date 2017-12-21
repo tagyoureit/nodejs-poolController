@@ -9,7 +9,7 @@ describe('decodeHelper processes controller packets', function() {
     describe('#When queueing packets', function() {
         context('with write queue active = false (should write packets)', function() {
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -41,7 +41,7 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#queuePacket should try to write a chlorinator packet with checksum', function(done) {
@@ -95,7 +95,7 @@ describe('decodeHelper processes controller packets', function() {
             before(function() {
 
                 bottle.container.settings.set('netConnect', 0) //serial port, and not net connect
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -126,7 +126,7 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#queuePacket should try to abort the write after 10 tries', function() {

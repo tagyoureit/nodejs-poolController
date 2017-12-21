@@ -45,7 +45,7 @@
         "chlorinator": {
             "installed": 0,
             "desiredOutput": {
-                "pool": 9,
+                "pool": 0,
                 "spa": 12
             },
             "friendlyName": "",
@@ -101,7 +101,7 @@
             "expressAuthFile": "/users.htpasswd"
         },
         "https": {
-            "enabled": 1,
+            "enabled": 0,
             "expressPort": 3001,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd",

@@ -9,7 +9,7 @@ describe('updates config.json variables', function() {
 
 
         before(function () {
-            return global.initAll()
+            return global.initAllAsync()
 
         })
 
@@ -20,16 +20,16 @@ describe('updates config.json variables', function() {
             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-            return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+            return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
         })
 
         afterEach(function () {
             sandbox.restore()
-            return global.removeShadowConfigFile()
+            return global.removeShadowConfigFileAsync()
         })
 
         after(function () {
-            return global.stopAll()
+            return global.stopAllAsync()
 
         })
 
@@ -54,12 +54,12 @@ describe('updates config.json variables', function() {
         // })
         // });
 
-        // it('#tests updateExternalPumpProgram', function(done) {
+        // it('#tests updateExternalPumpProgramAsync', function(done) {
         //     myModule.__with__({
         //         'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
         //
         //     })(function() {
-        //         myModule(bottle.container).updateExternalPumpProgram(1, 1, 500)
+        //         myModule(bottle.container).updateExternalPumpProgramAsync(1, 1, 500)
         //         setTimeout(function() {
         //             //need delay to allow for file to write to disk
         //             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
@@ -75,8 +75,8 @@ describe('updates config.json variables', function() {
         // });
 
 
-        // it('sets updateVersionNotification variables', function(done) {
-        // verStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({
+        // it('sets updateVersionNotificationAsync variables', function(done) {
+        // verStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns({
         //     "version": "10.10.10",
         //     "tag_name": "v10.10.10"
         // })
@@ -87,7 +87,7 @@ describe('updates config.json variables', function() {
         // })(function() {
         //     return Promise.resolve()
         //         .then(function() {
-        //             myModule(bottle.container).updateVersionNotification(true)
+        //             myModule(bottle.container).updateVersionNotificationAsync(true)
         //         })
         //         .delay(150)
         //         .then(function() {
@@ -103,15 +103,15 @@ describe('updates config.json variables', function() {
         //         })
         //         .catch(function(err) {
         //         /* istanbul ignore next */
-        //             console.log('some error with updateVersionNotification:', err)
+        //             console.log('some error with updateVersionNotificationAsync:', err)
         //         })
         // })
         // })
 
         it('#gets pumpExternalProgram', function (done) {
-            bottle.container.configEditor.init('/specs/assets/config/_config.json')
+            bottle.container.configEditor.initAsync('/specs/assets/config/_config.json')
                 .then(function () {
-                    return bottle.container.configEditor.getPumpExternalProgram(1)
+                    return bottle.container.configEditor.getPumpExternalProgramAsync(1)
                 })
                 .then(function (data) {
                     data[1].should.eq(1000)
@@ -125,7 +125,7 @@ describe('updates config.json variables', function() {
         describe('#updates config.json', function () {
 
             before(function () {
-                return global.initAll()
+                return global.initAllAsync()
             })
 
             beforeEach(function () {
@@ -135,19 +135,19 @@ describe('updates config.json variables', function() {
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotification')
-                return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+                ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotificationAsync')
+                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
 
             })
 
             afterEach(function () {
                 sandbox.restore()
-                return global.removeShadowConfigFile()
+                return global.removeShadowConfigFileAsync()
 
             })
 
             after(function () {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#updates dismissUntilNextRemoteVersionBump to true', function (done) {
@@ -158,7 +158,7 @@ describe('updates config.json variables', function() {
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('connect', function (data) {
                     // console.log('connected client:')
-                    client.emit('updateVersionNotification', true)
+                    client.emit('updateVersionNotificationAsync', true)
                     client.disconnect()
                     setTimeout(function () {
                         ceStub.callCount.should.eq(1)

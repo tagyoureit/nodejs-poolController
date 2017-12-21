@@ -5,7 +5,7 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             })
 
             beforeEach(function() {
@@ -22,11 +22,11 @@ describe('server', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('Requests a custom express route', function() {
-                return global.requestPoolDataWithURL('api/myruntimeroute').then(function(res) {
+                return global.requestPoolDataWithURLAsync('api/myruntimeroute').then(function(res) {
                     res.runtime.should.equal('route')
                 })
             });

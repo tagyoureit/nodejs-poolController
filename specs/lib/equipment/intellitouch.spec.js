@@ -2,9 +2,9 @@ describe('processes Intellitouch packets', function() {
     describe('#when requested', function() {
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
                 .then(function () {
-                    return global.useShadowConfigFile('/specs/assets/config/templates/config_intellitouch.json')
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_intellitouch.json')
                 })
         })
 
@@ -26,9 +26,9 @@ describe('processes Intellitouch packets', function() {
         })
 
         after(function() {
-            return global.removeShadowConfigFile()
+            return global.removeShadowConfigFileAsync()
                 .then(function(){
-                    return global.stopAll()
+                    return global.stopAllAsync()
                 })
         })
 

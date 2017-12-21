@@ -87,14 +87,14 @@ module.exports = function(container) {
 
     }
 
-    var init = function(_location) {
+    var initAsync = function(_location) {
 
 
 
 
         return Promise.resolve()
             .then(function(){
-                container.logger.debug('Starting configEditor.init()')
+                container.logger.debug('Starting configEditor.initAsync()')
                 config = {}
 
                 // if (_location === undefined)
@@ -117,18 +117,18 @@ module.exports = function(container) {
                 container.logger.error('Error reading %s.  %s', location, err)
             })
             .finally(function(){
-                container.logger.debug('Finished configEditor.init()')
+                container.logger.debug('Finished configEditor.initAsync()')
             })
 
     }
 
-    var updatePumpType = function(_pump, _type) {
+    var updatePumpTypeAsync = function(_pump, _type) {
         return Promise.resolve()
             .then(function() {
                 config.equipment.pump[_pump].type = _type
                 container.settings.get('pump')[_pump].type = _type //TODO: we should re-read the file from disk at this point?
                 if (!container.helpers.testJson(config)){
-                    throw new Error('Error with updatePumpType format.  Aborting write.')
+                    throw new Error('Error with updatePumpTypeAsync format.  Aborting write.')
                 }
                 return config
             })
@@ -147,7 +147,7 @@ module.exports = function(container) {
             })
     }
 
-    var updateExternalPumpProgram = function(_pump, program, rpm) {
+    var updateExternalPumpProgramAsync = function(_pump, program, rpm) {
         return Promise.resolve()
             .then(function() {
                 config.equipment.pump[_pump].externalProgram[program] = rpm
@@ -183,17 +183,17 @@ module.exports = function(container) {
 
 
 
-    var updateVersionNotification = function(dismissUntilNextRemoteVersionBump, _remote) {
+    var updateVersionNotificationAsync = function(dismissUntilNextRemoteVersionBump, _remote) {
         return Promise.resolve()
             .then(function() {
                 config.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump = dismissUntilNextRemoteVersionBump
-                //var results = container.updateAvailable.getResults()
+                //var results = container.updateAvailable.getResultsAsync()
                 if (_remote!==null) {
                     config.poolController.notifications.version.remote.version = _remote.version
                     config.poolController.notifications.version.remote.tag_name = _remote.tag_name
                 }
                 if (!container.helpers.testJson(config)){
-                    throw new Error('Error with updateVersionNotification format.  Aborting write.')
+                    throw new Error('Error with updateVersionNotificationAsync format.  Aborting write.')
                 }
             })
             .then(function(){
@@ -207,7 +207,7 @@ module.exports = function(container) {
             })
     }
 
-    var getPumpExternalProgram = function(_pump) {
+    var getPumpExternalProgramAsync = function(_pump) {
         return Promise.resolve()
             .then(function() {
                 return config.equipment.pump[_pump].externalProgram
@@ -218,17 +218,13 @@ module.exports = function(container) {
     }
 
 
-    var updateChlorinatorInstalled = function(installed) {
-
-
-
-
+    var updateChlorinatorInstalledAsync = function(installed) {
         return Promise.resolve()
             .then(function(){
                 config.equipment.chlorinator.installed = installed
                 container.settings.get('chlorinator').installed = installed
                 if (!container.helpers.testJson(config)){
-                    throw new Error('Error with updateChlorinatorInstalled format.  Aborting write.')
+                    throw new Error('Error with updateChlorinatorInstalledAsync format.  Aborting write.')
                 }
                 return         pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
 
@@ -244,7 +240,7 @@ module.exports = function(container) {
     }
 
 
-    var updateChlorinatorDesiredOutput = function(pool, spa) {
+    var updateChlorinatorDesiredOutputAsync = function(pool, spa) {
         return Promise.resolve()
             .then(function(){
                 config.equipment.chlorinator.desiredOutput = {}
@@ -253,7 +249,7 @@ module.exports = function(container) {
                 container.settings.get().equipment.chlorinator.desiredOutput.pool = pool
                 container.settings.get().equipment.chlorinator.desiredOutput.spa = spa
                 if (!container.helpers.testJson(config)){
-                    throw new Error('Error with updateChlorinatorDesiredOutput format.  Aborting write.')
+                    throw new Error('Error with updateChlorinatorDesiredOutputAsync format.  Aborting write.')
                 }
 
             })
@@ -271,7 +267,7 @@ module.exports = function(container) {
 
     }
 
-    var updateChlorinatorName = function(name) {
+    var updateChlorinatorNameAsync = function(name) {
 
         config.equipment.chlorinator.id.productName = name
         container.settings.get('equipment').chlorinator.id.productName = name
@@ -314,15 +310,15 @@ module.exports = function(container) {
 
 
     return {
-        init: init,
-        updateExternalPumpProgram: updateExternalPumpProgram,
-        updatePumpType: updatePumpType,
+        initAsync: initAsync,
+        updateExternalPumpProgramAsync: updateExternalPumpProgramAsync,
+        updatePumpTypeAsync: updatePumpTypeAsync,
         //updatePumpProgramGPM: updatePumpProgramGPM,
-        updateVersionNotification: updateVersionNotification,
-        updateChlorinatorInstalled: updateChlorinatorInstalled,
-        updateChlorinatorDesiredOutput: updateChlorinatorDesiredOutput,
-        updateChlorinatorName: updateChlorinatorName,
-        getPumpExternalProgram: getPumpExternalProgram,
+        updateVersionNotificationAsync: updateVersionNotificationAsync,
+        updateChlorinatorInstalledAsync: updateChlorinatorInstalledAsync,
+        updateChlorinatorDesiredOutputAsync: updateChlorinatorDesiredOutputAsync,
+        updateChlorinatorNameAsync: updateChlorinatorNameAsync,
+        getPumpExternalProgramAsync: getPumpExternalProgramAsync,
         getVersionNotification: getVersionNotification,
         getChlorinatorDesiredOutput: getChlorinatorDesiredOutput,
         getChlorinatorName: getChlorinatorName

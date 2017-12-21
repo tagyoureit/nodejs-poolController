@@ -5,16 +5,12 @@ describe('pump controller - save speed (2/2)', function() {
 
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
         });
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
            //endPumpCommandStub = sandbox.stub()
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
@@ -22,7 +18,7 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub = sandbox.spy(bottle.container.pumpController, 'saveProgramOnPump')
             setPumpToLocalControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToLocalControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {
@@ -33,7 +29,7 @@ describe('pump controller - save speed (2/2)', function() {
         })
 
         after(function() {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
 
 
@@ -174,8 +170,8 @@ describe('pump controller - save speed (2/2)', function() {
 
         it('sets pump 1 program 5 to 1000 rpm (should fail)', function() {
 
-            loggerWarnStub.restore()
-            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub.restore()
+            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 5
             var speed = 1000
@@ -188,14 +184,14 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-            loggerWarnStub.callCount.should.equal(1)
+            loggers.loggerWarnStub.callCount.should.equal(1)
         });
 
 
         it('sets pump 55 program 1 to 1000 rpm (should fail)', function() {
 
-            loggerWarnStub.restore()
-            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub.restore()
+            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 55
             var program = 1
             var speed = 1000
@@ -208,13 +204,13 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-            loggerWarnStub.callCount.should.equal(1)
+            loggers.loggerWarnStub.callCount.should.equal(1)
         });
 
         it('sets pump 1 program 1 to 5000 rpm (should fail)', function() {
 
-            loggerWarnStub.restore()
-            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub.restore()
+            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 1
             var speed = 5000
@@ -227,7 +223,7 @@ describe('pump controller - save speed (2/2)', function() {
             setPumpToLocalControlStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
             emitToClientsStub.callCount.should.eq(0)
-            loggerWarnStub.callCount.should.equal(2)
+            loggers.loggerWarnStub.callCount.should.equal(2)
         })
     });
 

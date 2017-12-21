@@ -5,11 +5,7 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function() {
 
             before(function() {
-
-                return global.initAll()
-
-
-
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
@@ -20,14 +16,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                 loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
                 loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
                 loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
-                // receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
-                // socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
-                // configNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                // writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                // writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-
-                return
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
             })
 
             afterEach(function() {
@@ -37,7 +26,7 @@ describe('receives packets from buffer and follows them to decoding', function()
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#decodes pump 1 power off command from the controller', function(done) {
@@ -56,7 +45,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                         bottle.container.pump.getPower(1).should.eq(0)
                     })
                     .then(function(){
-                        return global.waitForSocketResponse('pump')
+                        return global.waitForSocketResponseAsync('pump')
                     })
                     .then(function(data){
                         data.pump[1].power.should.eq(0)
@@ -81,7 +70,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                         bottle.container.pump.getPower(1).should.eq(1)
                     })
                     .then(function(){
-                        return global.waitForSocketResponse('pump')
+                        return global.waitForSocketResponseAsync('pump')
                     })
                     .then(function(data){
                         data.pump[1].power.should.eq(1)
@@ -107,7 +96,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                         bottle.container.pump.getCurrentPumpStatus().pump[1].remotecontrol.should.eq(1)
                     })
                     .then(function(){
-                        return global.waitForSocketResponse('pump')
+                        return global.waitForSocketResponseAsync('pump')
                     })
                     .then(function(data){
                         data.pump[1].remotecontrol.should.eq(1)
@@ -133,7 +122,7 @@ describe('receives packets from buffer and follows them to decoding', function()
 
                     })
                     .then(function(){
-                        return global.waitForSocketResponse('pump')
+                        return global.waitForSocketResponseAsync('pump')
                     })
                     .then(function(data){
                         data.pump[2].remotecontrol.should.eq(0)

@@ -21,13 +21,13 @@ module.exports = function(container) {
         container.logger.info('Loading: socketio-helper.js')
 
 
-    var io={}, socketList = {http:[],https:[]};
+    var io={http:{}, https:{}, httpEnabled:0, httpsEnabled:0}, socketList = {http:[],https:[]};
 
     var emitToClientsOnEnabledSockets = function(channel, data){
-        if (io['httpEnabled']=1){
+        if (io['httpEnabled']===1){
             io['http'].sockets.emit(channel, data)
         }
-        if (io['httpsEnabled']=1){
+        if (io['httpsEnabled']===1){
             io['https'].sockets.emit(channel, data)
         }
     }
@@ -35,23 +35,15 @@ module.exports = function(container) {
     var emitToClients = function(outputType, data) {
         container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
-            var Promise = container.promise
-            Promise.resolve()
-                .then(function() {
-
-                    var remote = container.configEditor.getVersionNotification()
-                    container.logger.silly('Socket.IO emitting updateAvail', remote)
-                    if (remote.dismissUntilNextRemoteVersionBump !== true) {
-                        // true = means that we will suppress the update until the next available version bump
-                        var updateAvail = container.updateAvailable.getResults()
-
+            var remote = container.configEditor.getVersionNotification()
+            container.logger.silly('Socket.IO emitting updateAvail', remote)
+            if (remote.dismissUntilNextRemoteVersionBump !== true) {
+                // true = means that we will suppress the update until the next available version bump
+                container.updateAvailable.getResultsAsync()
+                    .then(function(updateAvail){
                         emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
-                    }
-                })
-                /*istanbul ignore next */
-                .catch(function(err) {
-                    container.logger.warn('Error emitting updateAvailable. ', err)
-                })
+                    })
+            }
         }
 
         if (outputType === 'one' || outputType === 'all') {
@@ -143,10 +135,7 @@ module.exports = function(container) {
     }
 
     var init = function(server, type) {
-        //var Server = require('./server.js'),
-        //var io = require('socket.io')(container.server.server);
-        ///stop()
-        //server = container.server.getServer()[0]
+
         io[type] = container.socket(server)
         socketList[type] = [];
         container.logger.verbose('Socket.IO %s server listening. ', type)
@@ -172,39 +161,37 @@ module.exports = function(container) {
     }
 
     var stop = function(type) {
-        // if (type===undefined){
-        //     container.logger.error('io.stop() should be called with http or https')
-        // }
-        // else {
-        //     try {
-        //         container.logger.debug('Stopping Socket IO Server')
-        //
-        //         console.log('what is length???')
-        //         while (socketList[type].length !== 0) {
-        //             container.logger.silly('total sockets in list: ', socketList[type].length)
-        //             container.logger.silly('removing socket:', socketList[type][0].id)
-        //             socketList[type][0].disconnect();
-        //             var removed = socketList[type].shift()
-        //             container.logger.silly('socket removed:', removed.id)
-        //         }
-        //         container.logger.silly('All sockets removed from connection')
-        //
-        //
-        //         if (typeof io[type].close == 'function') {
-        //             io[type].close();
-        //             io[type + 'Enabled'] = 0
-        //             container.logger.debug('Socket IO Server closed')
-        //         }
-        //         else {
-        //             console.log('why are we calling close now????')
-        //         }
-        //         // io = undefined
-        //     }
-        //     catch(err){
-        //         console.error('oops, we hit an error closing the socket server', err)
-        //         throw new Error(err)
-        //     }
-        // }
+        if (type===undefined){
+            container.logger.error('io.stop() should be called with http or https')
+        }
+        else {
+            try {
+                container.logger.debug('Stopping Socket IO Server')
+
+                while (socketList[type].length !== 0) {
+                    container.logger.silly('total sockets in list: ', socketList[type].length)
+                    container.logger.silly('removing socket:', socketList[type][0].id)
+                    socketList[type][0].disconnect();
+                    var removed = socketList[type].shift()
+                    container.logger.silly('socket removed:', removed.id)
+                }
+                container.logger.silly('All sockets removed from connection')
+
+
+                if (typeof io[type].close == 'function') {
+                    io[type].close();
+                    io[type + 'Enabled'] = 0
+                    container.logger.debug('Socket IO Server closed')
+                }
+                else {
+                    logger.warn('why are we calling close now????')
+                }
+            }
+            catch(err){
+                logger.error('oops, we hit an error closing the socket server', err)
+                throw new Error(err)
+            }
+        }
 
     }
 
@@ -272,13 +259,13 @@ module.exports = function(container) {
 
         socket.on('setConfigClient', function(a, b, c, d) {
             container.logger.debug('Setting config_client properties: ',a, b, c, d)
-            container.bootstrapConfigEditor.update(a, b, c, d)
+            container.bootstrapConfigEditor.updateAsync(a, b, c, d)
 
         })
 
         socket.on('resetConfigClient', function() {
             container.logger.info('Socket received:  Reset bootstrap config')
-            container.bootstrapConfigEditor.reset()
+            container.bootstrapConfigEditor.resetAsync()
         })
 
         socket.on('sendPacket', function(incomingPacket) {
@@ -316,7 +303,7 @@ module.exports = function(container) {
 
 
         socket.on('setchlorinator', function(desiredChlorinatorOutput) {
-            container.chlorinator.setChlorinatorLevel(parseInt(desiredChlorinatorOutput))
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorOutput))
         })
 
         socket.on('setSpaSetPoint', function(spasetpoint) {
@@ -531,7 +518,7 @@ module.exports = function(container) {
             response.text = 'Socket setPumpType variables - pump: ' + pump + ', type: ' + type
             response.pump = pump
             response.type = type
-            container.configEditor.updatePumpType(pump, type)
+            container.configEditor.updatePumpTypeAsync(pump, type)
             container.logger.info(response)
         })
 
@@ -625,12 +612,12 @@ module.exports = function(container) {
 
         socket.on('reload', function() {
             container.logger.info('Reload requested from Socket.io')
-            container.reload.reload()
+            container.reload.reloadAsync()
         })
 
-        socket.on('updateVersionNotification', function(bool) {
-            container.logger.info('updateVersionNotification requested from Socket.io.  value:', bool)
-            container.configEditor.updateVersionNotification(bool)
+        socket.on('updateVersionNotificationAsync', function(bool) {
+            container.logger.info('updateVersionNotificationAsync requested from Socket.io.  value:', bool)
+            container.configEditor.updateVersionNotificationAsync(bool)
         })
 
         emitToClients('all')

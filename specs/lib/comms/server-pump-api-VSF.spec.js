@@ -2,14 +2,14 @@ describe('#sends pump commands to a VSF pump', function () {
     context('with a HTTP REST API', function () {
 
         before(function () {
-            return global.initAll()
+            return global.initAllAsync()
         });
 
         beforeEach(function(){
 
             return Promise.resolve()
                 .then(function(){
-                  return global.useShadowConfigFile('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                  return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
                 }).then(bottle.container.pump.init)
                 .then(function(){
                     sandbox = sinon.sandbox.create()
@@ -49,12 +49,12 @@ describe('#sends pump commands to a VSF pump', function () {
         })
 
         after(function () {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
 
 
         it('API #6: runs pump 2, rpm 1000', function (done) {
-            global.requestPoolDataWithURL('pumpCommand/run/pump/2/rpm/1000').then(function (obj) {
+            global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/rpm/1000').then(function (obj) {
                 // console.log('obj: ', obj)
                 obj.text.should.contain('REST API')
                 obj.pump.should.eq(2)
@@ -78,7 +78,7 @@ describe('#sends pump commands to a VSF pump', function () {
             //     [ [ 165, 0, 97, 33, 1, 4, 2, 196, 0, 20 ] ],
             // [ [ 165, 0, 97, 33, 7, 0 ] ] ]
             this.timeout(5 * 1000)
-            global.requestPoolDataWithURL('pumpCommand/run/pump/2/gpm/20').then(function (obj) {
+            global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/gpm/20').then(function (obj) {
                 obj.text.should.contain('REST API')
                 obj.pump.should.eq(2)
                 obj.speed.should.eq(20)
@@ -103,7 +103,7 @@ describe('#sends pump commands to a VSF pump', function () {
             //     [ [ 165, 0, 97, 33, 1, 4, 2, 196, 0, 25 ] ],
             //     [ [ 165, 0, 97, 33, 7, 0 ] ] ]
             this.timeout(5 * 1000)
-            global.requestPoolDataWithURL('pumpCommand/run/pump/2/gpm/25/duration/5').then(function (obj) {
+            global.requestPoolDataWithURLAsync('pumpCommand/run/pump/2/gpm/25/duration/5').then(function (obj) {
                 obj.text.should.contain('REST API')
                 obj.pump.should.eq(2)
                 obj.speed.should.eq(25)

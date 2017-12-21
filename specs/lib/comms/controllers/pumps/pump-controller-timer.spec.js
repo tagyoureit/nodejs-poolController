@@ -3,7 +3,7 @@ describe('pump controller', function() {
     describe('#startPumpController starts the timer for 1 or 2 pumps', function() {
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
 
 
         })
@@ -12,16 +12,12 @@ describe('pump controller', function() {
             sandbox = sinon.sandbox.create()
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             clock = sandbox.useFakeTimers()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+            loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
 
 
             setPumpRemoteStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         })
 
@@ -30,7 +26,7 @@ describe('pump controller', function() {
         })
 
         after(function() {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
 
         it('starts pump 1 timer to check for status every 30 seconds', function() {
@@ -94,8 +90,8 @@ describe('pump controller', function() {
         });
 
         it('does not start virtual.pumpController with never setting', function() {
-            loggerWarnStub.restore()
-            loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub.restore()
+            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
 
             bottle.container.settings.set('virtual.pumpController','never')
             bottle.container.pumpControllerTimers.startPumpController()
@@ -103,7 +99,7 @@ describe('pump controller', function() {
             clock.tick(10 * 1000)
             setPumpRemoteStub.callCount.should.eq(0)
             requestPumpStatusStub.callCount.should.eq(0)
-            loggerWarnStub.callCount.should.eq(1)
+            loggers.loggerWarnStub.callCount.should.eq(1)
 
             bottle.container.settings.set('virtual.pumpController', 'default')
         });

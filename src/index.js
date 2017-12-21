@@ -22,4 +22,4 @@
 console.log('\x1Bc');
 
 var app = require(__dirname + '/lib/app.js')
-app.init()
+app.initAsync()

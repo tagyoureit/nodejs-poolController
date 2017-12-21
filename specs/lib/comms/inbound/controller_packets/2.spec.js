@@ -9,19 +9,14 @@ describe('processes 2 (Status) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
                 // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
                 // writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
                 // writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
 
@@ -34,7 +29,7 @@ describe('processes 2 (Status) packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#Processes a controller status packet', function(done) {
@@ -64,7 +59,7 @@ describe('processes 2 (Status) packets', function() {
                         function(){
                             bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
                             bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
-                            loggerVerboseStub.args[1][0].should.contain('Duplicate broadcast.')
+                            loggers.loggerVerboseStub.args[1][0].should.contain('Duplicate broadcast.')
                         })
                     .then(done, done)
             })

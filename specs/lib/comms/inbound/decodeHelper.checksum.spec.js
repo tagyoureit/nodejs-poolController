@@ -17,14 +17,14 @@ describe('decodeHelper processes controller packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAll()
+                return global.initAllAsync()
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
                 clock = sandbox.useFakeTimers()
                 // suppress warnings for bad packets
-                sandbox.restore()
+                // sandbox.restore()
                 loggers = setupLoggerStubOrSpy(sandbox, 'stub', 'spy')
 
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
@@ -49,7 +49,7 @@ describe('decodeHelper processes controller packets', function() {
             })
 
             after(function() {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
             it('#checksum should return true with various controller packets', function() {

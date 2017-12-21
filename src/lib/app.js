@@ -175,20 +175,20 @@ bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js')
 bottle.factory('intellichem', require(__dirname + '/equipment/intellichem.js'))
 
 
-var init = exports.init = function() {
+var initAsync = exports.initAsync = function() {
     //Call the modules to initialize them
     Promise = bottle.container.promise
     return Promise.resolve()
         .delay(50)
         .then(function(){
-            return bottle.container.settings.load()
+            return bottle.container.settings.loadAsync()
         })
 
         .then(function(){
             bottle.container.logger.init()
             bottle.container.winstonToIO.init()
 
-            bottle.container.server.init()
+            bottle.container.server.initAsync()
             //bottle.container.io.init()
             bottle.container.sp.init()
 
@@ -196,7 +196,7 @@ var init = exports.init = function() {
             bottle.container.bootstrapConfigEditor.init()
             bottle.container.integrations.init()
 
-            bottle.container.updateAvailable.init()
+            bottle.container.updateAvailable.initAsync()
 
 
             // initialize variables to hold status
@@ -254,7 +254,7 @@ if (process.platform === "win32") {
 
 process.on('SIGINT', function() {
     console.log('Shutting down open processes')
-    return bottle.container.reload.stop()
+    return bottle.container.reload.stopAsync()
         .then(function() {
             process.exit();
         })

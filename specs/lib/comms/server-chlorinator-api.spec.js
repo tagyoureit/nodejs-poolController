@@ -4,19 +4,19 @@ describe('#set functions', function() {
         context('with NO chlorinator installed, with a REST API', function() {
 
             before(function () {
-                bottle.container.settings.set('virtual.chlorinatorController', 0)
-                bottle.container.settings.set('chlorinator.installed', 0)
-                return global.initAll()
+
+                return Promise.resolve()
+                    .then(function(){
+                        bottle.container.settings.set('virtual.chlorinatorController', 0)
+                        bottle.container.settings.set('chlorinator.installed', 0)
+                    })
+                    .then(global.initAllAsync)
             });
 
             beforeEach(function () {
                 sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                //clock = sandbox.useFakeTimers()
+                loggers = setupLoggerStubOrSpy(sandbox, 'spy', 'spy')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             })
@@ -29,17 +29,21 @@ describe('#set functions', function() {
             })
 
             after(function () {
-                return global.stopAll()
+                return global.stopAllAsync()
             })
 
 
             it('should send a message if chlorinator is not installed', function (done) {
-                global.requestPoolDataWithURL('chlorinator/0')
+                global.requestPoolDataWithURLAsync('chlorinator/0')
                     .then(function (result) {
                         result.text.should.contain('FAIL')
                         queuePacketStub.callCount.should.eq(0)
                     })
-                    .then(done, done)
+                    .then(done)
+                    .catch(function(err){
+                        bottle.container.logger.error('Error with chlor not installed.', err)
+                        console.error(err)
+                    })
             })
         })
 
@@ -47,53 +51,63 @@ describe('#set functions', function() {
         context('with a REST API', function() {
 
             before(function() {
-                bottle.container.settings.set('virtual.chlorinatorController', 1)
-                bottle.container.settings.set('chlorinator.installed', 1)
-                return global.initAll()
+
+                return Promise.resolve()
+                    .then(function(){
+                        bottle.container.settings.set('virtual.chlorinatorController', 1)
+                        bottle.container.settings.set('chlorinator.installed', 1)
+                    })
+                    .then(global.initAllAsync)
             });
 
             beforeEach(function() {
                 sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
-                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                //clock = sandbox.useFakeTimers()
+                loggers = setupLoggerStubOrSpy(sandbox, 'spy', 'spy')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateChlorinatorDesiredOutput')
+                //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateChlorinatorDesiredOutputAsync')
 
             })
 
             afterEach(function() {
                 //restore the sandbox after each function
-                bottle.container.chlorinator.setChlorinatorLevel(0)
+                bottle.container.chlorinator.setChlorinatorLevelAsync(0)
                 bottle.container.chlorinatorController.clearTimer()
                 sandbox.restore()
             })
 
             after(function() {
-                bottle.container.settings.set('virtual.chlorinatorController', 0)
-                bottle.container.settings.set('chlorinator.installed', 0)
-                return global.stopAll()
+                return Promise.resolve()
+                    .then(function(){
+                        bottle.container.settings.set('virtual.chlorinatorController', 0)
+                        bottle.container.settings.set('chlorinator.installed', 0)
+                    })
+                    .then(global.stopAllAsync)
             })
 
-            it('starts chlorinator at 50%', function(done) {
+            it('starts chlorinator at 50%', function() {
 
-                global.requestPoolDataWithURL('chlorinator/50')
+                return global.requestPoolDataWithURLAsync('chlorinator/50')
+                    .delay(50)
                     .then(function(result) {
+                        console.log('AAAAAAAAAA')
                         result.status.should.eq('on')
                         result.value.should.eq(50)
                         queuePacketStub.callCount.should.eq(1)
                         queuePacketStub.args[0][0].should.deep.equal([16, 2, 80, 17, 50])
-
+console.log('here')
                     })
-                    .then(done,done)
+                    .catch(function(err){
+                        bottle.container.logger.error(err.toString())
+                    })
+                    .finally(function(){
+                        console.log('BBBBBBBBBB')
+                    })
             })
             it('starts chlorinator at 100%', function(done) {
 
-                global.requestPoolDataWithURL('chlorinator/100')
+                global.requestPoolDataWithURLAsync('chlorinator/100')
                     .then(function(result) {
                         result.status.should.eq('on')
                         result.value.should.eq(100)
@@ -104,7 +118,7 @@ describe('#set functions', function() {
             })
             it('starts chlorinator at 101% (super chlorinate)', function(done) {
 
-                global.requestPoolDataWithURL('chlorinator/101')
+                global.requestPoolDataWithURLAsync('chlorinator/101')
                     .then(function(result) {
                         result.status.should.eq('on')
                         result.value.should.eq(101)
@@ -115,7 +129,7 @@ describe('#set functions', function() {
             })
             it('starts chlorinator at -1% (should fail)', function(done) {
 
-                global.requestPoolDataWithURL('chlorinator/-1')
+                global.requestPoolDataWithURLAsync('chlorinator/-1')
                     .then(function(result) {
                         result.text.should.contain('FAIL')
                         queuePacketStub.callCount.should.eq(0)
@@ -124,7 +138,7 @@ describe('#set functions', function() {
             })
             it('starts chlorinator at 150% (should fail)', function(done) {
 
-                global.requestPoolDataWithURL('chlorinator/150')
+                global.requestPoolDataWithURLAsync('chlorinator/150')
                     .then(function(result){
                         result.text.should.contain('FAIL')
                         queuePacketStub.callCount.should.eq(0)
@@ -133,7 +147,7 @@ describe('#set functions', function() {
             })
             it('starts chlorinator at 0%', function(done) {
                 //do this one last so
-                global.requestPoolDataWithURL('chlorinator/0')
+                global.requestPoolDataWithURLAsync('chlorinator/0')
                     .then(function(result) {
                         result.status.should.eq('off')
                         result.value.should.eq(0)

@@ -176,7 +176,6 @@ module.exports = function(container) {
         } else
         if (container.packetBuffer.length() === 0) {
             processingBuffer.processingBuffer = false;
-            Promise.resolve(notifyResolve)
             if (logMessageDecoding)
                 logger.silly('iOAOA: Exiting out of loop because no further incoming buffers to append. container.packetBuffer.length() === 0 (%s) ', container.packetBuffer.length() === 0)
 
@@ -207,19 +206,6 @@ module.exports = function(container) {
         return processingBuffer.processingBuffer
     }
 
-    var notifyResolve, notifyReject
-    var notifyWhenDone = function(){
-        if (!isActive()) {
-            return Promise.resolve()
-        }
-        else {
-            return new Promise(function (resolve, reject) {
-                notifyResolve = resolve
-                notifyReject = reject
-            })
-        }
-    }
-
     return {
         //processingBuffer, //flag to tell us if we are processing the buffer currently
         getProcessingBuffer: getProcessingBuffer,
@@ -229,7 +215,6 @@ module.exports = function(container) {
         iterateOverArrayOfArrays: iterateOverArrayOfArrays,
         getCurrentMsgCounter: getCurrentMsgCounter,
         clear: clear,
-        isActive: isActive,
-        notifyWhenDone: notifyWhenDone
+        isActive: isActive
     }
 }

@@ -27,10 +27,7 @@ module.exports = function(container) {
         logger.info('Loading: reload.js')
 
 
-    var stop = function() {
-        /*  STOP STUFF
-         */
-
+    var stopAsync = function() {
         return Promise.resolve()
             .then(function() {
                 return
@@ -43,7 +40,7 @@ module.exports = function(container) {
                     container.chlorinatorController.clearTimer()
                 }
             })
-            .then(container.server.closeAll)
+            .then(container.server.closeAllAsync)
 
             .then(function(){
                 container.sp.close()
@@ -56,7 +53,7 @@ module.exports = function(container) {
 
     }
 
-    var reload = function(reset, callback) {
+    var reloadAsync = function(reset, callback) {
         //reset is a variable to also reset the status of objects.
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
             This will _NOT_ restart the express (web) auth and will not affect bootstrap, auth, or ssl.'
@@ -69,9 +66,9 @@ module.exports = function(container) {
         .then(function() {
             /*  RELOAD STUFF
              */
-            container.settings.load()
+            container.settings.loadAsync()
         })
-            .then(container.server.init)
+            .then(container.server.initAsync)
             .then(function(){
           //container.io.init()
 
@@ -129,8 +126,8 @@ module.exports = function(container) {
 
 
     return {
-        reload: reload,
-        stop: stop,
+        reloadAsync: reloadAsync,
+        stopAsync: stopAsync,
 
     }
 }

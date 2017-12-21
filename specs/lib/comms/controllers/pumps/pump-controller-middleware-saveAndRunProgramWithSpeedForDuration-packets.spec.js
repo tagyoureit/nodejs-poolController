@@ -20,12 +20,12 @@ describe('pump controller - save and run program with speed for duration', funct
             //         bottle.container.settings.set('pump', parsed)
             //         return bottle.container.pump.init()
             //     })
-            //     .then(global.initAll)
+            //     .then(global.initAllAsync)
             //     .catch(function(err) {
             //         /* istanbul ignore next */
             //         console.log('oops, we hit an error', err)
             //     })
-            return global.initAll(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+            return global.initAllAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
 
         });
 
@@ -43,7 +43,7 @@ describe('pump controller - save and run program with speed for duration', funct
             //emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {
@@ -53,7 +53,7 @@ describe('pump controller - save and run program with speed for duration', funct
         })
 
         after(function() {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
 
 

@@ -62,7 +62,7 @@ module.exports = function(container) {
 
     }
 
-    var update = function(a, b, c, d) {
+    var updateAsync = function(a, b, c, d) {
         return Promise.resolve()
             .then(readConfigClient)
             .then(function(data) {
@@ -87,7 +87,7 @@ module.exports = function(container) {
             })
     }
 
-    var reset = function() {
+    var resetAsync = function() {
         return readConfigClient()
             .then(function(data) {
                 for (var key in data.panelState) {
@@ -117,8 +117,8 @@ module.exports = function(container) {
 
 
     return {
-        update: update,
-        reset: reset,
+        updateAsync: updateAsync,
+        resetAsync: resetAsync,
         init: init
     }
 }

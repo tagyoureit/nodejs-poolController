@@ -21,13 +21,13 @@ describe('socket.io basic tests', function() {
         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
         pWPHStub = sandbox.stub(bottle.container.writePacket,'preWritePacketHelper')
-        // updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+        // updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
         // bootstrapConfigEditorStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'reset')
         writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
         controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
 
-        return global.initAll()
+        return global.initAllAsync()
 
     })
 
@@ -35,7 +35,7 @@ describe('socket.io basic tests', function() {
         //restore the sandbox after each function
         //console.log('full queue', bottle.container.queuePacket.fullQ)
         sandbox.restore()
-        return global.stopAll()
+        return global.stopAllAsync()
     })
 
     after(function() {
@@ -151,7 +151,7 @@ describe('socket.io basic tests', function() {
             client.disconnect()
         })
         //setTimeout(reject(new Error('send packet with correct preamble timeout')),1500)
-        global.waitForSocketResponse('sendPacketResults')
+        global.waitForSocketResponseAsync('sendPacketResults')
             .then(function(res){
                 res.should.contain('165,0,96,16,6,1,10')
                 res.should.contain('16,2,80,20,0,118')
@@ -314,7 +314,7 @@ describe('socket.io basic tests', function() {
     })
 
     it('#requests all config (all)', function() {
-        return global.waitForSocketResponse('all')
+        return global.waitForSocketResponseAsync('all')
             .then(function(data){
                 data.circuit.should.exist
                 data.pump.should.exist
@@ -325,7 +325,7 @@ describe('socket.io basic tests', function() {
     })
 
     it('#requests all config (one)', function() {
-        return global.waitForSocketResponse('one')
+        return global.waitForSocketResponseAsync('one')
             .then(function(data){
                 data.circuit.should.exist
                 data.pump.should.exist
@@ -368,8 +368,8 @@ describe('socket.io pump tests', function() {
 
 
     // before(function() {
-    //     bottle.container.configEditor.init('/specs/assets/config/config.json')
-    //     return global.initAll()
+    //     bottle.container.configEditor.initAsync('/specs/assets/config/config.json')
+    //     return global.initAllAsync()
     // });
     //
     // beforeEach(function() {
@@ -383,7 +383,7 @@ describe('socket.io pump tests', function() {
     //     loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
     //     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
     //     // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-    //     updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+    //     updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
     //     bottle.container.pump.init()
     //     bottle.container.pumpControllerTimers.clearTimer(1)
     //     bottle.container.pumpControllerTimers.clearTimer(2)
@@ -398,14 +398,14 @@ describe('socket.io pump tests', function() {
     // })
     //
     // after(function() {
-    //     return global.stopAll()
+    //     return global.stopAllAsync()
     // })
     //
 
 
 
     // it('#requests all config (all)', function() {
-    //     return global.waitForSocketResponse('all')
+    //     return global.waitForSocketResponseAsync('all')
     //         .then(function(data){
     //             data.circuit.should.exist
     //             data.pump.should.exist
@@ -415,7 +415,7 @@ describe('socket.io pump tests', function() {
     // })
     //
     // it('#requests all config (one)', function() {
-    //     return global.waitForSocketResponse('one')
+    //     return global.waitForSocketResponseAsync('one')
     //         .then(function(data){
     //             data.circuit.should.exist
     //             data.pump.should.exist
@@ -432,7 +432,7 @@ describe('socket.io pump tests', function() {
 //
 //
 //     before(function() {
-//         global.initAll()
+//         global.initAllAsync()
 //     });
 //
 //     beforeEach(function() {
@@ -446,7 +446,7 @@ describe('socket.io pump tests', function() {
 //         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
 //         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
 //         pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-//         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResults').returns({})
+//         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 //     })
 //
 //
@@ -458,7 +458,7 @@ describe('socket.io pump tests', function() {
 //     })
 //
 //     after(function() {
-//         global.stopAll()
+//         global.stopAllAsync()
 //     })
 //
 //

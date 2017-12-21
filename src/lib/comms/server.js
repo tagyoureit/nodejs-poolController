@@ -23,15 +23,11 @@ module.exports = function(container) {
         container.logger.info('Loading: auth.js');
 
     var express = container.express, servers = {http:{}, https:{}}, serversPromise = [];
-    // app = [], port = [],
-    // var typeServer = ['http', 'https'];
-    // var srvDesired = 0;
-    // var srvActive = 0;
     var path = require('path').posix;
     var defaultPort = {http: 3000, https:3001}
 
 
-    function startServer(type) {
+    function startServerAsync(type) {
         return new Promise(function (resolve, reject) {
 
             if (container.settings.get(type + 'Enabled')){
@@ -83,8 +79,6 @@ module.exports = function(container) {
                 // And Start Listening
                 servers[type].server.listen(servers[type].port, function () {
                     container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
-                    // srvActive += 1;
-                    // if (srvActive === srvDesired)
                     container.io.init(servers[type].server,type)
                     resolve();
                 });
@@ -101,10 +95,10 @@ module.exports = function(container) {
         });
     }
 
-    function init() {
+    function initAsync() {
 
-        serversPromise.push(startServer('https'))
-        serversPromise.push(startServer('http'))
+        serversPromise.push(startServerAsync('https'))
+        serversPromise.push(startServerAsync('http'))
 
         return Promise.all(serversPromise)
             .then(function () {
@@ -114,86 +108,32 @@ module.exports = function(container) {
 
     }
 
-    // function startHttps() {
-    //     return new Promise(function (resolve, reject) {
-    //         var iter = typeServer.indexOf('https')
-    //         var type = typeServer[iter];
-    //         if (container.settings.get(type + 'Enabled')){
-    //             //for (var iter = 0; iter < typeServer.length; iter++) {
-    //
-    //
-    //             //srvDesired += container.settings.get(type + 'Enabled');
-    //
-    //             express[iter] = container.express;
-    //             app[iter] = express[iter]();
-    //             port[iter] = container.settings.get(type + 'ExpressPort') || 3000 + iter;
-    //
-    //             servers[type] = undefined;
-    //             container.logger.info('Starting up express auth, ' + type + ' (port %d)', port[iter]);
-    //
-    //             // And Enable Authentication (if configured)
-    //             if (container.settings.get(type + 'ExpressAuth') === 1) {
-    //                 var auth = container.auth;
-    //                 var basic = auth.basic({
-    //                     file: path.join(process.cwd(), container.settings.get(type + 'ExpressAuthFile'))
-    //                 });
-    //                 app[iter].use(auth.connect(basic));
-    //             }
-    //
-    //
-    //
-    //             // Configure Server
-    //             configExpressServer(app[iter], express[iter], path, container);
-    //
-    //             // And Start Listening
-    //             servers[type].listen(port[iter], function () {
-    //                 container.logger.verbose('Express Server ' + type + ' listening at port %d', port[iter]);
-    //                 // srvActive += 1;
-    //                 // if (srvActive === srvDesired)
-    //                 container.io.init(servers[type],'https')
-    //                 resolve();
-    //             });
-    //
-    //             servers[type].on('error', function (e) {
-    //                 container.logger.error('error from ' + iter + ':', e)
-    //                 console.error(e)
-    //                 reject(e)
-    //             });
-    //         }
-    //         else {
-    //             resolve('Not starting HTTPS auth.')
-    //         }
-    //     });
-    // }
-
-
-    var close = function(type) {
+    var closeAsync = function(type) {
         return new Promise(function (resolve, reject) {
             // for (var iter = 0; iter < typeServer.length; iter++) {
             //     var type = typeServer[iter];
-            if (servers[type] !== undefined) {
+            if (servers[type].server !== undefined) {
                 container.io.stop(type)
                 servers[type].server.close(function () {
                     container.logger.verbose('Express Server ' + type + ' closed');
-                    // srvActive -= 1;
-                    // if (srvActive === 0)
                     resolve();
                 });
             } else {
-                console.warn('Trying to close ' + type + ' express auth, but it is not running.');
-                reject();
+                container.logger.info('Trying to close ' + type + ' express auth, but it is not running.');
+                resolve();  //it's ok if it isn't running, so resolve the promise.
             }
             // }
         }).catch(function(err){
-            console.log('error closing express or socket auth.', err)
+            container.logger.error('error closing express or socket auth.', err.toString())
+            console.error(err)
         });
     }
 
-    var closeAll = function(){
-        serversPromise.push(close('http'), close('https'))
+    var closeAllAsync = function(){
+        serversPromise.push(closeAsync('http'), closeAsync('https'))
         return Promise.all(serversPromise)
             .then(function(){
-                container.logger.info('All express servers closed')
+                container.logger.verbose('All express servers closed')
             })
             .catch(function(err){
                 container.logger.error('Problem stopping express servers')
@@ -238,7 +178,7 @@ module.exports = function(container) {
 
         /*istanbul ignore next */
         app.get('/reload', function(req, res) {
-            container.reload.reload();
+            container.reload.reloadAsync();
             res.send('reloading configuration');
         });
 
@@ -423,9 +363,10 @@ module.exports = function(container) {
         })
 
         app.get('/chlorinator/:chlorinateLevel', function(req, res) {
-            container.chlorinator.setChlorinatorLevel(parseInt(req.params.chlorinateLevel), function(response) {
-                res.send(response)
-            })
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.chlorinateLevel))
+                .then(function(response) {
+                    res.send(response)
+                })
         })
 
         app.get('/circuit/:circuit', function(req, res) {
@@ -536,7 +477,7 @@ module.exports = function(container) {
             response.text = 'Socket setPumpType variables - pump: ' + pump + ', type: ' + type
             response.pump = pump
             response.type = type
-            container.configEditor.updatePumpType(pump, type)
+            container.configEditor.updatePumpTypeAsync(pump, type)
             container.logger.info(response)
         })
 
@@ -822,9 +763,9 @@ module.exports = function(container) {
 
     return {
         getServer: getServer,
-        close: close,
-        closeAll: closeAll,
-        init: init
+        closeAsync: closeAsync,
+        closeAllAsync: closeAllAsync,
+        initAsync: initAsync
     };
 };
 

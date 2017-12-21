@@ -4,7 +4,7 @@ describe('#sets various functions', function() {
     describe('#sets the date/time', function() {
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
         });
 
         beforeEach(function() {
@@ -27,13 +27,13 @@ describe('#sets various functions', function() {
         })
 
         after(function() {
-            return global.stopAll()
+            return global.stopAllAsync()
         })
         context('with the HTTP REST API', function() {
 
 
             it('sets a valid schedule 12', function() {
-                return global.requestPoolDataWithURL('schedule/set/12/5/13/20/13/40/131')
+                return global.requestPoolDataWithURLAsync('schedule/set/12/5/13/20/13/40/131')
                     .then(function(obj) {
                     obj.text.should.contain('REST API')
                     //                    console.log('queuePacketStub', queuePacketStub.args)
@@ -49,7 +49,7 @@ describe('#sets various functions', function() {
 
 
             // it('fails to set a valid date/time with invalid time (should fail)', function(done) {
-            //     global.requestPoolDataWithURL('datetime/set/time/21/61/date/2/01/02/19/0').then(function(obj) {
+            //     global.requestPoolDataWithURLAsync('datetime/set/time/21/61/date/2/01/02/19/0').then(function(obj) {
             //         obj.text.should.contain('FAIL')
             //         var res = bottle.container.time.getTime()
             //         res.controllerTime.should.eq(-1)
@@ -57,7 +57,7 @@ describe('#sets various functions', function() {
             //     })
             // })
             // it('fails to set a valid date/time with invalid date (should fail)', function(done) {
-            //     global.requestPoolDataWithURL('datetime/set/time/21/31/date/128/01/02/19/0').then(function(obj) {
+            //     global.requestPoolDataWithURLAsync('datetime/set/time/21/31/date/128/01/02/19/0').then(function(obj) {
             //         obj.text.should.contain('FAIL')
             //         var res = bottle.container.time.getTime()
             //         res.controllerTime.should.eq(-1)
@@ -65,7 +65,7 @@ describe('#sets various functions', function() {
             //     })
             // })
             // it('fails to set a valid date/time with invalid dst (should fail)', function(done) {
-            //     global.requestPoolDataWithURL('datetime/set/time/21/31/date/8/01/02/19/3').then(function(obj) {
+            //     global.requestPoolDataWithURLAsync('datetime/set/time/21/31/date/8/01/02/19/3').then(function(obj) {
             //         obj.text.should.contain('FAIL')
             //         var res = bottle.container.time.getTime()
             //         res.controllerTime.should.eq(-1)

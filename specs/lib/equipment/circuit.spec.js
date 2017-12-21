@@ -6,7 +6,7 @@
 //     describe('#sets the friendlyNames', function() {
 //
 //       before(function() {
-//           global.initAll()
+//           global.initAllAsync()
 //       });
 //
 //       beforeEach(function() {
@@ -24,7 +24,7 @@
 //         })
 //
 //         after(function() {
-//             global.stopAll()
+//             global.stopAllAsync()
 //         })
 //
 //         it('sets the names for circuits other than pool and spa', function() {
@@ -61,7 +61,7 @@
 //     describe('#functions that get and set circuits', function() {
 //
 //       before(function() {
-//           global.initAll()
+//           global.initAllAsync()
 //       });
 //
 //       beforeEach(function() {
@@ -79,7 +79,7 @@
 //         })
 //
 //         after(function() {
-//             global.stopAll()
+//             global.stopAllAsync()
 //         })
 //
 //         it('gets a circuit (1)', function() {

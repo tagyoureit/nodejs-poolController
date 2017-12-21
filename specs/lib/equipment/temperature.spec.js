@@ -2,9 +2,9 @@ describe('tests temperature functions', function() {
     describe('#when requested', function() {
 
         before(function() {
-            return global.initAll()
+            return global.initAllAsync()
                 .then(function () {
-                    return global.useShadowConfigFile('/specs/assets/config/templates/config_vanilla.json')
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
                 })
         })
 
@@ -19,9 +19,9 @@ describe('tests temperature functions', function() {
         })
 
         after(function() {
-            return global.removeShadowConfigFile()
+            return global.removeShadowConfigFileAsync()
                 .then(function(){
-                    return global.stopAll()
+                    return global.stopAllAsync()
                 })
         })
 
@@ -48,7 +48,7 @@ describe('tests temperature functions', function() {
         })
 
         it('returns temps in a JSON', function() {
-            return global.requestPoolDataWithURL('temperature').then(function(obj) {
+            return global.requestPoolDataWithURLAsync('temperature').then(function(obj) {
                 obj.temperature.poolTemp.should.equal(51);
             })
 

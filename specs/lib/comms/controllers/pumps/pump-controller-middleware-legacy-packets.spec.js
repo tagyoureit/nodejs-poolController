@@ -5,7 +5,7 @@
 //
 //
 //         before(function() {
-//             global.initAll()
+//             global.initAllAsync()
 //
 //         });
 //
@@ -22,7 +22,7 @@
 //             pumpControllerRPMTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
 //             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
 //             emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
-//             configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgram')
+//             configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
 //         })
 //
 //         afterEach(function() {
@@ -33,7 +33,7 @@
 //         })
 //
 //         after(function() {
-//             global.stopAll()
+//             global.stopAllAsync()
 //         })
 //
 //
