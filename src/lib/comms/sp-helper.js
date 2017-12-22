@@ -56,12 +56,12 @@ module.exports = function(container) {
                 sp.on('open', function () {
                     if (timeOut === 'retry_timeout') {
                         logger.info('Serial port recovering from lost connection.')
-                        container.queuePacket.init()
-                        container.writePacket.init()
                     }
                     else
                     if (timeOut !== 'timeout')
                         logger.verbose('Serial Port opened');
+                    container.queuePacket.init()
+                    container.writePacket.init()
 
                 })
                 sp.on('readable', function () {
@@ -80,11 +80,12 @@ module.exports = function(container) {
                 sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
                     if (timeOut === 'retry_timeout') {
                         logger.info('Net connect (socat) recovering from lost connection.')
-                        container.queuePacket.init()
-                        container.writePacket.init()
                     }
                     else if (timeOut !== 'timeout')
                         logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
+
+                    container.queuePacket.init()
+                    container.writePacket.init()
                 });
                 sp.on('data', function (data) {
                     //Push the incoming array onto the end of the dequeue array

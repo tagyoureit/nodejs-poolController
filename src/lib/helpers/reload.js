@@ -62,7 +62,7 @@ module.exports = function(container) {
         res += 'Settings: <p>' + container.settings.displaySettingsMsg() + '<p>'
 
 
-        stop()
+        stopAsync()
         .then(function() {
             /*  RELOAD STUFF
              */

@@ -159,7 +159,6 @@ describe('nodejs-poolController', function() {
 
         })
 
-
     })
 
 })

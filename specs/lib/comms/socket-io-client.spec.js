@@ -13,7 +13,6 @@ describe('socket.io basic tests', function() {
 
         return global.initAllAsync()
             .then(function(){
-                sandbox = sinon.sandbox.create()
                 loggers = setupLoggerStubOrSpy('stub','stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
@@ -94,27 +93,6 @@ describe('socket.io basic tests', function() {
     })
 
     it('#fails to set date/time (invalid input)', function() {
-        // loggerWarnStub.restore()loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
-
-        // var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        // client.on('connect', function() {
-        //     client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
-        //     client.disconnect()
-        // })
-        // var myResolve, myReject
-        // var a = setTimeout(function(){myReject()}, 1950)
-        // setTimeout(function () {
-        //     loggerWarnStub.args[0][0].text.should.contain('FAIL:')
-        //     loggerWarnStub.callCount.should.eq(1)
-        //
-        //     clearTimeout(a)
-        //     myResolve()
-        // }, 1900)
-        // return new Promise(function(resolve, reject) {
-        //     myResolve = resolve
-        //     myReject = reject
-        // })
-
         return Promise.resolve()
             .then(function(){
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
@@ -132,6 +110,7 @@ describe('socket.io basic tests', function() {
 
 
     it('#sets a schedule', function() {
+        this.timeout(4000)
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function(data) {
@@ -244,6 +223,53 @@ describe('socket.io basic tests', function() {
         })
 
     })
+
+    it('#reloads', function(done) {
+        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+
+        var time1, time2
+        client.on('connect', function() {
+            client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+            var a = setTimeout(function(){
+                time1 = bottle.container.time.getTime()
+                console.log(time1)
+                client.emit('reload')
+            }, 50)
+            var b = setTimeout(function(){
+                time2 = bottle.container.time.getTime()
+
+                time1.time.controllerTime.should.equal(time2.time.controllerTime)
+                done()
+            }, 100)
+        })
+
+
+
+    })
+
+    it('#reloads & resets', function(done) {
+        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+        var time1, time2
+        closeStub = sandbox.stub(bottle.container.sp,'close')
+        client.on('connect', function() {
+            client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+            var a = setTimeout(function(){
+                time1 = bottle.container.time.getTime()
+                console.log(time1)
+                client.emit('reload')
+            }, 50)
+            var b = setTimeout(function(){
+                time2 = bottle.container.time.getTime()
+                console.log(time2)
+                time1.time.controllerTime.should.equal(time2.time.controllerTime)
+                global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
+
+            }, 1500)  //need time for all services to start up again.
+        })
+
+
+    })
+
 // it('API #1: turns off pump 1', function(done) {
 //     // this.timeout(61 * 60 * 1000)
 //     bottle.container.settings.logPumpMessages = 1
@@ -305,50 +331,50 @@ describe('socket.io basic tests', function() {
 
 
 // })
-    it('#closes a connection from the auth', function() {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+it('#closes a connection from the auth', function() {
+    var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-        client.on('connect', function() {
-            setTimeout(function(){client.emit('close', client.id)},50)
-        })
-        var myResolve, myReject
+    client.on('connect', function() {
+        setTimeout(function(){client.emit('close', client.id)},50)
+    })
+    var myResolve, myReject
 
-        client.on('disconnect', function() {
-            clearTimeout(a)
-            myResolve()
-        })
-        var a = setTimeout(function() {
-                myReject(new Error('Timeout on closes a connection'))
-            }
-            ,1500)
-        return new Promise(function(resolve,reject){
-            myResolve = resolve
-            myReject = reject
-        })
-
+    client.on('disconnect', function() {
+        clearTimeout(a)
+        myResolve()
+    })
+    var a = setTimeout(function() {
+            myReject(new Error('Timeout on closes a connection'))
+        }
+        ,1500)
+    return new Promise(function(resolve,reject){
+        myResolve = resolve
+        myReject = reject
     })
 
-    it('#requests all config (all)', function() {
-        return global.waitForSocketResponseAsync('all')
-            .then(function(data){
-                data.circuit.should.exist
-                data.pump.should.exist
-                data.schedule.should.exist
-            })
-        setTimeout(Promise.reject(), 1900)
+})
 
-    })
+it('#requests all config (all)', function() {
+    return global.waitForSocketResponseAsync('all')
+        .then(function(data){
+            data.circuit.should.exist
+            data.pump.should.exist
+            data.schedule.should.exist
+        })
+    setTimeout(Promise.reject(), 1900)
 
-    it('#requests all config (one)', function() {
-        return global.waitForSocketResponseAsync('one')
-            .then(function(data){
-                data.circuit.should.exist
-                data.pump.should.exist
-                data.schedule.should.exist
-            })
-        setTimeout(Promise.reject(), 1900)
+})
 
-    })
+it('#requests all config (one)', function() {
+    return global.waitForSocketResponseAsync('one')
+        .then(function(data){
+            data.circuit.should.exist
+            data.pump.should.exist
+            data.schedule.should.exist
+        })
+    setTimeout(Promise.reject(), 1900)
+
+})
 
 // it('#stops the Socket auth', function(done) {
 //     var client = global.ioclient.connect(global.socketURL, global.socketOptions)

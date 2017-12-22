@@ -174,7 +174,7 @@ bottle.factory('schedule', require(__dirname + '/equipment/schedule.js'))
 bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js'))
 bottle.factory('intellichem', require(__dirname + '/equipment/intellichem.js'))
 
-
+/* istanbul ignore next */
 var initAsync = exports.initAsync = function() {
     //Call the modules to initialize them
     Promise = bottle.container.promise
@@ -236,11 +236,13 @@ var initAsync = exports.initAsync = function() {
 
 
 // Exit process cleanly.  From http://stackoverflow.com/questions/10021373/what-is-the-windows-equivalent-of-process-onsigint-in-node-js
+/* istanbul ignore next */
 process.on('exit', function() {
     //handle your on exit code
     console.log("nodejs-poolController has closed successfully.");
 });
 
+/* istanbul ignore next */
 if (process.platform === "win32") {
     var rl = require("readline").createInterface({
         input: process.stdin,
@@ -252,6 +254,7 @@ if (process.platform === "win32") {
     });
 }
 
+/* istanbul ignore next */
 process.on('SIGINT', function() {
     console.log('Shutting down open processes')
     return bottle.container.reload.stopAsync()
@@ -261,6 +264,7 @@ process.on('SIGINT', function() {
 
 });
 
+/* istanbul ignore next */
 global.exit_nodejs_poolController = function(){
     process.exit()
 }
