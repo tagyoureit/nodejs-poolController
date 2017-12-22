@@ -20,7 +20,7 @@ module.exports = function(container) {
     var logger = container.logger
     var sp
     var connectionTimer;
-    var useMockBinding = false
+    var MockBinding, useMockBinding = false
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')
@@ -111,23 +111,25 @@ module.exports = function(container) {
     }
 
     //for testing
-    var mockSPBinding = function(){
-        useMockBinding = true
-        SerialPort = require('serialport/test');
-        MockBinding = SerialPort.Binding
-        var portPath = 'FAKE_PORT'
-        MockBinding.createPort(portPath, {echo:false, record:true})
-        sp = new SerialPort(portPath)
-        sp.on('open', function(){
-            //container.logger.silly('Mock SerialPort is now open.')  // Commented out because during testing, this will return after we enable logging.
+    var mockSPBindingAsync = function(){
+        return new Promise(function(resolve,reject){
+            useMockBinding = true
+            SerialPort = require('serialport/test');
+            MockBinding = SerialPort.Binding
+            var portPath = 'FAKE_PORT'
+            MockBinding.createPort(portPath, {echo:false, record:true})
+            sp = new SerialPort(portPath)
+            sp.on('open', function(){
+                container.logger.silly('Mock SerialPort is now open.')
+                resolve(sp)
+            })
+            sp.on('readable', function () {
+                container.packetBuffer.push(sp.read())
+            });
+            sp.on('error', function (err) {
+                container.logger.error('Error with Mock SerialPort: %s.  Will retry in 10 seconds', err.message)
+            })
         })
-        sp.on('readable', function () {
-            container.packetBuffer.push(sp.read())
-        });
-        sp.on('error', function (err) {
-            container.logger.error('Error with Mock SerialPort: %s.  Will retry in 10 seconds', err.message)
-        })
-        return sp
     }
 
     var writeNET = function(data, type, callback) {
@@ -150,7 +152,13 @@ module.exports = function(container) {
             clearTimeout(connectionTimer)
         }
         if (useMockBinding){
-            MockBinding.reset()
+            if (sp.isOpen) {
+                container.logger.silly('Resetting SerialPort Mock Binding')
+                MockBinding.reset()
+                useMockBinding = false
+            }
+            else
+                container.logger.silly('Tried to Reset SerialPort Mock Binding, but it is not open.')
         }
         else {
             // TODO: following was over complicated due to testing inaccuracies.  Might be able to simplify this moving forward.
@@ -197,96 +205,7 @@ module.exports = function(container) {
         drainSP: drainSP,
         close: close,
         resetConnectionTimer: resetConnectionTimer,
-        mockSPBinding: mockSPBinding
+        mockSPBindingAsync: mockSPBindingAsync
     }
 }
 
-
-/*
-
-sp is connecting? false
-sp all Socket {
-  connecting: false,
-  _hadError: false,
-  _handle:
-   TCP {
-     bytesRead: 593,
-     _externalStream: {},
-     fd: 16,
-     reading: true,
-     owner: [Circular],
-     onread: [Function: onread],
-     onconnection: null,
-     writeQueueSize: 0 },
-  _parent: null,
-  _host: null,
-  _readableState:
-   ReadableState {
-     objectMode: false,
-     highWaterMark: 16384,
-     buffer: BufferList { head: null, tail: null, length: 0 },
-     length: 0,
-     pipes: null,
-     pipesCount: 0,
-     flowing: true,
-     ended: false,
-     endEmitted: false,
-     reading: true,
-     sync: false,
-     needReadable: true,
-     emittedReadable: false,
-     readableListening: false,
-     resumeScheduled: false,
-     defaultEncoding: 'utf8',
-     ranOut: false,
-     awaitDrain: 0,
-     readingMore: false,
-     decoder: null,
-     encoding: null },
-  readable: true,
-  domain: null,
-  _events:
-   { end: { [Function: g] listener: [Function: onend] },
-     finish: [Function: onSocketFinish],
-     _socketEnd: [Function: onSocketEnd],
-     data: [Function],
-     error: [Function] },
-  _eventsCount: 5,
-  _maxListeners: undefined,
-  _writableState:
-   WritableState {
-     objectMode: false,
-     highWaterMark: 16384,
-     needDrain: false,
-     ending: false,
-     ended: false,
-     finished: false,
-     decodeStrings: false,
-     defaultEncoding: 'utf8',
-     length: 0,
-     writing: false,
-     corked: 0,
-     sync: false,
-     bufferProcessing: false,
-     onwrite: [Function],
-     writecb: null,
-     writelen: 0,
-     bufferedRequest: null,
-     lastBufferedRequest: null,
-     pendingcb: 0,
-     prefinished: false,
-     errorEmitted: false,
-     bufferedRequestCount: 0,
-     corkedRequestsFree: CorkedRequest { next: null, entry: null, finish: [Function] } },
-  writable: true,
-  allowHalfOpen: false,
-  destroyed: false,
-  _bytesDispatched: 204,
-  _sockname: null,
-  _pendingData: null,
-  _pendingEncoding: '',
-  server: null,
-  _server: null,
-  read: [Function],
-  _consuming: true }
- */

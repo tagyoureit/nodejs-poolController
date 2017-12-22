@@ -26,7 +26,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         logger.info('Loading: reload.js')
 
-
+    /* istanbul ignore next */
     var stopAsync = function() {
         return Promise.resolve()
             .then(function() {
@@ -53,6 +53,7 @@ module.exports = function(container) {
 
     }
 
+    /* istanbul ignore next */
     var reloadAsync = function(reset, callback) {
         //reset is a variable to also reset the status of objects.
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
@@ -127,7 +128,7 @@ module.exports = function(container) {
 
     return {
         reloadAsync: reloadAsync,
-        stopAsync: stopAsync,
+        stopAsync: stopAsync
 
     }
 }

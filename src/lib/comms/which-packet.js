@@ -24,9 +24,6 @@ module.exports = function(container) {
 
 
   function outbound(packet) {
-
-    // changes to support 16 pumps
-    // if (packet[container.constants.packetFields.DEST + 3] === 96 || packet[container.constants.packetFields.DEST + 3] === 97) {
     if (packet[container.constants.packetFields.DEST + 3] >= container.constants.ctrl.PUMP1 && packet[container.constants.packetFields.DEST + 3] <= container.constants.ctrl.PUMP16) {
       return 'pump'
     } else if (packet[0] === 16) {

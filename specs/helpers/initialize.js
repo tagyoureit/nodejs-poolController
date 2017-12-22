@@ -36,10 +36,10 @@ initAllAsync = function() {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
         })
-        .then(bottle.container.server.initAsync)  // async
-        .then(function () {
-            sp = bottle.container.sp.mockSPBinding() // synchronous
-
+        .then(bottle.container.server.initAsync)
+        .then(bottle.container.sp.mockSPBindingAsync)
+        .then(function (_sp) {
+            sp = _sp
             bottle.container.heat.init() // synchronous
             bottle.container.time.init() // synchronous
             bottle.container.pump.init() // synchronous
@@ -54,7 +54,6 @@ initAllAsync = function() {
             bottle.container.writePacket.init() // synchronous
             bottle.container.intellitouch.init() // synchronous
             bottle.container.intellichem.init() // synchronous
-            //bottle.container.io.init() // synchronous
         })
         .then(bottle.container.chlorinator.init) // updated... synchronous
         .delay(20) //allow for all processes to start before enable logging or moving to tests

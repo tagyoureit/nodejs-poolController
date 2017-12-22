@@ -17,7 +17,7 @@ describe('socket.io basic tests', function() {
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
                 pWPHStub = sandbox.stub(bottle.container.writePacket,'preWritePacketHelper')
-                // updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
                 // bootstrapConfigEditorStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'reset')
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
                 controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
@@ -30,12 +30,7 @@ describe('socket.io basic tests', function() {
         //restore the sandbox after each function
         //console.log('full queue', bottle.container.queuePacket.fullQ)
 
-        return Promise.resolve()
-            .then(sandbox.restore())
-            .then(global.stopAllAsync)
-            .catch(function(err){
-                console.error(err)
-            })
+        return global.stopAllAsync()
     })
 
     after(function() {
@@ -43,7 +38,7 @@ describe('socket.io basic tests', function() {
     })
 
 
-    it('#connects to the auth', function() {
+    it('#connects to the server', function() {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         client.on('connect', function (data) {
             // console.log('connected client:')
@@ -109,7 +104,7 @@ describe('socket.io basic tests', function() {
     })
 
 
-    it('#sets a schedule', function() {
+    it('#sets a schedule', function(done) {
         this.timeout(4000)
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
@@ -119,21 +114,12 @@ describe('socket.io basic tests', function() {
             client.disconnect()
 
         })
-        var myResolve, myReject
-        a = setTimeout(function(){myReject()}, 1900)
         setTimeout(function () {
-                //console.log('queuePacketStub.args', queuePacketStub.args)
-                queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131 ])
-                queuePacketStub.callCount.should.equal(13) // request all schedules
-                clearTimeout(a)
-                myResolve()}
-            , 1800)
-        return new Promise(function(resolve, reject) {
-            myResolve = resolve
-            myReject = reject
-        })
-
-
+            //console.log('queuePacketStub.args', queuePacketStub.args)
+            queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 145, 7, 12, 5, 13, 20, 13, 40, 131 ])
+            queuePacketStub.callCount.should.equal(13) // request all schedules
+            done()
+        }, 1800)
     })
 
     it('#sends packets and checks the correct preamble is passed', function() {
@@ -174,27 +160,22 @@ describe('socket.io basic tests', function() {
 
 
 
-    it('#cancels the delay', function() {
+    it('#cancels the delay', function(done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
         client.on('connect', function() {
             client.emit('cancelDelay')
             client.disconnect()
         })
-        var myResolve, myReject
-
         setTimeout(function(){
             queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 131, 1, 0 ])
-            clearTimeout(a)
-            myResolve()
-        }, 100)
 
-        var a = setTimeout(function(){myReject()}, 1500)
+            done()
+        }, 200)
 
-        return new Promise(function(resolve, reject){
-            myResolve = resolve
-            myReject = reject
-        })
+
+
+
     })
 
     it('#sends and receives search socket', function() {
@@ -224,51 +205,50 @@ describe('socket.io basic tests', function() {
 
     })
 
-    it('#reloads', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+    /*  DO NOT ENABLE THESE.  It tries to open a physical serial port which messes up the tests.
+        it('#reloads', function(done) {
+            var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-        var time1, time2
-        client.on('connect', function() {
-            client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+            var time1, time2
+            client.on('connect', function() {
+                client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+
+            })
             var a = setTimeout(function(){
                 time1 = bottle.container.time.getTime()
-                console.log(time1)
                 client.emit('reload')
             }, 50)
             var b = setTimeout(function(){
                 time2 = bottle.container.time.getTime()
-
+                console.log('1: %s 2: %s', time1, time2)
                 time1.time.controllerTime.should.equal(time2.time.controllerTime)
+                client.disconnect()
                 done()
             }, 100)
+
+
         })
 
-
-
-    })
-
-    it('#reloads & resets', function(done) {
-        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        var time1, time2
-        closeStub = sandbox.stub(bottle.container.sp,'close')
-        client.on('connect', function() {
-            client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+        it('#reloads & resets', function(done) {
+            var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+            var time1, time2
+            closeStub = sandbox.stub(bottle.container.sp,'close')
+            client.on('connect', function() {
+                client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+            })
             var a = setTimeout(function(){
                 time1 = bottle.container.time.getTime()
-                console.log(time1)
                 client.emit('reload')
             }, 50)
             var b = setTimeout(function(){
                 time2 = bottle.container.time.getTime()
-                console.log(time2)
                 time1.time.controllerTime.should.equal(time2.time.controllerTime)
                 global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
-
+                done()
             }, 1500)  //need time for all services to start up again.
+
         })
-
-
-    })
+        */
 
 // it('API #1: turns off pump 1', function(done) {
 //     // this.timeout(61 * 60 * 1000)
@@ -331,50 +311,49 @@ describe('socket.io basic tests', function() {
 
 
 // })
-it('#closes a connection from the auth', function() {
-    var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+    it('#closes a connection from the server', function() {
+        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-    client.on('connect', function() {
-        setTimeout(function(){client.emit('close', client.id)},50)
-    })
-    var myResolve, myReject
-
-    client.on('disconnect', function() {
-        clearTimeout(a)
-        myResolve()
-    })
-    var a = setTimeout(function() {
-            myReject(new Error('Timeout on closes a connection'))
-        }
-        ,1500)
-    return new Promise(function(resolve,reject){
-        myResolve = resolve
-        myReject = reject
-    })
-
-})
-
-it('#requests all config (all)', function() {
-    return global.waitForSocketResponseAsync('all')
-        .then(function(data){
-            data.circuit.should.exist
-            data.pump.should.exist
-            data.schedule.should.exist
+        client.on('connect', function() {
+            setTimeout(function(){client.emit('close', client.id)},50)
         })
-    setTimeout(Promise.reject(), 1900)
+        var myResolve, myReject
 
-})
-
-it('#requests all config (one)', function() {
-    return global.waitForSocketResponseAsync('one')
-        .then(function(data){
-            data.circuit.should.exist
-            data.pump.should.exist
-            data.schedule.should.exist
+        client.on('disconnect', function() {
+            clearTimeout(a)
+            myResolve()
         })
-    setTimeout(Promise.reject(), 1900)
+        var a = setTimeout(function() {
+                myReject(new Error('Timeout on closes a connection'))
+            }
+            ,1500)
+        return new Promise(function(resolve,reject){
+            myResolve = resolve
+            myReject = reject
+        })
 
-})
+    })
+
+    it('#requests all config (all)', function() {
+        return global.waitForSocketResponseAsync('all')
+            .then(function(data){
+                data.circuit.should.exist
+                data.pump.should.exist
+                data.schedule.should.exist
+            })
+
+    })
+
+    it('#requests all config (one)', function() {
+        return global.waitForSocketResponseAsync('one')
+            .then(function(data){
+                data.circuit.should.exist
+                data.pump.should.exist
+                data.schedule.should.exist
+            })
+
+
+    })
 
 // it('#stops the Socket auth', function(done) {
 //     var client = global.ioclient.connect(global.socketURL, global.socketOptions)

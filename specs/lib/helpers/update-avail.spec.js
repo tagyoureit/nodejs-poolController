@@ -7,7 +7,7 @@ describe('checks if there is a newer version available', function() {
 
 
     describe('#by talking (stubbing) to Git', function() {
-        context('compares local version to latest published release', function() {
+        context('1.', function() {
 
             before(function () {
 
@@ -48,6 +48,7 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
+                    .persist()
 
                 Promise.resolve()
                     .then(function () {
@@ -89,7 +90,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('compares local version to latest published release', function() {
+        context('2.', function() {
 
             before(function () {
 
@@ -129,6 +130,7 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
+                    .persist()
 
                 Promise.resolve()
 
@@ -189,7 +191,7 @@ describe('checks if there is a newer version available', function() {
         //         })
         // })
         // })
-        context('compares local version to latest published release', function() {
+        context('3.', function() {
 
             before(function () {
 
@@ -225,6 +227,7 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
+                    .persist()
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
@@ -262,7 +265,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('compares local version to latest published release', function() {
+        context('4.', function() {
 
             before(function () {
 
@@ -289,7 +292,7 @@ describe('checks if there is a newer version available', function() {
                     .then(global.removeShadowConfigFileAsync)
                     .then(global.stopAllAsync)
             })
-            it('#sends updateAvailable with dismissUntilNextRemoteVersionBump=false', function () {
+            it('#sends updateAvailable with dismissUntilNextRemoteVersionBump=false', function (done) {
 
                 // published release: 4.1.200
                 // current version running: 4.1.0
@@ -300,11 +303,11 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
+                    .persist()
 
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 Promise.resolve()
-
                     .then(function () {
                         return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')
                     })
@@ -318,24 +321,18 @@ describe('checks if there is a newer version available', function() {
                             clearTimeout(a)
                             scope.done()
 
-                            myResolve()
+                            done()
 
                         })
                     })
 
-                var myResolve, myReject
-                var a = setTimeout(function () {
-                    myReject(new Error('timeout in update avail spec'))
-                }, 1900)
-                return new Promise(function (resolve, reject) {
-                    myResolve = resolve
-                    myReject = reject
-                })
+
+
 
             })
         })
 
-        context('compares local version to latest published release', function() {
+        context('5.', function() {
 
             before(function () {
 
@@ -371,7 +368,7 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
-
+                    .persist()
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
 
@@ -419,7 +416,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('compares local version to latest published release', function() {
+        context('6.', function() {
 
             before(function () {
 
@@ -456,6 +453,7 @@ describe('checks if there is a newer version available', function() {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
+                    .persist()
 
                 Promise.resolve()
                     .then(function () {
