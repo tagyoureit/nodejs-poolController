@@ -19,27 +19,27 @@ describe('#sends pump commands to a VF pump', function () {
                 .then(function(){
                     return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
                 })
-                .then(bottle.container.pump.init)
+
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'spy')
                     clock = sandbox.useFakeTimers()
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 })
+                .then(bottle.container.pump.init)
                 .catch(function(e){console.log('error!!!', e)})
 
         })
 
         afterEach(function () {
-            bottle.container.pumpControllerTimers.clearTimer(1)
-            bottle.container.pumpControllerTimers.clearTimer(2)
-            // bottle.container.queuePacket.init()
-            // bottle.container.writePacket.init()
-            sandbox.restore()
-            return global.stopAllAsync()
-                .then(global.removeShadowConfigFileAsync)
-                .finally(function(){
-                    console.log('Finished sends pump commands to a VF pump with a HTTP REST API')
+
+            return Promise.resolve()
+                .then(function(){
+                    bottle.container.pumpControllerTimers.clearTimer(1)
+                    bottle.container.pumpControllerTimers.clearTimer(2)
+                    sandbox.restore()
                 })
+                .then(global.stopAllAsync)
+                .then(global.removeShadowConfigFileAsync)
         })
 
         after(function () {

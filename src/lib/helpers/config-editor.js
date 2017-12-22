@@ -200,7 +200,8 @@ module.exports = function(container) {
                 return pfs.writeFileAsync(location, JSON.stringify(config, null, 4), 'utf-8')
             })
             .then(function() {
-                return container.logger.verbose('Updated version notification settings %s', location)
+                container.logger.verbose('Updated version notification settings %s', location)
+                return 'I am done!'
             })
             .catch(function(err) {
                 container.logger.warn('Error updating version notification settings %s: ', location, err)

@@ -502,9 +502,9 @@ describe('#Tests a VS pump', function() {
             });
 
             beforeEach(function () {
-                sandbox = sinon.sandbox.create()
-                clock = sandbox.useFakeTimers()
                 loggers = setupLoggerStubOrSpy('stub','stub')
+               // clock = sandbox.useFakeTimers()
+
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
@@ -529,7 +529,6 @@ describe('#Tests a VS pump', function() {
                 it('API #13: saves program 3 as 27GPM', function (done) {
                     this.timeout(5 * 1000)
                     global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/program/3/gpm/27').then(function (obj) {
-                        console.log('obj', obj.toString())
                         obj.text.should.contain('FAIL');
                     }).then(done, done)
                 })
@@ -541,7 +540,6 @@ describe('#Tests a VS pump', function() {
                     //     [ [ 165, 0, 96, 33, 7, 0 ] ] ]
                     this.timeout(5 * 1000)
                     global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28').then(function (obj) {
-                        console.log('obj', obj.toString())
                         obj.text.should.contain('FAIL');
 
                     }).then(done, done)
@@ -552,7 +550,6 @@ describe('#Tests a VS pump', function() {
                       this.timeout(5 * 1000)
                     global.requestPoolDataWithURLAsync('pumpCommand/saverun/pump/1/program/4/gpm/28/duration/3')
                         .then(function (obj) {
-                            console.log('obj', JSON.stringify(obj))
                             obj.text.should.contain('FAIL');
                         })
                         .then(done,done)

@@ -1,12 +1,12 @@
 describe('#set functions', function() {
 
     describe('#sends chlorinator commands', function() {
-        context('with NO chlorinator installed, with a REST API', function() {
+        context('with NO chlorinator installed, with a REST API', function () {
 
             before(function () {
 
                 return Promise.resolve()
-                    .then(function(){
+                    .then(function () {
                         bottle.container.settings.set('virtual.chlorinatorController', 0)
                         bottle.container.settings.set('chlorinator.installed', 0)
                     })
@@ -16,7 +16,7 @@ describe('#set functions', function() {
             beforeEach(function () {
                 // sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy('stub','stub')
+                loggers = setupLoggerStubOrSpy('stub', 'stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             })
@@ -38,13 +38,14 @@ describe('#set functions', function() {
                         queuePacketStub.callCount.should.eq(0)
                     })
                     .then(done)
-                    .catch(function(err){
+                    .catch(function (err) {
                         bottle.container.logger.error('Error with chlor not installed.', err)
                         console.error(err)
                     })
             })
         })
-
+    })
+    describe('#sends chlorinator commands', function() {
 
         context('with a REST API', function() {
 
@@ -61,20 +62,21 @@ describe('#set functions', function() {
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub','stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
                 configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateChlorinatorDesiredOutputAsync')
                 getVersionNotificationStub = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({'dismissUntilNextRemoteVersionBump': true})
 
             })
 
             afterEach(function() {
-                //restore the sandbox after each function
                 bottle.container.chlorinator.setChlorinatorLevelAsync(0)
-                bottle.container.chlorinatorController.clearTimer()
-                // Clear out the write queues
-                bottle.container.queuePacket.init()
-                bottle.container.writePacket.init()
-                sandbox.restore()
+                    .then(function(){
+                        bottle.container.chlorinatorController.clearTimer()
+                        // Clear out the write queues
+                        bottle.container.queuePacket.init()
+                        bottle.container.writePacket.init()
+                        sandbox.restore()
+                    })
+
             })
 
             after(function() {
@@ -154,3 +156,4 @@ describe('#set functions', function() {
         });
     });
 })
+

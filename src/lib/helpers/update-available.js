@@ -49,7 +49,7 @@ module.exports = function(container) {
                 remoteVersion = jsons.remote.version,
                 clientVerArr,
                 remoteVerArr
-            // container.logger.silly('updateAvail: local ver: %s    latest published release ver: %s', clientVersion, remoteVersion)
+            container.logger.silly('updateAvail: local ver: %s    latest published release ver: %s', clientVersion, remoteVersion)
             //compare the version numbers sequentially (major, minor, patch) to make sure there is a newer version and not just a different version
             //nice to have the try block here in case we can't split the result
             try {

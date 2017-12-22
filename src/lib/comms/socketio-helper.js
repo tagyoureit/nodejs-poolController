@@ -36,11 +36,12 @@ module.exports = function(container) {
         container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
             var remote = container.configEditor.getVersionNotification()
-            container.logger.silly('Socket.IO checking if we need to output updateAvail: (%s - will send if false)', remote.dismissUntilNextRemoteVersionBump)
+            container.logger.silly('Socket.IO checking if we need to output updateAvail: %s (will send if false)', remote.dismissUntilNextRemoteVersionBump)
             if (remote.dismissUntilNextRemoteVersionBump !== true) {
                 // true = means that we will suppress the update until the next available version bump
                 container.updateAvailable.getResultsAsync()
                     .then(function(updateAvail){
+                        container.logger.silly('Socket.IO outputting updateAvail: %s ', JSON.stringify(updateAvail))
                         emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
                     })
             }
@@ -618,7 +619,10 @@ module.exports = function(container) {
 
         socket.on('updateVersionNotificationAsync', function(bool) {
             container.logger.info('updateVersionNotificationAsync requested from Socket.io.  value:', bool)
-            container.configEditor.updateVersionNotificationAsync(bool)
+            container.configEditor.updateVersionNotificationAsync(bool, null)
+                // .then(function(res){
+                //     console.log('returned from updatever', res)
+                // })
         })
 
         emitToClients('all')

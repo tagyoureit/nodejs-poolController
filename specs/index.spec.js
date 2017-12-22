@@ -141,6 +141,8 @@ describe('nodejs-poolController', function() {
                 .then(global.removeShadowConfigFileAsync)
                 .then(function(){
                     setupLoggerStubOrSpy('stub', 'stub')
+                    consoleEStub = sandbox.stub(console, 'error')
+                    consoleStub = sandbox.stub(console, 'log')
                 })
                 .then(global.removeShadowConfigFileAsync)  // should throw an error
                 .then(global.useShadowConfigFileAsync('/specs/assets/config/templates/config_not_here.json'))

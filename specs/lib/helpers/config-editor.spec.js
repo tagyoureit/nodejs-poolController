@@ -10,7 +10,6 @@ describe('updates config.json variables', function() {
 
         before(function () {
             return global.initAllAsync()
-                .then(console.log('done with before'))
 
         })
 
@@ -18,9 +17,9 @@ describe('updates config.json variables', function() {
 
             return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
                 .then(function(){
-                    console.log('in beforeeach')
                     // sandbox = sinon.sandbox.create()
                     loggers = setupLoggerStubOrSpy('stub', 'spy')
+
                 })
         })
 
@@ -28,13 +27,9 @@ describe('updates config.json variables', function() {
 
             return Promise.resolve()
                 .then(function(){
-                    console.log('befor sandbx restro')
                     sandbox.restore()
-                    console.log('after sandbox restore')
-
                 })
                 .then(global.removeShadowConfigFileAsync)
-                .then(console.log('don with afterEach'))
                 .catch(function(err){
                     console.log(err)
                 })
@@ -135,18 +130,27 @@ describe('updates config.json variables', function() {
     })
     context('when called with the Socket API', function () {
         describe('#updates config.json', function () {
-
+        var scope
             before(function () {
-                return global.initAllAsync()
+
+                return Promise.resolve()
+                    .then(function(){
+                        scope = nock('https://api.github.com')
+                            .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
+                            .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
+                            .persist()
+                            // .log(console.log)
+                    })
+                    .then(global.initAllAsync)
+                    .then(bottle.container.updateAvailable.initAsync('/specs/assets/package.json'))
+
             })
 
             beforeEach(function () {
 
-                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
+                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function(){
-                        // sandbox = sinon.sandbox.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
-                        ceStub = sandbox.stub(bottle.container.configEditor, 'updateVersionNotificationAsync')
                     })
 
             })
@@ -155,6 +159,7 @@ describe('updates config.json variables', function() {
 
                 return Promise.resolve()
                     .then(function(){
+                        nock.cleanAll()
                         sandbox.restore()
                     })
                     .then(global.removeShadowConfigFileAsync)
@@ -166,20 +171,25 @@ describe('updates config.json variables', function() {
             })
 
             it('#updates dismissUntilNextRemoteVersionBump to true', function (done) {
-                /* NOTE: best we can do here is make sure the function is called...
-                  no good way I know of to rewire the internal variables if not calling the function directly.
-                  So long as we test the function above, this should be sufficient.
-                  */
+
+                // published release: 4.1.0
+                // current version running: 4.1.0
+                // cached remote release: 4.1.0
+                // dismissUntilNextVerBump: false
+                // expected result: local _config.json file has dismissUntil... set to true
+
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('connect', function (data) {
                     // console.log('connected client:')
                     client.emit('updateVersionNotificationAsync', true)
                     client.disconnect()
                     setTimeout(function () {
-                        ceStub.callCount.should.eq(1)
-                        ceStub.args[0][0].should.deep.eq(true)
-                        done()
-                    }, 75)
+                        fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf8')
+                            .then(function(data) {
+                                JSON.parse(data).poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
+                                done()
+                            })
+                    }, 50)
                 })
             });
 

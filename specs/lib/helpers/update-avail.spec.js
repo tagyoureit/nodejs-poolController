@@ -102,7 +102,6 @@ describe('checks if there is a newer version available', function() {
                         sandbox = sinon.sandbox.create()
 
                         loggers = setupLoggerStubOrSpy('stub','stub')
-                        console.log('done before compares local version to latest published release')
                     })
 
             })
@@ -114,7 +113,7 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-               .then(function(){ return global.removeShadowConfigFileAsync()})
+                    .then(function(){ return global.removeShadowConfigFileAsync()})
                     .then(function(){ return global.stopAllAsync()})
             })
 
@@ -227,17 +226,6 @@ describe('checks if there is a newer version available', function() {
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
 
-                // //need to use rewire so variables are not already set
-                // var myModule = rewire(path.join(process.cwd(), '/src/lib/helpers/update-available.js'))
-                // myModule.__with__({
-                //     'location': path.join(process.cwd(), '/specs/assets/package.json')
-                // })(function() {
-                //     myModule(bottle.container).check()
-                //         .then(function() {
-                //             loggerInfoStub.args[0][0].should.contain('You are running a newer release')
-                //             done()
-                //         })
-                // })
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
 

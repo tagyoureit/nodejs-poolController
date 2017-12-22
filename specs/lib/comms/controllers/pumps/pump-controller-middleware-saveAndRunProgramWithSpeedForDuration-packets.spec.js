@@ -12,25 +12,13 @@ describe('pump controller - save and run program with speed for duration', funct
         before(function() {
 
 
-            // fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
-            //     .then(function(pumpVS) {
-            //         return JSON.parse(pumpVS)
-            //     })
-            //     .then(function(parsed) {
-            //         bottle.container.settings.set('pump', parsed)
-            //         return bottle.container.pump.init()
-            //     })
-            //     .then(global.initAllAsync)
-            //     .catch(function(err) {
-            //         /* istanbul ignore next */
-            //         console.log('oops, we hit an error', err)
-            //     })
             return global.initAllAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+
 
         });
 
         beforeEach(function() {
-            
+            setupLoggerStubOrSpy('stub', 'spy')
             //endPumpCommandStub = sandbox.stub()
             //emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
@@ -39,7 +27,6 @@ describe('pump controller - save and run program with speed for duration', funct
         })
 
         afterEach(function() {
-
             return sandbox.restore()
 
         })

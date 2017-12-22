@@ -9,35 +9,21 @@ describe('#sends pump commands to a VSF pump', function () {
 
             return Promise.resolve()
                 .then(function(){
-                  return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
-                }).then(bottle.container.pump.init)
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                })
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'spy')
                     clock = sandbox.useFakeTimers()
-
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                    // getCurrentStatusStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({
-                    //     "pump": {
-                    //         "1":
-                    //             {
-                    //                 type: 'VSF'
-                    //             },
-                    //         "2":
-                    //             {
-                    //                 type: 'VSF'
-                    //             }
-                    //     }
-                    // })
-                    // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                    socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                    //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
 
                 })
+                .then(bottle.container.pump.init)
                 .catch(function(e){console.log('error!!!', e)})
 
         })
 
         afterEach(function () {
-            bottle.container.pumpControllerTimers.clearTimer(1)
             bottle.container.pumpControllerTimers.clearTimer(2)
             bottle.container.queuePacket.init()
             bottle.container.writePacket.init()

@@ -123,15 +123,11 @@ describe('chlorinator tests', function() {
         it('@102% (should fail -- does not change previous state)', function() {
             return Promise.resolve()
                 .then(function(){
-                    loggerWarnStub.restore()
-                    loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
-                })
-                .then(function(){
                     return bottle.container.chlorinator.setChlorinatorLevelAsync(102)
                 })
                 .then(function(res){
                     res.text.should.contain('FAIL')
-                    loggerWarnStub.callCount.should.equal(1)
+                    loggers.loggerWarnStub.callCount.should.equal(1)
                 })
 
         });
