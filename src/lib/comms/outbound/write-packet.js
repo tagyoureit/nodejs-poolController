@@ -191,7 +191,8 @@ module.exports = function(container) {
         if (container.settings.get('netConnect') === 0) {
             container.sp.writeSP(container.queuePacket.first(), function(err) {
                 if (err) {
-                    logger.error('Error writing packet (%s): %s', container.queuePacket.first(), err.message)
+                    logger.error('Error writing packet (%s).  Ejecting Packet.  Error: %s', container.queuePacket.first(), err.message)
+                    container.writePacket.ejectPacketAndReset()
                 } else {
                     //if (container.settings.get('logPacketWrites')) logger.silly('Packet written: ', queuePacketsArr[0])
                     postWritePacketHelper()
@@ -201,7 +202,8 @@ module.exports = function(container) {
         } else {
             container.sp.writeNET(new Buffer(container.queuePacket.first()), 'binary', function(err) {
                 if (err) {
-                    logger.error('Error writing packet (%s): %s', container.queuePacket.first(), err.message)
+                    logger.error('Error writing packet (%s).  Ejecting Packet.  Error: %s', container.queuePacket.first(), err.message)
+                    container.writePacket.ejectPacketAndReset()
                 } else {
                     //if (container.settings.get('logPacketWrites')) logger.silly('Packet written: ', queuePacketsArr[0])
                     postWritePacketHelper()

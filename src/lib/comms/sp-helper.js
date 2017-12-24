@@ -21,16 +21,21 @@ module.exports = function(container) {
     var sp
     var connectionTimer;
     var MockBinding, useMockBinding = false
+    var _isOpen = false
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: sp-helper.js')
+
+    var isOpen = function() {
+        return _isOpen
+    }
 
     function init(timeOut) {
         useMockBinding = false
         if (connectionTimer!==null) {
             clearTimeout(connectionTimer)
         }
-        // for testing... none wil not try to open the port
+        // for testing... none will not try to open the port
         if (timeOut!=='none') {
             if (container.settings.get('netConnect') === 0) {
                 if (timeOut === 'timeout') {
@@ -50,18 +55,19 @@ module.exports = function(container) {
                 sp.open(function (err) {
                     if (err) {
                         connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000)
+                        _isOpen = false
                         return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
                     }
                 })
                 sp.on('open', function () {
-                    if (timeOut === 'retry_timeout') {
+                    if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
                         logger.info('Serial port recovering from lost connection.')
                     }
                     else
-                    if (timeOut !== 'timeout')
                         logger.verbose('Serial Port opened');
                     container.queuePacket.init()
                     container.writePacket.init()
+                    _isOpen = true
 
                 })
                 sp.on('readable', function () {
@@ -78,14 +84,14 @@ module.exports = function(container) {
                 }
                 sp = new container.net.Socket();
                 sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
-                    if (timeOut === 'retry_timeout') {
+                    if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
                         logger.info('Net connect (socat) recovering from lost connection.')
                     }
-                    else if (timeOut !== 'timeout')
                         logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
 
                     container.queuePacket.init()
                     container.writePacket.init()
+                    _isOpen = true
                 });
                 sp.on('data', function (data) {
                     //Push the incoming array onto the end of the dequeue array
@@ -104,6 +110,7 @@ module.exports = function(container) {
             sp.on('error', function (err) {
                 logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
                 connectionTimer = setTimeout(init, 10 * 1000)
+                _isOpen = false
             })
 
         }
@@ -114,6 +121,7 @@ module.exports = function(container) {
     var mockSPBindingAsync = function(){
         return new Promise(function(resolve,reject){
             useMockBinding = true
+            _isOpen = true
             SerialPort = require('serialport/test');
             MockBinding = SerialPort.Binding
             var portPath = 'FAKE_PORT'
@@ -148,6 +156,7 @@ module.exports = function(container) {
     }
 
     var close = function(callback) {
+        _isOpen = false
         if (connectionTimer!==null) {
             clearTimeout(connectionTimer)
         }
@@ -205,7 +214,8 @@ module.exports = function(container) {
         drainSP: drainSP,
         close: close,
         resetConnectionTimer: resetConnectionTimer,
-        mockSPBindingAsync: mockSPBindingAsync
+        mockSPBindingAsync: mockSPBindingAsync,
+        isOpen: isOpen
     }
 }
 
