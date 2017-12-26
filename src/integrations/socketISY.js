@@ -22,8 +22,8 @@ module.exports = function(container) {
     var io = container.socketClient
     //var ISYTimer = new container.nanotimer
     var fs = container.fs
-
-    var socket = io.connect('https://localhost:3000', {
+    var url = 'https://localhost:' + bottle.container.settings.get('httpsExpressPort') + '/'
+    var socket = io.connect(url, {
         secure: true,
         reconnect: true,
         rejectUnauthorized: false

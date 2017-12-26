@@ -110,7 +110,7 @@ module.exports = function(container) {
 
                 //Web
                 _settings.httpEnabled = configFile.poolController.http.enabled;
-                _settings.httpRedirectToHttps = configFile.poolController.http.httpRedirectToHttps;
+                _settings.httpRedirectToHttps = configFile.poolController.http.redirectToHttps;
                 _settings.httpExpressPort = configFile.poolController.http.expressPort;
                 _settings.httpExpressAuth = configFile.poolController.http.expressAuth;
                 _settings.httpExpressAuthFile = configFile.poolController.http.expressAuthFile;
@@ -182,7 +182,7 @@ module.exports = function(container) {
         introMsg += '\n'
 
         introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-        introMsg += '\n Visit http://_your_machine_name_:3000 for a web interface '
+        introMsg += '\n Visit http://_your_machine_name_:expressPort for a web interface '
         introMsg += '*******************************\n'
         return introMsg
     }

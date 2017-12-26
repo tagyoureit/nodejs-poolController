@@ -240,7 +240,7 @@ module.exports = function(container) {
         setSpaSetPoint(currentHeat.spaSetPoint - decrement, callback)
     }
 
-    function setSpaHeatmode(heatmode, callback) {
+    function setSpaHeatMode(heatmode, callback) {
         var updateHeatMode = (heatmode << 2) | currentHeat.poolHeatMode;
         var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
         container.queuePacket.queuePacket(updateHeat);
@@ -294,7 +294,7 @@ module.exports = function(container) {
         setPoolSetPoint(currentHeat.poolSetPoint - decrement, callback)
     }
 
-    function setPoolHeatmode(heatmode, callback) {
+    function setPoolHeatMode(heatmode, callback) {
 
         var updateHeatMode = (currentHeat.spaHeatMode << 2) | heatmode;
         var updateHeat = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 136, 4, currentHeat.poolSetPoint, currentHeat.spaSetPoint, updateHeatMode, 0]
@@ -335,14 +335,14 @@ module.exports = function(container) {
         getCurrentHeat: getCurrentHeat,
         changeHeatMode: changeHeatMode,
         setHeatSetPoint: setHeatSetPoint,
-        setSpaHeatmode: setSpaHeatmode,
+        setSpaHeatMode: setSpaHeatMode,
         setSpaSetPoint: setSpaSetPoint,
         incrementSpaSetPoint: incrementSpaSetPoint,
         decrementSpaSetPoint: decrementSpaSetPoint,
         setPoolSetPoint: setPoolSetPoint,
         incrementPoolSetPoint: incrementPoolSetPoint,
         decrementPoolSetPoint: decrementPoolSetPoint,
-        setPoolHeatmode: setPoolHeatmode,
+        setPoolHeatMode: setPoolHeatMode,
         setHeatModeFromController: setHeatModeFromController,
         setHeatActiveFromController: setHeatActiveFromController,
         setHeatModeAndSetPoints: setHeatModeAndSetPoints,

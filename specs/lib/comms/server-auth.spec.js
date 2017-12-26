@@ -1,12 +1,8 @@
-var protocol = 'http://'
-var server = 'localhost:3000/'
-
-user = '',
-    password = ''
+var server, protocol, user, password;
 
 
-describe('tests https and authorization', function() {
-    describe('#with authorization', function () {
+describe('tests web servers and authorization', function () {
+    describe('#http with authorization', function () {
 
         context('by a URL', function () {
             before(function () {
@@ -22,6 +18,11 @@ describe('tests https and authorization', function() {
 
             beforeEach(function () {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
+                protocol = 'http://'
+                server = 'localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
+                user = ''
+                password = ''
+
             })
 
             afterEach(function () {
@@ -118,7 +119,7 @@ describe('tests https and authorization', function() {
         context('by a URL', function () {
             before(function () {
                 protocol = 'https://'
-                server = 'localhost:3001/'
+                server = 'localhost:' + bottle.container.settings.get('httpsExpressPort') + '/'
                 return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_https.json')
                     .then(global.initAllAsync)
 
@@ -281,8 +282,8 @@ describe('tests https and authorization', function() {
             context('by a URL', function () {
                 before(function () {
                     protocol = 'http://'
-                    server = 'localhost:3000/'
-                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_https.json')
+                    server = 'localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
+                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_https_httpRedirect.json')
                         .then(function () {
                             bottle.container.settings.set('httpRedirectToHttps', 1)
                         })
@@ -305,7 +306,7 @@ describe('tests https and authorization', function() {
                 })
 
                 afterEach(function () {
-                
+
                 })
 
                 after(function () {
@@ -340,7 +341,7 @@ describe('tests https and authorization', function() {
                         .then(function (res) {
                             done(new Error('Redirect did happen.  We wanted a 302'))
                         })
-                        .catch(function(res){
+                        .catch(function (res) {
                             res.statusCode.should.eq(302)
                             done()
                         });
@@ -367,7 +368,7 @@ describe('tests https and authorization', function() {
                             res.statusCode.should.eq(200)
                             done()
                         })
-                        .catch(function(res){
+                        .catch(function (res) {
                             done(new Error('Redirect did not happen. Code: ' + res.statusCode))
                         });
 

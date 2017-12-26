@@ -257,7 +257,7 @@ waitForSocketResponseAsync = function(_which) {
 
 requestPoolDataWithURLAsync = function(endpoint, URL) {
     if (URL===undefined){
-        URL = 'http://localhost:3000/'
+        URL = 'http://localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
     }
     var options = {
         method: 'GET',

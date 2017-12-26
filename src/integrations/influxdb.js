@@ -27,8 +27,8 @@ module.exports = function(container) {
   var io = container.socketClient
   //var influxdbTimer = new container.nanotimer
   var fs = container.fs
-
-  var socket = io.connect('http://localhost:3000', {
+  var url = 'localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
+  var socket = io.connect(url, {
     secure: false,
     reconnect: true,
     rejectUnauthorized: false

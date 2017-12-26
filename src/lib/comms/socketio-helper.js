@@ -322,7 +322,7 @@ module.exports = function(container) {
 
 
         socket.on('spaheatmode', function(spaheatmode) {
-            container.heat.changeHeatMode(parseInt(spaheatmode))
+            container.heat.setSpaHeatMode(parseInt(spaheatmode))
 
         })
 
@@ -338,8 +338,10 @@ module.exports = function(container) {
             container.heat.decrementPoolSetPoint(parseInt(decrement))
         })
 
+        //TODO: make the heat mode call either setHeatMode or the specific setPoolHeatMode/setSpaHeatMode
         socket.on('poolheatmode', function(poolheatmode) {
-            container.heat.changeHeatMode('pool', poolheatmode, 'socket.io poolheatmode')
+            // container.heat.setHeatMode('pool', poolheatmode, 'socket.io poolheatmode')
+            container.heat.setPoolHeatMode(parseInt(poolheatmode))
         })
 
         socket.on('setHeatSetPoint', function(equip, change) {
