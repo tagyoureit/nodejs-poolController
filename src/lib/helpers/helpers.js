@@ -212,10 +212,19 @@ module.exports = function(container) {
             container._.extend(pool, container.intellichem.getCurrentIntellichem())
             return pool
     }
+	
+	function deviceXML() {
+		var mac = require('node-getmac').replace(/:/g,'').toLowerCase()
+		var XML = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:PoolController-1-0\"><specVersion><major>4</major><minor>0</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
+		XML = XML + mac;
+		XML = XML + "</UDN><serviceList></serviceList></device></root>";
+		return XML;
+	}
 
     return {
         formatTime: formatTime,
         allEquipmentInOneJSON: allEquipmentInOneJSON,
+		deviceXML: deviceXML,
         testJson: testJson
     }
 

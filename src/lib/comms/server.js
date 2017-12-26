@@ -95,11 +95,42 @@ module.exports = function(container) {
         });
     }
 
+	function startSSDPServer(type) {
+		return new Promise(function (resolve, reject) {
+			var mac = require('node-getmac').replace(/:/g,'').toLowerCase()
+			var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
+			var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
+			var location = type + '://' + require('ip').address() + ':' + port + '/device'
+			var SSDP = require('node-ssdp').Server
+				, server = new SSDP({    
+					logLevel:'INFO',
+					udn: udn,
+					location: location,
+					sourcePort: 1900
+				})
+	  
+			server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
+			// start the server
+			server.start();
+			resolve();
+			server.on('error', function (e) {
+                    container.logger.error('error from SSDP:', e);
+                    console.error(e);
+                    reject(e);
+			})
+			process.on('exit', function(){
+				server.stop() // advertise shutting down and stop listening
+			})
+		})
+	}
+		
+	
     function initAsync() {
 
         serversPromise.push(startServerAsync('https'))
         serversPromise.push(startServerAsync('http'))
-
+		serversPromise.push(startSSDPServer('http'))
+		
         return Promise.all(serversPromise)
             .then(function () {
                 bottle.container.logger.debug('Server starting complete.')
@@ -176,6 +207,11 @@ module.exports = function(container) {
             container.io.emitToClients('all');
         });
 
+		app.get('/device', function(req, res) {
+			res.set('Content-Type', 'text/xml');
+            res.send(container.helpers.deviceXML());            
+        });
+		
         /*istanbul ignore next */
         app.get('/reload', function(req, res) {
             container.reload.reloadAsync();
