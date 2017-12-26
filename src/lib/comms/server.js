@@ -456,7 +456,7 @@ module.exports = function(container) {
         })
 
         app.get('/spaheat/mode/:spaheatmode', function(req, res) {
-            container.heat.setSpaHeatmode(parseInt(req.params.spaheatmode), function(response) {
+            container.heat.setSpaHeatMode(parseInt(req.params.spaheatmode), function(response) {
                 res.send(response)
             })
         })
@@ -493,7 +493,7 @@ module.exports = function(container) {
         })
 
         app.get('/poolheat/mode/:poolheatmode', function(req, res) {
-            container.heat.setPoolHeatmode(parseInt(req.params.poolheatmode), function(response) {
+            container.heat.setPoolHeatMode(parseInt(req.params.poolheatmode), function(response) {
                 res.send(response)
             })
 
