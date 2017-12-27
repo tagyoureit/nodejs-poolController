@@ -235,7 +235,6 @@ module.exports = function (container) {
     function getMac() {
         return container.getmac.getMacAsync()
             .then(function (mac) {
-                console.log('res!', mac.replace(/:/g, '').toLowerCase())
                 return mac.replace(/:/g, '').toLowerCase()
             })
     }

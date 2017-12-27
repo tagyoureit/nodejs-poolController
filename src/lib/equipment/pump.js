@@ -86,6 +86,7 @@ module.exports = function(container) {
   var getPumpConfiguration = function() {
       //get pump Configution
       for (var i = 1; i <= container.pump.numberOfPumps(); i++) {
+          if (currentPumpStatus[i].type==='VS' || currentPumpStatus[i].type==='VF' || currentPumpStatus[i].type==='VSF')
           container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 219, 1, i]);
       }
   }

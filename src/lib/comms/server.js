@@ -101,7 +101,7 @@ module.exports = function (container) {
                .then(function(mac){
                    var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
                    var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
-                   var location = type + '://' + require('ip').address() + ':' + port + '/device'
+                   var location = type + '://' + container.ip.address() + ':' + port + '/device'
                    var SSDP = container.ssdp.Server
                    servers['ssdp'].server = new SSDP({
                        logLevel: 'INFO',
