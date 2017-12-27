@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-module.exports = function(container) {
+module.exports = function (container) {
 
     var logger = container.logger
 
@@ -23,7 +23,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         logger.info('Loading: helpers.js')
 
-    function formatTime(hour, min){
+    function formatTime(hour, min) {
         hour = parseInt(hour)
         min = parseInt(min)
         var timeStr = ''
@@ -50,7 +50,7 @@ module.exports = function(container) {
     Object.defineProperty(Object.prototype, "equals", {
         enumerable: false,
         writable: true,
-        value: function(object2) {
+        value: function (object2) {
             //For the first loop, we only check for types
             for (propName in this) {
                 //Check for inherited methods and properties - like .equals itself
@@ -106,7 +106,7 @@ module.exports = function(container) {
     Object.defineProperty(Object.prototype, "whatsDifferent", {
         enumerable: false,
         writable: true,
-        value: function(object2) {
+        value: function (object2) {
             //For the first loop, we only check for types
             var diffString = '';
             for (propName in this) {
@@ -175,6 +175,7 @@ module.exports = function(container) {
             }
         }
     });
+
     //Credit for this function belongs to: http://stackoverflow.com/questions/728360/most-elegant-way-to-clone-a-javascript-object
     function clone(obj) {
         if (null == obj || "object" != typeof obj)
@@ -187,44 +188,50 @@ module.exports = function(container) {
         return copy;
     }
 
-    var testJson = function(data) {
+    var testJson = function (data) {
         // This function is used to validate/parse data before write to a file
-            try {
-                JSON.parse(JSON.stringify(data))
-                return true
-            }
-            catch(err){
-                console.log('err in testJson', err)
-                return false
-            }
+        try {
+            JSON.parse(JSON.stringify(data))
+            return true
+        }
+        catch (err) {
+            console.log('err in testJson', err)
+            return false
+        }
     }
 
     function allEquipmentInOneJSON() {
         var pool = {}
-            container._.extend(pool, container.circuit.getCurrentCircuits())
-            container._.extend(pool, container.pump.getCurrentPumpStatus())
-            container._.extend(pool, container.schedule.getCurrentSchedule())
-            container._.extend(pool, container.temperatures.getTemperatures())
-            container._.extend(pool, container.time.getTime())
-            container._.extend(pool, container.UOM.getUOM())
-            container._.extend(pool, container.valves.getValves())
-            container._.extend(pool, container.chlorinator.getChlorinatorStatus())
-            container._.extend(pool, container.intellichem.getCurrentIntellichem())
-            return pool
+        container._.extend(pool, container.circuit.getCurrentCircuits())
+        container._.extend(pool, container.pump.getCurrentPumpStatus())
+        container._.extend(pool, container.schedule.getCurrentSchedule())
+        container._.extend(pool, container.temperatures.getTemperatures())
+        container._.extend(pool, container.time.getTime())
+        container._.extend(pool, container.UOM.getUOM())
+        container._.extend(pool, container.valves.getValves())
+        container._.extend(pool, container.chlorinator.getChlorinatorStatus())
+        container._.extend(pool, container.intellichem.getCurrentIntellichem())
+        return pool
     }
-	
-	function deviceXML() {
-		var mac = require('node-getmac').replace(/:/g,'').toLowerCase()
-		var XML = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:PoolController-1-0\"><specVersion><major>4</major><minor>0</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
-		XML = XML + mac;
-		XML = XML + "</UDN><serviceList></serviceList></device></root>";
-		return XML;
-	}
+
+    function deviceXML() {
+        return container.updateAvailable.getResultsAsync()
+            .then(function (results) {
+                var XML = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:PoolController-1-0\"><specVersion><major>"
+                XML += results.local.version.split('.')[0]
+                XML += "</major><minor>"
+                XML += results.local.version.split('.')[1]
+                XML += "</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
+                XML += container.getmac;
+                XML += "</UDN><serviceList></serviceList></device></root>";
+                return XML;
+            })
+    }
 
     return {
         formatTime: formatTime,
         allEquipmentInOneJSON: allEquipmentInOneJSON,
-		deviceXML: deviceXML,
+        deviceXML: deviceXML,
         testJson: testJson
     }
 

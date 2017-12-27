@@ -16,14 +16,25 @@ describe('nodejs-poolController', function() {
 
         beforeEach(function() {
             sandbox = sinon.sandbox.create()
-            loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-            loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-            loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-            loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-            loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
-            loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+            if (global.logInitAndStop) {
+                loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
+                loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+                loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+            }
+            else {
+                loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
+                loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
+                loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
+                loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
+                loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+                consoleStub = sandbox.stub(console, 'error')
 
+            }
         })
 
         afterEach(function() {

@@ -15,29 +15,29 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Setup express auth, both http and https (looping over the two types, each can support Auth or not - independently)
-module.exports = function(container) {
+// Setup express server, both http and https (looping over the two types, each can support Auth or not - independently)
+module.exports = function (container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: auth.js');
+        container.logger.info('Loading: server.js');
 
-    var express = container.express, servers = {http:{}, https:{}}, serversPromise = [];
+    var express = container.express, servers = {http: {}, https: {}, ssdp: {}}, serversPromise = [];
     var path = require('path').posix;
-    var defaultPort = {http: 3000, https:3001}
+    var defaultPort = {http: 3000, https: 3001}
 
 
     function startServerAsync(type) {
         return new Promise(function (resolve, reject) {
 
-            if (container.settings.get(type + 'Enabled')){
+            if (container.settings.get(type + 'Enabled')) {
                 // srvDesired += container.settings.get(type + 'Enabled');
 
                 servers[type].app = express();
                 servers[type].port = container.settings.get(type + 'ExpressPort') || defaultPort[type];
                 servers[type].server = undefined;
 
-                container.logger.info('Starting up express auth, ' + type + ' (port %d)', servers[type].port);
+                container.logger.info('Starting up express server, ' + type + ' (port %d)', servers[type].port);
 
                 // And Enable Authentication (if configured)
                 if (container.settings.get(type + 'ExpressAuth') === 1) {
@@ -49,7 +49,7 @@ module.exports = function(container) {
                 }
 
                 // Create Server
-                if (type==='https') {
+                if (type === 'https') {
                     var opt_https = {
                         key: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressKeyFile'))),
                         cert: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressCertFile'))),
@@ -61,12 +61,12 @@ module.exports = function(container) {
                     servers[type].server = container.http.createServer(servers[type].app);
 
                 // Configure Server
-                if (type==='http'  && container.settings.get('httpRedirectToHttps')){
+                if (type === 'http' && container.settings.get('httpRedirectToHttps')) {
 
-                    servers[type].app.get('*', function(req, res) {
+                    servers[type].app.get('*', function (req, res) {
                         var host = req.get('Host');
                         // replace the port in the host
-                        host = host.replace(/:\d+$/, ":"+container.settings.get('httpsExpressPort'));
+                        host = host.replace(/:\d+$/, ":" + container.settings.get('httpsExpressPort'));
                         // determine the redirect destination
                         var destination = ['https://', host, req.url].join('');
                         return res.redirect(destination);
@@ -79,7 +79,7 @@ module.exports = function(container) {
                 // And Start Listening
                 servers[type].server.listen(servers[type].port, function () {
                     container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
-                    container.io.init(servers[type].server,type)
+                    container.io.init(servers[type].server, type)
                     resolve();
                 });
 
@@ -90,92 +90,101 @@ module.exports = function(container) {
                 });
             }
             else {
-                resolve('Not starting '+ type + ' server.')
+                resolve('Not starting ' + type + ' server.')
             }
         });
     }
 
-	function startSSDPServer(type) {
-		return new Promise(function (resolve, reject) {
-			var mac = require('node-getmac').replace(/:/g,'').toLowerCase()
-			var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
-			var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
-			var location = type + '://' + require('ip').address() + ':' + port + '/device'
-			var SSDP = require('node-ssdp').Server
-				, server = new SSDP({    
-					logLevel:'INFO',
-					udn: udn,
-					location: location,
-					sourcePort: 1900
-				})
-	  
-			server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
-			// start the server
-			server.start();
-			resolve();
-			server.on('error', function (e) {
-                    container.logger.error('error from SSDP:', e);
-                    console.error(e);
-                    reject(e);
-			})
-			process.on('exit', function(){
-				server.stop() // advertise shutting down and stop listening
-			})
-		})
-	}
-		
-	
+    function startSSDPServer(type) {
+        return new Promise(function (resolve, reject) {
+            var mac = container.getmac
+            var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
+            var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
+            var location = type + '://' + require('ip').address() + ':' + port + '/device'
+            var SSDP = container.ssdp.Server
+            servers['ssdp'].server = new SSDP({
+                logLevel: 'INFO',
+                udn: udn,
+                location: location,
+                sourcePort: 1900
+            })
+
+            servers['ssdp'].server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
+            // start the server
+            servers['ssdp'].server.start()
+                .then(function () {
+                    container.logger.verbose('SSDP/uPNP Server started.')
+                    resolve()
+                });
+
+            servers['ssdp'].server.on('error', function (e) {
+                container.logger.error('error from SSDP:', e);
+                console.error(e);
+                reject(e);
+            })
+
+        })
+    }
+
+
     function initAsync() {
 
         serversPromise.push(startServerAsync('https'))
         serversPromise.push(startServerAsync('http'))
-		serversPromise.push(startSSDPServer('http'))
-		
+        serversPromise.push(startSSDPServer('http'))
+
         return Promise.all(serversPromise)
             .then(function () {
                 bottle.container.logger.debug('Server starting complete.')
+            })
+            .catch(function (e) {
+                console.error(e)
+                container.logger.error('Error starting servers.', e)
             })
 
 
     }
 
-    var closeAsync = function(type) {
+    var closeAsync = function (type) {
         return new Promise(function (resolve, reject) {
-            // for (var iter = 0; iter < typeServer.length; iter++) {
-            //     var type = typeServer[iter];
-            if (servers[type].server !== undefined) {
+            if (type === 'ssdp') {
+                servers['ssdp'].server.stop()
+                container.logger.verbose('SSDP/uPNP Server closed');
+                resolve()
+                // advertise shutting down and stop listening
+            }
+            else if (servers[type].server !== undefined) {
                 container.io.stop(type)
                 servers[type].server.close(function () {
                     container.logger.verbose('Express Server ' + type + ' closed');
                     resolve();
                 });
             } else {
-                container.logger.info('Trying to close ' + type + ' express auth, but it is not running.');
+                container.logger.info('Trying to close ' + type + ', but it is not running.');
                 resolve();  //it's ok if it isn't running, so resolve the promise.
             }
             // }
-        }).catch(function(err){
-            container.logger.error('error closing express or socket auth.', err.toString())
+        }).catch(function (err) {
+            container.logger.error('error closing express or socket server.', err.toString())
             console.error(err)
         });
     }
 
-    var closeAllAsync = function(){
-        serversPromise.push(closeAsync('http'), closeAsync('https'))
+    var closeAllAsync = function () {
+        serversPromise.push(closeAsync('http'), closeAsync('https'), closeAsync('ssdp'))
         return Promise.all(serversPromise)
-            .then(function(){
-                container.logger.verbose('All express servers closed')
+            .then(function () {
+                container.logger.verbose('All express + ssdp servers closed')
             })
-            .catch(function(err){
-                container.logger.error('Problem stopping express servers')
+            .catch(function (err) {
+                container.logger.error('Problem stopping express + ssdp servers')
                 console.error(err)
             })
     }
 
-    var getServer = function() {
+    var getServer = function () {
         return servers;
     };
-
 
 
     function configExpressServer(app, express) {
@@ -197,50 +206,54 @@ module.exports = function(container) {
             res.send(container.status.getCurrentStatus())
         })*/
 
-        app.get('/all', function(req, res) {
+        app.get('/all', function (req, res) {
             res.send(container.helpers.allEquipmentInOneJSON());
             container.io.emitToClients('all');
         });
 
-        app.get('/one', function(req, res) {
+        app.get('/one', function (req, res) {
             res.send(container.helpers.allEquipmentInOneJSON());
             container.io.emitToClients('all');
         });
 
-		app.get('/device', function(req, res) {
-			res.set('Content-Type', 'text/xml');
-            res.send(container.helpers.deviceXML());            
+        app.get('/device', function (req, res) {
+            container.helpers.deviceXML()
+                .then(function (XML) {
+                    res.set('Content-Type', 'text/xml');
+                    res.send(XML);
+                })
+
         });
-		
+
         /*istanbul ignore next */
-        app.get('/reload', function(req, res) {
+        app.get('/reload', function (req, res) {
             container.reload.reloadAsync();
             res.send('reloading configuration');
         });
 
-        app.get('/cancelDelay', function(req, res) {
+        app.get('/cancelDelay', function (req, res) {
             res.send(container.circuit.setDelayCancel());
         });
 
-        app.get('/heat', function(req, res) {
+        app.get('/heat', function (req, res) {
             res.send(container.temperatures.getTemperatures());
         });
-        app.get('/temperatures', function(req, res) {
+        app.get('/temperatures', function (req, res) {
             res.send(container.temperatures.getTemperatures());
         });
-        app.get('/temperature', function(req, res) {
+        app.get('/temperature', function (req, res) {
             res.send(container.temperatures.getTemperatures());
         });
 
-        app.get('/circuit', function(req, res) {
+        app.get('/circuit', function (req, res) {
             res.send(container.circuit.getCurrentCircuits());
         });
 
-        app.get('/schedule', function(req, res) {
+        app.get('/schedule', function (req, res) {
             res.send(container.schedule.getCurrentSchedule());
         });
 
-        app.get('/schedule/toggle/id/:id/day/:day', function(req, res) {
+        app.get('/schedule/toggle/id/:id/day/:day', function (req, res) {
             var id = parseInt(req.params.id);
             var day = req.params.day;
             var response = {};
@@ -250,7 +263,7 @@ module.exports = function(container) {
             res.send(response);
         });
 
-        app.get('/schedule/delete/id/:id', function(req, res) {
+        app.get('/schedule/delete/id/:id', function (req, res) {
             var id = parseInt(req.params.id);
             var response = {};
             response.text = 'REST API received request to delete schedule or egg timer with ID:' + id;
@@ -259,18 +272,18 @@ module.exports = function(container) {
             res.send(response);
         });
 
-        app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function(req, res) {
+        app.get('/schedule/set/id/:id/startOrEnd/:sOE/hour/:hour/min/:min', function (req, res) {
             var id = parseInt(req.params.id);
             var hour = parseInt(req.params.hour);
             var min = parseInt(req.params.min);
             var response = {};
-            response.text = 'REST API received request to set ' + req.params.sOE + ' time on schedule with ID (' + id + ') to ' +hour+':'+min;
+            response.text = 'REST API received request to set ' + req.params.sOE + ' time on schedule with ID (' + id + ') to ' + hour + ':' + min;
             container.logger.info(response);
             container.schedule.setControllerScheduleStartOrEndTime(id, req.params.sOE, hour, min);
             res.send(response);
         });
 
-        app.get('/schedule/set/id/:id/circuit/:circuit', function(req, res) {
+        app.get('/schedule/set/id/:id/circuit/:circuit', function (req, res) {
             var id = parseInt(req.params.id);
             var circuit = parseInt(req.params.circuit);
             var response = {};
@@ -280,19 +293,19 @@ module.exports = function(container) {
             res.send(response)
         })
 
-        app.get('/eggtimer/set/id/:id/circuit/:circuit/hour/:hour/min/:min', function(req, res) {
+        app.get('/eggtimer/set/id/:id/circuit/:circuit/hour/:hour/min/:min', function (req, res) {
             var id = parseInt(req.params.id)
             var circuit = parseInt(req.params.circuit)
             var hr = parseInt(req.params.hour)
             var min = parseInt(req.params.min)
             var response = {}
-            response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + ' for ' + hr + ' hours, ' +min+' minutes'
+            response.text = 'REST API received request to set eggtimer with ID (' + id + '): ' + container.circuit.getFriendlyName(circuit) + ' for ' + hr + ' hours, ' + min + ' minutes'
             container.logger.info(response)
             container.schedule.setControllerEggTimer(id, circuit, hr, min)
             res.send(response)
         })
 
-        app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
+        app.get('/schedule/set/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function (req, res) {
             var id = parseInt(req.params.id)
             var circuit = parseInt(req.params.circuit)
             var starthh = parseInt(req.params.starthh)
@@ -301,14 +314,14 @@ module.exports = function(container) {
             var endmm = parseInt(req.params.endmm)
             var days = parseInt(req.params.days)
             var response = {}
-            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
             container.logger.info(response)
             container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
             res.send(response)
         })
 
         // TODO:  merge above and this code into single function
-        app.get('/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function(req, res) {
+        app.get('/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function (req, res) {
             var id = parseInt(req.params.id)
             var circuit = parseInt(req.params.circuit)
             var starthh = parseInt(req.params.starthh)
@@ -317,23 +330,23 @@ module.exports = function(container) {
             var endmm = parseInt(req.params.endmm)
             var days = parseInt(req.params.days)
             var response = {}
-            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':'+startmm + ' (end) ' + endhh + ':'+ endmm + ' with days value ' + days
+            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
             container.logger.info(response)
             container.schedule.setControllerSchedule(id, circuit, starthh, startmm, endhh, endmm, days)
             res.send(response)
         })
 
-        app.get('/time', function(req, res) {
+        app.get('/time', function (req, res) {
             res.send(container.time.getTime())
         })
 
-        app.get('/datetime', function(req, res) {
+        app.get('/datetime', function (req, res) {
             res.send(container.time.getTime())
         })
 
 
 //TODO: do we need DOW in these???
-        app.get('/datetime/set/time/:hh/:mm/date/:dow/:dd/:mon/:yy/:dst', function(req, res) {
+        app.get('/datetime/set/time/:hh/:mm/date/:dow/:dd/:mon/:yy/:dst', function (req, res) {
             var hour = parseInt(req.params.hh)
             var min = parseInt(req.params.mm)
             var day = parseInt(req.params.dd)
@@ -360,7 +373,7 @@ module.exports = function(container) {
         })
 
 
-        app.get('/datetime/set/time/hour/:hh/min/:mm/date/dow/:dow/day/:dd/mon/:mon/year/:yy/dst/:dst', function(req, res) {
+        app.get('/datetime/set/time/hour/:hh/min/:mm/date/dow/:dow/day/:dd/mon/:mon/year/:yy/dst/:dst', function (req, res) {
             var hour = parseInt(req.params.hh)
             var min = parseInt(req.params.mm)
             var day = parseInt(req.params.dd)
@@ -386,26 +399,26 @@ module.exports = function(container) {
             res.send(response)
         })
 
-        app.get('/pump', function(req, res) {
+        app.get('/pump', function (req, res) {
             res.send(container.pump.getCurrentPumpStatus())
         })
 
-        app.get('/chlorinator', function(req, res) {
+        app.get('/chlorinator', function (req, res) {
             res.send(container.chlorinator.getChlorinatorStatus())
         })
 
-        app.get('/intellichem', function(req, res) {
+        app.get('/intellichem', function (req, res) {
             res.send(container.intellichem.getCurrentIntellichem())
         })
 
-        app.get('/chlorinator/:chlorinateLevel', function(req, res) {
+        app.get('/chlorinator/:chlorinateLevel', function (req, res) {
             container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.chlorinateLevel))
-                .then(function(response) {
+                .then(function (response) {
                     res.send(response)
                 })
         })
 
-        app.get('/circuit/:circuit', function(req, res) {
+        app.get('/circuit/:circuit', function (req, res) {
             if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= 20) {
                 res.send(container.circuit.getCircuit(parseInt(req.params.circuit)))
             } else {
@@ -413,100 +426,100 @@ module.exports = function(container) {
             }
         })
 
-        app.get('/circuit/:circuit/toggle', function(req, res) {
-            container.circuit.toggleCircuit(parseInt(req.params.circuit), function(response) {
+        app.get('/circuit/:circuit/toggle', function (req, res) {
+            container.circuit.toggleCircuit(parseInt(req.params.circuit), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/circuit/:circuit/set/:set', function(req, res) {
-            container.circuit.setCircuit(parseInt(req.params.circuit), parseInt(req.params.set), function(response) {
+        app.get('/circuit/:circuit/set/:set', function (req, res) {
+            container.circuit.setCircuit(parseInt(req.params.circuit), parseInt(req.params.set), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/setpoint/:spasetpoint', function(req, res) {
-            container.heat.setSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+        app.get('/spaheat/setpoint/:spasetpoint', function (req, res) {
+            container.heat.setSpaSetPoint(parseInt(req.params.spasetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/increment', function(req, res) {
-            container.heat.incrementSpaSetPoint(1, function(response) {
+        app.get('/spaheat/increment', function (req, res) {
+            container.heat.incrementSpaSetPoint(1, function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/increment/:spasetpoint', function(req, res) {
-            container.heat.incrementSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+        app.get('/spaheat/increment/:spasetpoint', function (req, res) {
+            container.heat.incrementSpaSetPoint(parseInt(req.params.spasetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/decrement', function(req, res) {
-            container.heat.decrementSpaSetPoint(1, function(response) {
+        app.get('/spaheat/decrement', function (req, res) {
+            container.heat.decrementSpaSetPoint(1, function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/decrement/:spasetpoint', function(req, res) {
-            container.heat.decrementSpaSetPoint(parseInt(req.params.spasetpoint), function(response) {
+        app.get('/spaheat/decrement/:spasetpoint', function (req, res) {
+            container.heat.decrementSpaSetPoint(parseInt(req.params.spasetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/spaheat/mode/:spaheatmode', function(req, res) {
-            container.heat.setSpaHeatMode(parseInt(req.params.spaheatmode), function(response) {
+        app.get('/spaheat/mode/:spaheatmode', function (req, res) {
+            container.heat.setSpaHeatMode(parseInt(req.params.spaheatmode), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/poolheat/setpoint/:poolsetpoint', function(req, res) {
-            container.heat.setPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+        app.get('/poolheat/setpoint/:poolsetpoint', function (req, res) {
+            container.heat.setPoolSetPoint(parseInt(req.params.poolsetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/poolheat/decrement', function(req, res) {
-            container.heat.decrementPoolSetPoint(1, function(response) {
+        app.get('/poolheat/decrement', function (req, res) {
+            container.heat.decrementPoolSetPoint(1, function (response) {
                 res.send(response)
             })
         })
 
 
-        app.get('/poolheat/decrement/:poolsetpoint', function(req, res) {
-            container.heat.decrementPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+        app.get('/poolheat/decrement/:poolsetpoint', function (req, res) {
+            container.heat.decrementPoolSetPoint(parseInt(req.params.poolsetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/poolheat/increment', function(req, res) {
-            container.heat.incrementPoolSetPoint(1, function(response) {
+        app.get('/poolheat/increment', function (req, res) {
+            container.heat.incrementPoolSetPoint(1, function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/poolheat/increment/:poolsetpoint', function(req, res) {
-            container.heat.incrementPoolSetPoint(parseInt(req.params.poolsetpoint), function(response) {
+        app.get('/poolheat/increment/:poolsetpoint', function (req, res) {
+            container.heat.incrementPoolSetPoint(parseInt(req.params.poolsetpoint), function (response) {
                 res.send(response)
             })
         })
 
-        app.get('/poolheat/mode/:poolheatmode', function(req, res) {
-            container.heat.setPoolHeatMode(parseInt(req.params.poolheatmode), function(response) {
-                res.send(response)
-            })
-
-        })
-
-        app.get('/sendthispacket/:packet', function(req, res) {
-            container.queuePacket.sendThisPacket(req.params.packet, function(response) {
+        app.get('/poolheat/mode/:poolheatmode', function (req, res) {
+            container.heat.setPoolHeatMode(parseInt(req.params.poolheatmode), function (response) {
                 res.send(response)
             })
 
         })
 
-        app.get('pumpCommand/pump/:pump/type/:type', function(req, res){
+        app.get('/sendthispacket/:packet', function (req, res) {
+            container.queuePacket.sendThisPacket(req.params.packet, function (response) {
+                res.send(response)
+            })
+
+        })
+
+        app.get('pumpCommand/pump/:pump/type/:type', function (req, res) {
             var pump = parseInt(req.params.pump)
             var type = type
             var response = {}
@@ -519,7 +532,7 @@ module.exports = function(container) {
 
         /* New pumpCommand API's  */
         //#1  Turn pump off
-        app.get('/pumpCommand/off/pump/:pump', function(req, res) {
+        app.get('/pumpCommand/off/pump/:pump', function (req, res) {
             var pump = parseInt(req.params.pump)
             var response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: off, duration: null'
@@ -531,7 +544,7 @@ module.exports = function(container) {
         })
 
         //#2  Run pump indefinitely.
-        app.get('/pumpCommand/run/pump/:pump', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump', function (req, res) {
             var pump = parseInt(req.params.pump)
             var response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', power: on, duration: null'
@@ -555,7 +568,7 @@ module.exports = function(container) {
         // })
 
         //#3  Run pump for a duration.
-        app.get('/pumpCommand/run/pump/:pump/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var duration = parseInt(req.params.duration)
             var response = {}
@@ -582,7 +595,7 @@ module.exports = function(container) {
 
 
         //#4  Run pump program for indefinite duration
-        app.get('/pumpCommand/run/pump/:pump/program/:program', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/program/:program', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
 
@@ -597,7 +610,7 @@ module.exports = function(container) {
         })
 
         //#5 Run pump program for a specified duration
-        app.get('/pumpCommand/run/pump/:pump/program/:program/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/program/:program/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var duration = parseInt(req.params.duration)
@@ -611,7 +624,7 @@ module.exports = function(container) {
         })
 
         //#6 Run pump at RPM for an indefinite duration
-        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm', function (req, res) {
             var pump = parseInt(req.params.pump)
             var rpm = parseInt(req.params.rpm)
             var response = {}
@@ -625,7 +638,7 @@ module.exports = function(container) {
         })
 
         //#7 Run pump at RPM for specified duration
-        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/rpm/:rpm/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var rpm = parseInt(req.params.rpm)
             var duration = parseInt(req.params.duration)
@@ -639,7 +652,7 @@ module.exports = function(container) {
         })
 
         //#8  Save program to pump
-        app.get('/pumpCommand/save/pump/:pump/program/:program/rpm/:speed', function(req, res) {
+        app.get('/pumpCommand/save/pump/:pump/program/:program/rpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -654,7 +667,7 @@ module.exports = function(container) {
         })
 
         //#9  Save and run program for indefinite duration
-        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed', function(req, res) {
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -670,7 +683,7 @@ module.exports = function(container) {
         })
 
         //#10  Save and run program for specified duration
-        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/rpm/:speed/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -686,7 +699,7 @@ module.exports = function(container) {
         })
 
 //#11 Run pump at GPM for an indefinite duration
-        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function (req, res) {
             var pump = parseInt(req.params.pump)
             var gpm = parseInt(req.params.gpm)
             var response = {}
@@ -700,7 +713,7 @@ module.exports = function(container) {
         })
 
 //#12 Run pump at GPM for specified duration
-        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var gpm = parseInt(req.params.gpm)
             var duration = parseInt(req.params.duration)
@@ -714,7 +727,7 @@ module.exports = function(container) {
         })
 
 //#13  Save program to pump
-        app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+        app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -724,8 +737,7 @@ module.exports = function(container) {
             response.program = program
             response.speed = speed
             response.duration = null
-            if (container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed))
-            {
+            if (container.pumpControllerMiddleware.pumpCommandSaveProgram(pump, program, speed)) {
                 res.send(response)
 
             }
@@ -736,7 +748,7 @@ module.exports = function(container) {
         })
 
 //#14  Save and run program for indefinite duration
-        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function(req, res) {
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -756,7 +768,7 @@ module.exports = function(container) {
 
 //#15  Save and run program for specified duration
 
-        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function(req, res) {
+        app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
             var speed = parseInt(req.params.speed)
@@ -780,9 +792,8 @@ module.exports = function(container) {
         /* END New pumpCommand API's  */
 
 
-
         /* Invalid pump commands -- sends response */
-        app.get('/pumpCommand/save/pump/:pump/rpm/:rpm', function(req, res) {
+        app.get('/pumpCommand/save/pump/:pump/rpm/:rpm', function (req, res) {
             //TODO:  this should be valid.  Just turn the pump on with no program at a specific speed.  Maybe 5,1,1 (manual)?
             var response = {}
             response.text = 'FAIL: Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#'
@@ -790,7 +801,7 @@ module.exports = function(container) {
         })
 
 
-        app.get('/pumpCommand/save/pump/:pump/program/:program', function(req, res) {
+        app.get('/pumpCommand/save/pump/:pump/program/:program', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
 
@@ -808,11 +819,9 @@ module.exports = function(container) {
     }
 
 
-
-
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: auth.js');
+        container.logger.info('Loaded: server.js');
 
     return {
         getServer: getServer,

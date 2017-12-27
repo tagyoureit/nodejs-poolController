@@ -92,9 +92,7 @@ bottle.factory('_', function() {
     return require('underscore')
 })
 
-bottle.factory('path',function(){
-    return require('path').posix
-})
+bottle.factory('ssdp', function() {return require('node-ssdp')})
 
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 
@@ -102,7 +100,10 @@ bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
-
+bottle.factory('getmac', function() {return require('node-getmac').replace(/:/g,'').toLowerCase()})
+bottle.factory('path',function(){
+    return require('path').posix
+})
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
