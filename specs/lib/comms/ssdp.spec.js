@@ -5,9 +5,9 @@ describe('tests SSDP/uPNP', function () {
         before(function () {
             return global.initAllAsync()
                 .then(function () {
-                    loggers = setupLoggerStubOrSpy('stub', 'spy')
-                    return bottle.container.updateAvailable.initAsync('/specs/assets/packageJsonTemplates/package_3.1.9.json')
+                    loggers = setupLoggerStubOrSpy('stub', 'stub')
                 })
+                .then(bottle.container.updateAvailable.initAsync('/specs/assets/packageJsonTemplates/package_3.1.9.json'))
         })
 
         beforeEach(function () {
@@ -17,7 +17,6 @@ describe('tests SSDP/uPNP', function () {
                 .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                 .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
                 .persist()
-
         })
 
         afterEach(function () {
@@ -25,7 +24,8 @@ describe('tests SSDP/uPNP', function () {
         })
 
         after(function () {
-            return global.stopAllAsync()
+            return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')
+                .then(global.stopAllAsync)
         })
 
         it('responds to an m-search', function (done) {

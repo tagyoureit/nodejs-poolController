@@ -12,6 +12,7 @@
 1. Make sure to run `npm upgrade`.  There are many package updates and changes.
 1. Intellichem initial support.
 1. Inactivity timer for both internal connections and web page connections.  If a connection is broken, it should re-establish itself automatically now.
+1. SSDP for auto-discovery by SmartThings or other services
 
 # License
 

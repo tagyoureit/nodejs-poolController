@@ -217,14 +217,26 @@ module.exports = function (container) {
     function deviceXML() {
         return container.updateAvailable.getResultsAsync()
             .then(function (results) {
-                var XML = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:PoolController-1-0\"><specVersion><major>"
-                XML += results.local.version.split('.')[0]
-                XML += "</major><minor>"
-                XML += results.local.version.split('.')[1]
-                XML += "</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
-                XML += container.getmac;
-                XML += "</UDN><serviceList></serviceList></device></root>";
-                return XML;
+                return getMac()
+                    .then(function (mac) {
+                        var XML = "<?xml version=\"1.0\"?><root xmlns=\"urn:schemas-upnp-org:PoolController-1-0\"><specVersion><major>"
+                        XML += results.local.version.split('.')[0]
+                        XML += "</major><minor>"
+                        XML += results.local.version.split('.')[1]
+                        XML += "</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
+                        XML += mac
+                        XML += "</UDN><serviceList></serviceList></device></root>";
+                        return XML;
+                    })
+
+            })
+    }
+
+    function getMac() {
+        return container.getmac.getMacAsync()
+            .then(function (mac) {
+                console.log('res!', mac.replace(/:/g, '').toLowerCase())
+                return mac.replace(/:/g, '').toLowerCase()
             })
     }
 
@@ -232,7 +244,10 @@ module.exports = function (container) {
         formatTime: formatTime,
         allEquipmentInOneJSON: allEquipmentInOneJSON,
         deviceXML: deviceXML,
-        testJson: testJson
+        testJson: testJson,
+        getMac: getMac
     }
 
 }
+
+

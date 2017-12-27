@@ -100,7 +100,9 @@ bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
-bottle.factory('getmac', function() {return require('node-getmac').replace(/:/g,'').toLowerCase()})
+//bottle.factory('getmac', function() {return require('node-getmac').replace(/:/g,'').toLowerCase()})
+bottle.service('getmac', function(){return bottle.container.promise.promisifyAll(require('getmac'))})
+
 bottle.factory('path',function(){
     return require('path').posix
 })

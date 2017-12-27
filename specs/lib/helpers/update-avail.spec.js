@@ -240,7 +240,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
 
 
-                        client.on('connect', function (data) {
+                        client.on('connect', function () {
                             bottle.container.io.emitToClients('updateAvailable')
                         })
                         client.on('updateAvailable', function (msg) {

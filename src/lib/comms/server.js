@@ -96,32 +96,35 @@ module.exports = function (container) {
     }
 
     function startSSDPServer(type) {
-        return new Promise(function (resolve, reject) {
-            var mac = container.getmac
-            var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
-            var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
-            var location = type + '://' + require('ip').address() + ':' + port + '/device'
-            var SSDP = container.ssdp.Server
-            servers['ssdp'].server = new SSDP({
-                logLevel: 'INFO',
-                udn: udn,
-                location: location,
-                sourcePort: 1900
-            })
+         return new Promise(function (resolve, reject) {
+           return container.helpers.getMac()
+               .then(function(mac){
+                   var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
+                   var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
+                   var location = type + '://' + require('ip').address() + ':' + port + '/device'
+                   var SSDP = container.ssdp.Server
+                   servers['ssdp'].server = new SSDP({
+                       logLevel: 'INFO',
+                       udn: udn,
+                       location: location,
+                       sourcePort: 1900
+                   })
 
-            servers['ssdp'].server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
-            // start the server
-            servers['ssdp'].server.start()
-                .then(function () {
-                    container.logger.verbose('SSDP/uPNP Server started.')
-                    resolve()
-                });
+                   servers['ssdp'].server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
+                   // start the server
+                   servers['ssdp'].server.start()
+                       .then(function () {
+                           container.logger.verbose('SSDP/uPNP Server started.')
+                           resolve()
+                       });
 
-            servers['ssdp'].server.on('error', function (e) {
-                container.logger.error('error from SSDP:', e);
-                console.error(e);
-                reject(e);
-            })
+                   servers['ssdp'].server.on('error', function (e) {
+                       container.logger.error('error from SSDP:', e);
+                       console.error(e);
+                       reject(e);
+                   })
+
+               })
 
         })
     }
