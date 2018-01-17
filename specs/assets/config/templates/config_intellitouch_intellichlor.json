@@ -1,8 +1,17 @@
 {
   "equipment": {
     "controller": {
+      "intellicom": {
+        "installed": 0,
+        "friendlyName": ""
+      },
+      "intellitouch": {
+        "installed": 1,
+        "friendlyName": ""
+      },
       "virtual": {
-        "chlorinatorController": "always"
+        "pumpController": "default",
+        "chlorinatorController": "default"
       }
     },
     "chlorinator": {
@@ -18,5 +27,3 @@
     }
   }
 }
-
-

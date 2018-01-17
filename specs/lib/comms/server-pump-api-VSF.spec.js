@@ -2,14 +2,14 @@ describe('#sends pump commands to a VSF pump', function () {
     context('with a HTTP REST API', function () {
 
         before(function () {
-            return global.initAllAsync()
+
         });
 
         beforeEach(function(){
 
             return Promise.resolve()
                 .then(function(){
-                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                    return global.initAllAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
                 })
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'spy')
@@ -24,14 +24,12 @@ describe('#sends pump commands to a VSF pump', function () {
         })
 
         afterEach(function () {
-            bottle.container.pumpControllerTimers.clearTimer(2)
-            bottle.container.queuePacket.init()
-            bottle.container.writePacket.init()
             sandbox.restore()
+            return global.stopAllAsync()
+
         })
 
         after(function () {
-            return global.stopAllAsync()
         })
 
 

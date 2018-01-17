@@ -1,61 +1,5 @@
 {
     "equipment": {
-        "controller": {
-            "intellicom": {
-                "installed": 0,
-                "friendlyName": ""
-            },
-            "intellitouch": {
-                "installed": 0,
-                "friendlyName": ""
-            },
-            "virtual": {
-                "pumpController": "default",
-                "chlorinatorController": "default"
-            },
-            "id": {
-                "productName": "",
-                "productNumber": "",
-                "manufacturer": "",
-                "description": ""
-            },
-            "circuitFriendlyNames": {
-                "1": "",
-                "2": "",
-                "3": "",
-                "4": "",
-                "5": "Waterfall Medium Low",
-                "6": "",
-                "7": "",
-                "8": "",
-                "9": "",
-                "10": "",
-                "11": "",
-                "12": "Waterfall Low",
-                "13": "Waterfall Medium",
-                "14": "Waterfall High",
-                "15": "",
-                "16": "",
-                "17": "",
-                "18": "",
-                "19": "",
-                "20": ""
-            }
-        },
-        "chlorinator": {
-            "installed": 1,
-            "desiredOutput": {
-                "pool": 101,
-                "spa": 12
-            },
-            "friendlyName": "",
-            "id": {
-                "productName": -1,
-                "productNumber": "",
-                "manufacturer": "",
-                "description": ""
-            }
-        },
         "pump": {
 
             "1": {
@@ -66,13 +10,7 @@
                     "4": 3000
                 },
                 "friendlyName": "",
-                "type": "VS",
-                "id": {
-                    "productName": "",
-                    "productNumber": "",
-                    "manufacturer": "",
-                    "description": ""
-                }
+                "type": "VS"
             },
             "2": {
                 "externalProgram": {
@@ -82,105 +20,17 @@
                     "4": -1
                 },
                 "friendlyName": "",
-                "type": "VS",
-                "id": {
-                    "productName": "",
-                    "productNumber": "",
-                    "manufacturer": "",
-                    "description": ""
-                }
+                "type": "VS"
             }
+        },
+        "intellichem": {
+            "installed": 0
+        },
+        "spa": {
+            "installed": 0
+        },
+        "solar": {
+            "installed": 0
         }
-    },
-    "poolController": {
-        "appAddress": 33,
-        "http": {
-            "enabled": 1,
-            "expressPort": 3000,
-            "redirectToHttps": 0,
-            "expressAuth": 0,
-            "expressAuthFile": "/users.htpasswd"
-        },
-        "https": {
-            "enabled": 0,
-            "expressPort": 3001,
-            "expressAuth": 0,
-            "expressAuthFile": "/users.htpasswd",
-            "expressKeyFile": "/specs/assets/data/server.key",
-            "expressCertFile": "/specs/assets/data/server.crt"
-        },
-        "network": {
-            "rs485Port": "/dev/ttyUSB0",
-            "netConnect": 0,
-            "netHost": "raspberrypi",
-            "netPort": 9801
-        },
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "4.0.0",
-                    "tag_name": "v4.0.0",
-                    "dismissUntilNextRemoteVersionBump": true
-                }
-            }
-        },
-        "log": {
-            "logLevel": "debug",
-            "socketLogLevel": "verbose",
-            "fileLog": {
-                "enable": 0,
-                "fileLogLevel": "silly",
-                "fileName": "output.log"
-            },
-            "logPumpMessages": 1,
-            "logDuplicateMessages": 0,
-            "logConsoleNotDecoded": 0,
-            "logConfigMessages": 0,
-            "logMessageDecoding": 0,
-            "logChlorinator": 1,
-            "logPacketWrites": 1,
-            "logIntellichem": 0,
-            "logPumpTimers": 0,
-            "logApi": 0
-        },
-        "database": {
-            "influx": {
-                "enabled": 0,
-                "host": "localhost",
-                "port": 8086,
-                "database": "pool"
-            }
-        }
-    },
-    "integrations": {
-        "socketISY": 0,
-        "outputSocketToConsoleExample": 0
-    },
-    "socketISY": {
-        "username": "blank",
-        "password": "blank",
-        "ipaddr": "127.0.0.1",
-        "port": 12345,
-        "Variables": {
-            "chlorinator": {
-                "saltPPM": 16
-            },
-            "pump": {
-                "1": {
-                    "watts": 25,
-                    "rpm": 24,
-                    "currentprogram": 13,
-                    "program1rpm": 10,
-                    "program2rpm": 11,
-                    "program3rpm": 12,
-                    "program4rpm": 13,
-                    "power": 14,
-                    "timer": 15
-                }
-            }
-        }
-    },
-    "outputSocketToConsoleExample": {
-        "level": "warn"
     }
 }

@@ -43,14 +43,14 @@ var currentCircuitArrObj = {},
     numberOfCircuits = 20
 
 
-module.exports = function(container) {
+module.exports = function (container) {
 
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
         container.logger.info('Loading: circuit.js')
 
-    var init = function() {
+    var init = function () {
 
         for (var i = 1; i <= numberOfCircuits; i++) {
             lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
@@ -65,8 +65,6 @@ module.exports = function(container) {
         "initialCircuitsBroadcast": 0
     }
     var logger = container.logger
-
-
 
 
     //var bufferArr = []; //variable to process buffer.  interimBufferArr will be copied here when ready to process
@@ -87,9 +85,7 @@ module.exports = function(container) {
 
         if (currentStatusBytes.length === 0) {
             if (container.settings.get('logConfigMessages')) logger.verbose('\n ', printStatus(data));
-        } else
-
-        if (container.settings.get('logConfigMessages')) {
+        } else if (container.settings.get('logConfigMessages')) {
             logger.verbose('-->EQUIPMENT Msg# %s   \n', counter)
             logger.verbose('Msg# %s: \n', counter, printStatus(currentStatusBytes, data));
         }
@@ -102,13 +98,13 @@ module.exports = function(container) {
         //currentStatusBytes = data
     }
 
-    var pad = function(num, size) {
+    var pad = function (num, size) {
         //makes any digit returned as a string of length size (for outputting formatted byte text)
         var s = "   " + num;
         return s.substr(s.length - size);
     }
 
-    var printStatus = function(data1, data2) {
+    var printStatus = function (data1, data2) {
 
         var str1 = ''
         var str2 = ''
@@ -132,7 +128,6 @@ module.exports = function(container) {
         header += (spacepadding + '          S   C   M   T   U   I   E   E   E                   M   E       A   D   M   M   O       M   M           M                           K   K\n');
         header += (spacepadding + '          T   E   D   H   R   N   1   2   3                       S       Y   E   P   P   N       P   P           D                           H   L\n');
         //                    e.g.  165, xx, 15, 16,  2, 29, 11, 33, 32,  0,  0,  0,  0,  0,  0,  0, 51,  0, 64,  4, 79, 79, 32,  0, 69,102,  0,  0,  7,  0,  0,182,215,  0, 13,  4,186
-
 
 
         //format status1 so numbers are three digits
@@ -164,7 +159,7 @@ module.exports = function(container) {
     }
 
     //internal method to apply the friendly name
-    var getCircuitFriendlyNames = function() {
+    var setCircuitFriendlyNames = function () {
         var useFriendlyName
         var configFriendlyNames = container.settings.get('circuitFriendlyNames')
         for (var i = 1; i <= numberOfCircuits; i++) {
@@ -172,8 +167,8 @@ module.exports = function(container) {
                 useFriendlyName = false
             } else {
                 //for now, UI doesn't support renaming 'pool' or 'spa'.  Check for that here.
-                if ((currentCircuitArrObj[i].circuitFunction === "Spa" && configFriendlyNames[i] !== "Spa") ||
-                    (currentCircuitArrObj[i].circuitFunction === "Pool" && configFriendlyNames[i] !== "Pool")) {
+                if ((currentCircuitArrObj[i].circuitFunction.toUpperCase() === "SPA" && configFriendlyNames[i].toUpperCase() !== "SPA") ||
+                    (currentCircuitArrObj[i].circuitFunction.toUpperCase() === "POOL" && configFriendlyNames[i].toUpperCase() !== "POOL")) {
                     logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[i].circuitFunction)
                     useFriendlyName = false
                 } else {
@@ -188,14 +183,14 @@ module.exports = function(container) {
         }
     }
 
-    var statusToString = function(status) {
+    var statusToString = function (status) {
         if (status === 1)
             return 'on'
         else {
             return 'off'
         }
     }
-    var outputInitialCircuitsDiscovered = function() {
+    var outputInitialCircuitsDiscovered = function () {
         var circuitStr = '';
         for (var i = 1; i <= numberOfCircuits; i++) {
             circuitStr += 'Circuit ' + currentCircuitArrObj[i].number + ': ' + currentCircuitArrObj[i].name
@@ -215,7 +210,7 @@ module.exports = function(container) {
 
     }
 
-    var doWeHaveAllInformation = function() {
+    var doWeHaveAllInformation = function () {
         //simple function to see if we have both the circuit names & status (come from 2 different sets of packets)
         if (sendInitialBroadcast.haveCircuitNames === 1 && sendInitialBroadcast.haveCircuitStatus === 1) {
             outputInitialCircuitsDiscovered()
@@ -224,7 +219,7 @@ module.exports = function(container) {
 
     }
 
-    var assignCircuitVars = function(circuit, circuitArrObj) {
+    var assignCircuitVars = function (circuit, circuitArrObj) {
         //we don't inculde status because it comes from a different packet
         currentCircuitArrObj[circuit].number = circuitArrObj.number
         currentCircuitArrObj[circuit].numberStr = circuitArrObj.numberStr
@@ -235,8 +230,6 @@ module.exports = function(container) {
 
         currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
     }
-
-
 
 
     function circuitChanged(circuit, counter) {
@@ -275,7 +268,7 @@ module.exports = function(container) {
                 return container.constants.strCircuitFunction[circuit]
             }
         }
-        catch(err) {
+        catch (err) {
             logger.warn('Tried to retrieve circuit %s which is not a valid circuit.', circuit)
             return 'No valid circuit (' + circuit + ')'
         }
@@ -283,6 +276,7 @@ module.exports = function(container) {
     }
 
     //external methode to return the friendlyName
+    //TODO:  Should set the friendlyName in the currentCircuitArrObj.
     function getFriendlyName(circuit) {
         try {
             if (circuit >= 1 && circuit <= numberOfCircuits) {
@@ -295,6 +289,36 @@ module.exports = function(container) {
             return 'No valid circuit (' + circuit + ')'
         }
 
+    }
+
+    function getAllNonLightCircuits() {
+        var tempObj = {}
+        for (var key in currentCircuitArrObj) {
+            if (currentCircuitArrObj[key].circuitFunction!==undefined || currentCircuitArrObj[key].name==="NOT USED") {
+                if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) === -1) {
+                    tempObj[key] = {
+                       // "circuitFunction": currentCircuitArrObj[key].circuitFunction,
+                        "circuitName": getFriendlyName(key)
+                    }
+                }
+            }
+        }
+        return tempObj
+    }
+
+    function getAllLightCircuits() {
+        var tempObj = {}
+        for (var key in currentCircuitArrObj) {
+            if (currentCircuitArrObj[key].circuitFunction!==undefined || currentCircuitArrObj[key].name==="NOT USED") {
+                if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) >= 0) {
+                    tempObj[key] = {
+                        //"circuitFunction": currentCircuitArrObj[key].circuitFunction,
+                        "circuitName": getFriendlyName(key)
+                    }
+                }
+            }
+        }
+        return tempObj
     }
 
     function setCircuitFromController(circuit, nameByte, functionByte, counter) {
@@ -322,7 +346,7 @@ module.exports = function(container) {
 
         if (circuit === numberOfCircuits && sendInitialBroadcast.haveCircuitNames === 0) {
             sendInitialBroadcast.haveCircuitNames = 1
-            getCircuitFriendlyNames()
+            setCircuitFriendlyNames()
             doWeHaveAllInformation()
         } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
             //not sure we can do this ... have to check to see if they will come out the same
@@ -367,7 +391,7 @@ module.exports = function(container) {
         }
     }
 
-    //this function takes the status packet (controller:2) and parses through the equipment fields
+//this function takes the status packet (controller:2) and parses through the equipment fields
     function assignCircuitStatusFromControllerStatus(data, counter) {
 
         //temp object so we can compare
@@ -435,7 +459,6 @@ module.exports = function(container) {
     }
 
 
-
     function requestUpdateCircuit(source, dest, circuit, action, counter) {
         //this is for the request.  Not actual confirmation of circuit update.  So we don't update the object here.
         try {
@@ -448,7 +471,7 @@ module.exports = function(container) {
     }
 
     function getCurrentCircuits() {
-            return {'circuit': currentCircuitArrObj}
+        return {'circuit': currentCircuitArrObj}
     }
 
 
@@ -489,7 +512,7 @@ module.exports = function(container) {
         return response
     }
 
-    var setControllerLightColor = function(color, lightGroup, counter) {
+    var setControllerLightColor = function (color, lightGroup, counter) {
         console.log('clr %s, lgrp %s, counter %s', color, lightGroup, counter)
         var strIntellibriteModes = container.constants.strIntellibriteModes;
         // if (container.settings.logConfigMessages)
@@ -508,7 +531,7 @@ module.exports = function(container) {
 
     }
 
-    var setControllerLightGroup = function(_lightGroupPacketArr, counter) {
+    var setControllerLightGroup = function (_lightGroupPacketArr, counter) {
         if (container.settings.get('logConfigMessages'))
             container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
 
@@ -536,8 +559,7 @@ module.exports = function(container) {
                 currentCircuitArrObj[key].light = new Light(0, 'off', 0)
                 if (container.settings.get('logConfigMessages'))
                     container.logger.verbose('Msg# %s  Light group deleted on circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
-            } else
-            if (_temp.hasOwnProperty(key)) {
+            } else if (_temp.hasOwnProperty(key)) {
                 // if the group does exist in the passed light group
                 if (lightGroup[key].group !== _temp[key].group) {
                     // check to see if it is the same as what we already have
@@ -587,6 +609,8 @@ module.exports = function(container) {
         getCircuit: getCircuit,
         getCircuitName: getCircuitName,
         getFriendlyName: getFriendlyName,
+        getAllNonLightCircuits: getAllNonLightCircuits,
+        getAllLightCircuits: getAllLightCircuits,
         assignCircuitStatusFromControllerStatus: assignCircuitStatusFromControllerStatus,
         assignCircuitDelayFromControllerStatus: assignCircuitDelayFromControllerStatus,
         requestUpdateCircuit: requestUpdateCircuit,
@@ -600,7 +624,7 @@ module.exports = function(container) {
         setControllerLightGroup: setControllerLightGroup,
         setDelayCancel: setDelayCancel,
         //TESTING
-        getCircuitFriendlyNames: getCircuitFriendlyNames,
+        setCircuitFriendlyNames: setCircuitFriendlyNames,
         numberOfCircuits: numberOfCircuits
     }
 }

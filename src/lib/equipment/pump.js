@@ -241,7 +241,7 @@ var setVirtualControllerStatus = function(status) {
     var _pump = getPumpNumber(data)
     if (_pump <= numPumps) {
       if (currentPumpStatus[_pump].externalProgram[program] !== value) {
-        container.configEditor.updateExternalPumpProgramAsync(_pump, program, value)
+        container.settings.updateExternalPumpProgramAsync(_pump, program, value)
         currentPumpStatus[_pump].externalProgram[program] = value;
         if (container.settings.get('logPumpMessages'))
           container.logger.verbose('Msg# %s   %s: Save Program %s as %s RPM %s', counter, container.constants.ctrlString[from], program, value, JSON.stringify(data));
@@ -502,7 +502,7 @@ var setVirtualControllerStatus = function(status) {
         // var str = 'program' + program + 'rpm';
         // currentPumpStatus[pump][str] = rpm;
         currentPumpStatus[pump].externalProgram[program] = rpm;
-        container.configEditor.updatePump(pump, 'externalProgram', null, rpm)
+        container.settings.updatePump(pump, 'externalProgram', null, rpm)
         currentPumpStatus[pump].currentprogram = program;
       }
     }
@@ -514,7 +514,7 @@ var setVirtualControllerStatus = function(status) {
 
       // var str = 'program' + program + 'rpm';
       currentPumpStatus[pump].externalProgram[program] = val;
-      container.configEditor.updateExternalPumpProgramAsync(pump, program, val)
+      container.settings.updateExternalPumpProgramAsync(pump, program, val)
     }
   }
   // var setCurrentRPM = function(index, rpm) {
@@ -595,6 +595,17 @@ var setVirtualControllerStatus = function(status) {
       }
     }
   }
+
+
+  var getPumpOverview = function(){
+    // var tempObj = {}
+    // currentPumpStatus.forEach(function(key){
+    //     if (['VS','VF','VSF','SS','DS'].indexOf(currentPumpStatus[key].type)>=0){
+    //       tempObj[key]=
+    //     }
+    // })
+  }
+
   /*istanbul ignore next */
   if (container.logModuleLoading)
     container.logger.info('Loaded: pump.js')
@@ -633,6 +644,7 @@ var setVirtualControllerStatus = function(status) {
     getPumpConfiguration: getPumpConfiguration,
     getFriendlyName: getFriendlyName,
     setVirtualControllerStatus:setVirtualControllerStatus,
+      getPumpOverview: getPumpOverview,
     init: init
   }
 }

@@ -3,18 +3,18 @@ describe('chlorinator tests', function() {
     //var spied = sinon.spy(bottle.container.chlorinator.setChlorinatorLevelAsync)
     var equip = 'controller'
     before(function() {
-        return Promise.resolve()
+        return global.initAllAsync()
             .then(function(){
                 bottle.container.settings.set('virtual.chlorinatorController', "always")
                 bottle.container.settings.set('chlorinator.installed',1)
                 bottle.container.settings.set('intellitouch.installed',0)
                 bottle.container.settings.set('intellicom.installed', 0)
             })
-            .then(global.initAllAsync)
+
     });
 
     beforeEach(function() {
-        loggers = setupLoggerStubOrSpy('stub', 'spy')
+        loggers = setupLoggerStubOrSpy('stub', 'stub')
         clock = sandbox.useFakeTimers()
 
         pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
@@ -35,15 +35,16 @@ describe('chlorinator tests', function() {
     })
 
     after(function() {
-        return Promise.resolve()
-            .then(function(){
-                bottle.container.settings.set('virtual.chlorinatorController', "default")
-                bottle.container.settings.set('chlorinator.installed', 0)
-                bottle.container.settings.set('intellitouch.installed', 1)
-                bottle.container.settings.set('intellicom.installed', 0)
-                bottle.container.chlorinatorController.clearTimer()
-            })
-            .then(global.stopAllAsync)
+        // return Promise.resolve()
+        //     .then(function(){
+        //         bottle.container.settings.set('virtual.chlorinatorController', "default")
+        //         bottle.container.settings.set('chlorinator.installed', 0)
+        //         bottle.container.settings.set('intellitouch.installed', 1)
+        //         bottle.container.settings.set('intellicom.installed', 0)
+        //         bottle.container.chlorinatorController.clearTimer()
+        //     })
+        //     .then(global.stopAllAsync)
+        return global.stopAllAsync()
     })
 
     describe('#setChlorinatorLevel returns objects', function() {

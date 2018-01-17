@@ -1,54 +1,49 @@
-describe('tests temperature functions', function() {
-    describe('#when requested', function() {
+describe('tests temperature functions', function () {
+    describe('#when requested', function () {
 
-        before(function() {
-            return global.initAllAsync()
-                .then(function () {
-                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
-                })
+        before(function () {
+
+            return global.initAllAsync('/specs/assets/config/templates/config_vanilla.json')
+
         })
 
-        beforeEach(function() {
+        beforeEach(function () {
             // sandbox = sinon.sandbox.create()
             loggers = setupLoggerStubOrSpy('stub', 'spy')
         })
 
-        afterEach(function() {
+        afterEach(function () {
             sandbox.restore()
 
         })
 
-        after(function() {
-            return global.removeShadowConfigFileAsync()
-                .then(function(){
-                    return global.stopAllAsync()
-                })
+        after(function () {
+
+            return global.stopAllAsync()
+
         })
 
 
-
-
-
-        it('#decodes temperature packet from the controller', function(done) {
+        it('#decodes temperature packet from the controller', function (done) {
             Promise.resolve()
-                .then(function(){
+                .then(function () {
 
-                    tempPkt = [255,0,255,165,33,15,16,8,13,51,51,58,70,92,0,0,0,55,0,0,0,0,2,115]
+                    tempPkt = [255, 0, 255, 165, 33, 15, 16, 8, 13, 51, 51, 58, 70, 92, 0, 0, 0, 55, 0, 0, 0, 0, 2, 115]
                     temps = bottle.container.temperatures.getTemperatures()
                     temps.temperature.poolTemp.should.equal(0)
                     bottle.container.packetBuffer.push(new Buffer(tempPkt))
                 })
                 .delay(50)
-                .then(function(){
+                .then(function () {
                     temps = bottle.container.temperatures.getTemperatures()
                     temps.temperature.poolTemp.should.equal(51)
                 })
-                .then(done,done)
+                .then(done, done)
 
         })
 
-        it('returns temps in a JSON', function() {
-            return global.requestPoolDataWithURLAsync('temperature').then(function(obj) {
+        it('returns temps in a JSON', function () {
+            return global.requestPoolDataWithURLAsync('temperature').then(function (obj) {
                 obj.temperature.poolTemp.should.equal(51);
             })
 

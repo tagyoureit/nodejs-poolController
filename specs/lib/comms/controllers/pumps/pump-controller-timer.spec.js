@@ -18,7 +18,7 @@ describe('pump controller', function() {
 
             setPumpRemoteStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
         })
 

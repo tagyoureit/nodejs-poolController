@@ -5,12 +5,13 @@ describe('#set functions', function() {
 
             before(function () {
 
-                return Promise.resolve()
-                    .then(function () {
-                        bottle.container.settings.set('virtual.chlorinatorController', 0)
-                        bottle.container.settings.set('chlorinator.installed', 0)
-                    })
-                    .then(global.initAllAsync)
+                // return Promise.resolve()
+                //     .then(function () {
+                //         bottle.container.settings.set('virtual.chlorinatorController', 0)
+                //         bottle.container.settings.set('chlorinator.installed', 0)
+                //     })
+                //     .then(global.initAllAsync)
+                return global.initAllAsync()
             });
 
             beforeEach(function () {
@@ -51,19 +52,20 @@ describe('#set functions', function() {
 
             before(function() {
 
-                return Promise.resolve()
-                    .then(function(){
-                        bottle.container.settings.set('virtual.chlorinatorController', 1)
-                        bottle.container.settings.set('chlorinator.installed', 1)
-                    })
-                    .then(global.initAllAsync)
+                // return Promise.resolve()
+                //     .then(function(){
+                //         bottle.container.settings.set('virtual.chlorinatorController', 1)
+                //         bottle.container.settings.set('chlorinator.installed', 1)
+                //     })
+                //     .then(global.initAllAsync)
+                return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
             });
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('stub','stub')
+                loggers = setupLoggerStubOrSpy('spy','spy')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateChlorinatorDesiredOutputAsync')
-                getVersionNotificationStub = sandbox.stub(bottle.container.configEditor, 'getVersionNotification').returns({'dismissUntilNextRemoteVersionBump': true})
+                settingsStub = sandbox.stub(bottle.container.settings, 'updateChlorinatorDesiredOutputAsync')
+                //getVersionNotificationStub = sandbox.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
 
             })
 

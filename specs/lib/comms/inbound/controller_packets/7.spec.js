@@ -10,7 +10,7 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAllAsync()
+                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
             });
 
             beforeEach(function() {

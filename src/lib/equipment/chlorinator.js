@@ -39,12 +39,11 @@ module.exports = function(container) {
     var init = function () {
 
         currentChlorinatorStatus = new Chlorinator(0, -1, -1, -1, -1, -1, -1, -1);
-        // output = container.configEditor.getChlorinatorDesiredOutput()
         output = container.settings.get('equipment.chlorinator.desiredOutput')
 
         currentChlorinatorStatus.outputPoolPercent = output.pool
         currentChlorinatorStatus.outputSpaPercent = output.spa
-        currentChlorinatorStatus.name = container.configEditor.getChlorinatorName()
+        currentChlorinatorStatus.name = container.settings.get('equipment.chlorinator.id.productName')
         return
 
 
@@ -136,9 +135,9 @@ module.exports = function(container) {
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             if (container.settings.get('logChlorinator'))
                 container.logger.info('Msg# %s   Initial chlorinator settings discovered: ', counter, JSON.stringify(currentChlorinatorStatus))
-            container.configEditor.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
-            container.configEditor.updateChlorinatorNameAsync(chlorinatorStatus.name)
-            container.configEditor.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
+            container.settings.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
+            container.settings.updateChlorinatorNameAsync(chlorinatorStatus.name)
+            container.settings.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
             container.io.emitToClients('chlorinator');
         } else if (JSON.stringify(currentChlorinatorStatus) === JSON.stringify(chlorinatorStatus)) {
             if (container.settings.get('logChlorinator'))
@@ -149,9 +148,9 @@ module.exports = function(container) {
                     // currentChlorinatorStatus.whatsDifferent(chlorinatorStatus));
                     JSON.stringify(currentChlorinatorStatus), JSON.stringify(chlorinatorStatus))
             }
-            container.configEditor.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
-            container.configEditor.updateChlorinatorNameAsync(chlorinatorStatus.name)
-            container.configEditor.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
+            container.settings.updateChlorinatorInstalledAsync(chlorinatorStatus.installed)
+            container.settings.updateChlorinatorNameAsync(chlorinatorStatus.name)
+            container.settings.updateChlorinatorDesiredOutputAsync(chlorinatorStatus.outputPoolPercent, chlorinatorStatus.outputSpaPercent)
             currentChlorinatorStatus = JSON.parse(JSON.stringify(chlorinatorStatus));
             container.io.emitToClients('chlorinator');
         }
@@ -187,7 +186,7 @@ module.exports = function(container) {
         var response = {}
         return Promise.resolve()
             .then(function() {
-                if (container.settings.get('chlorinator').installed) {
+                if (container.settings.get('chlorinator.installed')) {
                     if (chlorLvl >= 0 && chlorLvl <= 101) {
                         return Promise.resolve()
                             .then(function () {
@@ -206,7 +205,7 @@ module.exports = function(container) {
                                     response.value = currentChlorinatorStatus.outputPoolPercent
                                 }
                             })
-                            .then(container.configEditor.updateChlorinatorDesiredOutputAsync(chlorLvl, currentChlorinatorStatus.outputSpaPercent))
+                            .then(container.settings.updateChlorinatorDesiredOutputAsync(chlorLvl, currentChlorinatorStatus.outputSpaPercent))
                             .then(function () {
                                 container.io.emitToClients('chlorinator')
                                 if (container.chlorinatorController.isChlorinatorTimerRunning())
@@ -298,7 +297,7 @@ module.exports = function(container) {
                         container.logger.verbose('Msg# %s   %s --> %s: Chlorinator version (%s) and name (%s): %s', counter, from, destination, version, name, data);
                     currentChlorinatorStatus.name = name
                     currentChlorinatorStatus.version = version
-                    container.configEditor.updateChlorinatorNameAsync(name)
+                    container.settings.updateChlorinatorNameAsync(name)
                     container.io.emitToClients('chlorinator')
                 }
 
@@ -373,7 +372,7 @@ module.exports = function(container) {
             .then(function () {
                 if (currentChlorinatorStatus.installed === 0) {
                     currentChlorinatorStatus.installed = 1
-                    return container.configEditor.updateChlorinatorInstalledAsync(currentChlorinatorStatus.installed)
+                    return container.settings.updateChlorinatorInstalledAsync(currentChlorinatorStatus.installed)
                         .then(function () {
                             container.chlorinatorController.startChlorinatorController()
                         })

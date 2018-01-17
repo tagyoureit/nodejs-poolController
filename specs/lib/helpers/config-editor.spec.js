@@ -9,40 +9,33 @@ describe('updates config.json variables', function() {
 
 
         before(function () {
-            return global.initAllAsync()
+
 
         })
 
         beforeEach(function () {
 
-            return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
+            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
                 .then(function(){
                     // sandbox = sinon.sandbox.create()
-                    loggers = setupLoggerStubOrSpy('stub', 'spy')
+                    loggers = setupLoggerStubOrSpy('stub', 'stub')
 
                 })
+                .delay(25)
         })
 
         afterEach(function () {
-
-            return Promise.resolve()
-                .then(function(){
-                    sandbox.restore()
-                })
-                .then(global.removeShadowConfigFileAsync)
-                .catch(function(err){
-                    console.log(err)
-                })
+            return global.stopAllAsync()
         })
 
         after(function () {
-            return global.stopAllAsync()
+
 
         })
 
         // it('#gets version notification information', function(done) {
         // myModule.__with__({
-        //     'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
+        //     'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
         //
         // })(function() {
         //     return Promise.resolve()
@@ -63,13 +56,13 @@ describe('updates config.json variables', function() {
 
         // it('#tests updateExternalPumpProgramAsync', function(done) {
         //     myModule.__with__({
-        //         'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
+        //         'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
         //
         //     })(function() {
         //         myModule(bottle.container).updateExternalPumpProgramAsync(1, 1, 500)
         //         setTimeout(function() {
         //             //need delay to allow for file to write to disk
-        //             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+        //             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
         //                 .then(function(changed) {
         //                     changed = JSON.parse(changed)
         //                     changed.equipment.pump[1].externalProgram[1].should.eq(500)
@@ -89,7 +82,7 @@ describe('updates config.json variables', function() {
         // })
         // myModule.__with__({
         //     //'dir': '/specs/assets',
-        //     'bottle.container.settings.configurationFile': '/specs/assets/config/_config.json'
+        //     'bottle.container.settings.configurationFile': '/specs/assets/config/config.json'
         //
         // })(function() {
         //     return Promise.resolve()
@@ -98,10 +91,10 @@ describe('updates config.json variables', function() {
         //         })
         //         .delay(150)
         //         .then(function() {
-        //             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+        //             return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
         //                 .then(function(changed) {
         //                     changed = JSON.parse(changed)
-        //                     changed.poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.eq(true)
+        //                     changed.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.eq(true)
         //                 })
         //         })
         //         .then(function() {
@@ -116,10 +109,10 @@ describe('updates config.json variables', function() {
         // })
 
         it('#gets pumpExternalProgram', function (done) {
-            bottle.container.configEditor.initAsync('/specs/assets/config/_config.json')
-                .then(function () {
-                    return bottle.container.configEditor.getPumpExternalProgramAsync(1)
-                })
+            // bottle.container.settings.loadAsync('/specs/assets/config/config.json')
+            //     .then(function () {
+            bottle.container.settings.getPumpExternalProgramAsync(1)
+                // })
                 .then(function (data) {
                     data[1].should.eq(1000)
                 })
@@ -141,14 +134,14 @@ describe('updates config.json variables', function() {
                             .persist()
                             // .log(console.log)
                     })
-                    .then(global.initAllAsync)
+                    //.then(global.initAllAsync)
                     .then(bottle.container.updateAvailable.initAsync('/specs/assets/package.json'))
 
             })
 
             beforeEach(function () {
 
-                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function(){
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -162,12 +155,12 @@ describe('updates config.json variables', function() {
                         nock.cleanAll()
                         sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
+                    .then(global.stopAllAsync)
 
             })
 
             after(function () {
-                return global.stopAllAsync()
+
             })
 
             it('#updates dismissUntilNextRemoteVersionBump to true', function (done) {
@@ -176,7 +169,7 @@ describe('updates config.json variables', function() {
                 // current version running: 4.1.0
                 // cached remote release: 4.1.0
                 // dismissUntilNextVerBump: false
-                // expected result: local _config.json file has dismissUntil... set to true
+                // expected result: local config.json file has dismissUntil... set to true
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('connect', function (data) {
@@ -184,9 +177,9 @@ describe('updates config.json variables', function() {
                     client.emit('updateVersionNotificationAsync', true)
                     client.disconnect()
                     setTimeout(function () {
-                        fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf8')
+                        fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf8')
                             .then(function(data) {
-                                JSON.parse(data).poolController.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
+                                JSON.parse(data).meta.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
                                 done()
                             })
                     }, 50)

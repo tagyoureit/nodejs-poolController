@@ -35,7 +35,7 @@ module.exports = function(container) {
     var emitToClients = function(outputType, data) {
         container.logger.silly('Outputting socket ',outputType)
         if (outputType === 'updateAvailable' || outputType === 'all') {
-            var remote = container.configEditor.getVersionNotification()
+            var remote = container.settings.get('notifications.version.remote')
             container.logger.silly('Socket.IO checking if we need to output updateAvail: %s (will send if false)', remote.dismissUntilNextRemoteVersionBump)
             if (remote.dismissUntilNextRemoteVersionBump !== true) {
                 // true = means that we will suppress the update until the next available version bump
@@ -180,17 +180,17 @@ module.exports = function(container) {
                 container.logger.silly('All sockets removed from connection')
 
 
-                if (typeof io[type].close == 'function') {
+                if (typeof io[type].close === 'function') {
                     io[type].close();
                     io[type + 'Enabled'] = 0
                     container.logger.debug('Socket IO Server closed')
                 }
                 else {
-                    logger.warn('why are we calling close now????')
+                    container.logger.silly('Trying to close IO server, but already closed.')
                 }
             }
             catch(err){
-                logger.error('oops, we hit an error closing the socket server', err)
+                container.logger.error('oops, we hit an error closing the socket server', err)
                 throw new Error(err)
             }
         }
@@ -261,13 +261,13 @@ module.exports = function(container) {
 
         socket.on('setConfigClient', function(a, b, c, d) {
             container.logger.debug('Setting config_client properties: ',a, b, c, d)
-            container.bootstrapConfigEditor.updateAsync(a, b, c, d)
+            container.bootstrapsettings.updateAsync(a, b, c, d)
 
         })
 
         socket.on('resetConfigClient', function() {
             container.logger.info('Socket received:  Reset bootstrap config')
-            container.bootstrapConfigEditor.resetAsync()
+            container.bootstrapsettings.resetAsync()
         })
 
         socket.on('sendPacket', function(incomingPacket) {
@@ -522,7 +522,7 @@ module.exports = function(container) {
             response.text = 'Socket setPumpType variables - pump: ' + pump + ', type: ' + type
             response.pump = pump
             response.type = type
-            container.configEditor.updatePumpTypeAsync(pump, type)
+            container.settings.updatePumpTypeAsync(pump, type)
             container.logger.info(response)
         })
 
@@ -621,7 +621,7 @@ module.exports = function(container) {
 
         socket.on('updateVersionNotificationAsync', function(bool) {
             container.logger.info('updateVersionNotificationAsync requested from Socket.io.  value:', bool)
-            container.configEditor.updateVersionNotificationAsync(bool, null)
+            container.settings.updateVersionNotificationAsync(bool, null)
                 // .then(function(res){
                 //     console.log('returned from updatever', res)
                 // })

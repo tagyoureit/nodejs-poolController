@@ -38,7 +38,7 @@ module.exports = function() {
         util.inherits(winstonToIO, winston.Transport)
 
         var winstonToIOOptions = {
-            level: bottle.container.settings.get('socketLogLevel'),
+            level: bottle.container.settings.get('socketLogLevel') || 'debug',
             handleExceptions: true,
             humanReadableUnhandledException: true,
             customFormatter: function(level, message, meta) {

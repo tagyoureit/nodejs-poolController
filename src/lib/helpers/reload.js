@@ -30,8 +30,7 @@ module.exports = function(container) {
     var stopAsync = function() {
         return Promise.resolve()
             .then(function() {
-                return
-                    if (!container.settings.get('pump').standalone) {
+                if (!container.settings.get('pump').standalone) {
                         //only clear timers if we go from 1 or 2 pumps to 0 pumps
                         container.pumpControllerTimers.clearTimer(1)
                         container.pumpControllerTimers.clearTimer(2)

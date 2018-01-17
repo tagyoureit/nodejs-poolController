@@ -10,8 +10,7 @@ describe('pump controller - save and run program with flow for duration', functi
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return global.initAllAsync()
-                .then(function(){return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')})
+            return global.initAllAsync('/specs/assets/config/templates/config_vanilla.json')
                 .then(function() {
                     return bottle.container.pump.init()
                 })
@@ -33,7 +32,7 @@ describe('pump controller - save and run program with flow for duration', functi
 
         beforeEach(function() {
             // sandbox = sinon.sandbox.create()
-            
+
             //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
             //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
             endPumpCommandStub = sandbox.stub()
@@ -42,7 +41,7 @@ describe('pump controller - save and run program with flow for duration', functi
             emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
 
         })
 
@@ -53,8 +52,7 @@ describe('pump controller - save and run program with flow for duration', functi
         })
 
         after(function() {
-            return global.removeShadowConfigFileAsync()
-                .then(global.stopAllAsync)
+            return global.stopAllAsync()
 
         })
 

@@ -24,7 +24,8 @@ chai.config.includeStack = true;
 // global.assert = chai.assert;
 
 Promise = global.Promise = require('bluebird')
-
+fs = global.fs = require('promised-io/fs')
+pfs = global.pfs = Promise.promisifyAll(fs)
 
  ioclient = global.ioclient = require('socket.io-client')
  socketURL = global.socketURL = 'http://localhost:3000'
@@ -36,13 +37,20 @@ var packetsWithChecksum = require(__dirname + '/packetsWithChecksum.js')
 var bufferCapture = require(__dirname + '/bufferCapture.js')
 var initialize = global.initialize = require(__dirname + '/initialize.js')
 
-fs = global.fs = require('promised-io/fs')
 
+
+//remove corrupt config.json if present
+var configLocation = path.join(process.cwd(), '/specs/assets/config/config.json')
+pfs.writeFileSync(configLocation, '{}')
+
+
+/*
  fs.readFile(path.join(process.cwd(), '/specs/assets/webJsonReturns', 'circuit.json'), 'utf8')
     .then(function(data) {
       global.circuitJson = JSON.parse(data)
     },
     /* istanbul ignore next  */
-    function(error) {
+  /*  function(error) {
         console.log('Error reading circuit.json from /specs/assets/webJsonReturns. ', error)
     })
+*/

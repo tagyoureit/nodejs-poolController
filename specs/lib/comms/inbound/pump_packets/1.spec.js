@@ -11,13 +11,13 @@ describe('processes 17 (Schedule) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAllAsync()
+                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
             });
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
                 clock = sandbox.useFakeTimers()
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+                settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 circuitNameStub = sandbox.stub(bottle.container.circuit, 'getCircuitName').returns("POOL")
 

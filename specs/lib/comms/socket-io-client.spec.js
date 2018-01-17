@@ -1,24 +1,20 @@
-describe('socket.io basic tests', function() {
+describe('socket.io basic tests', function () {
 
 
-
-    before(function() {
-
+    before(function () {
     });
 
-    beforeEach(function() {
-
-
+    beforeEach(function () {
 
 
         return global.initAllAsync()
-            .then(function(){
-                loggers = setupLoggerStubOrSpy('stub','stub')
+            .then(function () {
+                loggers = setupLoggerStubOrSpy('stub', 'stub')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
-                pWPHStub = sandbox.stub(bottle.container.writePacket,'preWritePacketHelper')
+                pWPHStub = sandbox.stub(bottle.container.writePacket, 'preWritePacketHelper')
                 updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-                // bootstrapConfigEditorStub = sandbox.stub(bottle.container.bootstrapConfigEditor, 'reset')
+                // bootstrapsettingsStub = sandbox.stub(bottle.container.bootstrapsettings, 'reset')
                 writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
                 controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
@@ -26,19 +22,19 @@ describe('socket.io basic tests', function() {
 
     })
 
-    afterEach(function() {
+    afterEach(function () {
         //restore the sandbox after each function
         //console.log('full queue', bottle.container.queuePacket.fullQ)
 
         return global.stopAllAsync()
     })
 
-    after(function() {
+    after(function () {
 
     })
 
 
-    it('#connects to the server', function() {
+    it('#connects to the server', function () {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         client.on('connect', function (data) {
             // console.log('connected client:')
@@ -52,17 +48,19 @@ describe('socket.io basic tests', function() {
             clearTimeout(aTimer)
             myResolve()
         })
-        aTimer =  setTimeout(function(){myReject()}, 1500)
-        return new Promise(function(resolve, reject) {
+        aTimer = setTimeout(function () {
+            myReject()
+        }, 1500)
+        return new Promise(function (resolve, reject) {
             myResolve = resolve
             myReject = reject
         })
     })
 
-    it('#sets date/time', function() {
+    it('#sets date/time', function () {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         var myResolve, myReject
-        client.on('connect', function(data) {
+        client.on('connect', function (data) {
             client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
         })
 
@@ -77,38 +75,39 @@ describe('socket.io basic tests', function() {
             }
         })
 
-        aTimer =  setTimeout(function(){myReject()}, 1500)
-        return new Promise(function(resolve, reject) {
+        aTimer = setTimeout(function () {
+            myReject()
+        }, 1500)
+        return new Promise(function (resolve, reject) {
             myResolve = resolve
             myReject = reject
         })
 
 
-
     })
 
-    it('#fails to set date/time (invalid input)', function() {
+    it('#fails to set date/time (invalid input)', function () {
         return Promise.resolve()
-            .then(function(){
+            .then(function () {
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-                client.on('connect', function() {
+                client.on('connect', function () {
                     client.emit('setDateTime', 26, 55, 4, 3, 4, 18, 0)
                     client.disconnect()
                 })
             })
             .delay(50)
-            .then(function(){
+            .then(function () {
                 loggers.loggerWarnStub.args[0][0].text.should.contain('FAIL:')
                 loggers.loggerWarnStub.callCount.should.eq(1)
             })
     })
 
 
-    it('#sets a schedule', function(done) {
+    it('#sets a schedule', function (done) {
         this.timeout(4000)
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-        client.on('connect', function(data) {
+        client.on('connect', function (data) {
             // console.log('connected client:')
             client.emit('setSchedule', 12, 5, 13, 20, 13, 40, 131)
             client.disconnect()
@@ -121,7 +120,7 @@ describe('socket.io basic tests', function() {
                 queuePacketStub.callCount.should.equal(13) // request all schedules
                 done()
             }
-            catch(err){
+            catch (err) {
                 console.log('in sets a schedule, error...', err)
                 done()
             }
@@ -129,17 +128,17 @@ describe('socket.io basic tests', function() {
         }, 1800)
     })
 
-    it('#sends packets and checks the correct preamble is passed', function() {
+    it('#sends packets and checks the correct preamble is passed', function () {
 
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        client.on('connect', function() {
+        client.on('connect', function () {
             client.emit('sendPacket', JSON.parse('{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}'))
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
             client.disconnect()
         })
         //setTimeout(reject(new Error('send packet with correct preamble timeout')),1500)
         global.waitForSocketResponseAsync('sendPacketResults')
-            .then(function(res){
+            .then(function (res) {
                 res.should.contain('165,0,96,16,6,1,10')
                 res.should.contain('16,2,80,20,0,118')
                 res.should.contain('16,34,134,2,9,0')
@@ -149,14 +148,16 @@ describe('socket.io basic tests', function() {
                 clearTimeout(a)
                 myResolve()
             })
-            .catch(function(err){
+            .catch(function (err) {
                 bottle.container.logger.error('Should not get here when checking preamble')
                 console.log(err)
                 myReject(err)
             })
         var myResolve, myReject
-        var a = setTimeout(function(){myReject(new Error('Socket Timeout error'))}, 1500)
-        return new Promise(function(resolve, reject){
+        var a = setTimeout(function () {
+            myReject(new Error('Socket Timeout error'))
+        }, 1500)
+        return new Promise(function (resolve, reject) {
             myResolve = resolve
             myReject = reject
         })
@@ -165,38 +166,34 @@ describe('socket.io basic tests', function() {
     })
 
 
-
-
-    it('#cancels the delay', function(done) {
+    it('#cancels the delay', function (done) {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-        client.on('connect', function() {
+        client.on('connect', function () {
             client.emit('cancelDelay')
             client.disconnect()
         })
-        setTimeout(function(){
-            queuePacketStub.args[0][0].should.deep.equal([ 165, 99, 16, 33, 131, 1, 0 ])
+        setTimeout(function () {
+            queuePacketStub.args[0][0].should.deep.equal([165, 99, 16, 33, 131, 1, 0])
 
             done()
         }, 200)
 
 
-
-
     })
 
-    it('#sends and receives search socket', function() {
+    it('#sends and receives search socket', function () {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
         var socketResults = [], myResolve, myReject
-        client.on('connect', function() {
+        client.on('connect', function () {
             client.emit('search', 'start', 16, 15, 17)
         })
-        client.on('searchResults', function(results) {
+        client.on('searchResults', function (results) {
             socketResults.push(results)
-            if (socketResults.length===1)
+            if (socketResults.length === 1)
                 bottle.container.packetBuffer.push(Buffer.from(global.schedules_chk[0]))
 
-            if (socketResults.length===2){
+            if (socketResults.length === 2) {
                 socketResults[0].should.contain('Listening')
                 socketResults[1].should.contain('[165,33,15,16,17,7,1,6,9,20,15,59,255,2,106]')
                 client.disconnect()
@@ -204,8 +201,10 @@ describe('socket.io basic tests', function() {
                 myResolve()
             }
         })
-        var a = setTimeout(function(){myReject()}, 1500)
-        return new Promise(function(resolve, reject){
+        var a = setTimeout(function () {
+            myReject()
+        }, 1500)
+        return new Promise(function (resolve, reject) {
             myReject = reject
             myResolve = resolve
         })
@@ -250,7 +249,7 @@ describe('socket.io basic tests', function() {
             var b = setTimeout(function(){
                 time2 = bottle.container.time.getTime()
                 time1.time.controllerTime.should.equal(time2.time.controllerTime)
-                global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
+                global.initAllAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
                 done()
             }, 1500)  //need time for all services to start up again.
 
@@ -316,34 +315,35 @@ describe('socket.io basic tests', function() {
 // })
 
 
-
 // })
-    it('#closes a connection from the server', function() {
+    it('#closes a connection from the server', function () {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
-        client.on('connect', function() {
-            setTimeout(function(){client.emit('close', client.id)},50)
+        client.on('connect', function () {
+            setTimeout(function () {
+                client.emit('close', client.id)
+            }, 50)
         })
         var myResolve, myReject
 
-        client.on('disconnect', function() {
+        client.on('disconnect', function () {
             clearTimeout(a)
             myResolve()
         })
-        var a = setTimeout(function() {
+        var a = setTimeout(function () {
                 myReject(new Error('Timeout on closes a connection'))
             }
-            ,1500)
-        return new Promise(function(resolve,reject){
+            , 1500)
+        return new Promise(function (resolve, reject) {
             myResolve = resolve
             myReject = reject
         })
 
     })
 
-    it('#requests all config (all)', function() {
+    it('#requests all config (all)', function () {
         return global.waitForSocketResponseAsync('all')
-            .then(function(data){
+            .then(function (data) {
                 data.circuit.should.exist
                 data.pump.should.exist
                 data.schedule.should.exist
@@ -351,9 +351,9 @@ describe('socket.io basic tests', function() {
 
     })
 
-    it('#requests all config (one)', function() {
+    it('#requests all config (one)', function () {
         return global.waitForSocketResponseAsync('one')
-            .then(function(data){
+            .then(function (data) {
                 data.circuit.should.exist
                 data.pump.should.exist
                 data.schedule.should.exist
@@ -390,12 +390,12 @@ describe('socket.io basic tests', function() {
 })
 
 
-describe('socket.io pump tests', function() {
+describe('socket.io pump tests', function () {
 
 
 
     // before(function() {
-    //     bottle.container.configEditor.initAsync('/specs/assets/config/config.json')
+    //     bottle.container.settings.loadAsync('/specs/assets/config/config.json')
     //     return global.initAllAsync()
     // });
     //
@@ -428,7 +428,6 @@ describe('socket.io pump tests', function() {
     //     return global.stopAllAsync()
     // })
     //
-
 
 
     // it('#requests all config (all)', function() {

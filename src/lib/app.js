@@ -21,15 +21,14 @@ bottle.service('fs', function() {
 //ETC
 bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
 bottle.factory('settings', require(__dirname + '/../etc/settings.js'))
-// bottle.middleware(function(settings, next){
-//     //Object.getOwnPropertyNames(bottle.container.settings)
-//     console.log('Settings was accessed!')
-//     console.log('next', next.toString())
-//     next();
-// })
-
-bottle.factory('configEditor', require(__dirname + '/helpers/config-editor.js'))
 bottle.factory('constants', require(__dirname + '/../etc/constants.js'))
+bottle.factory('deepdiff', function(){
+    return require('deep-diff')
+})
+bottle.factory('events', function(){
+    return require('events')
+})
+
 
 //LOGGER
 bottle.factory('dateFormat', function() {
@@ -93,13 +92,13 @@ bottle.factory('_', function() {
 })
 
 bottle.factory('ssdp', function() {return require('node-ssdp')})
-
+bottle.factory('mdns', function() {return require('multicast-dns')})
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 
 //HELPERS
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
-bottle.factory('bootstrapConfigEditor', require(__dirname + '/helpers/bootstrap-config-editor.js'))
+bottle.factory('bootstrapsettings', require(__dirname + '/helpers/bootstrap-config-editor.js'))
 bottle.service('getmac', function(){return bottle.container.promise.promisifyAll(require('getmac'))})
 
 bottle.factory('path',function(){
@@ -182,21 +181,29 @@ var initAsync = exports.initAsync = function() {
     //Call the modules to initialize them
     Promise = bottle.container.promise
     return Promise.resolve()
-        .delay(50)
+        .then(function(){
+            bottle.container.logger.init('default')
+        })
         .then(function(){
             return bottle.container.settings.loadAsync()
         })
-
+        .delay(25)
         .then(function(){
             bottle.container.logger.init()
             bottle.container.winstonToIO.init()
+        })
+        .delay(25)
+
+
+        .then(function(){
+
 
             bottle.container.server.initAsync()
             //bottle.container.io.init()
             bottle.container.sp.init()
 
             bottle.container.logger.info('initializing logger')
-            bottle.container.bootstrapConfigEditor.init()
+            bottle.container.bootstrapsettings.init()
             bottle.container.integrations.init()
 
             bottle.container.updateAvailable.initAsync()

@@ -31,7 +31,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                 //     console.log('just copied _configClient.  %s bytes', copy.length)
                 // })
                 .then(function () {
-                    return bottle.container.bootstrapConfigEditor.init(copyFile)
+                    return bottle.container.bootstrapsettings.init(copyFile)
                 })
                 .catch(function (err) {
                     /* istanbul ignore next */
@@ -44,7 +44,7 @@ describe('updates/resets bootstrap configClient.json', function() {
         afterEach(function () {
             sandbox.restore()
             return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/bootstrapConfig/_configClient.json'))
-                .then(bottle.container.bootstrapConfigEditor.init)
+                .then(bottle.container.bootstrapsettings.init)
             // .then(function() {
             //     console.log('file removed')
             // })
@@ -91,9 +91,9 @@ describe('updates/resets bootstrap configClient.json', function() {
 
             it('changes system state from visible to hidden', function () {
                 var myResolve, myReject
-                bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.updateAsync('panelState', 'system', 'state', 'hidden')
+                        return bottle.container.bootstrapsettings.updateAsync('panelState', 'system', 'state', 'hidden')
                     })
                     .delay(50)
                     .then(function () {
@@ -119,9 +119,9 @@ describe('updates/resets bootstrap configClient.json', function() {
 
 
             it('changes hideAUX state from visible (false) to hidden (true)', function (done) {
-                bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.updateAsync('generalParams', 'hideAUX', null, true)
+                        return bottle.container.bootstrapsettings.updateAsync('generalParams', 'hideAUX', null, true)
                     })
                     .delay(50)
                     .then(function () {
@@ -136,11 +136,11 @@ describe('updates/resets bootstrap configClient.json', function() {
             });
 
             it('receives a property it cannot find (should fail)', function () {
-                bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
                         loggerWarnStub.restore()
                         loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                        return bottle.container.bootstrapConfigEditor.updateAsync('not', 'here', null, true)
+                        return bottle.container.bootstrapsettings.updateAsync('not', 'here', null, true)
                     })
                     .delay(50)
                     .then(function () {
@@ -168,9 +168,9 @@ describe('updates/resets bootstrap configClient.json', function() {
 
 
             it('resets all panelStates to visible', function (done) {
-                bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
-                        return bottle.container.bootstrapConfigEditor.resetAsync()
+                        return bottle.container.bootstrapsettings.resetAsync()
                     })
                     .delay(50)
                     .then(function () {
@@ -191,7 +191,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     var client;
                     Promise.resolve()
                         .then(function(){
-                            return bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                            return bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                         })
                         .then(function(){
                             client = global.ioclient.connect(global.socketURL, global.socketOptions)
@@ -218,7 +218,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     var client;
                     Promise.resolve()
                         .then(function(){
-                            return bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                            return bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                         })
                         .then(function(){
                             client = global.ioclient.connect(global.socketURL, global.socketOptions)
@@ -246,7 +246,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                         .then(function(){
                             loggerWarnStub.restore()
                             loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-                            return bottle.container.bootstrapConfigEditor.init('/specs/assets/bootstrapConfig/_configClient.json')
+                            return bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                         })
                         .then(function(){
                             client = global.ioclient.connect(global.socketURL, global.socketOptions)

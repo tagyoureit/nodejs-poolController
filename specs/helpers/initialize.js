@@ -1,40 +1,31 @@
 var fs = require('fs'),
-    // fsio = require('promised-io/fs'),
     path = require('path').posix,
-    Promise = require('bluebird')
-Promise.promisifyAll(fs)
+    Promise = require('bluebird'),
+    snapshotLogging = 0  // temp variable to hold logging state
+    Promise.promisifyAll(fs)
 
 logging = 0;  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
 logInitAndStop = 0; //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
 sandbox = sinon.sandbox.create()
-/* Very important - when writing tests the order must be:
-        Before functions
-        1. initAllAsync
-        2. useShadowConfigAsync (if needed)
-        3. create sandbox and call setupSandbox
 
-        After functions:
-        1. Restore sandbox
-        2. removeShadowConfig
-        3. stopAllAsync
- */
 
-changeInitAndStop = function(val){
-    logInitAndStop = val
-}
-
-initAllAsync = function() {
+initAllAsync = function(configLocation, sysDefaultLocation) {
 
     return Promise.resolve()
         .then(function () {
+            snapshotLogging = logging
             if (logInitAndStop) {
-                snapshotLogging = logging
                 enableLogging()
                 bottle.container.logger.debug('###Starting Init All###')
             }
             else {
+
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
+            if (configLocation===undefined){
+                configLocation = path.join('/specs/assets/config/templates/config_vanilla.json')
+            }
+            return useShadowConfigFileAsync(configLocation, sysDefaultLocation)
         })
         .then(bottle.container.server.initAsync)
         .then(bottle.container.sp.mockSPBindingAsync)
@@ -91,12 +82,15 @@ stopAllAsync = function() {
         })
         .then(bottle.container.server.closeAllAsync)
         .then(function(){
-            bottle.container.chlorinatorController.clearTimer()
             bottle.container.writePacket.init()
-            bottle.container.packetBuffer.clear()
             bottle.container.queuePacket.init()
+            bottle.container.packetBuffer.clear()
+            bottle.container.chlorinatorController.clearTimer()
+            bottle.container.pumpControllerTimers.clearTimer(1)
+            bottle.container.pumpControllerTimers.clearTimer(2)
             bottle.container.sp.close()
         })
+        .then(removeShadowConfigFileAsync)
 
         .catch( /* istanbul ignore next */ function(err) {
             bottle.container.logger.error('Error in stopAllAsync.', err)
@@ -147,47 +141,50 @@ var disableLogging = function(){
     bottle.container.settings.set('logApi', 0)
 }
 
-useShadowConfigFileAsync = function(location) {
-    //use console.log in here because logger may not be initialiazed first run
-    return Promise.resolve()
+useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
+
+    return Promise.resolve('from use shadow config')
         .then(function(){
-            if (logInitAndStop){
-                snapshotLogging = logging
-                bottle.container.logger.debug('useShadowConfigFileAsync: Shadow file to be used:', location)
-                enableLogging()
-            }
-            else {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
-            }
-            return fs.readFileAsync(path.join(process.cwd(), location))
+            // if (logInitAndStop){
+            //     snapshotLogging = logging
+            //     bottle.container.logger.debug('useShadowConfigFileAsync: Shadow file to be used:', configLocation)
+            //     enableLogging()
+            // }
+            // else {
+            //     loggers = setupLoggerStubOrSpy('stub', 'spy')
+            // }
+            return fs.readFileAsync(path.join(process.cwd(), configLocation))
         })
         .then(function (orig) {
-            return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), orig)
+            return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), orig)
         })
         .then(function() {
             if (logInitAndStop)
-                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+                return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
                     .then(function(copy) {
-                        bottle.container.logger.silly('Shadow file: just copied %s (%s bytes) to _config.json', location, copy.length)
+                        bottle.container.logger.silly('useShadowConfigFileAsync: Shadow file just copied %s (%s bytes) to config.json', configLocation, copy.length)
                     })
         })
         .then(function(){
-            return bottle.container.settings.loadAsync('/specs/assets/config/_config.json')
+            if (sysDefaultLocation===undefined){
+                sysDefaultLocation=path.join(process.cwd(), '/sysDefault.json')
+            }
+            return bottle.container.settings.loadAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), sysDefaultLocation)
         })
         .catch( /* istanbul ignore next */ function (err) {
             bottle.container.logger.error('oops, we hit an error in useShadowConfigFileAsync', err)
             console.error(err)
         })
         .finally(function(){
-            if (logInitAndStop) {
-                bottle.container.logger.debug('useShadowConfigFileAsync: Complete')
-                disableLogging()
-            }
-            else {
-                sandbox.restore()
-            }
-            if (snapshotLogging) enableLogging()
-            else disableLogging()
+            // if (logInitAndStop) {
+            //     bottle.container.logger.debug('useShadowConfigFileAsync: Complete')
+            //     disableLogging()
+            // }
+            // else {
+            //     sandbox.restore()
+            // }
+            // if (snapshotLogging) enableLogging()
+            // else disableLogging()
         })
 }
 
@@ -195,47 +192,48 @@ removeShadowConfigFileAsync = function(){
 
     return Promise.resolve()
         .then(function(){
-            if (logInitAndStop) {
-                snapshotLogging = logging
-                enableLogging()
-                bottle.container.logger.debug('***Starting removeShadowConfig***')
-            }
-            else {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
-            }
+            // if (logInitAndStop) {
+            //     snapshotLogging = logging
+            //     enableLogging()
+            //     bottle.container.logger.debug('***Starting removeShadowConfig***')
+            // }
+            // else {
+            //     loggers = setupLoggerStubOrSpy('stub', 'spy')
+            // }
         })
         .then(function(){
-            shadowLocation = path.join(process.cwd(), '/specs/assets/config/_config.json')
+            shadowLocation = path.join(process.cwd(), '/specs/assets/config/config.json')
             try {
 
                 a = fs.statSync(shadowLocation)
                 return fs.unlinkAsync(shadowLocation)
                     .then(function() {
-                        bottle.container.logger.silly('_config.json file removed')
+                        bottle.container.logger.silly('config.json file removed')
                     })
-                    .then(bottle.container.settings.loadAsync)
+                    // .then(bottle.container.settings.loadAsync)
             }
 
             catch(err){
                 console.error(err)
-                throw new Error('File /specs/assets/config/_config.json does not exist.', err)
+                throw new Error('File /specs/assets/config/config.json does not exist.', err)
 
             }
         })
+        .delay(25)
         .catch(function (err) {
             bottle.container.logger.error('Error removing file:', err)
             console.error(err)
         })
         .finally(function(){
-            if (logInitAndStop) {
-                bottle.container.logger.debug('***Finished removeShadowConfig***')
-                disableLogging()
-            }
-            else {
-                sandbox.restore()
-            }
-            if (snapshotLogging) enableLogging()
-            else disableLogging()
+            // if (logInitAndStop) {
+            //     bottle.container.logger.debug('***Finished removeShadowConfig***')
+            //     disableLogging()
+            // }
+            // else {
+            //     sandbox.restore()
+            // }
+            // if (snapshotLogging) enableLogging()
+            // else disableLogging()
         })
 }
 
@@ -271,6 +269,7 @@ requestPoolDataWithURLAsync = function(endpoint, URL) {
         })
         .catch(function(err){
             bottle.container.logger.error('Error with requestPoolDataWithURLAsync.', err.toString())
+            //console.error('Error in requestPoolDataWithURLAsync - settings:', bottle.container.settings.get())
             throw new Error(err)
         })
 }

@@ -36,17 +36,17 @@
 //                 'currentCircuitArrObj': global.circuitJson,
 //                 'bottle.container.settings.circuitFriendlyNames': fnArr
 //             })(function() {
-//                 myModule(bottle.container).getCircuitFriendlyNames()
+//                 myModule(bottle.container).setCircuitFriendlyNames()
 //
 //                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
 //                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
 //                 fnArr[1]['circuit1'] = "Try to rename spa"
-//                 myModule(bottle.container).getCircuitFriendlyNames()
+//                 myModule(bottle.container).setCircuitFriendlyNames()
 //                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
 //                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
 //                 fnArr[1]['circuit1'] = "SPA"
 //                 fnArr[6]['circuit6'] = "Try to rename pool"
-//                 myModule(bottle.container).getCircuitFriendlyNames()
+//                 myModule(bottle.container).setCircuitFriendlyNames()
 //                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
 //                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
 //                 myModule.__get__('currentCircuitArrObj')[6].friendlyName.should.eq('POOL')

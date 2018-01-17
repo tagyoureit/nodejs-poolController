@@ -10,9 +10,7 @@ describe('pump controller - save and run program with speed for duration', funct
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-
-
-            return global.initAllAsync(path.join(process.cwd(), '/specs/assets/config/config.pump.VS.json'))
+            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
 
 
         });
@@ -23,7 +21,7 @@ describe('pump controller - save and run program with speed for duration', funct
             //emitToClientsStub = sandbox.stub(bottle.container.io.emit)
             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
             //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {

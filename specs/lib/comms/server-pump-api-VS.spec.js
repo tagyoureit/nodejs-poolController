@@ -6,11 +6,11 @@ describe('#Tests a VS pump', function() {
         context('with a HTTP REST API', function () {
 
             before(function () {
-                return global.initAllAsync()
+
             });
 
             beforeEach(function(){
-                return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
                     .then(function(){
                         loggers = setupLoggerStubOrSpy('stub','stub')
                         clock = sandbox.useFakeTimers()
@@ -33,14 +33,13 @@ describe('#Tests a VS pump', function() {
             })
 
             afterEach(function () {
-                bottle.container.pumpControllerTimers.clearTimer(1)
-                bottle.container.pumpControllerTimers.clearTimer(2)
                 sandbox.restore()
+                return global.stopAllAsync()
+
             })
 
             after(function () {
-                return global.stopAllAsync()
-                    .then(global.removeShadowConfigFileAsync)
+
             })
 
             it('API #1: turns off pump 1', function (done) {
@@ -141,18 +140,18 @@ describe('#Tests a VS pump', function() {
         describe('#sends pump commands', function () {
 
             before(function () {
-                return global.initAllAsync()
+                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
             });
 
             beforeEach(function () {
                 // sandbox = sinon.sandbox.create()
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'stub')
                 clock = sandbox.useFakeTimers()
 
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+                settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
             })
 
             afterEach(function () {
@@ -508,7 +507,7 @@ describe('#Tests a VS pump', function() {
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+                settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
             })
 
             afterEach(function () {
@@ -587,7 +586,8 @@ describe('#Tests a VS pump', function() {
                 });
 
                 it('saves pump 1 and rpm 1000 (should fail // no program)', function (done) {
-
+                    consoleEStub = sandbox.stub(console, 'error')
+                    consoleStub = sandbox.stub(console, 'log')
                     global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
 
                         obj.text.should.contain('Please provide the program')

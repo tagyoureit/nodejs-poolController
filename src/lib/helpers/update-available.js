@@ -91,11 +91,8 @@ module.exports = function(container) {
     var compareLocalToSavedLocalVersionAsync = function() {
         return new Promise(function(resolve, reject){
             Promise.resolve()
-                .then(function(){
-                    return container.configEditor.getVersionNotification()
-                })
-                .then(function(_cachedJsonRemote) {
-
+                .then(function() {
+                    var _cachedJsonRemote = container.settings.get('notifications.version.remote')
                     container.logger.silly('updateAvail.compareLocaltoSavedLocal: (current) published release (%s) to cached/last published config.json version (%s)', jsons.remote.version, _cachedJsonRemote.version)
                     var configJsonRemote = _cachedJsonRemote,
                         remoteVersion = jsons.remote.version,
@@ -132,7 +129,7 @@ module.exports = function(container) {
                         container.logger.silly('updateAvail: no change in current remote version compared to local cached config.json version of app')
                     } else if (configJsonVerCompare === 'older') {
                         container.logger.info('Remote version of nodejs-poolController has been updated to %s.  Resetting local updateVersionNotificationAsync in config.json.', jsons.remote.version)
-                        return container.configEditor.updateVersionNotificationAsync(false, jsons.remote)
+                        return container.settings.updateVersionNotificationAsync(false, jsons.remote)
                     } else if (configJsonVerCompare === 'newer') {
                         container.logger.silly('updateAvail: The local version is newer than the GitHub release.  Probably running a dev build.')
                     }

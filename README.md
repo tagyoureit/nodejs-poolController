@@ -5,6 +5,13 @@
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
+#### 3.1.34
+
+1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
+1. mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
+1. New `/config` endpoint (beta) to allow applications to get a high level summary of the system.
+
+#### 3.1.33 and earlier
 1. Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
 1. A UI for standalone pumps
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
@@ -54,12 +61,15 @@ nodejs-poolController is an application to communicate and control your Pentair 
 
 ## Plug-ins
 Extend nodejs-Poolcontroller with these additional integration points
+* [outputSocketToConsoleExample](src/integrations/outputSocketToConsoleExample.js) A sample included with the code to demonstrate correct usage.
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
-* [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag
+* [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag, @arrmo
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
-* [ISY](https://github.com/tagyoureit/nodejs-poolController/blob/4.x-DEV/src/integrations/socketISY.js) included with this app.  Original credit to @blueman2
+* [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2
 
 ***
+
+<a name="module_nodejs-poolController--install"></a>
 
 ## Installation Instructions
 
@@ -70,6 +80,7 @@ npm install nodejs-poolController
 ```
 
 If you don't know anything about NodeJS, these directions might be helpful.
+
 1. Install Nodejs. (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
 1. Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
@@ -77,7 +88,25 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
 1. Run the app by calling 'npm start'* (again, in the root directory). It should now run properly.
    * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `npm start configCustomized.json`.  By default, the app will load `config.json`.
+
 ***
+
+## Upgrade instructions
+
+Universal notes
+
+1. For precaution, make a backup copy of your `config.json` or customized configuration file.  New in the 4.x-DEV release is that the app will automatically upgrade this file.
+
+
+Git clone method - Harder way, but you can create PR's and help with development
+1. `git clone git@github.com:tagyoureit/nodejs-poolController.git` (clone the repo if you are starting fresh)
+1. `git checkout 4.x-DEV` (switch to 4.x-DEV branch - Development branch only)
+1. `git pull` (anytime you want to grab the latest code)
+1. `npm update` (update dependencies)
+
+Download method - Easier way
+1.  Download the latest release from the release page or branch page big `Clone or download v` button
+1.  Unzip and overwrite your existing directory*.  See note above about `config.json` file.
 
 ## Support
 
@@ -121,10 +150,11 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
  * Run pumps in stand-alone mode
  * Cancel delay: /cancelDelay
 
- ### APIs
+### APIs
  You can use Sockets.IO  (see the "basic UI" example).  Valid sockets:
 
- #### General
+#### General
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To app | <code>echo(equipment)</code> | no api | test socket
@@ -142,7 +172,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To client | <code>UOM</code> | |outputs the unit of measure (C or F)
 
 
- #### Circuits
+#### Circuits
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To client | <code>circuit</code> | |outputs an object of circuits and their status
@@ -153,7 +184,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>cancelDelay</code>| <code>/cancelDelay</code> | Cancel and current circuit (valves/heater cool down?) delay.
 
 
- #### Temperatures and Heat
+#### Temperatures and Heat
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To client | <code>temperature</code> |  | outputs an object with the temperatures, heat and set point information
@@ -168,7 +200,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>poolheatmode(poolheatmode)</code> | <code>/poolheat/mode/{mode}</code> |Change the pool heat mode (integer 0=off, 1=heater, 2=solar pref, 3=solar only)
 
 
- #### Chlorinator and Intellichem
+#### Chlorinator and Intellichem
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To app | <code>setchlorinator(level)</code> |  <code>/chlorinator/{level}</code>|sets the level of output for chlorinator (pool only)
@@ -176,7 +209,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | | <code>/chlorinator</code> | outputs an object with the chlorinator information
 | To app | <code>intellichem</code> | <code>/intellichem</code> |outputs an object with the intellichem information
 
- #### Pumps
+#### Pumps
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To client | <code>pump</code> |   |outputs an object with the pump information
@@ -185,6 +219,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | <code>setPumpType(pump, type)</code> | <code>/pumpCommand/pump/{pump}/type/{type}</code> |Set [pump] to [type] (one of `VS`,`VF`,`VSF`,`None`)
 
 #### Standalone pump controllers or Easytouch (Not Intellitouch)
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To app | |  <code>/pumpCommand/off/pump/{pump}</code> | Turns {pump} off
@@ -197,7 +232,6 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | |  <code>/pumpCommand/save/pump/{pump}/program/{program}/rpm/{rpm}</code> | Saves {pump} {external program} as {rpm}
 | To app | |  <code>/pumpCommand/saverun/pump/{pump}/program/{program}/rpm/{rpm}</code> | Saves {external program} as {rpm}, then runs {pump} {program} indefinitely
 | To app | |  <code>/pumpCommand/saverun/pump/{pump}/program/{program}/rpm/{rpm}/duration/{duration}</code> | Saves {external program} as {rpm}, then runs {pump} {program} for {duration}
-
 | To app | |  <code>/pumpCommand/run/pump/{pump}/gpm/{gpm}</code> | Runs {pump} at {gpm} indefinitely
 | To app | |  <code>/pumpCommand/run/pump/{pump}/gpm/{gpm}/duration/{duration}</code> | Runs {pump} at {gpm} for a {duration}
 | To app | |  <code>/pumpCommand/save/pump/{pump}/program/{program}/gpm/{gpm}</code> | Saves {pump} {external program} as {gpm}
@@ -205,7 +239,8 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app | |  <code>/pumpCommand/saverun/pump/{pump}/program/{program}/gpm/{gpm}/duration/{duration}</code> | Saves {external program} as {gpm}, then runs {pump} {program} for {duration}
 
 
- #### Schedules
+#### Schedules
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To client | <code>schedule</code> | <code>/schedule</code> |outputs an object with the schedule information
@@ -222,6 +257,52 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 # Config.JSON
 
 <a name="module_nodejs-poolController--config"></a>
+The poolController app runs on a configuration file.  As noted in the [Install Instructions](#module_nodejs-poolController--install), you can launch from a custom file or use the default name of `config.json`.
+
+New as of 4.1.33, the app will not come with `config.json`.  This makes upgrading easy because the app will not overwrite your existing settings if you use the default name.
+
+## First launch
+
+When you first launch the app, or launch the app specifying a configuration file that does not exist, it will be created from a template.  The template is `sysDefault.json` and this file should NOT be modified directly.
+
+### Subsequent launches and upgrades
+
+Every time the app runs, or the code is upgraded, the app will check the specified configuration file against the `sysDefaults.json` file and add any new keys.
+
+Summary
+
+ * Any edits are retained (eg you change logConfigMessages=1, but it is logConfigMessages=0 in the template, the value will not be changed in the configuration file)
+ * New keys are automatically added with default values.
+ * Old keys will output a warning, but will not be deleted*.
+
+#### Example Messages
+In the logs, you will see
+
+Keys that can be deleted:
+```
+20:49:15.181 INFO Potential expired/deprecated keys in
+	file: config_local.json
+	key: Hi I am an extra key:0
+```
+
+Keys that are automatically added:
+
+```
+20:50:55.718 INFO New keys copied
+	from: sysDefault.json
+	  to: config.json
+	key: poolController.log.logApi:0
+```
+
+### Only output changes in config.json
+
+If you want to only see what would be changed, or if you want the app to also delete keys, you can run an npm script.
+
+* <code>npm run configTester %config.json% [overwriteFile or outputToScreen]</code>
+
+where %config.json% is the path to your configuration file.  Defaults to `config.json` and
+[overwriteFile or outputToScreen], if present, will write the entire changed file to the file (_with deletes_) or output the contents to the screen.
+
 See below for descriptions
 
 ```
@@ -292,13 +373,7 @@ See below for descriptions
                     "3": -1,
                     "4": -1
                 },
-                "friendlyName": "",
-                "id": {
-                    "productName": "",
-                    "productNumber": "",
-                    "manufacturer": "",
-                    "description": ""
-                }
+                "friendlyName": ""
             },
             "2": {
                 "type": "VS",
@@ -308,13 +383,7 @@ See below for descriptions
                     "3": -1,
                     "4": -1
                 },
-                "friendlyName": "",
-                "id": {
-                    "productName": "",
-                    "productNumber": "",
-                    "manufacturer": "",
-                    "description": ""
-                }
+                "friendlyName": ""
             }
         }
     },

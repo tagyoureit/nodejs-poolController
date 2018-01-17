@@ -5,7 +5,7 @@ describe('pump controller - save speed (2/2)', function() {
 
 
         before(function() {
-            return global.initAllAsync()
+            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
         });
 
         beforeEach(function() {
@@ -18,7 +18,7 @@ describe('pump controller - save speed (2/2)', function() {
             saveProgramOnPumpStub = sandbox.spy(bottle.container.pumpController, 'saveProgramOnPump')
             setPumpToLocalControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToLocalControl')
             requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            configEditorStub = sandbox.stub(bottle.container.configEditor, 'updateExternalPumpProgramAsync')
+            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {

@@ -15,13 +15,12 @@ describe('#sends pump commands to a VF pump', function () {
             // })
             // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
             //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            return global.initAllAsync()
-                .then(function(){
-                    return global.useShadowConfigFileAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
-                })
+
+                    return global.initAllAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+
 
                 .then(function(){
-                    loggers = setupLoggerStubOrSpy('stub', 'spy')
+                    loggers = setupLoggerStubOrSpy('stub', 'stub')
                     clock = sandbox.useFakeTimers()
                     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 })
@@ -39,7 +38,7 @@ describe('#sends pump commands to a VF pump', function () {
                     sandbox.restore()
                 })
                 .then(global.stopAllAsync)
-                .then(global.removeShadowConfigFileAsync)
+
         })
 
         after(function () {

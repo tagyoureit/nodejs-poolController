@@ -10,12 +10,8 @@ describe('checks if there is a newer version available', function() {
         context('1.', function() {
 
             before(function () {
-
-
                 return global.initAllAsync()
-                    .then(function () {
-                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
-                    })
+
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
@@ -31,8 +27,8 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(function(){ return global.removeShadowConfigFileAsync()})
-                    .then(function(){ return global.stopAllAsync()})
+
+                    .then(global.stopAllAsync)
             })
 
 
@@ -63,11 +59,11 @@ describe('checks if there is a newer version available', function() {
                     })
                     // check the file now has the right version stored
                     .then(function () {
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
                     })
                     .then(function (configFile) {
                         configFile = JSON.parse(configFile)
-                        configFile.poolController.notifications.version.remote.version.should.equal('4.1.200')
+                        configFile.meta.notifications.version.remote.version.should.equal('4.1.200')
                         clearTimeout(a)
                         scope.done()
                         myResolve()
@@ -95,10 +91,7 @@ describe('checks if there is a newer version available', function() {
             before(function () {
 
 
-                return global.initAllAsync()
-                    .then(function () {
-                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_blank.json')
-                    })
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_blank.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
@@ -114,8 +107,7 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(function(){ return global.removeShadowConfigFileAsync()})
-                    .then(function(){ return global.stopAllAsync()})
+                    .then(global.stopAllAsync)
             })
 
             it('#notifies of a new release available (remote > local) with local cached version blank', function () {
@@ -148,11 +140,11 @@ describe('checks if there is a newer version available', function() {
                     })
                     // check the file now has the right version stored
                     .then(function () {
-                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/_config.json'), 'utf-8')
+                        return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
                     })
                     .then(function (configFile) {
                         configFile = JSON.parse(configFile)
-                        configFile.poolController.notifications.version.remote.version.should.equal('4.1.200')
+                        configFile.meta.notifications.version.remote.version.should.equal('4.1.200')
                         clearTimeout(a)
                         scope.done()
                         myResolve()
@@ -196,13 +188,11 @@ describe('checks if there is a newer version available', function() {
             before(function () {
 
 
-                return global.initAllAsync()
-                    .then(global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'))
-
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerStubOrSpy('stub','spy')
                     })
 
             })
@@ -214,7 +204,6 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
                     .then(global.stopAllAsync)
             })
             it('#returns with newer version running locally (newer < remote)', function () {
@@ -272,9 +261,6 @@ describe('checks if there is a newer version available', function() {
 
                 return global.initAllAsync()
                     .then(function () {
-                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_vanilla.json')
-                    })
-                    .then(function () {
                         sandbox = sinon.sandbox.create()
 
                         loggers = setupLoggerStubOrSpy('stub','stub')
@@ -289,7 +275,6 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
                     .then(global.stopAllAsync)
             })
             it('#sends updateAvailable with dismissUntilNextRemoteVersionBump=false', function (done) {
@@ -337,8 +322,7 @@ describe('checks if there is a newer version available', function() {
             before(function () {
 
 
-                return global.initAllAsync()
-                    .then(global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json'))
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
@@ -354,7 +338,6 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
                     .then(global.stopAllAsync)
             })
             it('#should not send updateAvailable equal with dismissUntilNextRemoteVersionBump=true', function () {
@@ -421,10 +404,7 @@ describe('checks if there is a newer version available', function() {
             before(function () {
 
 
-                return global.initAllAsync()
-                    .then(function () {
-                        return global.useShadowConfigFileAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
-                    })
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
@@ -440,7 +420,6 @@ describe('checks if there is a newer version available', function() {
                         nock.cleanAll();
                         sandbox.restore()
                     })
-                    .then(global.removeShadowConfigFileAsync)
                     .then(global.stopAllAsync)
             })
             it('#should send updateAvailable with dismissUntilNextRemoteVersionBump=true (new version available)', function () {
