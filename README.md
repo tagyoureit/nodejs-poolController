@@ -5,13 +5,13 @@
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
-#### 3.1.34
+#### 4.1.34
 
 1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
 1. mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
 1. New `/config` endpoint (beta) to allow applications to get a high level summary of the system.
 
-#### 3.1.33 and earlier
+#### 4.1.33 and earlier
 1. Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
 1. A UI for standalone pumps
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
