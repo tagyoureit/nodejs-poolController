@@ -37,7 +37,7 @@
   "homepage": "https://github.com/tagyoureit/nodejs-poolController#readme",
   "dependencies": {
     "bluebird": "^3.5.0",
-    "bootstrap": "^3.3.7",
+    "bootstrap": "^4.0.0",
     "bottlejs": "^1.6.1",
     "dateformat": "^2.0.0",
     "dequeue": "^1.0.5",
