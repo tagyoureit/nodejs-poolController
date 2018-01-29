@@ -63,12 +63,13 @@ function stripJS(name) {
 
 var init = exports.init = function() {
     walk(__dirname + '/../integrations', function(filePath, name, stat) {
-
-        var shortName = stripJS(name)
-        if (bottle.container.settings.get('integrations')[shortName] === 1) {
-            bottle.factory(shortName, require(filePath)) //add the integration to Bottle
-            bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
-            bottle.container[shortName].init()
+        if (name.substr(-3)==='.js') {
+            var shortName = stripJS(name)
+            if (bottle.container.settings.get('integrations')[shortName] === 1) {
+                bottle.factory(shortName, require(filePath)) //add the integration to Bottle
+                bottle.digest(["'" + shortName + "'"]) //Initialize the integration immediately
+                bottle.container[shortName].init()
+            }
         }
     });
 }

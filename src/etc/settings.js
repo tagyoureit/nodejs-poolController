@@ -142,6 +142,27 @@ module.exports = function (container) {
             })
     }
 
+    var moveConfigFileKeys = function(){
+        return Promise.resolve()
+            .then(function(){
+                //this is implemented for >=4.1.34
+                //move equipment.controller.circuitFriendlyNames to equipment.circuit:{friendlyName} if it exists
+                if (configurationFileContent.equipment.controller.hasOwnProperty("circuitFriendlyNames")){
+                    // add circuit key if not exists
+                    if (!configurationFileContent.equipment.hasOwnProperty("circuit")) {
+                        configurationFileContent.equipment.circuit = {"friendlyName":{}}
+                    }
+                    // move key
+                    configurationFileContent.equipment.circuit.friendlyName = JSON.parse(JSON.stringify(configurationFileContent.equipment.controller.circuitFriendlyNames))
+                    // delete old key
+                    delete configurationFileContent.equipment.controller.circuitFriendlyNames
+                }
+            })
+            .catch(function(){
+                container.logger.silly('Settings: No keys to move.')
+            })
+
+    }
 
     var migrateSysDefaultsToConfigFile = function () {
 
@@ -151,21 +172,27 @@ module.exports = function (container) {
                 //     container.logger.debug('Not comparing system defaults file to configuration file (%s) because they are the same version.', _settings.configurationFileLocation)
                 // }
                 // else {
-                var differences = diff(configurationFileContent, sysDefaultFileContent);
+                //var differences = diff(configurationFileContent, sysDefaultFileContent);
                 // console.log(' differences in configurationFileContent, sysDefaultFileContent: ', differences)
                 // console.log('\n\n')
 
-                var diffs = {'newKeys': [], 'deprecatedKeys': []}
+                var diffs = {'newKeys': [], 'editedKeys': [], 'deprecatedKeys': []}
                 observableDiff(configurationFileContent, sysDefaultFileContent, function (d) {
                         // console.log(d, d.kind)
                         if (d.kind === 'D') {
                             //container.logger.warn('Potential expired/deprecated key: %s:%s', d.path.join('.'), JSON.stringify(d.lhs))
                             diffs.deprecatedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.lhs))
                         }
-                        /*if (d.kind === 'E') {
-                            ignore edits
-                            console.log('changes that are edited:', d)
-                        } */
+                        if (d.kind === 'E') {
+                            //ignore all edits except version number
+                            if (d.path[0]==='version'){
+
+                                diffs.editedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.rhs))
+
+                                applyChange(configurationFileContent, sysDefaultFileContent, d)
+                            }
+                            // console.log('changes that are edited:', d)
+                        }
                         if (d.kind === 'N') {
                             //container.logger.debug('New keys to be copied \n\tfrom %s\n\tto   %s\n\t %s:%s', _settings.sysDefaultFileLocation, _settings.configurationFileLocation, d.path.join('.'), JSON.stringify(d.rhs))
                             diffs.newKeys.push(d.path.join('.') + ':' + JSON.stringify(d.rhs))
@@ -211,6 +238,13 @@ module.exports = function (container) {
                     })
                     container.logger.info(str)
                 }
+                if (diffs.editedKeys.length > 0) {
+                    str = 'Edited keys updated \n\tfrom: ' + _settings.sysDefaultFileLocation + '\n\t  to: ' + _settings.configurationFileLocation
+                    diffs.editedKeys.forEach(function (key) {
+                        str += '\n\tkey: ' + key
+                    })
+                    container.logger.info(str)
+                }
                 // }
             })
             .then(writeConfigFileAsync)
@@ -242,6 +276,7 @@ module.exports = function (container) {
 
             .then(loadSysDefaultFile)
             .then(loadConfigFile)
+            .then(moveConfigFileKeys)
             .then(migrateSysDefaultsToConfigFile)
             .then(function () {
                 // = JSON.parse(JSON.stringify(parsedData))
@@ -256,7 +291,7 @@ module.exports = function (container) {
                 _settings.virtualPumpController = configurationFileContent.equipment.controller.virtual.pumpController
                 _settings.virtualChlorinatorController = configurationFileContent.equipment.controller.virtual.chlorinatorController
 
-                _settings.circuitFriendlyNames = configurationFileContent.equipment.controller.circuitFriendlyNames
+                _settings.circuitFriendlyNames = configurationFileContent.equipment.circuit.friendlyName
 
                 //chlorinator
                 _settings.chlorinator = configurationFileContent.equipment.chlorinator;
@@ -265,6 +300,9 @@ module.exports = function (container) {
                 _settings.pump = configurationFileContent.equipment.pump;
                 /*   END Equipment   */
                 _settings.appAddress = configurationFileContent.poolController.appAddress;
+
+                //circuit
+                _settings.circuit = configurationFileContent.equipment.circuit
 
                 //intellichem
                 _settings.intellichem = configurationFileContent.equipment.intellichem.installed
@@ -371,7 +409,7 @@ module.exports = function (container) {
         settingsStr += '\n var intellitouch = ' + JSON.stringify(_settings.intellitouch, null, 4);
         settingsStr += '\n var virtual = ' + JSON.stringify(_settings.virtual, null, 4);
         settingsStr += '\n var controller.id = ' + JSON.stringify(_settings.controller.id, null, 4);
-        settingsStr += '\n var circuitFriendlyNames = ' + JSON.stringify(_settings.circuitFriendlyNames, null, 4)
+        settingsStr += '\n var circuit = ' + JSON.stringify(_settings.circuit, null, 4)
         settingsStr += '\n'
         settingsStr += '\n var chlorinator = ' + JSON.stringify(_settings.chlorinator, null, 4);
         settingsStr += '\n'
@@ -429,23 +467,27 @@ module.exports = function (container) {
     var getConfigOverview = function () {
         var configTemp = {}
         try {
-            configTemp.intellicom = _settings.intellicom.installed
-            configTemp.intellitouch = _settings.intellitouch.installed
-            configTemp.nonLightCircuits = container.circuit.getAllNonLightCircuits()
-            configTemp.lightCircuits = container.circuit.getAllLightCircuits()
-            configTemp.chlorinator = _settings.chlorinator.installed
-            configTemp.pumps = container.pump.numberOfPumps()
-            configTemp.intellichem = _settings.intellichem
-            configTemp.spa = _settings.spa
-            configTemp.solar = _settings.solar
-
             configTemp.systemReady = ((container.intellitouch.checkIfNeedControllerConfiguration() === 0 ? 1 : 0) && (container.queuePacket.getQueuePacketsArrLength() === 0 ? 1 : 0));
+            if (configTemp.systemReady) {
+                configTemp.equipment = configurationFileContent.equipment
+                // configTemp.circuit = {}
+                configTemp.equipment.circuit.nonLightCircuit = container.circuit.getAllNonLightCircuits()
+                configTemp.equipment.circuit.lightCircuit = container.circuit.getAllLightCircuits()
+                // configTemp.circuit.hideAux = configurationFileContent.equipment.circuit.hideAux
+                // configTemp.chlorinator = _settings.chlorinator.installed
+                // configTemp.pumps = container.pump.numberOfPumps()
+                // configTemp.intellichem = _settings.intellichem
+                // configTemp.spa = _settings.spa
+                // configTemp.solar = _settings.solar
+
+            }
         }
         catch (err) {
             configTemp.systemReady = 0
+
         }
 
-        return configTemp
+        return {config: configTemp}
     }
 
     /*var checkForOldconfigurationFileContent = function () {

@@ -271,7 +271,7 @@ Every time the app runs, or the code is upgraded, the app will check the specifi
 
 Summary
 
- * Any edits are retained (eg you change logConfigMessages=1, but it is logConfigMessages=0 in the template, the value will not be changed in the configuration file)
+ * Any edits are retained (eg you change logConfigMessages=1, but it is logConfigMessages=0 in the template, the value will not be changed in the configuration file).  The only exception is the `version` key which will be updated to the latest value.
  * New keys are automatically added with default values.
  * Old keys will output a warning, but will not be deleted*.
 

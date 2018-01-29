@@ -115,6 +115,10 @@ ignore:
     - socket.io > socket.io-client > engine.io-client > ws:
         reason: None given
         expires: '2017-12-11T06:22:14.512Z'
+  'npm:bootstrap:20160627':
+    - bootstrap:
+        reason: None given
+        expires: '2018-02-28T03:28:50.508Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

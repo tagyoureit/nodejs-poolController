@@ -137,7 +137,7 @@ function fmtEggTimerTime(strInpStr) {
 function insertSelectPickerCircuits(el, currSchedule){
     if (Object.keys(currCircuitArr).length > 1) {
         $.each(currCircuitArr, function(index, currCircuit) {
-            if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((generalParams.hideAUX === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+            if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((appParams.circuit.hideAux === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
                 var selected = '';
                 if (currCircuit.friendlyName.toUpperCase() === currSchedule.friendlyName.toUpperCase()) {
                     selected = 'selected'
@@ -704,7 +704,7 @@ function startSocketRx() {
                                 setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
                             }
                             $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
-                        } else if ((generalParams.hideAUX === false) || (currName.indexOf("AUX") === -1)) {
+                        } else if ((appParams.circuit.hideAux === false) || (currName.indexOf("AUX") === -1)) {
                             $('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-md" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
                             if (currCircuit.delay === 1) {
                                 setStatusButton($('#' + currCircuit.numberStr), 'delay', '', currCircuit.macro ? glyphicon : '');
@@ -934,110 +934,157 @@ function startSocketRx() {
         if (data.hasOwnProperty('intellichem')){
             data = data.intellichem
         }
-        //rebuild table
-        $('#intellichemTable').html('<thead>' +
-            '<th>' +
-            '<td>SI</td>' +
-            '</th>' +
-            '<tr>' +
-            '<th>Parameter</th>' +
-            '<th>pH</th>' +
-            '<th>ORP</th>' +
-            '</tr>' +
-            '</thead>' +
-            '<tbody>' +
-            '' +
-            '<tr>' +
-            '<td>Reading</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Setpoint</td>' +
-            '' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Tank Level</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Mode</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Water Flow Alarm</td>' +
-            '</tr>' +
-            '<thead>' +
-            '<tr>' +
-            '<td>Calcium Hardness</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>Total Alkalinity</td>' +
-            '</tr>' +
-            '<tr>' +
-            '<td>CYA</td>' +
-            '</tr>' +
-            '</tbody>')
+        if (appParams.intellichem) {
 
-        // console.log('received intellichem:', data)
-        $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text:data.readings.ORP}))
-        $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text:data.readings.ORP})).after($('<td/>', {text:data.readings.PH}))
-        $('#intellichemTable tr td:contains("Setpoint")')
-            .after($('<td/>')
-                .append($('<button/>', {id:'ORPMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementORP"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                )
-                .append($('<span/>', {text:data.settings.ORP}))
-                .append($('<button/>', {id:'ORPPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementORP"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                )
-            )
+            //rebuild table
+            $('#intellichemTable').html('<thead>' +
+                '<th>' +
+                '<td>SI</td>' +
+                '</th>' +
+                '<tr>' +
+                '<th>Parameter</th>' +
+                '<th>pH</th>' +
+                '<th>ORP</th>' +
+                '</tr>' +
+                '</thead>' +
+                '<tbody>' +
+                '' +
+                '<tr>' +
+                '<td>Reading</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td>Setpoint</td>' +
+                '' +
+                '</tr>' +
+                '<tr>' +
+                '<td>Tank Level</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td>Mode</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td>Water Flow Alarm</td>' +
+                '</tr>' +
+                '<thead>' +
+                '<tr>' +
+                '<td>Calcium Hardness</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td>Total Alkalinity</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td>CYA</td>' +
+                '</tr>' +
+                '</tbody>')
 
-
-        $('#intellichemTable tr td:contains("Setpoint")')
-            .after($('<td/>')
-                .append($('<button/>', {id:'pHMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementPH"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+            // console.log('received intellichem:', data)
+            $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text: data.readings.ORP}))
+            $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text: data.readings.ORP})).after($('<td/>', {text: data.readings.PH}))
+            $('#intellichemTable tr td:contains("Setpoint")')
+                .after($('<td/>')
+                    .append($('<button/>', {
+                            id: 'ORPMinusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "decrementORP"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                    )
+                    .append($('<span/>', {text: data.settings.ORP}))
+                    .append($('<button/>', {
+                            id: 'ORPPlusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "incrementORP"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                    )
                 )
-                .append($('<span/>', {text:data.settings.PH}))
-                .append($('<button/>', {id:'pHPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementPH"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                )
-            )
 
 
-        $('#intellichemTable tr td:contains("Tank Level")')
-            .after($('<td/>', {text:data.tankLevels[2]+ '/6'})).after($('<td/>', {text:data.tankLevels[1] + '/6'}))
-        $('#intellichemTable tr td:contains("Water Flow Alarm")').after($('<td/>', {html:"&nbsp;"})).after($('<td/>', {text:data.readings.WATERFLOW}))
-        $('#intellichemTable tr td:contains("CYA")')
-            .after($('<td/>', {colspan:2})
-                .append($('<button/>', {id:'CYAMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementCYA"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+            $('#intellichemTable tr td:contains("Setpoint")')
+                .after($('<td/>')
+                    .append($('<button/>', {
+                            id: 'pHMinusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "decrementPH"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                    )
+                    .append($('<span/>', {text: data.settings.PH}))
+                    .append($('<button/>', {
+                            id: 'pHPlusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "incrementPH"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                    )
                 )
-                .append($('<span/>', {text:data.settings.CYA}))
-                .append($('<button/>', {id:'CYAPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementCYA"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                )
-            )
-        $('#intellichemTable tr td:contains("Calcium Hardness")')
-            .after($('<td/>', {colspan:2})
-                .append($('<button/>', {id:'CHMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementCH"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                )
-                .append($('<span/>', {text:data.settings.CALCIUMHARDNESS}))
-                .append($('<button/>', {id:'CHPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementCH"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                )
-            )
 
-        $('#intellichemTable tr td:contains("Total Alkalinity")')
-            .after($('<td/>', {colspan:2})
-                .append($('<button/>', {id:'TAMinusOne',class:"btn btn-primary btn-md", "data-socket":"decrementTA"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                )
-                .append($('<span/>', {text:data.settings.TOTALALKALINITY}))
-                .append($('<button/>', {id:'TAPlusOne',class:"btn btn-primary btn-md", "data-socket":"incrementTA"})
-                    .append($('<span/>',{style:"font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                )
-            )
 
-        $('#intellichemTable tr td:contains("Mode")').after($('<td/>', {text:data.mode[2]})).after($('<td/>', {text:data.mode[1]}))
+            $('#intellichemTable tr td:contains("Tank Level")')
+                .after($('<td/>', {text: data.tankLevels[2] + '/6'})).after($('<td/>', {text: data.tankLevels[1] + '/6'}))
+            $('#intellichemTable tr td:contains("Water Flow Alarm")').after($('<td/>', {html: "&nbsp;"})).after($('<td/>', {text: data.readings.WATERFLOW}))
+            $('#intellichemTable tr td:contains("CYA")')
+                .after($('<td/>', {colspan: 2})
+                    .append($('<button/>', {
+                            id: 'CYAMinusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "decrementCYA"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                    )
+                    .append($('<span/>', {text: data.settings.CYA}))
+                    .append($('<button/>', {
+                            id: 'CYAPlusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "incrementCYA"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                    )
+                )
+            $('#intellichemTable tr td:contains("Calcium Hardness")')
+                .after($('<td/>', {colspan: 2})
+                    .append($('<button/>', {
+                            id: 'CHMinusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "decrementCH"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                    )
+                    .append($('<span/>', {text: data.settings.CALCIUMHARDNESS}))
+                    .append($('<button/>', {
+                            id: 'CHPlusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "incrementCH"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                    )
+                )
+
+            $('#intellichemTable tr td:contains("Total Alkalinity")')
+                .after($('<td/>', {colspan: 2})
+                    .append($('<button/>', {
+                            id: 'TAMinusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "decrementTA"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                    )
+                    .append($('<span/>', {text: data.settings.TOTALALKALINITY}))
+                    .append($('<button/>', {
+                            id: 'TAPlusOne',
+                            class: "btn btn-primary btn-md",
+                            "data-socket": "incrementTA"
+                        })
+                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                    )
+                )
+
+            $('#intellichemTable tr td:contains("Mode")').after($('<td/>', {text: data.mode[2]})).after($('<td/>', {text: data.mode[1]}))
+        }
+        else {
+            $('#hidePanelintellichem').click()
+            console.log('Hid intellichem because it is not installed')
+        }
         lastUpdate(true);
     });
 
@@ -1647,15 +1694,35 @@ function lastUpdate(reset) {
     }
 }
 
+var loadAppSettings = function(){
+    $.getJSON('/config', function(appConfig){
+        appParams = appConfig.config
+        console.log(appParams)
+        if (appParams.systemReady){
 
+            startSocketRx();
+            // Finally, initialize Panel and button handling
+            handlePanels();
+            handleButtons();
+
+            // Callback Routine, every second - to update / record time since last message received
+            setInterval(function() {
+                lastUpdate(false)
+            }, 1000);
+        }
+        else {
+            console.log('poolController app not ready yet')
+            setTimeout(loadAppSettings, 1000*5)
+        }
+    })
+
+
+}
 
 // From http://api.jquery.com/jquery/#jQuery3
 // JQuery(callback), Description: Binds a function to be executed when the DOM has finished loading
 $(function() {
-    // Callback Routine, every second - to update / record time since last message received
-    setInterval(function() {
-        lastUpdate(false)
-    }, 1000);
+
 
     // Avoid namespace conflicts
     var bootstrapButton = jQuery.fn.button.noConflict() // return $.fn.button to previously assigned value
@@ -1690,11 +1757,11 @@ $(function() {
         generalParams = json.generalParams;
         // And Now, initialize Socket IO (as client configuration in place now)
         socket = io({reconnectionDelay:20000, reconnection:true, reconnectionDelayMax: 20000});
-        startSocketRx();
-        // Finally, initialize Panel and button handling
-        handlePanels();
-        handleButtons();
+
+        loadAppSettings();
     });
+
+
 
     $('body').scrollspy({
         target: '#pool_navbar'

@@ -202,6 +202,7 @@ module.exports = function (container) {
 
     function allEquipmentInOneJSON() {
         var pool = {}
+        container._.extend(pool, container.settings.getConfigOverview())
         container._.extend(pool, container.circuit.getCurrentCircuits())
         container._.extend(pool, container.pump.getCurrentPumpStatus())
         container._.extend(pool, container.schedule.getCurrentSchedule())

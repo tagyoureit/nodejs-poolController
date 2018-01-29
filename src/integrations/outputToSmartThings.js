@@ -71,7 +71,7 @@ module.exports = function(container) {
     })
 
     function init() {
-        container.logger.info('outputToSmartThings Loaded. \n\taddress: %s\n\tport: %s\n\tprotocol: %s\n\tsecure: %s', address, port, secureTransport)
+        container.logger.info('outputToSmartThings Loaded. \n\taddress: %s\n\tport: %s\n\tsecure: %s', address, port, secureTransport)
     }
 
     var mdns = container.server.getMdnsEmitter();

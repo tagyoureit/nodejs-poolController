@@ -13,8 +13,11 @@
       "virtual": {
         "pumpController": "default",
         "chlorinatorController": "default"
-      },
-      "circuitFriendlyNames": {
+      }
+    },
+    "circuit": {
+      "hideAux": false,
+      "friendlyName": {
         "1": "",
         "2": "",
         "3": "",

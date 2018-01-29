@@ -28,7 +28,7 @@
             "state": "visible"
         },
         "intellichem": {
-            "state": "visible"
+            "state": "hidden"
         },
         "release": {
             "state": "visible"
@@ -122,7 +122,6 @@
     },
     "generalParams": {
         "tmeSuccess": 90,
-        "tmeWarning": 180,
-        "hideAUX": false
+        "tmeWarning": 180
     }
 }

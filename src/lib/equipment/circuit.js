@@ -161,7 +161,7 @@ module.exports = function (container) {
     //internal method to apply the friendly name
     var setCircuitFriendlyNames = function () {
         var useFriendlyName
-        var configFriendlyNames = container.settings.get('circuitFriendlyNames')
+        var configFriendlyNames = container.settings.get('circuit.friendlyName')
         for (var i = 1; i <= numberOfCircuits; i++) {
             if (configFriendlyNames[i] === "") {
                 useFriendlyName = false
@@ -294,11 +294,13 @@ module.exports = function (container) {
     function getAllNonLightCircuits() {
         var tempObj = {}
         for (var key in currentCircuitArrObj) {
-            if (currentCircuitArrObj[key].circuitFunction!==undefined || currentCircuitArrObj[key].name==="NOT USED") {
-                if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) === -1) {
-                    tempObj[key] = {
-                       // "circuitFunction": currentCircuitArrObj[key].circuitFunction,
-                        "circuitName": getFriendlyName(key)
+            if (currentCircuitArrObj[key].circuitFunction!==undefined){
+                if (currentCircuitArrObj[key].name!=="NOT USED") {
+                    if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) === -1) {
+                        tempObj[key] = {
+                            // "circuitFunction": currentCircuitArrObj[key].circuitFunction,
+                            "circuitName": getFriendlyName(key)
+                        }
                     }
                 }
             }
