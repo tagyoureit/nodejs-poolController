@@ -5,6 +5,22 @@
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
+#### 4.1.35
+
+1. Changes to `/config` endpoint.  It's now included with the `/all` end point since there would be quite a bit of duplication.  It still exists standalone (for now) but has much less information in it.
+1. Moved `hideAux` setting from `configClient.json` (web UI settings) to `config.json` template.  In `config.json` template, moved
+   ```
+   {equipment: {controller: {circuitFriendlyNames:{1..20}}}}
+
+    // to
+
+   {equipment: {circuit: friendlyName:{1..20},
+                             hideAux: boolean
+                             },
+   }
+   ```
+   to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
+
 #### 4.1.34
 
 1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
