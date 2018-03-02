@@ -375,88 +375,91 @@ module.exports = function (container) {
 
 
     var displayIntroMsg = function () {
-        var introMsg;
-        introMsg = '\n*******************************';
-        introMsg += '\n poolController in brief (for full details, see README.md):';
-        introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
-        introMsg += '\n It will dynamically load as the information is parsed.  '
-        introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
-        introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
-        introMsg += '\n                  always: poolController pump controller will always start'
-        introMsg += '\n                  never: poolController pump controller will never start'
-
-        introMsg += '\n'
-        introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
-        introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
-        introMsg += '\n it will abort the packet and go to the next one.';
-        introMsg += '\n'
-
-        introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-        introMsg += '\n Visit http://_your_machine_name_:expressPort for a web interface '
-        introMsg += '*******************************\n'
-        return introMsg
+        // var introMsg;
+        // introMsg = '\n*******************************';
+        // introMsg += '\n poolController in brief (for full details, see README.md):';
+        // introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
+        // introMsg += '\n It will dynamically load as the information is parsed.  '
+        // introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
+        // introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
+        // introMsg += '\n                  always: poolController pump controller will always start'
+        // introMsg += '\n                  never: poolController pump controller will never start'
+        //
+        // introMsg += '\n'
+        // introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
+        // introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
+        // introMsg += '\n it will abort the packet and go to the next one.';
+        // introMsg += '\n'
+        //
+        // introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
+        // introMsg += '\n Visit http://_your_machine_name_:expressPort for a web interface '
+        // introMsg += '*******************************\n'
+        // return introMsg
     }
 
     var displaySettingsMsg = function () {
         var settingsStr;
 
-        settingsStr = '' // \n*******************************';
+        container.logger.info('Configuration settings:')
+
+        settingsStr = '\n*******************************';
         settingsStr += '\n Version: ' + _settings.appVersion;
         settingsStr += '\n Config File: ' + _settings.userOverrideFileLocation
         settingsStr += '\n ';
-        settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
-        settingsStr += '\n var intellicom = ' + JSON.stringify(_settings.intellicom, null, 4);
-        settingsStr += '\n var intellitouch = ' + JSON.stringify(_settings.intellitouch, null, 4);
-        settingsStr += '\n var virtual = ' + JSON.stringify(_settings.virtual, null, 4);
-        settingsStr += '\n var controller.id = ' + JSON.stringify(_settings.controller.id, null, 4);
-        settingsStr += '\n var circuit = ' + JSON.stringify(_settings.circuit, null, 4)
-        settingsStr += '\n'
-        settingsStr += '\n var chlorinator = ' + JSON.stringify(_settings.chlorinator, null, 4);
-        settingsStr += '\n'
-        settingsStr += '\n var pump = ' + JSON.stringify(_settings.pump, null, 4)
-        settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
-        settingsStr += '\n ';
-        settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
-        settingsStr += '\n var appAddress = ' + _settings.appAddress;
-        settingsStr += '\n //-------  WEB SETUP -----------';
-        settingsStr += '\n var expressPort = ' + _settings.expressPort;
-        settingsStr += '\n var expressTransport = ' + _settings.expressTransport;
-        settingsStr += '\n var expressAuth = ' + _settings.expressAuth;
-        settingsStr += '\n var expressAuthFile = ' + _settings.expressAuthFile;
-        settingsStr += '\n //-------  END MISC SETUP -----------';
-        settingsStr += '\n ';
-        settingsStr += '\n //-------  NETWORK SETUP -----------';
-        settingsStr += '\n // Setup for Network Connection (socat or nc)';
-        settingsStr += '\n var netConnect = ' + _settings.netConnect;
-        settingsStr += '\n var rs485Port = ' + _settings.rs485Port;
-        settingsStr += '\n var netHost = ' + _settings.netHost;
-        settingsStr += '\n var netPort = ' + _settings.netPort;
-        settingsStr += '\n var timeout = ' + _settings.inactivityRetry;
-        settingsStr += '\n //-------  END NETWORK SETUP -----------';
-        settingsStr += '\n ';
-        settingsStr += '\n //-------  LOG SETUP -----------';
-        settingsStr += '\n var logLevel = ' + _settings.logLevel;
-        settingsStr += '\n var socketLogLevel = ' + _settings.socketLogLevel;
-        settingsStr += '\n var fileLog = ' + JSON.stringify(_settings.fileLog);
-        settingsStr += '\n var logPumpMessages = ' + _settings.logPumpMessages;
-        settingsStr += '\n var logDuplicateMessages = ' + _settings.logDuplicateMessages;
-        settingsStr += '\n var logConsoleNotDecoded = ' + _settings.logConsoleNotDecoded;
-        settingsStr += '\n var logConfigMessages = ' + _settings.logConfigMessages;
-        settingsStr += '\n var logMessageDecoding = ' + _settings.logMessageDecoding;
-        settingsStr += '\n var logChlorinator = ' + _settings.logChlorinator;
-        settingsStr += '\n var logIntellichem = ' + _settings.logIntellichem;
-        settingsStr += '\n var logPacketWrites = ' + _settings.logPacketWrites;
-        settingsStr += '\n var logPumpTimers = ' + _settings.logPumpTimers;
-        settingsStr += '\n var logApi = ' + _settings.logApi;
-        settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
-        settingsStr += '\n ';
-        settingsStr += '\n //-------  DATABASE SETUP -----------';
-        settingsStr += '\n var influxEnabled = ' + _settings.influxEnabled;
-        settingsStr += '\n var influxHost = ' + _settings.influxHost;
-        settingsStr += '\n var influxPort = ' + _settings.influxPort;
-        settingsStr += '\n var influxDB = ' + _settings.influxDB;
-        settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
-        //settingsStr += '\n*******************************';
+        // settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
+        // settingsStr += '\n var intellicom = ' + JSON.stringify(_settings.intellicom, null, 4);
+        // settingsStr += '\n var intellitouch = ' + JSON.stringify(_settings.intellitouch, null, 4);
+        // settingsStr += '\n var virtual = ' + JSON.stringify(_settings.virtual, null, 4);
+        // settingsStr += '\n var controller.id = ' + JSON.stringify(_settings.controller.id, null, 4);
+        // settingsStr += '\n var circuit = ' + JSON.stringify(_settings.circuit, null, 4)
+        // settingsStr += '\n'
+        // settingsStr += '\n var chlorinator = ' + JSON.stringify(_settings.chlorinator, null, 4);
+        // settingsStr += '\n'
+        // settingsStr += '\n var pump = ' + JSON.stringify(_settings.pump, null, 4)
+        // settingsStr += '\n //-------  END EQUIPMENT SETUP -----------';
+        // settingsStr += '\n ';
+        // settingsStr += '\n //-------  POOLCONTROLLER SETUP -----------';
+        // settingsStr += '\n var appAddress = ' + _settings.appAddress;
+        // settingsStr += '\n //-------  WEB SETUP -----------';
+        // settingsStr += '\n var expressPort = ' + _settings.expressPort;
+        // settingsStr += '\n var expressTransport = ' + _settings.expressTransport;
+        // settingsStr += '\n var expressAuth = ' + _settings.expressAuth;
+        // settingsStr += '\n var expressAuthFile = ' + _settings.expressAuthFile;
+        // settingsStr += '\n //-------  END MISC SETUP -----------';
+        // settingsStr += '\n ';
+        // settingsStr += '\n //-------  NETWORK SETUP -----------';
+        // settingsStr += '\n // Setup for Network Connection (socat or nc)';
+        // settingsStr += '\n var netConnect = ' + _settings.netConnect;
+        // settingsStr += '\n var rs485Port = ' + _settings.rs485Port;
+        // settingsStr += '\n var netHost = ' + _settings.netHost;
+        // settingsStr += '\n var netPort = ' + _settings.netPort;
+        // settingsStr += '\n var timeout = ' + _settings.inactivityRetry;
+        // settingsStr += '\n //-------  END NETWORK SETUP -----------';
+        // settingsStr += '\n ';
+        // settingsStr += '\n //-------  LOG SETUP -----------';
+        // settingsStr += '\n var logLevel = ' + _settings.logLevel;
+        // settingsStr += '\n var socketLogLevel = ' + _settings.socketLogLevel;`
+        // settingsStr += '\n var fileLog = ' + JSON.stringify(_settings.fileLog);
+        // settingsStr += '\n var logPumpMessages = ' + _settings.logPumpMessages;
+        // settingsStr += '\n var logDuplicateMessages = ' + _settings.logDuplicateMessages;
+        // settingsStr += '\n var logConsoleNotDecoded = ' + _settings.logConsoleNotDecoded;
+        // settingsStr += '\n var logConfigMessages = ' + _settings.logConfigMessages;
+        // settingsStr += '\n var logMessageDecoding = ' + _settings.logMessageDecoding;
+        // settingsStr += '\n var logChlorinator = ' + _settings.logChlorinator;
+        // settingsStr += '\n var logIntellichem = ' + _settings.logIntellichem;
+        // settingsStr += '\n var logPacketWrites = ' + _settings.logPacketWrites;
+        // settingsStr += '\n var logPumpTimers = ' + _settings.logPumpTimers;
+        // settingsStr += '\n var logApi = ' + _settings.logApi;
+        // settingsStr += '\n //-------  END LOG SETUP -----------\n\n';
+        // settingsStr += '\n ';
+        // settingsStr += '\n //-------  DATABASE SETUP -----------';
+        // settingsStr += '\n var influxEnabled = ' + _settings.influxEnabled;
+        // settingsStr += '\n var influxHost = ' + _settings.influxHost;
+        // settingsStr += '\n var influxPort = ' + _settings.influxPort;
+        // settingsStr += '\n var influxDB = ' + _settings.influxDB;
+        // settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
+        // //settingsStr += '\n*******************************';
+        settingsStr += JSON.stringify(_settings,null,4)
         return settingsStr
     }
 
@@ -469,7 +472,7 @@ module.exports = function (container) {
         try {
             configTemp.systemReady = ((container.intellitouch.checkIfNeedControllerConfiguration() === 0 ? 1 : 0) && (container.queuePacket.getQueuePacketsArrLength() === 0 ? 1 : 0));
             if (configTemp.systemReady) {
-                configTemp.equipment = configurationFileContent.equipment
+                configTemp.equipment = JSON.parse(JSON.stringify(configurationFileContent.equipment))
                 // configTemp.circuit = {}
                 configTemp.equipment.circuit.nonLightCircuit = container.circuit.getAllNonLightCircuits()
                 configTemp.equipment.circuit.lightCircuit = container.circuit.getAllLightCircuits()

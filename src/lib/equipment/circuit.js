@@ -325,42 +325,48 @@ module.exports = function (container) {
 
     function setCircuitFromController(circuit, nameByte, functionByte, counter) {
 
-        var circuitArrObj = {}
-        //if the ID of the circuit name is 1-101 then it is a standard name.  If it is 200-209 it is a custom name.  The mapping between the string value in the getCircuitNames and getCustomNames is 200.  So subtract 200 from the circuit name to get the id in the custom name array.
-        // logger.info("Getting the name for circuit: %s \n\tThe circuit nameByte is: ", circuit, nameByte)
-        if (nameByte < 200) {
-            circuitArrObj.name = container.constants.strCircuitName[nameByte]
-        } else {
-            circuitArrObj.name = container.customNames.getCustomName(nameByte - 200);
-        }
-        circuitArrObj.number = circuit;
-        circuitArrObj.numberStr = 'circuit' + circuit;
-        //The &64 masks to 01000000 because it is the freeze protection bit
-        var freeze = ((functionByte & 64) === 64) ? 1 : 0
-        circuitArrObj.freeze = freeze
-        circuitArrObj.circuitFunction = container.constants.strCircuitFunction[functionByte & 63]
-        circuitArrObj.macro = (functionByte & 128) >> 7 //1 or 0
+        if (circuit<=numberOfCircuits) {
 
-        if (currentCircuitArrObj[circuit].name === undefined) {
-            //logger.info("Assigning circuit %s the function %s based on value %s\n\t", circuit, circuitArrObj.circuitFunction, functionByte & 63)
-            assignCircuitVars(circuit, circuitArrObj)
-        }
-
-        if (circuit === numberOfCircuits && sendInitialBroadcast.haveCircuitNames === 0) {
-            sendInitialBroadcast.haveCircuitNames = 1
-            setCircuitFriendlyNames()
-            doWeHaveAllInformation()
-        } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
-            //not sure we can do this ... have to check to see if they will come out the same
-            if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
-                circuitChanged(circuit, circuitArrObj, counter)
-                assignCircuitVars(circuit, circuitArrObj)
+            var circuitArrObj = {}
+            //if the ID of the circuit name is 1-101 then it is a standard name.  If it is 200-209 it is a custom name.  The mapping between the string value in the getCircuitNames and getCustomNames is 200.  So subtract 200 from the circuit name to get the id in the custom name array.
+            // logger.info("Getting the name for circuit: %s \n\tThe circuit nameByte is: ", circuit, nameByte)
+            if (nameByte < 200) {
+                circuitArrObj.name = container.constants.strCircuitName[nameByte]
             } else {
-                logger.debug('Msg# %s  No change in circuit %s', counter, circuit)
+                circuitArrObj.name = container.customNames.getCustomName(nameByte - 200);
+            }
+            circuitArrObj.number = circuit;
+            circuitArrObj.numberStr = 'circuit' + circuit;
+            //The &64 masks to 01000000 because it is the freeze protection bit
+            var freeze = ((functionByte & 64) === 64) ? 1 : 0
+            circuitArrObj.freeze = freeze
+            circuitArrObj.circuitFunction = container.constants.strCircuitFunction[functionByte & 63]
+            circuitArrObj.macro = (functionByte & 128) >> 7 //1 or 0
+
+            if (currentCircuitArrObj[circuit].name === undefined) {
+                //logger.info("Assigning circuit %s the function %s based on value %s\n\t", circuit, circuitArrObj.circuitFunction, functionByte & 63)
+                assignCircuitVars(circuit, circuitArrObj)
             }
 
+            if (circuit === numberOfCircuits && sendInitialBroadcast.haveCircuitNames === 0) {
+                sendInitialBroadcast.haveCircuitNames = 1
+                setCircuitFriendlyNames()
+                doWeHaveAllInformation()
+            } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
+                //not sure we can do this ... have to check to see if they will come out the same
+                if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
+                    circuitChanged(circuit, circuitArrObj, counter)
+                    assignCircuitVars(circuit, circuitArrObj)
+                } else {
+                    logger.debug('Msg# %s  No change in circuit %s', counter, circuit)
+                }
+
+            }
+            if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
         }
-        if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
+        else {
+            logger.warn('Equipment is requesting status for circuit %s, but only %s are configured in the app.', circuit, numberOfCircuits)
+        }
 
     }
 

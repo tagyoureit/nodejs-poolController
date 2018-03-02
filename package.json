@@ -1,6 +1,6 @@
 {
   "name": "nodejs-poolcontroller",
-  "version": "4.1.34",
+  "version": "4.1.35",
   "description": "NodeJS program to read and write to the the pool equipment serial bus.",
   "main": "src/index.js",
   "scripts": {
@@ -55,8 +55,8 @@
     "node-ip": "^0.1.2",
     "node-ssdp": "^3.2.5",
     "promised-io": "^0.3.5",
-    "request": "^2.81.0",
-    "request-promise": "^4.2.1",
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2",
     "serialport": "^6.0.4",
     "socket.io": "^2.0.4",
     "socket.io-client": "^2.0.4",

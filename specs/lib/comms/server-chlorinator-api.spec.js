@@ -17,7 +17,7 @@ describe('#set functions', function() {
             beforeEach(function () {
                 // sandbox = sinon.sandbox.create()
                 //clock = sandbox.useFakeTimers()
-                loggers = setupLoggerStubOrSpy('stub', 'stub')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
             })
@@ -62,7 +62,7 @@ describe('#set functions', function() {
             });
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('spy','spy')
+                loggers = setupLoggerStubOrSpy('stub','spy')
                 queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
                 settingsStub = sandbox.stub(bottle.container.settings, 'updateChlorinatorDesiredOutputAsync')
                 //getVersionNotificationStub = sandbox.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})

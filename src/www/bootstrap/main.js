@@ -137,7 +137,7 @@ function fmtEggTimerTime(strInpStr) {
 function insertSelectPickerCircuits(el, currSchedule){
     if (Object.keys(currCircuitArr).length > 1) {
         $.each(currCircuitArr, function(index, currCircuit) {
-            if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((appParams.circuit.hideAux === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
+            if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((appParams.equipment.circuit.hideAux === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
                 var selected = '';
                 if (currCircuit.friendlyName.toUpperCase() === currSchedule.friendlyName.toUpperCase()) {
                     selected = 'selected'
@@ -704,7 +704,7 @@ function startSocketRx() {
                                 setStatusButton($('#' + currCircuit.numberStr), currCircuit.status, '', currCircuit.macro ? glyphicon : '');
                             }
                             $('#' + currCircuit.numberStr).data(currCircuit.numberStr, currCircuit.number);
-                        } else if ((appParams.circuit.hideAux === false) || (currName.indexOf("AUX") === -1)) {
+                        } else if ((appParams.equipment.circuit.hideAux === false) || (currName.indexOf("AUX") === -1)) {
                             $('#features tr:last').after('<tr><td>' + currName.toLowerCase().toTitleCase() + '</td><td><button class="btn btn-primary btn-md" name="' + currCircuit.numberStr + '" id="' + currCircuit.numberStr + '">---</button></td></tr>');
                             if (currCircuit.delay === 1) {
                                 setStatusButton($('#' + currCircuit.numberStr), 'delay', '', currCircuit.macro ? glyphicon : '');

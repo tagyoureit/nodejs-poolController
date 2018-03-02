@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.10.1
+version: v1.10.2
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
   'npm:brace-expansion:20170302':
@@ -118,7 +118,33 @@ ignore:
   'npm:bootstrap:20160627':
     - bootstrap:
         reason: None given
-        expires: '2018-02-28T03:28:50.508Z'
+        expires: '2018-04-01T03:18:50.432Z'
+  'npm:lodash:20180130':
+    - snyk-go-plugin > graphlib > lodash:
+        reason: None given
+        expires: '2018-04-01T03:11:11.100Z'
+    - node-ssdp > async > lodash:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-04-01T03:18:10.569Z'
+    - node-ip > node-localip > wmic > async > lodash:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
+  'npm:hoek:20180212':
+    - request > hawk > hoek:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
+    - request > hawk > boom > hoek:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
+    - request > hawk > sntp > hoek:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
+    - request > hawk > cryptiles > boom > hoek:
+        reason: None given
+        expires: '2018-04-01T03:18:10.568Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

@@ -21,6 +21,11 @@
    ```
    to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
 
+#### 4.1.35
+
+1. Fixed issue #82
+1. Extra info from `/config` was being added to the circuit section in `config.json`
+
 #### 4.1.34
 
 1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
@@ -196,7 +201,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 | To app |  | <code>/circuit</code>| outputs an object of circuits and their status
 | To app | <code>circuit/{#}</code> | <code>/circuit</code>|outputs an object of a single circuit and its status
 | To app | <code>toggleCircuit(equipment)</code> | <code>/circuit/{#}/toggle</code>|toggles the circuit (as a circuit number)  |
-| To app | | <code>/circuit/{#}/set</code>|set the circuit (as a circuit number) to on/off|
+| To app | | <code>/circuit/{#}/set/{0/1}</code>|set the circuit (as a circuit number) to 1 (on) or 0 (off)|
 | To app | <code>cancelDelay</code>| <code>/cancelDelay</code> | Cancel and current circuit (valves/heater cool down?) delay.
 
 
@@ -959,7 +964,7 @@ If you read through the below links, you'll quickly learn that the packets can v
 # Credit
 
 1.  [Jason Young](http://www.sdyoung.com/home/decoding-the-pentair-easytouch-rs-485-protocol) (Read both posts, they are a great baseline for knowledge)
-2.  [Michael (lastname unknown)](http://cocoontech.com/forums/topic/13548-intelliflow-pump-rs485-protocol/?p=159671) - Registration required.  Jason Young used this material for his understanding in the protocol as well.  There is a very detailed .txt file with great information ~~that I won't post unless I get permission~~. Looks like it was publicly posted to [Pastebin](http://pastebin.com/uiAmvNjG).
+2.  Michael Russe [ceesco](https://github.com/ceesco53/pentair_examples) [CocoonTech](http://cocoontech.com/forums/topic/13548-intelliflow-pump-rs485-protocol/?p=159671) - Registration required for CocoonTech.  Jason Young used this material for his understanding in the protocol as well.  There is a very detailed .txt file with great information ~~that I won't post unless I get permission~~. Looks like it was publicly posted to [Pastebin](http://pastebin.com/uiAmvNjG).
 3.  [Michael Usner](https://github.com/michaelusner/Home-Device-Controller) for taking the work of both of the above and turning it into Javascript code.
 4.  [rflemming](https://github.com/rflemming) for being the first to contribute some changes to the code.
 5.  Awesome help from @arrmo and @blueman2 on Gitter

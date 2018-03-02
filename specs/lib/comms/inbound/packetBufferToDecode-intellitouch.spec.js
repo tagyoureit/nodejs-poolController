@@ -174,6 +174,18 @@ describe('receives packets from buffer and follows them to decoding', function()
                     .then(done,done)
 
             })
+
+            it('#warns with a 21st circuit when only 20 are configured', function(done) {
+                Promise.resolve()
+                    .then(function(){
+                        tempPkt = [255,0,255, 165,1,15,16,11,5,21,0,0,0,0,0,234]
+                        bottle.container.packetBuffer.push(new Buffer(tempPkt))
+                        // anything to test here?  or just for code coverage?
+                    })
+                    .then(done,done)
+
+            })
+
         })
     })
 })
