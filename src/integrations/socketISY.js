@@ -31,8 +31,10 @@ module.exports = function(container) {
 
     pump = {}
     chlorinator = {}
+    circuit = {}
+    temperatures = {}
     var configFile = JSON.parse(fs.readFileSync(container.settings.configurationFile));
-    var enabled = configFile.Integrations.socketISY
+    var enabled = configFile.integrations.socketISY
     var ISYConfig = configFile.socketISY
     var ISYVars = configFile.socketISY.Variables
 
@@ -124,6 +126,56 @@ module.exports = function(container) {
         }
     })
 
+    socket.on('circuit', function(data) {
+      for (var v in Object.keys(ISYVars.circuit)) {
+          var currCircuit = parseInt(Object.keys(ISYVars.circuit)[v])
+          for (var prop in data[currCircuit]) {
+        var fullprop = prop + currCircuit
+             for (var ISYVar in ISYVars.circuit[currCircuit]) {
+                var varset = 1
+                if (data[currCircuit][prop] === -1){
+                   varset = 0
+                }
+                else if (data[currCircuit][prop].toString().toLowerCase().indexOf("notset") >= 0){
+                   varset = 0
+                }
+                if (ISYVar === prop && varset) {
+                  if(!circuit.hasOwnProperty(prop)) {
+                    circuit[fullprop] = data[currCircuit][prop]
+                    process(prop, ISYVars.circuit[currCircuit][ISYVar], circuit[fullprop])
+                  } else if (circuit[fullprop] != data[currCircuit][prop]) {
+                    circuit[fullprop] = data[currCircuit][prop]
+                    process(prop, ISYVars.circuit[currCircuit][ISYVar], circuit[fullprop])
+                  } else if (circuit[fullprop] === data[currCircuit][prop]) {
+                    container.logger.debug('ISY Socket: Will not send %s to ISY because the value has not changed (%s)', prop, circuit[fullprop])
+                  }
+                }
+             }
+          }
+      }
+    })
+
+    socket.on('temperatures', function(data) {
+        //console.log('FROM SOCKET CLIENT: ' + JSON.stringify(data))
+        for (var prop in data) {
+            for (var ISYVar in ISYVars.temperatures) {
+                if (ISYVar === prop && data[prop] !== -1) {
+                    //console.log('true')
+                    if (!temperatures.hasOwnProperty(prop)) {
+                        temperatures[prop] = data[prop]
+                        process(prop, ISYVars.temperatures[ISYVar], temperatures[prop])
+                    } else if (temperatures[prop] !== data[prop]) {
+                        temperatures[prop] = data[prop]
+                        process(prop, ISYVars.temperatures[ISYVar], temperatures[prop])
+                    } else if (temperatures[prop] === data[prop]) {
+                        container.logger.debug('ISY Socket: Will not send %s to ISY because the value has not changed (%s)', prop, temperatures[prop])
+
+                    }
+
+                }
+            }
+        }
+    })
 
     function init() {
         container.logger.verbose('Socket ISY Loaded')

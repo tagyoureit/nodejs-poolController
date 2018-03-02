@@ -299,6 +299,23 @@ See below for descriptions
                     "power": 14,
                     "timer": 15
                 }
+            },
+            "circuit": {
+                "1": {
+                    "status": 8
+                },
+                "2": {
+                    "status": 3
+                },
+                "3": {
+                    "status": 2
+                }
+            },
+            "temperatures": {
+                "poolTemp": 17,
+                "spaTemp": 18,
+                "airTemp": 19,
+                "spaSetPoint": 20
             }
         }
     },
