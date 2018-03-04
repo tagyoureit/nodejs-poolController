@@ -634,7 +634,7 @@ module.exports = function(container) {
 
     var emitDebugLog = function(msg) {
         //console.log('EMITTING DEBUG LOG: %s', msg)
-        emitToClients('outputLog', msg)
+        emitToClientsOnEnabledSockets('outputLog', msg)
     }
 
     /*istanbul ignore next */

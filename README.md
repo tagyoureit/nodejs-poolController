@@ -21,8 +21,6 @@
    ```
    to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
 
-#### 4.1.35
-
 1. Fixed issue #82
 1. Extra info from `/config` was being added to the circuit section in `config.json`
 
