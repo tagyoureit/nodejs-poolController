@@ -92,7 +92,7 @@ module.exports = function(container) {
   }
 
   var loadProgramsFromConfig = function() {
-    pumpConfig = container.settings.get('pump')
+    var pumpConfig = container.settings.get('pump')
     for (var _pump in pumpConfig) {
       if (_pump <= numPumps) {
         currentPumpStatus[_pump].externalProgram = JSON.parse(JSON.stringify(pumpConfig[_pump].externalProgram))
@@ -115,10 +115,10 @@ var setVirtualControllerStatus = function(status) {
 }
 
     var init = function() {
-    pumpConfig = container.settings.get('pump')
+    var pumpConfig = container.settings.get('pump')
 
     for (var _pump in pumpConfig) {
-      if (pumpConfig[_pump].type !== 'none') {
+      if (pumpConfig[_pump].type.toLowerCase() !== 'none') {
         numPumps = parseInt(_pump)
       }
     }

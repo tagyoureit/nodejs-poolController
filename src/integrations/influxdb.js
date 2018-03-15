@@ -187,7 +187,7 @@ module.exports = function(container) {
       console.log('data[1].rpm=', data[1].rpm)
       writePumpData(data[1])
     }
-    if (data[2].type !== 'none') {
+    if (data[2].type.toLowerCase() !== 'none') {
       if (data[2].rpm !== 'rpmnotset')
         writePumpData(data[2])
     }

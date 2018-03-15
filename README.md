@@ -472,7 +472,7 @@ See below for descriptions
         "socketISY": 0,
         "outputSocketToConsoleExample": 0
     },
-    "socketISY": {
+ "socketISY": {
         "username": "blank",
         "password": "blank",
         "ipaddr": "127.0.0.1",
@@ -480,14 +480,6 @@ See below for descriptions
         "Variables": {
             "chlorinator": {
                 "saltPPM": 16
-            },
-            "circuit": {
-                "2": {
-                    "status": 3
-                },
-                "3": {
-                    "status": 2
-                }
             },
             "pump": {
                 "1": {
@@ -500,7 +492,24 @@ See below for descriptions
                     "program4rpm": 13,
                     "power": 14,
                     "timer": 15
+                }
+            },
+            "circuit": {
+                "1": {
+                    "status": 8
                 },
+                "2": {
+                    "status": 3
+                },
+                "3": {
+                    "status": 2
+                }
+            },
+            "temperatures": {
+                "poolTemp": 17,
+                "spaTemp": 18,
+                "airTemp": 19,
+                "spaSetPoint": 20
             }
         }
     },

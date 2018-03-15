@@ -22,18 +22,19 @@ module.exports = function(container) {
     var io = container.socketClient
     //var ISYTimer = new container.nanotimer
     var fs = container.fs
-    var url = 'https://localhost:' + bottle.container.settings.get('httpsExpressPort') + '/'
-    var socket = io.connect(url, {
+
+    var socket = io.connect('https://localhost:3000', {
         secure: true,
         reconnect: true,
         rejectUnauthorized: false
     });
 
     pump = {}
-    circuit = {}
     chlorinator = {}
-    var configFile = JSON.parse(fs.readFileSync(container.settings.configurationFile));  // we could also read the config file via container.settings.getConfig();
-    var enabled = configFile.Integrations.socketISY
+    circuit = {}
+    temperatures = {}
+    var configFile = JSON.parse(fs.readFileSync(container.settings.configurationFile));
+    var enabled = configFile.integrations.socketISY
     var ISYConfig = configFile.socketISY
     var ISYVars = configFile.socketISY.Variables
 
@@ -74,7 +75,6 @@ module.exports = function(container) {
     }
 
     socket.on('chlorinator', function(data) {
-        data = data.chlorinator
         //console.log('FROM SOCKET CLIENT: ' + JSON.stringify(data))
         for (var prop in data) {
             for (var ISYVar in ISYVars.chlorinator) {
@@ -99,7 +99,6 @@ module.exports = function(container) {
 
 
     socket.on('pump', function(data) {
-        data = data.pump;
         for (var v in Object.keys(ISYVars.pump)) {  //Retrieve number of pumps to retrieve from configFile.socketISY.Variables
             var currPump = parseInt(Object.keys(ISYVars.pump)[v]) //fancy way of converting JSON key "pump"."1" to int (1)
             for (var prop in data[currPump]) {  //retrieve values in pump[1]
@@ -109,7 +108,7 @@ module.exports = function(container) {
                         varset = 0  //set to 0 if the value is -1
                     }
                     else if (data[currPump][prop].toString().toLowerCase().indexOf("notset") >= 0){
-                     varset = 0 //or if the value contains "notset"
+                        varset = 0 //or if the value contains "notset"
                     }
                     if (ISYVar === prop && varset) {  //is the ISYVariable and the pump variable the same?  And is the actual value !== -1 or "notset"
                         if (!pump.hasOwnProperty(prop)) {  //If the value isn't previously set...
@@ -128,7 +127,6 @@ module.exports = function(container) {
     })
 
     socket.on('circuit', function(data) {
-        data = data.circuit;
         for (var v in Object.keys(ISYVars.circuit)) {
             var currCircuit = parseInt(Object.keys(ISYVars.circuit)[v])
             for (var prop in data[currCircuit]) {
@@ -157,6 +155,27 @@ module.exports = function(container) {
         }
     })
 
+    socket.on('temperatures', function(data) {
+        //console.log('FROM SOCKET CLIENT: ' + JSON.stringify(data))
+        for (var prop in data) {
+            for (var ISYVar in ISYVars.temperatures) {
+                if (ISYVar === prop && data[prop] !== -1) {
+                    //console.log('true')
+                    if (!temperatures.hasOwnProperty(prop)) {
+                        temperatures[prop] = data[prop]
+                        process(prop, ISYVars.temperatures[ISYVar], temperatures[prop])
+                    } else if (temperatures[prop] !== data[prop]) {
+                        temperatures[prop] = data[prop]
+                        process(prop, ISYVars.temperatures[ISYVar], temperatures[prop])
+                    } else if (temperatures[prop] === data[prop]) {
+                        container.logger.debug('ISY Socket: Will not send %s to ISY because the value has not changed (%s)', prop, temperatures[prop])
+
+                    }
+
+                }
+            }
+        }
+    })
 
     function init() {
         container.logger.verbose('Socket ISY Loaded')
