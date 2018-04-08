@@ -370,7 +370,8 @@ module.exports = function(container) {
 
         return Promise.resolve()
             .then(function () {
-                if (currentChlorinatorStatus.installed === 0) {
+                  // need better logic for this.  If we set intellitouch=0 and chlorinator=0 then this will still try to control the chlorinator by writing packets.  Not ideal for purely listening mode.
+                if (currentChlorinatorStatus.installed === 0 && container.settings.get('virtual.chlorinatorController') !== 'never') {
                     currentChlorinatorStatus.installed = 1
                     return container.settings.updateChlorinatorInstalledAsync(currentChlorinatorStatus.installed)
                         .then(function () {

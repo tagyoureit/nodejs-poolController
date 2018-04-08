@@ -23,11 +23,12 @@ module.exports = function(container) {
     var configFile = container.settings.getConfig()
         //and read the variables we put there
     var level = configFile.outputSocketToConsoleExample.level
-    var protocol = configFile.poolController.web.expressTransport
+    var protocol_http = configFile.poolController.http.enabled
+    var protocol_https = configFile.poolController.https.enabled
     var serverURL;
     var secureTransport;
     //The following IF statement sets the varibles if the transport is either HTTP or HTTPS
-    if (protocol === 'http') {
+    if (protocol_https === 0) {
         serverURl = 'http://localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
         secureTransport = false
     } else {
