@@ -29,7 +29,7 @@ module.exports = function(container) {
     var secureTransport;
     //The following IF statement sets the varibles if the transport is either HTTP or HTTPS
     if (protocol_https === 0) {
-        serverURl = 'http://localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
+        serverURL = 'http://localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
         secureTransport = false
     } else {
         serverURL = 'https://localhost:' + bottle.container.settings.get('httpsExpressPort') + '/'
