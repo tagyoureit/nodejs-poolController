@@ -84,7 +84,8 @@ Extend nodejs-Poolcontroller with these additional integration points
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [SmartThings](https://github.com/bsileo/SmartThings_Pentair) by @bsileo, @johnny2678, @donkarnag, @arrmo
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
-* [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2
+* [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2, enhancements by @mayermd
+* [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 
 ***
 
