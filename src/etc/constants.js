@@ -651,7 +651,9 @@ module.exports = function(container) {
         ctrl: ctrl,
         ctrlString: ctrlString,
         schedulePacketBytes: schedulePacketBytes,
-        intellichemPacketFields: intellichemPacketFields
+        intellichemPacketFields: intellichemPacketFields,
+        strIntellibriteModes: strIntellibriteModes,
+        intellibriteModes: intellibriteModes
     }
 
 }

@@ -78,7 +78,7 @@ nodejs-poolController is an application to communicate and control your Pentair 
 
 ***
 
-## Plug-ins
+## Plug-ins / Extensions / Contributions
 Extend nodejs-Poolcontroller with these additional integration points
 * [outputSocketToConsoleExample](src/integrations/outputSocketToConsoleExample.js) A sample included with the code to demonstrate correct usage.
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
