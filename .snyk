@@ -118,11 +118,11 @@ ignore:
   'npm:bootstrap:20160627':
     - bootstrap:
         reason: None given
-        expires: '2018-04-01T03:18:50.432Z'
+        expires: '2018-05-27T15:05:54.490Z'
   'npm:lodash:20180130':
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
-        expires: '2018-04-01T03:11:11.100Z'
+        expires: '2018-05-27T15:05:54.491Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
@@ -145,6 +145,13 @@ ignore:
     - request > hawk > cryptiles > boom > hoek:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
+  'npm:deep-extend:20180409':
+    - prebuild-install > rc > deep-extend:
+        reason: None given
+        expires: '2018-05-27T15:05:54.491Z'
+    - serialport > prebuild-install > rc > deep-extend:
+        reason: None given
+        expires: '2018-05-27T15:05:54.491Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':
