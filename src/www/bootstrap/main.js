@@ -932,7 +932,6 @@ function startSocketRx() {
 
 
     socket.on('intellichem', function (data) {
-        console.log("RECEIVED INTELLICHEM")
             if (appParams.equipment.intellichem.installed) {
                 if (data.hasOwnProperty('intellichem')) {
                     data = data.intellichem
@@ -1088,8 +1087,8 @@ function startSocketRx() {
                 }
             }
             else {
-                $('#hidePanelintellichem').click()
-                console.log('Hid intellichem because it is not installed')
+                //$('#hidePanelintellichem').click()
+                //console.log('Hid intellichem because it is not installed')
             }
             lastUpdate(true);
         }

@@ -125,7 +125,6 @@ module.exports = function(container) {
 
         if (outputType === 'intellichem' || outputType === 'all') {
             var intellichem = container.intellichem.getCurrentIntellichem()
-            console.log('GOING TO EMIT INTELLICHEM:', intellichem)
             emitToClientsOnEnabledSockets('intellichem',
                 intellichem)
         }

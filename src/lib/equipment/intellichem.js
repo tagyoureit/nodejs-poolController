@@ -150,7 +150,6 @@ module.exports = function(container) {
     }
 
     function processIntellichemControllerPacket(data, counter) {
-console.log('ANALYZING INTELLICHEM!!! ', data)
 
         intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
         intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
@@ -169,7 +168,6 @@ console.log('ANALYZING INTELLICHEM!!! ', data)
         intellichem.mode[1] = data[container.constants.intellichemPacketFields.MODE1]
         intellichem.mode[2] = data[container.constants.intellichemPacketFields.MODE2]
 
-
         if (!container._.isEqual(intellichem.lastPacket, data)) {
             intellichem.lastPacket = container._.clone(data)
             intellichem.readings.SI = Math.round((intellichem.readings.PH + calculateCalciumHardnessFactor() + calculateTotalCarbonateAlkalinity() + calculateTemperatureFactor() - calculateTotalDisolvedSolidsFactor()) * 1000) / 1000
@@ -181,7 +179,7 @@ console.log('ANALYZING INTELLICHEM!!! ', data)
             container.io.emitToClients('intellichem')
         }
         else {
-            container.logger.info('Msg# %s  Duplicate Intellichem packet.')
+            container.logger.debug('Msg# %s  Duplicate Intellichem packet.')
         }
 
     }

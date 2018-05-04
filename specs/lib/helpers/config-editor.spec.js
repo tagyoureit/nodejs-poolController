@@ -179,10 +179,11 @@ describe('updates config.json variables', function() {
                     setTimeout(function () {
                         fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf8')
                             .then(function(data) {
+                                console.log(data)
                                 JSON.parse(data).meta.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
-                                done()
-                            })
-                    }, 50)
+
+                            }).then(done,done)
+                    }, 75)
                 })
             });
 
