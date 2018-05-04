@@ -125,6 +125,7 @@ module.exports = function(container) {
 
         if (outputType === 'intellichem' || outputType === 'all') {
             var intellichem = container.intellichem.getCurrentIntellichem()
+            console.log('GOING TO EMIT INTELLICHEM:', intellichem)
             emitToClientsOnEnabledSockets('intellichem',
                 intellichem)
         }
@@ -297,6 +298,40 @@ module.exports = function(container) {
                     sendPacket = preamblePacket.concat(incomingPacket[packet]);
                 }
                 container.queuePacket.queuePacket(sendPacket);
+                str += JSON.stringify(sendPacket) + ' '
+            }
+            emitToClientsOnEnabledSockets('sendPacketResults', str)
+            container.logger.info(str)
+        })
+
+        socket.on('receivePacket', function(incomingPacket) {
+            var preamblePacket, sendPacket;
+            var str = 'Receiving packet(s): '
+            container.logger.info('User request (send_request.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
+
+            for (var packet in incomingPacket) {
+                // for (var byte in incomingPacket[packet]) {
+                //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
+                // }
+
+                if (incomingPacket[packet][0] === 16 && incomingPacket[packet][1] === container.constants.ctrl.CHLORINATOR) {
+                    sendPacket = incomingPacket[packet]
+                    if (container.settings.get('logApi')) container.logger.silly('packet (chlorinator) now: ', packet)
+                } else {
+                    if (incomingPacket[packet][0] === 96 || incomingPacket[packet][0] === 97 || incomingPacket[packet][1] === 96 || incomingPacket[packet][1] === 97)
+                    //if a message to the pumps, use 165,0
+                    {
+                        preamblePacket = [255, 0,255, 165, 0]
+                    } else
+                    //If a message to the controller, use the preamble that we have recorded
+                    {
+                        preamblePacket = [255, 0,255, 165, container.intellitouch.getPreambleByte()]; //255,0,255 will be added later
+
+                    }
+                    sendPacket = preamblePacket.concat(incomingPacket[packet]);
+                }
+                //container.queuePacket.queuePacket(sendPacket);
+                container.packetBuffer.push(new Buffer(sendPacket));
                 str += JSON.stringify(sendPacket) + ' '
             }
             emitToClientsOnEnabledSockets('sendPacketResults', str)

@@ -150,7 +150,7 @@ module.exports = function(container) {
     }
 
     function processIntellichemControllerPacket(data, counter) {
-
+console.log('ANALYZING INTELLICHEM!!! ', data)
 
         intellichem.readings.PH = ((data[container.constants.intellichemPacketFields.PHREADINGHI] * 256) + data[container.constants.intellichemPacketFields.PHREADINGLO]) / 100
         intellichem.readings.ORP = (data[container.constants.intellichemPacketFields.ORPREADINGHI] * 256) + data[container.constants.intellichemPacketFields.ORPREADINGLO]
@@ -179,6 +179,9 @@ module.exports = function(container) {
                 container.logger.info('Msg# %s  Intellichem Saturation Index:\n\tSI = pH + CHF + AF + TF - TDSF\n\t%s = %s + %s + %s + %s - %s', counter, intellichem.readings.SI, intellichem.readings.PH, calculateCalciumHardnessFactor(), calculateTotalCarbonateAlkalinity(), calculateTemperatureFactor(), calculateTotalDisolvedSolidsFactor())
             }
             container.io.emitToClients('intellichem')
+        }
+        else {
+            container.logger.info('Msg# %s  Duplicate Intellichem packet.')
         }
 
     }

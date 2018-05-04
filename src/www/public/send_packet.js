@@ -42,6 +42,11 @@ $(function() {
         socket.emit('sendPacket', arrToBeSent)
     });
 
+    $("#receive").click(function() {
+        //alert('clicked send with ' + $('#packet').val() )
+        socket.emit('receivePacket', arrToBeSent)
+    });
+
 
     // Whenever the auth emits 'searchResults', update the page
 

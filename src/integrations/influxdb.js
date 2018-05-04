@@ -17,12 +17,14 @@
 
 var rp = require('request-promise')
 var Influx = require('influx')
-var influx = new Influx.InfluxDB({
-  host: 'localhost',
-  database: 'pool'
-})
+
 
 module.exports = function(container) {
+
+    var influx = new Influx.InfluxDB({
+        host: 'localhost',
+        database: 'pool'
+    })
 
   var io = container.socketClient
   //var influxdbTimer = new container.nanotimer
@@ -88,18 +90,32 @@ module.exports = function(container) {
       influx.writePoints([{
           measurement: 'chlorinator',
           tags: {
-            'superChlorinate': data.superChlorinate,
+            'source': "nodejs_poolController",
             'status': data.status,
             'name': data.name
           },
           fields: {
-            'saltPPM': data.saltPPM,
+            'superChlorinate': data.superChlorinate,
+
             'currentOutput': data.currentOutput,
             'outputPoolPercent': data.outputPoolPercent,
             'outputSpaPercent': data.outputSpaPercent,
           }
         }])
-        .then(function() {
+
+        influx.writePoints([{
+            measurement: 'chemistry',
+            tags: {
+                'source': "nodejs_poolController",
+                'status': data.status,
+                'name': data.name
+            },
+            fields: {
+                'saltPPM': data.saltPPM
+            }
+        }])
+
+            .then(function() {
           return influx.query('select count(*) from chlorinator')
         })
         .then(function(res) {
@@ -137,7 +153,7 @@ module.exports = function(container) {
         container.logger.info('Wrote %s to influx pumps measurement', JSON.stringify(res))
       })
       .catch(function(err) {
-        container.logger.error('Something bad happened writting to InfluxDB (pump): ', err)
+        container.logger.error('Something bad happened writing to InfluxDB (pump): ', err)
       })
   }
 
@@ -161,7 +177,6 @@ module.exports = function(container) {
           'type': data.type,
           'run': data.run,
           'mode': data.mode,
-          'remotecontrol': data.remotecontrol,
           'power': data.power
         },
         fields: {
@@ -177,7 +192,7 @@ module.exports = function(container) {
         container.logger.info('Wrote %s to influx pumps measurement', JSON.stringify(res))
       })
       .catch(function(err) {
-        container.logger.error('Something bad happened writting to InfluxDB (pump): ', err)
+        container.logger.error('Something bad happened writing to InfluxDB (pump): ', err)
       })
   }
 
@@ -194,9 +209,9 @@ module.exports = function(container) {
 
   })
 
-
-
   socket.on('temperatures', function(data) {
+
+    if (!data.poolSetPoint.contains("undefined"))
     influx.writePoints([{
         measurement: 'temperatures',
         tags: {
@@ -222,7 +237,7 @@ module.exports = function(container) {
         container.logger.info('Wrote %s to influx temperatures measurement', JSON.stringify(res))
       })
       .catch(function(err) {
-        container.logger.error('Something bad happened writting to InfluxDB (temperatures): ', err)
+        container.logger.error('Something bad happened writing to InfluxDB (temperatures): ', err)
       })
 
   })

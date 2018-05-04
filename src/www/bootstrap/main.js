@@ -5,14 +5,14 @@ var autoDST; // Flag for Automatic DST (0 = manual, 1 = automatic)
 var tmeLastUpd; // Time of Last Update (last socket message received)
 var socket; // Socket IO (don't initalize communications until clientConfig.json received!)
 var currCircuitArr; // keep a local copy of circuits so we can use them to allow schedule changes
-var prevPumpMode = {1:{mode:'',value:''}, 2:{mode:'',value:''}};  // keep track of the previous virtualpumpcontroller modes
+var prevPumpMode = {1: {mode: '', value: ''}, 2: {mode: '', value: ''}};  // keep track of the previous virtualpumpcontroller modes
 /**
  * jQuery.browser.mobile (http://detectmobilebrowser.com/)
  *
  * jQuery.browser.mobile will be true if the browser is a mobile device
  *
  **/
-(function(a) {
+(function (a) {
     (jQuery.browser = jQuery.browser || {}).mobile = /(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a) || /1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0, 4))
 })(navigator.userAgent || navigator.vendor || window.opera);
 
@@ -46,14 +46,14 @@ function configPanels(jsonPanel) {
             var panelList = $('#draggablePanelList');
             var panelListItems = panelList.children();
             // And, only reorder if no missing / extra items => or items added, removed ... so "reset" to index.html
-            var sizeStorage = panelIndices.filter(function(value) {
+            var sizeStorage = panelIndices.filter(function (value) {
                 return value !== null
             }).length;
             if (sizeStorage === panelListItems.length) {
                 panelListItems.detach();
-                $.each(panelIndices, function() {
+                $.each(panelIndices, function () {
                     var currPanel = this.toString();
-                    var result = $.grep(panelListItems, function(e) {
+                    var result = $.grep(panelListItems, function (e) {
                         return e.id === currPanel;
                     });
                     panelList.append(result);
@@ -134,15 +134,15 @@ function fmtEggTimerTime(strInpStr) {
     return strHours + ' hrs, ' + strMins + ' mins';
 }
 
-function insertSelectPickerCircuits(el, currSchedule){
+function insertSelectPickerCircuits(el, currSchedule) {
     if (Object.keys(currCircuitArr).length > 1) {
-        $.each(currCircuitArr, function(index, currCircuit) {
+        $.each(currCircuitArr, function (index, currCircuit) {
             if (currCircuit.friendlyName.toUpperCase() !== "NOT USED" && ((appParams.equipment.circuit.hideAux === false) || (currCircuit.friendlyName.indexOf("AUX") === -1))) {
                 var selected = '';
                 if (currCircuit.friendlyName.toUpperCase() === currSchedule.friendlyName.toUpperCase()) {
                     selected = 'selected'
                 }
-                $('#'+el).append($('<option>', {
+                $('#' + el).append($('<option>', {
                     "data-circuitnum": currCircuit.number,
                     class: selected,
                     text: currCircuit.friendlyName.capitalizeFirstLetter()
@@ -150,10 +150,12 @@ function insertSelectPickerCircuits(el, currSchedule){
                 }))
             }
         })
-        $('#'+el).append($('<option/>',{
-            'data-divider':"true"})).append($('<option/>',{
-            style:"color: red;",
-            text: "DELETE"}))
+        $('#' + el).append($('<option/>', {
+            'data-divider': "true"
+        })).append($('<option/>', {
+            style: "color: red;",
+            text: "DELETE"
+        }))
     }
 }
 
@@ -163,16 +165,16 @@ function bindClockPicker(el, _align) {
         twelvehour: false,
         align: _align,
         autoclose: true,
-        beforeShow: function() {
+        beforeShow: function () {
             $(el).val(fmt24hrTime($(el).val()));
         },
-        afterShow: function() {
+        afterShow: function () {
             $(el).val(fmt12hrTime($(el).val()));
         },
-        afterHide: function() {
+        afterHide: function () {
             $(el).val(fmt12hrTime($(el).val()));
         },
-        afterDone: function() {
+        afterDone: function () {
             $(el).val(fmt12hrTime($(el).val()));
             $(el).attr("value", fmt12hrTime($(el).val()))
             var newTime = fmt24hrTime($(el).val())
@@ -189,7 +191,7 @@ function bindSelectPickerScheduleCircuit(el, _default) {
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
     });
     $(el).selectpicker('val', _default)
-    $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
         if ($(el).val() === "DELETE") {
             socket.emit('deleteScheduleOrEggTimer', $(el).closest('tr').data('id'))
         } else {
@@ -206,7 +208,7 @@ function bindSelectPickerHour(el, _default) {
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
     });
     $(el).selectpicker('val', _default)
-    $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
         socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).val(), $(el).closest('tr').data('min'))
         //console.log('egg id: %s  hour changed to %s.  circuit %s.  min %s', $(el).closest('tr').data('id'), $(el).val(), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('min'))
         //console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).val(), $(el).closest('tr').data('min'))
@@ -222,7 +224,7 @@ function bindSelectPickerMin(el, _default) {
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
     });
     $(el).selectpicker('val', _default)
-    $(el).on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
         socket.emit('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
         //console.log('setEggTimer', $(el).closest('tr').data('id'), $(el).closest('tr').data('circuitnum'), $(el).closest('tr').data('hour'), $(el).val())
         $(el).prop('disabled', true)
@@ -230,7 +232,7 @@ function bindSelectPickerMin(el, _default) {
     })
 }
 
-function buildEditRowSchedule(el, currSchedule){
+function buildEditRowSchedule(el, currSchedule) {
     schName = 'schTime' + currSchedule.ID
 
     // insert static row
@@ -239,28 +241,27 @@ function buildEditRowSchedule(el, currSchedule){
         hideEl = 'none;'
     $(el + ' tbody')
         .append(
-            ($('<tr/>',{
+            ($('<tr/>', {
                     id: schName,
                     class: "botpad schEdit",
-                    'data-id':  currSchedule.ID,
+                    'data-id': currSchedule.ID,
                     style: 'display:' + hideEl
                 })
             )
-                .append($('<td/>',{
+                .append($('<td/>', {
                     text: currSchedule.ID
                 })))
 
 
-
-    var scheduleSelectPickerId = 'schTime'+currSchedule.ID+'Circuit'
-    $(el + ' tbody tr[data-id="'+ currSchedule.ID + '"].schEdit')
+    var scheduleSelectPickerId = 'schTime' + currSchedule.ID + 'Circuit'
+    $(el + ' tbody tr[data-id="' + currSchedule.ID + '"].schEdit')
         .append(
             ($('<td/>')
                 .append(($('<div/>', {
                         class: 'input-group',
                         style: 'width:150px',
                     }))
-                        .append($('<select/>',{
+                        .append($('<select/>', {
                             class: 'selectpicker show-menu-arrow show-tick',
                             id: scheduleSelectPickerId
                         }))
@@ -269,13 +270,13 @@ function buildEditRowSchedule(el, currSchedule){
         .append(
             ($('<td/>'))
                 .append(
-                    ($('<div/>', { class:'input-group', style:"width:85px"}))
+                    ($('<div/>', {class: 'input-group', style: "width:85px"}))
                         .append(
                             $('<input/>', {
-                                class:'form-control',
+                                class: 'form-control',
                                 id: schName + 'StartTime',
-                                'data-startorend':'start',
-                                'data-id':currSchedule.ID,
+                                'data-startorend': 'start',
+                                'data-id': currSchedule.ID,
                                 value: fmt12hrTime(currSchedule.START_TIME),
                                 readonly: true
                             })
@@ -285,12 +286,12 @@ function buildEditRowSchedule(el, currSchedule){
         .append(
             ($('<td/>'))
                 .append(
-                    ($('<div/>', { class:'input-group', style:"width:85px"}))
+                    ($('<div/>', {class: 'input-group', style: "width:85px"}))
                         .append($('<input/>', {
-                            class:'form-control',
+                            class: 'form-control',
                             id: schName + 'EndTime',
-                            'data-startorend':'end',
-                            'data-id':currSchedule.ID,
+                            'data-startorend': 'end',
+                            'data-id': currSchedule.ID,
                             value: fmt12hrTime(currSchedule.END_TIME),
                             readonly: true
                         })))
@@ -301,7 +302,7 @@ function buildEditRowSchedule(el, currSchedule){
     bindSelectPickerScheduleCircuit('#schTime' + currSchedule.ID + 'Circuit', currSchedule.friendlyName.capitalizeFirstLetter())
 }
 
-function buildStaticRowSchedule(el, currSchedule){
+function buildStaticRowSchedule(el, currSchedule) {
     schName = 'schTime' + currSchedule.ID
 
     // insert static row
@@ -310,14 +311,14 @@ function buildStaticRowSchedule(el, currSchedule){
         hideEl = 'none;'
     $(el + ' tbody')
         .append(
-            ($('<tr/>',{
+            ($('<tr/>', {
                     id: schName,
                     class: "botpad schStatic",
-                    'data-id':  currSchedule.ID,
+                    'data-id': currSchedule.ID,
                     style: 'display:' + hideEl
                 })
             )
-                .append($('<td/>',{
+                .append($('<td/>', {
                     text: currSchedule.ID
                 }))
                 .append($('<td/>', {
@@ -332,12 +333,12 @@ function buildStaticRowSchedule(el, currSchedule){
         )
 }
 
-function buildSchTime(el, currSchedule){
+function buildSchTime(el, currSchedule) {
     buildEditRowSchedule(el, currSchedule)
     buildStaticRowSchedule(el, currSchedule)
 }
 
-function buildEditRowEggTimer(el, currSchedule){
+function buildEditRowEggTimer(el, currSchedule) {
     schName = 'schEgg' + currSchedule.ID;
 
     splitInpStr = currSchedule.DURATION.split(":");
@@ -350,43 +351,43 @@ function buildEditRowEggTimer(el, currSchedule){
         hideEl = 'none;'
     $(el + ' tbody')
         .append(
-            ($('<tr/>',{
+            ($('<tr/>', {
                     id: schName + 'Edit', //check if this is really needed
                     class: "botpad eggEdit",
-                    'data-id':  currSchedule.ID,
+                    'data-id': currSchedule.ID,
                     'data-circuitnum': currSchedule.CIRCUITNUM,
                     'data-hour': strHours,
                     'data-min': strMins,
                     style: 'display:' + hideEl
                 })
             )
-                .append($('<td/>',{
+                .append($('<td/>', {
                     text: currSchedule.ID
                 })))
 
 
-    var scheduleSelectPickerId = 'schEgg'+currSchedule.ID+'Circuit'
-    $(el + ' tbody tr[data-id="'+ currSchedule.ID + '"].eggEdit')
+    var scheduleSelectPickerId = 'schEgg' + currSchedule.ID + 'Circuit'
+    $(el + ' tbody tr[data-id="' + currSchedule.ID + '"].eggEdit')
         .append(
             ($('<td/>')
                 .append(($('<div/>', {
                         class: 'input-group',
                         style: 'width:150px',
                     }))
-                        .append($('<select/>',{
+                        .append($('<select/>', {
                             class: 'selectpicker show-menu-arrow show-tick',
                             id: scheduleSelectPickerId,
-                            'data-id':currSchedule.ID,
+                            'data-id': currSchedule.ID,
                         }))
                 ))
         )
         .append(
             ($('<td/>'))
                 .append(
-                    ($('<div/>', { class:'input-group', style:"width:55px"}))
+                    ($('<div/>', {class: 'input-group', style: "width:55px"}))
                         .append(
                             $('<select/>', {
-                                class:'selectpicker show-menu-arrow show-tick',
+                                class: 'selectpicker show-menu-arrow show-tick',
                                 id: schName + 'Hour'
                             })
                         )
@@ -395,9 +396,9 @@ function buildEditRowEggTimer(el, currSchedule){
         .append(
             ($('<td/>'))
                 .append(
-                    ($('<div/>', { class:'input-group', style:"width:55px"}))
+                    ($('<div/>', {class: 'input-group', style: "width:55px"}))
                         .append($('<select/>', {
-                            class:'selectpicker show-menu-arrow show-tick',
+                            class: 'selectpicker show-menu-arrow show-tick',
                             id: schName + 'Min'
                         })))
         )
@@ -408,7 +409,7 @@ function buildEditRowEggTimer(el, currSchedule){
         if (i === parseInt(strHours)) {
             _selected = "selected"
         }
-        $('#'+schName+'Hour').append($('<option/>',{text:i, selected:_selected}))
+        $('#' + schName + 'Hour').append($('<option/>', {text: i, selected: _selected}))
     }
 
 
@@ -418,7 +419,7 @@ function buildEditRowEggTimer(el, currSchedule){
         if (i * 15 === parseInt(strMins)) {
             _selected = "selected"
         }
-        $('#'+schName+'Min').append($('<option/>',{text:i*15, selected:_selected}))
+        $('#' + schName + 'Min').append($('<option/>', {text: i * 15, selected: _selected}))
     }
 
     //bindSelectPickerEggTimerCircuit('#schEgg' + currSchedule.ID + 'Circuit', currSchedule.friendlyName.capitalizeFirstLetter())
@@ -430,7 +431,7 @@ function buildEditRowEggTimer(el, currSchedule){
 
 }
 
-function buildStaticRowEggTimer(el, currSchedule){
+function buildStaticRowEggTimer(el, currSchedule) {
     schName = 'schEgg' + currSchedule.ID;
 
     // insert static row
@@ -438,14 +439,14 @@ function buildStaticRowEggTimer(el, currSchedule){
     if ($('#editPaneleggtimer').hasClass('btn-success'))
         hideEl = 'none;'
     $(el + ' tbody').append(
-        ($('<tr/>',{
+        ($('<tr/>', {
                 id: schName,
                 class: "botpad eggStatic",
-                'data-id':  currSchedule.ID,
+                'data-id': currSchedule.ID,
                 style: 'display:' + hideEl
             })
                 .append(
-                    $('<td/>',{
+                    $('<td/>', {
                         text: currSchedule.ID
                     })
                 )
@@ -512,12 +513,12 @@ function insertAddSchedule(currSchedule, idOfFirstNotUsed) {
 
 }
 
-function bindNotUsedSchedule(){
+function bindNotUsedSchedule() {
     $('#addScheduleCircuit').selectpicker({
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
     });
-    $('#addScheduleCircuit').on('changed.bs.select', function(e, clickedIndex, newValue, oldValue) {
-        socket.emit('setSchedule', $('#scheduleIdNotUsed').data('id'), $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,128) // we pull #scheduleIdNotUsed from egg timer, but it is the same for both
+    $('#addScheduleCircuit').on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+        socket.emit('setSchedule', $('#scheduleIdNotUsed').data('id'), $('#addScheduleCircuit').find('option:selected').data('circuitnum'), 8, 0, 9, 0, 128) // we pull #scheduleIdNotUsed from egg timer, but it is the same for both
         //console.log('setSchedule', $('#scheduleIdNotUsed').data('id'), $('#addScheduleCircuit').find('option:selected').data('circuitnum'),8,0,9,0,0)
         $('#addScheduleCircuit').prop('disabled', true)
         $('#addScheduleCircuit').selectpicker('refresh')
@@ -534,12 +535,13 @@ function insertAddEggTimer(currSchedule, idOfFirstNotUsed) {
         hideEl = "none"
     $('#eggtimers').append(
         ($('<tr/>', {class: 'eggEdit', style: 'display:' + hideEl}))
-            .append($('<td/>', {text: idOfFirstNotUsed, 'data-id': idOfFirstNotUsed, id:'scheduleIdNotUsed'}))
+            .append($('<td/>', {text: idOfFirstNotUsed, 'data-id': idOfFirstNotUsed, id: 'scheduleIdNotUsed'}))
             .append(
                 ($('<td/>'))
                     .append(
                         ($('<div/>',
-                            {class: 'input-group',
+                            {
+                                class: 'input-group',
                                 style: 'width:150px'
                             }))
                             .append(
@@ -580,7 +582,7 @@ function insertAddEggTimer(currSchedule, idOfFirstNotUsed) {
 
 }
 
-function bindNotUsedEggTimer(){
+function bindNotUsedEggTimer() {
     $('#addEggTimerCircuit').selectpicker({
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
     });
@@ -614,25 +616,25 @@ function formatLog(strMessage) {
     $("#txtDebug").scrollTop($("#txtDebug")[0].scrollHeight);
 }
 
-String.prototype.capitalizeFirstLetter = function() {
+String.prototype.capitalizeFirstLetter = function () {
     return this.charAt(0).toUpperCase() + this.toLowerCase().slice(1);
 };
 
-String.prototype.toTitleCase = function() {
-    return this.replace(/\w\S*/g, function(txt) {
+String.prototype.toTitleCase = function () {
+    return this.replace(/\w\S*/g, function (txt) {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
 };
 
-function pumpManualButtonsEnableDisable(pump, mode){
+function pumpManualButtonsEnableDisable(pump, mode) {
     pumpXRunProgram = '#pump' + pump + 'RunProgram'
     pumpXRunDuration = '#pump' + pump + 'RunDuration'
     pumpXProgram = '#pump' + pump + 'Program'
-    if (mode==='enable') {
+    if (mode === 'enable') {
         if ($(pumpXRunDuration).spinner('instance') !== undefined)
             $(pumpXRunDuration).spinner('enable')
 
-        if ($(pumpXProgram).find('option:selected').data('programid')===undefined){
+        if ($(pumpXProgram).find('option:selected').data('programid') === undefined) {
             $(pumpXRunProgram).attr('disabled', 'disabled')
         }
         else {
@@ -647,9 +649,9 @@ function pumpManualButtonsEnableDisable(pump, mode){
             $(pumpXRunDuration).spinner('disable')
         }
         $(pumpXRunProgram).attr('disabled', 'disabled')
-        $('#pump' + pump +  'Edit').show()
+        $('#pump' + pump + 'Edit').show()
         $('#pump' + pump + 'EditResume').hide()
-        $(pumpXProgram).parent().children('button').attr('disabled','disabled')
+        $(pumpXProgram).parent().children('button').attr('disabled', 'disabled')
     }
 }
 
@@ -678,13 +680,13 @@ function setStatusButton(btnID, btnState, btnLeadingText, glyphicon) {
 
 // Function to configure communications sockets receive handling -> not called until clientConfig.json available (i.e. configuration complete)
 function startSocketRx() {
-    socket.on('circuit', function(data) {
-        if (data.hasOwnProperty('circuit')){
+    socket.on('circuit', function (data) {
+        if (data.hasOwnProperty('circuit')) {
             data = data.circuit
         }
         if (data !== null) {
             currCircuitArr = JSON.parse(JSON.stringify(data))
-            $.each(data, function(indx, currCircuit) {
+            $.each(data, function (indx, currCircuit) {
                 if (currCircuit.hasOwnProperty('friendlyName')) {
                     // Check for POOL or SPA - then ignore friendlyName, need to use circuitFunction for these two!
                     if ((currCircuit.circuitFunction.toUpperCase() === "POOL") || (currCircuit.circuitFunction.toUpperCase() === "SPA"))
@@ -720,29 +722,29 @@ function startSocketRx() {
         lastUpdate(true);
     });
 
-    socket.on('pump', function(data) {
-        if (data.hasOwnProperty('pump')){
+    socket.on('pump', function (data) {
+        if (data.hasOwnProperty('pump')) {
             data = data.pump
         }
 
         // reset virtualPumpController Header
-        $('#virtualPumpController thead tr').html($('<th/>',{html:'Parameter'}))
+        $('#virtualPumpController thead tr').html($('<th/>', {html: 'Parameter'}))
 
         if (data !== null) {
             // check all pumps first to see if we need to hide the GPM row
             var showGPM = false;
 
             // Build Pump table / panel
-            $.each(data, function(indx, currPump) {
+            $.each(data, function (indx, currPump) {
                 if (currPump === null || currPump['type'] === "None") {
-                    showHideVirtualPumpCol = ".virtualPump"+currPump["pump"]
+                    showHideVirtualPumpCol = ".virtualPump" + currPump["pump"]
                     $(showHideVirtualPumpCol).hide()
                     //console.log("Pump: Dataset empty.")
                 } else {
                     if (currPump !== "blank") {
 
                         // append virtual pump controller friendlyname + programs
-                        if (currPump.virtualController==='disabled') {
+                        if (currPump.virtualController === 'disabled') {
                             $('#pumpEdit, .pumpEdit').hide()
                         }
                         else {
@@ -781,14 +783,13 @@ function startSocketRx() {
                             }
 
 
-
-                            var pumpXProgram = '#pump' +currPump['pump'] + 'Program'
+                            var pumpXProgram = '#pump' + currPump['pump'] + 'Program'
                             var speedType;
 
 
                             //console.log('pump: %s  edit.is(\':visible\'):%s  .mode!==:%s .value!==:%s  all: %s', currPump['pump'], $('#pump'+currPump['pump']+'Edit').is(':visible'), prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode, prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value, $('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value)
                             // only update the pump values if we are not editing while the current program is running, or while there is not a change in states
-                            if ($('#pump'+currPump['pump']+'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode!==currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value!==currPump.currentrunning.value){
+                            if ($('#pump' + currPump['pump'] + 'Edit').is(':visible') || prevPumpMode[currPump['pump']].mode !== currPump.currentrunning.mode || prevPumpMode[currPump['pump']].value !== currPump.currentrunning.value) {
 
                                 // update edit params in modal edit page
                                 $.each(currPump["externalProgram"], function (extPrgIndx, currPrg) {
@@ -824,7 +825,7 @@ function startSocketRx() {
 
                                     // start updates for virtual pump controller in main Pumps panel
                                     // if we are here and it's the first index, remove all previous options and rebuild in "select a program"
-                                    if (parseInt(extPrgIndx) === 1){ // && !(prevPumpMode[currPump['pump']].value==='program' && currPump.currentrunning.value==='off')) {
+                                    if (parseInt(extPrgIndx) === 1) { // && !(prevPumpMode[currPump['pump']].value==='program' && currPump.currentrunning.value==='off')) {
                                         $(pumpXProgram).find('option').remove()
                                         $(pumpXProgram).append($('<option/>', {text: 'Program'}))
                                         $('#pump' + currPump['pump'] + 'RunProgram').attr('disabled', 'disabled')
@@ -872,8 +873,8 @@ function startSocketRx() {
 
                             }
                         }
-                        prevPumpMode[currPump['pump']].mode=currPump.currentrunning.mode
-                        prevPumpMode[currPump['pump']].value=currPump.currentrunning.value
+                        prevPumpMode[currPump['pump']].mode = currPump.currentrunning.mode
+                        prevPumpMode[currPump['pump']].value = currPump.currentrunning.value
                         $('#pumpProgram1, #pumpProgram2').selectpicker({
                             mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
                         })
@@ -892,7 +893,7 @@ function startSocketRx() {
                                 var colAppend = rowHeader.length ? false : true;
                                 if (colAppend === false) {
                                     var colTarget = -1;
-                                    $('th', rowHeader).each(function(index) {
+                                    $('th', rowHeader).each(function (index) {
                                         if ($(this).text() === currPump["friendlyName"])
                                             colTarget = index;
                                     });
@@ -914,7 +915,7 @@ function startSocketRx() {
                                         rowTarget.append(strCell);
                                     } else {
                                         // Replace Data, target Row, Column
-                                        $('td', rowTarget).each(function(index) {
+                                        $('td', rowTarget).each(function (index) {
                                             if (index === colTarget)
                                                 $(this).html(currPump[currPumpParam]);
                                         });
@@ -930,166 +931,172 @@ function startSocketRx() {
     });
 
 
-    socket.on('intellichem', function(data) {
-        if (data.hasOwnProperty('intellichem')){
-            data = data.intellichem
+    socket.on('intellichem', function (data) {
+        console.log("RECEIVED INTELLICHEM")
+            if (appParams.equipment.intellichem.installed) {
+                if (data.hasOwnProperty('intellichem')) {
+                    data = data.intellichem
+
+
+                    //rebuild table
+                    $('#intellichemTable').html('<thead>' +
+                        '<th>' +
+                        '<td>SI</td>' +
+                        '</th>' +
+                        '<tr>' +
+                        '<th>Parameter</th>' +
+                        '<th>pH</th>' +
+                        '<th>ORP</th>' +
+                        '</tr>' +
+                        '</thead>' +
+                        '<tbody>' +
+                        '' +
+                        '<tr>' +
+                        '<td>Reading</td>' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>Setpoint</td>' +
+                        '' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>Tank Level</td>' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>Mode</td>' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>Water Flow Alarm</td>' +
+                        '</tr>' +
+                        '<thead>' +
+                        '<tr>' +
+                        '<td>Calcium Hardness</td>' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>Total Alkalinity</td>' +
+                        '</tr>' +
+                        '<tr>' +
+                        '<td>CYA</td>' +
+                        '</tr>' +
+                        '</tbody>')
+
+                    // console.log('received intellichem:', data)
+                    $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text: data.readings.ORP}))
+                    $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text: data.readings.ORP})).after($('<td/>', {text: data.readings.PH}))
+                    $('#intellichemTable tr td:contains("Setpoint")')
+                        .after($('<td/>')
+                            .append($('<button/>', {
+                                    id: 'ORPMinusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "decrementORP"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                            )
+                            .append($('<span/>', {text: data.settings.ORP}))
+                            .append($('<button/>', {
+                                    id: 'ORPPlusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "incrementORP"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                            )
+                        )
+
+
+                    $('#intellichemTable tr td:contains("Setpoint")')
+                        .after($('<td/>')
+                            .append($('<button/>', {
+                                    id: 'pHMinusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "decrementPH"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                            )
+                            .append($('<span/>', {text: data.settings.PH}))
+                            .append($('<button/>', {
+                                    id: 'pHPlusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "incrementPH"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                            )
+                        )
+
+
+                    $('#intellichemTable tr td:contains("Tank Level")')
+                        .after($('<td/>', {text: data.tankLevels[2] + '/6'})).after($('<td/>', {text: data.tankLevels[1] + '/6'}))
+                    $('#intellichemTable tr td:contains("Water Flow Alarm")').after($('<td/>', {html: "&nbsp;"})).after($('<td/>', {text: data.readings.WATERFLOW}))
+                    $('#intellichemTable tr td:contains("CYA")')
+                        .after($('<td/>', {colspan: 2})
+                            .append($('<button/>', {
+                                    id: 'CYAMinusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "decrementCYA"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                            )
+                            .append($('<span/>', {text: data.settings.CYA}))
+                            .append($('<button/>', {
+                                    id: 'CYAPlusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "incrementCYA"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                            )
+                        )
+                    $('#intellichemTable tr td:contains("Calcium Hardness")')
+                        .after($('<td/>', {colspan: 2})
+                            .append($('<button/>', {
+                                    id: 'CHMinusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "decrementCH"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                            )
+                            .append($('<span/>', {text: data.settings.CALCIUMHARDNESS}))
+                            .append($('<button/>', {
+                                    id: 'CHPlusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "incrementCH"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                            )
+                        )
+
+                    $('#intellichemTable tr td:contains("Total Alkalinity")')
+                        .after($('<td/>', {colspan: 2})
+                            .append($('<button/>', {
+                                    id: 'TAMinusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "decrementTA"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
+                            )
+                            .append($('<span/>', {text: data.settings.TOTALALKALINITY}))
+                            .append($('<button/>', {
+                                    id: 'TAPlusOne',
+                                    class: "btn btn-primary btn-md",
+                                    "data-socket": "incrementTA"
+                                })
+                                    .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
+                            )
+                        )
+
+                    $('#intellichemTable tr td:contains("Mode")').after($('<td/>', {text: data.mode[2]})).after($('<td/>', {text: data.mode[1]}))
+                }
+                else {
+                    console.log("No intellichem data received.")
+                }
+            }
+            else {
+                $('#hidePanelintellichem').click()
+                console.log('Hid intellichem because it is not installed')
+            }
+            lastUpdate(true);
         }
-        if (appParams.intellichem) {
+    );
 
-            //rebuild table
-            $('#intellichemTable').html('<thead>' +
-                '<th>' +
-                '<td>SI</td>' +
-                '</th>' +
-                '<tr>' +
-                '<th>Parameter</th>' +
-                '<th>pH</th>' +
-                '<th>ORP</th>' +
-                '</tr>' +
-                '</thead>' +
-                '<tbody>' +
-                '' +
-                '<tr>' +
-                '<td>Reading</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td>Setpoint</td>' +
-                '' +
-                '</tr>' +
-                '<tr>' +
-                '<td>Tank Level</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td>Mode</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td>Water Flow Alarm</td>' +
-                '</tr>' +
-                '<thead>' +
-                '<tr>' +
-                '<td>Calcium Hardness</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td>Total Alkalinity</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td>CYA</td>' +
-                '</tr>' +
-                '</tbody>')
-
-            // console.log('received intellichem:', data)
-            $('#intellichemTable tr td:contains("SI")').after($('<td/>', {text: data.readings.ORP}))
-            $('#intellichemTable tr td:contains("Reading")').after($('<td/>', {text: data.readings.ORP})).after($('<td/>', {text: data.readings.PH}))
-            $('#intellichemTable tr td:contains("Setpoint")')
-                .after($('<td/>')
-                    .append($('<button/>', {
-                            id: 'ORPMinusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "decrementORP"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                    )
-                    .append($('<span/>', {text: data.settings.ORP}))
-                    .append($('<button/>', {
-                            id: 'ORPPlusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "incrementORP"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                    )
-                )
-
-
-            $('#intellichemTable tr td:contains("Setpoint")')
-                .after($('<td/>')
-                    .append($('<button/>', {
-                            id: 'pHMinusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "decrementPH"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                    )
-                    .append($('<span/>', {text: data.settings.PH}))
-                    .append($('<button/>', {
-                            id: 'pHPlusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "incrementPH"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                    )
-                )
-
-
-            $('#intellichemTable tr td:contains("Tank Level")')
-                .after($('<td/>', {text: data.tankLevels[2] + '/6'})).after($('<td/>', {text: data.tankLevels[1] + '/6'}))
-            $('#intellichemTable tr td:contains("Water Flow Alarm")').after($('<td/>', {html: "&nbsp;"})).after($('<td/>', {text: data.readings.WATERFLOW}))
-            $('#intellichemTable tr td:contains("CYA")')
-                .after($('<td/>', {colspan: 2})
-                    .append($('<button/>', {
-                            id: 'CYAMinusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "decrementCYA"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                    )
-                    .append($('<span/>', {text: data.settings.CYA}))
-                    .append($('<button/>', {
-                            id: 'CYAPlusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "incrementCYA"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                    )
-                )
-            $('#intellichemTable tr td:contains("Calcium Hardness")')
-                .after($('<td/>', {colspan: 2})
-                    .append($('<button/>', {
-                            id: 'CHMinusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "decrementCH"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                    )
-                    .append($('<span/>', {text: data.settings.CALCIUMHARDNESS}))
-                    .append($('<button/>', {
-                            id: 'CHPlusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "incrementCH"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                    )
-                )
-
-            $('#intellichemTable tr td:contains("Total Alkalinity")')
-                .after($('<td/>', {colspan: 2})
-                    .append($('<button/>', {
-                            id: 'TAMinusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "decrementTA"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E9;'}))
-                    )
-                    .append($('<span/>', {text: data.settings.TOTALALKALINITY}))
-                    .append($('<button/>', {
-                            id: 'TAPlusOne',
-                            class: "btn btn-primary btn-md",
-                            "data-socket": "incrementTA"
-                        })
-                            .append($('<span/>', {style: "font-weight:bold; font-size:12px;", html: '&#x21E7'}))
-                    )
-                )
-
-            $('#intellichemTable tr td:contains("Mode")').after($('<td/>', {text: data.mode[2]})).after($('<td/>', {text: data.mode[1]}))
-        }
-        else {
-            $('#hidePanelintellichem').click()
-            console.log('Hid intellichem because it is not installed')
-        }
-        lastUpdate(true);
-    });
-
-    socket.on('temperature', function(data) {
-        if (data.hasOwnProperty('temperature')){
+    socket.on('temperature', function (data) {
+        if (data.hasOwnProperty('temperature')) {
             data = data.temperature
         }
         $('#airTemp').html(data.airTemp);
@@ -1128,8 +1135,8 @@ function startSocketRx() {
 //     lastUpdate(true);
 // });
 
-    socket.on('chlorinator', function(data) {
-        if (data.hasOwnProperty('chlorinator')){
+    socket.on('chlorinator', function (data) {
+        if (data.hasOwnProperty('chlorinator')) {
             data = data.chlorinator
         }
         //var data = {"saltPPM":2900,"currentOutput": 12, "outputPoolPercent":7,"outputSpaPercent":-1,"superChlorinate":0,"version":0,"name":"Intellichlor--40","status":"Unknown - Status code: 128"};
@@ -1169,8 +1176,8 @@ function startSocketRx() {
         lastUpdate(true);
     });
 
-    socket.on('schedule', function(data) {
-        if (data.hasOwnProperty('schedule')){
+    socket.on('schedule', function (data) {
+        if (data.hasOwnProperty('schedule')) {
             data = data.schedule
         }
         if (data !== null) {
@@ -1178,10 +1185,10 @@ function startSocketRx() {
             $('#schedules tr').not('tr:first').remove();
             $('#eggtimers tr').not('tr:first').remove();
 
-            var idOfFirstNotUsed=-1
+            var idOfFirstNotUsed = -1
 
             // And (Re)Build Schedule and EggTimer tables / panels
-            $.each(data, function(indx, currSchedule) {
+            $.each(data, function (indx, currSchedule) {
                 if (currSchedule === null) {
                     //console.log("Schedule: Dataset empty.")
                 } else {
@@ -1196,7 +1203,7 @@ function startSocketRx() {
                                 buildEggTime('#eggtimer', currSchedule)
                             }
                         } else {
-                            if (idOfFirstNotUsed===-1){
+                            if (idOfFirstNotUsed === -1) {
                                 idOfFirstNotUsed = currSchedule.ID
                             }
                         }
@@ -1216,13 +1223,13 @@ function startSocketRx() {
         lastUpdate(true);
     });
 
-    socket.on('outputLog', function(data) {
+    socket.on('outputLog', function (data) {
         formatLog(data);
         lastUpdate(true);
     });
 
-    socket.on('time', function(data) {
-        if (data.hasOwnProperty('time')){
+    socket.on('time', function (data) {
+        if (data.hasOwnProperty('time')) {
             data = data.time
         }
         // Update Date and Time (buttons) - custom formatted
@@ -1233,7 +1240,7 @@ function startSocketRx() {
         autoDST = data.automaticallyAdjustDST;
         $('#currDate').datepicker({
             dateFormat: 'dd-M-y',
-            onSelect: function() {
+            onSelect: function () {
                 var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
                 socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
             }
@@ -1241,43 +1248,43 @@ function startSocketRx() {
         $('#currTime').clockpicker({
             donetext: 'OK',
             twelvehour: false,
-            beforeShow: function() {
+            beforeShow: function () {
                 $('#currTime').val(fmt24hrTime($('#currTime').val()));
             },
-            afterShow: function() {
+            afterShow: function () {
                 $('#currTime').val(fmt12hrTime($('#currTime').val()));
             },
-            afterHide: function() {
+            afterHide: function () {
                 $('#currTime').val(fmt12hrTime($('#currTime').val()));
             },
-            afterDone: function() {
+            afterDone: function () {
                 $('#currTime').val(fmt12hrTime($('#currTime').val()));
                 var newDT = new Date($('#currDate').val() + ' ' + $('#currTime').val());
                 socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST);
             }
         });
 
-        socket.on('connect', function(){
+        socket.on('connect', function () {
             // won't fire on initial connect (timing issue?), but will fire on any subsequent reconnects
             //console.log('Socket.IO connection ID:', socket.id)
         })
-        socket.on('connection_timeout', function(timeout){
+        socket.on('connection_timeout', function (timeout) {
             console.log('Socket.IO connection timeout:', timeout)
         })
-        socket.on('reconnect_attempt', function(){
+        socket.on('reconnect_attempt', function () {
             console.log('Socket.IO is attempting to reconnect to the server')
         })
-        socket.on('reconnect', function(attempt){
+        socket.on('reconnect', function (attempt) {
             console.log('Socket.IO successfully reconnected after %s attempts ', attempt)
         })
-        socket.on('disconnect', function(){
+        socket.on('disconnect', function () {
             console.log('Socket.IO received a disconnect from the server')
         })
 
         lastUpdate(true);
     });
 
-    socket.on('updateAvailable', function(data) {
+    socket.on('updateAvailable', function (data) {
         strUpdate = data.result.capitalizeFirstLetter()
         domUpdate = $('#gitState')
         domUpdate[0].innerHTML = 'Code State<br/>' + strUpdate;
@@ -1314,7 +1321,7 @@ function setEquipmentStatus(equipment) {
 
 
 function refreshSpy() {
-    $('[data-spy="scroll"]').each(function() {
+    $('[data-spy="scroll"]').each(function () {
         var $spy = $(this).scrollspy('refresh')
     })
 }
@@ -1322,13 +1329,13 @@ function refreshSpy() {
 // Initialize Panel Handling Routines (Callbacks)
 function handlePanels() {
     // Panel Handling: When Panel is being collapsed or shown => save current state to configClient.json (i.e. set to be the default on load)
-    $(".panel-collapse").on('show.bs.collapse', function(btnSelected) {
+    $(".panel-collapse").on('show.bs.collapse', function (btnSelected) {
         var btnID = btnSelected.target.id;
         var strID = btnID.replace('collapse', '').toLowerCase();
         socket.emit('setConfigClient', 'panelState', strID, 'state', 'visible')
         refreshSpy();
     });
-    $(".panel-collapse").on('hide.bs.collapse', function(btnSelected) {
+    $(".panel-collapse").on('hide.bs.collapse', function (btnSelected) {
         var btnID = btnSelected.target.id;
         var strID = btnID.replace('collapse', '').toLowerCase();
         socket.emit('setConfigClient', 'panelState', strID, 'state', 'collapse')
@@ -1504,19 +1511,19 @@ function handleButtons() {
     })
 
 
-    $('#pump1StopProgram, #pump2StopProgram').click(function(){
+    $('#pump1StopProgram, #pump2StopProgram').click(function () {
         // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
         socket.emit('pumpCommandOff', $(this).data("pumpid"))
     })
 
-    $('#pump1RunProgram, #pump2RunProgram').click(function(){
+    $('#pump1RunProgram, #pump2RunProgram').click(function () {
         // console.log('run button %s %s clicked. values %s %s', $(this).data("pumpid"), $(this).text(), $('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'))
-        socket.emit('pumpCommandRunProgram', $(this).data("pumpid"), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'),$('#pump' +$(this).data('pumpid') + 'RunDuration').spinner('value'))
+        socket.emit('pumpCommandRunProgram', $(this).data("pumpid"), $('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid'), $('#pump' + $(this).data('pumpid') + 'RunDuration').spinner('value'))
     })
 
-    $('#pump1Program, #pump2Program').on('changed.bs.select', function(){
+    $('#pump1Program, #pump2Program').on('changed.bs.select', function () {
 
-        if ($('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid')===undefined){
+        if ($('#pump' + $(this).data('pumpid') + 'Program').find('option:selected').data('programid') === undefined) {
             $('#pump' + $(this).data('pumpid') + 'RunProgram').attr('disabled', 'disabled')
         }
         else {
@@ -1528,39 +1535,39 @@ function handleButtons() {
 
     // mock Globalize numberFormat for mins and secs using jQuery spinner ...
     if (!window.Globalize) window.Globalize = {
-        format: function(number, format) {
-            if (number===-1)
+        format: function (number, format) {
+            if (number === -1)
                 return "Manual"
             number = String(this.parseFloat(number, 10) * 1);
-            if (number<60){
-                hours='00'
+            if (number < 60) {
+                hours = '00'
             }
             else {
-                hours = Math.floor(number/60)
-                if (hours<10)
-                    hours = '0'+hours
+                hours = Math.floor(number / 60)
+                if (hours < 10)
+                    hours = '0' + hours
             }
-            mins = number - parseInt(hours)*60//number % 60
-            if (mins<10)
-                mins = '0'+mins
+            mins = number - parseInt(hours) * 60//number % 60
+            if (mins < 10)
+                mins = '0' + mins
             number = hours + ':' + mins
             return number;
         },
-        parseFloat: function(number, radix) {
-            if (number==='Manual')
+        parseFloat: function (number, radix) {
+            if (number === 'Manual')
                 return -1
-            else if (typeof number==='number' || number===undefined){
+            else if (typeof number === 'number' || number === undefined) {
                 return number
             }
             else {
                 splitInpStr = number.split(":");
-                number = (parseInt(splitInpStr[0]*60))+parseInt(splitInpStr[1])
+                number = (parseInt(splitInpStr[0] * 60)) + parseInt(splitInpStr[1])
                 return parseFloat(number, radix || 10);
             }
         }
     };
 
-    $( "#pump1RunDuration, #pump2RunDuration" ).spinner({
+    $("#pump1RunDuration, #pump2RunDuration").spinner({
         step: 1,
         page: 15,
         min: -1,
@@ -1603,19 +1610,18 @@ function handleButtons() {
         socket.emit('setPumpType', $(this).data('pumpid'), $(this).val())
     })
 
-    $('#pump1Edit, #pump2Edit').click(function(){
+    $('#pump1Edit, #pump2Edit').click(function () {
         pumpManualButtonsEnableDisable($(this).data('pumpid'), 'enable')
-        $('#pump'+ $(this).data('pumpid') + 'EditResume').show()
+        $('#pump' + $(this).data('pumpid') + 'EditResume').show()
     })
 
-    $('#pump1EditResume, #pump2EditResume').click(function(){
+    $('#pump1EditResume, #pump2EditResume').click(function () {
         pumpManualButtonsEnableDisable($(this).data('pumpid'), 'disable')
         prevPumpMode[$(this).data('pumpid')].mode = ''
         prevPumpMode[$(this).data('pumpid')].value = ''
         socket.emit('pump')
     })
 }
-
 
 
 function updateVirtualPumpSpinner(el, val) {
@@ -1626,15 +1632,16 @@ function updateVirtualPumpSpinner(el, val) {
             //max: 130,
             step: 1,
             page: 5,
-            spin: function( event, ui ) {
-                if ( ui.value > 130 ) {
-                    $( this ).spinner( "value", 15 );
+            spin: function (event, ui) {
+                if (ui.value > 130) {
+                    $(this).spinner("value", 15);
                     return false;
-                } else if ( ui.value < 15 ) {
-                    $( this ).spinner( "value", 130 );
+                } else if (ui.value < 15) {
+                    $(this).spinner("value", 130);
                     return false;
                 }
-            }}).val(val)
+            }
+        }).val(val)
     }
     else {
         $(el).spinner({
@@ -1642,21 +1649,22 @@ function updateVirtualPumpSpinner(el, val) {
             //max: 3450,
             step: 10,
             page: 20,
-            spin: function( event, ui ) {
-                if ( ui.value > 3450 ) {
-                    $( this ).spinner( "value", 450 );
+            spin: function (event, ui) {
+                if (ui.value > 3450) {
+                    $(this).spinner("value", 450);
                     return false;
-                } else if ( ui.value < 450 ) {
-                    $( this ).spinner( "value", 3450 );
+                } else if (ui.value < 450) {
+                    $(this).spinner("value", 3450);
                     return false;
                 }
-            }}).val(val)
+            }
+        }).val(val)
     }
 }
 
 
+var reconnectTimer = false
 
-var reconnectTimer=false
 // Refresh / Update status button (showing last message / information received)
 function lastUpdate(reset) {
 
@@ -1686,19 +1694,19 @@ function lastUpdate(reset) {
         tmeLastUpd = tmeCurrent;
         reconnectTimer = false
     }
-    if (tmeDelta>=20){
+    if (tmeDelta >= 20) {
         if (reconnectTimer === false) {
             socket.open()
-            reconnectTimer=true
+            reconnectTimer = true
         }
     }
 }
 
-var loadAppSettings = function(){
-    $.getJSON('/config', function(appConfig){
+var loadAppSettings = function () {
+    $.getJSON('/config', function (appConfig) {
         appParams = appConfig.config
         console.log(appParams)
-        if (appParams.systemReady){
+        if (appParams.systemReady) {
 
             startSocketRx();
             // Finally, initialize Panel and button handling
@@ -1706,13 +1714,13 @@ var loadAppSettings = function(){
             handleButtons();
 
             // Callback Routine, every second - to update / record time since last message received
-            setInterval(function() {
+            setInterval(function () {
                 lastUpdate(false)
             }, 1000);
         }
         else {
             console.log('poolController app not ready yet')
-            setTimeout(loadAppSettings, 1000*5)
+            setTimeout(loadAppSettings, 1000 * 5)
         }
     })
 
@@ -1721,7 +1729,7 @@ var loadAppSettings = function(){
 
 // From http://api.jquery.com/jquery/#jQuery3
 // JQuery(callback), Description: Binds a function to be executed when the DOM has finished loading
-$(function() {
+$(function () {
 
 
     // Avoid namespace conflicts
@@ -1734,9 +1742,9 @@ $(function() {
         // Only make the .panel-heading child elements support dragging.
         // Omit this to make then entire <li>...</li> draggable.
         handle: '.panel-heading',
-        update: function() {
+        update: function () {
             var panelIndices = [];
-            panelList.children().each(function() {
+            panelList.children().each(function () {
                 panelIndices[$(this).index()] = $(this).attr('id');
             });
             localStorage.setItem('panelIndices', JSON.stringify(panelIndices));
@@ -1744,7 +1752,7 @@ $(function() {
     });
 
     // Load configuration (from json), process once data ready
-    $.getJSON('configClient.json', function(json) {
+    $.getJSON('configClient.json', function (json) {
         // Configure panels (visible / hidden, sequence)
         configPanels(json.panelState);
         // Call routine to recursively parse Equipment Configuration, setting associated data for DOM elements
@@ -1756,11 +1764,10 @@ $(function() {
         // General JS Parameters (for this code)
         generalParams = json.generalParams;
         // And Now, initialize Socket IO (as client configuration in place now)
-        socket = io({reconnectionDelay:20000, reconnection:true, reconnectionDelayMax: 20000});
+        socket = io({reconnectionDelay: 20000, reconnection: true, reconnectionDelayMax: 20000});
 
         loadAppSettings();
     });
-
 
 
     $('body').scrollspy({
