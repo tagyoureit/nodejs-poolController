@@ -143,7 +143,7 @@ module.exports = function (container) {
         if (container.settings.get('influxEnabled')) {
             var temp_fields
             // if pump is off
-            if (container.pump.getPower(1) === 4) {
+            if (container.pump.getPower(1) === 4 || container.pump.getPower(1) === "powernotset") {
                 temp_fields = {
                     'poolSetPoint': data.poolSetPoint,
                     'spaSetPoint': data.spaSetPoint,
