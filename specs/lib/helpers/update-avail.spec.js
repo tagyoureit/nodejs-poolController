@@ -6,7 +6,7 @@ Promise.promisifyAll(fs)
 describe('checks if there is a newer version available', function() {
 
 
-    describe('#by talking (stubbing) to Git', function() {
+    describe('#by talking (spybing) to Git', function() {
         context('1.', function() {
 
             before(function () {
@@ -15,7 +15,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
@@ -95,7 +95,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
@@ -178,7 +178,7 @@ describe('checks if there is a newer version available', function() {
         // })(function() {
         //     myModule(bottle.container).check()
         //         .then(function() {
-        //             loggerInfoStub.args[0][0].should.contain('is the same as the')
+        //             loggerInfospy.args[0][0].should.contain('is the same as the')
         //             done()
         //         })
         // })
@@ -192,7 +192,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','spy')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
@@ -263,7 +263,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','spy')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
@@ -326,7 +326,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
@@ -408,7 +408,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerspyOrSpy('spy','spy')
                     })
 
             })
