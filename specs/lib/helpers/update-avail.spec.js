@@ -263,7 +263,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('stub','stub')
+                        loggers = setupLoggerStubOrSpy('stub','spy')
                     })
 
             })

@@ -41,8 +41,14 @@ module.exports = function(container) {
                 // true = means that we will suppress the update until the next available version bump
                 container.updateAvailable.getResultsAsync()
                     .then(function(updateAvail){
-                        container.logger.silly('Socket.IO outputting updateAvail: %s ', JSON.stringify(updateAvail))
-                        emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
+                        if (updateAvail.hasOwnProperty('result')) {
+                            container.logger.silly('Socket.IO outputting updateAvail: %s ', JSON.stringify(updateAvail))
+                            emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
+                        }
+                        else
+                        {
+                            container.logger.silly('Socket.IO NOT outputting updateAvail because it is missing the result string: %s ', JSON.stringify(updateAvail))
+                        }
                     })
             }
         }

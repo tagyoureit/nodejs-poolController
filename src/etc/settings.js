@@ -608,7 +608,7 @@ module.exports = function (container) {
     }
 
     var getConfig = function () {
-        return configurationFileContent``
+        return configurationFileContent
     }
 
     var getConfigOverview = function () {
