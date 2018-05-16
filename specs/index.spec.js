@@ -102,7 +102,7 @@ describe('nodejs-poolController', function () {
             bottle.container.winstonToIO.init()
             bottle.container.helpers
 
-            bottle.container.settings.displayIntroMsg()
+            // bottle.container.settings.displayIntroMsg()
             bottle.container.settings.displaySettingsMsg()
             bottle.container.settings.getConfig()
             bottle.container.settings.set('myvalismissing')

@@ -36,7 +36,7 @@ module.exports = function (container) {
     var envParam = process.argv[2];
     var configurationFileContent, sysDefaultFileContent;
 
-    var has = function(param){
+    var has = function (param) {
         try {
             if (param === undefined)
                 return _settings
@@ -54,6 +54,164 @@ module.exports = function (container) {
         catch (err) {
             return false
         }
+    }
+
+
+    var lookup = function (param) {
+        // thought is to use a lookup, instead of hardcoding everything in _settings.
+        switch (param) {
+            case "equipment":
+                return configurationFileContent.equipment;
+                break;
+            case "controllel":
+                return configurationFileContent.equipment.controller
+                break
+            case "intellicom":
+                return configurationFileContent.equipment.controller.intellicom
+                break
+            case "intellitouch":
+                return configurationFileContent.equipment.controller.intellitouch
+                break
+            case "virtual":
+                return configurationFileContent.equipment.controller.virtual
+                break
+            case "virtualPumpController":
+                return configurationFileContent.equipment.controller.virtual.pumpController
+                break
+            case "virtualChlorinatorController":
+                return configurationFileContent.equipment.controller.virtual.chlorinatorController
+                break
+            case "circuitFriendlyNames":
+                return configurationFileContent.equipment.circuit.friendlyName
+                break
+            case "chlorinator":
+                return configurationFileContent.equipment.chlorinator
+                break
+            case "pump":
+                return configurationFileContent.equipment.pump
+                break
+            case "appAddress":
+                return configurationFileContent.poolController.appAddress
+                break
+            case "circuit":
+                return configurationFileContent.equipment.circuit
+                break
+            case "intellichem":
+                return configurationFileContent.equipment.intellichem.installed
+                break
+            case "spa":
+                return configurationFileContent.equipment.spa.installed
+                break
+            case "solar":
+                return configurationFileContent.equipment.solar.installed
+                break
+            case "httpEnabled":
+                return configurationFileContent.poolController.http.enabled
+                break
+            case "httpRedirectionToHttps":
+                return configurationFileContent.poolController.http.redirectToHttps
+                break
+            case "httpExpressPort":
+                return configurationFileContent.poolController.http.expressPort
+                break
+            case "httpExpressAuth":
+                return configurationFileContent.poolController.http.expressAuth
+                break
+            case "httpExpressAuthFile":
+                return configurationFileContent.poolController.http.expressAuthFile
+                break
+            case "httpsEnabled":
+                return configurationFileContent.poolController.https.enabled
+                break
+            case "httpsExpressPort":
+                return configurationFileContent.poolController.https.expressPort
+                break
+            case "httpsExpressAuth":
+                return configurationFileContent.poolController.https.expressAuth
+                break
+            case "httpsExpressAuthFile":
+                return configurationFileContent.poolController.https.expressAuthFile
+                break
+            case "httpsExpressKeyFile":
+                return configurationFileContent.poolController.https.expressKeyFile
+                break
+            case "httpsExpressCertFile":
+                return configurationFileContent.poolController.https.expressCertFile
+                break
+            case "netConnect":
+                return configurationFileContent.poolController.network.netConnect
+                break
+            case "rs485Port":
+                return configurationFileContent.poolController.network.rs485Port
+                break
+            case "netPort":
+                return configurationFileContent.poolController.network.netPort
+                break
+            case "netHost":
+                return configurationFileContent.poolController.network.netHost
+                break
+            case "inactivityRetry":
+                return configurationFileContent.poolController.network.inactivityRetry
+                break
+            case "logLevel":
+                return configurationFileContent.poolController.log.logLevel
+                break
+            case "socketLogLevel":
+                return configurationFileContent.poolController.log.socketLogLevel
+                break
+            case "fileLog":
+                return configurationFileContent.poolController.log.fileLog
+                break
+            case "logPumpMessages":
+                return configurationFileContent.poolController.log.logPumpMessages
+                break
+            case "logDuplicateMessages":
+                return configurationFileContent.poolController.log.logDuplicateMessages
+                break
+            case "logConsoleNotDecoded":
+                return configurationFileContent.poolController.log.logConsoleNotDecoded
+                break
+            case "logConfigMessages":
+                return configurationFileContent.poolController.log.logConfigMessages
+                break
+            case "logMessageDecoding":
+                return configurationFileContent.poolController.log.logMessageDecoding
+                break
+            case "logChlorinator":
+                return configurationFileContent.poolController.log.logChlorinator
+                break
+            case "logIntellichem":
+                return configurationFileContent.poolController.log.logIntellichem
+                break
+            case "logPacketWrites":
+                return configurationFileContent.poolController.log.logPacketWrites
+                break
+            case "logPumpTimers":
+                return configurationFileContent.poolController.log.logPumpTimers
+                break
+            case "logApi":
+                return configurationFileContent.poolController.log.logApi
+                break
+            case "influxEnabled":
+                return configurationFileContent.poolController.database.influx.enabled
+                break
+            case "influxHost":
+                return configurationFileContent.poolController.database.influx.host
+                break
+            case "influxPort":
+                return configurationFileContent.poolController.database.influx.port
+                break
+            case "influxDB":
+                return configurationFileContent.poolController.database.influx.database
+                break
+            case "integrations":
+                return configurationFileContent.integrations
+                break
+            case "notifications":
+                return configurationFileContent.meta.notifications
+                break
+        }
+
     }
 
     var get = function (param) {
@@ -142,15 +300,15 @@ module.exports = function (container) {
             })
     }
 
-    var moveConfigFileKeys = function(){
+    var moveConfigFileKeys = function () {
         return Promise.resolve()
-            .then(function(){
+            .then(function () {
                 //this is implemented for >=4.1.34
                 //move equipment.controller.circuitFriendlyNames to equipment.circuit:{friendlyName} if it exists
-                if (configurationFileContent.equipment.controller.hasOwnProperty("circuitFriendlyNames")){
+                if (configurationFileContent.equipment.controller.hasOwnProperty("circuitFriendlyNames")) {
                     // add circuit key if not exists
                     if (!configurationFileContent.equipment.hasOwnProperty("circuit")) {
-                        configurationFileContent.equipment.circuit = {"friendlyName":{}}
+                        configurationFileContent.equipment.circuit = {"friendlyName": {}}
                     }
                     // move key
                     configurationFileContent.equipment.circuit.friendlyName = JSON.parse(JSON.stringify(configurationFileContent.equipment.controller.circuitFriendlyNames))
@@ -158,7 +316,7 @@ module.exports = function (container) {
                     delete configurationFileContent.equipment.controller.circuitFriendlyNames
                 }
             })
-            .catch(function(){
+            .catch(function () {
                 container.logger.silly('Settings: No keys to move.')
             })
 
@@ -185,7 +343,7 @@ module.exports = function (container) {
                         }
                         if (d.kind === 'E') {
                             //ignore all edits except version number
-                            if (d.path[0]==='version'){
+                            if (d.path[0] === 'version') {
 
                                 diffs.editedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.rhs))
 
@@ -374,28 +532,7 @@ module.exports = function (container) {
     }
 
 
-    var displayIntroMsg = function () {
-        // var introMsg;
-        // introMsg = '\n*******************************';
-        // introMsg += '\n poolController in brief (for full details, see README.md):';
-        // introMsg += '\n Intellitouch: Configuration is read from your pool.  The application will send the commands to retrieve the custom names and circuit names.';
-        // introMsg += '\n It will dynamically load as the information is parsed.  '
-        // introMsg += '\n Intellicom: If you have an IntelliCom, set the Intellicom flag to 1 in the config file.'
-        // introMsg += '\n Pump controller: default: poolController pump controller will start if intellicom and intellitoch = 0'
-        // introMsg += '\n                  always: poolController pump controller will always start'
-        // introMsg += '\n                  never: poolController pump controller will never start'
-        //
-        // introMsg += '\n'
-        // introMsg += '\n Writing: If there is a write error 5 times, there will be a warning message.';
-        // introMsg += '\n If there is a write error 10 times, the logging will change to debug mode for 2 minutes and.';
-        // introMsg += '\n it will abort the packet and go to the next one.';
-        // introMsg += '\n'
-        //
-        // introMsg += '\n To change the amount of output to the console, change the "logx" flags in lines 45-51 of this app.';
-        // introMsg += '\n Visit http://_your_machine_name_:expressPort for a web interface '
-        // introMsg += '*******************************\n'
-        // return introMsg
-    }
+
 
     var displaySettingsMsg = function () {
         var settingsStr;
@@ -404,7 +541,7 @@ module.exports = function (container) {
 
         settingsStr = '\n*******************************';
         settingsStr += '\n Version: ' + _settings.appVersion;
-        settingsStr += '\n Config File: ' + _settings.userOverrideFileLocation
+        //settingsStr += '\n Config File: ' + _settings.userOverrideFileLocation
         settingsStr += '\n ';
         // settingsStr += '\n //-------  EQUIPMENT SETUP -----------';
         // settingsStr += '\n var intellicom = ' + JSON.stringify(_settings.intellicom, null, 4);
@@ -458,13 +595,20 @@ module.exports = function (container) {
         // settingsStr += '\n var influxPort = ' + _settings.influxPort;
         // settingsStr += '\n var influxDB = ' + _settings.influxDB;
         // settingsStr += '\n //-------  END DATABASE SETUP -----------\n\n';
-        // //settingsStr += '\n*******************************';
-        settingsStr += JSON.stringify(_settings,null,4)
+
+        settingsStr += '\nConfiguration file name: ' + _settings.configurationFileLocation
+        settingsStr += '\n*******************************';
+
+        settingsStr += JSON.stringify(configurationFileContent, null, 4)
+        container.logger.info('Settings:\n' + settingsStr)
+
+
+
         return settingsStr
     }
 
     var getConfig = function () {
-        return configurationFileContent
+        return configurationFileContent``
     }
 
     var getConfigOverview = function () {
@@ -493,64 +637,7 @@ module.exports = function (container) {
         return {config: configTemp}
     }
 
-    /*var checkForOldconfigurationFileContent = function () {
 
-        try {
-            //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-            if (!configurationFileContent.hasOwnProperty('poolController')) {
-                throw new Error()
-            }
-
-        } catch (err) {
-            // ok to catch error because we are looking for non-existent properties
-            container.logger.error('\x1b[31m %s config file is missing newer property poolController.\x1b[0m', configurationFileContent)
-            global.exit_nodejs_poolController()
-        }
-
-        try {
-            //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-            if (!configurationFileContent.poolController.hasOwnProperty('database')) {
-                throw new Error()
-            }
-
-        } catch (err) {
-            // ok to catch error because we are looking for non-existent properties
-            container.logger.error('\x1b[31m %s config file is missing newer property poolController.database.\x1b[0m', configurationFileContent)
-            global.exit_nodejs_poolController()
-        }
-
-
-        hasOldSettings = ['Equipment', 'numberOfPumps', 'pumpOnly', 'intellicom', 'intellitouch']
-
-        hasOldSettings.forEach(function (el) {
-            try {
-                //the throw will throw an error parsing the file, the catch will catch an error reading the file.
-                // container.logger.silly('testing for configurationFileContent.%s in %s',el,configurationFileContent)
-                if (configurationFileContent.hasOwnProperty(el)) {
-                    throw new Error()
-                }
-
-            } catch (err) {
-                // ok to catch error because we are looking for non-existent properties
-                container.logger.error('\x1b[31m %s config file has outdated property %s.\x1b[0m', configurationFileContent, el)
-                global.exit_nodejs_poolController()
-            }
-        })
-
-
-        // following is to support changing from
-        // "desiredOutput": -1,
-        // to
-        // "desiredOutput": {"pool": -1, "spa":-1},
-
-
-        if (typeof configurationFileContent.equipment.chlorinator.desiredOutput === 'number') {
-            container.logger.error('\x1b[31m %s config file has outdated property configurationFileContent.equipment.chlorinator.desiredOutput.\x1b[0m', configurationFileContent)
-            global.exit_nodejs_poolController()
-        }
-
-
-    }*/
 
 
     var updatePumpTypeAsync = function (_pump, _type) {
@@ -720,7 +807,7 @@ module.exports = function (container) {
         has: has,
         get: get,
         set: set,
-        displayIntroMsg: displayIntroMsg,
+        // displayIntroMsg: displayIntroMsg,
         displaySettingsMsg: displaySettingsMsg,
         getConfig: getConfig,
         getConfigOverview: getConfigOverview,

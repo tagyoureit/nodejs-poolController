@@ -223,9 +223,9 @@ var initAsync = exports.initAsync = function() {
             bottle.container.valves.init()
             bottle.container.intellichem.init()
 
-            bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
-            bottle.container.logger.info('Settings: ', bottle.container.settings.displaySettingsMsg())
-
+            // bottle.container.logger.info('Intro: ', bottle.container.settings.displayIntroMsg())
+            // bottle.container.logger.info('Settings: ', bottle.container.settings.displaySettingsMsg())
+            bottle.container.settings.displaySettingsMsg()
             //logic if we start the virtual pump/chlorinator controller is in the function
             bottle.container.pumpControllerTimers.startPumpController()
             bottle.container.chlorinatorController.startChlorinatorController()

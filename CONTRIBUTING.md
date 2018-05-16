@@ -34,7 +34,7 @@ have a chance of keeping on top of things.
 ## Submitting Changes
 
 * Electronically sign the [Contributor License Agreement]
-(http://github.com/tagyoureit/nodejs-poolController/CLA.txt) by either:
+(https://github.com/tagyoureit/nodejs-poolController/blob/master/CONTRIBUTING.md) by either:
   1. Submitting a Pull Request stating you agree to the terms of the CLA.
   1. Email a copy to russ.goldin@gmail.com for approval
 * Push your changes to a topic branch in your fork of the repository.
