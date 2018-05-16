@@ -1,4 +1,4 @@
-describe('processes 32 (Circuit Name/Function) packets', function() {
+describe('processes 11 (Get Current Circuits) packets', function() {
   var data = [
     Buffer.from([255,0,255,165,33,15,16,11,5,1,1,72,0,0,1,63]),
     Buffer.from([255,0,255,165,33,15,16,11,5,2,0,46,0,0,1,37])

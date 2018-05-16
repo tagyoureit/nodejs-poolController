@@ -1,25 +1,28 @@
 
-# nodejs-poolController - Version 5.0.0
+# nodejs-poolController - Version 5.0.1
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+
+#### 5.0.1
+1. Fixed Influx error on startup #90
+1. Fixed bad characters in custom names
 
 
 #### 5.0.0 Highlights
 
 Make sure to run `npm upgrade`.  There are many package updates and changes.
 
-1. Added `/config` endpoint.
-1. Extra info from `/config` was being added to the circuit section in `config.json`
-1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
+1. SSDP for auto-discovery by SmartThings or other services
 1. mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
+1. Added `/config` endpoint.
+1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
 1. Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
 1. A UI for standalone pumps
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
 1. All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
 1. Intellichem initial support.
 1. Inactivity timer for both internal connections and web page connections.  If a connection is broken, it should re-establish itself automatically now.
-1. SSDP for auto-discovery by SmartThings or other services
 
 # License
 
@@ -100,7 +103,7 @@ Universal notes
 
 Git clone method - Harder way, but you can create PR's and help with development
 1. `git clone git@github.com:tagyoureit/nodejs-poolController.git` (clone the repo if you are starting fresh)
-1. `git checkout 5.0.0` (switch to 5.0.0 branch - Development branch only)
+~~1. `git checkout 5.0.0` (switch to 5.0.0 branch - Development branch only)~~  Will update when there is a new Dev branch.
 1. `git pull` (anytime you want to grab the latest code)
 1. `npm update` (update dependencies)
 

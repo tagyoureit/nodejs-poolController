@@ -141,47 +141,50 @@ module.exports = function (container) {
 
     function writeTemperatureData(data) {
         if (container.settings.get('influxEnabled')) {
-            var temp_fields
-            // if pump is off
-            if (container.pump.getPower(1) === 4 || container.pump.getPower(1) === "powernotset") {
-                temp_fields = {
-                    'poolSetPoint': data.poolSetPoint,
-                    'spaSetPoint': data.spaSetPoint,
-                    'airTemp': data.airTemp
+            // sanity check to only send with real data
+            if (typeof(data.poolHeatMode) === 'number') {
+                var temp_fields
+                // if pump is off
+                if (container.pump.getPower(1) === 4 || container.pump.getPower(1) === "powernotset") {
+                    temp_fields = {
+                        'poolSetPoint': data.poolSetPoint,
+                        'spaSetPoint': data.spaSetPoint,
+                        'airTemp': data.airTemp
+                    }
                 }
-            }
-            // if pump is on
-            else {
-                temp_fields = {
-                    'poolSetPoint': data.poolSetPoint,
-                    'spaSetPoint': data.spaSetPoint,
-                    'poolTemp': data.poolTemp,
-                    'spaTemp': data.spaTemp,
-                    'airTemp': data.airTemp,
-                    'solarTemp': data.solarTemp
+                // if pump is on
+                else {
+                    temp_fields = {
+                        'poolSetPoint': data.poolSetPoint,
+                        'spaSetPoint': data.spaSetPoint,
+                        'poolTemp': data.poolTemp,
+                        'spaTemp': data.spaTemp,
+                        'airTemp': data.airTemp,
+                        'solarTemp': data.solarTemp
+                    }
                 }
-            }
 
-            influx.writePoints([{
-                'measurement': 'temperatures',
-                'tags': {
-                    'poolHeatMode': data.poolHeatMode,
-                    'poolHeatModeStr': data.poolHeatModeStr,
-                    'spaHeatMode': data.spaHeatMode,
-                    'spaHeatModeStr': data.spaHeatModeStr,
-                    'freeze': data.freeze
-                },
-                'fields': temp_fields
-            }])
-                .then(function () {
-                    // return influx.query('select count(*) from temperatures')
-                })
-                .then(function (r) {
-                    // container.logger.info('Wrote %s to influx temperatures measurement', r)
-                })
-                .catch(function (e) {
-                    container.logger.error('Something bad happened writing to InfluxDB (temperatures): ', e.message)
-                })
+                influx.writePoints([{
+                    'measurement': 'temperatures',
+                    'tags': {
+                        'poolHeatMode': data.poolHeatMode,
+                        'poolHeatModeStr': data.poolHeatModeStr,
+                        'spaHeatMode': data.spaHeatMode,
+                        'spaHeatModeStr': data.spaHeatModeStr,
+                        'freeze': data.freeze
+                    },
+                    'fields': temp_fields
+                }])
+                    .then(function () {
+                        // return influx.query('select count(*) from temperatures')
+                    })
+                    .then(function (r) {
+                        // container.logger.info('Wrote %s to influx temperatures measurement', r)
+                    })
+                    .catch(function (e) {
+                        container.logger.error('Something bad happened writing to InfluxDB (temperatures): ', e.message)
+                    })
+            }
         }
 
     }

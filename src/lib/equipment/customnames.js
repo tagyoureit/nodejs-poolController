@@ -51,6 +51,9 @@ module.exports = function(container) {
             {
                 customName += String.fromCharCode(nameBytes[i])
             }
+            else {
+                break
+            }
         }
 
         if (container.settings.get('logConfigMessages')) {

@@ -3,11 +3,11 @@ var fs = require('fs'),
     path = require('path').posix,
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
-describe('checks if there is a newer version available', function() {
+describe('checks if there is a newer version available', function () {
 
 
-    describe('#by talking (spybing) to Git', function() {
-        context('1.', function() {
+    describe('#by talking (spybing) to Git', function () {
+        context('1.', function () {
 
             before(function () {
                 return global.initAllAsync()
@@ -15,7 +15,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })
@@ -86,7 +86,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('2.', function() {
+        context('2.', function () {
 
             before(function () {
 
@@ -95,7 +95,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })
@@ -183,7 +183,7 @@ describe('checks if there is a newer version available', function() {
         //         })
         // })
         // })
-        context('3.', function() {
+        context('3.', function () {
 
             before(function () {
 
@@ -191,7 +191,7 @@ describe('checks if there is a newer version available', function() {
                 return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create({useFakeTimers: false})
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })
@@ -252,7 +252,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('4.', function() {
+        context('4.', function () {
 
             before(function () {
 
@@ -261,7 +261,7 @@ describe('checks if there is a newer version available', function() {
                 return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create({useFakeTimers: false})
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })
@@ -289,7 +289,6 @@ describe('checks if there is a newer version available', function() {
                     .persist()
 
 
-
                 Promise.resolve()
                     .then(function () {
                         return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')
@@ -300,10 +299,9 @@ describe('checks if there is a newer version available', function() {
                             bottle.container.io.emitToClients('updateAvailable')
                         })
                         client.on('updateAvailable', function (msg) {
-                            console.log('message: ', JSON.stringify(msg))
                             msg.result.should.equal('older')
                             client.disconnect()
-                                                        scope.done()
+                            scope.done()
 
                             done()
 
@@ -311,12 +309,10 @@ describe('checks if there is a newer version available', function() {
                     })
 
 
-
-
             })
         })
 
-        context('5.', function() {
+        context('5.', function () {
 
             before(function () {
 
@@ -325,7 +321,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })
@@ -398,7 +394,7 @@ describe('checks if there is a newer version available', function() {
             })
         })
 
-        context('6.', function() {
+        context('6.', function () {
 
             before(function () {
 
@@ -407,7 +403,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerStubOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
             })

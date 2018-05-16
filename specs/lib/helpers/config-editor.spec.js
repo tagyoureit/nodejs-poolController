@@ -4,7 +4,7 @@ var fs = require('fs'),
     Promise = require('bluebird')
 Promise.promisifyAll(fs)
 
-describe('updates config.json variables', function() {
+describe('updates config.json variables', function () {
     context('when called with the internal function', function () {
 
 
@@ -16,7 +16,7 @@ describe('updates config.json variables', function() {
         beforeEach(function () {
 
             return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
-                .then(function(){
+                .then(function () {
                     // sandbox = sinon.sandbox.create()
                     loggers = setupLoggerStubOrSpy('stub', 'stub')
 
@@ -112,7 +112,7 @@ describe('updates config.json variables', function() {
             // bottle.container.settings.loadAsync('/specs/assets/config/config.json')
             //     .then(function () {
             bottle.container.settings.getPumpExternalProgramAsync(1)
-                // })
+            // })
                 .then(function (data) {
                     data[1].should.eq(1000)
                 })
@@ -123,16 +123,16 @@ describe('updates config.json variables', function() {
     })
     context('when called with the Socket API', function () {
         describe('#updates config.json', function () {
-        var scope
+            var scope
             before(function () {
 
                 return Promise.resolve()
-                    .then(function(){
+                    .then(function () {
                         scope = nock('https://api.github.com')
                             .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                             .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.0.json'))
                             .persist()
-                            // .log(console.log)
+                        // .log(console.log)
                     })
                     //.then(global.initAllAsync)
                     .then(bottle.container.updateAvailable.initAsync('/specs/assets/package.json'))
@@ -142,7 +142,7 @@ describe('updates config.json variables', function() {
             beforeEach(function () {
 
                 return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
-                    .then(function(){
+                    .then(function () {
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
@@ -151,7 +151,7 @@ describe('updates config.json variables', function() {
             afterEach(function () {
 
                 return Promise.resolve()
-                    .then(function(){
+                    .then(function () {
                         nock.cleanAll()
                         sandbox.restore()
                     })
@@ -173,16 +173,18 @@ describe('updates config.json variables', function() {
 
                 var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                 client.on('connect', function (data) {
-                    // console.log('connected client:')
-                    client.emit('updateVersionNotificationAsync', true)
-                    client.disconnect()
+                    // need nested setTimout so we don't hit a read error on the JSON file
                     setTimeout(function () {
-                        fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf8')
-                            .then(function(data) {
-                                console.log(data)
-                                JSON.parse(data).meta.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
+                        // console.log('connected client:')
+                        client.emit('updateVersionNotificationAsync', true)
+                        client.disconnect()
+                        setTimeout(function () {
+                            fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf8')
+                                .then(function (data) {
+                                    JSON.parse(data).meta.notifications.version.remote.dismissUntilNextRemoteVersionBump.should.equal(true)
 
-                            }).then(done,done)
+                                }).then(done, done)
+                        }, 150)
                     }, 75)
                 })
             });
