@@ -4,34 +4,19 @@
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
-# Breaking changes in Dev release
 
-#### 5.0.0
+#### 5.0.0 Highlights
 
-1. Changes to `/config` endpoint.  It's now included with the `/all` end point since there would be quite a bit of duplication.  It still exists standalone (for now) but has much less information in it.
-1. Moved `hideAux` setting from `configClient.json` (web UI settings) to `config.json` template.  In `config.json` template, moved
-   ```
-   {equipment: {controller: {circuitFriendlyNames:{1..20}}}}
+Make sure to run `npm upgrade`.  There are many package updates and changes.
 
-    // to
-
-   {equipment: {circuit: friendlyName:{1..20},
-                             hideAux: boolean
-                             },
-   }
-   ```
-   to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
-
-1. Fixed issue #82
+1. Added `/config` endpoint.
 1. Extra info from `/config` was being added to the circuit section in `config.json`
 1. This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
 1. mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
-1. New `/config` endpoint (beta) to allow applications to get a high level summary of the system.
 1. Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
 1. A UI for standalone pumps
 1. All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
 1. All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
-1. Make sure to run `npm upgrade`.  There are many package updates and changes.
 1. Intellichem initial support.
 1. Inactivity timer for both internal connections and web page connections.  If a connection is broken, it should re-establish itself automatically now.
 1. SSDP for auto-discovery by SmartThings or other services
@@ -953,6 +938,33 @@ Docker Instructions
  * All sockets/API now singular (`circuits`->`circuit`)
  * All sockets/API data now returned with a JSON qualifier. EG `{pump:...}`, `{circuit:...}`
  * Intellichem decoding and display
+ * Changes to `/config` endpoint.  It's now included with the `/all` end point since there would be quite a bit of duplication.  It still exists standalone (for now) but has much less information in it.
+ * Moved `hideAux` setting from `configClient.json` (web UI settings) to `config.json` template.  In `config.json` template, moved
+    ```
+    {equipment: {controller: {circuitFriendlyNames:{1..20}}}}
+
+     // to
+
+    {equipment: {circuit: friendlyName:{1..20},
+                              hideAux: boolean
+                              },
+    }
+    ```
+    to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
+
+ * Fixed issue #82
+ * Extra info from `/config` was being added to the circuit section in `config.json`
+ * This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
+ * mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
+ * New `/config` endpoint (beta) to allow applications to get a high level summary of the system.
+ * Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
+ * A UI for standalone pumps
+ * All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
+ * All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
+ * Make sure to run `npm upgrade`.  There are many package updates and changes.
+ * Intellichem initial support.
+ * Inactivity timer for both internal connections and web page connections.  If a connection is broken, it should re-establish itself automatically now.
+ * SSDP for auto-discovery by SmartThings or other services
 
 # Wish list
 1.  Still many messages to debug
