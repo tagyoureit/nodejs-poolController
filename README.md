@@ -1,8 +1,8 @@
 
-# nodejs-poolController - Version 4.x-DEV
+# nodejs-poolController - Version 5.0.0
 
 
-[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=4.x-DEV)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=4.x-DEV)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=4.x-DEV) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=5.0.0) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
 
@@ -111,12 +111,12 @@ If you don't know anything about NodeJS, these directions might be helpful.
 
 Universal notes
 
-1. For precaution, make a backup copy of your `config.json` or customized configuration file.  New in the 4.x-DEV release is that the app will automatically upgrade this file.
+1. For precaution, make a backup copy of your `config.json` or customized configuration file.  New in the 5.0.0 release is that the app will automatically upgrade this file.
 
 
 Git clone method - Harder way, but you can create PR's and help with development
 1. `git clone git@github.com:tagyoureit/nodejs-poolController.git` (clone the repo if you are starting fresh)
-1. `git checkout 4.x-DEV` (switch to 4.x-DEV branch - Development branch only)
+1. `git checkout 5.0.0` (switch to 5.0.0 branch - Development branch only)
 1. `git pull` (anytime you want to grab the latest code)
 1. `npm update` (update dependencies)
 
@@ -949,7 +949,7 @@ Docker Instructions
  * Support for up to 50 circuits, 8 pumps
  * Delay and Cancel Delay for circuits
 
-4.x-DEV -
+5.0.0 -
  * Added add/delete/edit schedule
  * All sockets/API now singular (`circuits`->`circuit`)
  * All sockets/API data now returned with a JSON qualifier. EG `{pump:...}`, `{circuit:...}`
