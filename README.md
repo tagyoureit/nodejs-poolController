@@ -2,7 +2,7 @@
 # nodejs-poolController - Version 5.0.0
 
 
-[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=5.0.0) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 # Breaking changes in Dev release
 
@@ -91,15 +91,14 @@ Extend nodejs-Poolcontroller with these additional integration points
 
 **This code requires a physical [RS485](#module_nodejs-poolController--RS485) adapter to work.**
 
-```
-npm install nodejs-poolcontroller
-```
 
 If you don't know anything about NodeJS, these directions might be helpful.
 
 1. Install Nodejs. (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
 1. Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
+   OR
+   clone with `git clone git@github.com:tagyoureit/nodejs-poolController.git`
 1. Unzip into nodejs-poolController.
 1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
 1. Run the app by calling 'npm start'* (again, in the root directory). It should now run properly.
