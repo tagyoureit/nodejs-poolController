@@ -15,7 +15,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
@@ -95,7 +95,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
@@ -192,7 +192,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
@@ -263,7 +263,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
@@ -326,7 +326,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
@@ -408,7 +408,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
-                        loggers = setupLoggerspyOrSpy('spy','spy')
+                        loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
             })
