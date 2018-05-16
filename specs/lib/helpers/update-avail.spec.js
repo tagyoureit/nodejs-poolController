@@ -129,7 +129,7 @@ describe('checks if there is a newer version available', function() {
                     .then(function () {
                         return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')
                     })
-
+                    .delay(100)
 
                     .then(function () {
                         //check internally we return the right value
@@ -190,8 +190,7 @@ describe('checks if there is a newer version available', function() {
 
                 return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
-
+                        sandbox = sinon.sandbox.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
@@ -212,13 +211,11 @@ describe('checks if there is a newer version available', function() {
                 // cached remote release: 4.1.0
                 // dismissUntilNextVerBump: false
                 // expected result: update avail notifies of new release
-                this.timeout(5000)
+                this.timeout(10000)
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.0.0.json'))
                     .persist()
-
-                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
 
                 Promise.resolve()
@@ -227,6 +224,7 @@ describe('checks if there is a newer version available', function() {
                     })
 
                     .then(function () {
+                        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
 
 
                         client.on('connect', function () {
@@ -246,7 +244,7 @@ describe('checks if there is a newer version available', function() {
                 var myResolve, myReject
                 var a = setTimeout(function () {
                     myReject(new Error('should not reach timeout'))
-                }, 1800)
+                }, 7000)
                 return new Promise(function (resolve, reject) {
                     myResolve = resolve
                     myReject = reject
@@ -262,8 +260,7 @@ describe('checks if there is a newer version available', function() {
                 //return global.initAllAsync()
                 return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
-
+                        sandbox = sinon.sandbox.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('spy','spy')
                     })
 
@@ -292,12 +289,13 @@ describe('checks if there is a newer version available', function() {
                     .persist()
 
 
-                var client = global.ioclient.connect(global.socketURL, global.socketOptions)
+
                 Promise.resolve()
                     .then(function () {
                         return bottle.container.updateAvailable.initAsync('/specs/assets/package.json')
                     })
                     .then(function () {
+                        var client = global.ioclient.connect(global.socketURL, global.socketOptions)
                         client.on('connect', function (data) {
                             bottle.container.io.emitToClients('updateAvailable')
                         })

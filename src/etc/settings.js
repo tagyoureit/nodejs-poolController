@@ -711,7 +711,7 @@ module.exports = function (container) {
             })
             .then(writeConfigFileAsync)
             .then(function () {
-                container.logger.verbose('Updated version notification settings %s', configurationFileContent)
+                container.logger.verbose('Updated version notification settings %s', JSON.stringify(configurationFileContent.meta.notifications))
                 return 'I am done!'
             })
             .catch(function (err) {
