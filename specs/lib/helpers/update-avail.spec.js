@@ -259,7 +259,8 @@ describe('checks if there is a newer version available', function() {
             before(function () {
 
 
-                return global.initAllAsync()
+                //return global.initAllAsync()
+                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
                     .then(function () {
                         sandbox = sinon.sandbox.create()
 
@@ -301,10 +302,10 @@ describe('checks if there is a newer version available', function() {
                             bottle.container.io.emitToClients('updateAvailable')
                         })
                         client.on('updateAvailable', function (msg) {
+                            console.log('message: ', JSON.stringify(msg))
                             msg.result.should.equal('older')
                             client.disconnect()
-                            clearTimeout(a)
-                            scope.done()
+                                                        scope.done()
 
                             done()
 
