@@ -523,8 +523,46 @@ module.exports = function (container) {
                 })
         })
 
+        app.get('/light/mode/:mode', function (req, res) {
+            if (parseInt(req.params.mode) >= 0 && parseInt(req.params.mode) <= 256) {
+                res.send(container.circuit.setLightMode(parseInt(req.params.mode)))
+            } else {
+                res.send('Not a valid light power command.')
+            }
+        })
+
+        app.get('/light/circuit/:circuit/setColor/:color', function (req, res) {
+            if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(req.params.color) >= 0 && parseInt(req.params.color) <= 256) {
+                    res.send(container.circuit.setLightColor(parseInt(req.params.circuit), parseInt(req.params.color)))
+                } else {
+                    res.send('Not a valid light set color.')
+                }
+            }
+        })
+
+        app.get('/light/circuit/:circuit/setSwimDelay/:delay', function (req, res) {
+            if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(req.params.delay) >= 0 && parseInt(req.params.delay) <= 256) {
+                    res.send(container.circuit.setLightSwimDelay(parseInt(req.params.circuit), parseInt(req.params.delay)))
+                } else {
+                    res.send('Not a valid light swim delay.')
+                }
+            }
+        })
+
+        app.get('/light/circuit/:circuit/setPosition/:position', function (req, res) {
+            if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(req.params.position) >= 0 && parseInt(req.params.position) <= container.circuit.getNumberOfCircuits()) {
+                    res.send(container.circuit.setLightPosition(parseInt(req.params.circuit), parseInt(req.params.position)))
+                } else {
+                    res.send('Not a valid light position.')
+                }
+            }
+        })
+
         app.get('/circuit/:circuit', function (req, res) {
-            if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= 20) {
+            if (parseInt(req.params.circuit) > 0 && parseInt(req.params.circuit) <= container.circuit.getNumberOfCircuits()) {
                 res.send(container.circuit.getCircuit(parseInt(req.params.circuit)))
             } else {
                 res.send('Not a valid circuit')

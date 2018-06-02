@@ -70,7 +70,7 @@ module.exports = function(container) {
 
               } else {
                   if (container.settings.get('logDuplicateMessages'))
-                      logger.verbose('Msg# %s   Duplicate broadcast.', counter)
+                      logger.debug('Msg# %s   Duplicate broadcast.', counter)
               }
 
               var decoded = true;

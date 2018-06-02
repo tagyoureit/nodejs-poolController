@@ -507,6 +507,7 @@ module.exports = function (container) {
                 _settings.logPacketWrites = configurationFileContent.poolController.log.logPacketWrites;
                 _settings.logPumpTimers = configurationFileContent.poolController.log.logPumpTimers;
                 _settings.logApi = configurationFileContent.poolController.log.logApi;
+                _settings.logIntellibrite = configurationFileContent.poolController.log.logIntellibrite;
 
                 // Database
                 _settings.influxEnabled = configurationFileContent.poolController.database.influx.enabled;

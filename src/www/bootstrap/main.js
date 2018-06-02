@@ -184,6 +184,7 @@ function bindClockPicker(el, _align) {
     })
 }
 
+
 // Add last row to schedule/egg timer if there is an available slot
 function bindSelectPickerScheduleCircuit(el, _default) {
     // To style only <select>s with the selectpicker class
@@ -582,6 +583,332 @@ function insertAddEggTimer(currSchedule, idOfFirstNotUsed) {
 
 }
 
+function insertLightEdit() {
+    /*
+
+        "7": {
+            "number": 7,
+            "numberStr": "circuit7",
+            "name": "SPA LIGHT",
+            "circuitFunction": "Intellibrite",
+            "status": 0,
+            "freeze": 0,
+            "macro": 0,
+            "delay": 0,
+            "friendlyName": "SPA LIGHT",
+            "light": {
+                "position": 1,
+                "colorStr": "off",
+                "color": 0,
+                "colorSet": 0,
+                "colorSetStr": "White",
+                "prevColor": 0,
+                "prevColorStr": "White",
+                "colorSwimDelay": 0,
+                "mode": 0,
+                "modeStr": "Off"
+            }
+        }
+         */
+    el = '#lightsEdit'
+
+    // first get number of intellibrite lights
+    var lightCount = 0
+    $.each(currCircuitArr, function (indx, currCircuit) {
+        // loop through each circuit
+        if (currCircuit.circuitFunction === 'Intellibrite') {
+            lightCount += 1;
+        }
+    })
+
+    // reset the table
+    $('#lightsEdit tbody').html("")
+
+    $.each(currCircuitArr, function (indx, currCircuit) {
+        // loop through each circuit
+        if (currCircuit.circuitFunction === 'Intellibrite') {
+
+            circuitID = 'light' + indx;
+
+            // insert static column
+            var hideEl = '';
+            if (!$('#editPanelLight').hasClass('btn-success'))
+                hideEl = 'none;'
+
+            // circuit #
+            $(el + ' tbody')
+                .append(
+                    ($('<tr/>', {
+                            id: currCircuit.numberStr + 'Edit', //check if this is really needed
+                            class: "botpad lightEdit",
+                            'data-id': indx,
+                            // 'data-circuitnum': currSchedule.CIRCUITNUM,
+                            // 'data-hour': strHours,
+                            // 'data-min': strMins,
+                            style: 'display:' + hideEl
+                        })
+                    )
+                        .append($('<td/>', {
+                            text: indx
+                        })))
+
+
+            $(el + ' tbody tr[data-id="' + indx + '"].lightEdit')
+            // circuit name
+                .append(
+                    ($('<td/>', {
+                            text: currCircuit.friendlyName
+                        })
+                    )
+                )
+                // color
+                .append(
+                    ($('<td/>'))
+                        .append(
+                            ($('<div/>', {
+                                //class: 'input-group',
+                                //style: "width:55px"
+                            }))
+                                .append($('<select/>', {
+                                    class: 'bootstrap-select',
+                                    id: currCircuit.numberStr + 'Color',
+                                    "data-width": "auto",
+                                    "data-circuitnum": indx
+                                })))
+                )
+                // position
+                .append(
+                    ($('<td/>'))
+                        .append(
+                            ($('<div/>', {
+                                //class: 'input-group',
+                                //style: "width:55px"
+                            }))
+                                .append(
+                                    $('<select/>', {
+                                        class: 'bootstrap-select',
+                                        id: currCircuit.numberStr + 'Position',
+                                        "data-width": "auto",
+                                        "data-circuitnum": indx
+                                    })
+                                )
+                        )
+                )
+                // swim delay
+                .append(
+                    ($('<td/>'))
+                        .append(
+                            ($('<div/>', {
+                                //class: 'col-xs-3',
+                                //style: "width:55px"
+                            }))
+                                .append($('<select/>', {
+                                    class: 'bootstrap-select',
+                                    id: currCircuit.numberStr + 'SwimDelay',
+                                    "data-width": "auto",
+                                    "data-circuitnum": indx
+                                })))
+                )
+
+
+            // append colors to select-picker
+            $('#' + currCircuit.numberStr + 'Color')
+                .append($('<option/>', {
+                    text: "White",
+                    // "data-type": "lightColor",
+                    "data-val": 0,
+                    "style": "color:white;background:gray",
+                    "data-content": "<div style='color:white;background:gray'>White</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Light Green",
+                    // "data-type": "lightColor",
+                    "data-val": 2,
+                    "style": "color:lightgreen", "data-content": "<div style='color:lightgreen'>Light Green</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Green",
+                    // "data-type": "lightColor",
+                    "data-val": 4,
+                    "style": "color:green",
+                    "data-content": "<div style='color:green'>Green</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Cyan",
+                    // "data-type": "lightColor",
+                    "data-val": 6,
+                    "style": "color:cyan",
+                    "data-content": "<div style='color:cyan'>Cyan</div>"
+
+                }))
+                .append($('<option/>', {
+                    text: "Blue",
+                    // "data-type": "lightColor",
+                    "data-val": 8,
+                    "style": "color:blue",
+                    "data-content": "<div style='color:blue'>Blue</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Lavender",
+                    // "data-type": "lightColor",
+                    "data-val": 10,
+                    "style": "color:lavender",
+                    "data-content": "<div style='color:lavender'>Lavender</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Magenta",
+                    "data-val": 12,
+                    "style": "color:magenta",
+                    "data-content": "<div style='color:darkmagenta'>Magenta</div>"
+                }))
+                .append($('<option/>', {
+                    text: "Light Magenta",
+                    "data-val": 14,
+                    "style": "color:magenta",
+                    "data-content": "<div style='color:magenta'>Light Magenta</div>"
+                }))
+
+            // light position section
+            for (i = 1; i <= lightCount; i++) {
+                // append light positions to select-picker
+                $('#' + currCircuit.numberStr + 'Position')
+                    .append($('<option/>', {
+                        text: i,
+                        "data-val": i
+                    }))
+            }
+
+
+            // swim delay section
+            for (i = 0; i <= 60; i++) {
+                $('#' + currCircuit.numberStr + 'SwimDelay')
+                    .append($('<option/>', {
+                        text: i,
+                        "data-val": i
+                    }))
+            }
+
+            bindLightColorSelectPicker('#' + currCircuit.numberStr + 'Color', currCircuit.light.colorSetStr)
+            bindLightPosition('#' + currCircuit.numberStr + 'Position', currCircuit.light.position)
+            bindLightSwimDelay('#' + currCircuit.numberStr + 'SwimDelay', currCircuit.light.colorSwimDelay)
+
+        }
+
+    })
+
+}
+
+var lightSelectPickerBound = 0
+
+function bindLightSelectPicker() {
+
+    el = '#lightSelectPicker'
+
+    // need logic to turn off intellibrite mode if all circuits are off
+    // don't think there is a way to do this from RS485 messages
+
+    $.each(currCircuitArr, function (indx, currCircuit) {
+
+        if (currCircuit.circuitFunction === 'Intellibrite') {
+
+            // only want to bind once
+            // will it rebind of we call the entire function again?  need to destroy?
+            if (lightSelectPickerBound === 0) {
+                lightSelectPickerBound = 1
+                // To style only <select>s with the selectpicker class
+                $(el).selectpicker({
+                    //mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+                });
+
+
+                $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+
+                    console.log('intellibrite light mode name: %s  val: %s  ', $(el).val(), $(el).find('option:selected').data('val'))
+
+                    socket.emit('setLightMode', $(el).find('option:selected').data('val'))
+
+                    // right now not sure how to ask for the "status" packet so we can't refresh
+                    // on the app side by sending a new Emit
+                    // $(el).prop('disabled', true)
+                    $(el).selectpicker('val', '')
+                    $(el).selectpicker('refresh')
+                })
+
+            }
+
+                //$(el).selectpicker('val', currCircuit.light.modeStr)
+
+        }
+
+    })
+}
+
+function bindLightSwimDelay(el, _default) {
+    // To style only <select>s with the selectpicker class
+    $(el).selectpicker({
+        mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+    });
+    $(el).selectpicker('val', _default)
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+
+        //console.log('name: %s  val: %s  circuit: %s', $(el).val(), $(el).find('option:selected').data('val'), $(el).closest('select').data('circuitnum'))
+
+        socket.emit('setLightSwimDelay', $(el).closest('select').data('circuitnum'), $(el).find('option:selected').data('val'))
+
+        $(el).prop('disabled', true)
+        $(el).selectpicker('refresh')
+    })
+}
+
+
+function bindLightPosition(el, _default) {
+    // To style only <select>s with the selectpicker class
+    $(el).selectpicker({
+        mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+    });
+    $(el).selectpicker('val', _default)
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+
+        console.log('name: %s  val: %s  circuit: %s', $(el).val(), $(el).find('option:selected').data('val'), $(el).closest('select').data('circuitnum'))
+
+        socket.emit('setLightPosition', $(el).closest('select').data('circuitnum'), $(el).val())
+
+        $(el).prop('disabled', true)
+        $(el).selectpicker('refresh')
+    })
+}
+
+function bindLightColorSelectPicker(el, _default) {
+    // To style only <select>s with the selectpicker class
+    $(el).selectpicker({
+        mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+    });
+    $(el).selectpicker('val', _default)
+    $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+
+        //console.log('name: %s  val: %s', $(el).val(), $(el).find('option:selected').data('val'))
+
+        socket.emit('setLightColor', $(el).closest('select').data('circuitnum'), $(el).find('option:selected').data('val'))
+
+        $(el).prop('disabled', true)
+        $(el).selectpicker('refresh')
+    })
+}
+
+
+function bindNotUsedEggTimer() {
+    $('#addEggTimerCircuit').selectpicker({
+        mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
+    });
+    $('#addEggTimerCircuit').on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
+        socket.emit('setSchedule', $('#scheduleIdNotUsed').data('id'), $('#addEggTimerCircuit').find('option:selected').data('circuitnum'), 25, 0, 2, 0, 0)
+        //console.log('setSchedule', $('#scheduleIdNotUsed').data('id'), $('#addEggTimerCircuit').find('option:selected').data('circuitnum'),25,0,2,0,0)
+        $('#addEggTimerCircuit').prop('disabled', true)
+        $('#addEggTimerCircuit').selectpicker('refresh')
+    })
+}
+
+
 function bindNotUsedEggTimer() {
     $('#addEggTimerCircuit').selectpicker({
         mobile: jQuery.browser.mobile, //if true, use mobile native scroll, else format with selectpicker css
@@ -686,6 +1013,7 @@ function startSocketRx() {
         }
         if (data !== null) {
             currCircuitArr = JSON.parse(JSON.stringify(data))
+            // parse circuit data
             $.each(data, function (indx, currCircuit) {
                 if (currCircuit.hasOwnProperty('friendlyName')) {
                     // Check for POOL or SPA - then ignore friendlyName, need to use circuitFunction for these two!
@@ -718,9 +1046,15 @@ function startSocketRx() {
                     }
                 }
             });
+
+            // parse light data
+            insertLightEdit()
         }
+        // do only once for all circuits
+        bindLightSelectPicker()
         lastUpdate(true);
     });
+
 
     socket.on('pump', function (data) {
         if (data.hasOwnProperty('pump')) {
@@ -751,6 +1085,7 @@ function startSocketRx() {
                             $('#pumpEdit, .pumpEdit').show()
                             $('#virtualPumpController thead tr').append($('<th/>', {
                                 html: currPump["friendlyName"],
+                                //html: 'blah!!!',
                                 "data-id": currPump["pump"]
                             }))
                             showHideVirtualPumpCol = ".virtualPump" + currPump["pump"]
@@ -890,7 +1225,9 @@ function startSocketRx() {
                             if (typeof(currPump["friendlyName"]) !== "undefined") {
                                 // Determine if we need to add a column (new pump), or replace data - and find the target column if needed
                                 var rowHeader = $('#pumps tr:first:contains(' + currPump["friendlyName"] + ')');
+
                                 var colAppend = rowHeader.length ? false : true;
+                                console.log('currPump["friendlyName"]: ', currPump["friendlyName"])
                                 if (colAppend === false) {
                                     var colTarget = -1;
                                     $('th', rowHeader).each(function (index) {
@@ -1505,6 +1842,26 @@ function handleButtons() {
             $('.eggEdit').show()
             $('.eggStatic').hide()
             $('#eggtimer').css('display', 'table')
+        }
+
+    })
+    $('#editPanelLight').click(function () {
+        if ($('#editPanelLight').hasClass('btn-success'))
+        // static
+        {
+            $('#editPanelLight').removeClass('btn-success')
+            $('.lightEdit').hide()
+            $('#collapseLight').show()
+            $('#light').css('display', '')
+
+        } else
+        // edit
+        {
+            $('#editPanelLight').addClass('btn-success')
+            $('.lightEdit').show()
+            $('#collapseLight').hide()
+            $('#light').css('display', 'table')
+
         }
 
     })

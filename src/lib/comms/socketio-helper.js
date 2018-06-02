@@ -50,6 +50,9 @@ module.exports = function(container) {
                             container.logger.silly('Socket.IO NOT outputting updateAvail because it is missing the result string: %s ', JSON.stringify(updateAvail))
                         }
                     })
+                    .catch(function(err){
+                        container.logger.error("Error getting update available results: ", err)
+                    })
             }
         }
 
@@ -403,6 +406,45 @@ module.exports = function(container) {
 
         socket.on('pump', function() {
             emitToClients('pump')
+        })
+
+        socket.on('setLightMode', function (mode) {
+            if (parseInt(mode) >= 0 && parseInt(mode) <= 256) {
+                container.circuit.setLightMode(parseInt(mode))
+            } else {
+                container.logger.warn('Socket lightMode: Not a valid light power command.')
+            }
+        })
+
+        socket.on('setLightColor', function (circuit, color) {
+            if (parseInt(circuit) > 0 && parseInt(circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(color) >= 0 && parseInt(color) <= 256) {
+                    (container.circuit.setLightColor(parseInt(circuit), parseInt(color)))
+                } else {
+                    container.logger.warn('Socket lightSetColor: Not a valid light set color.')
+                }
+            }
+        })
+
+        socket.on('setLightSwimDelay', function (circuit, delay) {
+            if (parseInt(circuit) > 0 && parseInt(circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(delay) >= 0 && parseInt(delay) <= 256) {
+                    (container.circuit.setLightSwimDelay(parseInt(circuit), parseInt(delay)))
+                } else {
+                    container.logger.warn('Socket lightSetSwimDelay: Not a valid light swim delay.')
+                }
+            }
+        })
+
+
+        socket.on('setLightPosition', function (circuit, position) {
+            if (parseInt(circuit) > 0 && parseInt(circuit) <= container.circuit.getNumberOfCircuits()) {
+                if (parseInt(position) >= 0 && parseInt(position) <= container.circuit.getNumberOfCircuits()) {
+                    (container.circuit.setLightPosition(parseInt(circuit), parseInt(position)))
+                } else {
+                    container.logger.warn('Socket lightSetPosition: Not a valid light swim position.')
+                }
+            }
         })
 
         /* New pumpCommand API's  */

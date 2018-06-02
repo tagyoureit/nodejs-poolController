@@ -336,7 +336,7 @@ module.exports = function(container) {
         9: 'SAM Light',
         10: 'SAL Light',
         11: 'Photon Gen',
-        12: 'color wheel',
+        12: 'Color Wheel',
         13: 'Valves',
         14: 'Spillway',
         15: 'Floor Cleaner',
@@ -400,7 +400,7 @@ module.exports = function(container) {
 
 
         // Set commands
-        96: 'Set Color', //Intellibrite, maybe more?
+        96: 'Set Color',
         131: 'Set Delay Cancel',
         133: 'Set Date/Time',
         134: 'Set Circuit',
@@ -451,18 +451,32 @@ module.exports = function(container) {
         253: 'Get SW Version'
     }
 
+    var lightColors = {
+        0: "White",
+        1: "Custom", // custom addition for when save/recall are used
+        2: "Light Green",
+        4: "Green",
+        6: "Cyan",
+        8: "Blue",
+        10: "Lavender",
+        12: "Magenta",
+        14: "Light Magenta"
+    }
+
     var strIntellibriteModes = {
-        0: 'Off', //All off in UI
-        1: 'On', //All on in UI
+        0: 'Off',
+        1: 'On',
         128: 'Color Sync',
         144: 'Color Swim',
-        160: 'Color Set', //???
+        160: 'Color Set',
         177: 'Party',
         178: 'Romance',
         179: 'Caribbean',
         180: 'American',
         181: 'Sunset',
         182: 'Royal',
+        190: 'Save',
+        191: 'Recall',
         193: 'Blue',
         194: 'Green',
         195: 'Red',
@@ -470,17 +484,19 @@ module.exports = function(container) {
         197: 'Magenta'
     }
     var intellibriteModes = {
-        'Off': 0, //All off in UI
-        'On': 1, //All on in UI
+        'Off': 0,
+        'On': 1,
         'Color Sync': 128,
         'Color Swim': 144,
-        'Color Set': 160, //???
+        'Color Set': 160,
         'Party': 177,
         'Romance': 178,
         'Caribbean': 179,
         'American': 180,
         'Sunset': 181,
         'Royal': 182,
+        'Save': 190,
+        'Recall': 191,
         'Blue': 193,
         'Green': 194,
         'Red': 195,
@@ -653,7 +669,8 @@ module.exports = function(container) {
         schedulePacketBytes: schedulePacketBytes,
         intellichemPacketFields: intellichemPacketFields,
         strIntellibriteModes: strIntellibriteModes,
-        intellibriteModes: intellibriteModes
+        intellibriteModes: intellibriteModes,
+        lightColors: lightColors
     }
 
 }

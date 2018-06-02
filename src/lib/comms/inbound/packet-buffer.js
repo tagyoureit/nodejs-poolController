@@ -16,45 +16,62 @@
  */
 
 
-
-
-module.exports = function(container) {
+module.exports = function (container) {
     var logger = container.logger
 
 
-
     var bufferArrayOfArrays = container.dequeue;
+
     //var bufferArrayOfArrays =  new Dequeue()
 
-    function push(packet){
-      var packetArr = packet.toJSON().data
-      bufferArrayOfArrays.push(packetArr);
+    function push(packet) {
 
-      if (!container.receiveBuffer.getProcessingBuffer()) {
-          //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
-          container.receiveBuffer.iterateOverArrayOfArrays()
-              //testbufferArrayOfArrays=[]
-      }
-      container.sp.resetConnectionTimer()
+
+        // try {
+        var packetArr = packet.toJSON().data
+        bufferArrayOfArrays.push(packetArr);
+
+        if (!container.receiveBuffer.getProcessingBuffer()) {
+            //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
+            container.receiveBuffer.iterateOverArrayOfArrays()
+            //testbufferArrayOfArrays=[]
+
+            container.sp.resetConnectionTimer()
+        }
+        // }
+        // catch (err)
+        //     {
+        //         logger.error('Error: ', err)
+        //         logger.warn('Could not push packet to buffer.  \n\tBuffer: %s\nResetting Serial Port.', JSON.stringify(packet))
+        //         logger.warn('Is SP Open?', container.sp.isOpen())
+        //         container.sp.drainSP(function () {
+        //             console.log('SP Drained')
+        //         })
+        //         container.sp.close()
+        //         container.sp.init()
+        //         container.queuepacket.init()
+        //         container.writepacket.init()
+        //     }
     }
 
-    function pop(){
-      return bufferArrayOfArrays.shift()
+    function pop() {
+        return bufferArrayOfArrays.shift()
     }
 
     function length() {
-      return bufferArrayOfArrays.length
+        return bufferArrayOfArrays.length
     }
+
     function clear() {
         container.logger.silly('Emptying the packet buffer queue')
         bufferArrayOfArrays.empty()
         container.receiveBuffer.clear()
     }
 
-return{
-    push : push,
-    pop : pop,
-    length : length,
-    clear: clear
+    return {
+        push: push,
+        pop: pop,
+        length: length,
+        clear: clear
     }
 }

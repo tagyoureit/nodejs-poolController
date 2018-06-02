@@ -75,9 +75,9 @@ module.exports = function (container) {
                         'numberStr': data[key].numberStr,
                         'name': data[key].name,
                         'circuitFunction': data[key].circuitFunction,
-                        'lightgroup': data[key].light.group,
+                        //'lightgroup': data[key].light.group,
                         'friendlyName': data[key].friendlyName,
-                        'colorStr': data[key].light.colorStr,
+                        //'colorStr': data[key].light.colorStr,
                         'freeze': data[key].freeze
                     },
                     fields: {

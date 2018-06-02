@@ -71,11 +71,15 @@ module.exports = function(container) {
 
                 })
                 sp.on('readable', function () {
-                    container.packetBuffer.push(sp.read())
+
+                    var buf = sp.read()
+                    //console.log('Data as JSON:', JSON.stringify(buf.toJSON()))
+
+                    container.packetBuffer.push(buf)
 
                     // data = sp.read()
                     // console.log('Data in Buffer as Hex:', data);
-                    // console.log('Data as JSON:', JSON.stringify(data.toJSON()))
+
                 });
 
             } else {

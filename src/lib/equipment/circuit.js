@@ -15,13 +15,20 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-function Light(group, colorStr, color) {
-    this.group = group;
+function Light(position, colorStr, color) {
+    this.position = position;
     this.colorStr = colorStr;
     this.color = color;
+    this.colorSet = 0;
+    this.colorSetStr = 'White'
+    this.prevColor = 0;
+    this.prevColorStr = 'White';
+    this.colorSwimDelay = 0;
+    this.mode = 0;
+    this.modeStr = 'Off';
 }
 
-function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro, delay, group, colorStr, color) {
+function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro, delay, position, colorStr, color) {
     this.number = number; //1
     this.numberStr = numberStr; //circuit1
     this.name = name; //Pool
@@ -30,16 +37,19 @@ function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro
     this.freeze = freeze; //0, 1
     this.macro = macro; //is the circuit a macro?
     this.delay = delay; //0 no delay, 1 in delay
-    this.light = {
-        'group': group,
-        'colorStr': colorStr,
-        'color': color
-    };
+    // this.light = {
+    //     'position': position,
+    //     'colorStr': colorStr,
+    //     'color': color,
+    //     'prevColor': 0,
+    //     'prevColorStr': 'White'
+    // };
 }
 
 
 var currentCircuitArrObj = {},
     lightGroup = {},
+    lightGroupPacket = [],
     numberOfCircuits = 20
 
 
@@ -51,9 +61,10 @@ module.exports = function (container) {
         container.logger.info('Loading: circuit.js')
 
     var init = function () {
-
+        lightGroup = {},
+            lightGroupPacket = []
         for (var i = 1; i <= numberOfCircuits; i++) {
-            lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
+            //lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
             currentCircuitArrObj[i] = new Circuit()
         }
 
@@ -227,8 +238,9 @@ module.exports = function (container) {
         currentCircuitArrObj[circuit].freeze = circuitArrObj.freeze
         currentCircuitArrObj[circuit].circuitFunction = circuitArrObj.circuitFunction
         currentCircuitArrObj[circuit].macro = circuitArrObj.macro
-
-        currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
+        // if (isLight(circuitArrObj.circuitFunction)) {
+        //     currentCircuitArrObj[circuit].light = JSON.parse(JSON.stringify(lightGroup[circuit])) //copy light group object
+        // }
     }
 
 
@@ -275,16 +287,26 @@ module.exports = function (container) {
 
     }
 
-    //external methode to return the friendlyName
-    //TODO:  Should set the friendlyName in the currentCircuitArrObj.
+    //external method to return the friendlyName
     function getFriendlyName(circuit) {
         try {
             if (circuit >= 1 && circuit <= numberOfCircuits) {
-                return currentCircuitArrObj[circuit].friendlyName
-            } else {
+                if (currentCircuitArrObj[circuit].friendlyName === undefined) {
+                    return currentCircuitArrObj[circuit].name
+
+                }
+                else {
+                    return currentCircuitArrObj[circuit].friendlyName
+
+                }
+            }
+            else {
                 return container.constants.strCircuitFunction[circuit]
             }
-        } catch (err) {
+        }
+
+        catch
+            (err) {
             logger.warn('Tried to retrieve circuit %s which is not a valid circuit.', circuit)
             return 'No valid circuit (' + circuit + ')'
         }
@@ -294,8 +316,8 @@ module.exports = function (container) {
     function getAllNonLightCircuits() {
         var tempObj = {}
         for (var key in currentCircuitArrObj) {
-            if (currentCircuitArrObj[key].circuitFunction!==undefined){
-                if (currentCircuitArrObj[key].name!=="NOT USED") {
+            if (currentCircuitArrObj[key].circuitFunction !== undefined) {
+                if (currentCircuitArrObj[key].name !== "NOT USED") {
                     if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) === -1) {
                         tempObj[key] = {
                             // "circuitFunction": currentCircuitArrObj[key].circuitFunction,
@@ -311,8 +333,8 @@ module.exports = function (container) {
     function getAllLightCircuits() {
         var tempObj = {}
         for (var key in currentCircuitArrObj) {
-            if (currentCircuitArrObj[key].circuitFunction!==undefined || currentCircuitArrObj[key].name==="NOT USED") {
-                if (['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(currentCircuitArrObj[key].circuitFunction.toLowerCase()) >= 0) {
+            if (currentCircuitArrObj[key].circuitFunction !== undefined || currentCircuitArrObj[key].name === "NOT USED") {
+                if (isLight(key)) {
                     tempObj[key] = {
                         //"circuitFunction": currentCircuitArrObj[key].circuitFunction,
                         "circuitName": getFriendlyName(key)
@@ -323,9 +345,23 @@ module.exports = function (container) {
         return tempObj
     }
 
+    function isLight(circuitNum) {
+
+        // return true if circuitFunction is one of Light, SAM Light, SAL Light, Photon Gen, Color Wheel, Intellibrite
+        var circuitFunction = currentCircuitArrObj[circuitNum].circuitFunction
+        return [container.constants.strCircuitFunction[7],
+            container.constants.strCircuitFunction[9],
+            container.constants.strCircuitFunction[10],
+            container.constants.strCircuitFunction[11],
+            container.constants.strCircuitFunction[12],
+            container.constants.strCircuitFunction[16]].includes(circuitFunction)
+
+        // return ['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(circuitFunction) >= 0
+    }
+
     function setCircuitFromController(circuit, nameByte, functionByte, counter) {
 
-        if (circuit<=numberOfCircuits) {
+        if (circuit <= numberOfCircuits) {
 
             var circuitArrObj = {}
             //if the ID of the circuit name is 1-101 then it is a standard name.  If it is 200-209 it is a custom name.  The mapping between the string value in the getCircuitNames and getCustomNames is 200.  So subtract 200 from the circuit name to get the id in the custom name array.
@@ -353,7 +389,6 @@ module.exports = function (container) {
                 setCircuitFriendlyNames()
                 doWeHaveAllInformation()
             } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
-                //not sure we can do this ... have to check to see if they will come out the same
                 if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
                     circuitChanged(circuit, circuitArrObj, counter)
                     assignCircuitVars(circuit, circuitArrObj)
@@ -402,11 +437,7 @@ module.exports = function (container) {
 //this function takes the status packet (controller:2) and parses through the equipment fields
     function assignCircuitStatusFromControllerStatus(data, counter) {
 
-        //temp object so we can compare
-        //Is there a faster way to do this?
         var circuitArrObj = []
-        //TODO: clean this section up.  probably don't need to broadcast it at all because we broadcast the full circuits later
-        //assign circuit status to circuitArrObj
 
 
         //This is an attempt to support >20 circuits when there is an expansion port(s) in use.  Intellitouch can support up to 50.
@@ -433,8 +464,6 @@ module.exports = function (container) {
             }
 
             doWeHaveAllInformation()
-            //logger.verbose('Msg# %s   Circuit %s state discovered:  %s', counter, j + (i * 8) + 1, newStatus)
-            //currentCircuitArrObj[j + (i * 8) + 1].status = newStatus
         } else
             for (i = 1; i <= numberOfCircuits; i++) {
                 if (currentCircuitArrObj[i].status === circuitArrObj[i].status) {
@@ -520,75 +549,308 @@ module.exports = function (container) {
         return response
     }
 
-    var setControllerLightColor = function (color, lightGroup, counter) {
-        console.log('clr %s, lgrp %s, counter %s', color, lightGroup, counter)
-        var strIntellibriteModes = container.constants.strIntellibriteModes;
-        // if (container.settings.logConfigMessages)
-        container.logger.verbose('Msg# %s  Detected a light change.  Color -> %s (%s) for light group %s ', counter, color, strIntellibriteModes[color], lightGroup)
+    var assignControllerLightColor = function (color, param, counter) {
 
-        for (var key in currentCircuitArrObj) {
-            if (currentCircuitArrObj[key].light.group === lightGroup) {
-                currentCircuitArrObj[key].light.color = color
-                currentCircuitArrObj[key].light.colorStr = strIntellibriteModes[color]
-                lightGroup[key].light.color = color
-                lightGroup[key].light.colorStr = strIntellibriteModes[color]
-                // if (container.settings.logConfigMessages)
-                container.logger.info('Msg# %s  Detected a light change.  Color -> %s (%s) for circuit %s (%s)', counter, color, strIntellibriteModes[color], JSON.stringify(currentCircuitArrObj[key].light, null, 2), key)
+
+        var strIntellibriteModes = container.constants.strIntellibriteModes;
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.verbose('Msg# %s  Intellibrite light change.  Color -> %s (%s) for param %s ', counter, color, strIntellibriteModes[color], param)
+        }
+
+        var str = '';
+        for (var key in lightGroup) {
+            // if circuit has the light attribute
+            if (currentCircuitArrObj[key].circuitFunction === 'Intellibrite') {
+
+                // TODO: not exactly sure what the param does here.  Doesn't seem to apply to the light groups.  Is the lightGroup ever another number besides 0?
+
+                if (color === 0) {
+                    // Set to off; save previous colors
+
+
+                    // save prev colors
+                    currentCircuitArrObj[key].light.prevColor = currentCircuitArrObj[key].light.color
+                    currentCircuitArrObj[key].light.prevColorStr = currentCircuitArrObj[key].light.colorStr
+                    // save prev mode
+                    currentCircuitArrObj[key].light.prevMode = currentCircuitArrObj[key].light.mode
+                    currentCircuitArrObj[key].light.prevModeStr = currentCircuitArrObj[key].light.modeStr
+
+
+                    // set current mode
+                    currentCircuitArrObj[key].light.mode = color
+                    currentCircuitArrObj[key].light.modeStr = strIntellibriteModes[color]
+
+
+                    // set current color
+                    currentCircuitArrObj[key].light.color = color
+                    currentCircuitArrObj[key].light.colorStr = strIntellibriteModes[color]
+
+
+                }
+                else if (color === 1) {
+                    // Set to on; restore previous colors and mode
+                    // currentCircuitArrObj[key].light.mode = color
+                    // currentCircuitArrObj[key].light.modeStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.color = currentCircuitArrObj[key].light.prevColor
+                    currentCircuitArrObj[key].light.colorStr = currentCircuitArrObj[key].light.prevColorStr
+                    // restore prev mode
+                    currentCircuitArrObj[key].light.mode = currentCircuitArrObj[key].light.prevMode
+                    currentCircuitArrObj[key].light.modeStr = currentCircuitArrObj[key].light.prevModeStr
+
+                    currentCircuitArrObj[key].light.prevColor = 0
+                    currentCircuitArrObj[key].light.prevColorStr = 'n/a'
+                    currentCircuitArrObj[key].light.prevMode = 0
+                    currentCircuitArrObj[key].light.prevModeStr = 'n/a'
+                }
+                else if (color === 160) {
+                    // Color Set
+                    currentCircuitArrObj[key].light.mode = color
+                    currentCircuitArrObj[key].light.modeStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.color = lightGroup[key].colorSet
+                    currentCircuitArrObj[key].light.colorStr = lightGroup[key].colorSetStr
+
+                    currentCircuitArrObj[key].light.prevColor = 0
+                    currentCircuitArrObj[key].light.prevColorStr = 'n/a'
+                    currentCircuitArrObj[key].light.prevMode = 0
+                    currentCircuitArrObj[key].light.prevModeStr = 'n/a'
+
+                }
+                else if (color === 190 || color === 191) {
+                    // save and recall
+                    currentCircuitArrObj[key].light.mode = color
+                    currentCircuitArrObj[key].light.modeStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.color = color
+                    currentCircuitArrObj[key].light.colorStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.prevColor = 0
+                    currentCircuitArrObj[key].light.prevColorStr = 'n/a'
+                    currentCircuitArrObj[key].light.prevMode = 0
+                    currentCircuitArrObj[key].light.prevModeStr = 'n/a'
+                }
+                else {
+                    // all other direct color and built-in cycle modes
+                    currentCircuitArrObj[key].light.mode = color
+                    currentCircuitArrObj[key].light.modeStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.color = color
+                    currentCircuitArrObj[key].light.colorStr = strIntellibriteModes[color]
+
+                    currentCircuitArrObj[key].light.prevColor = 0
+                    currentCircuitArrObj[key].light.prevColorStr = 'n/a'
+                    currentCircuitArrObj[key].light.prevMode = 0
+                    currentCircuitArrObj[key].light.prevModeStr = 'n/a'
+                }
+
+
+                str += getFriendlyName(key) + '\n'
+
             }
         }
+        container.io.emitToClients('circuit')
+
+        if (container.settings.get("logIntellibrite")) {
+            container.logger.info('Msg# %s  Intellibrite light change.  Color -> %s for circuit(s): \n%s', counter, strIntellibriteModes[color], str)
+        }
+    }
+
+    var assignControllerLightGroup = function (_lightGroupPacketArr, counter) {
+
+        if (1 === 0) {//(lightGroupPacket === _lightGroupPacketArr) {
+            //no change
+            if (container.settings.get('logIntellibrite'))
+                container.logger.silly('Msg# %s  Duplicate Light all on/off and position packet is: %s', counter, _lightGroupPacketArr)
+        }
+        else {
+            lightGroupPacket = _lightGroupPacketArr.slice()
+            if (container.settings.get('logIntellibrite'))
+                container.logger.debug('Msg# %s  Light all on/off and position packet is: %s', counter, _lightGroupPacketArr)
+
+            var tempLightGroup = {} //temporary object to hold light group/position assignments
+            var discovered = 0;
+            if (Object.keys(lightGroup).length === 0) {
+                discovered = 1
+            }
+            for (var i = 0; i <= 7; i++) {
+                // split off groups of 4 packets and assign them to a copy of the lightGroup
+                var _temp = _lightGroupPacketArr.splice(0, 4) // remove this light group
+
+                if (_temp[0] !== 0) {
+                    tempLightGroup[i] = {
+                        'circuit': _temp[0],
+                        'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+                        'colorSet': (_temp[1] & 15),
+                        'colorSetStr': container.constants.lightColors[_temp[1] & 15],
+                        'colorSwimDelay': _temp[2] >> 1
+                    }
+                }
+
+
+                /*
+
+                Use IndexBy to Pivot the array.
+                We pivot the array because the positions can change and we don't want to lose any details.
+                For example, if a light group changes from the 4th position to the 3rd, we don't want to delete it from the 4th position when we look for changes.
+
+                Example output:
+                    indexBy:  {
+                      "7": {
+                        "position": 1,
+                        "circuit": 7
+                      },
+                      "8": {
+                        "position": 2,
+                        "circuit": 8
+                      },
+                      "9": {
+                        "position": 4,
+                        "circuit": 9
+                      },
+                      "16": {
+                        "position": 3,
+                        "circuit": 16
+                      }
+                    }
+
+                 */
+                tempLightGroup = container._.indexBy(tempLightGroup, 'circuit')
+
+            }
+            var changed = 0
+
+            var diff1 = container.deepdiff.diff(lightGroup, tempLightGroup)
+
+
+            if (container.settings.get('logIntellibrite')) {
+                container.logger.silly('Intellibrite All on/off groups indexBy: ', JSON.stringify(tempLightGroup, null, 2))
+                if (diff1 === undefined) {
+                    container.logger.debug('Intellibrite all on/off packet retrieved, but there were no changes.  (Hint: you need to add the circuit to the "Special Lights" group in order for Light Position changes to take effect.')
+
+                }
+                else {
+                    container.logger.debug('Intellibrite all on/off differences: %s\n\tFull packet: %s', JSON.stringify(diff1, null, 2), _lightGroupPacketArr)
+
+                    for (var key in diff1) {
+                        var cir = diff1[key].path //circuit we want to change
+
+                        if (diff1[key].kind === 'D') {
+
+
+                            changed = 1
+
+                            // use the prior value, and set it to 0
+                            currentCircuitArrObj[cir].light = {}
+
+                            // use the new circuit
+                            if (container.settings.get('logIntellibrite')) {
+                                container.logger.silly('Intellibrite all on/off group DELETED key:', JSON.stringify(diff1[key], null, 2))
+                                container.logger.verbose('Msg# %s  Light group deleted for circuit %s (%s):', counter, getFriendlyName(cir), cir, JSON.stringify(lightGroup[cir], null, 2))
+                            }
+                        }
+
+                        else if (diff1[key].kind === 'N') {
+
+                            changed = 1
+
+                            /*
+                            diff1[key].path] is the key for the tempLightGroup
+                            when N(ew), we want to add it.
+
+                                 {
+                                    "kind": "N",
+                                    "path": [
+                                      "7"
+                                    ],
+                                    "rhs": {
+                                      "position": 1,
+                                      "circuit": 7
+                                    }
+                                  }
+                             */
+
+
+                            currentCircuitArrObj[cir].light = new Light(diff1[key].rhs.position, 'off', 0)
+
+                            if (container.settings.get('logIntellibrite')) {
+                                container.logger.silly('NEW key:', JSON.stringify(diff1[key], null, 2))
+                                container.logger.verbose('Msg# %s  Light details added for circuit %s (%s):', counter, getFriendlyName(cir), cir, diff1[key].rhs.position)
+                            }
+                        }
+                        else if (diff1[key].kind === 'E') {
+                            cir = diff1[key].path[0] //circuit we want to change; different for edited because of the path
+
+                            changed = 1
+
+                            /*
+                            diff1[key].path] is the key for the tempLightGroup
+                            when E(dited), we want to change it.
+
+                                 [
+                                  {
+                                    "kind": "E",
+                                    "path": [
+                                      "7",
+                                      "group"
+                                    ],
+                                    "lhs": 3,
+                                    "rhs": 2
+                                  }
+                                ]
+                             */
+
+                            var el = diff1[key].path[1]
+                            var val = diff1[key].rhs
+                            currentCircuitArrObj[cir].light[el] = val
+
+                            if (container.settings.get('logIntellibrite')) {
+                                container.logger.silly('NEW key:', JSON.stringify(diff1[key], null, 2))
+                                container.logger.verbose('Msg# %s  Light attribute `%s` changed for circuit %s (%s) to', counter, el, getFriendlyName(cir), cir, JSON.stringify(diff1[key].rhs, null, 2))
+                            }
+                        }
+                        else {
+                            container.logger.warn('Msg# %s  Intellibrite all on/off change -- unknown for circuit %s (%s):', counter, getFriendlyName(cir), cir, JSON.stringify(diff1, null, 2))
+                        }
+                    }
+
+                    lightGroup = JSON.parse(JSON.stringify(tempLightGroup))
+
+                    for (var key in lightGroup) {
+                        currentCircuitArrObj[key].light.position = lightGroup[key].position
+                        currentCircuitArrObj[key].light.colorSet = lightGroup[key].colorSet
+                        currentCircuitArrObj[key].light.colorSetStr = lightGroup[key].colorSetStr
+                        currentCircuitArrObj[key].light.colorSwimDelay = lightGroup[key].colorSwimDelay
+
+                    }
+
+                    if (discovered === 1) {
+                        if (container.settings.get('logIntellibrite'))
+                            container.logger.silly('Msg# %s:  Intellibrite All On/Off Light positions discovered \n%s:', counter, JSON.stringify(lightGroup, null, 2))
+                        var str = ''
+
+
+                        for (var key in lightGroup) {
+                            str += getFriendlyName(key) + ': Position ' + lightGroup[key].position + '\n'
+                        }
+                        container.logger.info('Msg# %s:  Intellibrite All On/Off and Light positions discovered: \n%s', counter, str)
+                    }
+
+                    if (changed) {
+
+                        container.io.emitToClients('circuit')
+                    }
+                    if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
+                }
+
+            }
+        }
+
 
     }
 
-    var setControllerLightGroup = function (_lightGroupPacketArr, counter) {
-        if (container.settings.get('logConfigMessages'))
-            container.logger.info('Msg# %s  Light group/positions are: %s', counter, _lightGroupPacketArr)
-
-        var _temp = {} //temporary object to hold light group/position assignments
-        for (var i = 0; i <= 7; i++) {
-            // split off groups of 4 packets and assign them to a copy of the lightGroup
-            var _this = _lightGroupPacketArr.splice(0, 4) // remove this light groupt
-
-            if (_this[0] !== 0) {
-                _temp[_this[0]] = {
-                    'group': (_this[1] / 16) + 1
-                } // group/position reported as 0, 16, 32, 48
-            }
-        }
-
-        var changed = 0
-        for (var key in lightGroup) {
-            if (lightGroup[key].group !== -1 && !_temp.hasOwnProperty(key)) {
-                // compare existing light group to passed light group assignments.
-                // if the group is not 0 in the existing lightGroup, and does
-                // not exist in the passed light assignments than it was deleted
-                // light group deleted
-                changed = 1
-                lightGroup[key].group = new Light(0, 'off', 0)
-                currentCircuitArrObj[key].light = new Light(0, 'off', 0)
-                if (container.settings.get('logConfigMessages'))
-                    container.logger.verbose('Msg# %s  Light group deleted on circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
-            } else if (_temp.hasOwnProperty(key)) {
-                // if the group does exist in the passed light group
-                if (lightGroup[key].group !== _temp[key].group) {
-                    // check to see if it is the same as what we already have
-                    // if it's different, we can determine that there is an
-                    // add/change in group assignment
-                    changed = 1
-                    lightGroup[key].group = _temp[key].group
-                    currentCircuitArrObj[key].light.group = _temp[key].group
-                    if (container.settings.get('logConfigMessages'))
-                        container.logger.verbose('Msg# %s  Light group added or changed for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, JSON.stringify(lightGroup[key], null, 2))
-                } else if (lightGroup[key].group !== _temp[key].group) {
-                    // if it is the same, then no change
-                    if (container.settings.get('logConfigMessages'))
-                        container.logger.silly('Msg# %s  No change in light group for circuit %s (%s):', counter, currentCircuitArrObj[key].friendlyName, key, lightGroup[key])
-                }
-            }
-        }
-        if (changed)
-            container.io.emitToClients('circuit');
-
-        if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
+    function getLightGroup() {
+        return lightGroup
     }
 
     function setDelayCancel(callback) {
@@ -605,6 +867,140 @@ module.exports = function (container) {
         }
 
     }
+
+    function getNumberOfCircuits() {
+        return numberOfCircuits
+    }
+
+
+    function setLightMode(mode) {
+        // 255, 0, 255, 165, 33, 16, 34, 96, 2, 1, 0, 1, 91
+
+        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 96, 2, mode, 0]
+        container.queuePacket.queuePacket(packet);
+
+        // this causes LOTS of problems... it goes into an endless loop.  :(
+        // better way to do this???
+        // assignControllerLightColor(mode, 0, 0)
+
+        var retStr = 'API: Intellibrite Light Mode ' + container.constants.strIntellibriteModes[mode] + ' (' + mode + ') requested'
+        if (container.settings.get('logAPI') || container.settings.get('logIntellibrite')) {
+            container.logger.info(retStr)
+
+        }
+        return retStr
+    }
+
+    function setLightPosition(circuit, position) {
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightPosition original packet:', lightGroupPacket)
+
+        }
+        for (var i = 0; i <= 7; i++) {
+
+            // packets are in groups of 4.
+            // lightGroupPacket[0] is circuit
+            // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+            // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+
+            positionBinary = (position - 1) << 4
+            if (lightGroupPacket[i * 4] === circuit) {
+                lightGroupPacket[(i * 4) + 1] = (positionBinary) + (lightGroupPacket[(i * 4) + 1] & 15)
+            }
+
+
+        }
+
+        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+
+        container.queuePacket.queuePacket(packet);
+
+
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightPosition NEW      packet:', lightGroupPacket)
+
+        }
+        var retStr = 'API: Light group circuit ' + circuit + ' setPosition is now : ' + position
+        if (container.settings.get('logAPI')) {
+            container.logger.info(retStr)
+
+        }
+
+        return retStr
+
+    }
+
+    function setLightColor(circuit, color) {
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightColor original packet:', lightGroupPacket)
+
+        }
+        for (var i = 0; i <= 7; i++) {
+
+            // packets are in groups of 4.
+            // lightGroupPacket[0] is circuit
+            // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+
+            if (lightGroupPacket[i * 4] === circuit) {
+                lightGroupPacket[(i * 4) + 1] = (color) + (lightGroupPacket[(i * 4) + 1] & 240)
+            }
+
+
+        }
+
+        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+
+        container.queuePacket.queuePacket(packet);
+
+
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightColor NEW      packet:', lightGroupPacket)
+
+        }
+        var retStr = 'API: Light group circuit ' + circuit + ' setColor is now : ' + container.constants.lightColors[color] + ' (' + color + ')'
+        if (container.settings.get('logAPI')) {
+            container.logger.info(retStr)
+
+        }
+
+        return retStr
+
+    }
+
+    function setLightSwimDelay(circuit, delay) {
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightDelay original packet:', lightGroupPacket)
+
+        }
+
+        for (var i = 0; i <= 7; i++) {
+
+            // packets are in groups of 4.
+            // lightGroupPacket[0] is circuit
+            // lightGroupPacket[2] is the delay
+            if (lightGroupPacket[i * 4] === circuit) {
+                lightGroupPacket[(i * 4) + 2] = (delay << 1) + (lightGroupPacket[(i * 4) + 2] & 1)
+            }
+        }
+
+        // 165,33,16,34,167,32,7,10,4,0,8,22,14,0,16,32,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,58
+        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+        container.queuePacket.queuePacket(packet);
+
+        if (container.settings.get('logIntellibrite')) {
+            container.logger.silly('Light setLightDelay NEW      packet:', lightGroupPacket)
+
+        }
+        var retStr = 'API: Light group circuit ' + circuit + ' Swim Delay is now : ' + delay + ' seconds'
+        if (container.settings.get('logAPI')) {
+            container.logger.info(retStr)
+
+        }
+
+        return retStr
+
+    }
+
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -628,11 +1024,17 @@ module.exports = function (container) {
         setCurrentStatusBytes: setCurrentStatusBytes,
         toggleCircuit: toggleCircuit,
         setCircuit: setCircuit,
-        setControllerLightColor: setControllerLightColor,
-        setControllerLightGroup: setControllerLightGroup,
+        assignControllerLightColor: assignControllerLightColor,
+        assignControllerLightGroup: assignControllerLightGroup,
         setDelayCancel: setDelayCancel,
         //TESTING
         setCircuitFriendlyNames: setCircuitFriendlyNames,
-        numberOfCircuits: numberOfCircuits
+        numberOfCircuits: numberOfCircuits,
+        getNumberOfCircuits: getNumberOfCircuits,
+        getLightGroup: getLightGroup,
+        setLightMode: setLightMode,
+        setLightColor: setLightColor,
+        setLightSwimDelay: setLightSwimDelay,
+        setLightPosition: setLightPosition
     }
 }

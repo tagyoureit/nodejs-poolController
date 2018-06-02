@@ -1,35 +1,47 @@
-// var myModule = rewire(path.join(process.cwd(), '/src/lib/equipment/circuit.js'))
+// /*
 //
+// 09:55:04.008 DEBUG Msg# 12  Incoming controller packet: 165,33,15,16,10,12,2,87,116,114,70,97,108,108,32,50,0,251,5,6
+// 09:55:04.192 DEBUG Msg# 13  Incoming controller packet: 165,33,15,16,10,12,3,87,116,114,70,97,108,108,32,51,0,251,5,8
+// 09:55:05.055 DEBUG Msg# 16  Incoming controller packet: 165,33,15,16,10,12,5,85,83,69,82,78,65,77,69,45,48,54,3,243
+// 09:55:05.201 DEBUG Msg# 17  Incoming controller packet: 165,33,15,16,10,12,6,85,83,69,82,78,65,77,69,45,
+// 09:55:05.374 DEBUG Msg# 18  Incoming controller packet: 165,33,15,16,10,12,7,85,83,69,82,78,65,77,69,45
+// 09:55:05.550 DEBUG Msg# 19  Incoming controller packet: 165,33,15,16,10,12,8,85,83,69,82,78,65,77,69,45,48,57,3,249
+// 09:55:05.728 DEBUG Msg# 20  Incoming controller packet: 165,33,15,16,10,12,9,85,83,69,82,78,65,77,69,45
+// 09:55:05.749 INFO
+//   Custom Circuit Names retrieved from configuration:
+//         ["WtrFall 1","WtrFall 1.5","WtrFall 2","WtrFall 3","Pool Low2","USERNAME-06","USERNAME-07","USERNAME-08","USERNAME-09","USERNAME-10"]
+//  */
 //
 // describe('circuit controller', function() {
 //
 //     describe('#sets the friendlyNames', function() {
 //
-//       before(function() {
-//           global.initAllAsync()
-//       });
+//         var equip = 'controller'
+//         before(function() {
+//             return global.initAllAsync()
 //
-//       beforeEach(function() {
-//           sandbox = sinon.sandbox.create()
-//           clock = sandbox.useFakeTimers()
-//           loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//           loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-//           loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-//           loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-//           loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+//         });
+//
+//         beforeEach(function() {
+//             loggers = setupLoggerStubOrSpy('stub', 'stub')
+//             clock = sandbox.useFakeTimers()
+//
+//             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 //         })
 //
 //         afterEach(function() {
+//             //restore the sandbox after each function
 //             sandbox.restore()
+//
+//
 //         })
 //
 //         after(function() {
-//             global.stopAllAsync()
+//             return global.stopAllAsync()
 //         })
 //
 //         it('sets the names for circuits other than pool and spa', function() {
-//             var queuePacketStub = sinon.stub()
-//             var loggerInfoStub = sinon.stub()
+//
 //             var fnArr = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/specs/assets/config', 'configFriendlyNames.json'), 'utf8'))
 //             //var _response = {}
 //             myModule.__with__({

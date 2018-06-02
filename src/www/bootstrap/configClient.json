@@ -32,6 +32,9 @@
         },
         "release": {
             "state": "visible"
+        },
+        "lights": {
+            "state": "visible"
         }
     },
     "equipConfig": {
@@ -87,7 +90,7 @@
         }
     },
     "pumpParams": {
-        "name": {
+        "friendlyName": {
             "title": "Parameter",
             "type": "th"
         },

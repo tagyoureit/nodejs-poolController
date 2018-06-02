@@ -1,5 +1,5 @@
 {
-  "version" : "5.0.1",
+  "version" : "5.1.0",
   "equipment": {
     "controller": {
       "intellicom": {
@@ -121,6 +121,7 @@
       "logPumpTimers": 0,
       "logReload": 0,
       "logApi": 0,
+      "logIntellibrite": 0,
       "fileLog": {
         "enable": 0,
         "fileLogLevel": "silly",

@@ -105,7 +105,7 @@ module.exports = function(container) {
             container.io.emitToClients('time')
             time.controllerTime = timeStr;
         } else {
-            if (container.settings.get('logConfigMessages')) container.logger.debug('No change in time.')
+            if (container.settings.get('logConfigMessages')) container.logger.silly('No change in time.')
         }
 
     }

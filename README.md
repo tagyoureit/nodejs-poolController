@@ -9,6 +9,18 @@
 1. Fixed bad characters in custom names
 
 
+#### 5.1.0 Highlights
+1. Intellibrite support - API's, Sockets and a WebUI
+Will document more later... but...
+/light/mode/:mode
+/light/circuit/:circuit/setColor/:color
+/light/circuit/:circuit/setSwimDelay/:delay
+/light/circuit/:circuit/setPosition/:position
+
+See the constants.js file and the sections:
+  strIntellibriteModes (for modes)
+  lightColors (for setColor)
+
 #### 5.0.0 Highlights
 
 Make sure to run `npm upgrade`.  There are many package updates and changes.

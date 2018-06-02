@@ -118,14 +118,11 @@ ignore:
   'npm:bootstrap:20160627':
     - bootstrap:
         reason: None given
-        expires: '2018-05-27T15:05:54.490Z'
+        expires: '2018-06-27T21:13:28.800Z'
   'npm:lodash:20180130':
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
-      node-ip > node-localip > wmic > async > lodash:
-        reason: None given
-        expires: '2018-06-03T00:32:11.116Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
@@ -141,6 +138,9 @@ ignore:
     - request-promise > request-promise-core > lodash:
         reason: None given
         expires: '2018-06-03T00:31:50.876Z'
+    - node-ip > node-localip > wmic > async > lodash:
+        reason: None given
+        expires: '2018-06-03T00:32:11.116Z'
   'npm:hoek:20180212':
     - request > hawk > hoek:
         reason: None given
