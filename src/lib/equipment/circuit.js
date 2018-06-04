@@ -726,7 +726,7 @@ module.exports = function (container) {
             if (container.settings.get('logIntellibrite')) {
                 container.logger.silly('Intellibrite All on/off groups indexBy: ', JSON.stringify(tempLightGroup, null, 2))
                 if (diff1 === undefined) {
-                    container.logger.debug('Intellibrite all on/off packet retrieved, but there were no changes.  (Hint: you need to add the circuit to the "Special Lights" group in order for Light Position changes to take effect.')
+                    container.logger.silly('Intellibrite all on/off packet retrieved, but there were no changes.')
 
                 }
                 else {

@@ -138,9 +138,8 @@ module.exports = function(container) {
                 intellichem)
         }
 
-        if (outputType === 'valves' || outputType === 'all'){
-            emitToClientsOnEnabledSockets('valves', container.valves.getValves())
-            emitToClientsOnEnabledSockets('valve', container.valves.getValves())
+        if (outputType === 'valve' || outputType === 'all'){
+            emitToClientsOnEnabledSockets('valve', container.valve.getValve())
         }
     }
 

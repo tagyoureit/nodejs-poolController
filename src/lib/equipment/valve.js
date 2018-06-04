@@ -15,40 +15,40 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
 
+var valve
 
-var valves
-
-module.exports = function(container) {
+module.exports = function (container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: valves.js')
+        container.logger.info('Loading: valve.js')
 
-    var init = function() {
-        valves = {
-            "valves": 0
+    var init = function () {
+        valve = {
+            "valve": 0
         }
     }
 
-    function setValves(data) {
-        //container.logger.info('Received valves status packet.  \n\tPossible association with %s. \n\t  Valves data: %s', data[container.constants.controllerStatusPacketFields.VALVES], data)
-        valves.valves = data[container.constants.controllerStatusPacketFields.VALVES];
+    function setValve(data) {
+        container.logger.info('Received valve status packet.  \n\tPossible association with %s. \n\t  valve data: %s', data[container.constants.controllerStatusPacketFields.valve], data)
+        valve.valve = data[container.constants.controllerStatusPacketFields.valve];
+        container.io.emitToClients('valve')
     }
 
-    function getValves() {
-            return {'valve': valves}
+    function getValve() {
+        return {'valve': valve}
     }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: valves.js')
+        container.logger.info('Loaded: valve.js')
 
 
     return {
         init: init,
-        setValves: setValves,
-        getValves: getValves
+        setValve: setValve,
+        getValve: getValve
     }
 }
+

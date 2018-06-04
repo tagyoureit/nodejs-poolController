@@ -823,7 +823,7 @@ function bindLightSelectPicker() {
 
                 $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
 
-                    console.log('intellibrite light mode name: %s  val: %s  ', $(el).val(), $(el).find('option:selected').data('val'))
+                    //console.log('intellibrite light mode name: %s  val: %s  ', $(el).val(), $(el).find('option:selected').data('val'))
 
                     socket.emit('setLightMode', $(el).find('option:selected').data('val'))
 
@@ -869,7 +869,7 @@ function bindLightPosition(el, _default) {
     $(el).selectpicker('val', _default)
     $(el).on('changed.bs.select', function (e, clickedIndex, newValue, oldValue) {
 
-        console.log('name: %s  val: %s  circuit: %s', $(el).val(), $(el).find('option:selected').data('val'), $(el).closest('select').data('circuitnum'))
+        //console.log('name: %s  val: %s  circuit: %s', $(el).val(), $(el).find('option:selected').data('val'), $(el).closest('select').data('circuitnum'))
 
         socket.emit('setLightPosition', $(el).closest('select').data('circuitnum'), $(el).val())
 
@@ -1227,7 +1227,7 @@ function startSocketRx() {
                                 var rowHeader = $('#pumps tr:first:contains(' + currPump["friendlyName"] + ')');
 
                                 var colAppend = rowHeader.length ? false : true;
-                                console.log('currPump["friendlyName"]: ', currPump["friendlyName"])
+                                //console.log('currPump["friendlyName"]: ', currPump["friendlyName"])
                                 if (colAppend === false) {
                                     var colTarget = -1;
                                     $('th', rowHeader).each(function (index) {

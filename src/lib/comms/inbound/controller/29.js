@@ -33,7 +33,7 @@ module.exports = function(container) {
 
 
     if (container.settings.get('logMessageDecoding'))
-      container.logger.debug('Msg#: %s  Valves status.  Valve B --> %s (%s)  Full packet: %s', counter, valveBFriendlyName, valveBName, data);
+      container.logger.debug('Msg#: %s  Valve status.  Valve B --> %s (%s)  Full packet: %s', counter, valveBFriendlyName, valveBName, data);
 
     return true
   }

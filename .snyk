@@ -123,6 +123,9 @@ ignore:
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
+      request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-07-03T23:22:22.863Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'

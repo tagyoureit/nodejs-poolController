@@ -50,7 +50,7 @@ module.exports = function(container) {
 
                                                               //mask the data[6] with 0011                            shift right two places for 1100 mask (11xx-->11)
                   container.heat.setHeatModeFromController(data[c.controllerStatusPacketFields.HEATER_MODE]&3, data[c.controllerStatusPacketFields.HEATER_MODE] >> 2)
-                  container.valves.setValves(data)
+                  container.valve.setValve(data)
 
                   status.runmode = c.strRunMode[data[c.controllerStatusPacketFields.UOM] & 129]; // more here?
                   container.UOM.setUOM((data[c.controllerStatusPacketFields.UOM] & 4) >> 3)

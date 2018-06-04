@@ -357,6 +357,9 @@ module.exports = function (container) {
         app.get('/schedule', function (req, res) {
             res.send(container.schedule.getCurrentSchedule());
         });
+        app.get('/valve', function (req, res) {
+            res.send(container.valve.getValve());
+        });
 
         app.get('/schedule/toggle/id/:id/day/:day', function (req, res) {
             var id = parseInt(req.params.id);

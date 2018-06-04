@@ -40,7 +40,7 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
             bottle.container.intellitouch.init() // synchronous
             bottle.container.temperatures.init() // synchronous
             bottle.container.UOM.init() // synchronous
-            bottle.container.valves.init() // synchronous
+            bottle.container.valve.init() // synchronous
             bottle.container.queuePacket.init() // synchronous
             bottle.container.writePacket.init() // synchronous
             bottle.container.intellitouch.init() // synchronous

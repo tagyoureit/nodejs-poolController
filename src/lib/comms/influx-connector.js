@@ -69,7 +69,7 @@ module.exports = function (container) {
             // which is more efficient for Influx
             for (var key in data) {
                 data_array.push({
-                    measurement: 'circuits',
+                    measurement: 'circuit',
                     tags: {
                         'number': data[key].number,
                         'numberStr': data[key].numberStr,
@@ -108,19 +108,22 @@ module.exports = function (container) {
             for (var key in data) {
                 if (typeof(data[key].rpm) === 'number') {
                     data_array.push({
-                        measurement: 'pumps',
+                        measurement: 'pump',
                         tags: {
+                            'source': 'nodejs-poolcontroller',
                             'pump': data[key].pump,
                             'type': data[key].type,
-                            'run': data[key].run,
-                            'mode': data[key].mode,
-                            'remotecontrol': data[key].remotecontrol,
-                            'power': data[key].power
+                            'name': data[key].name,
+                            'friendlyName': data[key].friendlyName
                         },
                         fields: {
                             'watts': data[key].watts,
                             'rpm': data[key].rpm,
-                            'gpm': data[key].gpm
+                            'gpm': data[key].gpm,
+                            'run': data[key].run,
+                            'mode': data[key].mode,
+                            'remotecontrol': data[key].remotecontrol,
+                            'power': data[key].power
                         }
                     })
                 }
@@ -160,18 +163,19 @@ module.exports = function (container) {
                         'poolTemp': data.poolTemp,
                         'spaTemp': data.spaTemp,
                         'airTemp': data.airTemp,
-                        'solarTemp': data.solarTemp
-                    }
-                }
-
-                influx.writePoints([{
-                    'measurement': 'temperatures',
-                    'tags': {
+                        'solarTemp': data.solarTemp,
                         'poolHeatMode': data.poolHeatMode,
                         'poolHeatModeStr': data.poolHeatModeStr,
                         'spaHeatMode': data.spaHeatMode,
                         'spaHeatModeStr': data.spaHeatModeStr,
                         'freeze': data.freeze
+                    }
+                }
+
+                influx.writePoints([{
+                    'measurement': 'temperature',
+                    'tags': {
+                        'source': 'nodejs-poolcontroller'
                     },
                     'fields': temp_fields
                 }])
@@ -188,6 +192,8 @@ module.exports = function (container) {
         }
 
     }
+
+
 
 
     var init = function () {

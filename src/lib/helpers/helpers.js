@@ -209,7 +209,7 @@ module.exports = function (container) {
         container._.extend(pool, container.temperatures.getTemperatures())
         container._.extend(pool, container.time.getTime())
         container._.extend(pool, container.UOM.getUOM())
-        container._.extend(pool, container.valves.getValves())
+        container._.extend(pool, container.valve.getValve())
         container._.extend(pool, container.chlorinator.getChlorinatorStatus())
         container._.extend(pool, container.intellichem.getCurrentIntellichem())
         return pool

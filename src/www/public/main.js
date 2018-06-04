@@ -122,7 +122,7 @@ $(function () {
                     '<br>Unknown?: ' + data.spaHeatMode2 +
                     '<br>Pool Heat Mode: ' + data.poolHeatMode +
                     '<br>Spa Heat Mode: ' + data.spaHeatMode +
-                    '<br>Valve: ' + data.valves +
+                    '<br>Valve: ' + data.valve +
                     '<br>Run Mode: ' + data.runmode +
                     '<br>Unit of Measure: ' + data.UOM +
                     '<br>Heater Active(?): ' + data.HEATER_ACTIVE +

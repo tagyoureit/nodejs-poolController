@@ -46,6 +46,9 @@ module.exports = function(container) {
         container.logger.verbose('Queueing messages to retrieve Pool/Spa Heat Mode')
         container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 200, 1, 0]);
 
+        container.logger.verbose('Queueing messages to retrieve Valve information')
+        container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 221, 1, 0]);
+
         container.logger.verbose('Queueing messages to retrieve settings(?)')
         container.queuePacket.queuePacket([165, controllerSettings.preambleByte, 16, controllerSettings.appAddress, 232, 1, 0]);
 

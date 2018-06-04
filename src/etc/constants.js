@@ -36,7 +36,7 @@ module.exports = function(container) {
         EQUIP2: 9,
         EQUIP3: 10,
         UOM: 15, //Celsius (4) or Farenheit (0); Also Service/Timeout.  See strRunMode below.
-        VALVES: 16,
+        VALVE: 16,
         DELAY: 18,  //64==??; 65-135 (for 50 circuits) is the circuit that is currently delayed.
         UNKNOWN: 19, //Something to do with heat.
         POOL_TEMP: 20,
@@ -337,7 +337,7 @@ module.exports = function(container) {
         10: 'SAL Light',
         11: 'Photon Gen',
         12: 'Color Wheel',
-        13: 'Valves',
+        13: 'Valve',
         14: 'Spillway',
         15: 'Floor Cleaner',
         16: 'Intellibrite',
@@ -390,7 +390,7 @@ module.exports = function(container) {
         25: 'IntelliChlor Status',
         27: 'Pump Config (Extended)',
         29: 'Valve Status',
-        30: 'High Speed Circuits for Valves',
+        30: 'High Speed Circuits for Valve',
         32: 'is4/is10 Settings',
         33: 'Intelliflo Spa Side Remote settings',
         34: 'Solar/Heat Pump Status',
@@ -515,7 +515,7 @@ module.exports = function(container) {
     }
 
 
-    var strValves = {
+    var strValve = {
         3: 'Pool',
         15: 'Spa',
         48: 'Heater',
@@ -661,7 +661,7 @@ module.exports = function(container) {
         strChlorinatorActions: strChlorinatorActions,
         strControllerActions: strControllerActions,
         strRunMode: strRunMode,
-        strValves: strValves,
+        strValve: strValve,
         heatModeStr: heatModeStr,
         heatMode: heatMode,
         ctrl: ctrl,

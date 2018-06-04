@@ -1,13 +1,12 @@
 
-# nodejs-poolController - Version 5.0.1
+# nodejs-poolController - Version 5.1.1
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
-#### 5.0.1
-1. Fixed Influx error on startup #90
-1. Fixed bad characters in custom names
-
+5.1.1
+1.  Renamed all 'valves' items to valve to be in line with singular renaming of items
+1.  InfluxDB - moved some items that were in tag fields to field keys; added valves
 
 #### 5.1.0 Highlights
 1. Intellibrite support - API's, Sockets and a WebUI
@@ -20,6 +19,13 @@ Will document more later... but...
 See the constants.js file and the sections:
   strIntellibriteModes (for modes)
   lightColors (for setColor)
+
+
+#### 5.0.1
+1. Fixed Influx error on startup #90
+1. Fixed bad characters in custom names
+
+
 
 #### 5.0.0 Highlights
 

@@ -94,7 +94,7 @@ module.exports = function(container) {
               container.intellitouch.init()
               container.temperatures.init()
               container.uom.init()
-              container.valves.init()
+              container.valve.init()
 
           }
 

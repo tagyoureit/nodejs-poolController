@@ -85,7 +85,7 @@ describe('nodejs-poolController', function () {
         //                 bottle.container.intellitouch.init()
         //                 bottle.container.temperatures.init()
         //                 bottle.container.UOM.init()
-        //                 bottle.container.valves.init()
+        //                 bottle.container.valve.init()
         //             })
         //             .then(resolve)
         //             .catch(function (err) {
