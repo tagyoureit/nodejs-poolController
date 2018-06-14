@@ -405,7 +405,7 @@ function buildEditRowEggTimer(el, currSchedule) {
         )
 
     // append Hours to option
-    for (i = 1; i <= 11; i++) {
+    for (i = 0; i <= 11; i++) {
         _selected = ''
         if (i === parseInt(strHours)) {
             _selected = "selected"
