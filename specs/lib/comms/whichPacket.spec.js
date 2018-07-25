@@ -19,7 +19,7 @@ describe('whichPacket tells the app what type of packet is in the queue', functi
             })
 
             afterEach(function() {
-                sandbox.restore()
+                sinon.restore()
             })
 
             after(function() {

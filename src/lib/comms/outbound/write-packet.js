@@ -188,6 +188,18 @@ module.exports = function(container) {
         if (logPacketWrites) logger.silly('writePacket: Entering writePacket() to write: %s\nFull queue: [[%s]]', container.queuePacket.first(), (container.queuePacket.entireQueue()).join('],\n['))
 
         writeQueueActive.writeQueueActive = true
+
+        // if we are in capture packet mode, capture it
+        if (container.settings.get('capturePackets')) {
+            container.logger.packet({
+                type: 'packet',
+                packet: container.queuePacket.first(),
+                counter: 0,
+                equipment: container.whichPacket.outbound(container.queuePacket.first()),
+                direction: 'outbound'
+            })
+        }
+
         if (container.settings.get('netConnect') === 0) {
             container.sp.writeSP(container.queuePacket.first(), function(err) {
                 if (err) {
@@ -226,7 +238,7 @@ module.exports = function(container) {
         isWriteQueueActive: isWriteQueueActive,
         preWritePacketHelper: preWritePacketHelper,
         ejectPacketAndReset: ejectPacketAndReset,
-        postWritePacketHelper: postWritePacketHelper, //need this only for over writing the
+        postWritePacketHelper: postWritePacketHelper,
         init: init
     }
 

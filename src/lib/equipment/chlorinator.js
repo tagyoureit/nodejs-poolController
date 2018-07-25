@@ -17,7 +17,7 @@
 
 var currentChlorinatorStatus
 
-module.exports = function(container) {
+module.exports = function (container) {
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
@@ -93,9 +93,10 @@ module.exports = function(container) {
             needDelim ? chlorStr += ', ' : needDelim = 1
             chlorStr += 'Water Temp Low'; //64
         }
+        // Following seems to result in no communication messages when there is communication.
         if ((status & 128) >> 7 === 1) {
             needDelim ? chlorStr += ', ' : needDelim = 1
-            chlorStr += 'No communications'
+            chlorStr += '(Unsure - 128)'
         }
         return chlorStr
         //
@@ -185,7 +186,7 @@ module.exports = function(container) {
         //NOTE: do we really need to do this logic?  If the controller is on, it will request the updates.  If the virtual controller is enabled, it should be active anyway.
         var response = {}
         return Promise.resolve()
-            .then(function() {
+            .then(function () {
                 if (container.settings.get('chlorinator.installed')) {
                     if (chlorLvl >= 0 && chlorLvl <= 101) {
                         return Promise.resolve()
@@ -237,19 +238,8 @@ module.exports = function(container) {
             })
 
 
-
     }
-// }
-// } else {
-//
-// }
-// if (callback !== undefined) {
-//     callback(response)
-// }
-// return response
-// })
 
-// }
 
     function getDesiredChlorinatorOutput() {
         return currentChlorinatorStatus.outputPoolPercent
@@ -265,8 +255,6 @@ module.exports = function(container) {
             destination = 'Controller'
             from = 'Salt cell'
         }
-
-
 
 
         switch (data[container.constants.chlorinatorPacketFields.ACTION]) {
@@ -370,7 +358,7 @@ module.exports = function(container) {
 
         return Promise.resolve()
             .then(function () {
-                  // need better logic for this.  If we set intellitouch=0 and chlorinator=0 then this will still try to control the chlorinator by writing packets.  Not ideal for purely listening mode.
+                // need better logic for this.  If we set intellitouch=0 and chlorinator=0 then this will still try to control the chlorinator by writing packets.  Not ideal for purely listening mode.
                 if (currentChlorinatorStatus.installed === 0 && container.settings.get('virtual.chlorinatorController') !== 'never') {
                     currentChlorinatorStatus.installed = 1
                     return container.settings.updateChlorinatorInstalledAsync(currentChlorinatorStatus.installed)

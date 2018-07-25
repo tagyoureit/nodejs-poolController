@@ -12,17 +12,17 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             beforeEach(function () {
                 return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+                        sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
 
-                        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
-                        // intellitouchStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration').returns(false)
+                        // intellitouchStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration').returns(false)
                         //
-                        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
 
-                       // getVersionNotificationStub = sandbox.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
+                       // getVersionNotificationStub = sinon.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
 
 
                     })
@@ -32,7 +32,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             afterEach(function () {
                 return Promise.resolve()
                     .then(function () {
-                        return sandbox.restore()
+                        return sinon.restore()
                     })
                     .then(function () {
                         return global.stopAllAsync()
@@ -47,7 +47,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                     })
                     .catch(function (err) {
                         console.error('Error in after each:', err)
-                        sandbox.restore()
+                        sinon.restore()
                     })
 
             })
@@ -181,12 +181,12 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             beforeEach(function () {
                 return global.initAllAsync('/specs/assets/config/templates/config_intellitouch_intellichlor.json')
                     .then(function () {
-                        // sandbox = sinon.sandbox.create()
+                        // sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
 
-                        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
-                        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
                     })
 
@@ -195,7 +195,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             afterEach(function () {
                 return Promise.resolve()
                     .then(function () {
-                        sandbox.restore()
+                        sinon.restore()
 
                     })
                     .then(global.stopAllAsync)

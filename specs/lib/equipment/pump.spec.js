@@ -10,7 +10,7 @@ describe('pump controller initialized', function() {
     })
 
     afterEach(function () {
-        // sandbox.restore()
+        // sinon.restore()
     })
 
     after(function () {
@@ -32,13 +32,13 @@ describe('pump controller initializes with 16 pumps', function() {
 
     beforeEach(function() {
         loggers = setupLoggerStubOrSpy('stub', 'spy')
-        clock = sandbox.useFakeTimers()
+        clock = sinon.useFakeTimers()
 
-        ioStub = sandbox.stub(bottle.container.io, 'emitToClients')
+        ioStub = sinon.stub(bottle.container.io, 'emitToClients')
     })
 
     afterEach(function() {
-        sandbox.restore()
+        sinon.restore()
     })
 
     after(function() {

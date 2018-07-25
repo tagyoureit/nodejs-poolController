@@ -15,21 +15,21 @@ describe('chlorinator tests', function() {
 
     beforeEach(function() {
         loggers = setupLoggerStubOrSpy('stub', 'stub')
-        clock = sandbox.useFakeTimers()
+        clock = sinon.useFakeTimers()
 
-        pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
+        pumpControllerProgramTimersSpy = sinon.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
 
-        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
+        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+        emitToClientsStub = sinon.stub(bottle.container.io, 'emitToClients')
 
-        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
         bottle.container.chlorinatorController.startChlorinatorController()
     })
 
     afterEach(function() {
-        //restore the sandbox after each function
+        //restore the sinon after each function
         bottle.container.chlorinatorController.clearTimer()
-        sandbox.restore()
+        sinon.restore()
 
 
     })

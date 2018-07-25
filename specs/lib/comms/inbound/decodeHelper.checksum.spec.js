@@ -21,31 +21,26 @@ describe('decodeHelper processes controller packets', function() {
             });
 
             beforeEach(function() {
-                // sandbox = sinon.sandbox.create()
+
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                clock = sandbox.useFakeTimers()
-                // suppress warnings for bad packets
-                // sandbox.restore()
-
-
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
-                isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
-                isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
-                isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
-                isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
-                writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
-                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
-                processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
-                processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                // pumpCommandSpy = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                checksumSpy = sinon.spy(bottle.container.decodeHelper, 'checksum')
+                isResponseSpy = sinon.spy(bottle.container.decodeHelper.isResponse)
+                isResponsePumpSpy = sinon.spy(bottle.container.decodeHelper.isResponsePump)
+                isResponseChlorinatorSpy = sinon.spy(bottle.container.decodeHelper.isResponseChlorinator)
+                isResponseControllerSpy = sinon.spy(bottle.container.decodeHelper.isResponseController)
+                writePacketStub = sinon.stub(bottle.container.writePacket, 'ejectPacketAndReset')
+                controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                processControllerPacketStub = sinon.stub(bottle.container.processController, 'processControllerPacket')
+                processPumpPacketStub = sinon.stub(bottle.container.processPump, 'processPumpPacket')
+                processChlorinatorPacketStub = sinon.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
                 bottle.container.queuePacket.queuePacketsArrLength = 0
             })
 
             afterEach(function() {
                 bottle.container.queuePacket.queuePacketsArrLength = 0
-                sandbox.restore()
+                sinon.restore()
 
             })
 

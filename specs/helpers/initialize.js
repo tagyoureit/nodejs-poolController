@@ -6,7 +6,7 @@ var fs = require('fs'),
 
 logging = 0;  //variable to tell us if general logging of information is happening during tests.  This should be changed in each test; not here.
 logInitAndStop = 0; //variable to tell us if we want to output start/stop/init of each module.  This should be changed here and will be enabled/disabled for all tests
-sandbox = sinon.sandbox.create()
+
 
 
 initAllAsync = function(configLocation, sysDefaultLocation) {
@@ -31,6 +31,8 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
         .then(bottle.container.sp.mockSPBindingAsync)
         .then(function (_sp) {
             sp = _sp
+            bottle.container.packetBuffer.init()
+            bottle.container.receiveBuffer.init()
             bottle.container.heat.init() // synchronous
             bottle.container.time.init() // synchronous
             bottle.container.pump.init() // synchronous
@@ -49,8 +51,12 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
         .then(bottle.container.chlorinator.init) // updated... synchronous
         .delay(20) //allow for all processes to start before enable logging or moving to tests
         .catch( /* istanbul ignore next */ function (err) {
+
+
+
             bottle.container.logger.error('Error in global.initAllAsync. ', err)
-            console.error(err)
+            //console.error(err)
+            throw new Error(err)
         })
         .finally(function () {
             // console.log('###Done Init All###')
@@ -61,7 +67,7 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
                 disableLogging()
             }
             else
-                sandbox.restore()
+                sinon.restore()
             if (snapshotLogging) enableLogging()
             else disableLogging()
         })
@@ -103,7 +109,7 @@ stopAllAsync = function() {
                 disableLogging()
             }
             else
-                sandbox.restore()
+                sinon.restore()
             if (snapshotLogging) enableLogging()
             else disableLogging()
         })
@@ -142,7 +148,6 @@ var disableLogging = function(){
 }
 
 useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
-
     return Promise.resolve('from use shadow config')
         .then(function(){
             // if (logInitAndStop){
@@ -169,11 +174,14 @@ useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
             if (sysDefaultLocation===undefined){
                 sysDefaultLocation=path.join(process.cwd(), '/sysDefault.json')
             }
+
             return bottle.container.settings.loadAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), sysDefaultLocation)
         })
         .catch( /* istanbul ignore next */ function (err) {
+
             bottle.container.logger.error('oops, we hit an error in useShadowConfigFileAsync', err)
-            console.error(err)
+            //console.error(err)
+            throw new Error(err)
         })
         .finally(function(){
             // if (logInitAndStop) {
@@ -181,7 +189,7 @@ useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
             //     disableLogging()
             // }
             // else {
-            //     sandbox.restore()
+            //     sinon.restore()
             // }
             // if (snapshotLogging) enableLogging()
             // else disableLogging()
@@ -230,7 +238,7 @@ removeShadowConfigFileAsync = function(){
             //     disableLogging()
             // }
             // else {
-            //     sandbox.restore()
+            //     sinon.restore()
             // }
             // if (snapshotLogging) enableLogging()
             // else disableLogging()
@@ -275,8 +283,7 @@ requestPoolDataWithURLAsync = function(endpoint, URL) {
 }
 
 setupLoggerStubOrSpy = function(normalLvL, errorLvl){
-    sandbox.restore()
-    sandbox = sinon.sandbox.create()
+    sinon.restore()
     enableLogging()
 
     if (normalLvL===undefined){
@@ -294,25 +301,25 @@ setupLoggerStubOrSpy = function(normalLvL, errorLvl){
     }
     _stub = {}
     if (normalLvL==='spy') {
-        _stub.loggerInfoStub = sandbox.spy(bottle.container.logger, 'info')
-        _stub.loggerVerboseStub = sandbox.spy(bottle.container.logger, 'verbose')
-        _stub.loggerDebugStub = sandbox.spy(bottle.container.logger, 'debug')
-        _stub.loggerSillyStub = sandbox.spy(bottle.container.logger, 'silly')
+        _stub.loggerInfoStub = sinon.spy(bottle.container.logger, 'info')
+        _stub.loggerVerboseStub = sinon.spy(bottle.container.logger, 'verbose')
+        _stub.loggerDebugStub = sinon.spy(bottle.container.logger, 'debug')
+        _stub.loggerSillyStub = sinon.spy(bottle.container.logger, 'silly')
     }
     else {
-        _stub.loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-        _stub.loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-        _stub.loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-        _stub.loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+        _stub.loggerInfoStub = sinon.stub(bottle.container.logger, 'info')
+        _stub.loggerVerboseStub = sinon.stub(bottle.container.logger, 'verbose')
+        _stub.loggerDebugStub = sinon.stub(bottle.container.logger, 'debug')
+        _stub.loggerSillyStub = sinon.stub(bottle.container.logger, 'silly')
     }
     if (errorLvl==='spy') {
-        _stub.loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-        _stub.loggerErrorStub = sandbox.spy(bottle.container.logger, 'error')
+        _stub.loggerWarnStub = sinon.spy(bottle.container.logger, 'warn')
+        _stub.loggerErrorStub = sinon.spy(bottle.container.logger, 'error')
     }
     else
     {
-        _stub.loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
-        _stub.loggerErrorStub = sandbox.stub(bottle.container.logger, 'error')
+        _stub.loggerWarnStub = sinon.stub(bottle.container.logger, 'warn')
+        _stub.loggerErrorStub = sinon.stub(bottle.container.logger, 'error')
     }
     return _stub
 }

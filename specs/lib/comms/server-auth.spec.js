@@ -26,7 +26,7 @@ describe('tests web servers and authorization', function () {
             })
 
             afterEach(function () {
-                //sandbox.restore()
+                //sinon.restore()
             })
 
             after(function () {
@@ -126,7 +126,7 @@ describe('tests web servers and authorization', function () {
             })
 
             afterEach(function () {
-                // sandbox.restore()
+                // sinon.restore()
             })
 
             after(function () {
@@ -139,9 +139,9 @@ describe('tests web servers and authorization', function () {
 
                 // var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.key'))
                 // var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))
-                // var fsStat = sandbox.stub(bottle.container.fs, 'statSync')
+                // var fsStat = sinon.stub(bottle.container.fs, 'statSync')
 
-                // var fileStub = sandbox.stub(bottle.container.fs, 'readFileSync')
+                // var fileStub = sinon.stub(bottle.container.fs, 'readFileSync')
                 // fileStub.onCall(0).returns(key)
                 // fileStub.onCall(1).returns(crt)
 

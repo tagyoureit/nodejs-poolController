@@ -103,6 +103,11 @@ element will only be visible upon scrolling */
     color: red;
 }
 
+.btn-schDays-Static {
+    padding: 2px 5px;
+    margin: 1px;
+}
+
 @media (max-width: 991px) {
     .navbar-header {
         float: none;

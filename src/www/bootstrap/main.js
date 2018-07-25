@@ -303,10 +303,45 @@ function buildEditRowSchedule(el, currSchedule) {
     bindSelectPickerScheduleCircuit('#schTime' + currSchedule.ID + 'Circuit', currSchedule.friendlyName.capitalizeFirstLetter())
 }
 
-function buildStaticRowSchedule(el, currSchedule) {
-    schName = 'schTime' + currSchedule.ID
+// from https://stackoverflow.com/a/10073788/7386278
+function pad(n, width, z) {
+    return (String(z).repeat(width) + String(n)).slice(String(n).length)
+}
 
-    // insert static row
+// from https://stackoverflow.com/a/49097740/7386278
+function compareTimeAgtB(a, b){
+    var timeA = new Date();
+    timeA.setHours(a.split(":")[0],a.split(":")[1]);
+    var timeB = new Date();
+    timeB.setHours(b.split(":")[0],b.split(":")[1]);
+    if(timeA>=timeB)
+        return true
+    else
+        return false
+}
+
+function buildStaticRowSchedule(el, currSchedule) {
+
+    schName = 'schTime' + currSchedule.ID + 'Static'
+
+    // console.log('currsched time %s (%s) to %s (%s) ', fmt12hrTime(currSchedule.START_TIME), currSchedule.START_TIME, fmt12hrTime(currSchedule.END_TIME), currSchedule.END_TIME)
+
+    _currTime = new Date()
+    _currHours = pad(_currTime.getHours(), 2, "0")
+    _currMins = pad(_currTime.getMinutes(),2 , "0")
+    _currTimeStr = _currHours + ":" + _currMins
+
+    // console.log('currTimeStr: ', _currTimeStr)
+    // console.log('time between stand and end: %s and %s ', compareTimeAgtB(_currTimeStr, currSchedule.START_TIME), compareTimeAgtB(currSchedule.END_TIME, _currTimeStr))
+
+    var cssFontWeight = 'normal'
+    var cssColor = 'black'
+    if (compareTimeAgtB(_currTimeStr, currSchedule.START_TIME) & compareTimeAgtB(currSchedule.END_TIME, _currTimeStr)){
+        // current time is between schedule start and end time
+        cssFontWeight = 'bold'
+        cssColor = 'blue'
+    }
+
     var hideEl = '';
     if ($('#editPanelschedule').hasClass('btn-success'))
         hideEl = 'none;'
@@ -316,9 +351,13 @@ function buildStaticRowSchedule(el, currSchedule) {
                     id: schName,
                     class: "botpad schStatic",
                     'data-id': currSchedule.ID,
-                    style: 'display:' + hideEl
+                    style: 'display:' + hideEl + ' ;font-weight:'+cssFontWeight+ ';color:'
                 })
+
             )
+                .css('display', hideEl)
+                .css('font-weight', cssFontWeight)
+                .css('color', cssColor)
                 .append($('<td/>', {
                     text: currSchedule.ID
                 }))
@@ -331,7 +370,53 @@ function buildStaticRowSchedule(el, currSchedule) {
                 .append($('<td/>', {
                     text: fmt12hrTime(currSchedule.END_TIME)
                 }))
-        )
+        ).append(buildSchDays(currSchedule))
+}
+
+function buildSchDays(currSchedule) {
+    if ($('#editPanelschedule').hasClass('btn-success')) {
+        disableEl = false
+        classEl = ''
+    }
+    else {
+        disableEl = true
+        classEl = 'btn-schDays-Static'
+    }
+    schName = 'schDays' + currSchedule.ID;
+    var _sched = $('<tr/>', {
+        id: schName,
+        class: "borderless toppad botpad",
+        'data-id': currSchedule.ID,
+        name: schName
+    }).append($('<td/>', {
+        colspan: 4,
+        align: "left"
+    }))
+
+
+    var arrDays = [false, false, false, false, false, false, false];
+    splitDays = currSchedule.DAYS.split(" ");
+    $.each(splitDays, function (indx, currDay) {
+        if (currDay !== "")
+            arrDays[dayOfWeekAsInteger(currDay)] = true;
+    });
+    strHTML = '';
+    for (var iterDay in arrDays) {
+        strCurrDay = dayOfWeekAsString(iterDay);
+        var btnclass = 'btn-default'
+        if (arrDays[iterDay] === true)
+            btnclass = 'btn-success'
+
+        _sched.find('td').append($('<button/>', {
+            class: "btn-sm  scheduleDays " + btnclass + " " + classEl,
+            // id: strCurrDay,
+            text: strCurrDay,
+            'data-schId': currSchedule.ID,
+            disabled: disableEl
+        }))
+
+    }
+    return _sched
 }
 
 function buildSchTime(el, currSchedule) {
@@ -405,7 +490,7 @@ function buildEditRowEggTimer(el, currSchedule) {
         )
 
     // append Hours to option
-    for (i = 1; i <= 11; i++) {
+    for (i = 0; i <= 11; i++) {
         _selected = ''
         if (i === parseInt(strHours)) {
             _selected = "selected"
@@ -626,7 +711,7 @@ function insertLightEdit() {
 
     $.each(currCircuitArr, function (indx, currCircuit) {
         // loop through each circuit
-        if (currCircuit.circuitFunction === 'Intellibrite') {
+        if (currCircuit.circuitFunction === 'Intellibrite' && currCircuit.hasOwnProperty('light')) {
 
             circuitID = 'light' + indx;
 
@@ -793,6 +878,9 @@ function insertLightEdit() {
             bindLightSwimDelay('#' + currCircuit.numberStr + 'SwimDelay', currCircuit.light.colorSwimDelay)
 
         }
+        else if (currCircuit.circuitFunction === 'Intellibrite'){
+            console.log('Circuit currCircuit has function %s but no light section associated with it.', currCircuit.circuitFunction)
+        }
 
     })
 
@@ -836,7 +924,7 @@ function bindLightSelectPicker() {
 
             }
 
-                //$(el).selectpicker('val', currCircuit.light.modeStr)
+            //$(el).selectpicker('val', currCircuit.light.modeStr)
 
         }
 
@@ -1701,8 +1789,8 @@ function handleButtons() {
     });
 
     // Schedule day toggle: bind to the parent event as the children are dynamically created
-    $('#schedules').on('click', '.schDay', function () {
-        socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), this.getAttribute("data-schDay"))
+    $('#schedules').on('click', '.scheduleDays', function () {
+        socket.emit('toggleScheduleDay', this.getAttribute("data-schId"), $(this).html())
     })
 
     // Button Handling: Reset Button Layout (reset all panels in configClient.json to visible)
@@ -1816,6 +1904,8 @@ function handleButtons() {
             $('.schEdit').hide()
             $('.schStatic').show()
             $('#schedule').css('display', '')
+            $('.scheduleDays').addClass('btn-schDays-Static')
+            $('.scheduleDays').prop('disabled', true)
         } else
         // edit
         {
@@ -1823,6 +1913,8 @@ function handleButtons() {
             $('.schEdit').show()
             $('.schStatic').hide()
             $('#schedule').css('display', 'table')
+            $('.scheduleDays').removeClass('btn-schDays-Static')
+            $('.scheduleDays').prop('disabled', false)
         }
 
     })

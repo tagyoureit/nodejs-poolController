@@ -33,7 +33,6 @@ module.exports = function(container) {
 
             function process(data, counter) {
               //Only run through this if there is a change
-              //if (JSON.stringify(data) !== JSON.stringify(container.status.getCurrentStatusBytes())) {
               if (JSON.stringify(data) !== JSON.stringify(container.circuit.getCurrentStatusBytes())) {
                 container.circuit.setCurrentStatusBytes(data, counter)
 
@@ -59,14 +58,9 @@ module.exports = function(container) {
 
                   container.heat.setHeatActiveFromController(data[c.controllerStatusPacketFields.HEATER_ACTIVE])
                   container.circuit.assignCircuitStatusFromControllerStatus(data, counter)
+
                   container.circuit.assignCircuitDelayFromControllerStatus(data[c.controllerStatusPacketFields.DELAY]&63, counter)
 
-
-
-
-                  //and finally emit the packets
-                  //container.io.emitToClients('config')
-                  //container.io.emitToClients('circuit')
 
               } else {
                   if (container.settings.get('logDuplicateMessages'))

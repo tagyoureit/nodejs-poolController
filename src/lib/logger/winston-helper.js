@@ -33,49 +33,49 @@ module.exports = function(container) {
 
     var init = function(){
 
-            logger = new (winston.Logger)({
-                transports: [
-                    new (winston.transports.Console)({
-                        timestamp: function () {
-                            return dateFormat(Date.now(), "HH:MM:ss.l");
-                        },
-                        formatter: function (options) {
-                            // Return string will be passed to logger.
-                            return options.timestamp() + ' ' + winston.config.colorize(options.level, options.level.toUpperCase()) + ' ' + (undefined !== options.message ? options.message : '') +
-                                (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
-                        },
-                        colorize: true,
-                        level: container.settings.get('logLevel') || 'info',
-                        stderrLevels: [],
-                        handleExceptions: true,
-                        humanReadableUnhandledException: true
-                    })
-                ]
-            });
-            var fileLogEnable = 0
-            if (container.settings.has('fileLog.enable')){
-                fileLogEnable = container.settings.get('fileLog.enable')
-            }
-            if (fileLogEnable) {
-                var path = require('path').posix
-                var _level = container.settings.get('fileLog.fileLogLevel')
-                var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
-
-                var options = {
+        logger = new (winston.Logger)({
+            transports: [
+                new (winston.transports.Console)({
                     timestamp: function () {
                         return dateFormat(Date.now(), "HH:MM:ss.l");
                     },
-                    level: _level,
                     formatter: function (options) {
                         // Return string will be passed to logger.
-                        return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
+                        return options.timestamp() + ' ' + winston.config.colorize(options.level, options.level.toUpperCase()) + ' ' + (undefined !== options.message ? options.message : '') +
                             (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
                     },
-                    filename: file,
-                    colorize: false,
-                    json: false
-                }
-                logger.add(winston.transports.File, options)
+                    colorize: true,
+                    level: container.settings.get('logLevel') || 'info',
+                    stderrLevels: [],
+                    handleExceptions: true,
+                    humanReadableUnhandledException: true
+                })
+            ]
+        });
+        var fileLogEnable = 0
+        if (container.settings.has('fileLog.enable')){
+            fileLogEnable = container.settings.get('fileLog.enable')
+        }
+        if (fileLogEnable) {
+            var path = require('path').posix
+            var _level = container.settings.get('fileLog.fileLogLevel')
+            var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
+
+            var options = {
+                timestamp: function () {
+                    return dateFormat(Date.now(), "HH:MM:ss.l");
+                },
+                level: _level,
+                formatter: function (options) {
+                    // Return string will be passed to logger.
+                    return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
+                        (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
+                },
+                filename: file,
+                colorize: false,
+                json: false
+            }
+            logger.add(winston.transports.File, options)
 
         }
     }
@@ -93,7 +93,7 @@ module.exports = function(container) {
             console.log('Warn ',arguments)
         }
         else
-        logger.warn.apply(this, arguments)
+            logger.warn.apply(this, arguments)
     }
     function silly(msg){
         if (logger===undefined){
@@ -109,21 +109,21 @@ module.exports = function(container) {
             console.log('Debug ',arguments)
         }
         else
-        logger.debug.apply(this, arguments)
+            logger.debug.apply(this, arguments)
     }
     function verbose(msg){
         if (logger===undefined){
             console.log('Verbose ',arguments)
         }
         else
-        logger.verbose.apply(this, arguments)
+            logger.verbose.apply(this, arguments)
     }
     function info(msg){
         if (logger===undefined){
             console.log('Info ',arguments)
         }
         else
-        logger.info.apply(this, arguments)
+            logger.info.apply(this, arguments)
     }
 
     function changeLevel(transport, lvl){
@@ -140,6 +140,11 @@ module.exports = function(container) {
     function add(transport, options){
         logger.add(transport, options)
     }
+
+    function packet(msg){
+        // not implemented yet
+    }
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: winston-helper.js')
@@ -153,7 +158,8 @@ module.exports = function(container) {
         verbose: verbose,
         info: info,
         changeLevel: changeLevel,
-        add: add
+        add: add,
+        packet: packet
     }
 
 }

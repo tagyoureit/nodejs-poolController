@@ -9,14 +9,14 @@ describe('processes Intellitouch packets', function() {
 
         beforeEach(function() {
             loggers = setupLoggerStubOrSpy('stub', 'spy')
-            clock = sandbox.useFakeTimers()
+            clock = sinon.useFakeTimers()
 
             bottle.container.settings.set('intellitouch.installed', 0)
             bottle.container.settings.set('intellicom.installed', 1)
         })
 
         afterEach(function() {
-            sandbox.restore()
+            sinon.restore()
 
         })
 

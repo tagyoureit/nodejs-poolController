@@ -53,7 +53,7 @@ module.exports = function(container) {
       method: 'POST',
       uri: 'http://localhost:8086/write?db=pool',
       encoding: 'binary',
-      body: '104_alerche,' + tag + ' value=' + value
+      body: 'address,' + tag + ' value=' + value
 
     }
     var promise = rp(options)

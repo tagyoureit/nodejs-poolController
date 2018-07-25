@@ -1,4 +1,4 @@
-describe('processes 2 (Status) packets', function () {
+describe('Tests the code that captures packets and a full log for troubleshooting', function () {
     var data = [
         Buffer.from([255, 0, 255, 165, 33, 15, 16, 2, 29, 12, 41, 32, 0, 0, 0, 0, 0, 0, 0, 3, 0, 64, 4, 60, 60, 0, 0, 62, 71, 0, 0, 0, 0, 0, 74, 142, 0, 13, 3, 130])
     ]
@@ -10,35 +10,30 @@ describe('processes 2 (Status) packets', function () {
 
             before(function () {
                 return global.initAllAsync()
+                    .then(bottle.container.settings.loadAsync(0, 0, true))
             });
 
             beforeEach(function () {
-                return Promise.resolve()
-                    .then(function(){
-                        loggers = setupLoggerStubOrSpy('stub', 'spy')
-                        getControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'getControllerConfiguration')
-
-                    })
+                loggers = setupLoggerStubOrSpy('spy', 'spy')
+                getControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'getControllerConfiguration')
 
             })
 
             afterEach(function () {
-
                 sinon.restore()
-                bottle.container.circuit.init()
 
             })
 
             after(function () {
-                return global.stopAllAsync()
+                global.stopAllAsync()
             })
 
             it('#Processes a controller status packet', function () {
-                return Promise.resolve()
+               return Promise.resolve()
                     .then(function () {
                         return bottle.container.packetBuffer.push(data[0])
                     })
-                    .delay(80)
+                    .delay(50)
                     .then(
                         function () {
                             bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
@@ -55,7 +50,7 @@ describe('processes 2 (Status) packets', function () {
                     .then(function () {
                         return bottle.container.packetBuffer.push(data[0])
                     })
-                    .delay(80)
+                    .delay(50)
                     .then(
                         function () {
                             bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)

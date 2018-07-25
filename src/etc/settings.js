@@ -26,6 +26,8 @@ module.exports = function (container) {
         observableDiff = container.deepdiff.observableDiff,
         applyChange = container.deepdiff.applyChange;
 
+    var argv = require('yargs-parser')(process.argv.slice(2), opts={boolean: ['capturePackets']})
+
     /* istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loading: settings.js')
@@ -33,7 +35,7 @@ module.exports = function (container) {
     var packageJson = JSON.parse(container.fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
     _settings.appVersion = packageJson.version
 
-    var envParam = process.argv[2];
+    //var envParam = process.argv[2];
     var configurationFileContent, sysDefaultFileContent;
 
     var has = function (param) {
@@ -409,7 +411,7 @@ module.exports = function (container) {
     };
 
 
-    var loadAsync = function (configLocation, sysDefaultFileLocation) {
+    var loadAsync = function (configLocation, sysDefaultFileLocation, capturePackets) {
 
         return Promise.resolve()
             .then(function () {
@@ -423,8 +425,9 @@ module.exports = function (container) {
 
                 if (configLocation) {
                     _settings.configurationFileLocation = configLocation;
-                } else if (envParam) {
-                    _settings.configurationFileLocation = envParam
+                } else if (argv._.length) {
+
+                    _settings.configurationFileLocation = argv._[0]
                 }
                 else {
                     _settings.configurationFileLocation = 'config.json';
@@ -437,7 +440,6 @@ module.exports = function (container) {
             .then(moveConfigFileKeys)
             .then(migrateSysDefaultsToConfigFile)
             .then(function () {
-                // = JSON.parse(JSON.stringify(parsedData))
 
                 /*   Equipment   */
                 //Controller
@@ -522,6 +524,31 @@ module.exports = function (container) {
                 _settings.notifications = configurationFileContent.meta.notifications;
                 container.logger.silly('Finished loading settings.')
                 return 'Finished Loading Settings'
+            })
+            .then(function(){
+                // are we starting the app with packet capture enabled?
+                if (argv.capturePackets || capturePackets){
+                    _settings.capturePackets = true
+                    _settings.fileLog = {
+                        "enable": 1,
+                        "fileLogLevel": "silly",
+                        "fileName": "packetCapture.log"
+                    };
+                    _settings.logPumpMessages = 1;
+                    _settings.logDuplicateMessages = 1;
+                    _settings.logConsoleNotDecoded = 1;
+                    _settings.logConfigMessages = 1;
+                    _settings.logMessageDecoding = 1;
+                    _settings.logChlorinator = 1;
+                    _settings.logIntellichem = 1;
+                    _settings.logPacketWrites = 1;
+                    _settings.logPumpTimers = 1;
+                    _settings.logApi = 1;
+                    _settings.logIntellibrite = 1;
+                }
+                else {
+                    _settings.capturePackets = false
+                }
             })
             .catch(function (err) {
                 container.logger.error('Error reading %s.  %s', _settings.configurationFileLocation, err)

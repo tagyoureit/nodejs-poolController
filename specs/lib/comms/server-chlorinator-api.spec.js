@@ -15,15 +15,15 @@ describe('#set functions', function() {
             });
 
             beforeEach(function () {
-                // sandbox = sinon.sandbox.create()
-                //clock = sandbox.useFakeTimers()
+                // sinon = sinon.sinon.create()
+                //clock = sinon.useFakeTimers()
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
             })
 
             afterEach(function () {
-                sandbox.restore()
+                sinon.restore()
 
             })
 
@@ -63,9 +63,9 @@ describe('#set functions', function() {
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub','spy')
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                settingsStub = sandbox.stub(bottle.container.settings, 'updateChlorinatorDesiredOutputAsync')
-                //getVersionNotificationStub = sandbox.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                settingsStub = sinon.stub(bottle.container.settings, 'updateChlorinatorDesiredOutputAsync')
+                //getVersionNotificationStub = sinon.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
 
             })
 
@@ -76,7 +76,7 @@ describe('#set functions', function() {
                         // Clear out the write queues
                         bottle.container.queuePacket.init()
                         bottle.container.writePacket.init()
-                        sandbox.restore()
+                        sinon.restore()
                     })
 
             })

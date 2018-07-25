@@ -9,21 +9,21 @@ describe('pump controller', function() {
         })
 
         beforeEach(function() {
-            // sandbox = sinon.sandbox.create()
+            // sinon = sinon.sinon.create()
             loggers = setupLoggerStubOrSpy('stub', 'spy')
 
 
-            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            clock = sandbox.useFakeTimers()
+            socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
+            clock = sinon.useFakeTimers()
 
-            setPumpRemoteStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
-            requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+            setPumpRemoteStub = sinon.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
+            requestPumpStatusStub = sinon.spy(bottle.container.pumpController, 'requestPumpStatus')
+            settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
         })
 
         afterEach(function() {
-            sandbox.restore()
+            sinon.restore()
         })
 
         after(function() {
@@ -32,7 +32,7 @@ describe('pump controller', function() {
 
         it('starts pump 1 timer to check for status every 30 seconds', function() {
             this.timeout(5000)
-            numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(1)
+            numPumpStub = sinon.stub(bottle.container.pump, 'numberOfPumps').returns(1)
 
             bottle.container.settings.set('virtual.pumpController', 'always') //TODO: add test for 'default' and 'never'
             bottle.container.pumpControllerTimers.startPumpController()
@@ -61,7 +61,7 @@ describe('pump controller', function() {
 
         it('starts pump 1 & 2 timers to check for status every 30 seconds', function() {
             this.timeout(5000)
-            numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(2)
+            numPumpStub = sinon.stub(bottle.container.pump, 'numberOfPumps').returns(2)
             bottle.container.settings.set('virtual.pumpController','always')
             //TODO: add test for 'default' and 'never'
 
@@ -92,7 +92,7 @@ describe('pump controller', function() {
 
         it('does not start virtual.pumpController with never setting', function() {
             loggers.loggerWarnStub.restore()
-            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub = sinon.stub(bottle.container.logger,'warn')
 
             bottle.container.settings.set('virtual.pumpController','never')
             bottle.container.pumpControllerTimers.startPumpController()
@@ -108,7 +108,7 @@ describe('pump controller', function() {
         it('starts pump 1 & 2 timers to check for status every 30 seconds with virtual.pumpController set to always', function() {
             bottle.container.settings.set('virtual.pumpController', 'always')
             bottle.container.settings.set('intellitouch.installed', 1)
-            numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(2)
+            numPumpStub = sinon.stub(bottle.container.pump, 'numberOfPumps').returns(2)
 
 
             bottle.container.pumpControllerTimers.startPumpController()
@@ -145,9 +145,9 @@ describe('pump controller', function() {
 
         it('runs pump 1 at 1000 rpm for 5 minute', function() {
             this.timeout(5 * 1000)
-            numPumpStub = sandbox.stub(bottle.container.pump, 'numberOfPumps').returns(1)
-            pumpCurrentProgramSpy = sandbox.spy(bottle.container.pump, 'setCurrentProgram')
-            pumpDurationSpy = sandbox.spy(bottle.container.pump, 'setDuration')
+            numPumpStub = sinon.stub(bottle.container.pump, 'numberOfPumps').returns(1)
+            pumpCurrentProgramSpy = sinon.spy(bottle.container.pump, 'setCurrentProgram')
+            pumpDurationSpy = sinon.spy(bottle.container.pump, 'setDuration')
             bottle.container.pumpControllerTimers.startRPMTimer(1, 1000, 5)
 
             clock.tick(30 * 1000)

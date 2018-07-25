@@ -25,7 +25,10 @@ module.exports = function (container) {
     var express = container.express, servers = {http: {}, https: {}, ssdp: {}, mdns: {}}
     var path = require('path').posix;
     var defaultPort = {http: 3000, https: 3001}
-    var mdnsEmitter, mdns = {query:[],answers:[]}
+    var mdnsEmitter = new container.events.EventEmitter();
+    var mdns = {query:[],answers:[]}
+    var emitter = new container.events.EventEmitter();
+
 
     function startServerAsync(type) {
         return new Promise(function (resolve, reject) {
@@ -173,7 +176,7 @@ module.exports = function (container) {
                 // }
             })
 
-            mdnsEmitter = new container.events.EventEmitter();
+
 
 
             servers['mdns'].isRunning = 1
@@ -204,10 +207,6 @@ module.exports = function (container) {
         })
     }
 
-    var getMdnsEmitter = function(){
-        return mdnsEmitter
-    }
-
     function initAsync() {
         var serversPromise = []
         serversPromise.push(startServerAsync('https'))
@@ -219,6 +218,7 @@ module.exports = function (container) {
         return Promise.all(serversPromise)
             .then(function (results) {
                 bottle.container.logger.debug('Server starting complete.', results)
+                emitter.emit('serverstarted', 'success!')
             })
             .catch(function (e) {
                 console.error(e)
@@ -254,6 +254,7 @@ module.exports = function (container) {
                 });
                 servers[type].connections.forEach(function (conn) {
                     container.logger.silly('Destroying %s connection from %s', type, conn.remoteAddress)
+                    conn.end()
                     conn.destroy()
                 })
             } else {
@@ -289,6 +290,25 @@ module.exports = function (container) {
         // Hook to use custom routes
         var customRoutes = require(path.join(process.cwd(), 'src/integrations/customExpressRoutes'));
         customRoutes.init(app);
+
+        // Middleware to capture requests to log
+        app.use(function(req, res, next){
+
+            var reqType = req.originalUrl.split('/')
+            if (!['bootstrap', 'assets','poolController','public'].includes(reqType[1])) {
+
+                // if we are in capture packet mode, capture it
+                if (container.settings.get('capturePackets')) {
+                    container.logger.packet({
+                        type: 'url',
+                        counter: 0,
+                        url: req.originalUrl,
+                        direction: 'inbound'
+                    })
+                }
+            }
+            next()
+        })
 
         // Routing
         app.use(express.static(path.join(process.cwd(), 'src/www')));
@@ -974,8 +994,9 @@ module.exports = function (container) {
         closeAsync: closeAsync,
         closeAllAsync: closeAllAsync,
         initAsync: initAsync,
-        getMdnsEmitter: getMdnsEmitter,
-        mdnsQuery: mdnsQuery
+        mdnsQuery: mdnsQuery,
+        emitter: emitter,
+        mdnsEmitter: mdnsEmitter
     };
 };
 

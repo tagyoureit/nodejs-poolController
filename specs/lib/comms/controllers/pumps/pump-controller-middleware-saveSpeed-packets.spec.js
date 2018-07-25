@@ -10,19 +10,17 @@ describe('pump controller - save speed (1/2)', function() {
 
         beforeEach(function() {
             loggers = setupLoggerStubOrSpy('stub', 'spy')
-            //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
-            //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
-            endPumpCommandStub = sandbox.stub()
-            //setPumpToLocalControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToLocalControl')
-            //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
-            emitToClientsStub = sandbox.stub(bottle.container.io.emit)
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+
+            endPumpCommandStub = sinon.stub()
+
+            emitToClientsStub = sinon.stub(bottle.container.io.emit)
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+            settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {
-            //restore the sandbox after each function
-            sandbox.restore()
+            //restore the sinon after each function
+            sinon.restore()
         })
 
         after(function() {

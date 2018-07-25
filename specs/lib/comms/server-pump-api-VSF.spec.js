@@ -13,9 +13,9 @@ describe('#sends pump commands to a VSF pump', function () {
                 })
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'spy')
-                    clock = sandbox.useFakeTimers()
-                    queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                    //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                    clock = sinon.useFakeTimers()
+                    queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                    //socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
 
                 })
                 .then(bottle.container.pump.init)
@@ -24,7 +24,7 @@ describe('#sends pump commands to a VSF pump', function () {
         })
 
         afterEach(function () {
-            sandbox.restore()
+            sinon.restore()
             return global.stopAllAsync()
 
         })

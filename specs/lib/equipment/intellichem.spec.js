@@ -14,15 +14,15 @@ describe('processes Intellichem packets', function () {
             });
 
             beforeEach(function () {
-                // sandbox = sinon.sandbox.create()
+                // sinon = sinon.sinon.create()
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
             })
 
             afterEach(function () {
                 bottle.container.intellichem.init()
-                sandbox.restore()
+                sinon.restore()
 
             })
 
