@@ -1,4 +1,15 @@
 {
+    "meta": {
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "4.1.200",
+                    "tag_name": "v4.1.200",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
+            }
+        }
+    },
     "version": "5.2.0",
     "equipment": {
         "controller": {
@@ -134,17 +145,6 @@
                 "host": "localhost",
                 "port": 8086,
                 "database": "pool"
-            }
-        }
-    },
-    "meta": {
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "4.0.0",
-                    "tag_name": "v4.0.0",
-                    "dismissUntilNextRemoteVersionBump": false
-                }
             }
         }
     },

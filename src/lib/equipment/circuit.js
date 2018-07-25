@@ -686,9 +686,8 @@ module.exports = function (container) {
             // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
             // This code will get the modulo and shift the array by that many.
             var modulo = _lightGroupPacketArr.length % 4
-            for (var j = 1; j <= modulo; j++) {
-                _lightGroupPacketArr.shift()
-            }
+            _lightGroupPacketArr.splice(0, modulo)
+
 
             var numGroups = _lightGroupPacketArr.length / 4
             for (var i = 0; i < numGroups; i++) {
@@ -909,10 +908,6 @@ module.exports = function (container) {
         var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 96, 2, mode, 0]
         container.queuePacket.queuePacket(packet);
 
-        // this causes LOTS of problems... it goes into an endless loop.  :(
-        // better way to do this???
-        // assignControllerLightColor(mode, 0, 0)
-
         var retStr = 'API: Intellibrite Light Mode ' + container.constants.strIntellibriteModes[mode] + ' (' + mode + ') requested'
         if (container.settings.get('logAPI') || logIntellibrite) {
             container.logger.info(retStr)
@@ -926,23 +921,58 @@ module.exports = function (container) {
             container.logger.silly('Light setLightPosition original packet:', lightGroupPacket)
 
         }
-        for (var i = 0; i <= 7; i++) {
+        var packet;
 
-            // packets are in groups of 4.
-            // lightGroupPacket[0] is circuit
-            // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
-            // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+        if (lightGroupPacket.length === 32) {
 
-            positionBinary = (position - 1) << 4
-            if (lightGroupPacket[i * 4] === circuit) {
-                lightGroupPacket[(i * 4) + 1] = (positionBinary) + (lightGroupPacket[(i * 4) + 1] & 15)
+            for (var i = 0; i <= 7; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+                // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+
+                var positionBinary = (position - 1) << 4
+                if (lightGroupPacket[i * 4] === circuit) {
+                    lightGroupPacket[(i * 4) + 1] = (positionBinary) + (lightGroupPacket[(i * 4) + 1] & 15)
+                }
+
+
             }
 
-
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
         }
+        else {
+            // unknown at this time if the only options are 28 or 25 in length.
+            // could make this generic (no if-else)...
 
-        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+            // make a copy
+            var _lightGroupPacketArr = JSON.parse(JSON.stringify(lightGroupPacket))
 
+            // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
+            // This code will get the modulo and shift the array by that many.
+            var modulo = _lightGroupPacketArr.length % 4
+            var extraBits = _lightGroupPacketArr.splice(0, modulo)
+
+
+            var numGroups = _lightGroupPacketArr.length / 4
+            for (var i = 0; i <= numGroups; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+                // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+
+                var positionBinary = (position - 1) << 4
+                if (_lightGroupPacketArr[i * 4] === circuit) {
+                    _lightGroupPacketArr[(i * 4) + 1] = (positionBinary) + (_lightGroupPacketArr[(i * 4) + 1] & 15)
+                }
+
+
+            }
+
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 25].concat(extraBits).concat(_lightGroupPacketArr)
+        }
         container.queuePacket.queuePacket(packet);
 
 
@@ -965,20 +995,58 @@ module.exports = function (container) {
             container.logger.silly('Light setLightColor original packet:', lightGroupPacket)
 
         }
-        for (var i = 0; i <= 7; i++) {
 
-            // packets are in groups of 4.
-            // lightGroupPacket[0] is circuit
-            // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
 
-            if (lightGroupPacket[i * 4] === circuit) {
-                lightGroupPacket[(i * 4) + 1] = (color) + (lightGroupPacket[(i * 4) + 1] & 240)
+        var packet;
+
+        if (lightGroupPacket.length === 32) {
+
+            for (var i = 0; i <= 7; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+
+                if (lightGroupPacket[i * 4] === circuit) {
+                    lightGroupPacket[(i * 4) + 1] = (color) + (lightGroupPacket[(i * 4) + 1] & 240)
+                }
+
+
             }
 
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+        }
+        else {
+            // unknown at this time if the only options are 28 or 25 in length.
+            // could make this generic (no if-else)...
 
+            // make a copy
+            var _lightGroupPacketArr = JSON.parse(JSON.stringify(lightGroupPacket))
+
+            // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
+            // This code will get the modulo and shift the array by that many.
+            var modulo = _lightGroupPacketArr.length % 4
+            var extraBits = _lightGroupPacketArr.splice(0, modulo)
+
+
+            var numGroups = _lightGroupPacketArr.length / 4
+            for (var i = 0; i <= numGroups; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+                // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+
+                if (_lightGroupPacketArr[i * 4] === circuit) {
+                    _lightGroupPacketArr[(i * 4) + 1] = (color) + (_lightGroupPacketArr[(i * 4) + 1] & 240)
+                }
+
+
+            }
+
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 25].concat(extraBits).concat(_lightGroupPacketArr)
         }
 
-        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
 
         container.queuePacket.queuePacket(packet);
 
@@ -1003,18 +1071,55 @@ module.exports = function (container) {
 
         }
 
-        for (var i = 0; i <= 7; i++) {
 
-            // packets are in groups of 4.
-            // lightGroupPacket[0] is circuit
-            // lightGroupPacket[2] is the delay
-            if (lightGroupPacket[i * 4] === circuit) {
-                lightGroupPacket[(i * 4) + 2] = (delay << 1) + (lightGroupPacket[(i * 4) + 2] & 1)
+        var packet;
+
+        if (lightGroupPacket.length === 32) {
+
+            for (var i = 0; i <= 7; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[2] is the delay
+                if (lightGroupPacket[i * 4] === circuit) {
+                    lightGroupPacket[(i * 4) + 2] = (delay << 1) + (lightGroupPacket[(i * 4) + 2] & 1)
+                }
             }
+
+            // 165,33,16,34,167,32,7,10,4,0,8,22,14,0,16,32,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,58
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
+        }
+        else {
+            // unknown at this time if the only options are 28 or 25 in length.
+            // could make this generic (no if-else)...
+
+            // make a copy
+            var _lightGroupPacketArr = JSON.parse(JSON.stringify(lightGroupPacket))
+
+            // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
+            // This code will get the modulo and shift the array by that many.
+            var modulo = _lightGroupPacketArr.length % 4
+            var extraBits = _lightGroupPacketArr.splice(0, modulo)
+
+
+            var numGroups = _lightGroupPacketArr.length / 4
+            for (var i = 0; i <= numGroups; i++) {
+
+                // packets are in groups of 4.
+                // lightGroupPacket[0] is circuit
+                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+                // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+
+                if (_lightGroupPacketArr[i * 4] === circuit) {
+                    _lightGroupPacketArr[(i * 4) + 2] = (delay << 1) + (_lightGroupPacketArr[(i * 4) + 2] & 1)
+                }
+
+
+            }
+
+            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 25].concat(extraBits).concat(_lightGroupPacketArr)
         }
 
-        // 165,33,16,34,167,32,7,10,4,0,8,22,14,0,16,32,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,58
-        var packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
         container.queuePacket.queuePacket(packet);
 
         if (logIntellibrite) {
