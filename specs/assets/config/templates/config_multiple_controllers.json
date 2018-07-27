@@ -1,0 +1,13 @@
+{
+  "equipment": {
+    "controller": {
+      "intellitouch": {
+        "installed": 1,
+        "friendlyName": "",
+        "numberOfCircuits": 50,
+        "numberOfPumps": 8,
+        "numberOfCustomNames": 30
+      }
+    }
+  }
+}

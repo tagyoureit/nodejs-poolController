@@ -35,6 +35,7 @@ module.exports = function(container) {
 
     var init = function(){
         customNameArr = [];
+        numberOfCustomNames = container.settings.get('equipment.controller.intellitouch.numberOfCustomNames')
     }
 
     var displayInitialCustomNames = function() {

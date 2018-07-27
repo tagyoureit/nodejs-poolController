@@ -19,7 +19,10 @@
             },
             "intellitouch": {
                 "installed": 1,
-                "friendlyName": ""
+                "friendlyName": "",
+                "numberOfCircuits": 20,
+                "numberOfPumps": 2,
+                "numberOfCustomNames": 10
             },
             "virtual": {
                 "pumpController": "default",

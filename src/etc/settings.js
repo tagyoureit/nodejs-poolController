@@ -65,7 +65,7 @@ module.exports = function (container) {
             case "equipment":
                 return configurationFileContent.equipment;
                 break;
-            case "controllel":
+            case "controller":
                 return configurationFileContent.equipment.controller
                 break
             case "intellicom":

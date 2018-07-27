@@ -8,6 +8,7 @@
 1. Node 6+ is supported.  This app no longer supports Node 4.
 1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
 1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
+1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
 1. Fix for #95
 1. Fix for #99
 1. Fix for #100
@@ -351,7 +352,10 @@ See below for descriptions
             },
             "intellitouch": {
                 "installed": 1,
-                "friendlyName": ""
+                "friendlyName": "",
+                "numberOfCircuits": 20,
+                "numberOfPumps": 2,
+                "numberOfCustomNames": 10
             },
             "virtual": {
                 "pumpController": "default",
@@ -551,6 +555,11 @@ Physical or virtual controllers
 ### intellitouch
  * If you have this, set `"installed": 1`
  * `friendlyName` - not implemented as of 4.0 alpha 8
+ * If you have expansion boards, set the number in the appropriate variables.  The app will expand your sections of your config.json to have the appropriate variables.
+
+    1. "numberOfCircuits": default=20; increases by 10 per board up to 50
+    1. "numberOfPumps": default=2; increases by 2 per board up to 10
+    1. "numberOfCustomNames": default=10; increases by 10 per board up to 40
 
 ### virtual
 Options to use the nodejs-poolController app as the controller on your system.  You should not enable these if you have another controller (intellicom/intellitouch)

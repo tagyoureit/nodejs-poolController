@@ -14,7 +14,7 @@ describe('processes 11 (Get Current Circuits) packets', function () {
             });
 
             beforeEach(function () {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
+                loggers = setupLoggerStubOrSpy('spy', 'spy')
                 controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
             })

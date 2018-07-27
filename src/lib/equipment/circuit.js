@@ -72,15 +72,33 @@ module.exports = function (container) {
 
     var init = function () {
 
+
         logIntellibrite = container.settings.get('logIntellibrite')
+
+        checkFriendlyNamesInConfig()
         currentStatus = {}
         currentStatusBytes = []
 
         lightGroup = {},
             lightGroupPacket = []
+        numberOfCircuits = container.settings.get('equipment.controller.intellitouch.numberOfCircuits')
         for (var i = 1; i <= numberOfCircuits; i++) {
             //lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
             currentCircuitArrObj[i] = new Circuit()
+        }
+
+    }
+
+    function checkFriendlyNamesInConfig() {
+        var configFriendlyNames = container.settings.get('equipment.circuit.friendlyName')
+        var expectedCountFriendlyNames = container.settings.get('equipment.controller.intellitouch.numberOfCircuits')
+        var existingCountFriendlyNames = container._.size(configFriendlyNames)
+        if (existingCountFriendlyNames<expectedCountFriendlyNames){
+           for (var i=existingCountFriendlyNames+1; i<=expectedCountFriendlyNames; i++){
+               configFriendlyNames[i]=""
+           }
+           container.settings.set('equipment.circuit.friendlyName', configFriendlyNames)
+           container.logger.info('Just expanded %s to include additional friendlyNames for circuits.', container.settings.get('configurationFileLocation'))
         }
 
     }
