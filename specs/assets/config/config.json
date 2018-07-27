@@ -1,15 +1,4 @@
 {
-    "meta": {
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "4.1.200",
-                    "tag_name": "v4.1.200",
-                    "dismissUntilNextRemoteVersionBump": false
-                }
-            }
-        }
-    },
     "version": "5.2.0",
     "equipment": {
         "controller": {
@@ -55,14 +44,14 @@
             }
         },
         "chlorinator": {
-            "installed": 0,
+            "installed": 1,
             "desiredOutput": {
-                "pool": -1,
-                "spa": -1
+                "pool": 1,
+                "spa": 1
             },
             "friendlyName": "",
             "id": {
-                "productName": ""
+                "productName": "Intellichlor--40"
             }
         },
         "pump": {
@@ -148,6 +137,17 @@
                 "host": "localhost",
                 "port": 8086,
                 "database": "pool"
+            }
+        }
+    },
+    "meta": {
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "4.0.0",
+                    "tag_name": "v4.0.0",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
             }
         }
     },

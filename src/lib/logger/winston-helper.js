@@ -27,9 +27,9 @@ module.exports = function(container) {
     var winston = container.winston,
         dateFormat = container.dateFormat
 
+    var path = require('path').posix
 
-
-    var logger
+    var logger, packetLogger
 
     var init = function(){
 
@@ -57,7 +57,6 @@ module.exports = function(container) {
             fileLogEnable = container.settings.get('fileLog.enable')
         }
         if (fileLogEnable) {
-            var path = require('path').posix
             var _level = container.settings.get('fileLog.fileLogLevel')
             var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
 
@@ -78,6 +77,29 @@ module.exports = function(container) {
             logger.add(winston.transports.File, options)
 
         }
+
+
+        if (container.settings.get('capturePackets'))
+        {
+            packetLogger = new (winston.Logger)({
+                transports: [
+                    new (winston.transports.File)({
+                        formatter: function (options) {
+                            // Return string will be passed to logger.
+                            return JSON.stringify(options.message);
+                        },
+                        colorize: false,
+                        level: 'info',
+                        handleExceptions: true,
+                        humanReadableUnhandledException: false,
+                        json: true,
+                        filename: path.join(process.cwd(), 'packetCapture.json')
+                    })
+                ]
+            });
+        }
+
+
     }
 
     function error(msg){
@@ -142,7 +164,7 @@ module.exports = function(container) {
     }
 
     function packet(msg){
-        // not implemented yet
+         packetLogger.info.apply(this, arguments)
     }
 
     /*istanbul ignore next */

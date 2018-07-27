@@ -37,7 +37,19 @@ module.exports = function(container) {
 
     var pushBufferToArray = function() {
 
-        bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
+        var tempPkt = container.packetBuffer.pop()
+        // if we are in capture packet mode, capture it
+        if (container.settings.get('capturePackets')) {
+            container.logger.packet({
+                type: 'packet',
+                //counter: counter,
+                packet: tempPkt.slice(),
+                //equipment: packetType,
+                direction: 'inbound'
+            })
+        }
+        bufferToProcess.push.apply(bufferToProcess, tempPkt)
+        //bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
         if (container.settings.get('logMessageDecoding'))
             logger.silly('pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT packetBuffer to BTP')
 

@@ -299,16 +299,7 @@ module.exports = function(container) {
                 }
             }
             decode(chatter, counter, packetType)
-            // if we are in capture packet mode, capture it
-            if (container.settings.get('capturePackets')) {
-                container.logger.packet({
-                    type: 'packet',
-                    counter: counter,
-                    packet: chatter,
-                    equipment: packetType,
-                    direction: 'inbound'
-                })
-            }
+
 
             // } else {
             //     //TODO: we shouldn't need to increment the countChecksumMismatch.  Why is it not being increased with decodeHelper.checksum above?
