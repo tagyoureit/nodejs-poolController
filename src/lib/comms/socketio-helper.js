@@ -365,6 +365,19 @@ module.exports = function (container) {
             container.logger.info(str)
         })
 
+        socket.on('receivePacketRaw', function (incomingPacket) {
+
+            var str = 'Add packet(s) to incoming buffer: '
+            container.logger.info('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
+
+            for (var i=0; i<incomingPacket.length; i++) {
+
+                container.packetBuffer.push(new Buffer(incomingPacket[i]));
+                str += JSON.stringify(incomingPacket[i]) + ' '
+            }
+            emitToClientsOnEnabledSockets('sendPacketResults', str)
+            container.logger.info(str)
+        })
 
         socket.on('setchlorinator', function (desiredChlorinatorOutput) {
             container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorOutput))

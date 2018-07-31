@@ -1,4 +1,4 @@
-/*  nodejs-poolController.  An application to control pool equipment.
+1/*  nodejs-poolController.  An application to control pool equipment.
  *  Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -190,28 +190,26 @@ module.exports = function (container) {
     }
 
     //internal method to apply the friendly name
-    var setCircuitFriendlyNames = function () {
+    var setCircuitFriendlyNames = function (circuit) {
         var useFriendlyName
         var configFriendlyNames = container.settings.get('circuit.friendlyName')
-        for (var i = 1; i <= numberOfCircuits; i++) {
-            if (configFriendlyNames[i] === "") {
+            if (configFriendlyNames[circuit] === "") {
                 useFriendlyName = false
             } else {
                 //for now, UI doesn't support renaming 'pool' or 'spa'.  Check for that here.
-                if ((currentCircuitArrObj[i].circuitFunction.toUpperCase() === "SPA" && configFriendlyNames[i].toUpperCase() !== "SPA") ||
-                    (currentCircuitArrObj[i].circuitFunction.toUpperCase() === "POOL" && configFriendlyNames[i].toUpperCase() !== "POOL")) {
-                    logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[i].circuitFunction)
+                if ((currentCircuitArrObj[circuit].circuitFunction.toUpperCase() === "SPA" && configFriendlyNames[circuit].toUpperCase() !== "SPA") ||
+                    (currentCircuitArrObj[circuit].circuitFunction.toUpperCase() === "POOL" && configFriendlyNames[circuit].toUpperCase() !== "POOL")) {
+                    logger.warn('The %s circuit cannot be renamed at this time.  Skipping.', currentCircuitArrObj[circuit].circuitFunction)
                     useFriendlyName = false
                 } else {
                     useFriendlyName = true
                 }
             }
             if (useFriendlyName) {
-                currentCircuitArrObj[i].friendlyName = configFriendlyNames[i].toUpperCase()
+                currentCircuitArrObj[circuit].friendlyName = configFriendlyNames[circuit].toUpperCase()
             } else {
-                currentCircuitArrObj[i].friendlyName = currentCircuitArrObj[i].name
+                currentCircuitArrObj[circuit].friendlyName = currentCircuitArrObj[circuit].name
             }
-        }
     }
 
     var statusToString = function (status) {
@@ -293,10 +291,12 @@ module.exports = function (container) {
 
 
     function getCircuitName(circuit) {
+        // NOTE: Why are we returning strCircuitFunction for Circuit Name?
         try {
             if (circuit >= 1 && circuit <= numberOfCircuits) {
                 return currentCircuitArrObj[circuit].name
             } else {
+                // NOTE: This might not be needed anymore now that we have user control over # of circuits, names, etc.
                 return container.constants.strCircuitFunction[circuit]
             }
         }
@@ -398,7 +398,7 @@ module.exports = function (container) {
             circuitArrObj.freeze = freeze
             circuitArrObj.circuitFunction = container.constants.strCircuitFunction[functionByte & 63]
             circuitArrObj.macro = (functionByte & 128) >> 7 //1 or 0
-
+            circuitArrObj.friendlyName = setCircuitFriendlyNames(circuit)
             if (currentCircuitArrObj[circuit].name === undefined) {
                 //logger.info("Assigning circuit %s the function %s based on value %s\n\t", circuit, circuitArrObj.circuitFunction, functionByte & 63)
                 assignCircuitVars(circuit, circuitArrObj)
@@ -411,7 +411,7 @@ module.exports = function (container) {
 
             if (circuit === numberOfCircuits && sendInitialBroadcast.haveCircuitNames === 0) {
                 sendInitialBroadcast.haveCircuitNames = 1
-                setCircuitFriendlyNames()
+
                 doWeHaveAllInformation()
             } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
                 if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
@@ -1182,7 +1182,6 @@ module.exports = function (container) {
         setDelayCancel: setDelayCancel,
         //TESTING
         setCircuitFriendlyNames: setCircuitFriendlyNames,
-        numberOfCircuits: numberOfCircuits,
         getNumberOfCircuits: getNumberOfCircuits,
         getLightGroup: getLightGroup,
         setLightMode: setLightMode,

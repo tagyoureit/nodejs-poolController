@@ -37,6 +37,7 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
             bottle.container.time.init() // synchronous
             bottle.container.pump.init() // synchronous
             bottle.container.schedule.init() // synchronous
+            bottle.container.customNames.init() // synchronous
             bottle.container.circuit.init() // synchronous
             bottle.container.customNames.init() // synchronous
             bottle.container.intellitouch.init() // synchronous
@@ -161,7 +162,7 @@ useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
             return fs.readFileAsync(path.join(process.cwd(), configLocation))
         })
         .then(function (orig) {
-            return fs.writeFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), orig)
+            return fs.writeFileSync(path.join(process.cwd(), '/specs/assets/config/config.json'), orig)
         })
         .then(function() {
             if (logInitAndStop)

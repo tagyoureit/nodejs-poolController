@@ -32,98 +32,110 @@ module.exports = function (container) {
     }
 
     function init(timeOut) {
-        useMockBinding = false
-        if (connectionTimer !== null) {
-            clearTimeout(connectionTimer)
+        if (container.settings.get('suppressWrite')){
+            useMockBinding = true
+            Promise.resolve()
+                .then(mockSPBindingAsync)
+                .then(function(){
+                    container.logger.info('Using MOCK serial port for replaying packets')
+                })
         }
-        // for testing... none will not try to open the port
-        if (timeOut !== 'none') {
-            if (container.settings.get('netConnect') === 0) {
-                if (timeOut === 'timeout') {
-                    logger.error('Serial port connection lost.  Will retry every %s seconds to reconnect.', container.settings.get('inactivityRetry'))
+        else {
+            useMockBinding = false
+
+
+            if (connectionTimer !== null) {
+                clearTimeout(connectionTimer)
+            }
+            // for testing... none will not try to open the port
+            if (timeOut !== 'none') {
+                if (container.settings.get('netConnect') === 0) {
+                    if (timeOut === 'timeout') {
+                        logger.error('Serial port connection lost.  Will retry every %s seconds to reconnect.', container.settings.get('inactivityRetry'))
+                    }
+                    var serialport = container.serialport
+                    sp = new serialport(container.settings.get('rs485Port'), {
+                        baudRate: 9600,
+                        dataBits: 8,
+                        parity: 'none',
+                        stopBits: 1,
+                        flowControl: false,
+                        //parser: container.serialport.parsers.raw,
+                        autoOpen: false,
+                        lock: false
+                    });
+                    sp.open(function (err) {
+                        if (err) {
+                            connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000)
+                            _isOpen = false
+                            return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
+                        }
+                    })
+                    sp.on('open', function () {
+                        if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
+                            logger.info('Serial port recovering from lost connection.')
+                        }
+                        else {
+                            logger.verbose('Serial Port opened');
+                        }
+                        container.queuePacket.init()
+                        container.writePacket.init()
+                        _isOpen = true
+
+                    })
+                    sp.on('readable', function () {
+
+                        var buf = sp.read()
+                        // console.log('Data as JSON:', JSON.stringify(buf.toJSON()))
+
+                        // container.packetBuffer.push(buf)
+                        emitter.emit('packetread', buf)
+                        // data = sp.read()
+                        // console.log('Data in Buffer as Hex:', data);
+                        resetConnectionTimer()
+                    });
+
+                } else {
+                    if (timeOut === 'timeout') {
+                        logger.error('Net connect (socat) connection lost.  Will retry every %s seconds to reconnect.', container.settings.get('inactivityRetry'))
+                    }
+                    sp = new container.net.Socket();
+                    sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
+                        if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
+                            logger.info('Net connect (socat) recovering from lost connection.')
+                        }
+                        logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
+
+                        container.queuePacket.init()
+                        container.writePacket.init()
+                        _isOpen = true
+                    });
+                    sp.on('data', function (data) {
+                        //Push the incoming array onto the end of the dequeue array
+                        // container.packetBuffer.push(data)
+                        emitter.emit('packetread', data)
+                        // console.log('Data in Buffer as Hex:', data);
+                        // console.log('Data as JSON:', JSON.stringify(data.toJSON()))
+                        resetConnectionTimer()
+                    });
+
                 }
-                var serialport = container.serialport
-                sp = new serialport(container.settings.get('rs485Port'), {
-                    baudRate: 9600,
-                    dataBits: 8,
-                    parity: 'none',
-                    stopBits: 1,
-                    flowControl: false,
-                    //parser: container.serialport.parsers.raw,
-                    autoOpen: false,
-                    lock: false
-                });
-                sp.open(function (err) {
-                    if (err) {
-                        connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000)
-                        _isOpen = false
-                        return logger.error('Error opening port: %s.  Will retry in 10 seconds', err.message);
-                    }
+                connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000, 'retry_timeout')
+
+
+                // error is a common function for Net and Serialport
+                sp.on('error', function (err) {
+                    logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
+                    connectionTimer = setTimeout(init, 10 * 1000)
+                    _isOpen = false
                 })
-                sp.on('open', function () {
-                    if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
-                        logger.info('Serial port recovering from lost connection.')
-                    }
-                    else {
-                        logger.verbose('Serial Port opened');
-                    }
-                    container.queuePacket.init()
-                    container.writePacket.init()
-                    _isOpen = true
-
-                })
-                sp.on('readable', function () {
-
-                    var buf = sp.read()
-                    // console.log('Data as JSON:', JSON.stringify(buf.toJSON()))
-
-                    // container.packetBuffer.push(buf)
-                    emitter.emit('packetread', buf)
-                    // data = sp.read()
-                    // console.log('Data in Buffer as Hex:', data);
-                    resetConnectionTimer()
-                });
-
-            } else {
-                if (timeOut === 'timeout') {
-                    logger.error('Net connect (socat) connection lost.  Will retry every %s seconds to reconnect.', container.settings.get('inactivityRetry'))
-                }
-                sp = new container.net.Socket();
-                sp.connect(container.settings.get('netPort'), container.settings.get('netHost'), function () {
-                    if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
-                        logger.info('Net connect (socat) recovering from lost connection.')
-                    }
-                    logger.info('Net connect (socat) connected to: ' + container.settings.get('netHost') + ':' + container.settings.get('netPort'));
-
-                    container.queuePacket.init()
-                    container.writePacket.init()
-                    _isOpen = true
-                });
-                sp.on('data', function (data) {
-                    //Push the incoming array onto the end of the dequeue array
-                    // container.packetBuffer.push(data)
-                    emitter.emit('packetread', data)
-                    // console.log('Data in Buffer as Hex:', data);
-                    // console.log('Data as JSON:', JSON.stringify(data.toJSON()))
-                    resetConnectionTimer()
-                });
 
             }
-            connectionTimer = setTimeout(init, container.settings.get('inactivityRetry') * 1000, 'retry_timeout')
-
-
-            // error is a common function for Net and Serialport
-            sp.on('error', function (err) {
-                logger.error('Error with port: %s.  Will retry in 10 seconds', err.message)
-                connectionTimer = setTimeout(init, 10 * 1000)
-                _isOpen = false
-            })
-
         }
 
     }
 
-    //for testing
+    //for testing and replaying
     var mockSPBindingAsync = function () {
         return new Promise(function (resolve, reject) {
             useMockBinding = true

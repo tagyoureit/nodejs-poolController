@@ -30,6 +30,8 @@ module.exports = function (container) {
     var numberOfSchedules = 12
 
     var init = function () {
+        numberOfSchedules = container.settings.get('equipment.controller.intellitouch.numberOfSchedules')
+
         currentSchedule = {}; //schedules
     }
 
@@ -331,7 +333,6 @@ module.exports = function (container) {
         getControllerScheduleByID: getControllerScheduleByID,
         getControllerScheduleByCircuitID: getControllerScheduleByCircuitID,
         getControllerScheduleAll: getControllerScheduleAll,
-        numberOfSchedules: numberOfSchedules,
         toggleDay: toggleDay
     }
 

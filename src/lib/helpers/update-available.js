@@ -244,14 +244,15 @@ module.exports = function(container) {
             })
             .then(function(location){return container.fs.readFileAsync(location, 'utf-8')})
             .then(function(data) {
+                data = JSON.parse(data)
                 jsons.local = {
                     'version': getVersionFromJson(data)
                 }
             })
             .then(checkAsync)
-            .then(function(){
-                return jsons
-            })
+            // .then(function(){
+            //     return jsons
+            // })
             .catch( /*istanbul ignore next */ function(error) {
                 console.error(error)
                 container.logger.warn('updateAvail: Error reading local package.json: ', error)

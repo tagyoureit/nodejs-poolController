@@ -57,7 +57,7 @@ module.exports = function(container) {
                 return configClient
             })
             .catch(function (err) {
-                container.logger.warn('Error reading %s file:', location, err.message)
+                container.logger.warn('Error reading in bootstrap-config-editor.js %s file:', location, err.message)
             })
 
     }

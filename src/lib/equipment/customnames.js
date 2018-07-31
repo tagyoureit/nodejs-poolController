@@ -73,12 +73,15 @@ module.exports = function(container) {
     }
 
 
+    var getNumberOfCustomNames = function(){
+        return numberOfCustomNames
+    }
 
 
     return {
         init: init,
         getCustomName: getCustomName,
         setCustomName: setCustomName,
-        numberOfCustomNames: numberOfCustomNames
+        getNumberOfCustomNames: getNumberOfCustomNames
     }
 }

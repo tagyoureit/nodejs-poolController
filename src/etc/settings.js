@@ -26,7 +26,7 @@ module.exports = function (container) {
         observableDiff = container.deepdiff.observableDiff,
         applyChange = container.deepdiff.applyChange;
 
-    var argv = require('yargs-parser')(process.argv.slice(2), opts={boolean: ['capturePackets']})
+    var argv = require('yargs-parser')(process.argv.slice(2), opts={boolean: ['capturePackets', 'suppressWrite']})
 
     /* istanbul ignore next */
     if (container.logModuleLoading)
@@ -532,7 +532,7 @@ module.exports = function (container) {
                     _settings.fileLog = {
                         "enable": 1,
                         "fileLogLevel": "silly",
-                        "fileName": "packetCapture.log"
+                        "fileName": "replay/packetCapture.log"
                     };
                     _settings.logPumpMessages = 1;
                     _settings.logDuplicateMessages = 1;
@@ -545,13 +545,25 @@ module.exports = function (container) {
                     _settings.logPumpTimers = 1;
                     _settings.logApi = 1;
                     _settings.logIntellibrite = 1;
+
+                    // copy the config file
+                    container.fs.writeFileSync(path.join(process.cwd(), '/replay/', _settings.configurationFileLocation), container.fs.readFileSync(path.join(process.cwd(), _settings.configurationFileLocation)));
                 }
                 else {
                     _settings.capturePackets = false
                 }
+
+                // are we starting the app in Replay mode?
+                if (argv.suppressWrite) {
+                    _settings.suppressWrite = true
+
+                }
+                else {
+                    _settings.suppressWrite = false
+                }
             })
             .catch(function (err) {
-                container.logger.error('Error reading %s.  %s', _settings.configurationFileLocation, err)
+                container.logger.error('Error reading in settings.js %s.  %s', _settings.configurationFileLocation, err)
             })
             .finally(function () {
                 container.logger.debug('Finished settings.loadAsync()')

@@ -3,6 +3,7 @@
 // It requires packetCapture.json in the root of the app.
 
 
+
 var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
@@ -38,7 +39,7 @@ let input = function (done) {
         rl2.question('Continue to next line or how many lines? ', (answer) => {
 
 
-            if (isNaN(parseInt(answer))){
+            if (isNaN(parseInt(answer))) {
                 runToCounter = 1
             }
             else {
@@ -50,7 +51,7 @@ let input = function (done) {
         })
 
     }
-    else if (runTo <= runToCounter && runningCounter !== totalPackets) {
+    else if (runTo <= runToCounter && runningCounter <= totalPackets) {
         runTo += 1
         done()
 
@@ -91,12 +92,12 @@ rl.on('close', function () {
 
         before(function () {
             return global.initAllAsync()
-                .then(bottle.container.settings.loadAsync())
+                .then(bottle.container.settings.loadAsync(bottle.container.path.join(process.cwd(), '/packetCapture_config.json')))
         });
 
         beforeEach(function () {
             loggers = setupLoggerStubOrSpy('spy', 'spy')
-            controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+            controllerConfigNeededStub = sinon.replace(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration', sinon.fake.returns(0))
 
         })
 
@@ -109,49 +110,50 @@ rl.on('close', function () {
         })
 
         fileContents.forEach(function (line) {
-            if (line.direction === 'inbound') {
-                var pktType = bottle.container.whichPacket.inbound(line.packet)
+                if (line.type === 'packet') {
+                    if (line.direction === 'inbound') {
+                        var pktType = bottle.container.whichPacket.inbound(line.packet)
 
-                it('#replays inbound ' + counter + '-' + pktType + ' - ' + line.packet, function (done) {
-                    this.timeout(0)
-                    Promise.resolve()
-                        .then(function () {
-                            return bottle.container.packetBuffer.push(Buffer.from(line.packet))
+                        it('#replays inbound ' + counter + '-' + pktType + ' - ' + line.packet, function (done) {
+                            this.timeout(0)
+                            Promise.resolve()
+                                .then(function () {
+                                    return bottle.container.packetBuffer.push(Buffer.from(line.packet))
+                                })
+                                .delay(50)
+                                .then(
+                                    function () {
+                                        input(done)
+                                    })
                         })
-                        .delay(50)
-                        .then(
-                            function () {
-                                bottle.container.logger.info('test this?')
-                                input(done)
+                    }
+                    else {
+                        it('#replays outbound ' + ' - ' + line.packet, function (done) {
+                            this.timeout(0)
+                            Promise.resolve()
+                                .then(function () {
+                                    return bottle.container.packetBuffer.push(Buffer.from(line.packet))
+                                })
+                                .delay(50)
+                                .then(
+                                    function () {
+                                        bottle.container.logger.info('test this?')
+                                        input(done)
+                                    })
+                                .catch(function (err) {
+                                    console.error(err)
+                                    sinon.assert.fail('Something is wrong')
+                                    done()
+                                })
 
-                            })
-                })
+
+                        })
+                    }
+                }
+
+                counter += 1;
             }
-            else {
-                it('#replays outbound ' + ' - ' + line.packet, function (done) {
-                    this.timeout(0)
-                    Promise.resolve()
-                        .then(function () {
-                            return bottle.container.packetBuffer.push(Buffer.from(line.packet))
-                        })
-                        .delay(50)
-                        .then(
-                            function () {
-                                bottle.container.logger.info('test this?')
-                                input(done)
-                            })
-                        .catch(function (err) {
-                            console.error(err)
-                            sinon.assert.fail('Something is wrong')
-                            done()
-                        })
-
-
-                })
-            }
-
-            counter += 1;
-        })
+        )
 
 
     })

@@ -233,7 +233,7 @@ module.exports = function(container) {
 
     function init() {
 
-        if (!iterateTimer){
+        if (iterateTimer){
             clearTimeout(iterateTimer)
             processingBuffer.processingBuffer = false;
         }

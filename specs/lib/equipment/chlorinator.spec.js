@@ -139,7 +139,7 @@ describe('#When packets arrive', function () {
         });
 
         beforeEach(function () {
-            loggers = setupLoggerStubOrSpy('spy', 'spy')
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
             queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
 
@@ -179,7 +179,7 @@ describe('#When packets arrive', function () {
                 })
                 .delay(100)
                 .then(function () {
-                    console.log(bottle.container.chlorinator.getChlorinatorStatus())
+                    // console.log(bottle.container.chlorinator.getChlorinatorStatus())
                     bottle.container.chlorinator.getChlorinatorStatus().chlorinator.saltPPM.should.eq(2900)
                     bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq('Intellichlor--40')
                 })

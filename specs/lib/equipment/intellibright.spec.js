@@ -66,7 +66,7 @@ describe('processes Intellibrite packets',function () {
                     .delay(50)
                     .then(function () {
                         var json = bottle.container.circuit.getLightGroup()
-                        console.log('all lights:',JSON.stringify(json))
+                        // console.log('all lights:',JSON.stringify(json))
                         json[3].circuit.should.eq(3)
                         json[4].colorSwimDelay.should.eq(5)
                     })
@@ -88,7 +88,7 @@ describe('processes Intellibrite packets',function () {
             beforeEach(function () {
                 // sinon = sinon.sinon.create()
                 loggers = setupLoggerStubOrSpy('stub','spy')
-                checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration')
+                checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration').returns(0)
 
             })
 

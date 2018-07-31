@@ -11,7 +11,7 @@ describe('processes 25 (Chlorinator) packets', function () {
             });
 
             beforeEach(function () {
-                loggers = setupLoggerStubOrSpy('spy', 'spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
 

@@ -93,7 +93,7 @@ module.exports = function(container) {
                         handleExceptions: true,
                         humanReadableUnhandledException: false,
                         json: true,
-                        filename: path.join(process.cwd(), 'packetCapture.json')
+                        filename: path.join(process.cwd(), 'replay/packetCapture.json')
                     })
                 ]
             });

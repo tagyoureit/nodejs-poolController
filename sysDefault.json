@@ -11,7 +11,8 @@
         "friendlyName": "",
         "numberOfCircuits": 20,
         "numberOfPumps": 2,
-        "numberOfCustomNames": 10
+        "numberOfCustomNames": 10,
+        "numberOfSchedules": 12
       },
       "virtual": {
         "pumpController": "default",
