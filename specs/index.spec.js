@@ -48,7 +48,7 @@ describe('nodejs-poolController', function () {
 
         it('#should load settings', function () {
 
-                return bottle.container.settings.loadAsync('./specs/assets/config/config.json')
+                return bottle.container.settings.loadAsync({"configLocation":'./specs/assets/config/config.json'})
                 .then(function () {
                     bottle.container.settings.get('intellitouch.installed').should.equal(1)
                 })
@@ -116,7 +116,7 @@ describe('nodejs-poolController', function () {
             return Promise.resolve()
                 .then(function () {
                     global.logInitAndStop = 0
-                    return global.initAllAsync('/specs/assets/config/templates/config_not_here.json')
+                    return global.initAllAsync({'configLocation':'/specs/assets/config/templates/config_not_here.json'})
                 })
                 .then(function(){
                     sinon.assert.fail('Should not get here')

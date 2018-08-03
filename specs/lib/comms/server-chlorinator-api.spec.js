@@ -58,7 +58,7 @@ describe('#set functions', function() {
                 //         bottle.container.settings.set('chlorinator.installed', 1)
                 //     })
                 //     .then(global.initAllAsync)
-                return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichlor.json'})
             });
 
             beforeEach(function() {

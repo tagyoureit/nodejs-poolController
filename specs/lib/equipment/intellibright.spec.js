@@ -29,8 +29,9 @@ describe('processes Intellibrite packets',function () {
     var intellibriteSave = [255,0,255,165,33,16,34,96,2,190,0,2,24] // intellibrite save
     var intellibriteRecall = [255,0,255,165,33,16,34,96,2,191,0,2,25] // intellibrite recall
 
-    // issue 99
-    var issue99 = [255,0,255,165,1,15,16,39,25,0,3,0,0,0,4,16,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,38]
+    // 2 intellibrite controllers; raised by issue 99
+    var intellibrite2_1 = [255,0,255,165,1,15,16,39,25,0,3,0,0,0,4,16,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,38]
+    var intellibrite2_2 = [255,0,255,165,1,15,16,39,25,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,6]
 
     var equip = 'controller'
 
@@ -38,7 +39,7 @@ describe('processes Intellibrite packets',function () {
         context('via serialport or Socat',function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellibrite.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellibrite.json'})
             });
 
             beforeEach(function () {
@@ -57,10 +58,11 @@ describe('processes Intellibrite packets',function () {
                    return global.stopAllAsync()
             })
 
-            it('#Tests issue #99',function () {
+            it('#Tests incoming packets with 2 Intellibrite controllers',function () {
                 return Promise.resolve()
                     .then(function () {
-                        bottle.container.packetBuffer.push(new Buffer(issue99))
+                        bottle.container.packetBuffer.push(new Buffer(intellibrite2_1))
+                        bottle.container.packetBuffer.push(new Buffer(intellibrite2_2))
 
                     })
                     .delay(50)
@@ -82,7 +84,7 @@ describe('processes Intellibrite packets',function () {
         context('via serialport or Socat',function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellibrite.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellibrite.json'})
             });
 
             beforeEach(function () {
@@ -463,7 +465,7 @@ describe('processes Intellibrite packets',function () {
 
             before(function () {
 
-                return global.initAllAsync('/specs/assets/config/templates/config_intellibrite.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellibrite.json'})
                     .then(function(){
                         bottle.container.writePacket.init()
                         bottle.container.queuePacket.init()

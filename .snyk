@@ -180,6 +180,29 @@ ignore:
     - request-promise > request-promise-core > request > extend:
         reason: None given
         expires: '2018-08-23T22:44:40.819Z'
+  'npm:braces:20180219':
+    - anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - chokidar > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > chokidar > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+  'npm:chownr:20180731':
+    - serialport > prebuild-install > tar-fs > chownr:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

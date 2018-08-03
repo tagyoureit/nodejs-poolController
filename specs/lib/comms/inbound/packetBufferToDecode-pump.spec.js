@@ -5,7 +5,7 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function() {
 
             before(function() {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             });
 
             beforeEach(function() {

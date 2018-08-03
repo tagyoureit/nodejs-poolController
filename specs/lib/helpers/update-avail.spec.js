@@ -91,7 +91,7 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_blank.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_blank.json'})
                     .then(function () {
 
 
@@ -189,7 +189,7 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
                         // sinon = sinon.sinon.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
@@ -259,7 +259,7 @@ describe('checks if there is a newer version available', function () {
 
 
                 //return global.initAllAsync()
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
                         // sinon = sinon.sinon.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
@@ -318,7 +318,7 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismisstrue.json'})
                     .then(function () {
                         // sinon = sinon.sinon.create()
 
@@ -400,7 +400,7 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismisstrue.json'})
                     .then(function () {
                         // sinon = sinon.sinon.create()
 

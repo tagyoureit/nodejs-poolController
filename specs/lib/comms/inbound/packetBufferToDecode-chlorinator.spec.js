@@ -10,7 +10,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             });
 
             beforeEach(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichlor.json'})
                     .then(function () {
                         sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
@@ -179,7 +179,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             });
 
             beforeEach(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellitouch_intellichlor.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch_intellichlor.json'})
                     .then(function () {
                         // sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')

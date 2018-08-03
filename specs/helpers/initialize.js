@@ -9,7 +9,7 @@ logInitAndStop = 0; //variable to tell us if we want to output start/stop/init o
 
 
 
-initAllAsync = function(configLocation, sysDefaultLocation) {
+initAllAsync = function(opts = {}) {
 
     return Promise.resolve()
         .then(function () {
@@ -22,10 +22,10 @@ initAllAsync = function(configLocation, sysDefaultLocation) {
 
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
             }
-            if (configLocation===undefined){
-                configLocation = path.join('/specs/assets/config/templates/config_vanilla.json')
+            if (opts.configLocation===undefined){
+                opts.configLocation = path.join('/specs/assets/config/templates/config_vanilla.json')
             }
-            return useShadowConfigFileAsync(configLocation, sysDefaultLocation)
+            return useShadowConfigFileAsync(opts)
         })
         .then(bottle.container.server.initAsync)
         .then(bottle.container.sp.mockSPBindingAsync)
@@ -148,7 +148,7 @@ var disableLogging = function(){
     bottle.container.settings.set('logApi', 0)
 }
 
-useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
+useShadowConfigFileAsync = function(opts) {
     return Promise.resolve('from use shadow config')
         .then(function(){
             // if (logInitAndStop){
@@ -159,7 +159,7 @@ useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
             // else {
             //     loggers = setupLoggerStubOrSpy('stub', 'spy')
             // }
-            return fs.readFileAsync(path.join(process.cwd(), configLocation))
+            return fs.readFileAsync(path.join(process.cwd(), opts.configLocation))
         })
         .then(function (orig) {
             return fs.writeFileSync(path.join(process.cwd(), '/specs/assets/config/config.json'), orig)
@@ -168,15 +168,15 @@ useShadowConfigFileAsync = function(configLocation, sysDefaultLocation) {
             if (logInitAndStop)
                 return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), 'utf-8')
                     .then(function(copy) {
-                        bottle.container.logger.silly('useShadowConfigFileAsync: Shadow file just copied %s (%s bytes) to config.json', configLocation, copy.length)
+                        bottle.container.logger.silly('useShadowConfigFileAsync: Shadow file just copied %s (%s bytes) to config.json', opts.configLocation, copy.length)
                     })
         })
         .then(function(){
-            if (sysDefaultLocation===undefined){
-                sysDefaultLocation=path.join(process.cwd(), '/sysDefault.json')
+            if (opts.sysDefaultLocation===undefined){
+                opts.sysDefaultLocation=path.join(process.cwd(), '/sysDefault.json')
             }
 
-            return bottle.container.settings.loadAsync(path.join(process.cwd(), '/specs/assets/config/config.json'), sysDefaultLocation)
+            return bottle.container.settings.loadAsync({'configLocation':  path.join(process.cwd(), '/specs/assets/config/config.json'), 'sysDefaultLocation': (opts.sysDefaultLocation || false), 'capturePackets': (opts.capturePackets || false), 'suppressWrite': (opts.suppressWrite || false)})
         })
         .catch( /* istanbul ignore next */ function (err) {
 

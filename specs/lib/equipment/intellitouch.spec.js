@@ -3,7 +3,7 @@ describe('processes Intellitouch packets', function() {
 
         before(function() {
 
-                    return global.initAllAsync('/specs/assets/config/templates/config_intellitouch.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch.json'})
 
         })
 

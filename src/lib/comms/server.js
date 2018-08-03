@@ -26,7 +26,7 @@ module.exports = function (container) {
     var path = require('path').posix;
     var defaultPort = {http: 3000, https: 3001}
     var mdnsEmitter = new container.events.EventEmitter();
-    var mdns = {query:[],answers:[]}
+    var mdns = {query: [], answers: []}
     var emitter = new container.events.EventEmitter();
 
 
@@ -150,7 +150,7 @@ module.exports = function (container) {
 
             servers['mdns'].on('response', function (response) {
                 //container.logger.silly('got a response packet:', response)
-                mdns.query.forEach(function(mdnsname){
+                mdns.query.forEach(function (mdnsname) {
                     container.logger.silly('looking to match on ', mdnsname)
                     if (response.answers[0].name.includes(mdnsname)) {
                         // container.logger.silly('TXT data:', response.additionals[0].data.toString())
@@ -177,8 +177,6 @@ module.exports = function (container) {
             })
 
 
-
-
             servers['mdns'].isRunning = 1
             servers['mdns'].query({
                     questions: [{
@@ -192,11 +190,11 @@ module.exports = function (container) {
         })
     }
 
-    function mdnsQuery(query){
-        if (mdns.query.indexOf(query)===-1){
+    function mdnsQuery(query) {
+        if (mdns.query.indexOf(query) === -1) {
             mdns.query.push(query)
         }
-        mdns.query.forEach(function(el){
+        mdns.query.forEach(function (el) {
             container.logger.debug('MDNS: going to send query for ', el)
             servers['mdns'].query({
                 questions: [{
@@ -223,7 +221,7 @@ module.exports = function (container) {
             .catch(function (e) {
                 console.error(e)
                 container.logger.error('Error starting servers.', e)
-                throw new Error('initAsync failed: Error starting servers. '+ e)
+                throw new Error('initAsync failed: Error starting servers. ' + e)
             })
 
 
@@ -231,8 +229,8 @@ module.exports = function (container) {
 
     var closeAsync = function (type) {
         return new Promise(function (resolve, reject) {
-            if (type === 'mdns'){
-                if (servers['mdns'].isRunning){
+            if (type === 'mdns') {
+                if (servers['mdns'].isRunning) {
                     servers['mdns'].destroy()
                 }
                 resolve()
@@ -292,10 +290,10 @@ module.exports = function (container) {
         customRoutes.init(app);
 
         // Middleware to capture requests to log
-        app.use(function(req, res, next){
+        app.use(function (req, res, next) {
 
             var reqType = req.originalUrl.split('/')
-            if (!['bootstrap', 'assets','poolController','public'].includes(reqType[1])) {
+            if (!['bootstrap', 'assets', 'poolController', 'public'].includes(reqType[1])) {
 
                 // if we are in capture packet mode, capture it
                 if (container.settings.get('capturePackets')) {

@@ -1,5 +1,10 @@
 {
   "equipment": {
+    "controller": {
+      "intellitouch": {
+        "numberOfPumps": 16
+      }
+    },
     "pump": {
       "1": {
         "type": "VS",

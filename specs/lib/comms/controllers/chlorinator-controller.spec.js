@@ -3,7 +3,7 @@ describe('chlorinator controller', function () {
     describe('#startChlorinatorController starts the timer for 1 or 2 chlorinators', function () {
 
         before(function () {
-            return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichlor.json'})
         });
 
         beforeEach(function () {

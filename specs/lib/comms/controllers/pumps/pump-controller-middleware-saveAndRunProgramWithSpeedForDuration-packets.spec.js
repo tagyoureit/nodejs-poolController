@@ -10,7 +10,7 @@ describe('pump controller - save and run program with speed for duration', funct
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
 
 
         });

@@ -9,7 +9,7 @@ describe('#sends pump commands to a VSF pump', function () {
 
             return Promise.resolve()
                 .then(function(){
-                    return global.initAllAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VF_VSF.json'})
                 })
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'spy')

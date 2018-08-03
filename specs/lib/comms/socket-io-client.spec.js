@@ -249,7 +249,7 @@ describe('socket.io basic tests', function () {
             var b = setTimeout(function(){
                 time2 = bottle.container.time.getTime()
                 time1.time.controllerTime.should.equal(time2.time.controllerTime)
-                global.initAllAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
+                global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_vanilla.json'}).then(done)
                 done()
             }, 1500)  //need time for all services to start up again.
 

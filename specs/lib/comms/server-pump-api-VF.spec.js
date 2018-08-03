@@ -16,7 +16,7 @@ describe('#sends pump commands to a VF pump', function () {
             // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
             //socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
 
-                    return global.initAllAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VF_VSF.json'})
 
 
                 .then(function(){

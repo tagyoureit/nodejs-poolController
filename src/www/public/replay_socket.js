@@ -1,4 +1,6 @@
 //var io = require('socket.io-client');
+
+// TODO: make server/port dynamic
 var socket = io.connect('http://localhost:3000', {secure: false, reconnect: true, rejectUnauthorized: false});
 //var path = require('path').posix
 
@@ -121,23 +123,54 @@ reader.onload = (event) => {
 
 
     })
+
+
+
     $('#packetCount').val("0 of " + totalPackets)
     bindBtnEvent()
+    setTableScroll()
     //totalPackets = counter
 }
 
+var setTableScroll = function() {
+    // set table scrolling height
+    var windowHeight = $(window).height()
+    var positionTable = $('#packets').offset().top
+    var positionTBody = $('#tableBody').offset().top
+    var tableSize = windowHeight-positionTable
+    var tbodySize = windowHeight-positionTBody
+    $('#packets').css('height', tableSize)
+    $('#tableBody')
+        .css('overflow-y', 'scroll')
+        .css('height', tbodySize)
+        .css('width', '100%')
+        .css('position', 'absolute')
+
+
+}
 
 var init = function () {
 
+    // bind event for window size change
+    $( window ).resize(function() {
+        setTableScroll()
+    });
 
     $('#resetButton').on('click', function () {
         var x = document.getElementById("myFile");
-         runTo = 0;
-         counter = 1; // counter for sent packets
-         lineToSend = 1; // which line/packet will be sent next
-         totalPackets = 0;
-         $('#packets tbody').html('')
+        runTo = 0;
+        counter = 1; // counter for sent packets
+        lineToSend = 1; // which line/packet will be sent next
+        totalPackets = 0;
+        $('#packets tbody').html('')
+
+        // stop replay if in progress
+        if ($('#replayButton').hasClass('btn-success')){
+            $('#replayButton').click()
+        }
+
         reader.readAsText(x.files[0])
+
 
     })
 
@@ -226,9 +259,3 @@ function runToThisLine() {
 $(function () {
     init()
 })
-
-/*
-
-
-$('*[row="21"] td').first().html('<button type="button" class="btn btn-default btn-sm" aria-label="Left Align"><span class="glyphicon glyphicon-align-left" aria-hidden="true"></span></button>')
- */

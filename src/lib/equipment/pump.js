@@ -139,6 +139,7 @@ module.exports = function (container) {
     }
 
     var init = function () {
+        currentPumpStatus = {}
         checkPumpsInConfig()
         var pumpConfig = container.settings.get('pump')
 

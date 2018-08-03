@@ -10,7 +10,7 @@ describe('#Tests a VS pump', function() {
             });
 
             beforeEach(function(){
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
                     .then(function(){
                         loggers = setupLoggerStubOrSpy('stub','stub')
                         clock = sinon.useFakeTimers()
@@ -140,7 +140,7 @@ describe('#Tests a VS pump', function() {
         describe('#sends pump commands', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             });
 
             beforeEach(function () {

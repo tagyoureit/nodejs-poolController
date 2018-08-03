@@ -10,7 +10,7 @@ describe('updates config.json variables to match number of circuits and pumps', 
 
         before(function () {
 
-            return global.initAllAsync('/specs/assets/config/templates/config_multiple_controllers.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_multiple_controllers.json'})
                 .then(function () {
                     loggers = setupLoggerStubOrSpy('stub', 'stub')
 

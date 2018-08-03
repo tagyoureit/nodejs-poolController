@@ -5,7 +5,7 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             })
 
             beforeEach(function() {

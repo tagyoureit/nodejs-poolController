@@ -15,7 +15,7 @@ describe('updates config.json variables', function () {
 
         beforeEach(function () {
 
-            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
                 .then(function () {
                     // sinon = sinon.sinon.create()
                     loggers = setupLoggerStubOrSpy('stub', 'stub')
@@ -141,7 +141,7 @@ describe('updates config.json variables', function () {
 
             beforeEach(function () {
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })

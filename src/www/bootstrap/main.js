@@ -879,7 +879,7 @@ function insertLightEdit() {
 
         }
         else if (currCircuit.circuitFunction === 'Intellibrite'){
-            console.log('Circuit currCircuit has function %s but no light section associated with it.', currCircuit.circuitFunction)
+            console.log('Circuit %s has function %s but no light section associated with it.', currCircuit.number, currCircuit.circuitFunction)
         }
 
     })

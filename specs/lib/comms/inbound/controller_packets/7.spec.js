@@ -10,7 +10,7 @@ describe('processes 7 (Pump Status) packets', function() {
         context('via serialport or Socat', function() {
 
             before(function() {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             });
 
             beforeEach(function() {

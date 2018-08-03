@@ -10,7 +10,7 @@ describe('processes Intellichem packets', function () {
         context('via serialport or Socat', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellichem.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichem.json'})
             });
 
             beforeEach(function () {

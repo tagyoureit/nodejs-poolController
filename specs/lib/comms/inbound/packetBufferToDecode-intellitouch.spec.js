@@ -5,7 +5,7 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellitouch.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch.json'})
 
             })
 
@@ -46,7 +46,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
                     })
-
+                    .delay(50)
                     .then(function () {
                         return global.waitForSocketResponseAsync('temperature')
                     })

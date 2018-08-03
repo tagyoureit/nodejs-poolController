@@ -10,7 +10,7 @@ describe('pump controller - save and run program with flow for duration', functi
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return global.initAllAsync('/specs/assets/config/templates/config_vanilla.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_vanilla.json'})
                 .then(function() {
                     return bottle.container.pump.init()
                 })
