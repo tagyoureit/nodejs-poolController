@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "start:capture": "node src/index.js $* --capturePackets",
+    "start:replay": "node src/index.js $* --suppressWrite",
     "test": "snyk test && mocha ./specs/assets/config/config.json ./specs/index.spec.js --recursive  ./specs  --reporter spec --require ./specs/helpers/chai.js --exit",
     "test:one": "mocha  ./specs/assets/config/config.json --reporter spec --require ./specs/helpers/chai.js ./specs/index.spec.js --exit",
     "test:one:cover": "istanbul cover  _mocha -- ./specs/assets/config/config.json ./specs/index.spec.js --include-all-sources  ./specs  --require ./specs/helpers/chai.js --reporter spec --exit",

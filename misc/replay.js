@@ -18,19 +18,9 @@ let runTo = 1;  // user input for how many packets to run until asked again
 let runningCounter = 0;  // ongoing counter when running tests
 let totalPackets = 0;
 
-class testRun {
-    constructor(packet) {
-        var self = this
-        self.packet = packet
-        // self.counter = counter
-        console.log('runTo in constructor: ', runTo)
-
-    }
-}
-
 let input = function (done) {
     runningCounter += 1
-    console.log('\nPlaying packet %s out of %s for this run', runTo, runToCounter)
+    console.log('\nPlaying packet %s out of %s for this run.  %s of %s left.', runTo, runToCounter, totalPackets-runningCounter, totalPackets)
     if (runTo === runToCounter || !runToCounter) {
 
         runTo = 1
@@ -73,7 +63,7 @@ let input = function (done) {
 
 
 const rl = readline.createInterface({
-    input: fs.createReadStream(bottle.container.path.join(process.cwd(), '/packetCapture.json'))
+    input: fs.createReadStream(bottle.container.path.join(process.cwd(), './replay/packetCapture.json'))
 });
 
 rl.on('line', function (line) {
@@ -91,13 +81,12 @@ rl.on('close', function () {
 
 
         before(function () {
-            return global.initAllAsync()
-                .then(bottle.container.settings.loadAsync(bottle.container.path.join(process.cwd(), '/packetCapture_config.json')))
+            return global.initAllAsync({'configLocation': './replay/config.json', 'suppressWrite': true})
         });
 
         beforeEach(function () {
             loggers = setupLoggerStubOrSpy('spy', 'spy')
-            controllerConfigNeededStub = sinon.replace(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration', sinon.fake.returns(0))
+            //controllerConfigNeededStub = sinon.replace(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration', sinon.fake.returns(0))
 
         })
 
