@@ -118,7 +118,7 @@ ignore:
   'npm:bootstrap:20160627':
     - bootstrap:
         reason: None given
-        expires: '2018-08-16T06:24:08.479Z'
+        expires: '2018-10-05T03:45:41.397Z'
   'npm:lodash:20180130':
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
@@ -170,7 +170,7 @@ ignore:
   'npm:extend:20180424':
     - node-ssdp > extend:
         reason: None given
-        expires: '2018-08-23T22:44:40.819Z'
+        expires: '2018-10-05T03:45:29.603Z'
     - request > extend:
         reason: None given
         expires: '2018-08-23T22:44:40.819Z'
@@ -196,7 +196,7 @@ ignore:
   'npm:chownr:20180731':
     - serialport > prebuild-install > tar-fs > chownr:
         reason: None given
-        expires: '2018-09-01T14:44:44.769Z'
+        expires: '2018-10-05T03:45:29.603Z'
     - chokidar > fsevents > node-pre-gyp > tar > chownr:
         reason: None given
         expires: '2018-09-01T14:44:44.769Z'
