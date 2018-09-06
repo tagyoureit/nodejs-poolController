@@ -109,7 +109,7 @@
       "netConnect": 0,
       "netHost": "raspberrypi",
       "netPort": 9801,
-      "inactivityRetry": 10
+      "inactivityRetry": 60
     },
     "log": {
       "logLevel": "info",

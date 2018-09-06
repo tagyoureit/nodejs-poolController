@@ -1799,9 +1799,11 @@ function handleButtons() {
         $.getJSON('configClient.json', function (json) {
             // Panel Data Retrieved, now reset all of them to visible (store to configClient.json, and make visible immediately)
             for (var currPanel in json.panelState) {
-                socket.emit('setConfigClient', 'panelState', currPanel, 'state', 'visible')
+             //   socket.emit('setConfigClient', 'panelState', currPanel, 'state', 'visible')
                 $('#' + currPanel).show();
             }
+            socket.emit('resetConfigClient');
+
         });
         refreshSpy();
     });

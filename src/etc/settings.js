@@ -583,6 +583,17 @@ module.exports = function (container) {
                 // are we starting the app in Replay mode?
                 if (argv.suppressWrite || _opts.suppressWrite) {
                     _settings.suppressWrite = true
+                    _settings.logPumpMessages = 1;
+                    _settings.logDuplicateMessages = 1;
+                    _settings.logConsoleNotDecoded = 1;
+                    _settings.logConfigMessages = 1;
+                    _settings.logMessageDecoding = 1;
+                    _settings.logChlorinator = 1;
+                    _settings.logIntellichem = 1;
+                    _settings.logPacketWrites = 1;
+                    _settings.logPumpTimers = 1;
+                    _settings.logApi = 1;
+                    _settings.logIntellibrite = 1;
 
                 }
                 else {

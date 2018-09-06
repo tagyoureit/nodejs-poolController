@@ -13,7 +13,7 @@
             "state": "visible"
         },
         "features": {
-            "state": "visible"
+            "state": "hidden"
         },
         "pump": {
             "state": "visible"
@@ -33,7 +33,7 @@
         "release": {
             "state": "visible"
         },
-        "lights": {
+        "light": {
             "state": "visible"
         }
     },
