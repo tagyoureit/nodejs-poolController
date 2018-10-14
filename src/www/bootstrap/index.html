@@ -276,10 +276,13 @@
     <div id="chlorinator" class="col-md-3 pnlChlorinator">
         <a name="chlorinator" class="anchor"></a>
         <div class="panel panel-primary">
-            <div class="panel-heading">Chlorinator Details
+            <div class="panel-heading">Chlorinator
                 <a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
                 <button id="hidePanelchlorinator" class="btn btn-primary btn-xs"
                         style="float: right; margin-right: 20px;">Hide
+                </button>
+                <button id="chlorEdit" class="btn btn-primary btn-xs" data-target="#modalChlorinator" data-toggle="modal"
+                        style="float: right; margin-right: 20px;">Edit
                 </button>
             </div>
             <div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
@@ -294,7 +297,7 @@
                     <tr id="chlorinatorInstalled">
                         <td>Chlorinator Installed?</td>
                         <td>
-                            Not installed
+                            Status not yet known
                         </td>
                     </tr>
                     <tr id="chlorinatorState">
@@ -328,6 +331,10 @@
                     <tr>
                         <td>Status</td>
                         <td id="chlorinatorStatus">---</td>
+                    </tr>
+                    <tr>
+                        <td>Controlled By</td>
+                        <td id="chlorinatorControlledBy">---</td>
                     </tr>
                     </tbody>
                 </table>
@@ -690,9 +697,18 @@
             </div>
             <div class="modal-body">
                 <div class="input-group">
-                    <span class="input-group-addon">Chlorinator Level</span>
-                    <input type="text" class="form-control" id="modalChlorInput" aria-describedby="basic-addon3">
+                    <span class="input-group-addon">Pool Level %</span>
+                    <input type="text" class="form-control" id="modalChlorInputPool" aria-describedby="basic-addon3">
                 </div>
+                <div class="input-group" id="modalChlorInputSpaGrp">
+                    <span class="input-group-addon">Spa Level %</span>
+                    <input type="text" class="form-control" id="modalChlorInputSpa" aria-describedby="basic-addon3">
+                </div>
+                <div class="input-group" id="modalChlorInputSuperChlorGrp">
+                    <span class="input-group-addon">Super Chlorinate Hours (0=off)</span>
+                    <input type="text" class="form-control" id="modalChlorInputSuperChlor" aria-describedby="basic-addon3">
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>

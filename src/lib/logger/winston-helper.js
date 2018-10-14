@@ -103,6 +103,8 @@ module.exports = function(container) {
     }
 
     function error(msg, ...args){
+        console.log('error msg: ', msg)
+        console.log('error args... ', args)
         if (logger===undefined){
             console.log('Error ', args)
         }

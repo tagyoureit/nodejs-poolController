@@ -379,8 +379,14 @@ module.exports = function (container) {
             container.logger.info(str)
         })
 
-        socket.on('setchlorinator', function (desiredChlorinatorOutput) {
-            container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorOutput))
+        socket.on('setchlorinator', function (desiredChlorinatorPoolOutput, desiredChlorinatorSpaOutput = -1, desiredSuperChlorHours = -1) {
+            if (desiredChlorinatorSpaOutput===-1){
+                container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorPoolOutput))
+            }
+            else {
+                container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorPoolOutput), parseInt(desiredChlorinatorSpaOutput), parseInt(desiredSuperChlorHours))
+            }
+
         })
 
         socket.on('setSpaSetPoint', function (spasetpoint) {

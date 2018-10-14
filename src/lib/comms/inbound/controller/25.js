@@ -39,13 +39,14 @@ module.exports = function(container) {
                 //
 
 
-                var outputSpaPercent = data[container.constants.chlorinatorPacketFields.OUTPUTSPAPERCENT]
-                var outputPercent = data[container.constants.chlorinatorPacketFields.OUTPUTPERCENT];
-                var saltPPM = data[container.constants.chlorinatorPacketFields.SALTPPM];
-                var status = data[container.constants.chlorinatorPacketFields.STATUS]
+                var outputSpaPercent = data[container.constants.controllerChlorinatorPacketFields.OUTPUTSPAPERCENT]
+                var outputPercent = data[container.constants.controllerChlorinatorPacketFields.OUTPUTPERCENT];
+                var saltPPM = data[container.constants.controllerChlorinatorPacketFields.SALTPPM];
+                var status = data[container.constants.controllerChlorinatorPacketFields.STATUS]
+                var superChlorinate = data[container.constants.controllerChlorinatorPacketFields.SUPERCHLORINATE]
 
                 var name = container.chlorinator.getChlorinatorNameByBytes(data.slice(12,28))
-                container.chlorinator.setChlorinatorStatusFromController(saltPPM, outputPercent, outputSpaPercent, status, name, counter)
+                container.chlorinator.updateChlorinatorStatusFromController(saltPPM, outputPercent, outputSpaPercent, superChlorinate, status, name, counter)
 
 
 

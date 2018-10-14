@@ -341,6 +341,10 @@ function buildStaticRowSchedule(el, currSchedule) {
         cssFontWeight = 'bold'
         cssColor = 'blue'
     }
+    else {
+        cssFontWeight = 'normal'
+        cssColor = 'black'
+    }
 
     var hideEl = '';
     if ($('#editPanelschedule').hasClass('btn-success'))
@@ -1571,7 +1575,7 @@ function startSocketRx() {
                 $('#chlorinatorInstalled').hide();
 
                 if ((data.currentOutput > 0))
-                    setStatusButton($('#CHLORINATOR'), 1);
+                    setStatusButton($('#CHLORINATOR'), 1, data.superChlorinate===1?'Super Chlorinate - ':'');
                 else
                     setStatusButton($('#CHLORINATOR'), 0);
                 $('#chlorinatorName').html(data.name);
@@ -1588,13 +1592,25 @@ function startSocketRx() {
                 $('#chlorinatorPoolPercent').html(chlorStr);
 
                 if (data.superChlorinate === 1)
-                    $('#chlorinatorSuperChlorinate').html('True');
+                    $('#chlorinatorSuperChlorinate').html('<b>True - ' + data.superChlorinateHours + ' hours</b>').css('color', "green");
                 else
-                    $('#chlorinatorSuperChlorinate').html('False');
+                    $('#chlorinatorSuperChlorinate').html('False').css("color", "black");
                 $('#chlorinatorStatus').html(data.status);
+                $('#chlorinatorControlledBy').html(data.controlledBy)
+                $('#modalChlorInputPool').val(data.outputPoolPercent)
+                $('#modalChlorInputSpa').val(data.outputSpaPercent)
+                $('#modalChlorInputSuperChlor').val(data.superChlorinateHours)
+                if (data.controlledBy==='intellicom' || data.controlledBy==='virtual'){
+                    $('#modalChlorInputSpaGrp').hide()
+                    $('#modalChlorInputSuperChlorGrp').hide()
+                }
+                $('#chlorEdit').show()
+
             } else {
                 $('#chlorinatorTable tr').not(':first').hide();
                 $('#chlorinatorInstalled').show();
+                $('#modalChlorInputSuperChlorGrp').show();
+                $('#chlorEdit').hide()
             }
         }
         lastUpdate(true);
@@ -1878,12 +1894,25 @@ function handleButtons() {
 
     // Button Handling: Modal, Save Settings for Chlorinator ... and second function, so keypress (Enter Key) fires input
     $('#SaveChanges').click(function () {
+        console.log('savechanges clicked')
+
+        var chlorSettingPool = parseFloat($('#modalChlorInputPool').val());
+        var chlorSettingSpa = $('#modalChlorInputSpaGrp').is(":visible")?parseFloat($('#modalChlorInputSpa').val()):-1;
+        var chlorSettingSuperChlor = $('#modalChlorInputSuperChlorGrp').is(":visible")?parseFloat($('#modalChlorInputSuperChlor').val()):-1
+        console.log('chlorSettingPool: ', chlorSettingPool)
+        console.log('is spa visible?: ', $('#modalChlorInputSpaGrp').is(":visible") )
+
+        if ((chlorSettingPool >= 0) && (chlorSettingPool <= 101)) {
+            console.log('EMITTING Chlor: %s', chlorSettingPool, chlorSettingSpa, chlorSettingSuperChlor)
+            socket.emit('setchlorinator', chlorSettingPool, chlorSettingSpa, chlorSettingSuperChlor);
+        }
+        else {
+            console.log('Invalid chlorinator setting(s): Pool - %s.  Spa - %s', chlorSettingPool, chlorSettingSpa)
+        }
         $('#modalChlorinator').modal('hide');
-        var chlorSetting = parseFloat($('#modalChlorInput')[0].value);
-        if ((chlorSetting >= 0) && (chlorSetting <= 101))
-            socket.emit('setchlorinator', chlorSetting);
     });
-    $('#modalChlorinator').keypress(function (key) {
+
+    $('#modalChlorinator').on('keypress',function (key) {
         if (key.which === 13)
             $('#SaveChanges').click();
     })
