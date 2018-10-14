@@ -26,6 +26,8 @@ module.exports = function (container) {
         observableDiff = container.deepdiff.observableDiff,
         applyChange = container.deepdiff.applyChange;
 
+    var argv = require('yargs-parser')(process.argv.slice(2), opts = {boolean: ['capturePackets', 'suppressWrite']})
+
     /* istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loading: settings.js')
@@ -33,7 +35,7 @@ module.exports = function (container) {
     var packageJson = JSON.parse(container.fs.readFileSync(path.join(process.cwd(), '/package.json'), 'utf-8'))
     _settings.appVersion = packageJson.version
 
-    var envParam = process.argv[2];
+    //var envParam = process.argv[2];
     var configurationFileContent, sysDefaultFileContent;
 
     var has = function (param) {
@@ -63,7 +65,7 @@ module.exports = function (container) {
             case "equipment":
                 return configurationFileContent.equipment;
                 break;
-            case "controllel":
+            case "controller":
                 return configurationFileContent.equipment.controller
                 break
             case "intellicom":
@@ -230,7 +232,8 @@ module.exports = function (container) {
                 return _settings[param]
         }
         catch (err) {
-            container.logger.warn('Error getting setting %s: %s', param, err)
+            console.log(err)
+            container.logger.error('Error getting setting %s: %s', param, err)
             console.log('settings are', JSON.stringify(_settings, null, 2))
             return false
         }
@@ -238,7 +241,7 @@ module.exports = function (container) {
 
     var set = function (param, value) {
         if (value === undefined)
-            container.logger.warn('Trying to set settings parameter %s with no value.', value)
+            container.logger.warn('Trying to set settings parameter "%s" with no value.', param)
         else if (param.indexOf('.') !== -1) {
             recurseSet(_settings, param.split('.'), value)
         }
@@ -303,21 +306,27 @@ module.exports = function (container) {
     var moveConfigFileKeys = function () {
         return Promise.resolve()
             .then(function () {
-                //this is implemented for >=4.1.34
-                //move equipment.controller.circuitFriendlyNames to equipment.circuit:{friendlyName} if it exists
-                if (configurationFileContent.equipment.controller.hasOwnProperty("circuitFriendlyNames")) {
-                    // add circuit key if not exists
-                    if (!configurationFileContent.equipment.hasOwnProperty("circuit")) {
-                        configurationFileContent.equipment.circuit = {"friendlyName": {}}
+                try {
+                    //this is implemented for >=4.1.34
+                    //move equipment.controller.circuitFriendlyNames to equipment.circuit:{friendlyName} if it exists
+                    if (configurationFileContent.equipment.controller.hasOwnProperty("circuitFriendlyNames")) {
+                        // add circuit key if not exists
+                        if (!configurationFileContent.equipment.hasOwnProperty("circuit")) {
+                            configurationFileContent.equipment.circuit = {"friendlyName": {}}
+                        }
+                        // move key
+                        configurationFileContent.equipment.circuit.friendlyName = JSON.parse(JSON.stringify(configurationFileContent.equipment.controller.circuitFriendlyNames))
+                        // delete old key
+                        delete configurationFileContent.equipment.controller.circuitFriendlyNames
                     }
-                    // move key
-                    configurationFileContent.equipment.circuit.friendlyName = JSON.parse(JSON.stringify(configurationFileContent.equipment.controller.circuitFriendlyNames))
-                    // delete old key
-                    delete configurationFileContent.equipment.controller.circuitFriendlyNames
                 }
+                catch (err) {
+                    container.logger.silly('Settings: No keys to move.', err)
+                }
+
             })
-            .catch(function () {
-                container.logger.silly('Settings: No keys to move.')
+            .catch(function (err) {
+                container.logger.error('Error in moveConfigFileKeys', err)
             })
 
     }
@@ -338,8 +347,23 @@ module.exports = function (container) {
                 observableDiff(configurationFileContent, sysDefaultFileContent, function (d) {
                         // console.log(d, d.kind)
                         if (d.kind === 'D') {
-                            //container.logger.warn('Potential expired/deprecated key: %s:%s', d.path.join('.'), JSON.stringify(d.lhs))
-                            diffs.deprecatedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.lhs))
+                            // check for numberOfCircuits in config file and do not show warning for friendly names/pumps that are not in the sysDefault
+                            if (d.path[2] === 'friendlyName') {
+                                if (d.path[3] > configurationFileContent.equipment.controller.intellitouch.numberOfCircuits) {
+                                    // too many circuits
+                                    diffs.deprecatedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.lhs))
+                                }
+                            }
+                            else if (d.path[1] === 'pump') {
+                                if (d.path[2] > configurationFileContent.equipment.controller.intellitouch.numberOfPumps) {
+                                    // too many pumps
+                                    diffs.deprecatedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.lhs))
+                                }
+                            }
+                            else {
+                                //container.logger.warn('Potential expired/deprecated key: %s:%s', d.path.join('.'), JSON.stringify(d.lhs))
+                                diffs.deprecatedKeys.push(d.path.join('.') + ':' + JSON.stringify(d.lhs))
+                            }
                         }
                         if (d.kind === 'E') {
                             //ignore all edits except version number
@@ -406,25 +430,31 @@ module.exports = function (container) {
                 // }
             })
             .then(writeConfigFileAsync)
+            .catch(function(err){
+                container.logger.error('Error in migrateSysDefaultsToConfigFile: %s', err)
+                console.log(err)
+            })
     };
 
 
-    var loadAsync = function (configLocation, sysDefaultFileLocation) {
-
+    var loadAsync = function (_opts = {}) {
+        // _opts can be
+        // sysDefaultLocation, configLocation, capturePackets, suppressWrite
         return Promise.resolve()
             .then(function () {
-                if (sysDefaultFileLocation) {
-                    _settings.sysDefaultFileLocation = sysDefaultFileLocation;
+                if (_opts.sysDefaultLocation) {
+                    _settings.sysDefaultFileLocation = _opts.sysDefaultLocation;
                 }
                 else {
                     _settings.sysDefaultFileLocation = path.join(process.cwd(), '/sysDefault.json');
                 }
-                container.logger.silly('Using system default file: ', _settings.sysDefaultFileLocation)
+                container.logger.silly('Using system default file: ', _settings.sysDefaultLocation)
 
-                if (configLocation) {
-                    _settings.configurationFileLocation = configLocation;
-                } else if (envParam) {
-                    _settings.configurationFileLocation = envParam
+                if (_opts.configLocation) {
+                    _settings.configurationFileLocation = _opts.configLocation;
+                } else if (argv._.length) {
+
+                    _settings.configurationFileLocation = argv._[0]
                 }
                 else {
                     _settings.configurationFileLocation = 'config.json';
@@ -437,7 +467,6 @@ module.exports = function (container) {
             .then(moveConfigFileKeys)
             .then(migrateSysDefaultsToConfigFile)
             .then(function () {
-                // = JSON.parse(JSON.stringify(parsedData))
 
                 /*   Equipment   */
                 //Controller
@@ -523,16 +552,62 @@ module.exports = function (container) {
                 container.logger.silly('Finished loading settings.')
                 return 'Finished Loading Settings'
             })
+            .then(function () {
+                // are we starting the app with packet capture enabled?
+                if (argv.capturePackets || _opts.capturePackets) {
+                    _settings.capturePackets = true
+                    _settings.fileLog = {
+                        "enable": 1,
+                        "fileLogLevel": "silly",
+                        "fileName": "replay/packetCapture.log"
+                    };
+                    _settings.logPumpMessages = 1;
+                    _settings.logDuplicateMessages = 1;
+                    _settings.logConsoleNotDecoded = 1;
+                    _settings.logConfigMessages = 1;
+                    _settings.logMessageDecoding = 1;
+                    _settings.logChlorinator = 1;
+                    _settings.logIntellichem = 1;
+                    _settings.logPacketWrites = 1;
+                    _settings.logPumpTimers = 1;
+                    _settings.logApi = 1;
+                    _settings.logIntellibrite = 1;
+
+                    // copy the config file
+                    container.fs.writeFileSync(path.join(process.cwd(), '/replay/', _settings.configurationFileLocation), container.fs.readFileSync(path.join(process.cwd(), _settings.configurationFileLocation)));
+                }
+                else {
+                    _settings.capturePackets = false
+                }
+
+                // are we starting the app in Replay mode?
+                if (argv.suppressWrite || _opts.suppressWrite) {
+                    _settings.suppressWrite = true
+                    _settings.logPumpMessages = 1;
+                    _settings.logDuplicateMessages = 1;
+                    _settings.logConsoleNotDecoded = 1;
+                    _settings.logConfigMessages = 1;
+                    _settings.logMessageDecoding = 1;
+                    _settings.logChlorinator = 1;
+                    _settings.logIntellichem = 1;
+                    _settings.logPacketWrites = 1;
+                    _settings.logPumpTimers = 1;
+                    _settings.logApi = 1;
+                    _settings.logIntellibrite = 1;
+
+                }
+                else {
+                    _settings.suppressWrite = false
+                }
+            })
             .catch(function (err) {
-                container.logger.error('Error reading %s.  %s', _settings.configurationFileLocation, err)
+                container.logger.error('Error reading in settings.js %s.  %s', _settings.configurationFileLocation, err)
             })
             .finally(function () {
                 container.logger.debug('Finished settings.loadAsync()')
             })
 
     }
-
-
 
 
     var displaySettingsMsg = function () {
@@ -604,7 +679,6 @@ module.exports = function (container) {
         container.logger.info('Settings:\n' + settingsStr)
 
 
-
         return settingsStr
     }
 
@@ -637,8 +711,6 @@ module.exports = function (container) {
 
         return {config: configTemp}
     }
-
-
 
 
     var updatePumpTypeAsync = function (_pump, _type) {

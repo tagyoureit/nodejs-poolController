@@ -13,7 +13,7 @@ module.exports = function (container) {
     var serverURL;
 
     if (configFile.outputToSmartThings.hasOwnProperty("logEnabled")) {
-        logEnabled = configFile.outputToSmartThings.log.enabled
+        logEnabled = configFile.outputToSmartThings.logEnabled
     }
 
 
@@ -74,12 +74,15 @@ module.exports = function (container) {
     })
 
     function init() {
-        if (logEnabled) {
+
             container.logger.info('outputToSmartThings Loaded. \n\taddress: %s\n\tport: %s\n\tsecure: %s', address, port, secureTransport)
+        if (!logEnabled) {
+            container.logger.info('outputToSmartThings log NOT enabled.  This will be the last message displayed by this integration.')
+
         }
     }
 
-    var mdns = container.server.getMdnsEmitter();
+    var mdns = container.server.mdnsEmitter;
     mdns.on('response', function (response) {
         if (address !== response.additionals[2].data) {
             //console.log('in ST: TXT data:', response.additionals[0].data.toString())
@@ -88,8 +91,8 @@ module.exports = function (container) {
             address = response.additionals[2].data
             if (logEnabled) {
                 container.logger.info('outputToSmartThings: Hub address updated to:', address)
-                // close mdns server if we don't need it... or keep it open if you think the IP address of ST will change
             }
+            // close mdns server if we don't need it... or keep it open if you think the IP address of ST will change
             container.server.closeAsync('mdns')
         }
 

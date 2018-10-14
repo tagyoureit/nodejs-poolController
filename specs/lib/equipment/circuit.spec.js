@@ -24,14 +24,14 @@
 //
 //         beforeEach(function() {
 //             loggers = setupLoggerStubOrSpy('stub', 'stub')
-//             clock = sandbox.useFakeTimers()
+//             clock = sinon.useFakeTimers()
 //
-//             updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+//             updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 //         })
 //
 //         afterEach(function() {
-//             //restore the sandbox after each function
-//             sandbox.restore()
+//             //restore the sinon after each function
+//             sinon.restore()
 //
 //
 //         })
@@ -77,17 +77,17 @@
 //       });
 //
 //       beforeEach(function() {
-//           sandbox = sinon.sandbox.create()
-//           clock = sandbox.useFakeTimers()
-//           loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//           loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-//           loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-//           loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-//           loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
+//           sinon = sinon.sinon.create()
+//           clock = sinon.useFakeTimers()
+//           loggerInfoStub = sinon.stub(bottle.container.logger, 'info')
+//           loggerWarnStub = sinon.spy(bottle.container.logger, 'warn')
+//           loggerVerboseStub = sinon.stub(bottle.container.logger, 'verbose')
+//           loggerDebugStub = sinon.stub(bottle.container.logger, 'debug')
+//           loggerSillyStub = sinon.stub(bottle.container.logger, 'silly')
 //         })
 //
 //         afterEach(function() {
-//             sandbox.restore()
+//             sinon.restore()
 //         })
 //
 //         after(function() {

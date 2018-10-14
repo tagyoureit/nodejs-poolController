@@ -10,19 +10,19 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             });
 
             beforeEach(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellichlor.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichlor.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+                        sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
 
-                        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
-                        // intellitouchStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration').returns(false)
+                        // intellitouchStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration').returns(false)
                         //
-                        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
 
-                       // getVersionNotificationStub = sandbox.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
+                       // getVersionNotificationStub = sinon.stub(bottle.container.settings, 'get').withArgs('notifications.version.remote').returns({'dismissUntilNextRemoteVersionBump': true})
 
 
                     })
@@ -32,7 +32,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             afterEach(function () {
                 return Promise.resolve()
                     .then(function () {
-                        return sandbox.restore()
+                        return sinon.restore()
                     })
                     .then(function () {
                         return global.stopAllAsync()
@@ -47,7 +47,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
                     })
                     .catch(function (err) {
                         console.error('Error in after each:', err)
-                        sandbox.restore()
+                        sinon.restore()
                     })
 
             })
@@ -59,7 +59,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             it('#decodes status messages received from Intellitouch', function () {
 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
-                // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
+                // updateChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorinatorPkt_chk = [255, 0, 255, 165, 16, 15, 16, 25, 22, 25, 9, 128, 23, 133, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 7, 232]
                 var client
@@ -84,7 +84,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             it('#decodes status messages received from Intellichlor, and does not request name on subsequent chlorinator packets', function (done) {
 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
-                // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
+                // updateChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorPkt_GetStatus = [16, 2, 80, 0, 0, 98, 16, 3]
 
@@ -143,7 +143,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             it('#decodes status messages received from Intellitouch, and processes same message and changes', function (done) {
 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
-                // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
+                // updateChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorinatorPkt_chk = [255, 0, 255, 165, 16, 15, 16, 25, 22, 25, 0, 128, 23, 133, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 7, 223]
                 var chlorinatorPkt2_chk = [255, 0, 255, 165, 16, 15, 16, 25, 22, 25, 10, 128, 23, 255, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 8, 99]
@@ -179,14 +179,14 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             });
 
             beforeEach(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellitouch_intellichlor.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch_intellichlor.json'})
                     .then(function () {
-                        // sandbox = sinon.sandbox.create()
+                        // sinon = sinon.sinon.create()
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
 
-                        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
-                        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
                     })
 
@@ -195,7 +195,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             afterEach(function () {
                 return Promise.resolve()
                     .then(function () {
-                        sandbox.restore()
+                        sinon.restore()
 
                     })
                     .then(global.stopAllAsync)
@@ -218,7 +218,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
             it('#decodes status packet and does not request name with Intellitouch present', function () {
 
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
-                // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
+                // updateChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorinatorPkt_chk = [16, 2, 0, 1, 0, 0, 19, 16, 3]
 
@@ -238,7 +238,7 @@ describe('chlorinator packets: receives packets from buffer and follows them to 
 
             it('#decodes status packet and requests name with Intellitouch virtual controller started', function (done) {
                 // 17:18:54.775 DEBUG Msg# 128   Chlorinator status packet: 165,16,15,16,25,22,25,9,128,23,133,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48,7,232
-                // setChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
+                // updateChlorinatorStatusFromController: 23 9 25 133 Intellichlor--40 128
                 // 17:18:54.775 INFO Msg# 128   Initial chlorinator settings discovered:  {"saltPPM":1150,"outputPoolPercent":9,"outputSpaPercent":12,"SuperChlorinate":0,"status":133,"name":"Intellichlor--40"}
                 var chlorinatorPkt_chk = [255, 0, 255, 16, 2, 0, 1, 0, 0, 19, 16, 3]
                 Promise.resolve()

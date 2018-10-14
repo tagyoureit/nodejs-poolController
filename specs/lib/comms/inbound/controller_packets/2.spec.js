@@ -13,12 +13,19 @@ describe('processes 2 (Status) packets', function () {
             });
 
             beforeEach(function () {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
-                bottle.container.circuit.init()
+                return Promise.resolve()
+                    .then(function(){
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
+                        getControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'getControllerConfiguration')
+
+                    })
+
             })
 
             afterEach(function () {
-                sandbox.restore()
+
+                sinon.restore()
+                bottle.container.circuit.init()
 
             })
 
@@ -26,18 +33,18 @@ describe('processes 2 (Status) packets', function () {
                 return global.stopAllAsync()
             })
 
-            it('#Processes a controller status packet', function (done) {
-                Promise.resolve()
+            it('#Processes a controller status packet', function () {
+                return Promise.resolve()
                     .then(function () {
                         return bottle.container.packetBuffer.push(data[0])
                     })
-                    .delay(50)
+                    .delay(80)
                     .then(
                         function () {
                             bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
                             bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
                         })
-                    .then(done, done)
+
             })
 
             it('#Processes a Duplicate Broadcast controller status packet', function (done) {
@@ -48,7 +55,7 @@ describe('processes 2 (Status) packets', function () {
                     .then(function () {
                         return bottle.container.packetBuffer.push(data[0])
                     })
-                    .delay(50)
+                    .delay(80)
                     .then(
                         function () {
                             bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)

@@ -10,19 +10,19 @@ describe('processes Intellichem packets', function () {
         context('via serialport or Socat', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellichem.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellichem.json'})
             });
 
             beforeEach(function () {
-                // sandbox = sinon.sandbox.create()
+                // sinon = sinon.sinon.create()
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
             })
 
             afterEach(function () {
                 bottle.container.intellichem.init()
-                sandbox.restore()
+                sinon.restore()
 
             })
 

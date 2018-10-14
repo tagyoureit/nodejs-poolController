@@ -10,18 +10,18 @@ describe('#Tests a VS pump', function() {
             });
 
             beforeEach(function(){
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
                     .then(function(){
                         loggers = setupLoggerStubOrSpy('stub','stub')
-                        clock = sandbox.useFakeTimers()
-                        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                        getCurrentStatusStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({"pump":{
+                        clock = sinon.useFakeTimers()
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                        getCurrentStatusStub = sinon.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({"pump":{
                                 "1": {type: 'VS'},
                                 "2": {type: 'VS'}
                             }
                         })
-                        // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                        socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+                        // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                        socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
                         bottle.container.logger.silly('beforeEach done in VS')
 
                     })
@@ -33,7 +33,7 @@ describe('#Tests a VS pump', function() {
             })
 
             afterEach(function () {
-                sandbox.restore()
+                sinon.restore()
                 return global.stopAllAsync()
 
             })
@@ -140,25 +140,25 @@ describe('#Tests a VS pump', function() {
         describe('#sends pump commands', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             });
 
             beforeEach(function () {
-                // sandbox = sinon.sandbox.create()
+                // sinon = sinon.sinon.create()
                 loggers = setupLoggerStubOrSpy('stub', 'stub')
-                clock = sandbox.useFakeTimers()
+                clock = sinon.useFakeTimers()
 
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
+                settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
             })
 
             afterEach(function () {
-                //restore the sandbox after each function
+                //restore the sinon after each function
                 bottle.container.pumpControllerTimers.clearTimer(1)
                 bottle.container.pumpControllerTimers.clearTimer(2)
-                sandbox.restore()
+                sinon.restore()
 
             })
 
@@ -502,19 +502,19 @@ describe('#Tests a VS pump', function() {
 
             beforeEach(function () {
                 loggers = setupLoggerStubOrSpy('stub','stub')
-               // clock = sandbox.useFakeTimers()
+               // clock = sinon.useFakeTimers()
 
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-                settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+                socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
+                settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
             })
 
             afterEach(function () {
-                //restore the sandbox after each function
+                //restore the sinon after each function
                 bottle.container.pumpControllerTimers.clearTimer(1)
                 bottle.container.pumpControllerTimers.clearTimer(2)
-                sandbox.restore()
+                sinon.restore()
 
             })
 
@@ -586,8 +586,8 @@ describe('#Tests a VS pump', function() {
                 });
 
                 it('saves pump 1 and rpm 1000 (should fail // no program)', function (done) {
-                    consoleEStub = sandbox.stub(console, 'error')
-                    consoleStub = sandbox.stub(console, 'log')
+                    consoleEStub = sinon.stub(console, 'error')
+                    consoleStub = sinon.stub(console, 'log')
                     global.requestPoolDataWithURLAsync('pumpCommand/save/pump/1/rpm/1000').then(function (obj) {
 
                         obj.text.should.contain('Please provide the program')

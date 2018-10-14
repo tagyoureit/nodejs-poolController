@@ -3,17 +3,17 @@ describe('tests temperature functions', function () {
 
         before(function () {
 
-            return global.initAllAsync('/specs/assets/config/templates/config_vanilla.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_vanilla.json'})
 
         })
 
         beforeEach(function () {
-            // sandbox = sinon.sandbox.create()
+            // sinon = sinon.sinon.create()
             loggers = setupLoggerStubOrSpy('stub', 'spy')
         })
 
         afterEach(function () {
-            sandbox.restore()
+            sinon.restore()
 
         })
 

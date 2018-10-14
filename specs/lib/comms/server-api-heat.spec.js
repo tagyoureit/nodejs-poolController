@@ -13,17 +13,21 @@ describe('server', function() {
             })
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
-                clock = sandbox.useFakeTimers()
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+                return Promise.resolve()
+                    .then(function(){
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
+                        //clock = sinon.useFakeTimers()
+                        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                        sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                bottle.container.queuePacket.init()
-                bottle.container.packetBuffer.push(data[0])
+                        writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                        writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                        checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                        bottle.container.queuePacket.init()
+                        bottle.container.packetBuffer.push(data[0])
 
+                    })
+                    .delay(50)
 
             })
 
@@ -33,7 +37,7 @@ describe('server', function() {
             })
 
             after(function() {
-                sandbox.restore() //need to call manually whenever we use fake timers
+                sinon.restore() //need to call manually whenever we use fake timers
                 return global.stopAllAsync()
             })
 

@@ -30,17 +30,17 @@ describe('processes 10 (Custom Names) packets', function() {
 
       before(function() {
         return global.initAllAsync()
+
       });
 
       beforeEach(function() {
         loggers = setupLoggerStubOrSpy('stub', 'spy')
-        clock = sandbox.useFakeTimers()
-
+          controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
       })
 
       afterEach(function() {
-        sandbox.restore()
+        sinon.restore()
 
       })
 
@@ -49,23 +49,23 @@ describe('processes 10 (Custom Names) packets', function() {
       })
 
       it('#Custom Names should be parsed correctly', function() {
-        bottle.container.packetBuffer.push(data[0])
-        bottle.container.packetBuffer.push(data[1])
-        bottle.container.packetBuffer.push(data[2])
-        bottle.container.packetBuffer.push(data[3])
 
-        clock.tick(1000)
-        bottle.container.customNames.getCustomName(1).should.eq('CL BOOST')
-        bottle.container.customNames.getCustomName(2).should.eq('MAX')
-        bottle.container.customNames.getCustomName(3).should.eq('WtrFall 3')
-        bottle.container.customNames.getCustomName(9).should.eq('USERNAME-10')
+          return Promise.resolve()
+              .then(function(){
+                  bottle.container.packetBuffer.push(data[0])
+                  bottle.container.packetBuffer.push(data[1])
+                  bottle.container.packetBuffer.push(data[2])
+                  bottle.container.packetBuffer.push(data[3])
+              })
+             .delay(40)
+              .then(function(){
+                  bottle.container.customNames.getCustomName(1).should.eq('CL BOOST')
+                  bottle.container.customNames.getCustomName(2).should.eq('MAX')
+                  bottle.container.customNames.getCustomName(3).should.eq('WtrFall 3')
+                  bottle.container.customNames.getCustomName(9).should.eq('USERNAME-10')
+              })
 
-
-        // var json = bottle.container.customNames.getCustomName(3).should.eq('MAX')
-        // //console.log('json for circuit 1: ', JSON.stringify(json,null,2))
-        // json[1].number.should.equal(1)
-        // json[1].name.should.equal("SPA")
-      })
+       })
 
 
     })

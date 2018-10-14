@@ -15,35 +15,27 @@ describe('chlorinator tests', function() {
 
     beforeEach(function() {
         loggers = setupLoggerStubOrSpy('stub', 'stub')
-        clock = sandbox.useFakeTimers()
+        clock = sinon.useFakeTimers()
 
-        pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
+        pumpControllerProgramTimersSpy = sinon.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
 
-        queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-        emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
+        queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+        emitToClientsStub = sinon.stub(bottle.container.io, 'emitToClients')
 
-        updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+        updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
         bottle.container.chlorinatorController.startChlorinatorController()
     })
 
     afterEach(function() {
-        //restore the sandbox after each function
+        //restore the sinon after each function
         bottle.container.chlorinatorController.clearTimer()
-        sandbox.restore()
+        sinon.restore()
 
 
     })
 
     after(function() {
-        // return Promise.resolve()
-        //     .then(function(){
-        //         bottle.container.settings.set('virtual.chlorinatorController', "default")
-        //         bottle.container.settings.set('chlorinator.installed', 0)
-        //         bottle.container.settings.set('intellitouch.installed', 1)
-        //         bottle.container.settings.set('intellicom.installed', 0)
-        //         bottle.container.chlorinatorController.clearTimer()
-        //     })
-        //     .then(global.stopAllAsync)
+
         return global.stopAllAsync()
     })
 
@@ -133,4 +125,66 @@ describe('chlorinator tests', function() {
 
         });
     })
+
+
+
+
 });
+
+describe('#When packets arrive', function () {
+    context('via serialport or Socat', function () {
+
+        before(function () {
+            return global.initAllAsync()
+        });
+
+        beforeEach(function () {
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+
+
+        })
+
+        afterEach(function () {
+            sinon.restore()
+
+        })
+
+        after(function () {
+            return global.stopAllAsync()
+        })
+
+        it('#Chlorinator packets are processed', function () {
+            return Promise.resolve()
+                .then(function () {
+                    // multiple packets for code coverage
+                    var data = [
+
+                        Buffer.from([16, 2, 0, 18, 58,144, 238,16,3]),
+                        Buffer.from([16, 2, 0, 1, 0, 0, 19, 16, 3]),
+                        Buffer.from([16, 2, 0, 3, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48, 188, 16, 3]),
+                        Buffer.from([16, 2, 80, 20, 2, 120, 16, 3]),
+                        Buffer.from([16, 2, 80, 21, 2, 120, 16, 3]),
+                        Buffer.from([16, 2, 80, 17, 3, 118, 16, 3]),
+                        Buffer.from([16, 2, 80, 0, 0, 98, 16, 3])
+
+
+
+
+                    ]
+
+                    data.forEach(function (el) {
+                        bottle.container.packetBuffer.push(el)
+                    })
+                })
+                .delay(100)
+                .then(function () {
+                    // console.log(bottle.container.chlorinator.getChlorinatorStatus())
+                    bottle.container.chlorinator.getChlorinatorStatus().chlorinator.saltPPM.should.eq(2900)
+                    bottle.container.chlorinator.getChlorinatorStatus().chlorinator.name.should.eq('Intellichlor--40')
+                })
+        })
+
+
+    })
+})

@@ -6,7 +6,7 @@ describe('tests web servers and authorization', function () {
 
         context('by a URL', function () {
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_auth.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_auth.json'})
 
                 // //stop the express auth and restart with authentication
                 // bottle.container.settings.set('expressAuth', 1)
@@ -26,7 +26,7 @@ describe('tests web servers and authorization', function () {
             })
 
             afterEach(function () {
-                //sandbox.restore()
+                //sinon.restore()
             })
 
             after(function () {
@@ -115,7 +115,7 @@ describe('tests web servers and authorization', function () {
             before(function () {
                 protocol = 'https://'
                 server = 'localhost:' + bottle.container.settings.get('httpsExpressPort') + '/'
-                return global.initAllAsync('/specs/assets/config/templates/config_https.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_https.json'})
 
             })
 
@@ -126,7 +126,7 @@ describe('tests web servers and authorization', function () {
             })
 
             afterEach(function () {
-                // sandbox.restore()
+                // sinon.restore()
             })
 
             after(function () {
@@ -139,9 +139,9 @@ describe('tests web servers and authorization', function () {
 
                 // var key = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.key'))
                 // var crt = bottle.container.fs.readFileSync(path.join(process.cwd(), 'specs/assets/data/server.crt'))
-                // var fsStat = sandbox.stub(bottle.container.fs, 'statSync')
+                // var fsStat = sinon.stub(bottle.container.fs, 'statSync')
 
-                // var fileStub = sandbox.stub(bottle.container.fs, 'readFileSync')
+                // var fileStub = sinon.stub(bottle.container.fs, 'readFileSync')
                 // fileStub.onCall(0).returns(key)
                 // fileStub.onCall(1).returns(crt)
 
@@ -265,7 +265,7 @@ describe('tests web servers and authorization', function () {
                 before(function () {
                     protocol = 'http://'
                     server = 'localhost:' + bottle.container.settings.get('httpExpressPort') + '/'
-                    return global.initAllAsync('/specs/assets/config/templates/config_https_httpRedirect.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_https_httpRedirect.json'})
                 })
 
                 beforeEach(function () {

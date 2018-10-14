@@ -3,20 +3,20 @@ describe('processes Intellitouch packets', function() {
 
         before(function() {
 
-                    return global.initAllAsync('/specs/assets/config/templates/config_intellitouch.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch.json'})
 
         })
 
         beforeEach(function() {
             loggers = setupLoggerStubOrSpy('stub', 'spy')
-            clock = sandbox.useFakeTimers()
+            clock = sinon.useFakeTimers()
 
             bottle.container.settings.set('intellitouch.installed', 0)
             bottle.container.settings.set('intellicom.installed', 1)
         })
 
         afterEach(function() {
-            sandbox.restore()
+            sinon.restore()
 
         })
 

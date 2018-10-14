@@ -8,23 +8,26 @@ describe('server', function() {
             })
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('stub', 'spy')
-                clock = sandbox.useFakeTimers()
-                sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+                return Promise.resolve()
+                    .then(function(){
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
+                        sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                writeNETPacketStub = sandbox.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                checkIfNeedControllerConfigurationStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                global.schedules_chk.forEach(function(el){
-                    bottle.container.packetBuffer.push(Buffer.from(el))
-                })
+                        writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                        writeNETPacketStub = sinon.stub(bottle.container.sp, 'writeNET').callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                        checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                        global.schedules_chk.forEach(function(el){
+                            bottle.container.packetBuffer.push(Buffer.from(el))
+                        })
+                    })
+                    .delay(50)
             })
 
             afterEach(function() {
 
                 bottle.container.writePacket.init()
                 bottle.container.queuePacket.init()
-                sandbox.restore()
+                sinon.restore()
             })
 
             after(function() {

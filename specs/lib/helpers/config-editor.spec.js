@@ -15,9 +15,9 @@ describe('updates config.json variables', function () {
 
         beforeEach(function () {
 
-            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
                 .then(function () {
-                    // sandbox = sinon.sandbox.create()
+                    // sinon = sinon.sinon.create()
                     loggers = setupLoggerStubOrSpy('stub', 'stub')
 
                 })
@@ -76,7 +76,7 @@ describe('updates config.json variables', function () {
 
 
         // it('sets updateVersionNotificationAsync variables', function(done) {
-        // verStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns({
+        // verStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns({
         //     "version": "10.10.10",
         //     "tag_name": "v10.10.10"
         // })
@@ -141,7 +141,7 @@ describe('updates config.json variables', function () {
 
             beforeEach(function () {
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -153,7 +153,7 @@ describe('updates config.json variables', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll()
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
 

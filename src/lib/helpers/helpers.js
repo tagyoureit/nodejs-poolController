@@ -224,7 +224,9 @@ module.exports = function (container) {
                         XML += results.local.version.split('.')[0]
                         XML += "</major><minor>"
                         XML += results.local.version.split('.')[1]
-                        XML += "</minor></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
+                        XML += "</minor><patch>"
+                        XML += results.local.version.split('.')[2]
+                        XML += "</patch></specVersion><device><deviceType>urn:echo:device:PoolController:1</deviceType><friendlyName>NodeJS Pool Controller</friendlyName><manufacturer>tagyoureit</manufacturer><manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL><modelDescription>An application to control pool equipment.</modelDescription><serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-";
                         XML += mac
                         XML += "</UDN><serviceList></serviceList></device></root>";
                         return XML;

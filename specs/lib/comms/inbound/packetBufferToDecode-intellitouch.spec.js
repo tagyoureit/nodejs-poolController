@@ -5,26 +5,20 @@ describe('receives packets from buffer and follows them to decoding', function()
         context('via serialport or Socat and ending with Socket.io', function () {
 
             before(function () {
-                return global.initAllAsync('/specs/assets/config/templates/config_intellitouch.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch.json'})
 
             })
 
             beforeEach(function () {
-                // sandbox = sinon.sandbox.create()
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
 
-                // bottle.container.pump.init()
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-                receiveBufferStub = sandbox.spy(bottle.container.receiveBuffer, 'getProcessingBuffer')
-                socketIOSpy = sandbox.spy(bottle.container.io, 'emitToClients')
-                iOAOAStub = sandbox.spy(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
-                queuePacketStub = sandbox.spy(bottle.container.queuePacket, 'queuePacket')
-                writeQueueActiveStub = sandbox.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
-                writeNetPacketStub = sandbox.stub(bottle.container.sp, 'writeNET')
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
-                // bottle.container.queuePacket.queuePacketsArrLength = 0
-                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                ejectAndResetSpy = sandbox.spy(bottle.container.writePacket, 'ejectPacketAndReset')
+                updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                writeQueueActiveStub = sinon.stub(bottle.container.writePacket, 'isWriteQueueActive').returns(false)
+                writeNetPacketStub = sinon.stub(bottle.container.sp, 'writeNET')
+                writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')
+                controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                getControllerConfigurationStub = sinon.stub(bottle.container.intellitouch, 'getControllerConfiguration')
+                ejectAndResetSpy = sinon.spy(bottle.container.writePacket, 'ejectPacketAndReset')
 
 
             })
@@ -33,7 +27,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                 bottle.container.temperatures.init()
                 bottle.container.pump.init()
                 bottle.container.queuePacket.init()
-                sandbox.restore()
+                sinon.restore()
 
             })
 
@@ -52,6 +46,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
                     })
+                    .delay(50)
                     .then(function () {
                         return global.waitForSocketResponseAsync('temperature')
                     })
@@ -85,6 +80,9 @@ describe('receives packets from buffer and follows them to decoding', function()
                     .delay(50)
                     .then(function () {
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 33, 15, 16, 11, 5, 19, 0, 0, 0, 0, 1, 8]))
+                    })
+                    .delay(50)
+                    .then(function(){
                         ejectAndResetSpy.calledOnce.should.be.true
                     })
                     .then(done, done)
@@ -116,6 +114,9 @@ describe('receives packets from buffer and follows them to decoding', function()
                     .delay(50)
                     .then(function () {
                         bottle.container.packetBuffer.push(new Buffer([16, 2, 0, 18, 31, 132, 199, 16, 3]))
+                    })
+                    .delay(50)
+                    .then(function(){
                         ejectAndResetSpy.calledOnce.should.be.true
                     })
                     .then(done, done)
@@ -143,11 +144,11 @@ describe('receives packets from buffer and follows them to decoding', function()
                     .then(function () {
                         bottle.container.queuePacket.queuePacket([165, 0, 96, 33, 4, 1, 255])
                     })
-                    .delay(50)
+                    .delay(100)
                     .then(function () {
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 0, 33, 96, 4, 1, 255, 2, 42]))
                     })
-                    .delay(50)
+                    .delay(100)
                     .then(function () {
                         ejectAndResetSpy.calledOnce.should.be.true
 

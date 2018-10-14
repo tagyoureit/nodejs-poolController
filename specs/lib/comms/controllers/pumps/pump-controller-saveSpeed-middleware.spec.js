@@ -5,27 +5,26 @@ describe('pump controller - save speed (2/2)', function() {
 
 
         before(function() {
-            return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
         });
 
         beforeEach(function() {
-            // sandbox = sinon.sandbox.create()
             loggers = setupLoggerStubOrSpy('stub', 'spy')
-           //endPumpCommandStub = sandbox.stub()
-            emitToClientsStub = sandbox.stub(bottle.container.io.emit)
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            setPumpToRemoteControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
-            saveProgramOnPumpStub = sandbox.spy(bottle.container.pumpController, 'saveProgramOnPump')
-            setPumpToLocalControlStub = sandbox.spy(bottle.container.pumpController, 'setPumpToLocalControl')
-            requestPumpStatusStub = sandbox.spy(bottle.container.pumpController, 'requestPumpStatus')
-            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+           //endPumpCommandStub = sinon.stub()
+            emitToClientsStub = sinon.stub(bottle.container.io.emit)
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+            setPumpToRemoteControlStub = sinon.spy(bottle.container.pumpController, 'setPumpToRemoteControl')
+            saveProgramOnPumpStub = sinon.spy(bottle.container.pumpController, 'saveProgramOnPump')
+            setPumpToLocalControlStub = sinon.spy(bottle.container.pumpController, 'setPumpToLocalControl')
+            requestPumpStatusStub = sinon.spy(bottle.container.pumpController, 'requestPumpStatus')
+            settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
         })
 
         afterEach(function() {
-            //restore the sandbox after each function
+            //restore the sinon after each function
             bottle.container.pumpControllerTimers.clearTimer(1)
             bottle.container.pumpControllerTimers.clearTimer(2)
-            sandbox.restore()
+            sinon.restore()
         })
 
         after(function() {
@@ -171,7 +170,7 @@ describe('pump controller - save speed (2/2)', function() {
         it('sets pump 1 program 5 to 1000 rpm (should fail)', function() {
 
             loggers.loggerWarnStub.restore()
-            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub = sinon.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 5
             var speed = 1000
@@ -191,7 +190,7 @@ describe('pump controller - save speed (2/2)', function() {
         it('sets pump 55 program 1 to 1000 rpm (should fail)', function() {
 
             loggers.loggerWarnStub.restore()
-            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub = sinon.stub(bottle.container.logger,'warn')
             var index = 55
             var program = 1
             var speed = 1000
@@ -210,7 +209,7 @@ describe('pump controller - save speed (2/2)', function() {
         it('sets pump 1 program 1 to 5000 rpm (should fail)', function() {
 
             loggers.loggerWarnStub.restore()
-            loggers.loggerWarnStub = sandbox.stub(bottle.container.logger,'warn')
+            loggers.loggerWarnStub = sinon.stub(bottle.container.logger,'warn')
             var index = 1
             var program = 1
             var speed = 5000

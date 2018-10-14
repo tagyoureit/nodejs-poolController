@@ -7,22 +7,22 @@ describe('#sends pump commands to a VF pump', function () {
 
         beforeEach(function(){
 
-            // getCurrentStatusStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({
+            // getCurrentStatusStub = sinon.stub(bottle.container.pump, 'getCurrentPumpStatus').returns({
             //     "pump": {
             //         "1": {type: 'VF'},
             //         "2": {type: 'VF'}
             //     }
             // })
-            // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-            //socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
+            // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+            //socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
 
-                    return global.initAllAsync('/specs/assets/config/templates/config.pump.VF_VSF.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VF_VSF.json'})
 
 
                 .then(function(){
                     loggers = setupLoggerStubOrSpy('stub', 'stub')
-                    clock = sandbox.useFakeTimers()
-                    queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                    clock = sinon.useFakeTimers()
+                    queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
                 })
                 .then(bottle.container.pump.init)
                 .catch(function(e){console.log('error!!!', e)})
@@ -35,7 +35,7 @@ describe('#sends pump commands to a VF pump', function () {
                 .then(function(){
                     bottle.container.pumpControllerTimers.clearTimer(1)
                     bottle.container.pumpControllerTimers.clearTimer(2)
-                    sandbox.restore()
+                    sinon.restore()
                 })
                 .then(global.stopAllAsync)
 

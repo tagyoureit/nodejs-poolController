@@ -5,20 +5,20 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAllAsync('/specs/assets/config/templates/config.pump.VS.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
             })
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub','stub')
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+                writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 
             })
 
             afterEach(function() {
                 bottle.container.writePacket.init()
                 bottle.container.queuePacket.init()
-                sandbox.restore()
+                sinon.restore()
             })
 
             after(function() {
@@ -32,7 +32,7 @@ describe('server', function() {
                     .delay(50)
                     .then(function(obj) {
                 //     console.log('logger?', loggers)
-                //         console.log('sandbox', sandbox)
+                //         console.log('sinon', sinon)
                     writeSPPacketStub.args[0][0].should.deep.equal([ 255, 0, 255, 165, 33, 16, 33, 134, 2, 1, 1, 1, 129 ])
                 }).then(done,done)
             });

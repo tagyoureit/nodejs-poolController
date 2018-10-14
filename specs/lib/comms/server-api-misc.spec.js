@@ -12,10 +12,10 @@ describe('server', function() {
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                //clock = sandbox.useFakeTimers()
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
-                sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
-                //queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
+                //clock = sinon.useFakeTimers()
+                writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
+                sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+                //queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
 
             })
 

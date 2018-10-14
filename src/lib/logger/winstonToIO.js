@@ -49,11 +49,11 @@ module.exports = function() {
         }
 
         winstonToIO.prototype.log = function(level, msg, meta, callback) {
-          msg = this.customFormatter ?
-              this.customFormatter(level, msg, meta) :
-              {
-                  text: "[" + level + "] " + msg
-              };
+            msg = this.customFormatter ?
+                this.customFormatter(level, msg, meta) :
+                {
+                    text: "[" + level + "] " + msg
+                };
             bottle.container.io.emitDebugLog(msg)
             callback(null, true)
         }

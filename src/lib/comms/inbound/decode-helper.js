@@ -22,10 +22,7 @@ module.exports = function(container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: decode.js')
 
-
-
-    //queuePacketsArr = container.writePacket.queuePacketsArr
-    //countChecksumMismatch = container.countChecksumMismatch
+    var emitter = new container.events.EventEmitter();
 
 
     var countChecksumMismatch = {
@@ -261,23 +258,26 @@ module.exports = function(container) {
 
         if (packetType === 'controller') {
             decoded = container.processController.processControllerPacket(data, counter)
+            emitter.emit('controllerpacket', data, counter)
         }
 
         //Start Pump Decode
-        //I believe this should be any packet with 165,0.  Need to verify.
         else if (packetType === 'pump') {
 
             decoded = container.processPump.processPumpPacket(data, counter)
+            emitter.emit('pumppacket', data, counter)
         }
         //Start Chlorinator Decode
         else if (packetType === 'chlorinator') {
             decoded = container.processChlorinator.processChlorinatorPacket(data, counter)
+            emitter.emit('chlorinatorpacket', data, counter)
         }
 
         if (!decoded) {
             if (container.settings.get('logConsoleNotDecoded')) {
                 container.logger.info('Msg# %s is NOT DECODED %s', counter, JSON.stringify(data));
             }
+            emitter.emit('notdecodedpacket', data, counter)
         } else {
 
             decoded = false
@@ -299,6 +299,8 @@ module.exports = function(container) {
                 }
             }
             decode(chatter, counter, packetType)
+
+
             // } else {
             //     //TODO: we shouldn't need to increment the countChecksumMismatch.  Why is it not being increased with decodeHelper.checksum above?
             //     //countChecksumMismatch.counter ++
@@ -314,7 +316,8 @@ module.exports = function(container) {
 
     return {
         processChecksum: processChecksum,
-        checksum: checksum
+        checksum: checksum,
+        emitter: emitter
 
     }
 

@@ -118,14 +118,11 @@ ignore:
   'npm:bootstrap:20160627':
     - bootstrap:
         reason: None given
-        expires: '2018-06-27T21:13:28.800Z'
+        expires: '2018-10-05T03:45:41.397Z'
   'npm:lodash:20180130':
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
-      request-promise > request-promise-core > lodash:
-        reason: None given
-        expires: '2018-07-03T23:22:22.863Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
@@ -144,6 +141,12 @@ ignore:
     - node-ip > node-localip > wmic > async > lodash:
         reason: None given
         expires: '2018-06-03T00:32:11.116Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-07-03T23:22:22.863Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-08-16T06:24:46.574Z'
   'npm:hoek:20180212':
     - request > hawk > hoek:
         reason: None given
@@ -164,6 +167,42 @@ ignore:
     - serialport > prebuild-install > rc > deep-extend:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
+  'npm:extend:20180424':
+    - node-ssdp > extend:
+        reason: None given
+        expires: '2018-10-05T03:45:29.603Z'
+    - request > extend:
+        reason: None given
+        expires: '2018-08-23T22:44:40.819Z'
+    - request-promise > request > extend:
+        reason: None given
+        expires: '2018-08-23T22:44:40.819Z'
+    - request-promise > request-promise-core > request > extend:
+        reason: None given
+        expires: '2018-08-23T22:44:40.819Z'
+  'npm:braces:20180219':
+    - anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - chokidar > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > chokidar > anymatch > micromatch > braces:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+  'npm:chownr:20180731':
+    - serialport > prebuild-install > tar-fs > chownr:
+        reason: None given
+        expires: '2018-10-05T03:45:29.603Z'
+    - chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
+    - watchify > chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2018-09-01T14:44:44.769Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

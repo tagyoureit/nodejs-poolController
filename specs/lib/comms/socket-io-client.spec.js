@@ -10,20 +10,20 @@ describe('socket.io basic tests', function () {
         return global.initAllAsync()
             .then(function () {
                 loggers = setupLoggerStubOrSpy('stub', 'stub')
-                queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
-                pWPHStub = sandbox.stub(bottle.container.writePacket, 'preWritePacketHelper')
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-                // bootstrapsettingsStub = sandbox.stub(bottle.container.bootstrapsettings, 'reset')
-                writeSPPacketStub = sandbox.stub(bottle.container.sp, 'writeSP')
-                controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
+                queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+                preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
+                pWPHStub = sinon.stub(bottle.container.writePacket, 'preWritePacketHelper')
+                updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                // bootstrapsettingsStub = sinon.stub(bottle.container.bootstrapsettings, 'reset')
+                writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')
+                controllerConfigNeededStub = sinon.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
 
             })
 
     })
 
     afterEach(function () {
-        //restore the sandbox after each function
+        //restore the sinon after each function
         //console.log('full queue', bottle.container.queuePacket.fullQ)
 
         return global.stopAllAsync()
@@ -238,7 +238,7 @@ describe('socket.io basic tests', function () {
         it('#reloads & resets', function(done) {
             var client = global.ioclient.connect(global.socketURL, global.socketOptions)
             var time1, time2
-            closeStub = sandbox.stub(bottle.container.sp,'close')
+            closeStub = sinon.stub(bottle.container.sp,'close')
             client.on('connect', function() {
                 client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
             })
@@ -249,7 +249,7 @@ describe('socket.io basic tests', function () {
             var b = setTimeout(function(){
                 time2 = bottle.container.time.getTime()
                 time1.time.controllerTime.should.equal(time2.time.controllerTime)
-                global.initAllAsync('/specs/assets/config/templates/config_vanilla.json').then(done)
+                global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_vanilla.json'}).then(done)
                 done()
             }, 1500)  //need time for all services to start up again.
 
@@ -400,27 +400,27 @@ describe('socket.io pump tests', function () {
     // });
     //
     // beforeEach(function() {
-    //     sandbox = sinon.sandbox.create()
-    //     //clock = sandbox.useFakeTimers()
+    //     sinon = sinon.sinon.create()
+    //     //clock = sinon.useFakeTimers()
     //     bottle.container.time.init()
-    //     loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-    //     loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-    //     loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-    //     loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-    //     loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-    //     queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-    //     // pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-    //     updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+    //     loggerInfoStub = sinon.stub(bottle.container.logger, 'info')
+    //     loggerWarnStub = sinon.spy(bottle.container.logger, 'warn')
+    //     loggerVerboseStub = sinon.stub(bottle.container.logger, 'verbose')
+    //     loggerDebugStub = sinon.stub(bottle.container.logger, 'debug')
+    //     loggerSillyStub = sinon.stub(bottle.container.logger, 'silly')
+    //     queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+    //     // pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+    //     updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
     //     bottle.container.pump.init()
     //     bottle.container.pumpControllerTimers.clearTimer(1)
     //     bottle.container.pumpControllerTimers.clearTimer(2)
     // })
     //
     // afterEach(function() {
-    //     //restore the sandbox after each function
+    //     //restore the sinon after each function
     //     bottle.container.pumpControllerTimers.clearTimer(1)
     //     bottle.container.pumpControllerTimers.clearTimer(2)
-    //     sandbox.restore()
+    //     sinon.restore()
     //
     // })
     //
@@ -462,24 +462,24 @@ describe('socket.io pump tests', function () {
 //     });
 //
 //     beforeEach(function() {
-//         sandbox = sinon.sandbox.create()
-//         //clock = sandbox.useFakeTimers()
+//         sinon = sinon.sinon.create()
+//         //clock = sinon.useFakeTimers()
 //         bottle.container.time.init()
-//         loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//         loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-//         loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-//         loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-//         loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-//         queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-//         pumpCommandStub = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-//         updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+//         loggerInfoStub = sinon.stub(bottle.container.logger, 'info')
+//         loggerWarnStub = sinon.spy(bottle.container.logger, 'warn')
+//         loggerVerboseStub = sinon.stub(bottle.container.logger, 'verbose')
+//         loggerDebugStub = sinon.stub(bottle.container.logger, 'debug')
+//         loggerSillyStub = sinon.stub(bottle.container.logger, 'silly')
+//         queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+//         pumpCommandStub = sinon.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
+//         updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 //     })
 //
 //
 //
 //     afterEach(function() {
 //
-//         sandbox.restore()
+//         sinon.restore()
 //
 //     })
 //

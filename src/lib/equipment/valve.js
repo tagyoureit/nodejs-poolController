@@ -31,7 +31,7 @@ module.exports = function (container) {
     }
 
     function setValve(data) {
-        container.logger.info('Received valve status packet.  \n\tPossible association with %s. \n\t  valve data: %s', data[container.constants.controllerStatusPacketFields.valve], data)
+        container.logger.silly('Received valve status packet.  \n\tPossible association with %s. \n\t  valve data: %s', data[container.constants.controllerStatusPacketFields.VALVE], data)
         valve.valve = data[container.constants.controllerStatusPacketFields.valve];
         container.io.emitToClients('valve')
     }

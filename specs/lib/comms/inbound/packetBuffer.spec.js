@@ -10,29 +10,11 @@ describe('packetBuffer receives raw packets from serial bus', function() {
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                clock = sandbox.useFakeTimers()
-
-                // queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-                // pumpCommandSpy = sandbox.spy(bottle.container.pumpControllerMiddleware, 'pumpCommand')
-                // checksumSpy = sandbox.spy(bottle.container.decodeHelper, 'checksum')
-                // isResponseSpy = sandbox.spy(bottle.container.decodeHelper.isResponse)
-                // isResponsePumpSpy = sandbox.spy(bottle.container.decodeHelper.isResponsePump)
-                // isResponseChlorinatorSpy = sandbox.spy(bottle.container.decodeHelper.isResponseChlorinator)
-                // isResponseControllerSpy = sandbox.spy(bottle.container.decodeHelper.isResponseController)
-                // writePacketStub = sandbox.stub(bottle.container.writePacket, 'ejectPacketAndReset')
-                // controllerConfigNeededStub = sandbox.stub(bottle.container.intellitouch, 'checkIfNeedControllerConfiguration')
-                // processControllerPacketStub = sandbox.stub(bottle.container.processController, 'processControllerPacket')
-                // processPumpPacketStub = sandbox.stub(bottle.container.processPump, 'processPumpPacket')
-                // processChlorinatorPacketStub = sandbox.stub(bottle.container.processChlorinator, 'processChlorinatorPacket')
-                receiveBufferStub = sandbox.stub(bottle.container.receiveBuffer, 'getProcessingBuffer')
-
-                iOAOAStub = sandbox.stub(bottle.container.receiveBuffer, 'iterateOverArrayOfArrays')
-                // bottle.container.queuePacket.queuePacketsArrLength = 0
+                decodeHelperStub = sinon.stub(bottle.container.decodeHelper, 'processChecksum').returns(false)
             })
 
             afterEach(function() {
-                // bottle.container.queuePacket.queuePacketsArrLength = 0
-                sandbox.restore()
+                sinon.restore()
 
             })
 
@@ -40,30 +22,19 @@ describe('packetBuffer receives raw packets from serial bus', function() {
                 return global.stopAllAsync()
             })
 
-            it('#should accept all packets and kick off processing buffer', function() {
-                receiveBufferStub.onFirstCall().returns(false)
-                receiveBufferStub.returns(true)
-                // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
-                for (var i = 0; i < global.rawBuffer.length; i++) {
-                    if (i === 1) bottle.container.receiveBuffer.processingBuffer = {
-                        'processingBuffer': true
-                    }
-                    bottle.container.packetBuffer.push(new Buffer(global.rawBuffer[i]))
-                }
-                iOAOAStub.callCount.should.eq(1)
-                bottle.container.packetBuffer.length().should.eq(276)
-            })
+            it('#should accept all packets and be picked up by processing buffer', function() {
+                return Promise.resolve()
+                    .then(function(){
+                        // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
+                        for (var i = 0; i < global.rawBuffer.length; i++) {
+                            bottle.container.packetBuffer.push(new Buffer(global.rawBuffer[i]))
+                        }
 
-            it('#should push all packets with pop()', function() {
-                // console.log('rb:', global.rawBuffer.length, global.rawBuffer[10])
-                var packet
-                for (var i = 0; i < global.rawBuffer.length; i++) {
-                    packet = bottle.container.packetBuffer.pop()
-                    // console.log('popped:', i, packet, global.rawBuffer[i].data)
-                    packet.should.contain.members(global.rawBuffer[i].data)
-                }
-
-                bottle.container.packetBuffer.length().should.eq(0)
+                    })
+                    .delay(200)
+                    .then(function(){
+                        decodeHelperStub.callCount.should.eq(281)
+                    })
             })
 
 

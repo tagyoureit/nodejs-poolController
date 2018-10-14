@@ -10,12 +10,12 @@ describe('server', function() {
 
             beforeEach(function() {
                 loggers = setupLoggerStubOrSpy('stub', 'spy')
-                clock = sandbox.useFakeTimers()
+                //clock = sinon.useFakeTimers()
 
             })
 
             afterEach(function() {
-                sandbox.restore()
+                sinon.restore()
             })
 
             after(function() {
@@ -34,7 +34,7 @@ describe('server', function() {
 
             it('returns pump status in a JSON', function(done) {
 
-                var pumpStub = sandbox.stub(bottle.container.pump, 'getCurrentPumpStatus').callsFake(function() {
+                var pumpStub = sinon.stub(bottle.container.pump, 'getCurrentPumpStatus').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'pumpstatus.json')))
                 })
 
@@ -49,8 +49,8 @@ describe('server', function() {
 
 
             it('returns everything in a JSON (/all)', function(done) {
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-                var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
+                updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                var allStub = sinon.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 global.requestPoolDataWithURLAsync('all').then(function(obj) {
@@ -61,9 +61,9 @@ describe('server', function() {
 
 
             it('returns everything in a JSON (/one)', function(done) {
-                updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+                updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
-                var allStub = sandbox.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
+                var allStub = sinon.stub(bottle.container.helpers, 'allEquipmentInOneJSON').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'all.json')))
                 })
                 global.requestPoolDataWithURLAsync('one').then(function(obj) {
@@ -73,7 +73,7 @@ describe('server', function() {
             });
 
             it('returns circuits in a JSON', function(done) {
-                var circuitStub = sandbox.stub(bottle.container.circuit, 'getCurrentCircuits').callsFake(function() {
+                var circuitStub = sinon.stub(bottle.container.circuit, 'getCurrentCircuits').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'circuit.json')))
                 })
                 global.requestPoolDataWithURLAsync('circuit').then(function(obj) {
@@ -82,7 +82,7 @@ describe('server', function() {
                 }).then(done,done)
             });
             it('returns heat in a JSON', function(done) {
-                var heatStub = sandbox.stub(bottle.container.heat, 'getCurrentHeat').callsFake(function() {
+                var heatStub = sinon.stub(bottle.container.heat, 'getCurrentHeat').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'heat.json')))
                 })
                 global.requestPoolDataWithURLAsync('heat').then(function(obj) {
@@ -92,7 +92,7 @@ describe('server', function() {
 
             });
             it('returns schedule in a JSON', function(done) {
-                var scheduleStub = sandbox.stub(bottle.container.schedule, 'getCurrentSchedule').callsFake(function() {
+                var scheduleStub = sinon.stub(bottle.container.schedule, 'getCurrentSchedule').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'schedule.json')))
                 })
                 global.requestPoolDataWithURLAsync('schedule').then(function(obj) {
@@ -103,7 +103,7 @@ describe('server', function() {
             });
 
             it('returns time in a JSON', function(done) {
-                var timeStub = sandbox.stub(bottle.container.time, 'getTime').callsFake(function() {
+                var timeStub = sinon.stub(bottle.container.time, 'getTime').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'time.json')))
                 })
                 global.requestPoolDataWithURLAsync('time').then(function(obj) {
@@ -113,7 +113,7 @@ describe('server', function() {
 
             });
             it('returns chlorinator in a JSON', function(done) {
-                var chlorStub = sandbox.stub(bottle.container.chlorinator, 'getChlorinatorStatus').callsFake(function() {
+                var chlorStub = sinon.stub(bottle.container.chlorinator, 'getChlorinatorStatus').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'chlorinator.json')))
                 })
                 global.requestPoolDataWithURLAsync('chlorinator').then(function(obj) {
@@ -123,7 +123,7 @@ describe('server', function() {
 
             });
             it('returns circuit (9) in a JSON', function(done) {
-                var circuit9Stub = sandbox.stub(bottle.container.circuit, 'getCircuit').callsFake(function() {
+                var circuit9Stub = sinon.stub(bottle.container.circuit, 'getCircuit').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'circuit9.json')))
                 })
                 global.requestPoolDataWithURLAsync('circuit/9').then(function(obj) {

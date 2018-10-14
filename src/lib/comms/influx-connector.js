@@ -63,40 +63,39 @@ module.exports = function (container) {
     var writeCircuit = function (data) {
         if (container.settings.get('influxEnabled')) {
             var data_array = []
+            if (data[1].number !== undefined) {
+                // push the object into an array so we can batch send
+                // which is more efficient for Influx
+                for (var key in data) {
+                    data_array.push({
+                        measurement: 'circuit',
+                        tags: {
+                            'number': data[key].number,
+                            'numberStr': data[key].numberStr,
+                            'name': data[key].name,
+                            'circuitFunction': data[key].circuitFunction,
+                            //'lightgroup': data[key].light.group,
+                            'friendlyName': data[key].friendlyName,
+                            //'colorStr': data[key].light.colorStr,
+                            'freeze': data[key].freeze
+                        },
+                        fields: {
+                            'status': data[key].status
+                        }
+                    })
 
-
-            // push the object into an array so we can batch send
-            // which is more efficient for Influx
-            for (var key in data) {
-                data_array.push({
-                    measurement: 'circuit',
-                    tags: {
-                        'number': data[key].number,
-                        'numberStr': data[key].numberStr,
-                        'name': data[key].name,
-                        'circuitFunction': data[key].circuitFunction,
-                        //'lightgroup': data[key].light.group,
-                        'friendlyName': data[key].friendlyName,
-                        //'colorStr': data[key].light.colorStr,
-                        'freeze': data[key].freeze
-                    },
-                    fields: {
-                        'status': data[key].status
-                    }
-                })
-
+                }
+                influx.writePoints(data_array)
+                    .then(function () {
+                        // return influx.query('select count(*) from circuits')
+                    })
+                    .then(function (res) {
+                        // container.logger.info('Wrote %s to influx circuits measurement', JSON.stringify(res))
+                    })
+                    .catch(function (err) {
+                        container.logger.error('Something bad happened writing to InfluxDB (circuit): ', err.message)
+                    })
             }
-
-            influx.writePoints(data_array)
-                .then(function () {
-                    // return influx.query('select count(*) from circuits')
-                })
-                .then(function (res) {
-                    // container.logger.info('Wrote %s to influx circuits measurement', JSON.stringify(res))
-                })
-                .catch(function (err) {
-                    container.logger.error('Something bad happened writing to InfluxDB (circuit): ', err.message)
-                })
         }
 
     }
@@ -106,7 +105,7 @@ module.exports = function (container) {
         if (container.settings.get('influxEnabled')) {
             var data_array = []
             for (var key in data) {
-                if (typeof(data[key].rpm) === 'number') {
+                if (typeof(data[key].rpm) === 'number' && typeof(data[key].power)==='number' && typeof(data[key].power) === 'number' ) {
                     data_array.push({
                         measurement: 'pump',
                         tags: {

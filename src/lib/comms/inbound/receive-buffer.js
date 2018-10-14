@@ -29,6 +29,7 @@ module.exports = function(container) {
         counter: 0
     }
 
+    var iterateTimer;  // timer to check for new packets
 
     function getCurrentMsgCounter() {
         return msgCounter.counter
@@ -36,10 +37,21 @@ module.exports = function(container) {
 
     var pushBufferToArray = function() {
 
-        bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
+        var tempPkt = container.packetBuffer.pop()
+        // if we are in capture packet mode, capture it
+        if (container.settings.get('capturePackets')) {
+            container.logger.packet({
+                type: 'packet',
+                //counter: counter,
+                packet: tempPkt.slice(),
+                //equipment: packetType,
+                direction: 'inbound'
+            })
+        }
+        bufferToProcess.push.apply(bufferToProcess, tempPkt)
+        //bufferToProcess.push.apply(bufferToProcess, container.packetBuffer.pop())
         if (container.settings.get('logMessageDecoding'))
-            logger.silly('pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT AoA to BTP')
-
+            logger.silly('pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT packetBuffer to BTP')
 
     }
 
@@ -77,7 +89,7 @@ module.exports = function(container) {
                 } else if ((bufferToProcess.length - chatterlen) <= 0) {
                     if (logMessageDecoding)
                         logger.silly('Msg#  n/a   Incomplete message in bufferToProcess. %s', bufferToProcess)
-                    if (container.packetBuffer.length > 0) {
+                    if (container.packetBuffer.length() > 0) {
                         pushBufferToArray()
                     } else {
                         if (logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because (bufferToProcess.length(%s) - chatterlen) <= 0(%s): %s', bufferToProcess.length, chatterlen === undefined || ((bufferToProcess.length - chatterlen), chatterlen === undefined || (bufferToProcess.length - chatterlen) <= 0))
@@ -87,7 +99,7 @@ module.exports = function(container) {
                 if (chatterlen === undefined || isNaN(chatterlen)) {
                     if (logMessageDecoding)
                         logger.silly('Msg#  n/a   chatterlen NaN: %s.', bufferToProcess)
-                    if (container.packetBuffer.length > 0) {
+                    if (container.packetBuffer.length() > 0) {
                         pushBufferToArray()
                     } else {
                         if (logMessageDecoding) logger.silly('iOAOA: Setting breakLoop=true because isNan(chatterlen) is %s.  bufferToProcess:', chatterlen, bufferToProcess)
@@ -186,8 +198,12 @@ module.exports = function(container) {
         }
     }
 
-    var getProcessingBuffer=function() {
+    var isBufferCurrentlyProcessing=function() {
         return processingBuffer.processingBuffer
+    }
+
+    var resetBufferCurrentlyProcessing=function(){
+        processingBuffer.processingBuffer = false
     }
 
     var getBufferToProcessLength = function() {
@@ -206,15 +222,40 @@ module.exports = function(container) {
         return processingBuffer.processingBuffer
     }
 
+    var checkIterate = function(){
+        if (!processingBuffer.processingBuffer){
+            if (container.packetBuffer.length()){
+                iterateOverArrayOfArrays()
+            }
+        }
+    }
+
+
+    function init() {
+
+        if (iterateTimer){
+            clearTimeout(iterateTimer)
+            processingBuffer.processingBuffer = false;
+        }
+        iterateTimer = setInterval(checkIterate, 20)
+        // if (!spemitter) {
+        //     spemitter = container.sp.getEmitter()
+        //     spemitter.on('iterate', function () {
+        //         iterateOverArrayOfArrays()
+        //     })
+        // }
+    }
+
     return {
         //processingBuffer, //flag to tell us if we are processing the buffer currently
-        getProcessingBuffer: getProcessingBuffer,
-
+        isBufferCurrentlyProcessing: isBufferCurrentlyProcessing,
+        resetBufferCurrentlyProcessing: resetBufferCurrentlyProcessing,
         //bufferToProcess,
         getBufferToProcessLength: getBufferToProcessLength,
         iterateOverArrayOfArrays: iterateOverArrayOfArrays,
         getCurrentMsgCounter: getCurrentMsgCounter,
         clear: clear,
-        isActive: isActive
+        isActive: isActive,
+        init: init
     }
 }

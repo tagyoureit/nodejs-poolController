@@ -2,7 +2,6 @@ var Bottle = require('bottlejs')
 var bottle = Bottle.pop('poolController-Bottle');
 
 
-
 bottle.constant('logModuleLoading', 0)
 
 //Multiple
@@ -10,11 +9,11 @@ bottle.constant('logModuleLoading', 0)
 //     return require("promised-io/promise");
 // })
 
-bottle.service('promise',function(){
-return require('bluebird')
+bottle.service('promise', function () {
+    return require('bluebird')
 })
 
-bottle.service('fs', function() {
+bottle.service('fs', function () {
     return require('fs')
 })
 
@@ -22,22 +21,22 @@ bottle.service('fs', function() {
 bottle.factory('updateAvailable', require(__dirname + '/helpers/update-available.js'))
 bottle.factory('settings', require(__dirname + '/../etc/settings.js'))
 bottle.factory('constants', require(__dirname + '/../etc/constants.js'))
-bottle.factory('deepdiff', function(){
+bottle.factory('deepdiff', function () {
     return require('deep-diff')
 })
-bottle.factory('events', function(){
+bottle.factory('events', function () {
     return require('events')
 })
 
 
 //LOGGER
-bottle.factory('dateFormat', function() {
+bottle.factory('dateFormat', function () {
     return require('dateformat')
 }) //for log formatting
-bottle.factory('util', function() {
+bottle.factory('util', function () {
     return require('util')
 })
-bottle.factory('winston', function() {
+bottle.factory('winston', function () {
     return require('winston')
 })
 bottle.factory('logger', require(__dirname + '/logger/winston-helper.js'))
@@ -47,64 +46,72 @@ bottle.service('winstonToIO', require(__dirname + '/logger/winstonToIO.js'))
 bottle.constant('apiSearch', require(__dirname + '/api/api-search.js'))
 
 
-
 //INTEGRATIONS
-bottle.factory('integrations', function() {
+bottle.factory('integrations', function () {
     return require(__dirname + '/../etc/integrations.js')
 })
-bottle.factory('socketClient', function() {
+bottle.factory('socketClient', function () {
     return require('socket.io-client')
 })
 //bottle.constant('socketISY', require(__dirname + '/comms/outbound/socketISY.js'))
 bottle.factory('ISYHelper', require(__dirname + '/comms/outbound/ISY.js'))
 
 //COMMS
-bottle.factory('express', function() {
+bottle.factory('express', function () {
     return require('express')
 })
-bottle.factory('http', function() {
+bottle.factory('http', function () {
     return require('http')
 })
-bottle.factory('https', function() {
+bottle.factory('https', function () {
     return require('https')
 })
-bottle.factory('auth', function() {
+bottle.factory('auth', function () {
     return require('http-auth')
 })
 
 // COMMS
 bottle.factory('influx', require(__dirname + '/comms/influx-connector.js'))
 bottle.factory('server', require(__dirname + '/comms/server.js'))
-bottle.factory('serialport', function() {
+bottle.factory('serialport', function () {
     return require('serialport')
 })
 bottle.factory('whichPacket', require(__dirname + '/comms/which-packet.js'))
 bottle.factory('sp', require(__dirname + '/comms/sp-helper.js'))
-bottle.factory('net', function() {
+bottle.factory('net', function () {
     return require('net')
 })
-bottle.factory('socket', function() {
+bottle.factory('socket', function () {
     return require('socket.io')
 })
 
-bottle.factory('_', function() {
+bottle.factory('_', function () {
     return require('underscore')
 })
 
-bottle.factory('ssdp', function() {return require('node-ssdp')})
-bottle.factory('mdns', function() {return require('multicast-dns')})
+bottle.factory('ssdp', function () {
+    return require('node-ssdp')
+})
+bottle.factory('mdns', function () {
+    return require('multicast-dns')
+})
 bottle.factory('io', require(__dirname + '/comms/socketio-helper.js'))
 
 //HELPERS
 bottle.factory('helpers', require(__dirname + '/helpers/helpers.js'))
 bottle.factory('reload', require(__dirname + '/helpers/reload.js'))
 bottle.factory('bootstrapsettings', require(__dirname + '/helpers/bootstrap-config-editor.js'))
-bottle.service('getmac', function(){return bottle.container.promise.promisifyAll(require('getmac'))})
+bottle.service('getmac', function () {
+    return bottle.container.promise.promisifyAll(require('getmac'))
+})
 
-bottle.factory('path',function(){
+bottle.factory('path', function () {
     return require('path').posix
 })
-bottle.service('ip', function(){ return require('ip')})
+bottle.service('ip', function () {
+    return require('ip')
+})
+
 
 //COMMS/INBOUND
 bottle.service('dequeue', require('dequeue'));
@@ -177,31 +184,31 @@ bottle.factory('intellitouch', require(__dirname + '/equipment/intellitouch.js')
 bottle.factory('intellichem', require(__dirname + '/equipment/intellichem.js'))
 
 /* istanbul ignore next */
-var initAsync = exports.initAsync = function() {
+var initAsync = exports.initAsync = function () {
     //Call the modules to initialize them
     Promise = bottle.container.promise
     return Promise.resolve()
-        .then(function(){
+        .then(function () {
             bottle.container.logger.init('default')
         })
-        .then(function(){
+        .then(function () {
             return bottle.container.settings.loadAsync()
         })
         .delay(25)
-        .then(function(){
+        .then(function () {
             bottle.container.logger.init()
             bottle.container.winstonToIO.init()
         })
         .delay(25)
 
 
-        .then(function(){
+        .then(function () {
 
 
             bottle.container.server.initAsync()
-            //bottle.container.io.init()
             bottle.container.sp.init()
-
+            bottle.container.packetBuffer.init()
+            bottle.container.receiveBuffer.init()
             bottle.container.logger.info('initializing logger')
             bottle.container.bootstrapsettings.init()
             bottle.container.integrations.init()
@@ -215,8 +222,8 @@ var initAsync = exports.initAsync = function() {
             bottle.container.heat.init()
             bottle.container.time.init()
             bottle.container.schedule.init()
-            bottle.container.circuit.init()
             bottle.container.customNames.init()
+            bottle.container.circuit.init()
             bottle.container.intellitouch.init()
             bottle.container.temperatures.init()
             bottle.container.UOM.init()
@@ -233,7 +240,7 @@ var initAsync = exports.initAsync = function() {
             bottle.container.helpers
 
         })
-        .catch(function(err){
+        .catch(function (err) {
             bottle.container.logger.error('Error with initialization:', err)
             console.error(err)
         })
@@ -247,7 +254,7 @@ var initAsync = exports.initAsync = function() {
 
 // Exit process cleanly.  From http://stackoverflow.com/questions/10021373/what-is-the-windows-equivalent-of-process-onsigint-in-node-js
 /* istanbul ignore next */
-process.on('exit', function() {
+process.on('exit', function () {
     //handle your on exit code
     console.log("nodejs-poolController has closed successfully.");
 });
@@ -259,22 +266,22 @@ if (process.platform === "win32") {
         output: process.stdout
     });
 
-    rl.on("SIGINT", function() {
+    rl.on("SIGINT", function () {
         process.emit("SIGINT");
     });
 }
 
 /* istanbul ignore next */
-process.on('SIGINT', function() {
+process.on('SIGINT', function () {
     console.log('Shutting down open processes')
     return bottle.container.reload.stopAsync()
-        .then(function() {
+        .then(function () {
             process.exit();
         })
 
 });
 
 /* istanbul ignore next */
-global.exit_nodejs_poolController = function(){
+global.exit_nodejs_poolController = function () {
     process.exit()
 }

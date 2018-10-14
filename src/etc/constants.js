@@ -48,13 +48,19 @@ module.exports = function(container) {
         MISC2: 32 //0=do not automatically adjust DST, 1=automatically adjust DST
     }
 
-    var chlorinatorPacketFields = {
-        DEST: 2,
-        ACTION: 3,
+    // these are from the controller status packet = 25
+    var controllerChlorinatorPacketFields = {
         OUTPUTSPAPERCENT: 6,
         OUTPUTPERCENT: 7,
         SALTPPM: 9,
-        STATUS: 10
+        STATUS: 10,
+        SUPERCHLORINATE: 11
+    }
+
+    // this is from the chlorinator itself = 16,2,...,16,3
+    var chlorinatorPacketFields = {
+        DEST: 2,
+        ACTION: 3
     }
 
     var pumpPacketFields = {
@@ -645,6 +651,7 @@ module.exports = function(container) {
     return {
         packetFields: packetFields,
         controllerStatusPacketFields: controllerStatusPacketFields,
+        controllerChlorinatorPacketFields: controllerChlorinatorPacketFields,
         chlorinatorPacketFields: chlorinatorPacketFields,
         pumpPacketFields: pumpPacketFields,
         pumpType: pumpType,

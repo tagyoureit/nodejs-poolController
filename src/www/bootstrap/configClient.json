@@ -33,7 +33,7 @@
         "release": {
             "state": "visible"
         },
-        "lights": {
+        "light": {
             "state": "visible"
         }
     },

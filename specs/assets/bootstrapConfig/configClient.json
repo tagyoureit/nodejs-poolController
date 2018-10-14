@@ -32,6 +32,9 @@
         },
         "release":{
             "state": "visible"
+        },
+        "light":{
+            "state": "visible"
         }
     },
     "equipConfig": {

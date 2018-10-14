@@ -28,7 +28,7 @@ module.exports = function(container) {
         //eg RED: 165,16,16,34,96,2,195,0,2,12
         // data[6] = color
         // data[7] = light group
-        if (container.settings.get('logIntellibret')) {
+        if (container.settings.get('logIntellibrite')) {
             container.logger.silly('Msg# %s: Set Light Group packet: %s\ncolor: %s \t light group: %s', counter, JSON.stringify(data), data[6], data[7])
         }
         container.circuit.assignControllerLightColor(data[6], data[7], counter)

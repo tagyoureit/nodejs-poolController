@@ -10,25 +10,25 @@
 //         });
 //
 //         beforeEach(function() {
-//             sandbox = sinon.sandbox.create()
-//             clock = sandbox.useFakeTimers()
-//             loggerInfoStub = sandbox.stub(bottle.container.logger, 'info')
-//             loggerWarnStub = sandbox.spy(bottle.container.logger, 'warn')
-//             loggerVerboseStub = sandbox.stub(bottle.container.logger, 'verbose')
-//             loggerDebugStub = sandbox.stub(bottle.container.logger, 'debug')
-//             loggerSillyStub = sandbox.stub(bottle.container.logger, 'silly')
-//             pumpControllerProgramTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
-//             pumpControllerPowerTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startPowerTimer')
-//             pumpControllerRPMTimersSpy = sandbox.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
-//             queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-//             emitToClientsStub = sandbox.stub(bottle.container.io, 'emitToClients')
-//             settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+//             sinon = sinon.sinon.create()
+//             clock = sinon.useFakeTimers()
+//             loggerInfoStub = sinon.stub(bottle.container.logger, 'info')
+//             loggerWarnStub = sinon.spy(bottle.container.logger, 'warn')
+//             loggerVerboseStub = sinon.stub(bottle.container.logger, 'verbose')
+//             loggerDebugStub = sinon.stub(bottle.container.logger, 'debug')
+//             loggerSillyStub = sinon.stub(bottle.container.logger, 'silly')
+//             pumpControllerProgramTimersSpy = sinon.spy(bottle.container.pumpControllerTimers, 'startProgramTimer')
+//             pumpControllerPowerTimersSpy = sinon.spy(bottle.container.pumpControllerTimers, 'startPowerTimer')
+//             pumpControllerRPMTimersSpy = sinon.spy(bottle.container.pumpControllerTimers, 'startRPMTimer')
+//             queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+//             emitToClientsStub = sinon.stub(bottle.container.io, 'emitToClients')
+//             settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
 //         })
 //
 //         afterEach(function() {
-//             //restore the sandbox after each function
+//             //restore the sinon after each function
 //             bottle.container.pump.init()
-//             sandbox.restore()
+//             sinon.restore()
 //
 //         })
 //

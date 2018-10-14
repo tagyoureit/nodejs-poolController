@@ -3,7 +3,7 @@ describe('processes Intellitouch packets', function() {
 
         before(function() {
 
-                    return global.initAllAsync('/specs/assets/config/templates/config_intellitouch.json')
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_intellitouch.json'})
 
         })
 
@@ -12,7 +12,7 @@ describe('processes Intellitouch packets', function() {
         })
 
         afterEach(function() {
-            // sandbox.restore()
+            // sinon.restore()
 
         })
 
@@ -31,7 +31,7 @@ describe('processes Intellitouch packets', function() {
         it('#should set and get the preamble and request configuration', function() {
             return Promise.resolve()
                 .then(function(){
-                    gCCSpy = sandbox.spy(bottle.container.intellitouch, 'getControllerConfiguration')
+                    gCCSpy = sinon.spy(bottle.container.intellitouch, 'getControllerConfiguration')
 
                     bottle.container.intellitouch.setPreambleByte(33)
                     bottle.container.intellitouch.getPreambleByte().should.equal(33)

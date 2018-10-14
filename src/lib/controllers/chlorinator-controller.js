@@ -18,13 +18,13 @@
 
 var chlorinatorTimer, isRunning = 0;
 
-module.exports = function(container) {
+module.exports = function (container) {
     var logger = container.logger
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loading: chlorinator-controller.js')
 
-    var isChlorinatorTimerRunning = function() {
+    var isChlorinatorTimerRunning = function () {
         return isRunning
     }
 
@@ -41,7 +41,7 @@ module.exports = function(container) {
                 clearTimeout(chlorinatorTimer)
 
             //if 0, then only check every 30 mins; else resend the packet every 4 seconds as a keep-alive
-            recheckTime = desiredChlorinatorOutput === 0?30:4
+            recheckTime = desiredChlorinatorOutput === 0 ? 30 : 4
             if (container.settings.get('logChlorinator'))
                 container.logger.silly('Will check chlorinator status again in %s minutes.', recheckTime)
             chlorinatorTimer = setTimeout(chlorinatorStatusCheck, recheckTime * 1000) //30 minutes
@@ -68,14 +68,28 @@ module.exports = function(container) {
                 if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller starting.')
                 isRunning = 1
                 chlorinatorTimer = setTimeout(chlorinatorStatusCheck, 4 * 1000)
+                container.chlorinator.setChlorinatorControlledBy('virtual')
             } else {
-                if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is set to default and another controller (Intellitouch/Intellicom) is present.')
+                if (container.settings.get('logChlorinator')) {
+                    container.logger.info(`Virtual chlorinator controller not starting because it is set to default and another controller (${container.settings.get('intellitouch.installed')===1?'Intellitouch':'Intellicom'}) is present.`)
+
+                    if (container.settings.get('intellitouch.installed')) {
+                        container.chlorinator.setChlorinatorControlledBy('intellitouch')
+                    }
+                    else if (container.settings.get('intellicom.installed')){
+                        container.chlorinator.setChlorinatorControlledBy('intellicom')
+                    }
+                }
             }
         } else {
-            if (container.settings.get('logChlorinator')) container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
+            if (container.settings.get('logChlorinator')) {
+                container.logger.info('Virtual chlorinator controller not starting because it is not installed.')
+                container.chlorinator.setChlorinatorControlledBy('none')
+            }
         }
 
     }
+
     /*istanbul ignore next */
     if (container.logModuleLoading)
         logger.info('Loaded: chlorinator-controller.js')

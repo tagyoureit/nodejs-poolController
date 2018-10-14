@@ -10,7 +10,7 @@ describe('pump controller - save and run program with flow for duration', functi
     describe('#checks that the right packets are queued', function() {
 
         before(function() {
-            return global.initAllAsync('/specs/assets/config/templates/config_vanilla.json')
+            return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_vanilla.json'})
                 .then(function() {
                     return bottle.container.pump.init()
                 })
@@ -31,24 +31,24 @@ describe('pump controller - save and run program with flow for duration', functi
         });
 
         beforeEach(function() {
-            // sandbox = sinon.sandbox.create()
+            // sinon = sinon.sinon.create()
 
-            //setPumpToRemoteControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
-            //saveProgramOnPumpStub = sandbox.stub(bottle.container.pumpController, 'saveProgramOnPump')
-            endPumpCommandStub = sandbox.stub()
-            //setPumpToLocalControlStub = sandbox.stub(bottle.container.pumpController, 'setPumpToLocalControl')
-            //requestPumpStatusStub = sandbox.stub(bottle.container.pumpController, 'requestPumpStatus')
-            emitToClientsStub = sandbox.stub(bottle.container.io.emit)
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            socketIOStub = sandbox.stub(bottle.container.io, 'emitToClients')
-            settingsStub = sandbox.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
+            //setPumpToRemoteControlStub = sinon.stub(bottle.container.pumpController, 'setPumpToRemoteControl')
+            //saveProgramOnPumpStub = sinon.stub(bottle.container.pumpController, 'saveProgramOnPump')
+            endPumpCommandStub = sinon.stub()
+            //setPumpToLocalControlStub = sinon.stub(bottle.container.pumpController, 'setPumpToLocalControl')
+            //requestPumpStatusStub = sinon.stub(bottle.container.pumpController, 'requestPumpStatus')
+            emitToClientsStub = sinon.stub(bottle.container.io.emit)
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+            socketIOStub = sinon.stub(bottle.container.io, 'emitToClients')
+            settingsStub = sinon.stub(bottle.container.settings, 'updateExternalPumpProgramAsync')
 
         })
 
         afterEach(function() {
             bottle.container.pump.init()
-            //restore the sandbox after each function
-            sandbox.restore()
+            //restore the sinon after each function
+            sinon.restore()
         })
 
         after(function() {

@@ -73,53 +73,37 @@
             <table class="table table-hover">
                 <thead>
                 <tr>
-                    <th colspan="2">5.0.0 release notes</th>
+                    <th colspan="2">5.2.0 release notes</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
-                    <td>Dual interface (http/https) support</td>
+                    <td>Node 6+</td>
                     <td>
-                        <span>Now supports both http/https web servers at the same time, if desired.  Either/both can have Auth.  Redirect from http to https, if desired.  Thanks @arrmo.</span>
+                        <span>This app no longer supports Node 4.</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Serial Port & Packages</td>
+                    <td>Update of modules.</td>
                     <td>
-						<span>Serialport has been upgraded from v4 to v6.  Please make sure you run <code><bold>npm update</bold></code> to get the latest versions.  You can run <code>npm outdated</code> to see if any dependencies are out of date.<p>
-							Note: Serialport now only support major, LTS versions of node.  You need to be running Node v4, v6 or v8.
-						</p></span>
+                        <span>Make sure to run `npm i` or `npm upgrade` to get the latest.</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Intellichem</td>
+                    <td>Decoupled serial port and processing of packets.</td>
                     <td>
-                        <span>Intellichem packets and UI added</span>
+                        <span>
+						Should help recovery upon packet errors.
+						</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Socket/APIs</td>
+                    <td>Bug Fixes</td>
                     <td>
-                        <span>Sockets/API will now all be SINGULAR.  If you have custom apps that call circuits, schedules, etc please change them to circuit, schedule, etc.</span>
-                        <span>Per <a href="https://github.com/tagyoureit/nodejs-poolController/issues/57">Issue #57</a>, all sockets will transition to include a parent tag that describes the information.  This should make any code/logic easier in the future.</span>
+                        <span>#95, #99, #100</span>
                     </td>
                 </tr>
-                <tr>
-                    <td>
-                        Inactivity Timer
-                    </td>
-                    <td>
-                        <span>Implemented serial port/net inactivity timer.  See <a
-                                href="https://github.com/tagyoureit/nodejs-poolController/issues/9">Issue #9</a></span>
 
-                    </td>
-                </tr>
-                <tr>
-                    <td>SSDP/UPnP</td>
-                    <td>
-                        <span>Thanks @bsileo for implementing a ZeroConf protocol for SmartThings and other services to discover poolController.</span>
-                    </td>
-                </tr>
                 </tbody>
             </table>
         </div>
@@ -292,10 +276,13 @@
     <div id="chlorinator" class="col-md-3 pnlChlorinator">
         <a name="chlorinator" class="anchor"></a>
         <div class="panel panel-primary">
-            <div class="panel-heading">Chlorinator Details
+            <div class="panel-heading">Chlorinator
                 <a class="accordion-toggle" data-toggle="collapse" href="#collapseChlorinator"></a>
                 <button id="hidePanelchlorinator" class="btn btn-primary btn-xs"
                         style="float: right; margin-right: 20px;">Hide
+                </button>
+                <button id="chlorEdit" class="btn btn-primary btn-xs" data-target="#modalChlorinator" data-toggle="modal"
+                        style="float: right; margin-right: 20px;">Edit
                 </button>
             </div>
             <div id="collapseChlorinator" class="panel-body panel-collapse collapse in">
@@ -310,7 +297,7 @@
                     <tr id="chlorinatorInstalled">
                         <td>Chlorinator Installed?</td>
                         <td>
-                            Not installed
+                            Status not yet known
                         </td>
                     </tr>
                     <tr id="chlorinatorState">
@@ -344,6 +331,10 @@
                     <tr>
                         <td>Status</td>
                         <td id="chlorinatorStatus">---</td>
+                    </tr>
+                    <tr>
+                        <td>Controlled By</td>
+                        <td id="chlorinatorControlledBy">---</td>
                     </tr>
                     </tbody>
                 </table>
@@ -604,7 +595,7 @@
         <div class="panel panel-primary">
             <div class="panel-heading">Lights
                 <a class="accordion-toggle" data-toggle="collapse" href="#collapseLight"></a>
-                <button id="hidePanelLight" class="btn btn-primary btn-xs" style="float: right; margin-right: 20px;">
+                <button id="hidePanellight" class="btn btn-primary btn-xs" style="float: right; margin-right: 20px;">
                     Hide
                 </button>
                 <button id="editPanelLight" class="btn btn-primary btn-xs" style="float: right; margin-right: 20px;">
@@ -706,9 +697,18 @@
             </div>
             <div class="modal-body">
                 <div class="input-group">
-                    <span class="input-group-addon">Chlorinator Level</span>
-                    <input type="text" class="form-control" id="modalChlorInput" aria-describedby="basic-addon3">
+                    <span class="input-group-addon">Pool Level %</span>
+                    <input type="text" class="form-control" id="modalChlorInputPool" aria-describedby="basic-addon3">
                 </div>
+                <div class="input-group" id="modalChlorInputSpaGrp">
+                    <span class="input-group-addon">Spa Level %</span>
+                    <input type="text" class="form-control" id="modalChlorInputSpa" aria-describedby="basic-addon3">
+                </div>
+                <div class="input-group" id="modalChlorInputSuperChlorGrp">
+                    <span class="input-group-addon">Super Chlorinate Hours (0=off)</span>
+                    <input type="text" class="form-control" id="modalChlorInputSuperChlor" aria-describedby="basic-addon3">
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default btn-danger" data-dismiss="modal">Cancel</button>

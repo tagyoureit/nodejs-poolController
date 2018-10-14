@@ -14,9 +14,9 @@ describe('updates/resets bootstrap configClient.json', function() {
 
         beforeEach(function () {
 
-            // sandbox = sinon.sandbox.create()
-            loggers = setupLoggerStubOrSpy('stub', 'spy')
-            updateAvailStub = sandbox.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
+            // sinon = sinon.sinon.create()
+            loggers = setupLoggerStubOrSpy('spy', 'spy')
+            updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
             var origFile = '/specs/assets/bootstrapConfig/configClient.json'
             var copyFile = '/specs/assets/bootstrapConfig/_configClient.json'
@@ -42,7 +42,7 @@ describe('updates/resets bootstrap configClient.json', function() {
         })
 
         afterEach(function () {
-            sandbox.restore()
+            sinon.restore()
             return fs.unlinkAsync(path.join(process.cwd(), '/specs/assets/bootstrapConfig/_configClient.json'))
                 .then(bottle.container.bootstrapsettings.init)
             // .then(function() {
@@ -65,6 +65,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/bootstrapConfig/_configClient.json'), 'utf-8')
                         .then(function(data){
                             data = JSON.parse(data)
+                            console.log(data)
                             for (var key in data.panelState) {
                                 if (data.panelState[key].state !== "visible"){
                                     myReject(new Error('resetConfigClient did not reset all value.'))
@@ -139,7 +140,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                 bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                     .then(function () {
                         loggerWarnStub.restore()
-                        loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                        loggerWarnStub = sinon.stub(bottle.container.logger, 'warn')
                         return bottle.container.bootstrapsettings.updateAsync('not', 'here', null, true)
                     })
                     .delay(50)
@@ -245,7 +246,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     Promise.resolve()
                         .then(function(){
                             loggerWarnStub.restore()
-                            loggerWarnStub = sandbox.stub(bottle.container.logger, 'warn')
+                            loggerWarnStub = sinon.stub(bottle.container.logger, 'warn')
                             return bottle.container.bootstrapsettings.init('/specs/assets/bootstrapConfig/_configClient.json')
                         })
                         .then(function(){

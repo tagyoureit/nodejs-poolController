@@ -6,19 +6,19 @@ describe('#sets various functions', function() {
         });
 
         beforeEach(function() {
-            // sandbox = sinon.sandbox.create()
+            // sinon = sinon.sinon.create()
 
             loggers = setupLoggerStubOrSpy('stub', 'stub')
-            //clock = sandbox.useFakeTimers();
-            queuePacketStub = sandbox.stub(bottle.container.queuePacket, 'queuePacket')
-            preambleStub = sandbox.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
+            //clock = sinon.useFakeTimers();
+            queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
+            preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 
         })
 
         afterEach(function() {
-            //restore the sandbox after each function
+            //restore the sinon after each function
             bottle.container.time.init()
-            sandbox.restore()
+            sinon.restore()
         })
 
         after(function() {

@@ -6,14 +6,14 @@ Promise.promisifyAll(fs)
 describe('checks if there is a newer version available', function () {
 
 
-    describe('#by talking (spybing) to Git', function () {
+    describe('#by talking (stubing) to Git', function () {
         context('1.', function () {
 
             before(function () {
                 return global.initAllAsync()
 
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+
 
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -25,7 +25,7 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
 
                     .then(global.stopAllAsync)
@@ -91,9 +91,9 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_blank.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_blank.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+
 
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -105,9 +105,10 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
+
             })
 
             it('#notifies of a new release available (remote > local) with local cached version blank', function () {
@@ -188,9 +189,9 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create({useFakeTimers: false})
+                        // sinon = sinon.sinon.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
@@ -201,7 +202,7 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
             })
@@ -258,9 +259,9 @@ describe('checks if there is a newer version available', function () {
 
 
                 //return global.initAllAsync()
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismissfalse.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create({useFakeTimers: false})
+                        // sinon = sinon.sinon.create({useFakeTimers: false})
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
 
@@ -271,7 +272,7 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
             })
@@ -317,9 +318,9 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismisstrue.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+                        // sinon = sinon.sinon.create()
 
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -331,7 +332,7 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
             })
@@ -399,9 +400,9 @@ describe('checks if there is a newer version available', function () {
             before(function () {
 
 
-                return global.initAllAsync('/specs/assets/config/templates/config_updateavail_410_dismisstrue.json')
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismisstrue.json'})
                     .then(function () {
-                        sandbox = sinon.sandbox.create()
+                        // sinon = sinon.sinon.create()
 
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
@@ -413,7 +414,7 @@ describe('checks if there is a newer version available', function () {
                 return Promise.resolve()
                     .then(function () {
                         nock.cleanAll();
-                        sandbox.restore()
+                        sinon.restore()
                     })
                     .then(global.stopAllAsync)
             })

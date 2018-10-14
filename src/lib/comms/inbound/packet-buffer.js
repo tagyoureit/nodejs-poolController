@@ -24,35 +24,49 @@ module.exports = function (container) {
 
     //var bufferArrayOfArrays =  new Dequeue()
 
+    var spemitter
+
+
     function push(packet) {
 
 
-        // try {
-        var packetArr = packet.toJSON().data
-        bufferArrayOfArrays.push(packetArr);
+        try {
+            // put this code back in because a user reported an error on the .toJSON in production
 
-        if (!container.receiveBuffer.getProcessingBuffer()) {
-            //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
-            container.receiveBuffer.iterateOverArrayOfArrays()
-            //testbufferArrayOfArrays=[]
+            if (packet) {
 
-            container.sp.resetConnectionTimer()
+                var packetArr = packet.toJSON().data
+                bufferArrayOfArrays.push(packetArr);
+                //if (!container.receiveBuffer.isBufferCurrentlyProcessing()) {
+                    //console.log('Arrays being passed for processing: \n[[%s]]\n\n', testbufferArrayOfArrays.join('],\n['))
+                    //container.receiveBuffer.iterateOverArrayOfArrays()
+                    //spemitter.emit('iterate')
+                    //testbufferArrayOfArrays=[]
+
+                    // container.sp.resetConnectionTimer()
+                //}
+            }
+
         }
-        // }
-        // catch (err)
-        //     {
-        //         logger.error('Error: ', err)
-        //         logger.warn('Could not push packet to buffer.  \n\tBuffer: %s\nResetting Serial Port.', JSON.stringify(packet))
-        //         logger.warn('Is SP Open?', container.sp.isOpen())
-        //         container.sp.drainSP(function () {
-        //             console.log('SP Drained')
-        //         })
-        //         container.sp.close()
-        //         container.sp.init()
-        //         container.queuepacket.init()
-        //         container.writepacket.init()
-        //     }
+        catch (err) {
+            console.error(err)
+            logger.error('Error: ', err)
+            logger.warn('Could not push packet to buffer, empty packet?')
+            //logger.warn('Buffer: %s\nResetting Serial Port.', JSON.stringify(packet))
+                    //logger.warn('Is SP Open?', container.sp.isOpen())
+                    // container.sp.drainSP(function () {
+                    //     console.log('SP Drained')
+                    // })
+                    // container.sp.close()
+                    // container.sp.init()
+                    // container.queuePacket.init()
+                    // container.writePacket.init()
+
+            // if we catch an error, the iterate loop in receive-buffer will stop; need to treat it like it's starting fresh.
+            //container.receiveBuffer.resetBufferCurrentlyProcessing()
+        }
     }
+
 
     function pop() {
         return bufferArrayOfArrays.shift()
@@ -68,10 +82,21 @@ module.exports = function (container) {
         container.receiveBuffer.clear()
     }
 
+    function init() {
+        if (!spemitter) {
+            spemitter = container.sp.getEmitter()
+            spemitter.on('packetread', function (packet) {
+                push(packet)
+
+            })
+        }
+    }
+
     return {
         push: push,
         pop: pop,
         length: length,
-        clear: clear
+        clear: clear,
+        init: init
     }
 }

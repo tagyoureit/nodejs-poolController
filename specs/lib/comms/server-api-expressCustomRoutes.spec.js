@@ -13,7 +13,7 @@ describe('server', function() {
             })
 
             afterEach(function() {
-                // sandbox.restore()
+                // sinon.restore()
             })
 
             after(function() {

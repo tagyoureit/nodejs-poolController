@@ -1,16 +1,32 @@
 
-# nodejs-poolController - Version 5.1.1
+# nodejs-poolController - Version 5.2.0
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
+5.2.0
+1. Node 6+ is supported.  This app no longer supports Node 4.
+1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
+1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
+1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
+1. Fix for #95
+1. Fix for #99
+1. Fix for #100
+
+
 5.1.1
 1.  Renamed all 'valves' items to valve to be in line with singular renaming of items
 1.  InfluxDB - moved some items that were in tag fields to field keys; added valves
+1.  Added days of week (with editing) back to the schedules.  Not sure when they disappeared, but they are back now.  #92
+1.  Added MySQL integration to log all packets to a DB
+1.  Fixed PR #95 to allow sub-hour egg timers
+1.  Fixed Intellibrite bugs
+1.  Started to move some of the inter-communications to emitter events for better micro-services and shorter call stacks (easier debugging; loosely coupled code).
+1.  Changed some Influx tags/queries.
 
 #### 5.1.0 Highlights
-1. Intellibrite support - API's, Sockets and a WebUI
-Will document more later... but...
+1. Intellibrite support - API's, Sockets and a WebUI.  Lights should have the 'Intellbrite' an their circuit function (set this up at the controller) to show up in this section.
+Will document more later, but...
 /light/mode/:mode
 /light/circuit/:circuit/setColor/:color
 /light/circuit/:circuit/setSwimDelay/:delay
@@ -336,7 +352,10 @@ See below for descriptions
             },
             "intellitouch": {
                 "installed": 1,
-                "friendlyName": ""
+                "friendlyName": "",
+                "numberOfCircuits": 20,
+                "numberOfPumps": 2,
+                "numberOfCustomNames": 10
             },
             "virtual": {
                 "pumpController": "default",
@@ -536,6 +555,11 @@ Physical or virtual controllers
 ### intellitouch
  * If you have this, set `"installed": 1`
  * `friendlyName` - not implemented as of 4.0 alpha 8
+ * If you have expansion boards, set the number in the appropriate variables.  The app will expand your sections of your config.json to have the appropriate variables.
+
+    1. "numberOfCircuits": default=20; increases by 10 per board up to 50
+    1. "numberOfPumps": default=2; increases by 2 per board up to 10
+    1. "numberOfCustomNames": default=10; increases by 10 per board up to 40
 
 ### virtual
 Options to use the nodejs-poolController app as the controller on your system.  You should not enable these if you have another controller (intellicom/intellitouch)

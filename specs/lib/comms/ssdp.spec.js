@@ -1,5 +1,5 @@
 describe('tests SSDP/uPNP', function () {
-
+      // TODO : Nock doesn't seem to be grabbing requests.  Turn off wifi/network and see errors.
 
     context('#with the SSDP client', function () {
         before(function () {
