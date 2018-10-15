@@ -1,0 +1,22 @@
+{
+  "equipment": {
+    "controller": {
+      "virtual": {
+        "chlorinatorController": "always"
+      }
+    },
+    "chlorinator": {
+      "installed": 1,
+      "desiredOutput": {
+        "pool": 0,
+        "spa": 11
+      },
+      "friendlyName": "",
+      "id": {
+        "productName": -1
+      }
+    }
+  }
+}
+
+
