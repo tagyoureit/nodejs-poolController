@@ -7,6 +7,8 @@
 5.2.0
 1. Node 6+ is supported.  This app no longer supports Node 4.
 1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
+1. Much better support of multiple Intellibrite controllers.  We can read both controllers now.  There are still some issues with sending changes and help is needed to debug these.
+1. Chlorinator API calls (and UI) will now make changes through Intellitouch when available, or directly to the Intellichlor if it is standalone (aka using the virtual controller)
 1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
 1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
 1. Fix for #95
