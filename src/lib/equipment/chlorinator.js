@@ -15,6 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 var currentChlorinatorStatus
 
 module.exports = function (container) {
@@ -121,8 +122,12 @@ module.exports = function (container) {
         var chlorinatorStatus = {}
 
         // make sure we copy the property so it isn't lost (controlledBy will only be set once from the virtual controller)
+
         if (currentChlorinatorStatus.controlledBy) {
             chlorinatorStatus.controlledBy = currentChlorinatorStatus.controlledBy
+        }
+        else {
+            container.chlorinatorController.startChlorinatorController()
         }
 
         chlorinatorStatus.saltPPM = saltPPM * 50
@@ -216,6 +221,10 @@ module.exports = function (container) {
         //TODO: Refactor to be better async/promise return
         //NOTE: do we really need to do this logic?  If the controller is on, it will request the updates.  If the virtual controller is enabled, it should be active anyway.
 
+        if (!currentChlorinatorStatus.controlledBy) {
+            container.chlorinatorController.startChlorinatorController()
+        }
+
         if (chlorSpaLvl >= 0 & chlorSpaLvl <= 100) {
             currentChlorinatorStatus.outputSpaPercent = chlorSpaLvl
         }
@@ -229,7 +238,7 @@ module.exports = function (container) {
         }
         currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
 
-        var response = {}
+        let response = {}
         return Promise.resolve()
             .then(function () {
                 if (container.settings.get('chlorinator.installed')) {
@@ -317,11 +326,13 @@ module.exports = function (container) {
                             .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
                             .then(function () {
                                 container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 153, 10, outputSpaByte(), currentChlorinatorStatus.outputPoolPercent, superChlorinateByte(), 0, 0, 0, 0, 0, 0, 0])
+                                if (container.settings.get('logChlorinator')) {
+                                    container.logger.info(response)
+                                }
+                                return Promise.resolve(response)
                             })
 
-                        if (container.settings.get('logChlorinator')) {
-                            container.logger.info(response)
-                        }
+
                     }
                     container.io.emitToClients('chlorinator')
                 }
@@ -335,7 +346,7 @@ module.exports = function (container) {
 
     }
 
-    function outputSpaByte(){
+    function outputSpaByte() {
         return (currentChlorinatorStatus.outputSpaPercent << 1) + currentChlorinatorStatus.installed
     }
 

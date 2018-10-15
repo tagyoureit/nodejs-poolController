@@ -123,6 +123,9 @@ ignore:
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
+      request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-11-13T23:00:17.087Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
@@ -170,7 +173,7 @@ ignore:
   'npm:extend:20180424':
     - node-ssdp > extend:
         reason: None given
-        expires: '2018-10-05T03:45:29.603Z'
+        expires: '2018-11-13T23:00:17.087Z'
     - request > extend:
         reason: None given
         expires: '2018-08-23T22:44:40.819Z'
@@ -203,6 +206,9 @@ ignore:
     - watchify > chokidar > fsevents > node-pre-gyp > tar > chownr:
         reason: None given
         expires: '2018-09-01T14:44:44.769Z'
+    - serialport > @serialport/bindings > prebuild-install > tar-fs > chownr:
+        reason: None given
+        expires: '2018-11-13T22:58:36.874Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':
