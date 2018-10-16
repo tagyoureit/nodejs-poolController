@@ -225,10 +225,61 @@ module.exports = function (container) {
             container.chlorinatorController.startChlorinatorController()
         }
 
+        let response = {}
+        if (currentChlorinatorStatus.controlledBy === 'virtual') {
+            // check for valid settings to be sent to Chlorinator directly
+            if (chlorPoolLvl >= 0 && chlorPoolLvl <= 101) {
+                currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
+            }
+            else {
+
+                response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorPoolLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
+                response.status = this.status
+                response.value = currentChlorinatorStatus.outputPoolPercent
+                if (container.settings.get('logChlorinator')) {
+                    container.logger.warn(response)
+                }
+                return Promise.resolve(response)
+            }
+        }
+        else {
+            // check for valid values with Intellicom/Intellitouch
+            if (chlorPoolLvl === 101) {
+                // assume we will set the superchlorinate for 1 hour
+                chlorSuperChlorinateHours = 1
+            }
+            else if (chlorPoolLvl >= 0 && chlorPoolLvl <= 100) {
+                currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
+            }
+            else {
+                if (!chlorPoolLvl || chlorPoolLvl < -1 || chlorPoolLvl > 101) {
+                    // -1 is valid if we don't want to change the setting.  Anything else is invalid and should trigger a fail.
+                    currentChlorinatorStatus.outputPoolPercent = 0;
+                    response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorPoolLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
+                    response.status = this.status
+                    response.value = currentChlorinatorStatus.outputPoolPercent
+                    response.chlorinator = currentChlorinatorStatus
+                    if (container.settings.get('logChlorinator')) {
+                        container.logger.warn(response)
+                    }
+                    return Promise.resolve(response)
+                }
+
+            }
+        }
+
+
         if (chlorSpaLvl >= 0 & chlorSpaLvl <= 100) {
             currentChlorinatorStatus.outputSpaPercent = chlorSpaLvl
         }
-        if (chlorSuperChlorinateHours > 0 & chlorSuperChlorinateHours <= 96) {
+        else {
+            if (!currentChlorinatorStatus.outputSpaPercent || currentChlorinatorStatus.outputSpaPercent < 0) {
+                // just in case it isn't set.  otherwise we don't want to touch it
+                currentChlorinatorStatus.outputSpaPercent = 0;
+            }
+        }
+
+        if ((chlorSuperChlorinateHours > 0 & chlorSuperChlorinateHours <= 96) || currentChlorinatorStatus.superChlorinateHours>0) {
             currentChlorinatorStatus.superChlorinate = 1
             currentChlorinatorStatus.superChlorinateHours = chlorSuperChlorinateHours
         }
@@ -236,112 +287,94 @@ module.exports = function (container) {
             currentChlorinatorStatus.superChlorinate = 0
             currentChlorinatorStatus.superChlorinateHours = 0
         }
-        currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
 
-        let response = {}
-        return Promise.resolve()
-            .then(function () {
-                if (container.settings.get('chlorinator.installed')) {
-                    if (currentChlorinatorStatus.controlledBy === 'virtual') {
-                        // chlorinator only has pool setting; send commands directly to chlorinator
-                        if (chlorPoolLvl >= 0 && chlorPoolLvl <= 101) {
-                            return Promise.resolve()
-                                .then(function () {
-
-                                    if (currentChlorinatorStatus.outputPoolPercent === 0) {
-                                        response.text = 'Chlorinator set to off.  Chlorinator will be queried every 30 mins for PPM'
-                                        response.status = 'off'
-                                        response.value = 0
-                                    } else if (currentChlorinatorStatus.outputPoolPercent >= 1 && currentChlorinatorStatus.outputPoolPercent <= 100) {
-                                        response.text = 'Chlorinator set to ' + currentChlorinatorStatus.outputPoolPercent + '%.'
-                                        response.status = 'on'
-                                        response.value = currentChlorinatorStatus.outputPoolPercent
-                                    } else if (currentChlorinatorStatus.outputPoolPercent === 101) {
-                                        response.text = 'Chlorinator set to super chlorinate'
-                                        response.status = 'on'
-                                        response.value = currentChlorinatorStatus.outputPoolPercent
-                                    }
-                                })
-                                .then(container.settings.updateChlorinatorDesiredOutputAsync(chlorPoolLvl, currentChlorinatorStatus.outputSpaPercent))
-                                .then(function () {
-                                    container.io.emitToClients('chlorinator')
-                                    if (container.chlorinatorController.isChlorinatorTimerRunning())
-                                        container.chlorinatorController.chlorinatorStatusCheck()  //This is causing problems if the chlorinator is offline (repeated calls to send status packet.)
-                                    else
-                                        container.queuePacket.queuePacket([16, 2, 80, 17, chlorPoolLvl])
-                                    if (container.settings.get('logChlorinator')) {
-                                        container.logger.info(response)
-                                    }
-                                    return response
-                                })
-                        }
-                        else {
-
-                            response.text = 'FAIL: Request for invalid value for chlorinator (' + chlorPoolLvl + ').  Chlorinator will continue to run at previous level (' + currentChlorinatorStatus.outputPoolPercent + ')'
-                            response.status = this.status
+        if (container.settings.get('chlorinator.installed')) {
+            if (currentChlorinatorStatus.controlledBy === 'virtual') {
+                // chlorinator only has one setting; it doesn't know the difference between pool/spa
+                return Promise.resolve()
+                    .then(function () {
+                        response.chlorinator = currentChlorinatorStatus
+                        if (currentChlorinatorStatus.outputPoolPercent === 0) {
+                            response.text = 'Chlorinator set to off.  Chlorinator will be queried every 30 mins for PPM'
+                            response.status = 'off'
+                            response.value = 0
+                        } else if (currentChlorinatorStatus.outputPoolPercent >= 1 && currentChlorinatorStatus.outputPoolPercent <= 100) {
+                            response.text = 'Chlorinator set to ' + currentChlorinatorStatus.outputPoolPercent + '%.'
+                            response.status = 'on'
                             response.value = currentChlorinatorStatus.outputPoolPercent
-                            if (container.settings.get('logChlorinator')) {
-                                container.logger.warn(response)
-                            }
-                            return Promise.resolve(response)
+                        } else if (currentChlorinatorStatus.outputPoolPercent === 101) {
+                            response.text = 'Chlorinator set to super chlorinate'
+                            response.status = 'on'
+                            response.value = currentChlorinatorStatus.outputPoolPercent
                         }
-                    }
-                    else if (currentChlorinatorStatus.controlledBy === 'intellicom') {
-                        // chlorinator controlled by intellicom; it only has the pool setting
-
-                        return Promise.resolve()
-                            .then(function () {
-
-                                if (chlorPoolLvl >= 0 && chlorPoolLvl <= 100) {
-                                    currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
-                                    response.text = `Chlorinator set to ${currentChlorinatorStatus.outputPoolPercent} and SuperChlorinate is ${currentChlorinatorStatus.superChlorinate} for ${currentChlorinatorStatus.superChlorinateHours} hours.`
-                                    response.status = 'on'
-                                    response.value = currentChlorinatorStatus.outputPoolPercent
-                                }
-                            })
-                            .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
-                            .then(function () {
-                                container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 153, 10, outputSpaByte(), currentChlorinatorStatus.outputPoolPercent, 0, superChlorinateByte(), 0, 0, 0, 0, 0, 0, 0])
-
-                            })
-
+                    })
+                    .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
+                    .then(function () {
+                        container.io.emitToClients('chlorinator')
+                        if (container.chlorinatorController.isChlorinatorTimerRunning())
+                            container.chlorinatorController.chlorinatorStatusCheck()  //This is causing problems if the chlorinator is offline (repeated calls to send status packet.)
+                        else
+                            container.queuePacket.queuePacket([16, 2, 80, 17, currentChlorinatorStatus.outputPoolPercent])
                         if (container.settings.get('logChlorinator')) {
                             container.logger.info(response)
                         }
-                    }
+                        return response
+                    })
+            }
 
-                    else {
-                        // controlled by Intellitouch.  We should set both pool and spa levels at the controller
+            else if (currentChlorinatorStatus.controlledBy === 'intellicom') {
+                // chlorinator controlled by intellicom; it only has the pool setting
 
-                        return Promise.resolve()
-                            .then(function () {
+                return Promise.resolve()
+                    .then(function () {
+                        response.chlorinator = currentChlorinatorStatus
+                        response.text = `Chlorinator set to ${currentChlorinatorStatus.outputPoolPercent} and SuperChlorinate is ${currentChlorinatorStatus.superChlorinate} for ${currentChlorinatorStatus.superChlorinateHours} hours.`
+                        response.status = 'on'
+                        response.value = currentChlorinatorStatus.outputPoolPercent
 
-                                if (chlorPoolLvl >= 0 && chlorPoolLvl <= 100) {
-                                    currentChlorinatorStatus.outputPoolPercent = chlorPoolLvl
-                                    response.text = `Chlorinator pool set to ${currentChlorinatorStatus.outputPoolPercent}, spa set to ${currentChlorinatorStatus.outputSpaPercent} and SuperChlorinate is ${currentChlorinatorStatus.superChlorinate} for ${currentChlorinatorStatus.superChlorinateHours} hours.`
-                                    response.status = 'on'
-                                    response.value = currentChlorinatorStatus.outputPoolPercent
-                                }
-                            })
-                            .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
-                            .then(function () {
-                                container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 153, 10, outputSpaByte(), currentChlorinatorStatus.outputPoolPercent, superChlorinateByte(), 0, 0, 0, 0, 0, 0, 0])
-                                if (container.settings.get('logChlorinator')) {
-                                    container.logger.info(response)
-                                }
-                                return Promise.resolve(response)
-                            })
+                    })
+                    .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
+                    .then(function () {
+                        // TODO: Check if the packet is the same on Intellicom (sans Spa setting)... currently it is the same as Intellichlor but the response is formatted differently.
+                        container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 153, 10, outputSpaByte(), currentChlorinatorStatus.outputPoolPercent, 0, superChlorinateByte(), 0, 0, 0, 0, 0, 0, 0])
 
+                    })
 
-                    }
-                    container.io.emitToClients('chlorinator')
+                if (container.settings.get('logChlorinator')) {
+                    container.logger.info(response)
                 }
-                else {
-                    // chlor NOT installed
-                    response.text = 'FAIL: Chlorinator not enabled.  Set Chlorinator=1 in config.json'
-                    return Promise.resolve(response)
-                }
-            })
+            }
+
+            else {
+                // controlled by Intellitouch.  We should set both pool and spa levels at the controller
+
+                return Promise.resolve()
+                    .then(function () {
+                        response.chlorinator = currentChlorinatorStatus
+                        response.text = `Chlorinator pool set to ${currentChlorinatorStatus.outputPoolPercent}, spa set to ${currentChlorinatorStatus.outputSpaPercent} and SuperChlorinate is ${currentChlorinatorStatus.superChlorinate} for ${currentChlorinatorStatus.superChlorinateHours} hours.`
+                        response.status = 'on'
+                        response.value = currentChlorinatorStatus.outputPoolPercent
+
+                    })
+                    .then(container.settings.updateChlorinatorDesiredOutputAsync(currentChlorinatorStatus.outputPoolPercent, currentChlorinatorStatus.outputSpaPercent))
+                    .then(function () {
+                        container.queuePacket.queuePacket([165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 153, 10, outputSpaByte(), currentChlorinatorStatus.outputPoolPercent, superChlorinateByte(), 0, 0, 0, 0, 0, 0, 0])
+                        if (container.settings.get('logChlorinator')) {
+                            container.logger.info(response)
+                        }
+                        return response
+                    })
+
+
+            }
+            container.io.emitToClients('chlorinator')
+        }
+
+        else {
+            // chlor NOT installed
+            response.text = 'FAIL: Chlorinator not enabled.  Set Chlorinator=1 in config.json'
+            return Promise.resolve(response)
+        }
 
 
     }

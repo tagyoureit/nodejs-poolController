@@ -537,12 +537,50 @@ module.exports = function (container) {
             res.send(container.intellichem.getCurrentIntellichem())
         })
 
+        // This should be deprecated
         app.get('/chlorinator/:chlorinateLevel', function (req, res) {
             container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.chlorinateLevel))
                 .then(function (response) {
                     res.send(response)
                 })
         })
+
+        app.get('/chlorinator/pool/:poolChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+        app.get('/chlorinator/spa/:spaChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(-1, parseInt(req.params.spaChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+        
+        app.get('/chlorinator/pool/:poolChlorinateLevel/spa/:spaChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel), parseInt(req.params.spaChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+
+        app.get('/chlorinator/superChlorinateHours/:hours', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(-1, -1, parseInt(req.params.hours))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+        app.get('/chlorinator/pool/:poolChlorinateLevel/spa/:spaChlorinateLevel/superChlorinateHours/:hours', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel), parseInt(req.params.spaChlorinateLevel), parseInt(req.params.hours))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
 
         app.get('/light/mode/:mode', function (req, res) {
             if (parseInt(req.params.mode) >= 0 && parseInt(req.params.mode) <= 256) {
