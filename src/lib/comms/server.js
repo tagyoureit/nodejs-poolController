@@ -309,11 +309,12 @@ module.exports = function (container) {
         })
 
         // Routing
-        app.use(express.static(path.join(process.cwd(), 'src/www')));
-        app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
-        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/')));
-        app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
-        app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
+        app.use(express.static(path.join(process.cwd(), 'src/www'), { maxAge: '14d' }));
+        app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/'), { maxAge: '60d' }));
+        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), { maxAge: '60d' }));
+        app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), { maxAge: '60d' }));
+        app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/'), { maxAge: '60d' }));
+	app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
 
         // disable for security
         app.disable('x-powered-by')
