@@ -949,6 +949,9 @@ module.exports = function (container) {
             container.logger.info(retStr)
 
         }
+        // assign color to circuit object
+        assignControllerLightColor(mode,0,'API')
+
         return retStr
     }
 

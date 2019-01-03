@@ -125,7 +125,7 @@ ignore:
         expires: '2018-05-27T15:05:54.491Z'
       request-promise > request-promise-core > lodash:
         reason: None given
-        expires: '2018-11-13T23:00:17.087Z'
+        expires: '2019-01-28T22:22:52.646Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-04-01T03:18:10.568Z'
@@ -150,6 +150,9 @@ ignore:
     - request-promise > request-promise-core > lodash:
         reason: None given
         expires: '2018-08-16T06:24:46.574Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2018-11-13T23:00:17.087Z'
   'npm:hoek:20180212':
     - request > hawk > hoek:
         reason: None given
@@ -173,7 +176,7 @@ ignore:
   'npm:extend:20180424':
     - node-ssdp > extend:
         reason: None given
-        expires: '2018-11-13T23:00:17.087Z'
+        expires: '2019-01-28T22:22:52.645Z'
     - request > extend:
         reason: None given
         expires: '2018-08-23T22:44:40.819Z'
@@ -199,7 +202,7 @@ ignore:
   'npm:chownr:20180731':
     - serialport > prebuild-install > tar-fs > chownr:
         reason: None given
-        expires: '2018-10-05T03:45:29.603Z'
+        expires: '2019-01-28T22:18:22.043Z'
     - chokidar > fsevents > node-pre-gyp > tar > chownr:
         reason: None given
         expires: '2018-09-01T14:44:44.769Z'
