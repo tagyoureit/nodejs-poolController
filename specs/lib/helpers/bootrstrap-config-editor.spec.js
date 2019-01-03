@@ -15,7 +15,7 @@ describe('updates/resets bootstrap configClient.json', function() {
         beforeEach(function () {
 
             // sinon = sinon.sinon.create()
-            loggers = setupLoggerStubOrSpy('spy', 'spy')
+            loggers = setupLoggerStubOrSpy('stub', 'spy')
             updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
 
             var origFile = '/specs/assets/bootstrapConfig/configClient.json'
@@ -65,7 +65,7 @@ describe('updates/resets bootstrap configClient.json', function() {
                     return fs.readFileAsync(path.join(process.cwd(), '/specs/assets/bootstrapConfig/_configClient.json'), 'utf-8')
                         .then(function(data){
                             data = JSON.parse(data)
-                            console.log(data)
+                            //console.log(data)
                             for (var key in data.panelState) {
                                 if (data.panelState[key].state !== "visible"){
                                     myReject(new Error('resetConfigClient did not reset all value.'))
