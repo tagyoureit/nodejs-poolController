@@ -10,12 +10,23 @@ describe('nodejs-poolController', function () {
     describe('Loads/checks for a valid configuration file', function () {
 
         before(function () {
-
+            // initialize winston once with defaults
+            return Promise.resolve()
+            .then(function(){
+                bottle.container.logger.init()
+            })
+            .delay(50)
+            .then(function(){
+                console.log("done")
+                bottle.container.logger.info("test logger")
+                bottle.container.logger.warn("test warn")
+                bottle.container.logger.error("test error")
+            })
         })
 
 
         beforeEach(function () {
-
+            
             updateAvailStub = sinon.stub(bottle.container.updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
             if (global.logInitAndStop) {
                 loggerInfoStub = sinon.spy(bottle.container.logger, 'info')

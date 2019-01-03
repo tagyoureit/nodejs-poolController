@@ -24,7 +24,8 @@ module.exports = function (container) {
         pfs = Promise.promisifyAll(container.fs),
         diff = container.deepdiff.diff,
         observableDiff = container.deepdiff.observableDiff,
-        applyChange = container.deepdiff.applyChange;
+        applyChange = container.deepdiff.applyChange,
+        ready = false
 
     var argv = require('yargs-parser')(process.argv.slice(2), opts = {boolean: ['capturePackets', 'suppressWrite']})
 
@@ -605,6 +606,7 @@ module.exports = function (container) {
             })
             .finally(function () {
                 container.logger.debug('Finished settings.loadAsync()')
+                ready = true;
             })
 
     }
@@ -870,12 +872,16 @@ module.exports = function (container) {
             })
     }
 
+    var isReady = function(){
+        return ready;
+    }
 
     /* istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loaded: settings.js')
 
     return {
+        isReady: isReady,
         loadAsync: loadAsync,
         has: has,
         get: get,

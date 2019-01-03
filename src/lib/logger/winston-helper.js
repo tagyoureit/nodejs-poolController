@@ -19,7 +19,7 @@
 //  dateFormat = require('dateformat'),
 //  util = require('util')
 
-module.exports = function(container) {
+module.exports = function (container) {
     /*istanbul ignore next */
     if (container.logModuleLoading)
         console.log('Loading: winston-helper.js')
@@ -31,129 +31,145 @@ module.exports = function(container) {
 
     var logger, packetLogger
 
-    var init = function(){
+    var init = function () {
 
-        logger = new (winston.Logger)({
-            transports: [
-                new (winston.transports.Console)({
+        if (container.settings.isReady()) {
+            console.log('Winstion initializing with customized settings.')
+
+            logger = new (winston.Logger)({
+                transports: [
+                    new (winston.transports.Console)({
+                        timestamp: function () {
+                            return dateFormat(Date.now(), "HH:MM:ss.l");
+                        },
+                        formatter: function (options) {
+                            // Return string will be passed to logger.
+                            return options.timestamp() + ' ' + winston.config.colorize(options.level, options.level.toUpperCase()) + ' ' + (undefined !== options.message ? options.message : '') +
+                                (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
+                        },
+                        colorize: true,
+                        level: container.settings.get('logLevel') || 'info',
+                        stderrLevels: [],
+                        handleExceptions: true,
+                        humanReadableUnhandledException: true
+                    })
+                ]
+            });
+
+            var fileLogEnable = 0
+            if (container.settings.has('fileLog.enable')) {
+                fileLogEnable = container.settings.get('fileLog.enable')
+            }
+            if (fileLogEnable) {
+                var _level = container.settings.get('fileLog.fileLogLevel')
+                var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
+
+                var options = {
                     timestamp: function () {
                         return dateFormat(Date.now(), "HH:MM:ss.l");
                     },
+                    level: _level,
                     formatter: function (options) {
                         // Return string will be passed to logger.
-                        return options.timestamp() + ' ' + winston.config.colorize(options.level, options.level.toUpperCase()) + ' ' + (undefined !== options.message ? options.message : '') +
+                        return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
                             (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
                     },
-                    colorize: true,
-                    level: container.settings.get('logLevel') || 'info',
-                    stderrLevels: [],
-                    handleExceptions: true,
-                    humanReadableUnhandledException: true
-                })
-            ]
-        });
-        var fileLogEnable = 0
-        if (container.settings.has('fileLog.enable')){
-            fileLogEnable = container.settings.get('fileLog.enable')
-        }
-        if (fileLogEnable) {
-            var _level = container.settings.get('fileLog.fileLogLevel')
-            var file = path.join(process.cwd(), container.settings.get('fileLog.fileName'))
+                    filename: file,
+                    colorize: false,
+                    json: false
+                }
+                logger.add(winston.transports.File, options)
 
-            var options = {
-                timestamp: function () {
-                    return dateFormat(Date.now(), "HH:MM:ss.l");
-                },
-                level: _level,
-                formatter: function (options) {
-                    // Return string will be passed to logger.
-                    return options.timestamp() + ' ' + options.level.toUpperCase() + ' ' + (undefined !== options.message ? options.message : '') +
-                        (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
-                },
-                filename: file,
-                colorize: false,
-                json: false
             }
-            logger.add(winston.transports.File, options)
+
+
+            if (container.settings.get('capturePackets')) {
+                packetLogger = new (winston.Logger)({
+                    transports: [
+                        new (winston.transports.File)({
+                            formatter: function (options) {
+                                // Return string will be passed to logger.
+                                return JSON.stringify(options.message);
+                            },
+                            colorize: false,
+                            level: 'info',
+                            handleExceptions: true,
+                            humanReadableUnhandledException: false,
+                            json: true,
+                            filename: path.join(process.cwd(), 'replay/packetCapture.json')
+                        })
+                    ]
+                });
+            }
+
 
         }
-
-
-        if (container.settings.get('capturePackets'))
-        {
-            packetLogger = new (winston.Logger)({
+        else {
+            console.log('Winstion initializing with default settings.')
+            // initialize winston with defaults
+            logger = new (winston.Logger)({
                 transports: [
-                    new (winston.transports.File)({
+                    new (winston.transports.Console)({
+                        timestamp: function () {
+                            return dateFormat(Date.now(), "HH:MM:ss.l");
+                        },
                         formatter: function (options) {
                             // Return string will be passed to logger.
-                            return JSON.stringify(options.message);
+                            return options.timestamp() + ' ' + winston.config.colorize(options.level, options.level.toUpperCase()) + ' ' + (undefined !== options.message ? options.message : '') +
+                                (options.meta && Object.keys(options.meta).length ? '\n\t' + JSON.stringify(options.meta) : '');
                         },
-                        colorize: false,
+                        colorize: true,
                         level: 'info',
+                        stderrLevels: [],
                         handleExceptions: true,
-                        humanReadableUnhandledException: false,
-                        json: true,
-                        filename: path.join(process.cwd(), 'replay/packetCapture.json')
+                        humanReadableUnhandledException: true
                     })
                 ]
             });
         }
-
-
     }
 
-    function error(msg, ...args){
-        // console.log('error msg: ', msg)
-        // console.log('error args... ', args)
-        if (logger===undefined){
-            console.log('Error ', args)
-        }
-        else
-            // is this right?
-            logger.error.apply(this, args)
-    }
-
-    function warn(msg){
-        if (logger===undefined){
-            console.log('Warn ',arguments)
-        }
-        else
-            logger.warn.apply(this, arguments)
-    }
-    function silly(msg){
+      function error(msg){
+         if (logger===undefined){
+             init()
+         }
+         logger.error.apply(this, arguments)
+     }
+ 
+     function warn(msg){
         if (logger===undefined){
             init()
+        }
+             logger.warn.apply(this, arguments)
+     }
+     function silly(msg){
+        if (logger===undefined){
+            init()
+        }
+             logger.silly.apply(this, arguments)
+     }
+     function debug(msg){
+        if (logger===undefined){
+            init()
+        }
+             logger.debug.apply(this, arguments)
+     }
+     function verbose(msg){
+        if (logger===undefined){
+            init()
+        }
+             logger.verbose.apply(this, arguments)
+     }
+     function info(msg){
+        if (logger===undefined){
+            init()
+        }
+             logger.info.apply(this, arguments)
+     } 
 
-            logger.silly.apply(this, arguments)
-        }
-        else
-            logger.silly.apply(this, arguments)
-    }
-    function debug(msg){
-        if (logger===undefined){
-            console.log('Debug ',arguments)
-        }
-        else
-            logger.debug.apply(this, arguments)
-    }
-    function verbose(msg){
-        if (logger===undefined){
-            console.log('Verbose ',arguments)
-        }
-        else
-            logger.verbose.apply(this, arguments)
-    }
-    function info(msg){
-        if (logger===undefined){
-            console.log('Info ',arguments)
-        }
-        else
-            logger.info.apply(this, arguments)
-    }
-
-    function changeLevel(transport, lvl){
+    function changeLevel(transport, lvl) {
         //when testing, we may call this first
-        if (logger===undefined) {
+        if (logger === undefined) {
             //init() //calling init here may lead to retrieving settings which we don't have yet... so print a message and move on
             console.log('Error trying to call changeLevel when winston is not yet initialized')
 
@@ -162,12 +178,12 @@ module.exports = function(container) {
             logger.transports[transport].level = lvl;
         }
     }
-    function add(transport, options){
+    function add(transport, options) {
         logger.add(transport, options)
     }
 
-    function packet(msg){
-         packetLogger.info.apply(this, arguments)
+    function packet(msg) {
+        packetLogger.info.apply(this, arguments)
     }
 
     /*istanbul ignore next */
@@ -175,13 +191,13 @@ module.exports = function(container) {
         logger.info('Loaded: winston-helper.js')
 
     return {
-        init:init,
+        init: init,
         error: error,
         warn: warn,
         silly: silly,
         debug: debug,
         verbose: verbose,
-        info: info,
+        info: info, 
         changeLevel: changeLevel,
         add: add,
         packet: packet

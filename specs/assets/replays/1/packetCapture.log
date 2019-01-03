@@ -9,11 +9,11 @@
 15:09:47.871 INFO Settings:
 
 *******************************
- Version: 5.2.0
+ Version: 5.3.01
  
 Configuration file name: config.json
 *******************************{
-    "version": "5.2.0",
+    "version": "5.3.01",
     "equipment": {
         "controller": {
             "intellicom": {
@@ -326,7 +326,7 @@ Configuration file name: config.json
 15:09:47.974 SILLY New SOCKET.IO Client connected,  rN_W8cd9yhLJ_2KjAAAA
 15:09:47.975 SILLY Outputting socket  all
 15:09:47.975 SILLY Socket.IO checking if we need to output updateAvail: false (will send if false)
-15:09:47.979 SILLY Socket.IO NOT outputting updateAvail because it is missing the result string: {"local":{"version":"5.2.0"}} 
+15:09:47.979 SILLY Socket.IO NOT outputting updateAvail because it is missing the result string: {"local":{"version":"5.3.01"}} 
 15:09:47.987 SILLY New https server connection ::ffff:127.0.0.1
 15:09:47.988 SILLY New https server connection ::ffff:127.0.0.1
 15:09:48.000 VERBOSE Sending NR POST
@@ -343,12 +343,12 @@ Configuration file name: config.json
 15:09:48.134 SILLY updateAvail.compareLocaltoSavedLocal: (current) published release (5.1.1) to cached/last published config.json version (5.1.1)
 15:09:48.134 SILLY updateAvail: no change in current remote version compared to local cached config.json version of app
 15:09:48.136 SILLY updateAvail: versions discovered: 
-	{"local":{"version":"5.2.0"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"}}
-15:09:48.137 SILLY updateAvail: local ver: 5.2.0    latest published release ver: 5.1.1
-15:09:48.139 INFO You are running a newer release (5.2.0) than the published release (5.1.1)
+	{"local":{"version":"5.3.01"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"}}
+15:09:48.137 SILLY updateAvail: local ver: 5.3.01    latest published release ver: 5.1.1
+15:09:48.139 INFO You are running a newer release (5.3.01) than the published release (5.1.1)
 15:09:48.140 SILLY Outputting socket  updateAvailable
 15:09:48.141 SILLY Socket.IO checking if we need to output updateAvail: false (will send if false)
-15:09:48.141 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.2.0"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.2.0) than the published release (5.1.1)"} 
+15:09:48.141 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.3.01"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.3.01) than the published release (5.1.1)"} 
 15:09:48.142 SILLY updateAvail: finished successfully
 15:09:48.163 VERBOSE ISY: Response from ISY: [object Object] <html>
     <head></head>
@@ -1860,7 +1860,7 @@ Full queue: [[255,0,255,165,1,16,33,232,1,0,1,192],
 [255,0,255,165,1,16,33,219,1,1,1,180]]
 15:09:49.849 SILLY Outputting socket  all
 15:09:49.849 SILLY Socket.IO checking if we need to output updateAvail: false (will send if false)
-15:09:49.850 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.2.0"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.2.0) than the published release (5.1.1)"} 
+15:09:49.850 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.3.01"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.3.01) than the published release (5.1.1)"} 
 15:09:49.851 DEBUG postWritePacketHelper: First time writing packet.
 	{"counter":1,"packetWrittenAt":5,"msgWrote":[255,0,255,165,1,16,33,232,1,0,1,192]}
 15:09:49.851 DEBUG writePacketHelper: Setting timeout to write next packet (will call preWritePacketHelper())
@@ -25698,7 +25698,7 @@ container.packetBuffer.length()(0) === 0 && bufferToProcess.length(0) > 0: false
 15:10:49.881 SILLY New http server connection ::ffff:192.168.1.12
 15:10:49.885 SILLY Outputting socket  all
 15:10:49.885 SILLY Socket.IO checking if we need to output updateAvail: false (will send if false)
-15:10:49.897 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.2.0"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.2.0) than the published release (5.1.1)"} 
+15:10:49.897 SILLY Socket.IO outputting updateAvail: {"local":{"version":"5.3.01"},"remote":{"tag_name":"v5.1.1","version":"5.1.1"},"result":"newer","resultStr":"You are running a newer release (5.3.01) than the published release (5.1.1)"} 
 15:10:49.902 DEBUG NR Socket: Will not send circuit2status because the value has not changed (1)
 15:10:49.902 DEBUG NR Socket: Will not send circuit3status because the value has not changed (0)
 15:10:49.902 DEBUG NR Socket: Will not send circuit4status because the value has not changed (0)
