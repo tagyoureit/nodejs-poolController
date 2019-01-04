@@ -1,21 +1,20 @@
 
-# nodejs-poolController - Version 5.2.0
+
+# nodejs-poolController - Version 5.3.0
+
 
 
 [![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](https://travis-ci.org/tagyoureit/nodejs-poolController.svg?branch=master)](https://travis-ci.org/tagyoureit/nodejs-poolController) [![Coverage Status](https://coveralls.io/repos/github/tagyoureit/nodejs-poolController/badge.svg?branch=master)](https://coveralls.io/github/tagyoureit/nodejs-poolController?branch=master) [![Known Vulnerabilities](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller/badge.svg)](https://snyk.io/test/github/tagyoureit/nodejs-poolcontroller)
 
 [Full Changelog](#module_nodejs-poolController--changelog)
 
-### 5.2.0
-1. Node 6+ is supported.  This app no longer supports Node 4.
-1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
-1. Much better support of multiple Intellibrite controllers.  We can read both controllers now.  There are still some issues with sending changes and help is needed to debug these.
-1. Chlorinator API calls (and UI) will now make changes through Intellitouch when available, or directly to the Intellichlor if it is standalone (aka using the virtual controller)
-1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
-1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
-1. Fix for #95
-1. Fix for #99
-1. Fix for #100
+
+### 5.3.0
+1. Fix for #106
+1. Fix for "Error 60" messages
+1. Improved caching of files on browsers.  Thanks @arrmo!  Now files will be loaded once in the browser and kept in cache instead of reloaded each time.
+1. Improved handling of sessions and graceful closing of the HTTP(s) servers.
+
 
 
 # License
@@ -198,10 +197,14 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 
 #### Chlorinator and Intellichem
-
+(Note: As of 5.3 the Chlorinator API's will route the commands either through the Intellitouch/Intellicom or directly to the chlorinator depending upon your setup)
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
-| To app | <code>setchlorinator(level)</code> |  <code>/chlorinator/{level}</code>|sets the level of output for chlorinator (pool only)
+| To app | <code>setchlorinator(poolLevel, spaLevel, superChlorinateHours)</code> |  <code>/chlorinator/{level}/spa/{level}/superChlorinateHours/{hours}</code>|sets the level of output for chlorinator (spa/superchlorinate can be omitted)
+| To app |  |  <code>/chlorinator/pool/{level}</code>|sets the pool output %
+| To app |  |  <code>/chlorinator/spa/{level}</code>|sets the spa output %
+| To app |  |  <code>/chlorinator/pool/{level}/spa/{level}</code>|sets the pool & spa output %
+| To app |  |  <code>/chlorinator/superChlorinateHours/{hours}</code>|sets the hours for super chlorination
 | To client | <code>chlorinator</code> | outputs an object with the chlorinator information
 | To app | | <code>/chlorinator</code> | outputs an object with the chlorinator information
 | To app | <code>intellichem</code> | <code>/intellichem</code> |outputs an object with the intellichem information
@@ -947,7 +950,16 @@ See the constants.js file and the sections:
 1.  Started to move some of the inter-communications to emitter events for better micro-services and shorter call stacks (easier debugging; loosely coupled code).
 1.  Changed some Influx tags/queries.
 
-
+### 5.2.0
+1. Node 6+ is supported.  This app no longer supports Node 4.
+1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
+1. Much better support of multiple Intellibrite controllers.  We can read both controllers now.  There are still some issues with sending changes and help is needed to debug these.
+1. Chlorinator API calls (and UI) will now make changes through Intellitouch when available, or directly to the Intellichlor if it is standalone (aka using the virtual controller)
+1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
+1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
+1. Fix for #95
+1. Fix for #99
+1. Fix for #100
 
 
 

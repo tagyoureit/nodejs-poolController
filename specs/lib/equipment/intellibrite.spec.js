@@ -419,7 +419,8 @@ describe('processes Intellibrite packets',function () {
                     .delay(500)
                     .then(function (obj) {
                         queue = bottle.container.queuePacket.entireQueue()
-                        queue[2].should.deep.equal(intellibriteCyan)
+                        //console.log('queue: ', queue)
+                        queue[1].should.deep.equal(intellibriteCyan)
                     })
                     .then(done,done)
             });
@@ -476,7 +477,7 @@ describe('processes Intellibrite packets',function () {
 
             beforeEach(function () {
                 // sinon = sinon.sinon.create()
-                loggers = setupLoggerStubOrSpy('stub','spy')
+                loggers = setupLoggerStubOrSpy('spy','spy')
                 checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration')
                 writeSPPacketStub = sinon.stub(bottle.container.sp,'writeSP')
 
@@ -539,7 +540,8 @@ describe('processes Intellibrite packets',function () {
                     .delay(100)
                     .then(function () {
                         queue = bottle.container.queuePacket.entireQueue()
-                        queue[2].should.deep.equal(intellibriteCyan)
+                        //console.log('Queue: ', JSON.stringify(queue,null,2))
+                        queue[1].should.deep.equal(intellibriteCyan)
 
                     })
 
@@ -563,7 +565,7 @@ describe('processes Intellibrite packets',function () {
                     .then(function () {
                         queue = bottle.container.queuePacket.entireQueue()
                         queue[0].should.deep.equal(intellibritePosition1)
-                        queue[2].should.deep.equal(intellibriteCyan)
+                        queue[1].should.deep.equal(intellibriteCyan)
                     })
 
 
@@ -583,7 +585,7 @@ describe('processes Intellibrite packets',function () {
                 return Promise.resolve()
                     .delay(100)
                     .then(function () {
-                        // console.log('writeSP: ',writeSPPacketStub.args)
+                        //console.log('writeSP: ',writeSPPacketStub.args)
                         writeSPPacketStub.args[0][0].should.deep.equal(intellibriteSwimDelay10)
                     })
 

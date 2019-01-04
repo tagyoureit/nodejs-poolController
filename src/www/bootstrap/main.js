@@ -2182,7 +2182,7 @@ function lastUpdate(reset) {
 }
 
 var loadAppSettings = function () {
-    $.getJSON('/config', function (appConfig) {
+    $.getJSON('../config', function (appConfig) {
         appParams = appConfig.config
         console.log(appParams)
         if (appParams.systemReady) {
