@@ -66,11 +66,11 @@
     "request": "^2.87.0",
     "request-promise": "^4.2.2",
     "serialport": "^6.2.2",
-    "socket.io": "^2.1.1",
-    "socket.io-client": "^2.1.1",
+    "socket.io": "^2.2.0",
+    "socket.io-client": "^2.2.0",
     "underscore": "^1.9.1",
     "winston": "^2.4.3",
-    "winston-transport": "^4.2.0",
+    "winston-transport": "^4.3.0",
     "yargs-parser": "^10.1.0"
   },
   "devDependencies": {
@@ -83,7 +83,7 @@
     "mocha": "^5.2.0",
     "nock": "^9.3.3",
     "sinon": "^6.1.4",
-    "snyk": "^1.83.0"
+    "snyk": "^1.120.1"
   },
   "snyk": true
 }

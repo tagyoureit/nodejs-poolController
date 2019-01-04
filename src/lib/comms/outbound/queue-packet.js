@@ -62,8 +62,8 @@ module.exports = function (container) {
                     packet = [255, 0, 255];
                     Array.prototype.push.apply(packet, message);
 
-                    //if we request to "SET" a variable on the HEAT STATUS & TIME, or Intellibrite
-                    if ((packet[7] === 136 || packet[7] === 133 || packet[7] === 167 || packet[7]===153) && container.settings.get('intellitouch.installed')) {
+                    //if we request to "SET" a variable on outgoing packets.  96 is Intellibrite and there seems to be no "Get" (#106)
+                    if (((packet[7] >= 131 && packet[7] === 168) || packet[7] === 96) && container.settings.get('intellitouch.installed')) {
                         requestGet = 1;
                     }
                 }
@@ -131,14 +131,16 @@ module.exports = function (container) {
                 //-------End Internally validate checksum
 
                 if (requestGet) {
-                    //request the GET version of the SET packet
-                    var getPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
-                    if (logPacketWrites) container.logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
-                    queuePacket(getPacket);
+                    if (packet[7] === 96) {
+                        bottle.container.packetBuffer.push(Buffer.from(packet))
+                    }
+                    else {
+                        //request the GET version of the SET packet
+                        var getPacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), packet[container.constants.packetFields.ACTION + 3] + 64, 1, 0]
+                        if (logPacketWrites) container.logger.debug('Queueing message %s to retrieve \'%s\'', getPacket, container.constants.strControllerActions[getPacket[container.constants.packetFields.ACTION]])
+                        queuePacket(getPacket);
+                    }
 
-                    //var statusPacket = [165, preambleByte, 16, 34, 194, 1, 0]
-                    //container.logger.debug('Queueing messages to retrieve \'%s\'', container.constants.strControllerActions[statusPacket[container.constants.packetFields.ACTION]])
-                    //queuePacket(statusPacket);
                 }
                 if (logPacketWrites) container.logger.silly('queuePacket: Message: %s now has checksum added: %s', message, packet)
 
