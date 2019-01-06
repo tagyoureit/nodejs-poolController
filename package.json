@@ -73,6 +73,8 @@
     "yargs-parser": "^10.1.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-react-app": "^3.1.2",
     "chai": "^4.0.1",
     "coveralls": "^3.0.1",
     "grunt": "^1.0.3",
