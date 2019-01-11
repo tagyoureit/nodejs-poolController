@@ -34,6 +34,7 @@ module.exports = function (container) {
 
     var emitToClients = function (outputType, data) {
         container.logger.silly('Outputting socket ', outputType)
+        
         if (outputType === 'updateAvailable' || outputType === 'all') {
             var remote = container.settings.get('notifications.version.remote')
             container.logger.silly('Socket.IO checking if we need to output updateAvail: %s (will send if false)', remote.dismissUntilNextRemoteVersionBump)
@@ -197,7 +198,7 @@ module.exports = function (container) {
         }
         else {
             try {
-                container.logger.debug('Stopping Socket IO Server')
+                container.logger.debug(`Stopping Socket IO ${type} Server`)
 
                 while (socketList[type].length !== 0) {
                     container.logger.silly('total sockets in list: ', socketList[type].length)
@@ -212,7 +213,7 @@ module.exports = function (container) {
                 if (typeof io[type].close === 'function') {
                     io[type].close();
                     io[type + 'Enabled'] = 0
-                    container.logger.debug('Socket IO Server closed')
+                    container.logger.debug(`Socket IO ${type} Server closed`)
                 }
                 else {
                     container.logger.silly('Trying to close IO server, but already closed.')

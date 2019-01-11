@@ -22,82 +22,89 @@ module.exports = function (container) {
     if (container.logModuleLoading)
         container.logger.info('Loading: server.js');
 
-    var express = container.express, servers = {http: {}, https: {}, ssdp: {}, mdns: {}}
+    var express = container.express, servers = { http: {}, https: {}, ssdp: {}, mdns: {} }
     var path = require('path').posix;
-    var defaultPort = {http: 3000, https: 3001}
+    var defaultPort = { http: 3000, https: 3001 }
     var mdnsEmitter = new container.events.EventEmitter();
-    var mdns = {query: [], answers: []}
+    var mdns = { query: [], answers: [] }
     var emitter = new container.events.EventEmitter();
+
+    var httpShutdown = require('http-shutdown')
+    const _next = require('next')
+    const dev = process.env.NODE_ENV !== 'production'
 
 
     function startServerAsync(type) {
         return new Promise(function (resolve, reject) {
 
             if (container.settings.get(type + 'Enabled')) {
-                // srvDesired += container.settings.get(type + 'Enabled');
+                servers[type].next = _next({ dev }) //dir: path.join(process.cwd(), 'src/www')})
+                servers[type].next.prepare()
+                    .then(() => {
+                        servers[type].app = express();
 
-                servers[type].app = express();
-                servers[type].port = container.settings.get(type + 'ExpressPort') || defaultPort[type];
-                servers[type].server = undefined;
+                        servers[type].port = container.settings.get(type + 'ExpressPort') || defaultPort[type];
+                        servers[type].server = undefined;
 
-                container.logger.info('Starting up express server, ' + type + ' (port %d)', servers[type].port);
+                        container.logger.info('Starting up express server, ' + type + ' (port %d)', servers[type].port);
 
-                // And Enable Authentication (if configured)
-                if (container.settings.get(type + 'ExpressAuth') === 1) {
-                    var auth = container.auth;
-                    var basic = auth.basic({
-                        file: path.join(process.cwd(), container.settings.get(type + 'ExpressAuthFile'))
-                    });
-                    servers[type].app.use(auth.connect(basic));
-                }
+                        // And Enable Authentication (if configured)
+                        if (container.settings.get(type + 'ExpressAuth') === 1) {
+                            var auth = container.auth;
+                            var basic = auth.basic({
+                                file: path.join(process.cwd(), container.settings.get(type + 'ExpressAuthFile'))
+                            });
+                            servers[type].app.use(auth.connect(basic));
+                        }
 
-                // Create Server
-                if (type === 'https') {
-                    var opt_https = {
-                        key: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressKeyFile'))),
-                        cert: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressCertFile'))),
-                        requestCert: false,
-                        rejectUnauthorized: false
-                    };
-                    servers[type].server = container.https.createServer(opt_https, servers[type].app);
-                } else
-                    servers[type].server = container.http.createServer(servers[type].app);
+                        // Create Server
+                        if (type === 'https') {
+                            var opt_https = {
+                                key: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressKeyFile'))),
+                                cert: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressCertFile'))),
+                                requestCert: false,
+                                rejectUnauthorized: false
+                            };
+                            servers[type].server = container.https.createServer(opt_https, servers[type].app);
+                        } else
+                            servers[type].server = container.http.createServer(servers[type].app);
 
-                // Configure Server
-                if (type === 'http' && container.settings.get('httpRedirectToHttps')) {
+                        // Configure Server
+                        if (type === 'http' && container.settings.get('httpRedirectToHttps')) {
 
-                    servers[type].app.get('*', function (req, res) {
-                        var host = req.get('Host');
-                        // replace the port in the host
-                        host = host.replace(/:\d+$/, ":" + container.settings.get('httpsExpressPort'));
-                        // determine the redirect destination
-                        var destination = ['https://', host, req.url].join('');
-                        return res.redirect(destination);
-                    });
+                            servers[type].app.get('*', function (req, res) {
+                                var host = req.get('Host');
+                                // replace the port in the host
+                                host = host.replace(/:\d+$/, ":" + container.settings.get('httpsExpressPort'));
+                                // determine the redirect destination
+                                var destination = ['https://', host, req.url].join('');
+                                return res.redirect(destination);
+                            });
 
-                }
-                else
-                    configExpressServer(servers[type].app, express);
+                        }
+                        else
+                            configExpressServer(servers[type].app, express, servers[type].next);
 
-                // And Start Listening
-                servers[type].server.listen(servers[type].port, function () {
-                    container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
-                    container.io.init(servers[type].server, type)
-                    resolve('Server ' + type + ' started.');
-                });
 
-                servers[type].server.on('error', function (e) {
-                    container.logger.error('error from ' + type + ':', e)
-                    console.error(e)
-                    reject(e)
-                });
+                        //And Start Listening
+                        servers[type].server = servers[type].server.listen(servers[type].port, function () {
+                            container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
+                            container.io.init(servers[type].server, type)
+                            resolve('Server ' + type + ' started.');
+                        });
+                        /*                  servers[type].server = httpShutdown(servers[type].server.listen(servers[type].port, function () {
+                                             container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
+                                             container.io.init(servers[type].server, type)
+                                             resolve('Server ' + type + ' started.');
+                                         })); */
 
-                // based on https://stackoverflow.com/questions/43003870/how-do-i-shut-down-my-express-server-gracefully-when-its-process-is-killed
-                servers[type].connections = []
-                servers[type].server.on('connection', function (connection) {
-                    container.logger.silly('New %s server connection', type, connection.remoteAddress)
-                    servers[type].connections.push(connection)
-                })
+                        servers[type].server.on('error', function (e) {
+                            container.logger.error('error from ' + type + ':', e)
+                            console.error(e)
+                            reject(e)
+                        });
+                    })
+
             }
             else {
                 var res = 'Not starting ' + type + ' server.'
@@ -106,192 +113,17 @@ module.exports = function (container) {
             }
         });
     }
+    function configExpressServer(app, express, _next) {
+        // use next as router
+        const handle = _next.getRequestHandler()
 
-    function startSSDPServer(type) {
-        return new Promise(function (resolve, reject) {
-            return container.helpers.getMac()
-                .then(function (mac) {
-                    container.logger.info('Starting up SSDP server');
-                    var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
-                    var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
-                    var location = type + '://' + container.ip.address() + ':' + port + '/device'
-                    var SSDP = container.ssdp.Server
-                    servers['ssdp'].server = new SSDP({
-                        logLevel: 'INFO',
-                        udn: udn,
-                        location: location,
-                        sourcePort: 1900
-                    })
-                    servers['ssdp'].isRunning = 0
-                    servers['ssdp'].server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
-                    // start the server
-                    servers['ssdp'].server.start()
-                        .then(function () {
-                            container.logger.verbose('SSDP/UPnP Server started.')
-                            servers['ssdp'].isRunning = 1
-                            resolve('Server SSDP started.')
-                        });
-
-                    servers['ssdp'].server.on('error', function (e) {
-                        container.logger.error('error from SSDP:', e);
-                        console.error(e);
-                        reject(e);
-                    })
-
-                })
-
-        })
-    }
-
-    function startMDNS() {
-        return new Promise(function (resolve, reject) {
-            container.logger.info('Starting up MDNS server');
-            servers['mdns'] = container.mdns()
-
-            servers['mdns'].on('response', function (response) {
-                //container.logger.silly('got a response packet:', response)
-                mdns.query.forEach(function (mdnsname) {
-                    container.logger.silly('looking to match on ', mdnsname)
-                    if (response.answers[0].name.includes(mdnsname)) {
-                        // container.logger.silly('TXT data:', response.additionals[0].data.toString())
-                        // container.logger.silly('SRV data:', JSON.stringify(response.additionals[1].data))
-                        // container.logger.silly('IP Address:', response.additionals[2].data)
-                        mdnsEmitter.emit('response', response)
-                    }
-                })
-            })
-
-            servers['mdns'].on('query', function (query) {
-                //container.logger.silly('got a query packet:', query)
-                // if (query.name === '_nodejs._poolcontroller') {
-                //     // send an A-record response for example.local
-                //     mdns.respond({
-                //         answers: [{
-                //             name: 'example.local',
-                //             type: 'A',
-                //             ttl: 300,
-                //             data: '192.168.1.5'
-                //         }]
-                //     })
-                // }
-            })
-
-
-            servers['mdns'].isRunning = 1
-            servers['mdns'].query({
-                    questions: [{
-                        name: 'myserver.local',
-                        type: 'A'
-                    }]
-                },
-                resolve('Server MDNS started.'))
-
-
-        })
-    }
-
-    function mdnsQuery(query) {
-        if (mdns.query.indexOf(query) === -1) {
-            mdns.query.push(query)
-        }
-        mdns.query.forEach(function (el) {
-            container.logger.debug('MDNS: going to send query for ', el)
-            servers['mdns'].query({
-                questions: [{
-                    name: el,
-                    type: 'PTR'
-                }]
-            })
-        })
-    }
-
-    function initAsync() {
-        var serversPromise = []
-        serversPromise.push(startServerAsync('https'))
-        serversPromise.push(startServerAsync('http'))
-        serversPromise.push(startSSDPServer('http'))
-        serversPromise.push(startMDNS())
-
-
-        return Promise.all(serversPromise)
-            .then(function (results) {
-                bottle.container.logger.debug('Server starting complete.', results)
-                emitter.emit('serverstarted', 'success!')
-            })
-            .catch(function (e) {
-                console.error(e)
-                container.logger.error('Error starting servers.', e)
-                throw new Error('initAsync failed: Error starting servers. ' + e)
-            })
-
-
-    }
-
-    var closeAsync = function (type) {
-        return new Promise(function (resolve, reject) {
-            if (type === 'mdns') {
-                if (servers['mdns'].isRunning) {
-                    servers['mdns'].destroy()
-                }
-                resolve()
-            }
-            else if (type === 'ssdp') {
-                if (servers['ssdp'].isRunning) {
-                    servers['ssdp'].server.stop()
-                    container.logger.verbose('SSDP/uPNP Server closed');
-                }
-                resolve()
-                // advertise shutting down and stop listening
-            }
-            else if (servers[type].server !== undefined) {
-                container.logger.silly('%s has %s connections in it: ', type, servers[type].connections.length)
-                container.io.stop(type)
-                servers[type].server.close(function () {
-                    container.logger.verbose('Express Server ' + type + ' closed');
-                    resolve();
-                });
-                servers[type].connections.forEach(function (conn) {
-                    container.logger.silly('Destroying %s connection from %s', type, conn.remoteAddress)
-                    conn.end()
-                    conn.destroy()
-                })
-            } else {
-                container.logger.debug('Trying to close ' + type + ', but it is not running.');
-                resolve();  //it's ok if it isn't running, so resolve the promise.
-            }
-            // }
-        }).catch(function (err) {
-            container.logger.error('error closing express or socket server.', err.toString())
-            console.error(err)
-        });
-    }
-
-    var closeAllAsync = function () {
-        var serversPromise = []
-        serversPromise.push(closeAsync('http'), closeAsync('https'), closeAsync('ssdp'), closeAsync('mdns'))
-        return Promise.all(serversPromise)
-            .then(function () {
-                container.logger.verbose('All express + ssdp servers closed')
-            })
-            .catch(function (err) {
-                container.logger.error('Problem stopping express + ssdp servers')
-                console.error(err)
-            })
-    }
-
-    var getServer = function () {
-        return servers;
-    };
-
-
-    function configExpressServer(app, express) {
         // Hook to use custom routes
         var customRoutes = require(path.join(process.cwd(), 'src/integrations/customExpressRoutes'));
         customRoutes.init(app);
 
-        // Middleware to capture requests to log
+        // Middleware
         app.use(function (req, res, next) {
-
+            // Middleware to capture requests to log
             var reqType = req.originalUrl.split('/')
             if (!['bootstrap', 'assets', 'poolController', 'public'].includes(reqType[1])) {
 
@@ -305,15 +137,42 @@ module.exports = function (container) {
                     })
                 }
             }
+
+            /*            console.log('looking at session: ', req.sessionID)
+                       //store session in memory store
+                       if (req.session.views) {
+                           req.session.views++
+                           res.setHeader('Content-Type', 'text/html')
+                           res.write('<p>views: ' + req.session.views + '</p>')
+                           res.write('<p>expires in: ' + (req.session.cookie.maxAge / 1000) + 's</p>')
+                           res.write('<p>json session: <br>' + JSON.stringify(req.session) )
+                           res.end()
+                         } else {
+                           req.session.views = 1
+                           res.end('welcome to the session demo. refresh!')
+                         }
+           
+                       //output request variables
+                       console.log(`Request session: ${req}`)
+            */
             next()
         })
-
+        let max_age = {}
+        if (process.env.NODE_ENV === 'production') {
+            app.use(express.static(path.join(process.cwd(), 'src/www'), { maxAge: '14d' }));
+            max_age = { maxAge: '60d' }
+        }
+        else {
+            app.use(express.static(path.join(process.cwd(), 'src/www')));
+            max_age = {}  // no maxAge in dev
+        }
         // Routing
-        app.use(express.static(path.join(process.cwd(), 'src/www')));
-        app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/')));
-        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/')));
-        app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/')));
-        app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/')));
+        app.use('/bootstrap', express.static(path.join(process.cwd(), '/node_modules/bootstrap/dist/'), max_age));
+        app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), max_age));
+        app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), max_age));
+        app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/'), max_age));
+        app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), max_age));
+
 
         // disable for security
         app.disable('x-powered-by')
@@ -321,6 +180,8 @@ module.exports = function (container) {
         /*app.get('/status', function(req, res) {
             res.send(container.status.getCurrentStatus())
         })*/
+
+
 
         app.get('/all', function (req, res) {
             res.send(container.helpers.allEquipmentInOneJSON());
@@ -471,7 +332,7 @@ module.exports = function (container) {
         })
 
 
-//TODO: do we need DOW in these???
+        //TODO: do we need DOW in these???
         app.get('/datetime/set/time/:hh/:mm/date/:dow/:dd/:mon/:yy/:dst', function (req, res) {
             var hour = parseInt(req.params.hh)
             var min = parseInt(req.params.mm)
@@ -537,12 +398,50 @@ module.exports = function (container) {
             res.send(container.intellichem.getCurrentIntellichem())
         })
 
+        // This should be deprecated
         app.get('/chlorinator/:chlorinateLevel', function (req, res) {
             container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.chlorinateLevel))
                 .then(function (response) {
                     res.send(response)
                 })
         })
+
+        app.get('/chlorinator/pool/:poolChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+        app.get('/chlorinator/spa/:spaChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(-1, parseInt(req.params.spaChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+        app.get('/chlorinator/pool/:poolChlorinateLevel/spa/:spaChlorinateLevel', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel), parseInt(req.params.spaChlorinateLevel))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+
+        app.get('/chlorinator/superChlorinateHours/:hours', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(-1, -1, parseInt(req.params.hours))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
+        app.get('/chlorinator/pool/:poolChlorinateLevel/spa/:spaChlorinateLevel/superChlorinateHours/:hours', function (req, res) {
+            container.chlorinator.setChlorinatorLevelAsync(parseInt(req.params.poolChlorinateLevel), parseInt(req.params.spaChlorinateLevel), parseInt(req.params.hours))
+                .then(function (response) {
+                    res.send(response)
+                })
+        })
+
 
         app.get('/light/mode/:mode', function (req, res) {
             if (parseInt(req.params.mode) >= 0 && parseInt(req.params.mode) <= 256) {
@@ -862,7 +761,7 @@ module.exports = function (container) {
             res.send(response)
         })
 
-//#11 Run pump at GPM for an indefinite duration
+        //#11 Run pump at GPM for an indefinite duration
         app.get('/pumpCommand/run/pump/:pump/gpm/:gpm', function (req, res) {
             var pump = parseInt(req.params.pump)
             var gpm = parseInt(req.params.gpm)
@@ -876,7 +775,7 @@ module.exports = function (container) {
             res.send(response)
         })
 
-//#12 Run pump at GPM for specified duration
+        //#12 Run pump at GPM for specified duration
         app.get('/pumpCommand/run/pump/:pump/gpm/:gpm/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
             var gpm = parseInt(req.params.gpm)
@@ -890,7 +789,7 @@ module.exports = function (container) {
             res.send(response)
         })
 
-//#13  Save program to pump
+        //#13  Save program to pump
         app.get('/pumpCommand/save/pump/:pump/program/:program/gpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
@@ -911,7 +810,7 @@ module.exports = function (container) {
             }
         })
 
-//#14  Save and run program for indefinite duration
+        //#14  Save and run program for indefinite duration
         app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed', function (req, res) {
             var pump = parseInt(req.params.pump)
             var program = parseInt(req.params.program)
@@ -930,7 +829,7 @@ module.exports = function (container) {
             }
         })
 
-//#15  Save and run program for specified duration
+        //#15  Save and run program for specified duration
 
         app.get('/pumpCommand/saverun/pump/:pump/program/:program/gpm/:speed/duration/:duration', function (req, res) {
             var pump = parseInt(req.params.pump)
@@ -980,7 +879,190 @@ module.exports = function (container) {
 
         /* END Invalid pump commands -- sends response */
 
+        // catch all to route through next
+        app.get('*', (req, res) => {
+            const { parse } = require('url')
+            const parsedUrl = parse(req.url, true)
+            const { pathname, query } = parsedUrl
+            handle(req, res, parsedUrl)
+        })
     }
+
+    function startSSDPServer(type) {
+        return new Promise(function (resolve, reject) {
+            return container.helpers.getMac()
+                .then(function (mac) {
+                    container.logger.info('Starting up SSDP server');
+                    var udn = 'uuid:806f52f4-1f35-4e33-9299-' + mac
+                    var port = container.settings.get(type + 'ExpressPort') || defaultPort[type]
+                    var location = type + '://' + container.ip.address() + ':' + port + '/device'
+                    var SSDP = container.ssdp.Server
+                    servers['ssdp'].server = new SSDP({
+                        logLevel: 'INFO',
+                        udn: udn,
+                        location: location,
+                        sourcePort: 1900
+                    })
+                    servers['ssdp'].isRunning = 0
+                    servers['ssdp'].server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
+                    // start the server
+                    servers['ssdp'].server.start()
+                        .then(function () {
+                            container.logger.verbose('SSDP/UPnP Server started.')
+                            servers['ssdp'].isRunning = 1
+                            resolve('Server SSDP started.')
+                        });
+
+                    servers['ssdp'].server.on('error', function (e) {
+                        container.logger.error('error from SSDP:', e);
+                        console.error(e);
+                        reject(e);
+                    })
+
+                })
+
+        })
+    }
+
+    function startMDNS() {
+        return new Promise(function (resolve, reject) {
+            container.logger.info('Starting up MDNS server');
+            servers['mdns'] = container.mdns()
+
+            servers['mdns'].on('response', function (response) {
+                //container.logger.silly('got a response packet:', response)
+                mdns.query.forEach(function (mdnsname) {
+                    container.logger.silly('looking to match on ', mdnsname)
+                    if (response.answers[0].name.includes(mdnsname)) {
+                        // container.logger.silly('TXT data:', response.additionals[0].data.toString())
+                        // container.logger.silly('SRV data:', JSON.stringify(response.additionals[1].data))
+                        // container.logger.silly('IP Address:', response.additionals[2].data)
+                        mdnsEmitter.emit('response', response)
+                    }
+                })
+            })
+
+            servers['mdns'].on('query', function (query) {
+                //container.logger.silly('got a query packet:', query)
+                // if (query.name === '_nodejs._poolcontroller') {
+                //     // send an A-record response for example.local
+                //     mdns.respond({
+                //         answers: [{
+                //             name: 'example.local',
+                //             type: 'A',
+                //             ttl: 300,
+                //             data: '192.168.1.5'
+                //         }]
+                //     })
+                // }
+            })
+
+
+            servers['mdns'].isRunning = 1
+            servers['mdns'].query({
+                questions: [{
+                    name: 'myserver.local',
+                    type: 'A'
+                }]
+            },
+                resolve('Server MDNS started.'))
+
+
+        })
+    }
+
+    function mdnsQuery(query) {
+        if (mdns.query.indexOf(query) === -1) {
+            mdns.query.push(query)
+        }
+        mdns.query.forEach(function (el) {
+            container.logger.debug('MDNS: going to send query for ', el)
+            servers['mdns'].query({
+                questions: [{
+                    name: el,
+                    type: 'PTR'
+                }]
+            })
+        })
+    }
+
+    function initAsync() {
+        var serversPromise = []
+        serversPromise.push(startServerAsync('https'))
+        serversPromise.push(startServerAsync('http'))
+        serversPromise.push(startSSDPServer('http'))
+        serversPromise.push(startMDNS())
+
+
+        return Promise.all(serversPromise)
+            .then(function (results) {
+                bottle.container.logger.debug('Server starting complete.', results)
+                emitter.emit('serverstarted', 'success!')
+            })
+            .catch(function (e) {
+                console.error(e)
+                container.logger.error('Error starting servers.', e)
+                throw new Error('initAsync failed: Error starting servers. ' + e)
+            })
+
+
+    }
+
+    var closeAsync = function (type) {
+        return new Promise(function (resolve, reject) {
+            if (type === 'mdns') {
+                if (servers['mdns'].isRunning) {
+                    servers['mdns'].destroy()
+                }
+                resolve()
+            }
+            else if (type === 'ssdp') {
+                if (servers['ssdp'].isRunning) {
+                    servers['ssdp'].server.stop()
+                    container.logger.verbose('SSDP/uPNP Server closed');
+                }
+                resolve()
+                // advertise shutting down and stop listening
+            }
+            else if (servers[type].server !== undefined) {
+                container.io.stop(type)
+                servers[type].server.close(function () {
+                    container.logger.verbose('Express Server ' + type + ' closed');
+                    // graceful shutdown thanks to http-shutdown
+                    servers[type].server.shutdown()
+
+                    resolve();
+                });
+
+
+
+            } else {
+                container.logger.debug('Trying to close ' + type + ', but it is not running.');
+                resolve();  //it's ok if it isn't running, so resolve the promise.
+            }
+            // }
+        }).catch(function (err) {
+            container.logger.error('error closing express or socket server.', err.toString())
+            console.error(err)
+        });
+    }
+
+    var closeAllAsync = function () {
+        var serversPromise = []
+        serversPromise.push(closeAsync('http'), closeAsync('https'), closeAsync('ssdp'), closeAsync('mdns'))
+        return Promise.all(serversPromise)
+            .then(function () {
+                container.logger.verbose('All express + ssdp servers closed')
+            })
+            .catch(function (err) {
+                container.logger.error('Problem stopping express + ssdp servers')
+                console.error(err)
+            })
+    }
+
+    var getServer = function () {
+        return servers;
+    };
 
 
     /*istanbul ignore next */

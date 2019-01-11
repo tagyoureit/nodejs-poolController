@@ -14,7 +14,7 @@
     <link type="text/css" rel="stylesheet" href="../jquery-ui/jquery-ui.css">
     <link type="text/css" rel="stylesheet" href="style.css">
 
-    <script src="../socket.io/socket.io.js"></script>
+    <script src="../socket.io-client/socket.io.js"></script>
     <script src="../jquery/dist/jquery.js"></script>
     <script src="../jquery-ui/jquery-ui.min.js"></script>
     <script src="../assets/jquery.mousewheel.js"></script>
@@ -73,34 +73,35 @@
             <table class="table table-hover">
                 <thead>
                 <tr>
-                    <th colspan="2">5.2.0 release notes</th>
+                    <th colspan="2">5.3.0 release notes</th>
                 </tr>
                 </thead>
                 <tbody>
                 <tr>
-                    <td>Node 6+</td>
+                    <td>Intellibrite</td>
                     <td>
-                        <span>This app no longer supports Node 4.</span>
+                        <span>#106 fixed.  API updates are now reflected in the /circuit object.</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Update of modules.</td>
+                    <td>Browser caching</td>
                     <td>
-                        <span>Make sure to run `npm i` or `npm upgrade` to get the latest.</span>
+                        <span>Much thanks to @arrmo for implementing browser side caching of web pages.  Big speed improvements on loading the HTML pages.</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Decoupled serial port and processing of packets.</td>
+                    <td>Server side session management </td>
                     <td>
                         <span>
-						Should help recovery upon packet errors.
+						Better management of sessions on the server.
 						</span>
                     </td>
                 </tr>
                 <tr>
-                    <td>Bug Fixes</td>
+                    <td>NPM I</td>
                     <td>
-                        <span>#95, #99, #100</span>
+                        <span>Re-run 'npm i' to update dependencies.
+                        </span>
                     </td>
                 </tr>
 

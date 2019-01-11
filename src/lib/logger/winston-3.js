@@ -174,13 +174,13 @@ module.exports = function (container) {
         packetLogger.info(msg)
     }
 
-    function error(msg) {
-        if (logger === undefined) {
-            console.log('Error ', arguments)
-        }
-        else
-            logger.error.apply(this, arguments)
-    }
+    // function error(msg) {
+    //     if (logger === undefined) {
+    //         console.log('Error ', arguments)
+    //     }
+    //     else
+    //         logger.error.apply(this, arguments)
+    // }
 
     function warn(msg) {
         if (logger === undefined) {
@@ -251,7 +251,7 @@ module.exports = function (container) {
 
     return {
         init: init,
-        error: error,
+       // error: error,
         warn: warn,
         silly: silly,
         debug: debug,
