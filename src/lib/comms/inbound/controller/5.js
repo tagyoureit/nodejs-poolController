@@ -30,13 +30,11 @@ module.exports = function(container) {
           //example packet  165	16	16	34	133	8	21	31	64	11	3	 17	 0	0	 2	7
 
           //Following packet (time) also is broadcast in #2, as is adjust DST...
-          container.time.setControllerTime(data[6], data[7])
-
-          //But the DATE is not broadcast anywhere else (unless hidden in status packet?)
-          container.time.setControllerDate(data[8], data[9], data[10], data[11], data[13])  //day of week, day, month, year, autoadjustDST
+          container.time.updateDateTime(data[6], data[7], data[8], data[9], data[10], data[11], data[13])
+          //hh, mm, day of week, day, month, year, autoadjustDST
 
             if (s.logConfigMessages) {
-                logger.silly('Msg# %s  Heat status packet data: %s  currentHeat: %s', counter, data);
+                logger.silly('Msg# %s  Date/Time packet data: %s  currentHeat: %s', counter, data);
             }
 
 

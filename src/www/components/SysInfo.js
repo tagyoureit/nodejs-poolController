@@ -2,38 +2,18 @@ import {
     Row, Col, Table, Card, CardImg, CardText, CardBody,
     CardTitle, CardSubtitle, Button
 } from 'reactstrap';
-import Timekeeper from 'react-timekeeper';
+
 import Link from 'next/link'
-
-
-
+import DateTime from './DateTime'
 
 class SysInfo extends React.Component {
 
     constructor(props) {
         super(props)
-        this.updateTime = this.updateTime.bind(this)
-        this.state = {
-            displayTimepicker: true
-        }
+
     }
 
 
-    updateTime(newTime) {
-        console.log(newTime)
-    }
-
-    toggleTimekeeper(val) {
-        this.setState({ displayTimepicker: val })
-    }
-
-    handleDateChange(date) {
-        console.log()
-        // make api call here
-        this.setState({
-            startDate: date
-        });
-    }
 
     render() {
         return (
@@ -50,19 +30,17 @@ class SysInfo extends React.Component {
 
 
                             <Row>
-                                <Col xs="6">Time</Col>
-                                <Col> <Button onClick={() => this.toggleTimekeeper(true)}>{this.props.value.time}</Button></Col>
+                                <Col xs="6">Date/Time</Col>
+                                <Col>
+
+                                    <DateTime  date={this.props.value.date} time={this.props.value.time} locale={this.props.value.locale}/>
+                                </Col>
                             </Row>
                             <hr></hr>
                             <Row>
                                 <Col xs="6">Date</Col>
                                 <Col xs="6">
-                                <Link href="/index"><a>test link</a></Link>
-                                <Link href="/date"><a>date</a></Link>
-                                    <Link href="">
-                                        <Button value={this.props.value.date}>{this.props.value.date}
-                                        </Button>
-                                    </Link>
+
                                 </Col>
                             </Row>
                             <Row>
@@ -82,17 +60,9 @@ class SysInfo extends React.Component {
 
                     </CardBody>
                 </Card>
-                {this.state.displayTimepicker ?
-                    <Timekeeper
-                        time={this.props.value.time}
-                        onChange={this.updateTime}
-                        switchToMinuteOnHourSelect={true}
-                        onDoneClick={() => {
-                            this.toggleTimekeeper(false)
-                        }}
-                    />
-                    : false}
-                {this.state.displayTimepicker ? false : <Button onClick={() => this.toggleTimekeeper(true)}>Open Timekeeper</Button>}
+
+
+
 
 
             </div>

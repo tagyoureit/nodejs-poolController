@@ -1,6 +1,6 @@
 
 
-# nodejs-poolController - Version 5.3.0
+# nodejs-poolController - Version 6.0-DEV
 
 
 
@@ -8,13 +8,10 @@
 
 [Full Changelog](#module_nodejs-poolController--changelog)
 
-
-### 5.3.0
-1. Fix for #106
-1. Fix for "Error 60" messages
-1. Improved caching of files on browsers.  Thanks @arrmo!  Now files will be loaded once in the browser and kept in cache instead of reloaded each time.
-1. Improved handling of sessions and graceful closing of the HTTP(s) servers.
-
+### 6.0-DEV
+* Utilizing next.js (react/webpack) stack for new HTML front end
+* Updated /time endpoint and socket with more verbose information
+* (TBD) deprecated sockets
 
 
 # License
@@ -960,6 +957,12 @@ See the constants.js file and the sections:
 1. Fix for #95
 1. Fix for #99
 1. Fix for #100
+
+### 5.3.0
+1. Fix for #106
+1. Fix for "Error 60" messages
+1. Improved caching of files on browsers.  Thanks @arrmo!  Now files will be loaded once in the browser and kept in cache instead of reloaded each time.
+1. Improved handling of sessions and graceful closing of the HTTP(s) servers.
 
 
 

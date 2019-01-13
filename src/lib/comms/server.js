@@ -38,7 +38,7 @@ module.exports = function (container) {
         return new Promise(function (resolve, reject) {
 
             if (container.settings.get(type + 'Enabled')) {
-                servers[type].next = _next({ dev }) //dir: path.join(process.cwd(), 'src/www')})
+                servers[type].next = _next({ dev, dir: path.join(process.cwd(), 'src/www')})
                 servers[type].next.prepare()
                     .then(() => {
                         servers[type].app = express();

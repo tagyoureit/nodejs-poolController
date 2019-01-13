@@ -2,6 +2,11 @@
 import Head from 'next/head';
 import Navbar from './Navbar';
 
+// HACK: Reload CSS in development
+//       Remove when this issue is resolved:
+//       https://github.com/zeit/next-plugins/issues/282
+import css from './style.css'
+
 
 const Layout = (props) => (
 

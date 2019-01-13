@@ -1,17 +1,15 @@
 import React, { Component } from 'react';
-import { getAll } from '../api/Socket_Client';
+import { getAll } from '../components/Socket_Client';
 import Layout from '../components/Layout';
 import { Button } from 'reactstrap';
 import SysInfo from '../components/SysInfo'
+
 
 class App extends Component {
     constructor(props) {
         super(props);
 
         getAll((err, d) => {
-            console.log('bottle...')
-
-            console.log('received data in app.js');
 
             this.setState({ data: Object.assign({}, this.state.data, d) })
             this.setState(
@@ -33,6 +31,7 @@ class App extends Component {
                 return {sysInfo : {
                     time: d.time.controllerTime,
                     date: d.time.controllerDateStr,
+                    locale: d.time.locale,
                     airTemp: d.temperature.airTemp,
                     solarTemp: d.temperature.solarTemp,
                     freezeProt: d.temperature.freeze

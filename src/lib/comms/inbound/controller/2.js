@@ -37,9 +37,10 @@ module.exports = function(container) {
                 container.circuit.setCurrentStatusBytes(data, counter)
 
 
-
-                  container.time.setControllerTime(data[c.controllerStatusPacketFields.HOUR], data[c.controllerStatusPacketFields.MIN])
-                  container.time.setAutomaticallyAdjustDST(data[c.controllerStatusPacketFields.MISC2] & 1)
+                  // removed in 6.0-DEV and we will only process this from the date/time packet
+                  //container.time.setControllerTime(data[c.controllerStatusPacketFields.HOUR], data[c.controllerStatusPacketFields.MIN])
+                  //container.time.setAutomaticallyAdjustDST(data[c.controllerStatusPacketFields.MISC2] & 1)
+                  
                   container.temperatures.setTempFromController(data[c.controllerStatusPacketFields.POOL_TEMP],data[c.controllerStatusPacketFields.SPA_TEMP],data[c.controllerStatusPacketFields.AIR_TEMP],data[c.controllerStatusPacketFields.SOLAR_TEMP], (data[c.controllerStatusPacketFields.UOM] & 8) >> 3)
 
                   //TODO: Figure out what this heat mode string does...
