@@ -19,33 +19,33 @@ class Pump extends React.Component {
         //console.log(`toggle ${this.state.data.name} val`)
     }
 
-    renderPumps(colWidth) {
-
-        return Object.entries(this.props.data).map((k,v) => {
-            console.log(`k:${JSON.stringify(k[1].name)} `)
-            return (<Col xs="{colWidth}" key={v}>
-           
-                
-                    {k[1].name}
-              <br/>
-                    {k[1].rpm}
-                    <br/>   
-                    {k[1].err}
-                    <br/>
-                    {k[1].drivestate}
-                    <br/>
-                    {k[1].mode}
-                    <br/>
-            
-            </Col>)
-        })
-    }
 
     render() {
 
-        // const colCount = Object.keys(this.props.data.length + 1
-        // const colWidth = Math.floor(12/colCount)
-        const colWidth = 3
+        const colCount = Object.keys(this.props.data).length + 1
+        const colWidth = Math.floor(12 / colCount)
+
+
+        const pumps = Object.entries(this.props.data).map((k) => {
+
+            return (<Col xs="{colWidth}" >
+
+
+                {k[1].name}
+                <br />
+                {k[1].rpm}
+                <br />
+                {k[1].err}
+                <br />
+                {k[1].drivestate}
+                <br />
+                {k[1].mode}
+                <br />
+
+            </Col>)
+        })
+
+
         return (
 
             <div>
@@ -59,30 +59,30 @@ class Pump extends React.Component {
 
                         <CardText>
 
-                          
-                                <Row>
-                                    <Col xs="{colWidth}">
+
+                            <Row>
+                                <Col xs="{colWidth}">
                                     Name
                                     <br />
-                                        Watts
+                                    Watts
                                 <br />
-                                        RPM
+                                    RPM
                                 <br />
-                                        Error
+                                    Error
                                 <br />
-                                        Drive State
+                                    Drive State
                                 <br />
-                                        Run Mode
+                                    Run Mode
                                 <br />
 
-                                    </Col>
-                                 
-                                    {this.renderPumps(colWidth)}
+                                </Col>
 
-                                </Row>
+                                {pumps}
+
+                            </Row>
 
 
-                         
+
                         </CardText>
 
                     </CardBody>
