@@ -8,7 +8,6 @@ import {setDateTime} from './Socket_Client'
 
 class DateTime extends React.Component {
   constructor(props) {
-    console.log(`now!!!`)
     super(props);
     this.state = {
       modal: false,

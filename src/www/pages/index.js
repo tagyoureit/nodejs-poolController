@@ -3,7 +3,8 @@ import { getAll } from '../components/Socket_Client';
 import Layout from '../components/Layout';
 import { Button } from 'reactstrap';
 import SysInfo from '../components/SysInfo'
-
+import PoolSpaState from '../components/PoolSpaState'
+import Pump from '../components/Pump'
 
 class App extends Component {
     constructor(props) {
@@ -25,39 +26,62 @@ class App extends Component {
             this.setState((state) => { return { chlorinator: d.chlorinator } })
             this.setState((state) => { return { intellichem: d.intellichem } })
 
-
-
             this.setState((state) => {
-                return {sysInfo : {
-                    time: d.time.controllerTime,
-                    date: d.time.controllerDateStr,
-                    locale: d.time.locale,
-                    airTemp: d.temperature.airTemp,
-                    solarTemp: d.temperature.solarTemp,
-                    freezeProt: d.temperature.freeze
-                }}
+                return {
+                    sysInfo: {
+                        time: d.time.controllerTime,
+                        date: d.time.controllerDateStr,
+                        locale: d.time.locale,
+                        airTemp: d.temperature.airTemp,
+                        solarTemp: d.temperature.solarTemp,
+                        freezeProt: d.temperature.freeze
+                    },
+                    poolInfo: {
+                        name: "Pool",
+                        state: this.circuitOn("Pool")?"On":"Off",
+                        temp: d.temperature.poolTemp,
+                        setPoint: d.temperature.poolSetPoint,
+                        heatMode: d.temperature.poolHeatMode,
+                        heatModeStr: d.temperature.poolHeatModeStr,
+                        heatOn: d.temperature.heaterActive
+                    },
+                    spaInfo: {
+                        name: "Spa",
+                        state: this.circuitOn("Spa")?"On":"Off",
+                        temp: d.temperature.spaTemp,
+                        setPoint: d.temperature.spaSetPoint,
+                        heatMode: d.temperature.spaHeatMode,
+                        heatModeStr: d.temperature.spaHeatModeStr,
+                        heatOn: d.temperature.heaterActive
+                    }
+                }
             })
-
-
-
-
-            // this.setState({ pump: Object.assign({}, this.state.pump, d.pump) })
-            // this.setState({ schedule: Object.assign({}, this.state.schedule, d.schedule) })
-            // this.setState({ temperature: Object.assign({}, this.state.temperature, d.temperature) })
-            // this.setState({ time: Object.assign({}, this.state.time, d.time) })
-            // this.setState({ UOM: Object.assign({}, this.state.UON, d.UOM) })
-            // this.setState({ valve: Object.assign({}, this.state.valve, d.valve) })
-            // this.setState({ chlorinator: Object.assign({}, this.state.chlorinator, d.chlorinator) })
-            // this.setState({ intellichem: Object.assign({}, this.state.intellichem, d.intellichem) })
-
-            // this.setState((state) => {
-            //     return {quantity: state.quantity + 1};
-            //   });
 
         }
         );
 
     }
+
+
+    circuitOn(which) {
+        // map the obj to an array
+        const circuitMap = Object.values(this.state.circuit)
+        // loop through the circuits
+        const results = circuitMap.filter((n) => {
+            // find the Spa or Pool circuit
+            if (n.circuitFunction === which) {
+                // if the circuit is on return the filtered value in the list
+                if (n.status) {
+                    console.log(`${n.circuitFunction} is ${n.status}`)
+                    return true
+                }
+            }
+        })
+        console.log(`res: ${JSON.stringify(results)}`)
+        // if the list has 1+ "on" entry then the pool/spa pump is on
+        return Object.keys(results).length >= 1
+    }
+
 
 
 
@@ -68,7 +92,10 @@ class App extends Component {
         circuit: {},
         time: { controllerTime: 'none' },
         temperature: { airTemp: 0, poolTemp: 0 },
-        sysInfo: {}
+        sysInfo: {},
+        poolInfo: {name: 'n/a'},
+        spaInfo: {name: 'n/a'},
+        pump: {1: {}}
     }
 
 
@@ -90,7 +117,12 @@ class App extends Component {
                     </p></div>
 
                 <SysInfo
-                    value={this.state.sysInfo}/>
+                    value={this.state.sysInfo} />
+                    
+              <PoolSpaState data={this.state.poolInfo} /> 
+              <PoolSpaState data={this.state.spaInfo} /> 
+             
+              <Pump data={this.state.pump} />
             </Layout>
         );
     }
