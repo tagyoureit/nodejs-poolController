@@ -5,6 +5,7 @@ import {
 
 import Link from 'next/link'
 import DateTime from './DateTime'
+import CustomCard from './CustomCard'
 
 class PoolSpaState extends React.Component {
 
@@ -25,15 +26,10 @@ class PoolSpaState extends React.Component {
         return (
 
             <div>
-                <Card>
-                    <CardBody>
-                        <CardTitle className='title' style={{ backgroundColor: 'white' }}>
-                        {this.props.data.name}
-                        <Button size="sm" className="mr-3" color="primary" style={{ float: 'right' }}>Button</Button>
-
-                        </CardTitle>
-
-                        <CardText>
+                
+                        <CustomCard name={this.props.data.name}>
+                        
+                        
 
                    
                             <Row>
@@ -55,13 +51,16 @@ class PoolSpaState extends React.Component {
                             </Row>
                             <Row>
                                 <Col xs="6">Heater Mode</Col>
-                                <Col xs="6"> {this.props.data.heatMode} {this.props.data.heatModeStr} </Col>
+                                <Col xs="6"> {this.props.data.heatModeStr} ({this.props.data.heatMode})</Col>
                             </Row>
                            
-                        </CardText>
+                      
 
-                    </CardBody>
-                </Card>
+                        
+                        
+                        </CustomCard>
+                    
+                
 
 
 

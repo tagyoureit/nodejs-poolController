@@ -5,10 +5,12 @@ import { Button } from 'reactstrap';
 import SysInfo from '../components/SysInfo'
 import PoolSpaState from '../components/PoolSpaState'
 import Pump from '../components/Pump'
-
+import Features from '../components/Features'
 class App extends Component {
     constructor(props) {
         super(props);
+
+
 
         getAll((err, d) => {
 
@@ -38,7 +40,7 @@ class App extends Component {
                     },
                     poolInfo: {
                         name: "Pool",
-                        state: this.circuitOn("Pool")?"On":"Off",
+                        state: this.circuitOn("Pool") ? "On" : "Off",
                         temp: d.temperature.poolTemp,
                         setPoint: d.temperature.poolSetPoint,
                         heatMode: d.temperature.poolHeatMode,
@@ -47,13 +49,16 @@ class App extends Component {
                     },
                     spaInfo: {
                         name: "Spa",
-                        state: this.circuitOn("Spa")?"On":"Off",
+                        state: this.circuitOn("Spa") ? "On" : "Off",
                         temp: d.temperature.spaTemp,
                         setPoint: d.temperature.spaSetPoint,
                         heatMode: d.temperature.spaHeatMode,
                         heatModeStr: d.temperature.spaHeatModeStr,
                         heatOn: d.temperature.heaterActive
-                    }
+                    },
+                    features: this.circuitsWithoutPoolSpa(d.circuit)
+
+
                 }
             })
 
@@ -62,6 +67,21 @@ class App extends Component {
 
     }
 
+    circuitsWithoutPoolSpa(circuit) {
+        const entries = Object.keys(circuit)
+        //console.log(entries[1][1].name)
+        const filter = entries.filter(key => !(circuit[key].name === 'POOL' || circuit[key].name === 'SPA')
+        )
+        //console.log(filter)
+
+        const obj = {}
+        for (const el of filter) {
+            //console.log(`el: ${el}`)
+            //console.log(`obj: ${JSON.stringify(obj,null,2)}`)
+            obj[el] = circuit[el];
+        }
+        return obj
+    }
 
     circuitOn(which) {
         // map the obj to an array
@@ -72,12 +92,12 @@ class App extends Component {
             if (n.circuitFunction === which) {
                 // if the circuit is on return the filtered value in the list
                 if (n.status) {
-                    console.log(`${n.circuitFunction} is ${n.status}`)
+                    //console.log(`${n.circuitFunction} is ${n.status}`)
                     return true
                 }
             }
         })
-        console.log(`res: ${JSON.stringify(results)}`)
+        //console.log(`res: ${JSON.stringify(results)}`)
         // if the list has 1+ "on" entry then the pool/spa pump is on
         return Object.keys(results).length >= 1
     }
@@ -93,9 +113,10 @@ class App extends Component {
         time: { controllerTime: 'none' },
         temperature: { airTemp: 0, poolTemp: 0 },
         sysInfo: {},
-        poolInfo: {name: 'n/a'},
-        spaInfo: {name: 'n/a'},
-        pump: {1: {}}
+        poolInfo: { name: 'n/a' },
+        spaInfo: { name: 'n/a' },
+        pump: { 1: {} },
+        features: {1: {}}
     }
 
 
@@ -118,11 +139,12 @@ class App extends Component {
 
                 <SysInfo
                     value={this.state.sysInfo} />
-                    
-              <PoolSpaState data={this.state.poolInfo} /> 
-              <PoolSpaState data={this.state.spaInfo} /> 
-             
-              <Pump data={this.state.pump} />
+
+                <PoolSpaState data={this.state.poolInfo} />
+                <PoolSpaState data={this.state.spaInfo} />
+
+                <Pump data={this.state.pump} />
+                <Features data={this.state.features} />
             </Layout>
         );
     }

@@ -1,8 +1,8 @@
 import {
     Row, Col, Table, Card, CardImg, CardText, CardBody,
-    CardTitle, CardSubtitle, Button
+    CardTitle, CardSubtitle, Button, CardFooter, CardGroup
 } from 'reactstrap';
-
+import CustomCard from '../components/CustomCard'
 import Link from 'next/link'
 import DateTime from './DateTime'
 
@@ -28,65 +28,47 @@ class Pump extends React.Component {
 
         const pumps = Object.entries(this.props.data).map((k) => {
 
-            return (<Col xs="{colWidth}" >
+            return (
+                <Card>
+                    <CardBody className='p-0'>
+                        <CardTitle className='card-header'>  {k[1].name}</CardTitle>
+                        <CardText className='text-right mr-3 pt-0'>
+                            
+                            RPM: {k[1].rpm}
+                            <br />
+                            Error: {k[1].err}
+                            <br />
+                            Drive state: {k[1].drivestate}
+                            <br />
+                            Mode: {k[1].mode}
+                            <br />
+                        </CardText>
+                    </CardBody>
+                </Card>)
 
 
-                {k[1].name}
-                <br />
-                {k[1].rpm}
-                <br />
-                {k[1].err}
-                <br />
-                {k[1].drivestate}
-                <br />
-                {k[1].mode}
-                <br />
-
-            </Col>)
         })
 
 
         return (
 
             <div>
-                <Card>
-                    <CardBody>
-                        <CardTitle className='title' style={{ backgroundColor: 'white' }}>
-                            {this.props.data.name}
-                            <Button size="sm" className="mr-3" color="primary" style={{ float: 'right' }}>Button</Button>
+                <CustomCard name='Pumps'>
 
-                        </CardTitle>
-
-                        <CardText>
+                            <CardGroup className="">
+                               
 
 
-                            <Row>
-                                <Col xs="{colWidth}">
-                                    Name
-                                    <br />
-                                    Watts
-                                <br />
-                                    RPM
-                                <br />
-                                    Error
-                                <br />
-                                    Drive State
-                                <br />
-                                    Run Mode
-                                <br />
 
-                                </Col>
 
                                 {pumps}
 
-                            </Row>
 
 
+                            </CardGroup>
 
-                        </CardText>
 
-                    </CardBody>
-                </Card>
+                            </CustomCard>
 
 
 
