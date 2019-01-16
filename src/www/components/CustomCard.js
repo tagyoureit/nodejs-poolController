@@ -12,7 +12,7 @@ const CustomCard = (props) => (
 
                 </CardTitle>
 
-                <CardText className="p-3">
+                <CardText tag='div' className="p-3">
 
                     {props.children}
 

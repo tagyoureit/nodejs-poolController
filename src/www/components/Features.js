@@ -1,38 +1,48 @@
 import {
-    Row, Col, Table, Card, CardImg, CardText, CardBody,
-    CardTitle, CardSubtitle, Button
+    ListGroup, ListGroupItem, Button
 } from 'reactstrap';
 import CustomCard from '../components/CustomCard'
+import {toggleCircuit} from '../components/Socket_Client'
+
 
 
 class Features extends React.Component {
 
     constructor(props) {
         super(props)
-
-
+    
     }
 
-    feature(data){
+    feature = (data) => {
         let res = [];
         for (var cir in  data){
             if (data[cir].hasOwnProperty('name')){
                 //console.log(`cir: ${cir} = ${data[cir].friendlyName}`)
                 res.push(
-                    <Row className=' border-bottom align-items-center'>
-                        <Col className='mb-1 mt-1'>{data[cir].name}
+                    <ListGroup flush key={data[cir].number.toString()}>
+                        <ListGroupItem >
+                        <div className='d-flex justify-content-between'>
+
+                        {data[cir].name}
                        
-                        </Col>
-                        <Col className='mb-1 mt-1'>
-                        <Button color={data[cir].status===1?'success':'primary'}>{data[cir].status===1?'On':'Off'}</Button>
-                        </Col>
-                    </Row>
+                        <Button color={data[cir].status===1?'success':'primary'} key={data[cir].number} onClick={this.handleClick(data[cir].number)}>{data[cir].status===1?'On':'Off'}
+                        
+                        </Button>
+                        
+                        </div>
+                        </ListGroupItem>
+                    </ListGroup>
                     
                     )
             }
         }
        
         return res
+    }
+
+    handleClick = id => event => {
+        console.log(`toggle circuit ${id} and event val: ${event.target.value}`)
+        toggleCircuit(id)
     }
 
     render() {

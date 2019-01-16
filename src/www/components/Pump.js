@@ -26,14 +26,15 @@ class Pump extends React.Component {
         const colWidth = Math.floor(12 / colCount)
 
 
-        const pumps = Object.entries(this.props.data).map((k) => {
+        let pumps = Object.entries(this.props.data).map((k) => {
 
             return (
-                <Card>
+                <Card key={k[1].pump}>
                     <CardBody className='p-0'>
                         <CardTitle className='card-header'>  {k[1].name}</CardTitle>
                         <CardText className='text-right mr-3 pt-0'>
-                            
+                            Watts: {k[1].watts}
+                            <br />
                             RPM: {k[1].rpm}
                             <br />
                             Error: {k[1].err}
@@ -49,35 +50,14 @@ class Pump extends React.Component {
 
         })
 
-
         return (
-
             <div>
-                <CustomCard name='Pumps'>
-
-                            <CardGroup className="">
-                               
-
-
-
-
-                                {pumps}
-
-
-
-                            </CardGroup>
-
-
-                            </CustomCard>
-
-
-
-
-
+                <CustomCard name='Pumps' key='title'>
+                    <CardGroup className="">
+                        {pumps}
+                    </CardGroup>
+                </CustomCard>
             </div>
-
-
-
         );
     }
 }

@@ -132,7 +132,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
  You can also call REST URI's like:
  * Get circuit status: /circuit/# to get the status of circuit '#'
  * Toggle circuit status: /circuit/#/toggle to get the toggle circuit '#'
- * ~~Get system status: /status~~ Depricated.
+ * ~~Get system status: /status~~ Deprecated.
  * Get schedules: /schedule
  * Get pump status: /pump
  * Get all equipment as one JSON: /all

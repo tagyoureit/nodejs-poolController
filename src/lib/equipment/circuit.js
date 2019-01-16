@@ -281,6 +281,9 @@ module.exports = function (container) {
             }
             container.io.emitToClients('circuit');
 
+            // testing... do we move to a monolith?
+            container.io.emitToClients('all');
+
         }
         if (sendInitialBroadcast.initialCircuitsBroadcast === 1) container.influx.writeCircuit(currentCircuitArrObj)
     }
@@ -381,7 +384,6 @@ module.exports = function (container) {
     }
 
     function setCircuitFromController(circuit, nameByte, functionByte, counter) {
-
         if (circuit <= numberOfCircuits) {
 
             var circuitArrObj = {}
@@ -415,6 +417,8 @@ module.exports = function (container) {
 
                 doWeHaveAllInformation()
             } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
+                
+
                 if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
                     circuitChanged(circuit, circuitArrObj, counter)
                     assignCircuitVars(circuit, circuitArrObj)

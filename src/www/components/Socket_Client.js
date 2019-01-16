@@ -3,9 +3,9 @@ const socket = io({})
 let lastUpdateTime = 0;
 
 
-
 function getAll(cb){
     socket.emit('all');
+
     socket.on('all', (data) => {
         let milli = Date.now() - lastUpdateTime;
         lastUpdateTime = Date.now()
@@ -20,9 +20,21 @@ function getAll(cb){
             cb(null, data);
     
         } */
-        cb(null, data);
+        cb(null, data, 'all');
+    })
+    
+    socket.on('circuit', data => {
+        console.log('circuit socket received')
+        cb(null, data, 'circuit')
+    })
+
+    socket.on('pump', data => {
+        console.log('pump socket')
+        cb(null, data, 'pump')
     })
 }
+
+
 
 function setDateTime(newDT){
 //socket.on('setDateTime', function (hh, mm, dow, dd, mon, yy, dst)
@@ -31,5 +43,10 @@ let autoDST = 1 // implement later in UI
 socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST )
 }
 
+function toggleCircuit(circuit){
+    console.log(`emitting toggle circuit ${circuit}`)
+    socket.emit('toggleCircuit',circuit)
+}
 
-export { getAll, setDateTime };
+
+export { getAll, setDateTime, toggleCircuit, onSocketCircuit };

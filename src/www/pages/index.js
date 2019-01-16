@@ -1,69 +1,117 @@
 import React, { Component } from 'react';
-import { getAll } from '../components/Socket_Client';
+import { getAll, onSocketCircuit } from '../components/Socket_Client';
 import Layout from '../components/Layout';
 import { Button } from 'reactstrap';
 import SysInfo from '../components/SysInfo'
 import PoolSpaState from '../components/PoolSpaState'
 import Pump from '../components/Pump'
 import Features from '../components/Features'
+
 class App extends Component {
     constructor(props) {
         super(props);
 
 
 
-        getAll((err, d) => {
+        getAll((err, d, which) => {
+            if (err) {
+                console.log(`socket getall err: ${err}`)
+            }
 
-            this.setState({ data: Object.assign({}, this.state.data, d) })
-            this.setState(
-                (state) => { return { config: d.config } })
-            this.setState((state) => { return { circuit: d.circuit } })
-            this.setState((state) => { return { pump: d.pump } })
+            if (which === 'config' || which === 'all') {
+                this.setState(
+                    (state) => { return { config: d.config } })
+            }
 
-            this.setState((state) => { return { schedule: d.schedule } })
-            this.setState((state) => { return { temperature: d.temperature } })
-            this.setState((state) => { return { time: d.time } })
-            this.setState((state) => { return { UOM: d.UOM } })
-            this.setState((state) => { return { valve: d.valve } })
-            this.setState((state) => { return { chlorinator: d.chlorinator } })
-            this.setState((state) => { return { intellichem: d.intellichem } })
-
-            this.setState((state) => {
-                return {
-                    sysInfo: {
-                        time: d.time.controllerTime,
-                        date: d.time.controllerDateStr,
-                        locale: d.time.locale,
-                        airTemp: d.temperature.airTemp,
-                        solarTemp: d.temperature.solarTemp,
-                        freezeProt: d.temperature.freeze
-                    },
-                    poolInfo: {
-                        name: "Pool",
-                        state: this.circuitOn("Pool") ? "On" : "Off",
-                        temp: d.temperature.poolTemp,
-                        setPoint: d.temperature.poolSetPoint,
-                        heatMode: d.temperature.poolHeatMode,
-                        heatModeStr: d.temperature.poolHeatModeStr,
-                        heatOn: d.temperature.heaterActive
-                    },
-                    spaInfo: {
-                        name: "Spa",
-                        state: this.circuitOn("Spa") ? "On" : "Off",
-                        temp: d.temperature.spaTemp,
-                        setPoint: d.temperature.spaSetPoint,
-                        heatMode: d.temperature.spaHeatMode,
-                        heatModeStr: d.temperature.spaHeatModeStr,
-                        heatOn: d.temperature.heaterActive
-                    },
+            if (which === 'circuit' || which === 'all') {
+                console.log('circuit socket')
+                this.setState((state) => { return { circuit: d.circuit,
                     features: this.circuitsWithoutPoolSpa(d.circuit)
+                 } })
+
+            }
+
+            if (which === 'pump'  || which === 'all') {
+                this.setState((state) => { return { pump: d.pump } })
+            }
+
+            if (which === 'schedule' || which === 'all') {
+                this.setState((state) => { return { schedule: d.schedule } })
+            }
+
+            if (which === 'temperature' || which === 'all') {
+                this.setState((state) => { return { temperature: d.temperature } })
+            }
+
+            if (which === 'time' || which === 'all') {
+                this.setState((state) => { return { time: d.time } })
+            }
 
 
-                }
-            })
+            if (which === 'UOM') {
+                this.setState((state) => { return { UOM: d.UOM } })
+            }
 
-        }
-        );
+            if (which === 'valve') {
+                this.setState((state) => { return { valve: d.valve } })
+            }
+
+            if (which === 'chlorinator') {
+                this.setState((state) => { return { chlorinator: d.chlorinator } })
+            }
+
+            if (which === 'intellichem') {
+                this.setState((state) => { return { intellichem: d.intellichem } })
+            }
+
+            if (which === 'all') {
+                this.setState({ data: Object.assign({}, this.state.data, d) })
+            }
+
+
+            if (d.time && d.temperature) {
+                this.setState((state) => {
+                    return {
+                        sysInfo: {
+                            time: d.time.controllerTime,
+                            date: d.time.controllerDateStr,
+                            locale: d.time.locale,
+                            airTemp: d.temperature.airTemp,
+                            solarTemp: d.temperature.solarTemp,
+                            freezeProt: d.temperature.freeze
+                        }
+                    }
+                })
+            }
+
+            if (d.temperature) {
+                this.setState((state) => {
+                    return {
+                        poolInfo: {
+                            name: "Pool",
+                            state: this.circuitOn("Pool") ? "On" : "Off",
+                            temp: d.temperature.poolTemp,
+                            setPoint: d.temperature.poolSetPoint,
+                            heatMode: d.temperature.poolHeatMode,
+                            heatModeStr: d.temperature.poolHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        },
+                        spaInfo: {
+                            name: "Spa",
+                            state: this.circuitOn("Spa") ? "On" : "Off",
+                            temp: d.temperature.spaTemp,
+                            setPoint: d.temperature.spaSetPoint,
+                            heatMode: d.temperature.spaHeatMode,
+                            heatModeStr: d.temperature.spaHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        }
+                    }
+                })
+            }
+
+
+
+        })
 
     }
 
@@ -102,9 +150,6 @@ class App extends Component {
         return Object.keys(results).length >= 1
     }
 
-
-
-
     state = {
         //need these lines if we are to immediately output them... not sure why
         // otherwise, can probably pass them as props
@@ -116,12 +161,8 @@ class App extends Component {
         poolInfo: { name: 'n/a' },
         spaInfo: { name: 'n/a' },
         pump: { 1: {} },
-        features: {1: {}}
+        features: { 1: {} }
     }
-
-
-
-
 
     render() {
         return (
@@ -139,12 +180,11 @@ class App extends Component {
 
                 <SysInfo
                     value={this.state.sysInfo} />
+                <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
+                <PoolSpaState data={this.state.spaInfo}></PoolSpaState>
+                <Pump data={this.state.pump}></Pump>
+                <Features data={this.state.features}></Features>
 
-                <PoolSpaState data={this.state.poolInfo} />
-                <PoolSpaState data={this.state.spaInfo} />
-
-                <Pump data={this.state.pump} />
-                <Features data={this.state.features} />
             </Layout>
         );
     }
