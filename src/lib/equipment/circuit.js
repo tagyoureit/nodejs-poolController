@@ -369,6 +369,23 @@ module.exports = function (container) {
         return tempObj
     }
 
+	function poolOrSpaIsOn() {
+		// return all non-light circuits
+		const circuit = getAllNonLightCircuits()
+		//console.log("circuit: " + JSON.stringify(circuit))
+
+		// loop through the circuits
+		for (var circuitNum in circuit) {
+			//console.log(`${circuit[circuitNum].circuitName} is ${getCircuit(circuitNum).status}`)
+			if (circuit[circuitNum].circuitName === "POOL" || circuit[circuitNum].circuitName === 'SPA') {
+				if (getCircuit(circuitNum).status) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
     function isLight(circuitNum) {
 
         // return true if circuitFunction is one of Light, SAM Light, SAL Light, Photon Gen, Color Wheel, Intellibrite
@@ -1201,6 +1218,7 @@ module.exports = function (container) {
         getFriendlyName: getFriendlyName,
         getAllNonLightCircuits: getAllNonLightCircuits,
         getAllLightCircuits: getAllLightCircuits,
+		poolOrSpaIsOn: poolOrSpaIsOn,
         assignCircuitStatusFromControllerStatus: assignCircuitStatusFromControllerStatus,
         assignCircuitDelayFromControllerStatus: assignCircuitDelayFromControllerStatus,
         requestUpdateCircuit: requestUpdateCircuit,
