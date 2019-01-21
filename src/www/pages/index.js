@@ -6,14 +6,19 @@ import SysInfo from '../components/SysInfo'
 import PoolSpaState from '../components/PoolSpaState'
 import Pump from '../components/Pump'
 import Features from '../components/Features'
+import RefreshCounter from '../components/RefreshCounter'
+import VolumeSlider from '../components/test'
+
 
 class App extends Component {
     constructor(props) {
         super(props);
 
+        let lastUpdateTime = 0;
 
 
         getAll((err, d, which) => {
+            //console.log(`GETALL CALLED! with ${which}`)
             if (err) {
                 console.log(`socket getall err: ${err}`)
             }
@@ -24,14 +29,17 @@ class App extends Component {
             }
 
             if (which === 'circuit' || which === 'all') {
-                console.log('circuit socket')
-                this.setState((state) => { return { circuit: d.circuit,
-                    features: this.circuitsWithoutPoolSpa(d.circuit)
-                 } })
+                //console.log('circuit socket')
+                this.setState((state) => {
+                    return {
+                        circuit: d.circuit,
+                        features: this.circuitsWithoutPoolSpa(d.circuit)
+                    }
+                })
 
             }
 
-            if (which === 'pump'  || which === 'all') {
+            if (which === 'pump' || which === 'all') {
                 this.setState((state) => { return { pump: d.pump } })
             }
 
@@ -40,7 +48,26 @@ class App extends Component {
             }
 
             if (which === 'temperature' || which === 'all') {
-                this.setState((state) => { return { temperature: d.temperature } })
+                this.setState((state) => {
+                    return {
+                        temperature: d.temperature,
+                        poolInfo: {
+                            ...state.poolInfo, temp: d.temperature.poolTemp,
+                            setPoint: d.temperature.poolSetPoint,
+                            heatMode: d.temperature.poolHeatMode,
+                            heatModeStr: d.temperature.poolHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        },
+                        spaInfo: {
+                            ...state.spaInfo, temp: d.temperature.spaTemp,
+                            setPoint: d.temperature.spaSetPoint,
+                            heatMode: d.temperature.spaHeatMode,
+                            heatModeStr: d.temperature.spaHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        }
+
+                    }
+                })
             }
 
             if (which === 'time' || which === 'all') {
@@ -109,6 +136,15 @@ class App extends Component {
                 })
             }
 
+            //console.log(`date.now ${Date.now()}... date-last: ${Date.now()-lastUpdateTime}`)
+            if (Date.now() - lastUpdateTime > 1000) {
+                lastUpdateTime = Date.now()
+                // set counter +1 for resetting time keeping
+                this.setState((state) => {
+                    return { counter: state.counter + 1 }
+                })
+            }
+
 
 
         })
@@ -161,7 +197,8 @@ class App extends Component {
         poolInfo: { name: 'n/a' },
         spaInfo: { name: 'n/a' },
         pump: { 1: {} },
-        features: { 1: {} }
+        features: { 1: {} },
+        counter: 0
     }
 
     render() {
@@ -173,10 +210,13 @@ class App extends Component {
                         <h1 >Welcome to React</h1>
                     </header>
                     <p>
-
-                    </p><p>
                         Data ready?: {this.state.config.systemReady}
-                    </p></div>
+                    </p>
+                    <p>
+                        {/* <RefreshCounter refresh={this.state.counter}></RefreshCounter> */}
+                    </p>
+                </div>
+                <VolumeSlider></VolumeSlider>
 
                 <SysInfo
                     value={this.state.sysInfo} />

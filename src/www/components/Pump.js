@@ -29,8 +29,8 @@ class Pump extends React.Component {
         let pumps = Object.entries(this.props.data).map((k) => {
 
             return (
-                <Card key={k[1].pump}>
-                    <CardBody className='p-0'>
+                <Card key={k[1].pump+'card'}>
+                    <CardBody className='p-0' key={k[1].pump+'cardbody'}>
                         <CardTitle className='card-header'>  {k[1].name}</CardTitle>
                         <CardText className='text-right mr-3 pt-0'>
                             Watts: {k[1].watts}

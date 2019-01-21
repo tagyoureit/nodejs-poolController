@@ -123,15 +123,9 @@ ignore:
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
-      node-ssdp > async > lodash:
-        reason: None given
-        expires: '2019-02-03T00:16:15.673Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-12-26T15:26:16.181Z'
-      request-promise > request-promise-core > lodash:
-        reason: None given
-        expires: '2019-02-03T00:16:15.674Z'
     - request-promise > request-promise-core > lodash:
         reason: None given
         expires: '2018-12-26T15:26:16.181Z'
@@ -159,6 +153,12 @@ ignore:
     - node-ip > node-localip > wmic > async > lodash:
         reason: None given
         expires: '2019-01-28T22:22:52.646Z'
+    - node-ssdp > async > lodash:
+        reason: None given
+        expires: '2019-02-03T00:16:15.673Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2019-02-03T00:16:15.674Z'
   'npm:hoek:20180212':
     - request > hawk > hoek:
         reason: None given
@@ -209,6 +209,9 @@ ignore:
     - serialport > prebuild-install > tar-fs > chownr:
         reason: None given
         expires: '2019-01-28T22:18:22.043Z'
+      next > webpack > watchpack > chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2019-02-16T15:48:12.153Z'
     - chokidar > fsevents > node-pre-gyp > tar > chownr:
         reason: None given
         expires: '2018-09-01T14:44:44.769Z'

@@ -1,18 +1,10 @@
 {
-    "meta": {
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "4.1.200",
-                    "tag_name": "v4.1.200",
-                    "dismissUntilNextRemoteVersionBump": false
-                }
-            }
-        }
-    },
-    "version": "5.3.0",
     "equipment": {
         "controller": {
+            "virtual": {
+                "chlorinatorController": "always",
+                "pumpController": "default"
+            },
             "intellicom": {
                 "installed": 0,
                 "friendlyName": ""
@@ -24,10 +16,17 @@
                 "numberOfPumps": 2,
                 "numberOfCustomNames": 10,
                 "numberOfSchedules": 12
+            }
+        },
+        "chlorinator": {
+            "installed": 1,
+            "desiredOutput": {
+                "pool": 10,
+                "spa": 11
             },
-            "virtual": {
-                "pumpController": "default",
-                "chlorinatorController": "default"
+            "friendlyName": "",
+            "id": {
+                "productName": -1
             }
         },
         "circuit": {
@@ -53,17 +52,6 @@
                 "18": "",
                 "19": "",
                 "20": ""
-            }
-        },
-        "chlorinator": {
-            "installed": 0,
-            "desiredOutput": {
-                "pool": -1,
-                "spa": -1
-            },
-            "friendlyName": "",
-            "id": {
-                "productName": ""
             }
         },
         "pump": {
@@ -98,6 +86,7 @@
             "installed": 0
         }
     },
+    "version": "6.0.0",
     "poolController": {
         "appAddress": 33,
         "http": {
@@ -149,6 +138,17 @@
                 "host": "localhost",
                 "port": 8086,
                 "database": "pool"
+            }
+        }
+    },
+    "meta": {
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "4.0.0",
+                    "tag_name": "v4.0.0",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
             }
         }
     },
