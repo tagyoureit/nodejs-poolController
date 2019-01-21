@@ -216,7 +216,7 @@ class App extends Component {
                         {/* <RefreshCounter refresh={this.state.counter}></RefreshCounter> */}
                     </p>
                 </div>
-                <VolumeSlider></VolumeSlider>
+               
 
                 <SysInfo
                     value={this.state.sysInfo} />

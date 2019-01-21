@@ -91,8 +91,9 @@ class PoolSpaState extends React.Component {
                                  </Col>
                             </Row>
                             <Row>
-                                <Col xs="6">Set Point</Col>
-                                <Col xs="6"> 
+                               <Col>
+                                Set Point
+                                
                                 
                                 <Slider className='slider custom-labels' 
                                         value={this.state.setPoint}
@@ -102,18 +103,20 @@ class PoolSpaState extends React.Component {
                                   <div className='text-center'>
                                   {this.props.data.setPoint}
                                   </div>
-                                 </Col>
+                                  </Col>
                             </Row>
                             <Row>
-                                <Col xs="6">Heater Mode</Col>
-                                <Col xs="6"> {this.props.data.heatModeStr} ({this.props.data.heatMode})
-                                
-                                <ButtonGroup>
+                                <Col>
+                               Heater Mode
+                               {this.props.data.heatModeStr} ({this.props.data.heatMode})
+                                <div className='text-center'>
+                                <ButtonGroup >
                                     <Button onClick={() => this.changeHeat(0)} color={this.props.data.heatMode===0?'success':'secondary'}>Off</Button>
                                     <Button onClick={() => this.changeHeat(1)} color={this.props.data.heatMode===1?'success':'secondary'}>Heater</Button>
                                     <Button onClick={() => this.changeHeat(2)} color={this.props.data.heatMode===2?'success':'secondary'}>Solar Pref</Button>
                                     <Button onClick={() => this.changeHeat(3)} color={this.props.data.heatMode===3?'success':'secondary'}>Solar</Button>
                                 </ButtonGroup>
+                                </div>
                                 </Col>
                             </Row>
                            

@@ -87,16 +87,16 @@ module.exports = function (container) {
 
 
                         //And Start Listening
-                        servers[type].server = servers[type].server.listen(servers[type].port, function () {
+             /*            servers[type].server = servers[type].server.listen(servers[type].port, function () {
                             container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
                             container.io.init(servers[type].server, type)
                             resolve('Server ' + type + ' started.');
-                        });
-                        /*                  servers[type].server = httpShutdown(servers[type].server.listen(servers[type].port, function () {
+                        }); */
+                        servers[type].server = httpShutdown(servers[type].server.listen(servers[type].port, function () {
                                              container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
                                              container.io.init(servers[type].server, type)
                                              resolve('Server ' + type + ' started.');
-                                         })); */
+                                         }));
 
                         servers[type].server.on('error', function (e) {
                             container.logger.error('error from ' + type + ':', e)
