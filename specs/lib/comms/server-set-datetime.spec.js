@@ -8,7 +8,7 @@ describe('#sets various functions', function() {
         beforeEach(function() {
             // sinon = sinon.sinon.create()
 
-            loggers = setupLoggerStubOrSpy('stub', 'stub')
+            loggers = setupLoggerStubOrSpy('spy', 'stub')
             //clock = sinon.useFakeTimers();
             queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
             preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
@@ -39,10 +39,7 @@ describe('#sets various functions', function() {
             it('sets a valid date/time', function(done) {
                 global.requestPoolDataWithURLAsync('datetime/set/time/21/55/date/2/01/02/19/0')
                     .then(function(obj) {
-                        obj.text.should.contain('REST API')
-                        var res = bottle.container.time.getTime().time
-                        res.controllerDateStr.should.eq('2/1/2019')
-                        res.controllerDayOfWeekStr.should.eq('Monday')
+                        obj.text.should.contain('REST API')                     
                         queuePacketStub.args[0][0].should.deep.equal([ 165, 33, 16, 33, 133, 8, 21, 55, 2, 1, 2, 19, 0, 0 ])
                     })
                     .then(done,done)

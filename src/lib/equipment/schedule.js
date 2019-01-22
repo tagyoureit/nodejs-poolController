@@ -36,10 +36,6 @@ module.exports = function (container) {
     }
 
     var formatSchedId = function (id) {
-                //for debug
-                console.log(`schedules (before crash) counter=${id}`)
-                console.log(`currSched = ${JSON.stringify(currentSchedule[id],null,2)}`)
-                console.log(`currSched = ${currentSchedule[id].ID}`)
         var str = ''
         str += '\nID:'
         str += currentSchedule[id].ID < 10 ? ' ' + currentSchedule[id].ID : currentSchedule[id].ID

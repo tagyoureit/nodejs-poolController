@@ -126,6 +126,7 @@ describe('nodejs-poolController', function () {
             var priorLogInitAndStop = global.logInitAndStop
             return Promise.resolve()
                 .then(function () {
+                    loggerErrorStub = sinon.stub(bottle.container.logger, 'error')
                     global.logInitAndStop = 0
                     return global.initAllAsync({'configLocation':'/specs/assets/config/templates/config_not_here.json'})
                 })

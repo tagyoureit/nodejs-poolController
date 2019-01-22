@@ -5,11 +5,17 @@ describe('server', function() {
         context('with a URL', function() {
 
             before(function() {
-                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
+                return Promise.resolve()
+                .then(()=>{
+                    loggers = setupLoggerStubOrSpy('stub','stub')
+                })
+                .then(() => {
+                    return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config.pump.VS.json'})
+                })
             })
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('stub','stub')
+                loggers = setupLoggerStubOrSpy('spy','stub')
                 writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 

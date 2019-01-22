@@ -44,7 +44,7 @@ describe('processes Intellibrite packets',function () {
 
             beforeEach(function () {
                 // sinon = sinon.sinon.create()
-                loggers = setupLoggerStubOrSpy('stub','spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration')
 
             })
@@ -89,7 +89,7 @@ describe('processes Intellibrite packets',function () {
 
             beforeEach(function () {
                 // sinon = sinon.sinon.create()
-                loggers = setupLoggerStubOrSpy('stub','spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration').returns(0)
 
             })
@@ -377,7 +377,7 @@ describe('processes Intellibrite packets',function () {
             // })
 
             beforeEach(function () {
-                loggers = setupLoggerStubOrSpy('stub','spy')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 //clock = sinon.useFakeTimers()
                 writeSPPacketStub = sinon.stub(bottle.container.sp,'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 sinon.stub(bottle.container.intellitouch,'getPreambleByte').returns(33)
@@ -477,7 +477,7 @@ describe('processes Intellibrite packets',function () {
 
             beforeEach(function () {
                 // sinon = sinon.sinon.create()
-                loggers = setupLoggerStubOrSpy('spy','spy')
+                loggers = setupLoggerStubOrSpy('stub','spy')
                 checkIfNeedControllerConfigurationStub = sinon.stub(bottle.container.intellitouch,'checkIfNeedControllerConfiguration')
                 writeSPPacketStub = sinon.stub(bottle.container.sp,'writeSP')
 

@@ -9,7 +9,7 @@ describe('socket.io basic tests', function () {
 
         return global.initAllAsync()
             .then(function () {
-                loggers = setupLoggerStubOrSpy('stub', 'stub')
+                loggers = setupLoggerStubOrSpy('stub', 'spy')
                 queuePacketStub = sinon.stub(bottle.container.queuePacket, 'queuePacket')
                 preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(99)
                 pWPHStub = sinon.stub(bottle.container.writePacket, 'preWritePacketHelper')
@@ -23,9 +23,6 @@ describe('socket.io basic tests', function () {
     })
 
     afterEach(function () {
-        //restore the sinon after each function
-        //console.log('full queue', bottle.container.queuePacket.fullQ)
-
         return global.stopAllAsync()
     })
 
@@ -59,30 +56,19 @@ describe('socket.io basic tests', function () {
 
     it('#sets date/time', function () {
         var client = global.ioclient.connect(global.socketURL, global.socketOptions)
-        var myResolve, myReject
-        client.on('connect', function (data) {
-            client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
-        })
+        // var myResolve, myReject
 
-        client.on('time', function (data) {
-            // controller may throw out multiple emits as it parses through the set time request
-            if (data.time.controllerTime !== -1) {
-                data.time.controllerDateStr.should.eq('4/3/2018')
-                data.time.controllerDayOfWeekStr.should.eq('Tuesday')
-                clearTimeout(aTimer)
-                client.disconnect()
-                myResolve()
-            }
+        return Promise.resolve()
+        .then(() => {
+            client.on('connect', function (data) {
+                client.emit('setDateTime', 21, 55, 4, 3, 4, 18, 0)
+            })    
         })
-
-        aTimer = setTimeout(function () {
-            myReject()
-        }, 1500)
-        return new Promise(function (resolve, reject) {
-            myResolve = resolve
-            myReject = reject
+        .delay(200)
+        .then(() => {
+            console.log(`queuePacketStub: ${queuePacketStub.args[0][0]}`)
+            queuePacketStub.args[0][0].should.deep.equal([165,99,16,33,133,8,21,55,4,3,4,18,0,0])
         })
-
 
     })
 

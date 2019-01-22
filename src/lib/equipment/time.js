@@ -38,9 +38,9 @@ module.exports = function (container) {
         }
     }
 
-    /*    var setAutomaticallyAdjustDST = function(bool) {
+        var setAutomaticallyAdjustDST = function(bool) {
            time.automaticallyAdjustDST = bool
-       } */
+       } 
 
     var lookupDOW = function (dayofweek) {
         switch (dayofweek) {
@@ -86,66 +86,76 @@ module.exports = function (container) {
         }
     }
 
-    /*     var setControllerDate = function(dayofweek, day, month, year, dst) {
-            time.controllerDay = day
-            time.controllerMonth = month
-            time.controllerYear = year
-            time.controllerDateStr = month + '/' + day + '/20' + year
-            time.controllerDayOfWeek = dayofweek
-            time.controllerDayOfWeekStr = lookupDOW(dayofweek)
-            if (dst !== null) setAutomaticallyAdjustDST(dst)
-            // container.io.emitToClients('time')
-        }
-        var setControllerTime = function(hour, min) {
+    /* var setControllerDate = function(dayofweek, day, month, year, dst) {
+        time.controllerDay = day
+        time.controllerMonth = month
+        time.controllerYear = year
+        time.controllerDateStr = month + '/' + day + '/20' + year
+        time.controllerDayOfWeek = dayofweek
+        time.controllerDayOfWeekStr = lookupDOW(dayofweek)
+        if (dst !== null) setAutomaticallyAdjustDST(dst)
+        // container.io.emitToClients('time')
+    }
+    */
+    var setControllerTime = function (hour, min) {
+        if ((hour !== time.hour && min !== time.minute) || time.controllerTime === -1) {
             var timeStr = container.helpers.formatTime(hour, min)
-            if (time.controllerTime === -1) {
+           
+                time.minute = min
+                time.hour24 = hour
+                if (hour > 12) {
+                    time.hour = hour - 12
+                    time.meridem = 'pm'
+                }
+                else {
+                    time.hour = hour
+                    time.meridiem = 'am'
+                }
                 time.controllerTime = timeStr;
-                container.io.emitToClients('time')
-            } else if (timeStr !== time.controllerTime) {
-                container.io.emitToClients('time')
-                time.controllerTime = timeStr;
-            } else {
-                if (container.settings.get('logConfigMessages')) container.logger.silly('No change in time.')
-            }
-    
-        } */
+                //container.io.emitToClients('time')
+             
+        }
+        else {
+            if (container.settings.get('logConfigMessages')) container.logger.silly('No change in time.')
+        }
 
-        var updateDateTime = function (hour, min, dayofweek, day, month, year, autodst, callback) {
-            //setControllerDate(dayofweek, day, month, year, autodst)
-            //setControllerTime(hour, min)
-    
-            //date
-            time.controllerDay = day
-            time.controllerMonth = month
-            time.controllerYear = year
-            time.controllerDateStr = month + '/' + day + '/20' + year
-            time.controllerDayOfWeek = dayofweek
-            time.controllerDayOfWeekStr = lookupDOW(dayofweek)
-    
-            var timeStr = container.helpers.formatTime(hour, min)
-            time.controllerTime = timeStr;
-            time.hour24 = hour
-            time.minute = min
-            if (hour > 12) {
-                time.hour = hour - 12
-                time.meridem = 'pm'
-            }
-            else {
-                time.hour = hour
-                time.meridiem = 'am'
-            }
-            let UTC = new Date('20'+year, month - 1, day, hour, min)
-            time.UTC = UTC.toUTCString()
-            time.locale = UTC.toLocaleString()
-            time.ISO = UTC.toISOString()
-    
-            time.automaticallyAdjustDST = autodst
+    }
+
+    var updateDateTime = function (hour, min, dayofweek, day, month, year, autodst, callback) {
+        //setControllerDate(dayofweek, day, month, year, autodst)
+        //setControllerTime(hour, min)
+
+        //date
+        time.controllerDay = day
+        time.controllerMonth = month
+        time.controllerYear = year
+        time.controllerDateStr = month + '/' + day + '/20' + year
+        time.controllerDayOfWeek = dayofweek
+        time.controllerDayOfWeekStr = lookupDOW(dayofweek)
+
+        var timeStr = container.helpers.formatTime(hour, min)
+        time.controllerTime = timeStr;
+        time.hour24 = hour
+        time.minute = min
+        if (hour > 12) {
+            time.hour = hour - 12
+            time.meridem = 'pm'
         }
+        else {
+            time.hour = hour
+            time.meridiem = 'am'
+        }
+        let UTC = new Date('20' + year, month - 1, day, hour, min)
+        time.UTC = UTC.toUTCString()
+        time.locale = UTC.toLocaleString()
+        time.ISO = UTC.toISOString()
+
+        time.automaticallyAdjustDST = autodst
+    }
 
     var setDateTime = function (hour, min, dayofweek, day, month, year, autodst, callback) {
-        
 
-        if (!container.intellitouch.getPreambleByte()) {
+        if (container.intellitouch.getPreambleByte()!==undefined) {
             var setDateTimePacket = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 133, 8, hour, min, dayofweek, day, month, year, 0, autodst];
             container.queuePacket.queuePacket(setDateTimePacket);
             var response = {}
@@ -179,11 +189,11 @@ module.exports = function (container) {
     return {
         updateDateTime: updateDateTime,
         //time,
-        //setControllerTime: setControllerTime,
+        setControllerTime: setControllerTime,
         getTime: getTime,
         setDateTime: setDateTime,
         setPumpTime: setPumpTime,
-        //setAutomaticallyAdjustDST: setAutomaticallyAdjustDST,
+        setAutomaticallyAdjustDST: setAutomaticallyAdjustDST,
         //setControllerDate: setControllerDate,
         lookupDOW: lookupDOW,
         init: init
