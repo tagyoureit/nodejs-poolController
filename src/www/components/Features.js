@@ -48,7 +48,7 @@ class Features extends React.Component {
     render() {
         return (
             <div>
-              
+              <a name="Features" className="anchor"></a>
                 <CustomCard name='Lighting / Features'>
                 {this.feature(this.props.data)}
                 

@@ -1,84 +1,75 @@
-
-let count = 0
-let cumulative = 0
-let isOn = false
-let timer = null;
+import {Button} from 'reactstrap'
 
 class RefreshCounter extends React.Component {
   constructor(props) {
     super(props)
 
-    this.startTimer = this.startTimer.bind(this)
-    this.stopTimer = this.stopTimer.bind(this)
+
+    this.timer;
     this.resetTimer = this.resetTimer.bind(this)
-    this.update = this.update.bind(this)
+    this.startTimer = this.startTimer.bind(this)
+    this.tick = this.tick.bind(this)
 
-
-  }
-
-  state = {
-    time: 0
-  }
-
-  timer = null;
-  startTimer() {
-    if (!isOn) {
-      count++
-      console.log(`count! ${count}`)
-
-
-      cumulative = 0
-      // timer = setInterval(() => {
-
-
-
-      //   cumulative = cumulative + 1;
-      //   this.setState({ time: cumulative })
-      // }
-      //   , 1000)
-
-      isOn = true
-
+    this.state =  {
+      seconds: 0
     }
   }
 
-  stopTimer() {
-    isOn = false
-    clearInterval(timer)
-
+  componentDidMount() {
+    //console.log(`TIMER MOUNTED!  Woot.  ${this.props.counter}`)
+    this.startTimer();
   }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.counter !== this.props.counter) {
+      //console.log(`Woot!  New socket received.`)
+      this.resetTimer()
+    }
+  }
+  componentWillMount() {
+    clearInterval(this.timer)
+  }
+
   resetTimer() {
-    cumulative = 0
-    isOn = false
-  }
-
-  update() {
-    console.log('update interval...')
-
-    cumulative = cumulative + 1
-    this.setState((state) => {
-      time: state.time + 1
+    clearInterval(this.timer)
+    this.setState(() => {
+      return {
+        seconds: 0
+      }
     })
-
+    this.startTimer()
   }
-  /* 
-        componentDidUpdate(prevProps) {
-         console.log('will update')
-        } */
+
+  startTimer() {
+    //console.log(`startTimer...`)
+    this.timer = setInterval( this.tick, 1000)
+  }
+
+  tick() {
+    //console.log(`tick`)
+    this.setState((state) => {
+      return {
+        seconds: state.seconds + 1
+      }
+    })
+  }
 
   render() {
-    () => this.startTimer()
+    
 
     return (
 
       <div>
 
-
-        {this.props.refresh}
-        <br />
-        {this.state.time}
+<Button 
+color={this.state.seconds>60?'danger':this.state.seconds>10?'warning':'success'}
+size="sm"
+>
+        Last update: {this.state.seconds}s
+</Button>
       </div>
-    );
+
+    )
   }
 }
 

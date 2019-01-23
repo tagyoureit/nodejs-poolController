@@ -18,6 +18,20 @@ class App extends Component {
 
 
         getAll((err, d, which) => {
+
+            if (lastUpdateTime - Date.now() > 300) {
+                this.setState((state) => {
+                    return {
+                        counter: state.counter++
+                    }
+                }
+                )
+                lastUpdateTime = Date.now()
+            }
+            else {
+                //console.log(`Throttling...`)
+            }
+
             //console.log(`GETALL CALLED! with ${which}`)
             if (err) {
                 console.log(`socket getall err: ${err}`)
@@ -92,7 +106,12 @@ class App extends Component {
             }
 
             if (which === 'all') {
-                this.setState({ data: Object.assign({}, this.state.data, d) })
+                this.setState((state) => {
+                    return {
+                        data: Object.assign({}, this.state.data, d)
+                    }
+                })
+
             }
 
 
@@ -203,7 +222,8 @@ class App extends Component {
 
     render() {
         return (
-            <Layout>
+            <Layout counter={this.state.counter}>
+
                 <div className="App">
 
                     <header >
@@ -212,15 +232,15 @@ class App extends Component {
                     <p>
                         Data ready?: {this.state.config.systemReady}
                     </p>
-                    <p>
-                        {/* <RefreshCounter refresh={this.state.counter}></RefreshCounter> */}
-                    </p>
+                    <div>
+                        
+                    </div>
                 </div>
-               
+
 
                 <SysInfo
                     value={this.state.sysInfo} />
-                <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
+               <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
                 <PoolSpaState data={this.state.spaInfo}></PoolSpaState>
                 <Pump data={this.state.pump}></Pump>
                 <Features data={this.state.features}></Features>

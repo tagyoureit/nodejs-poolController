@@ -21,7 +21,7 @@ class PoolSpaState extends React.Component {
 
 
         this.state = {
-            setPoint: 50
+            setPoint: 0
             
           }
 
@@ -29,26 +29,29 @@ class PoolSpaState extends React.Component {
         this.changeHeat = this.changeHeat.bind(this)
        // this.changeTempVal = this.changeTempVal.bind(this)
 
-          console.log(`evaling state.setpoint`)
+          //console.log(`evaling state.setpoint`)
        if (this.state.setPoint!==this.props.data.setPoint){
            this.setState({setPoint: this.props.data.setPoint})
        }
     }
 
+
+
+
     handleToggleState(){
-        console.log(`toggle ${this.state.data.name} val`)
+        //console.log(`toggle ${this.state.data.name} val`)
     }
 
     changeHeat = mode => {
 
-            console.log(`changing ${mode} for ${this.props.data.name}`)
+            //console.log(`changing ${mode} for ${this.props.data.name}`)
             setHeatMode(this.props.data.name, mode)
     }
 
       changeSetPointVal = (setPoint) => {
           if (this.state.setPoint!==setPoint){
              
-          console.log(`setPoint change! ${setPoint}`)
+          //console.log(`setPoint change! ${setPoint}`)
         this.setState({
           setPoint: setPoint
         });
@@ -65,10 +68,10 @@ class PoolSpaState extends React.Component {
     
         return (
          
-            <div>
+            <div>           
 
 
-       
+                        <a name={this.props.data.name} className="anchor"></a>
                         <CustomCard name={this.props.data.name}>
                         
                         
@@ -96,7 +99,9 @@ class PoolSpaState extends React.Component {
                                 
                                 
                                 <Slider className='slider custom-labels' 
-                                        value={this.state.setPoint}
+                                         min={50}
+                                         max={110}
+                                        value={this.state.setPoint===0?this.props.data.setPoint:this.state.setPoint}
                                         onChange={this.changeSetPointVal}
                                         onChangeComplete={this.changeSetPointComplete}
                                     />
