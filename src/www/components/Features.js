@@ -41,7 +41,7 @@ class Features extends React.Component {
     }
 
     handleClick = id => event => {
-        console.log(`toggle circuit ${id} and event val: ${event.target.value}`)
+        //console.log(`toggle circuit ${id} and event val: ${event.target.value}`)
         toggleCircuit(id)
     }
 

@@ -6,9 +6,10 @@ import PoolSpaState from '../components/PoolSpaState'
 import Pump from '../components/Pump'
 import Features from '../components/Features'
 import Schedule from '../components/Schedule'
+import EggTimer from '../components/EggTimer'
 
 
-class App extends Component {
+class NodeJSPoolController extends Component {
     constructor(props) {
         super(props);
 
@@ -240,6 +241,7 @@ class App extends Component {
         return Object.keys(results).length >= 1
     }
 
+
     state = {
         //need these lines if we are to immediately output them... not sure why
         // otherwise, can probably pass them as props
@@ -257,24 +259,7 @@ class App extends Component {
 
     render() {
         return (
-
-
             <Layout counter={this.state.counter}>
-
-                <div className="App">
-
-                    <header >
-                        <h1 >Welcome to React</h1>
-                    </header>
-                    <p>
-                        Data ready?: {this.state.config.systemReady}
-                    </p>
-                    <div>
-
-                    </div>
-                </div>
-
-
                 <SysInfo
                     value={this.state.sysInfo} />
                 <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
@@ -282,6 +267,7 @@ class App extends Component {
                 <Pump data={this.state.pump} />
                 <Features data={this.state.features} />
                 <Schedule data={this.state.schedule} />
+                <EggTimer data={this.state.eggTimer} />
 
             </Layout>
 
@@ -289,4 +275,4 @@ class App extends Component {
     }
 }
 
-export default App;
+export default NodeJSPoolController;

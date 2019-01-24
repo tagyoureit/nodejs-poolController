@@ -56,6 +56,12 @@ class PoolNav extends React.Component {
                             <NavItem>
                                 <NavLink onClick={this.toggle} href="#Features">Features</NavLink>
                             </NavItem>
+                            <NavItem>
+                                <NavLink onClick={this.toggle} href="#Schedule">Schedule</NavLink>
+                            </NavItem>
+                            <NavItem>
+                                <NavLink onClick={this.toggle} href="#EggTimer">EggTimer</NavLink>
+                            </NavItem>
                         </Nav>
                     </Collapse>
                 </Navbar>
