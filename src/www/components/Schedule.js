@@ -5,40 +5,40 @@ import {
 
 import Link from 'next/link'
 import DateTime from './DateTime'
-import CustomCard from './CustomCard'
+import CustomCard from '../components/CustomCard'
 
-import Slider from 'react-rangeslider'
-import 'react-rangeslider/lib/index.css'
+
+
 
 import { setHeatMode, setHeatSetPoint } from '../components/Socket_Client'
 
 
 
-class PoolSpaState extends React.Component {
+class Schedule extends React.Component {
 
     constructor(props) {
         super(props)
 
 
-        this.state = {
-            setPoint: 0
+    //     this.state = {
+    //         setPoint: 0
             
-          }
+    //       }
 
-        this.handleToggleState = this.handleToggleState.bind(this)
-        this.changeHeat = this.changeHeat.bind(this)
-       // this.changeTempVal = this.changeTempVal.bind(this)
+    //     this.handleToggleState = this.handleToggleState.bind(this)
+    //     this.changeHeat = this.changeHeat.bind(this)
+    //    // this.changeTempVal = this.changeTempVal.bind(this)
 
-          //console.log(`evaling state.setpoint`)
-       if (this.state.setPoint!==this.props.data.setPoint){
-           this.setState({setPoint: this.props.data.setPoint})
-       }
+    //       //console.log(`evaling state.setpoint`)
+    //    if (this.state.setPoint!==this.props.data.setPoint){
+    //        this.setState({setPoint: this.props.data.setPoint})
+    //    }
     }
 
 
 
 
-    handleToggleState(){
+  /*   handleToggleState(){
         //console.log(`toggle ${this.state.data.name} val`)
     }
 
@@ -61,57 +61,97 @@ class PoolSpaState extends React.Component {
     changeSetPointComplete = () => {
         console.log(`changing ${this.state.setPoint} for ${this.props.data.name}`)
         setHeatSetPoint(this.props.data.name, this.state.setPoint)
+    } */
+
+    buttons(schedule) {
+        let days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' ]
+        let res = [];
+        
+        days.map(day => {
+            if (schedule.DAYS.includes(day)){
+                
+                res.push (<Button key={day+'button'} color="success">{day.substring(0,1)}</Button>)
+            }
+            else {
+                res.push (<Button key={day+'button'} color="secondary">{day.substring(0,1)}</Button>)
+            }
+            
+        })
+        return res;
     }
 
     render() {
+        
+        let schedules;
+        if (this.props.data!==undefined){
+            schedules =  Object.entries(this.props.data).map((k) => {
 
+                return (
+                    <Row key={k[1].ID+'row'}>
+                        <Col  key={k[1].ID+'col'}>
+                            {k[1].friendlyName} ({k[1].ID})
+                           
+                        </Col>
+                        <Col>
+                            {k[1].START_TIME}
+                        </Col>
+                        <Col>
+                            {k[1].END_TIME}
+                        </Col>
+                        <Col>
+                    <ButtonGroup>
+{this.buttons(k[1])}
+
+                    </ButtonGroup>
+                        
+                        </Col>
+                    </Row>
+                    
+                    
+                    
+                    
+                    )
     
+    
+            })
+        }  
+        else {
+            return (<div>No schedules yet</div>)
+        }
+    
+       
+
+
         return (
          
             <div>           
 
 
-                        <a name={this.props.data.name} className="anchor"></a>
-                        <CustomCard name={this.props.data.name}>
+                        <a name='Schedule' className="anchor"></a>
+                        <CustomCard name='Schedule'>
                         
                         
-
-                   
+                        {schedules}
+                   {/* 
                             <Row>
-                                <Col lg={3} md={6} sm={12} xs={12}>Pool State
+                                <Col>Pool State
                                 </Col>
-                                <Col lg={3} md={6} sm={12} xs={12}>
+                                <Col>
                                     {this.props.data.state}
                                 </Col>
                             </Row>
                          
                     
                             <Row>
-                                <Col lg={3} md={6} sm={12} xs={12}>Temp</Col>
-                                <Col lg={3} md={6} sm={12} xs={12}>{this.props.data.temp}
+                                <Col>Temp</Col>
+                                <Col>{this.props.data.temp}
                           
                                 
                                  </Col>
                             </Row>
+                    
                             <Row>
-                               <Col>
-                                Set Point
-                                
-                                
-                                <Slider className='slider custom-labels' 
-                                         min={50}
-                                         max={110}
-                                        value={this.state.setPoint===0?this.props.data.setPoint:this.state.setPoint}
-                                        onChange={this.changeSetPointVal}
-                                        onChangeComplete={this.changeSetPointComplete}
-                                    />
-                                  <div className='text-center'>
-                                  {this.props.data.setPoint}
-                                  </div>
-                                  </Col>
-                            </Row>
-                            <Row>
-                                <Col lg={3} md={6} sm={12} xs={12}>
+                                <Col>
                                Heater Mode
                                {this.props.data.heatModeStr} ({this.props.data.heatMode})
                                 <div className='text-center'>
@@ -125,7 +165,7 @@ class PoolSpaState extends React.Component {
                                 </Col>
                             </Row>
                            
-                      
+                       */}
 
                         
                         
@@ -145,4 +185,4 @@ class PoolSpaState extends React.Component {
     }
 }
 
-export default PoolSpaState;
+export default Schedule;

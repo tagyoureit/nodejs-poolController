@@ -1,4 +1,4 @@
-import {Button} from 'reactstrap'
+import { Button } from 'reactstrap'
 
 class RefreshCounter extends React.Component {
   constructor(props) {
@@ -10,7 +10,7 @@ class RefreshCounter extends React.Component {
     this.startTimer = this.startTimer.bind(this)
     this.tick = this.tick.bind(this)
 
-    this.state =  {
+    this.state = {
       seconds: 0
     }
   }
@@ -42,7 +42,7 @@ class RefreshCounter extends React.Component {
 
   startTimer() {
     //console.log(`startTimer...`)
-    this.timer = setInterval( this.tick, 1000)
+    this.timer = setInterval(this.tick, 1000)
   }
 
   tick() {
@@ -55,17 +55,18 @@ class RefreshCounter extends React.Component {
   }
 
   render() {
-    
+
 
     return (
 
       <div>
 
-<Button 
-color={this.state.seconds>60?'danger':this.state.seconds>10?'warning':'success'}
-size="sm"
->
-        Last update: {this.state.seconds}s
+        <Button
+          color={this.state.seconds > 60 ? 'danger' : this.state.seconds > 10 ? 'warning' : 'success'}
+          size="sm"
+        >
+          <span className="d-md-none">{this.state.seconds}s</span> 
+          <span className="d-none d-md-block">Last update: {this.state.seconds}s</span> 
 </Button>
       </div>
 

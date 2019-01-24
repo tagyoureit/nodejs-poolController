@@ -1,13 +1,11 @@
 import React, { Component } from 'react';
-import { getAll, onSocketCircuit } from '../components/Socket_Client';
+import { getAll } from '../components/Socket_Client';
 import Layout from '../components/Layout';
-import { Button } from 'reactstrap';
 import SysInfo from '../components/SysInfo'
 import PoolSpaState from '../components/PoolSpaState'
 import Pump from '../components/Pump'
 import Features from '../components/Features'
-import RefreshCounter from '../components/RefreshCounter'
-import VolumeSlider from '../components/test'
+import Schedule from '../components/Schedule'
 
 
 class App extends Component {
@@ -58,7 +56,12 @@ class App extends Component {
             }
 
             if (which === 'schedule' || which === 'all') {
-                this.setState((state) => { return { schedule: d.schedule } })
+                this.setState((state) => {
+                    return {
+                        schedule: this.scheduleEntries(d.schedule),
+                        eggTimer: this.eggTimerEntries(d.schedule)
+                    }
+                })
             }
 
             if (which === 'temperature' || which === 'all') {
@@ -170,6 +173,38 @@ class App extends Component {
 
     }
 
+
+    scheduleEntries(schedule) {
+        const entries = Object.keys(schedule)
+        //console.log(entries[1][1].name)
+        const filter = entries.filter(key => !(schedule[key].CIRCUITNUM === 0 || schedule[key].MODE === 'Egg Timer')
+        )
+        //console.log(filter)
+
+        const obj = {}
+        for (const el of filter) {
+            //console.log(`el: ${el}`)
+            //console.log(`obj: ${JSON.stringify(obj,null,2)}`)
+            obj[el] = schedule[el];
+        }
+        return obj
+    }
+    eggTimerEntries(schedule) {
+        const entries = Object.keys(schedule)
+        //console.log(entries[1][1].name)
+        const filter = entries.filter(key => !(schedule[key].CIRCUITNUM === 0 || schedule[key].MODE === 'Schedule')
+        )
+        //console.log(filter)
+
+        const obj = {}
+        for (const el of filter) {
+            //console.log(`el: ${el}`)
+            //console.log(`obj: ${JSON.stringify(obj,null,2)}`)
+            obj[el] = schedule[el];
+        }
+        return obj
+    }
+
     circuitsWithoutPoolSpa(circuit) {
         const entries = Object.keys(circuit)
         //console.log(entries[1][1].name)
@@ -222,6 +257,8 @@ class App extends Component {
 
     render() {
         return (
+
+
             <Layout counter={this.state.counter}>
 
                 <div className="App">
@@ -233,19 +270,21 @@ class App extends Component {
                         Data ready?: {this.state.config.systemReady}
                     </p>
                     <div>
-                        
+
                     </div>
                 </div>
 
 
                 <SysInfo
                     value={this.state.sysInfo} />
-               <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
+                <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
                 <PoolSpaState data={this.state.spaInfo}></PoolSpaState>
-                <Pump data={this.state.pump}></Pump>
-                <Features data={this.state.features}></Features>
+                <Pump data={this.state.pump} />
+                <Features data={this.state.features} />
+                <Schedule data={this.state.schedule} />
 
             </Layout>
+
         );
     }
 }
