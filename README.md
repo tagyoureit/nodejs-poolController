@@ -194,17 +194,19 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 
 #### Chlorinator and Intellichem
+
 (Note: As of 5.3 the Chlorinator API's will route the commands either through the Intellitouch/Intellicom or directly to the chlorinator depending upon your setup)
+
 | Direction | Socket  | API | Description |
 | --- | --- | ---  | --- |
 | To app | <code>setchlorinator(poolLevel, spaLevel, superChlorinateHours)</code> |  <code>/chlorinator/{level}/spa/{level}/superChlorinateHours/{hours}</code>|sets the level of output for chlorinator (spa/superchlorinate can be omitted)
-| To app |  |  <code>/chlorinator/pool/{level}</code>|sets the pool output %
-| To app |  |  <code>/chlorinator/spa/{level}</code>|sets the spa output %
-| To app |  |  <code>/chlorinator/pool/{level}/spa/{level}</code>|sets the pool & spa output %
-| To app |  |  <code>/chlorinator/superChlorinateHours/{hours}</code>|sets the hours for super chlorination
+| To app |  |  <code>/chlorinator/pool/{level}</code> | sets the pool output %
+| To app |  |  <code>/chlorinator/spa/{level}</code> | sets the spa output %
+| To app |  |  <code>/chlorinator/pool/{level}/spa/{level}</code> | sets the pool & spa output %
+| To app |  |  <code>/chlorinator/superChlorinateHours/{hours}</code> | sets the hours for super chlorination
 | To client | <code>chlorinator</code> | outputs an object with the chlorinator information
 | To app | | <code>/chlorinator</code> | outputs an object with the chlorinator information
-| To app | <code>intellichem</code> | <code>/intellichem</code> |outputs an object with the intellichem information
+| To app | <code>intellichem</code> | <code>/intellichem</code> | outputs an object with the intellichem information
 
 #### Pumps
 
