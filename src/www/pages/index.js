@@ -7,7 +7,7 @@ import Pump from '../components/Pump'
 import Features from '../components/Features'
 import Schedule from '../components/Schedule'
 import EggTimer from '../components/EggTimer'
-
+import Chlorinator from '../components/Chlorinator'
 
 class NodeJSPoolController extends Component {
     constructor(props) {
@@ -31,7 +31,6 @@ class NodeJSPoolController extends Component {
                 //console.log(`Throttling...`)
             }
 
-            //console.log(`GETALL CALLED! with ${which}`)
             if (err) {
                 console.log(`socket getall err: ${err}`)
             }
@@ -42,11 +41,26 @@ class NodeJSPoolController extends Component {
             }
 
             if (which === 'circuit' || which === 'all') {
-                //console.log('circuit socket')
-                this.setState((state) => {
+                // set it so other functions called below have access to the state
+                this.setState((prevState) => {
                     return {
-                        circuit: d.circuit,
-                        features: this.circuitsWithoutPoolSpa(d.circuit)
+                        circuit: d.circuit
+                    }
+                })
+                this.setState((prevState) => {
+                    return {
+
+                        features: this.circuitsWithoutPoolSpa(d.circuit),
+                        poolInfo: {
+                            ...prevState.poolInfo,
+                            state: this.circuitOn("Pool") ? "On" : "Off",
+                            number: this.circuitNumber("Pool")
+                        },
+                        spaInfo: {
+                            ...prevState.spaInfo,
+                            state: this.circuitOn("Spa") ? "On" : "Off",
+                            number: this.circuitNumber("Spa")
+                        }
                     }
                 })
 
@@ -66,30 +80,83 @@ class NodeJSPoolController extends Component {
             }
 
             if (which === 'temperature' || which === 'all') {
-                this.setState((state) => {
+                /* this.setState((prevState) => {
                     return {
                         temperature: d.temperature,
                         poolInfo: {
-                            ...state.poolInfo, temp: d.temperature.poolTemp,
+                            ...prevState.poolInfo,
+                            temp: d.temperature.poolTemp,
                             setPoint: d.temperature.poolSetPoint,
                             heatMode: d.temperature.poolHeatMode,
                             heatModeStr: d.temperature.poolHeatModeStr,
                             heatOn: d.temperature.heaterActive
                         },
                         spaInfo: {
-                            ...state.spaInfo, temp: d.temperature.spaTemp,
+                            ...prevState.spaInfo,
+                            temp: d.temperature.spaTemp,
                             setPoint: d.temperature.spaSetPoint,
                             heatMode: d.temperature.spaHeatMode,
                             heatModeStr: d.temperature.spaHeatModeStr,
                             heatOn: d.temperature.heaterActive
                         }
 
+                    } 
+                })
+                */
+                this.setState((prevState) => {
+                    return {
+                        poolInfo: {
+                            ...prevState.poolInfo,
+                            name: "Pool",
+                            state: this.circuitOn("Pool") ? "On" : "Off",
+                            temp: d.temperature.poolTemp,
+                            setPoint: d.temperature.poolSetPoint,
+                            heatMode: d.temperature.poolHeatMode,
+                            heatModeStr: d.temperature.poolHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        },
+                        spaInfo: {
+                            ...prevState.spaInfo,
+                            name: "Spa",
+                            state: this.circuitOn("Spa") ? "On" : "Off",
+                            temp: d.temperature.spaTemp,
+                            setPoint: d.temperature.spaSetPoint,
+                            heatMode: d.temperature.spaHeatMode,
+                            heatModeStr: d.temperature.spaHeatModeStr,
+                            heatOn: d.temperature.heaterActive
+                        }
+                    }
+                })
+                this.setState((prevState) => {
+                    return {
+                        sysInfo: {
+                            ...prevState.sysInfo,
+                            // time: d.time.controllerTime,
+                            // date: d.time.controllerDateStr,
+                            // locale: d.time.locale,
+                            airTemp: d.temperature.airTemp,
+                            solarTemp: d.temperature.solarTemp,
+                            freezeProt: d.temperature.freeze
+                        }
                     }
                 })
             }
 
             if (which === 'time' || which === 'all') {
                 this.setState((state) => { return { time: d.time } })
+                this.setState((prevState) => {
+                    return {
+                        sysInfo: {
+                            ...prevState.sysInfo,
+                            time: d.time.controllerTime,
+                            date: d.time.controllerDateStr,
+                            locale: d.time.locale,
+                            // airTemp: d.temperature.airTemp,
+                            // solarTemp: d.temperature.solarTemp,
+                            // freezeProt: d.temperature.freeze
+                        }
+                    }
+                })
             }
 
 
@@ -101,8 +168,17 @@ class NodeJSPoolController extends Component {
                 this.setState((state) => { return { valve: d.valve } })
             }
 
-            if (which === 'chlorinator') {
-                this.setState((state) => { return { chlorinator: d.chlorinator } })
+            if (which === 'chlorinator' || which === 'all') {
+                this.setState((state) => {
+
+                    return {
+                        chlorinator:
+                        {
+                            ...d.chlorinator,
+                            state: d.currentOutput === '0' ? false : true
+                        }
+                    }
+                })
             }
 
             if (which === 'intellichem') {
@@ -119,45 +195,22 @@ class NodeJSPoolController extends Component {
             }
 
 
-            if (d.time && d.temperature) {
-                this.setState((state) => {
-                    return {
-                        sysInfo: {
-                            time: d.time.controllerTime,
-                            date: d.time.controllerDateStr,
-                            locale: d.time.locale,
-                            airTemp: d.temperature.airTemp,
-                            solarTemp: d.temperature.solarTemp,
-                            freezeProt: d.temperature.freeze
-                        }
-                    }
-                })
-            }
+            /*  if (d.time && d.temperature) {
+                 this.setState((state) => {
+                     return {
+                         sysInfo: {
+                             time: d.time.controllerTime,
+                             date: d.time.controllerDateStr,
+                             locale: d.time.locale,
+                             airTemp: d.temperature.airTemp,
+                             solarTemp: d.temperature.solarTemp,
+                             freezeProt: d.temperature.freeze
+                         }
+                     }
+                 })
+             }
+  */
 
-            if (d.temperature) {
-                this.setState((state) => {
-                    return {
-                        poolInfo: {
-                            name: "Pool",
-                            state: this.circuitOn("Pool") ? "On" : "Off",
-                            temp: d.temperature.poolTemp,
-                            setPoint: d.temperature.poolSetPoint,
-                            heatMode: d.temperature.poolHeatMode,
-                            heatModeStr: d.temperature.poolHeatModeStr,
-                            heatOn: d.temperature.heaterActive
-                        },
-                        spaInfo: {
-                            name: "Spa",
-                            state: this.circuitOn("Spa") ? "On" : "Off",
-                            temp: d.temperature.spaTemp,
-                            setPoint: d.temperature.spaSetPoint,
-                            heatMode: d.temperature.spaHeatMode,
-                            heatModeStr: d.temperature.spaHeatModeStr,
-                            heatOn: d.temperature.heaterActive
-                        }
-                    }
-                })
-            }
 
             //console.log(`date.now ${Date.now()}... date-last: ${Date.now()-lastUpdateTime}`)
             if (Date.now() - lastUpdateTime > 1000) {
@@ -241,6 +294,15 @@ class NodeJSPoolController extends Component {
         return Object.keys(results).length >= 1
     }
 
+    circuitNumber(which) {
+        if (Object.keys(this.state.circuit).length > 1) {
+            for (var circ in this.state.circuit) {
+                if (this.state.circuit[circ].circuitFunction.toLowerCase() === which.toLowerCase()) {
+                    return this.state.circuit[circ].number
+                }
+            }
+        }
+    }
 
     state = {
         //need these lines if we are to immediately output them... not sure why
@@ -254,7 +316,8 @@ class NodeJSPoolController extends Component {
         spaInfo: { name: 'n/a' },
         pump: { 1: {} },
         features: { 1: {} },
-        counter: 0
+        counter: 0,
+        chlorinator: { state: false }
     }
 
     render() {
@@ -268,6 +331,7 @@ class NodeJSPoolController extends Component {
                 <Features data={this.state.features} />
                 <Schedule data={this.state.schedule} />
                 <EggTimer data={this.state.eggTimer} />
+                <Chlorinator data={this.state.chlorinator} />
 
             </Layout>
 

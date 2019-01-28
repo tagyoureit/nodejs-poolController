@@ -7,7 +7,7 @@ import CustomCard from './CustomCard'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
 
-import { setHeatMode, setHeatSetPoint } from '../components/Socket_Client'
+import { setHeatMode, setHeatSetPoint, toggleCircuit } from '../components/Socket_Client'
 
 
 
@@ -22,22 +22,16 @@ class PoolSpaState extends React.Component {
 
         }
 
-        this.handleToggleState = this.handleToggleState.bind(this)
         this.changeHeat = this.changeHeat.bind(this)
-        // this.changeTempVal = this.changeTempVal.bind(this)
-
+        this.handleOnOffClick = this.handleOnOffClick.bind(this)
         //console.log(`evaling state.setpoint`)
         if (this.state.setPoint !== this.props.data.setPoint) {
             this.setState({ setPoint: this.props.data.setPoint })
         }
+
+
     }
 
-
-
-
-    handleToggleState() {
-        //console.log(`toggle ${this.state.data.name} val`)
-    }
 
     changeHeat = mode => {
 
@@ -60,6 +54,10 @@ class PoolSpaState extends React.Component {
         setHeatSetPoint(this.props.data.name, this.state.setPoint)
     }
 
+    handleOnOffClick = () => {
+        toggleCircuit(this.props.data.number)
+    }
+
     render() {
 
         const low = 50;
@@ -76,7 +74,12 @@ class PoolSpaState extends React.Component {
                         <Col>Pool State
                                 </Col>
                         <Col>
-                            {this.props.data.state}
+                        <Button color={this.props.data.state==='On'?'success':'primary'}
+                        onClick={this.handleOnOffClick}
+                        >
+                        {this.props.data.state}
+                        </Button>
+                         
                         </Col>
                     </Row>
 

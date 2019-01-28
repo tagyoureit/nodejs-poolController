@@ -39,6 +39,11 @@ function getAll(cb) {
         socket.on('temperature', data => {
             cb(null, data, 'temperature')
         })
+
+        socket.on('chlorinator', data => {
+            cb(null, data, 'chlorinator')
+        })
+
         subscribed = 1;
     }
     else {
@@ -56,7 +61,7 @@ function setDateTime(newDT) {
 }
 
 function toggleCircuit(circuit) {
-    //console.log(`emitting toggle circuit ${circuit}`)
+    console.log(`emitting toggle circuit ${circuit}`)
     socket.emit('toggleCircuit', circuit)
 }
 
@@ -78,4 +83,8 @@ function setHeatSetPoint(equip, temp){
     } 
 }
 
-export { getAll, setDateTime, toggleCircuit, onSocketCircuit, setHeatMode, setHeatSetPoint };
+function setChlorinatorLevels(poolLevel, spaLevel, superChlorinateHours){
+    socket.emit('setchlorinator', poolLevel, spaLevel, superChlorinateHours)
+}
+
+export { getAll, setDateTime, toggleCircuit, onSocketCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels };

@@ -50,25 +50,16 @@ class DateTime extends React.Component {
   submit() {
     // submit changes to socket
 
-    console.log(`state: ${JSON.stringify(this.state)}`)
     let newDate = new Date(this.props.locale)
-    console.log(`props locale = ${this.props.locale}`)
-    console.log(`new date Locale === ${newDate.toLocaleString()}`)
-    console.log(`state.dateObj ${JSON.stringify(this.state.dateObj)}`)
     if (this.state.dateObj){
       newDate.setDate(this.state.dateObj.getDate())
       newDate.setMonth(this.state.dateObj.getMonth())
       newDate.setFullYear(this.state.dateObj.getFullYear())
     }
-    console.log(`state.time ${JSON.stringify(this.state.timeObj)}`)
     if (this.state.timeObj) {
       newDate.setHours(this.state.timeObj.hour24)
       newDate.setMinutes(this.state.timeObj.minute)
     }
-
-    console.log(`will update with ${newDate}`)
-    
-    console.log(`will update with ${newDate.toLocaleString()}`)
     setDateTime(newDate)
     this.toggle()
   }

@@ -15,7 +15,7 @@ class Schedule extends React.Component {
         let res = [];
 
         days.map(day => {
-            res.push(<Button key={day + 'button'} color={schedule.DAYS.includes(day) ? "success" : "secondary"} size="sm">{day.substring(0, 3)}</Button>)
+            res.push(<Button  className="m-1" key={day + 'button'} color={schedule.DAYS.includes(day) ? "success" : "secondary"} size="sm">{day.substring(0, 3)}</Button>)
         })
         return res;
     }
@@ -91,25 +91,25 @@ class Schedule extends React.Component {
 
                 return (
                     <Row key={k[1].ID + 'row'}>
-                        <Col xs="4" key={k[1].ID + 'col'} className={active?'text-primary font-weight-bold':''}>
+                        <Col xs={3} lg={2} key={k[1].ID + 'col'} className={active?'text-primary font-weight-bold':''}>
                             {k[1].friendlyName} ({k[1].ID})
 
                         </Col>
-                        <Col className={active?'text-primary font-weight-bold':''}>
+                        <Col xs={3} lg={2} className={active?'text-primary font-weight-bold':''}>
                             {this.hourAMPM(k[1].START_TIME)}
                         </Col>
-                        <Col className={active?'text-primary font-weight-bold':''}>
+                        <Col xs={3} lg={2} className={active?'text-primary font-weight-bold':''}>
                             {this.hourAMPM(k[1].END_TIME)}
                         </Col>
-                        <Col>
+                        <Col xs={3} lg={6}>
                             <span className="d-lg-none">
                                 {this.letters(k[1])}
                             </span>
                             <span className="d-none d-lg-block">
-                                <ButtonGroup>
+                                
                                     {this.buttons(k[1])}
 
-                                </ButtonGroup>
+                                
                             </span>
 
 
