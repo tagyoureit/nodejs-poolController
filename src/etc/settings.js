@@ -688,10 +688,13 @@ module.exports = function (container) {
         return configurationFileContent
     }
 
+    // this function returns relevant information for the `all` socket
     var getConfigOverview = function () {
         var configTemp = {}
         try {
             configTemp.systemReady = ((container.intellitouch.checkIfNeedControllerConfiguration() === 0 ? 1 : 0) && (container.queuePacket.getQueuePacketsArrLength() === 0 ? 1 : 0));
+            configTemp.version = configurationFileContent.version
+            configTemp.client = configurationFileContent.poolController.client
             if (configTemp.systemReady) {
                 configTemp.equipment = JSON.parse(JSON.stringify(configurationFileContent.equipment))
                 // configTemp.circuit = {}
@@ -703,6 +706,7 @@ module.exports = function (container) {
                 // configTemp.intellichem = _settings.intellichem
                 // configTemp.spa = _settings.spa
                 // configTemp.solar = _settings.solar
+                
 
             }
         }
@@ -714,6 +718,14 @@ module.exports = function (container) {
         return {config: configTemp}
     }
 
+    const updatePanelAsync = (panel, state) => {
+        return Promise.resolve()
+        .then(() => {
+            configurationFileContent.poolController.client.panelState[panel].state = state
+        })
+        .then(writeConfigFileAsync)
+        .then(container.logger.verbose(`Updated Panel ${panel} to ${state}`))
+    }
 
     var updatePumpTypeAsync = function (_pump, _type) {
         return Promise.resolve()
@@ -896,6 +908,7 @@ module.exports = function (container) {
         updateChlorinatorInstalledAsync: updateChlorinatorInstalledAsync,
         updateChlorinatorDesiredOutputAsync: updateChlorinatorDesiredOutputAsync,
         updateChlorinatorNameAsync: updateChlorinatorNameAsync,
+        updatePanelAsync: updatePanelAsync,
         getPumpExternalProgramAsync: getPumpExternalProgramAsync
 
     }

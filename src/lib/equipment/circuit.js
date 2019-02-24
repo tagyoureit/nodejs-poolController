@@ -42,7 +42,7 @@ function Circuit(number, numberStr, name, circuitFunction, status, freeze, macro
 
 var currentCircuitArrObj = {},
     lightGroup = {},
-    lightGroupPacket = {'numPackets': 1, "0": [], "1": []},
+    lightGroupPacket = { 'numPackets': 1, "0": [], "1": [] },
     numberOfCircuits = 20
 
 
@@ -80,7 +80,7 @@ module.exports = function (container) {
         currentStatusBytes = []
 
         lightGroup = {}
-        lightGroupPacket = {'numPackets': 1, "0": [], "1": []}
+        lightGroupPacket = { 'numPackets': 1, "0": [], "1": [] }
         numberOfCircuits = container.settings.get('equipment.controller.intellitouch.numberOfCircuits')
         for (var i = 1; i <= numberOfCircuits; i++) {
             //lightGroup[i] = new Light(-1, 'off', -1) // assign empty light object
@@ -330,7 +330,7 @@ module.exports = function (container) {
         }
 
         catch
-            (err) {
+        (err) {
             logger.warn('Tried to retrieve circuit %s which is not a valid circuit.', circuit)
             return 'No valid circuit (' + circuit + ')'
         }
@@ -369,37 +369,38 @@ module.exports = function (container) {
         return tempObj
     }
 
-	function poolOrSpaIsOn() {
-		// return all non-light circuits
-		const circuit = getAllNonLightCircuits()
-		//console.log("circuit: " + JSON.stringify(circuit))
+    function poolOrSpaIsOn() {
+        // return all non-light circuits
+        const circuit = getAllNonLightCircuits()
+        //console.log("circuit: " + JSON.stringify(circuit))
 
-		// loop through the circuits
-		for (var circuitNum in circuit) {
-			//console.log(`${circuit[circuitNum].circuitName} is ${getCircuit(circuitNum).status}`)
-			if (circuit[circuitNum].circuitName === "POOL" || circuit[circuitNum].circuitName === 'SPA') {
-				if (getCircuit(circuitNum).status) {
-					return true
-				}
-			}
-		}
-		return false
-	}
+        // loop through the circuits
+        for (var circuitNum in circuit) {
+            //console.log(`${circuit[circuitNum].circuitName} is ${getCircuit(circuitNum).status}`)
+            if (circuit[circuitNum].circuitName === "POOL" || circuit[circuitNum].circuitName === 'SPA') {
+                if (getCircuit(circuitNum).status) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
 
     function isLight(circuitNum) {
 
         // return true if circuitFunction is one of Light, SAM Light, SAL Light, Photon Gen, Color Wheel, Intellibrite
         var circuitFunction = currentCircuitArrObj[circuitNum].circuitFunction
         return [container.constants.strCircuitFunction[7],
-            container.constants.strCircuitFunction[9],
-            container.constants.strCircuitFunction[10],
-            container.constants.strCircuitFunction[11],
-            container.constants.strCircuitFunction[12],
-            container.constants.strCircuitFunction[16]].includes(circuitFunction)
+        container.constants.strCircuitFunction[9],
+        container.constants.strCircuitFunction[10],
+        container.constants.strCircuitFunction[11],
+        container.constants.strCircuitFunction[12],
+        container.constants.strCircuitFunction[16]].includes(circuitFunction)
 
         // return ['intellibrite', 'light', 'sam light', 'sal light', 'color wheel'].indexOf(circuitFunction) >= 0
     }
 
+    // this function assigns circuit name, function, etc from Packet #11
     function setCircuitFromController(circuit, nameByte, functionByte, counter) {
         if (circuit <= numberOfCircuits) {
 
@@ -434,7 +435,7 @@ module.exports = function (container) {
 
                 doWeHaveAllInformation()
             } else if (sendInitialBroadcast.initialCircuitsBroadcast === 1) {
-                
+
 
                 if (JSON.stringify(currentCircuitArrObj[circuit]) === JSON.stringify(circuit)) {
                     circuitChanged(circuit, circuitArrObj, counter)
@@ -454,6 +455,7 @@ module.exports = function (container) {
 
     }
 
+    // this function assigns circuit delays from Controller Packet #2
     function assignCircuitDelayFromControllerStatus(_delay, counter) {
         for (var i = 1; i <= numberOfCircuits; i++) {
             if (currentCircuitArrObj[i].delay === undefined) {
@@ -483,13 +485,11 @@ module.exports = function (container) {
         }
     }
 
-//this function takes the status packet (controller:2) and parses through the equipment fields
+    // this function takes the status packet (controller:2) and parses through the equipment fields
     function assignCircuitStatusFromControllerStatus(data, counter) {
 
         var circuitArrObj = []
 
-
-        //This is an attempt to support >20 circuits when there is an expansion port(s) in use.  Intellitouch can support up to 50.
         var byteCount = Math.floor(numberOfCircuits / 8);
 
         for (var i = 0; i <= byteCount; i++) {
@@ -530,6 +530,13 @@ module.exports = function (container) {
 
                         var results = "Status: " + statusToString(currentCircuitArrObj[i].status) + " --> " + statusToString(circuitArrObj[i].status)
                         if (sendInitialBroadcast.haveCircuitNames) {
+
+                            if (circuitArrObj[i].circuitFunction.toUpperCase() === "SPA" || circuitArrObj[i].circuitFunction.toUpperCase() === "POOL") {
+                                saveLastKnownTemp(circuitArrObj[i])
+                            }
+                           
+
+
                             logger.verbose('Msg# %s   Circuit %s change:  %s', counter, currentCircuitArrObj[i].name, results)
                         } else {
                             logger.verbose('Msg# %s   Circuit %s change:  %s', counter, i, results)
@@ -545,6 +552,14 @@ module.exports = function (container) {
     }
 
 
+    const saveLastKnownTemp = (circuitArrObj) => {
+        // if status is now off (aka it was previously on)
+        // then save the last known temp
+        if (circuitArrObj.status===0){
+            container.temperature.saveLastKnownTemp(circuitArrObj.circuitFunction)
+        }
+    }
+
     function requestUpdateCircuit(source, dest, circuit, action, counter) {
         //this is for the request.  Not actual confirmation of circuit update.  So we don't update the object here.
         try {
@@ -557,7 +572,7 @@ module.exports = function (container) {
     }
 
     function getCurrentCircuits() {
-        return {'circuit': currentCircuitArrObj}
+        return { 'circuit': currentCircuitArrObj }
     }
 
 
@@ -971,7 +986,7 @@ module.exports = function (container) {
 
         }
         // assign color to circuit object
-        assignControllerLightColor(mode,0,'API')
+        assignControllerLightColor(mode, 0, 'API')
 
         return retStr
     }
@@ -1112,53 +1127,53 @@ module.exports = function (container) {
         }
 
 
-/*        var packet;
-
-        if (lightGroupPacket.numPackets === 1) {
-
-            for (var i = 0; i <= 7; i++) {
-
-                // packets are in groups of 4.
-                // lightGroupPacket[0] is circuit
-                // lightGroupPacket[2] is the delay
-                if (lightGroupPacket[i * 4] === circuit) {
-                    lightGroupPacket[(i * 4) + 2] = (delay << 1) + (lightGroupPacket[(i * 4) + 2] & 1)
+        /*        var packet;
+        
+                if (lightGroupPacket.numPackets === 1) {
+        
+                    for (var i = 0; i <= 7; i++) {
+        
+                        // packets are in groups of 4.
+                        // lightGroupPacket[0] is circuit
+                        // lightGroupPacket[2] is the delay
+                        if (lightGroupPacket[i * 4] === circuit) {
+                            lightGroupPacket[(i * 4) + 2] = (delay << 1) + (lightGroupPacket[(i * 4) + 2] & 1)
+                        }
+                    }
+        
+                    // 165,33,16,34,167,32,7,10,4,0,8,22,14,0,16,32,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,58
+                    packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
                 }
-            }
-
-            // 165,33,16,34,167,32,7,10,4,0,8,22,14,0,16,32,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,58
-            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 32].concat(lightGroupPacket)
-        }
-        else {
-            // unknown at this time if the only options are 28 or 25 in length.
-            // could make this generic (no if-else)...
-
-            // make a copy
-            var _lightGroupPacketArr = lightGroupPacket[whichLightPacket(circuit)].slice()
-
-            // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
-            // This code will get the modulo and shift the array by that many.
-            var modulo = _lightGroupPacketArr.length % 4
-            var packetNum = _lightGroupPacketArr.splice(0, modulo)
-
-
-            var numGroups = _lightGroupPacketArr.length / 4
-            for (var i = 0; i <= numGroups; i++) {
-
-                // packets are in groups of 4.
-                // lightGroupPacket[0] is circuit
-                // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
-                // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
-
-                if (_lightGroupPacketArr[i * 4] === circuit) {
-                    _lightGroupPacketArr[(i * 4) + 2] = (delay << 1) + (_lightGroupPacketArr[(i * 4) + 2] & 1)
-                }
-
-
-            }
-
-            packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 25].concat(packetNum).concat(_lightGroupPacketArr)
-        }*/
+                else {
+                    // unknown at this time if the only options are 28 or 25 in length.
+                    // could make this generic (no if-else)...
+        
+                    // make a copy
+                    var _lightGroupPacketArr = lightGroupPacket[whichLightPacket(circuit)].slice()
+        
+                    // Some intellibrite packets have 25 values with a leading 0.  Not sure why.  See Issue #99.
+                    // This code will get the modulo and shift the array by that many.
+                    var modulo = _lightGroupPacketArr.length % 4
+                    var packetNum = _lightGroupPacketArr.splice(0, modulo)
+        
+        
+                    var numGroups = _lightGroupPacketArr.length / 4
+                    for (var i = 0; i <= numGroups; i++) {
+        
+                        // packets are in groups of 4.
+                        // lightGroupPacket[0] is circuit
+                        // lightGroupPacket[1] xxxxyyyy where xxxx is position and yyyy is the color
+                        // 'position': (_temp[1] >> 4) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+        
+                        if (_lightGroupPacketArr[i * 4] === circuit) {
+                            _lightGroupPacketArr[(i * 4) + 2] = (delay << 1) + (_lightGroupPacketArr[(i * 4) + 2] & 1)
+                        }
+        
+        
+                    }
+        
+                    packet = [165, container.intellitouch.getPreambleByte(), 16, container.settings.get('appAddress'), 167, 25].concat(packetNum).concat(_lightGroupPacketArr)
+                }*/
 
 
         var packet,
@@ -1218,7 +1233,7 @@ module.exports = function (container) {
         getFriendlyName: getFriendlyName,
         getAllNonLightCircuits: getAllNonLightCircuits,
         getAllLightCircuits: getAllLightCircuits,
-		poolOrSpaIsOn: poolOrSpaIsOn,
+        poolOrSpaIsOn: poolOrSpaIsOn,
         assignCircuitStatusFromControllerStatus: assignCircuitStatusFromControllerStatus,
         assignCircuitDelayFromControllerStatus: assignCircuitDelayFromControllerStatus,
         requestUpdateCircuit: requestUpdateCircuit,

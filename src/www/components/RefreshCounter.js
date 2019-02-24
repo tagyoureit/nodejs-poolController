@@ -1,4 +1,5 @@
 import { Button } from 'reactstrap'
+import React from 'react'
 
 class RefreshCounter extends React.Component {
   constructor(props) {

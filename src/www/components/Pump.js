@@ -3,8 +3,8 @@ import {
     CardTitle, CardSubtitle, Button, CardFooter, CardGroup
 } from 'reactstrap';
 import CustomCard from '../components/CustomCard'
-import Link from 'next/link'
 import DateTime from './DateTime'
+import React from 'react'
 
 class Pump extends React.Component {
 

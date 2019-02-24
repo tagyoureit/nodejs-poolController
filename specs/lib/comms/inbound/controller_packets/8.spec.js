@@ -38,7 +38,7 @@ describe('processes 8 (Heat mode/set point) packets', function () {
                     })
                     .delay(100)
                     .then(function () {
-                        var json = bottle.container.temperatures.getTemperatures().temperature
+                        var json = bottle.container.temperature.getTemperature().temperature
                         //console.log('json for heat: ', JSON.stringify(json,null,2))
                         json.poolHeatModeStr.should.equal('Solar Only')
                         json.poolSetPoint.should.equal(89)

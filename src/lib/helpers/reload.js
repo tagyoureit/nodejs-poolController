@@ -58,7 +58,6 @@ module.exports = function(container) {
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
             This will _NOT_ restart the express (web) auth and will not affect bootstrap, auth, or ssl.'
         var res = reloadStr + '<p>'
-        res += 'Intro: <p>' + container.settings.displayIntroMsg() + '<p>'
         res += 'Settings: <p>' + container.settings.displaySettingsMsg() + '<p>'
 
 
@@ -92,7 +91,7 @@ module.exports = function(container) {
               container.circuit.init()
               container.customNames.init()
               container.intellitouch.init()
-              container.temperatures.init()
+              container.temperature.init()
               container.uom.init()
               container.valve.init()
 

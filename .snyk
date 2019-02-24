@@ -209,9 +209,6 @@ ignore:
     - serialport > prebuild-install > tar-fs > chownr:
         reason: None given
         expires: '2019-01-28T22:18:22.043Z'
-      next > webpack > watchpack > chokidar > fsevents > node-pre-gyp > tar > chownr:
-        reason: None given
-        expires: '2019-02-16T15:48:12.153Z'
     - chokidar > fsevents > node-pre-gyp > tar > chownr:
         reason: None given
         expires: '2018-09-01T14:44:44.769Z'
@@ -221,6 +218,13 @@ ignore:
     - serialport > @serialport/bindings > prebuild-install > tar-fs > chownr:
         reason: None given
         expires: '2018-11-13T22:58:36.874Z'
+    - next > webpack > watchpack > chokidar > fsevents > node-pre-gyp > tar > chownr:
+        reason: None given
+        expires: '2019-02-16T15:48:12.153Z'
+  SNYK-JS-BOOTSTRAP-173700:
+    - bootstrap:
+        reason: None given
+        expires: '2019-03-23T21:12:34.684Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

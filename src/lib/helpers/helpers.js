@@ -206,7 +206,7 @@ module.exports = function (container) {
         container._.extend(pool, container.circuit.getCurrentCircuits())
         container._.extend(pool, container.pump.getCurrentPumpStatus())
         container._.extend(pool, container.schedule.getCurrentSchedule())
-        container._.extend(pool, container.temperatures.getTemperatures())
+        container._.extend(pool, container.temperature.getTemperature())
         container._.extend(pool, container.time.getTime())
         container._.extend(pool, container.UOM.getUOM())
         container._.extend(pool, container.valve.getValve())

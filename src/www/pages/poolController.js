@@ -8,6 +8,7 @@ import Features from '../components/Features'
 import Schedule from '../components/Schedule'
 import EggTimer from '../components/EggTimer'
 import Chlorinator from '../components/Chlorinator'
+import ShouldDisplay from '../components/ShouldDisplay'
 
 class NodeJSPoolController extends Component {
     constructor(props) {
@@ -36,8 +37,16 @@ class NodeJSPoolController extends Component {
             }
 
             if (which === 'config' || which === 'all') {
+                console.log(`config`)
+                console.log(d.config)
                 this.setState(
-                    (state) => { return { config: d.config } })
+                    (state) => {
+                        return {
+                            systemReady: d.config.systemReady || 0,
+                            config: d.config
+
+                        }
+                    })
             }
 
             if (which === 'circuit' || which === 'all') {
@@ -47,6 +56,7 @@ class NodeJSPoolController extends Component {
                         circuit: d.circuit
                     }
                 })
+
                 this.setState((prevState) => {
                     return {
 
@@ -295,19 +305,65 @@ class NodeJSPoolController extends Component {
     }
 
     circuitNumber(which) {
-        if (Object.keys(this.state.circuit).length > 1) {
-            for (var circ in this.state.circuit) {
-                if (this.state.circuit[circ].circuitFunction.toLowerCase() === which.toLowerCase()) {
-                    return this.state.circuit[circ].number
+        console.log(`systemReady: ${this.state.systemReady}`)
+        if (!this.state.systemReady) {
+            return 0
+        }
+        else {
+            if (Object.keys(this.state.circuit).length > 1) {
+                for (var circ in this.state.circuit) {
+                    if (this.state.circuit[circ].circuitFunction.toLowerCase() === which.toLowerCase()) {
+                        return this.state.circuit[circ].number
+                    }
                 }
             }
         }
     }
 
     state = {
-        //need these lines if we are to immediately output them... not sure why
-        // otherwise, can probably pass them as props
-        config: { systemReady: 0 },
+        config: {
+
+            client: {
+                "panelState": {
+                    "system": {
+                        "state": "visible"
+                    },
+                    "pool": {
+                        "state": "visible"
+                    },
+                    "spa": {
+                        "state": "visible"
+                    },
+                    "chlorinator": {
+                        "state": "visible"
+                    },
+                    "features": {
+                        "state": "visible"
+                    },
+                    "pump": {
+                        "state": "visible"
+                    },
+                    "schedule": {
+                        "state": "visible"
+                    },
+                    "eggtimer": {
+                        "state": "visible"
+                    },
+                    "debug": {
+                        "state": "visible"
+                    },
+                    "intellichem": {
+                        "state": "visible"
+                    },
+                    "release": {
+                        "state": "visible"
+                    },
+                    "light": {
+                        "state": "visible"
+                    }
+                }
+            }
+        },
         circuit: {},
         time: { controllerTime: 'none' },
         temperature: { airTemp: 0, poolTemp: 0 },
@@ -317,21 +373,50 @@ class NodeJSPoolController extends Component {
         pump: { 1: {} },
         features: { 1: {} },
         counter: 0,
+        systemReady: 0,
         chlorinator: { state: false }
     }
 
     render() {
+
+        const displayIfSystemReady = () => {
+
+            if (this.state.systemReady) {
+                return (
+                    <div>
+                        <ShouldDisplay state={this.state.config.client.panelState.system.state} ready={this.state.systemReady}>
+                            <SysInfo
+                                value={this.state.sysInfo} />
+                        </ShouldDisplay>
+                        <PoolSpaState data={this.state.poolInfo} />
+                        <PoolSpaState data={this.state.spaInfo} />
+                        <Pump data={this.state.pump} />
+                        <Features data={this.state.features} />
+                        <Schedule data={this.state.schedule} />
+                        <EggTimer data={this.state.eggTimer} />
+                        <Chlorinator data={this.state.chlorinator} />
+                    </div>)
+            }
+            else {
+                return (
+                    <div>
+                        System Not Ready
+                <br />
+                        add configuration
+            </div>
+                )
+            }
+        }
+
+        let clientState = this.state.config.client.panelState.system.state || false;
+
         return (
             <Layout counter={this.state.counter}>
-                <SysInfo
-                    value={this.state.sysInfo} />
-                <PoolSpaState data={this.state.poolInfo}></PoolSpaState>
-                <PoolSpaState data={this.state.spaInfo}></PoolSpaState>
-                <Pump data={this.state.pump} />
-                <Features data={this.state.features} />
-                <Schedule data={this.state.schedule} />
-                <EggTimer data={this.state.eggTimer} />
-                <Chlorinator data={this.state.chlorinator} />
+                <ShouldDisplay state='false' ready={this.state.systemReady}>
+                    <SysInfo
+                        value={this.state.sysInfo} />
+                </ShouldDisplay>
+                {displayIfSystemReady()}
 
             </Layout>
 

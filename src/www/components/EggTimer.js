@@ -3,6 +3,7 @@ import {
 } from 'reactstrap';
 
 import CustomCard from '../components/CustomCard'
+import React from 'react'
 
 class EggTimer extends React.Component {
 

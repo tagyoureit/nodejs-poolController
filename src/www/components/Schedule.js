@@ -2,6 +2,7 @@ import {
     Row, Col,Button, ButtonGroup
 } from 'reactstrap';
 import CustomCard from '../components/CustomCard'
+import React from 'react'
 
 class Schedule extends React.Component {
 

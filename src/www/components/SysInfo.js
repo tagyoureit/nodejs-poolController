@@ -3,8 +3,8 @@ import {
     CardTitle, CardSubtitle, Button
 } from 'reactstrap';
 import CustomCard from '../components/CustomCard'
-import Link from 'next/link'
 import DateTime from './DateTime'
+import React from 'react'
 
 class SysInfo extends React.Component {
 
@@ -19,7 +19,7 @@ class SysInfo extends React.Component {
         return (
 
             <div>
-                <CustomCard name='System Information'>
+                <CustomCard name='System Information' id='system'>
 
                 <Row>
                                 <Col xs="6">Date/Time</Col>

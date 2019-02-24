@@ -3,6 +3,7 @@ import {
 } from 'reactstrap';
 import CustomCard from '../components/CustomCard'
 import {toggleCircuit} from '../components/Socket_Client'
+import React from 'react'
 
 
 

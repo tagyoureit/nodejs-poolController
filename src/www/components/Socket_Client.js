@@ -87,4 +87,8 @@ function setChlorinatorLevels(poolLevel, spaLevel, superChlorinateHours){
     socket.emit('setchlorinator', poolLevel, spaLevel, superChlorinateHours)
 }
 
-export { getAll, setDateTime, toggleCircuit, onSocketCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels };
+function hidePanel(panel){
+    socket.emit('hidePanel', panel)
+}
+
+export { getAll, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel };

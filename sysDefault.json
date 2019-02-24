@@ -1,5 +1,5 @@
 {
-  "version" : "6.0.0",
+  "version": "6.0.0",
   "equipment": {
     "controller": {
       "intellicom": {
@@ -139,19 +139,58 @@
         "port": 8086,
         "database": "pool"
       }
+    },
+    "client": {
+      "panelState": {
+        "system": {
+          "state": "visible"
+        },
+        "pool": {
+          "state": "visible"
+        },
+        "spa": {
+          "state": "visible"
+        },
+        "chlorinator": {
+          "state": "visible"
+        },
+        "features": {
+          "state": "visible"
+        },
+        "pump": {
+          "state": "visible"
+        },
+        "schedule": {
+          "state": "visible"
+        },
+        "eggtimer": {
+          "state": "visible"
+        },
+        "debug": {
+          "state": "visible"
+        },
+        "intellichem": {
+          "state": "visible"
+        },
+        "release": {
+          "state": "visible"
+        },
+        "light": {
+          "state": "visible"
+        }
+      }
     }
   },
   "meta": {
     "notifications": {
       "version": {
         "remote": {
-          "version": "4.0.0",
-          "tag_name": "v4.0.0",
+          "version": "6.0.0",
+          "tag_name": "v6.0.0",
           "dismissUntilNextRemoteVersionBump": false
         }
       }
     }
   },
-  "integrations": {
-  }
+  "integrations": {}
 }

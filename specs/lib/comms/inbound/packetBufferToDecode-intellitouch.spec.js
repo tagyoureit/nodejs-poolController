@@ -24,7 +24,7 @@ describe('receives packets from buffer and follows them to decoding', function()
             })
 
             afterEach(function () {
-                bottle.container.temperatures.init()
+                bottle.container.temperature.init()
                 bottle.container.pump.init()
                 bottle.container.queuePacket.init()
                 sinon.restore()
@@ -42,7 +42,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                 var client;
                 Promise.resolve()
                     .then(function () {
-                        bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(0)
+                        bottle.container.temperature.getTemperature().temperature.poolTemp.should.eq(0)
                         bottle.container.packetBuffer.push(new Buffer([255, 0, 255, 165, 16, 15, 16, 8, 13, 53, 53, 42, 83, 71, 0, 0, 0, 39, 0, 0, 0, 0, 2, 62]))
 
                     })
@@ -52,7 +52,7 @@ describe('receives packets from buffer and follows them to decoding', function()
                     })
                     .then(function (data) {
                         data.temperature.poolTemp.should.eq(53)
-                        bottle.container.temperatures.getTemperatures().temperature.poolTemp.should.eq(53)
+                        bottle.container.temperature.getTemperature().temperature.poolTemp.should.eq(53)
                     })
                     .then(done, done)
             })

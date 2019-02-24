@@ -21,7 +21,7 @@ module.exports = function (container) {
         container.logger.info('Loading: socketio-helper.js')
 
 
-    var io = {http: {}, https: {}, httpEnabled: 0, httpsEnabled: 0}, socketList = {http: [], https: []};
+    var io = { http: {}, https: {}, httpEnabled: 0, httpsEnabled: 0 }, socketList = { http: [], https: [] };
 
     var emitToClientsOnEnabledSockets = function (channel, data) {
         if (io['httpEnabled'] === 1) {
@@ -34,38 +34,89 @@ module.exports = function (container) {
 
     var emitToClients = function (outputType, data) {
         container.logger.silly('Outputting socket ', outputType)
-        
-        if (outputType === 'updateAvailable' || outputType === 'all') {
-            var remote = container.settings.get('notifications.version.remote')
-            container.logger.silly('Socket.IO checking if we need to output updateAvail: %s (will send if false)', remote.dismissUntilNextRemoteVersionBump)
-            if (remote.dismissUntilNextRemoteVersionBump !== true) {
-                // true = means that we will suppress the update until the next available version bump
-                container.updateAvailable.getResultsAsync()
-                    .then(function (updateAvail) {
-                        if (updateAvail.hasOwnProperty('result')) {
-                            container.logger.silly('Socket.IO outputting updateAvail: %s ', JSON.stringify(updateAvail))
-                            emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
-                        }
-                        else {
-                            container.logger.silly('Socket.IO NOT outputting updateAvail because it is missing the result string: %s ', JSON.stringify(updateAvail))
-                        }
-                    })
-                    .catch(function (err) {
-                        container.logger.error("Error getting update available results: ", err)
-                    })
-            }
+
+        switch (outputType) {
+            case 'updateAvailable':
+                var remote = container.settings.get('notifications.version.remote')
+                container.logger.silly('Socket.IO checking if we need to output updateAvail: %s (will send if false)', remote.dismissUntilNextRemoteVersionBump)
+                if (remote.dismissUntilNextRemoteVersionBump !== true) {
+                    // true = means that we will suppress the update until the next available version bump
+                    container.updateAvailable.getResultsAsync()
+                        .then(function (updateAvail) {
+                            if (updateAvail.hasOwnProperty('result')) {
+                                container.logger.silly('Socket.IO outputting updateAvail: %s ', JSON.stringify(updateAvail))
+                                emitToClientsOnEnabledSockets('updateAvailable', updateAvail)
+                            }
+                            else {
+                                container.logger.silly('Socket.IO NOT outputting updateAvail because it is missing the result string: %s ', JSON.stringify(updateAvail))
+                            }
+                        })
+                        .catch(function (err) {
+                            container.logger.error("Error getting update available results: ", err)
+                        })
+                }
+                break;
+            case 'all':
+                emitToClientsOnEnabledSockets('all', container.helpers.allEquipmentInOneJSON())
+                break;
+
+            case 'circuit':
+
+                emitToClientsOnEnabledSockets('circuit', container.circuit.getCurrentCircuits())
+                break;
+            case 'time':
+                var time = container.time.getTime()
+                if (time.controllerTime !== -1) {
+                    emitToClientsOnEnabledSockets('time',
+                        time
+                    )
+                }
+                break;
+            case 'temperature':
+                emitToClientsOnEnabledSockets('temperature',
+                    container.temperature.getTemperature()
+                )
+                // removed 6.0
+                // emitToClientsOnEnabledSockets('temp', temp )
+                // removed 6.0
+                // emitToClientsOnEnabledSockets('temperatures', temp)
+                break;
+            case 'pump':
+                emitToClientsOnEnabledSockets('pump', container.pump.getCurrentPumpStatus())
+                break;
+            case 'heat':
+                emitToClientsOnEnabledSockets('heat',
+                    container.heat.getCurrentHeat()
+                )
+                break;
+            case 'schedule':
+                var sched = container.schedule.getCurrentSchedule()
+                if (container.schedule.numberOfSchedulesRegistered() > 3) {
+                    emitToClientsOnEnabledSockets('schedule',
+                        sched)
+                }
+                break;
+            case 'chlorinator':
+                var chlor = container.chlorinator.getChlorinatorStatus()
+                if (container.chlorinator.getSaltPPM() !== 'undefined')
+                    emitToClientsOnEnabledSockets('chlorinator', chlor)
+                break;
+            case 'UOM':
+                emitToClientsOnEnabledSockets('UOM', container.UOM.getUOM())
+                break;
+            case 'searchResults':
+                emitToClientsOnEnabledSockets('searchResults', data);
+                break;
+            case 'intellichem':
+                emitToClientsOnEnabledSockets('intellichem',
+                    container.intellichem.getCurrentIntellichem())
+                break;
+            case 'valve':
+                emitToClientsOnEnabledSockets('valve', container.valve.getValve())
+                break;
+
         }
 
-        if (outputType === 'one' || outputType === 'all') {
-            var one = container.helpers.allEquipmentInOneJSON()
-            emitToClientsOnEnabledSockets('one', one)
-            emitToClientsOnEnabledSockets('all', one)
-        }
-
-        if (outputType === 'circuit' || outputType === 'all') {
-            var currCir = container.circuit.getCurrentCircuits()
-            emitToClientsOnEnabledSockets('circuit', currCir)
-        }
 
         /*if (outputType === 'config' || outputType === 'all') {
             var currStatus = container.status.getCurrentStatus()
@@ -74,73 +125,8 @@ module.exports = function (container) {
             )
         }*/
 
-        if (outputType === 'time' || outputType === 'all') {
-            var time = container.time.getTime()
-            if (time.controllerTime !== -1) {
-                emitToClientsOnEnabledSockets('time',
-                    time
-                )
-            }
-        }
 
-        if (outputType === 'temp' || outputType === 'all') {
-            var temp = container.temperatures.getTemperatures()
-            emitToClientsOnEnabledSockets('temp',
-                temp
-            )
-            emitToClientsOnEnabledSockets('temperature',
-                temp
-            )
-            emitToClientsOnEnabledSockets('temperatures', temp)
-        }
 
-        if (outputType === 'pump' || outputType === 'all') {
-            var pumpStatus = container.pump.getCurrentPumpStatus()
-            emitToClientsOnEnabledSockets('pump', pumpStatus)
-        }
-
-        if (outputType === 'heat' || outputType === 'all') {
-            var heat = container.heat.getCurrentHeat()
-            emitToClientsOnEnabledSockets('heat',
-                heat
-            )
-        }
-
-        if (outputType === 'schedule' || outputType === 'all') {
-            var sched = container.schedule.getCurrentSchedule()
-            if (container.schedule.numberOfSchedulesRegistered() > 3) {
-                emitToClientsOnEnabledSockets('schedule',
-                    sched)
-            }
-        }
-
-        if (outputType === 'chlorinator' || outputType === 'all') {
-            var chlor = container.chlorinator.getChlorinatorStatus()
-            if (container.chlorinator.getSaltPPM() !== 'undefined')
-                emitToClientsOnEnabledSockets('chlorinator', chlor)
-        }
-
-        if (outputType === 'UOM' || outputType === 'all') {
-            emitToClientsOnEnabledSockets('UOM', container.UOM.getUOM())
-        }
-
-        if (outputType === 'all') {
-            emitToClientsOnEnabledSockets('all', container.helpers.allEquipmentInOneJSON())
-        }
-
-        if (outputType === 'searchResults') {
-            emitToClientsOnEnabledSockets('searchResults', data);
-        }
-
-        if (outputType === 'intellichem' || outputType === 'all') {
-            var intellichem = container.intellichem.getCurrentIntellichem()
-            emitToClientsOnEnabledSockets('intellichem',
-                intellichem)
-        }
-
-        if (outputType === 'valve' || outputType === 'all') {
-            emitToClientsOnEnabledSockets('valve', container.valve.getValve())
-        }
     }
 
     var init = function (server, type) {
@@ -371,7 +357,7 @@ module.exports = function (container) {
             var str = 'Add packet(s) to incoming buffer: '
             container.logger.info('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
 
-            for (var i=0; i<incomingPacket.length; i++) {
+            for (var i = 0; i < incomingPacket.length; i++) {
 
                 container.packetBuffer.push(new Buffer(incomingPacket[i]));
                 str += JSON.stringify(incomingPacket[i]) + ' '
@@ -381,7 +367,7 @@ module.exports = function (container) {
         })
 
         socket.on('setchlorinator', function (desiredChlorinatorPoolOutput, desiredChlorinatorSpaOutput = -1, desiredSuperChlorHours = -1) {
-            if (desiredChlorinatorSpaOutput===-1){
+            if (desiredChlorinatorSpaOutput === -1) {
                 container.chlorinator.setChlorinatorLevelAsync(parseInt(desiredChlorinatorPoolOutput))
             }
             else {
@@ -750,6 +736,17 @@ module.exports = function (container) {
             // .then(function(res){
             //     console.log('returned from updatever', res)
             // })
+        })
+
+        socket.on('hidePanel', (panel) => {
+            console.log(`received hide panel ${panel}`)
+            container.settings.updatePanelAsync(panel, 'hidden')
+            .then(emitToClients('all'))
+        })
+
+        // used by test to request a specific socket output
+        socket.on('test', (_which) => {
+            emitToClients(_which)
         })
 
         emitToClients('all')

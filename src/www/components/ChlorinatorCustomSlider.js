@@ -2,6 +2,7 @@ import { Container, Row, Col, Button } from 'reactstrap'
 import { setChlorinatorLevels } from './Socket_Client'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
+import React from 'react'
 
 class ChlorinatorCustomSlider extends React.Component {
   constructor(props) {

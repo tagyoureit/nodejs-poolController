@@ -201,7 +201,7 @@ module.exports = function(container) {
         return getLatestReleaseJsonAsync()
             .then(compareLocalToSavedLocalVersionAsync)
             .then(compareLocalToRemoteVersionAsync)
-            .then(emitResults)
+            .then(() => (emitResults))
             .then(function() {
                 container.logger.silly('updateAvail: finished successfully')
                 return jsons

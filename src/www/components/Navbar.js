@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import RefreshCounter from '../components/RefreshCounter'
+import React from 'react'
 
 import {
     Collapse,

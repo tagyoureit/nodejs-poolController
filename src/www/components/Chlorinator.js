@@ -5,6 +5,7 @@ import CustomCard from './CustomCard'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
 import CustomSlider from '../components/ChlorinatorCustomSlider'
+import React from 'react'
 
 
 class Chlorinator extends React.Component {

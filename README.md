@@ -11,13 +11,20 @@
 ### 6.0-DEV
 * Utilizing next.js (react/webpack) stack for new HTML front end
 * Updated /time endpoint and socket with more verbose information
-* (TBD) deprecated sockets
+* (TBD) deprecated/changes to sockets
 
+* Removed "one".  Use "all" instead.
+* Each client would be emitted with it's own name OR all.  Now it is only on it's own name.
+Temperature => no more temp/temperatures.  Only temperature.
+* Use socket `all` and get version to add version compatibility to remote apps.
+* `configClient` moved from web page configuration file to socket.  Now is included with `all` socket.
+
+* last known temp added for pool/spa (#xyz).  When the pool/spa is on, use poolTemp/spaTemp.  When the circuit is off, you can use temperature.{pool/spa}LastKnownTemp
 
 # License
 
 nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

@@ -5,6 +5,7 @@ import 'react-infinite-calendar/styles.css';
 import Timekeeper from 'react-timekeeper';
 import './modal.css'
 import {setDateTime} from './Socket_Client'
+import React from 'react'
 
 class DateTime extends React.Component {
   constructor(props) {

@@ -38,7 +38,7 @@ describe('Tests the code that captures packets and a full log for troubleshootin
                     .delay(50)
                     .then(
                         function () {
-                            bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
+                            bottle.container.temperature.getTemperature().temperature.airTemp.should.equal(62)
                             bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
                         })
 
@@ -55,7 +55,7 @@ describe('Tests the code that captures packets and a full log for troubleshootin
                     .delay(50)
                     .then(
                         function () {
-                            bottle.container.temperatures.getTemperatures().temperature.airTemp.should.equal(62)
+                            bottle.container.temperature.getTemperature().temperature.airTemp.should.equal(62)
                             bottle.container.time.getTime().time.controllerTime.should.equal('12:41 PM')
                             var text = 'not found'
                             // iterate through debug statements to see if we find 'duplicate broadcast

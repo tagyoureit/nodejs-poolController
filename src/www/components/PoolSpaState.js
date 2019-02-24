@@ -8,6 +8,7 @@ import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
 
 import { setHeatMode, setHeatSetPoint, toggleCircuit } from '../components/Socket_Client'
+import React from 'react'
 
 
 

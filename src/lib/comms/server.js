@@ -30,80 +30,90 @@ module.exports = function (container) {
     var emitter = new container.events.EventEmitter();
 
     var httpShutdown = require('http-shutdown')
-    const _next = require('next')
-    const dev = process.env.NODE_ENV !== 'production'
 
+    const dev = process.env.NODE_ENV !== 'production'
 
     function startServerAsync(type) {
         return new Promise(function (resolve, reject) {
 
             if (container.settings.get(type + 'Enabled')) {
-                servers[type].next = _next({ dev, dir: path.join(process.cwd(), 'src/www')})
-                servers[type].next.prepare()
-                    .then(() => {
-                        servers[type].app = express();
+                if (dev) {
+                    servers[type].parcel = {}
+                }
+                else {
+                        const Bundler = require('parcel-bundler')
+                    
+                    // Parcel: absolute path to entry point
+                    const file = path.join(process.cwd(), 'src/www/pages/index.html')
+                    // Parcel: set options
+                    const options = {};
+                    // Parcel: Initialize a new bundler
+                    servers[type].parcel = new Bundler(file, options)
+                }
 
-                        servers[type].port = container.settings.get(type + 'ExpressPort') || defaultPort[type];
-                        servers[type].server = undefined;
+                servers[type].app = express();
 
-                        container.logger.info('Starting up express server, ' + type + ' (port %d)', servers[type].port);
+                servers[type].port = container.settings.get(type + 'ExpressPort') || defaultPort[type];
+                servers[type].server = undefined;
 
-                        // And Enable Authentication (if configured)
-                        if (container.settings.get(type + 'ExpressAuth') === 1) {
-                            var auth = container.auth;
-                            var basic = auth.basic({
-                                file: path.join(process.cwd(), container.settings.get(type + 'ExpressAuthFile'))
-                            });
-                            servers[type].app.use(auth.connect(basic));
-                        }
+                container.logger.info('Starting up express server, ' + type + ' (port %d)', servers[type].port);
 
-                        // Create Server
-                        if (type === 'https') {
-                            var opt_https = {
-                                key: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressKeyFile'))),
-                                cert: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressCertFile'))),
-                                requestCert: false,
-                                rejectUnauthorized: false
-                            };
-                            servers[type].server = container.https.createServer(opt_https, servers[type].app);
-                        } else
-                            servers[type].server = container.http.createServer(servers[type].app);
+                // And Enable Authentication (if configured)
+                if (container.settings.get(type + 'ExpressAuth') === 1) {
+                    var auth = container.auth;
+                    var basic = auth.basic({
+                        file: path.join(process.cwd(), container.settings.get(type + 'ExpressAuthFile'))
+                    });
+                    servers[type].app.use(auth.connect(basic));
+                }
 
-                        // Configure Server
-                        if (type === 'http' && container.settings.get('httpRedirectToHttps')) {
+                // Create Server
+                if (type === 'https') {
+                    var opt_https = {
+                        key: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressKeyFile'))),
+                        cert: container.fs.readFileSync(path.join(process.cwd(), container.settings.get('httpsExpressCertFile'))),
+                        requestCert: false,
+                        rejectUnauthorized: false
+                    };
+                    servers[type].server = container.https.createServer(opt_https, servers[type].app);
+                } else
+                    servers[type].server = container.http.createServer(servers[type].app);
 
-                            servers[type].app.get('*', function (req, res) {
-                                var host = req.get('Host');
-                                // replace the port in the host
-                                host = host.replace(/:\d+$/, ":" + container.settings.get('httpsExpressPort'));
-                                // determine the redirect destination
-                                var destination = ['https://', host, req.url].join('');
-                                return res.redirect(destination);
-                            });
+                // Configure Server
+                if (type === 'http' && container.settings.get('httpRedirectToHttps')) {
 
-                        }
-                        else
-                            configExpressServer(servers[type].app, express, servers[type].next);
+                    servers[type].app.get('*', function (req, res) {
+                        var host = req.get('Host');
+                        // replace the port in the host
+                        host = host.replace(/:\d+$/, ":" + container.settings.get('httpsExpressPort'));
+                        // determine the redirect destination
+                        var destination = ['https://', host, req.url].join('');
+                        return res.redirect(destination);
+                    });
+
+                }
+                else
+                    configExpressServer(servers[type].app, express, servers[type].parcel);
 
 
-                        //And Start Listening
-             /*            servers[type].server = servers[type].server.listen(servers[type].port, function () {
-                            container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
-                            container.io.init(servers[type].server, type)
-                            resolve('Server ' + type + ' started.');
-                        }); */
-                        servers[type].server = httpShutdown(servers[type].server.listen(servers[type].port, function () {
-                                             container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
-                                             container.io.init(servers[type].server, type)
-                                             resolve('Server ' + type + ' started.');
-                                         }));
+                //And Start Listening
+                /*            servers[type].server = servers[type].server.listen(servers[type].port, function () {
+                               container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
+                               container.io.init(servers[type].server, type)
+                               resolve('Server ' + type + ' started.');
+                           }); */
+                servers[type].server = httpShutdown(servers[type].server.listen(servers[type].port, function () {
+                    container.logger.verbose('Express Server ' + type + ' listening at port %d', servers[type].port);
+                    container.io.init(servers[type].server, type)
+                    resolve('Server ' + type + ' started.');
+                }));
 
-                        servers[type].server.on('error', function (e) {
-                            container.logger.error('error from ' + type + ':', e)
-                            console.error(e)
-                            reject(e)
-                        });
-                    })
+                servers[type].server.on('error', function (e) {
+                    container.logger.error('error from ' + type + ':', e)
+                    console.error(e)
+                    reject(e)
+                });
+
 
             }
             else {
@@ -113,9 +123,7 @@ module.exports = function (container) {
             }
         });
     }
-    function configExpressServer(app, express, _next) {
-        // use next as router
-        const handle = _next.getRequestHandler()
+    function configExpressServer(app, express, bundlerParcel) {
 
         // Hook to use custom routes
         var customRoutes = require(path.join(process.cwd(), 'src/integrations/customExpressRoutes'));
@@ -173,6 +181,9 @@ module.exports = function (container) {
         app.use('/jquery-clockpicker', express.static(path.join(process.cwd(), '/node_modules/jquery-clockpicker/dist/'), max_age));
         app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), max_age));
 
+        if (!dev){
+            app.use('/', express.static(path.join(process.cwd(), '/src/www/dist/'), max_age))
+        }
 
         // disable for security
         app.disable('x-powered-by')
@@ -217,18 +228,20 @@ module.exports = function (container) {
         });
 
         app.get('/heat', function (req, res) {
-            res.send(container.temperatures.getTemperatures());
+            res.send(container.temperature.getTemperature());
         });
-        app.get('/temperatures', function (req, res) {
-            res.send(container.temperatures.getTemperatures());
-        });
+        // removed in 6.0
+/*         app.get('/temperatures', function (req, res) {
+            res.send(container.temperature.getTemperature());
+        }); */
         app.get('/temperature', function (req, res) {
-            res.send(container.temperatures.getTemperatures());
+            res.send(container.temperature.getTemperature());
         });
-        app.get('/temp', function (req, res) {
-            res.send(container.temperatures.getTemperatures());
+        // removed in 6.0
+/*         app.get('/temp', function (req, res) {
+            res.send(container.temperature.getTemperature());
         });
-
+ */
         app.get('/circuit', function (req, res) {
             res.send(container.circuit.getCurrentCircuits());
         });
@@ -879,13 +892,10 @@ module.exports = function (container) {
 
         /* END Invalid pump commands -- sends response */
 
-        // catch all to route through next
-        app.get('*', (req, res) => {
-            const { parse } = require('url')
-            const parsedUrl = parse(req.url, true)
-            const { pathname, query } = parsedUrl
-            handle(req, res, parsedUrl)
-        })
+        if (dev) {
+            // Parcel: middleware
+            app.use(bundlerParcel.middleware())
+        }
     }
 
     function startSSDPServer(type) {

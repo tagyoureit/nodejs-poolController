@@ -40,7 +40,7 @@ module.exports = function(container) {
                   container.time.setControllerTime(data[c.controllerStatusPacketFields.HOUR], data[c.controllerStatusPacketFields.MIN])
                   container.time.setAutomaticallyAdjustDST(data[c.controllerStatusPacketFields.MISC2] & 1)
                   
-                  container.temperatures.setTempFromController(data[c.controllerStatusPacketFields.POOL_TEMP],data[c.controllerStatusPacketFields.SPA_TEMP],data[c.controllerStatusPacketFields.AIR_TEMP],data[c.controllerStatusPacketFields.SOLAR_TEMP], (data[c.controllerStatusPacketFields.UOM] & 8) >> 3)
+                  container.temperature.setTempFromController(data[c.controllerStatusPacketFields.POOL_TEMP],data[c.controllerStatusPacketFields.SPA_TEMP],data[c.controllerStatusPacketFields.AIR_TEMP],data[c.controllerStatusPacketFields.SOLAR_TEMP], (data[c.controllerStatusPacketFields.UOM] & 8) >> 3)
 
                   //TODO: Figure out what this heat mode string does...
                   var status = {}

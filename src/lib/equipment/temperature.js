@@ -15,52 +15,64 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- var temperatures
+ var temperature
 
 module.exports = function(container) {
 
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loading: temperatures.js')
+        container.logger.info('Loading: temperature.js')
 
         var _ = require('underscore')
 
     var init = function(){
-      temperatures = {
+      temperature = {
           "poolTemp": 0,
           "spaTemp": 0,
           "airTemp": 0,
           "solarTemp": 0,
-          "freeze": 0
+          "freeze": 0,
+          "poolLastKnownTemp": 0,
+          "spaLastKnownTemp": 0
       }
     }
 
     function setTempFromController(poolTemp, spaTemp, airTemp, solarTemp, freeze) {
-        temperatures.poolTemp = poolTemp
-        temperatures.spaTemp = spaTemp
-        temperatures.airTemp = airTemp
-        temperatures.solarTemp = solarTemp
-        temperatures.freeze = freeze
-        container.io.emitToClients('temp')
-                container.influx.writeTemperatureData(temperatures)
-        return temperatures
+        temperature.poolTemp = poolTemp
+        temperature.spaTemp = spaTemp
+        temperature.airTemp = airTemp
+        temperature.solarTemp = solarTemp
+        temperature.freeze = freeze
+        container.io.emitToClients('temperature')
+                container.influx.writeTemperatureData(temperature)
+        return temperature
     }
 
-    function getTemperatures(){
+    function getTemperature(){
         var heat = container.heat.getCurrentHeat()
-        var combine = _.extend(temperatures, heat)
+        var combine = _.extend(temperature, heat)
             return {'temperature': combine}
+    }
+
+    const saveLastKnownTemp = (which) =>{
+        if (which.toUpperCase() === 'POOL'){
+            temperature.poolLastKnownTempPool = temperature.poolTemp
+        }
+        else if (which.toUpperCase()==='SPA'){
+            temperature.spaLastKnownTempPool = temperature.spaTemp
+        }
     }
 
     /*istanbul ignore next */
     if (container.logModuleLoading)
-        container.logger.info('Loaded: temperatures.js')
+        container.logger.info('Loaded: temperature.js')
 
 
     return {
         init: init,
         setTempFromController: setTempFromController,
-        getTemperatures : getTemperatures
+        getTemperature : getTemperature,
+        saveLastKnownTemp : saveLastKnownTemp
     }
 }

@@ -41,7 +41,7 @@ initAllAsync = function(opts = {}) {
             bottle.container.circuit.init() // synchronous
             bottle.container.customNames.init() // synchronous
             bottle.container.intellitouch.init() // synchronous
-            bottle.container.temperatures.init() // synchronous
+            bottle.container.temperature.init() // synchronous
             bottle.container.UOM.init() // synchronous
             bottle.container.valve.init() // synchronous
             bottle.container.queuePacket.init() // synchronous
@@ -252,6 +252,7 @@ waitForSocketResponseAsync = function(_which) {
         myReject(new Error('timeout in waitForSocketResponseAsync to ' + _which + ' call'))
     },1500)  //in case no response, reject the promise
     client = global.ioclient.connect(global.socketURL, global.socketOptions)
+    client.emit('test', _which)
     client.on(_which, function (data) {
         client.disconnect()
         myResolve(data)
