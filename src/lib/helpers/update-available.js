@@ -183,17 +183,21 @@ module.exports = function(container) {
 
 
     var emitResults = function(jsons) {
-        if (jsons.result === 'older') {
-            jsons.resultStr = 'Update available!  Version ' + jsons.remote.version + ' can be installed.  You have ' + jsons.local.version
-            container.logger.warn(jsons.resultStr)
-        } else if (jsons.result === 'newer') {
-            jsons.resultStr = 'You are running a newer release (' + jsons.local.version + ') than the published release (' + jsons.remote.version + ')'
-            container.logger.info(jsons.resultStr)
-        } else if (jsons.result === 'equal') {
-            jsons.resultStr = 'Your version (' + jsons.local.version + ') is the same as the latest published release.'
-            container.logger.info(jsons.resultStr)
-        }
-        container.io.emitToClients('updateAvailable')
+        return Promise.resolve()
+         .then(function() {
+            if (jsons.result === 'older') {
+                jsons.resultStr = 'Update available!  Version ' + jsons.remote.version + ' can be installed.  You have ' + jsons.local.version
+                container.logger.warn(jsons.resultStr)
+            } else if (jsons.result === 'newer') {
+                jsons.resultStr = 'You are running a newer release (' + jsons.local.version + ') than the published release (' + jsons.remote.version + ')'
+                container.logger.info(jsons.resultStr)
+            } else if (jsons.result === 'equal') {
+                jsons.resultStr = 'Your version (' + jsons.local.version + ') is the same as the latest published release.'
+                container.logger.info(jsons.resultStr)
+            }
+            container.io.emitToClients('updateAvailable')
+        })
+
     }
 
     var checkAsync = function() {
@@ -201,7 +205,7 @@ module.exports = function(container) {
         return getLatestReleaseJsonAsync()
             .then(compareLocalToSavedLocalVersionAsync)
             .then(compareLocalToRemoteVersionAsync)
-            .then(() => (emitResults))
+            .then(emitResults)
             .then(function() {
                 container.logger.silly('updateAvail: finished successfully')
                 return jsons

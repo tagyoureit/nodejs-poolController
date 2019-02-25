@@ -120,27 +120,25 @@ describe('socket.io basic tests', function () {
         client.on('connect', function () {
             client.emit('sendPacket', JSON.parse('{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}'))
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
-            client.disconnect()
+               
+            
         })
-        //setTimeout(reject(new Error('send packet with correct preamble timeout')),1500)
-        global.waitForSocketResponseAsync('sendPacketResults')
-            .then(function (res) {
-                res.should.contain('165,0,96,16,6,1,10')
-                res.should.contain('16,2,80,20,0,118')
-                res.should.contain('16,34,134,2,9,0')
-                queuePacketStub.args[0][0].should.deep.eq([165, 0, 96, 16, 6, 1, 10])
-                queuePacketStub.args[1][0].should.deep.eq([16, 2, 80, 20, 0, 118])
-                queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
-                clearTimeout(a)
-                myResolve()
-            })
-            .catch(function (err) {
-                bottle.container.logger.error('Should not get here when checking preamble')
-                console.log(err)
-                myReject(err)
-            })
+
+        client.on('sendPacketResults', function(res){
+            res.should.contain('165,0,96,16,6,1,10')
+            res.should.contain('16,2,80,20,0,118')
+            res.should.contain('16,34,134,2,9,0')
+            queuePacketStub.args[0][0].should.deep.eq([165, 0, 96, 16, 6, 1, 10])
+            queuePacketStub.args[1][0].should.deep.eq([16, 2, 80, 20, 0, 118])
+            queuePacketStub.args[2][0].should.deep.eq([165, 99, 16, 34, 134, 2, 9, 0])
+            clearTimeout(a)
+            client.disconnect()
+            myResolve()
+        })
+            
         var myResolve, myReject
         var a = setTimeout(function () {
+            client.disconnect()
             myReject(new Error('Socket Timeout error'))
         }, 1500)
         return new Promise(function (resolve, reject) {
@@ -337,16 +335,6 @@ describe('socket.io basic tests', function () {
 
     })
 
-    it('#requests all config (one)', function () {
-        return global.waitForSocketResponseAsync('one')
-            .then(function (data) {
-                data.circuit.should.exist
-                data.pump.should.exist
-                data.schedule.should.exist
-            })
-
-
-    })
 
 // it('#stops the Socket auth', function(done) {
 //     var client = global.ioclient.connect(global.socketURL, global.socketOptions)

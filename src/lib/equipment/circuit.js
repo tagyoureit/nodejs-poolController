@@ -248,6 +248,7 @@ module.exports = function (container) {
     }
 
     var assignCircuitVars = function (circuit, circuitArrObj) {
+
         //we don't inculde status because it comes from a different packet
         currentCircuitArrObj[circuit].number = circuitArrObj.number
         currentCircuitArrObj[circuit].numberStr = circuitArrObj.numberStr
@@ -372,11 +373,9 @@ module.exports = function (container) {
     function poolOrSpaIsOn() {
         // return all non-light circuits
         const circuit = getAllNonLightCircuits()
-        //console.log("circuit: " + JSON.stringify(circuit))
 
         // loop through the circuits
         for (var circuitNum in circuit) {
-            //console.log(`${circuit[circuitNum].circuitName} is ${getCircuit(circuitNum).status}`)
             if (circuit[circuitNum].circuitName === "POOL" || circuit[circuitNum].circuitName === 'SPA') {
                 if (getCircuit(circuitNum).status) {
                     return true
@@ -530,9 +529,9 @@ module.exports = function (container) {
 
                         var results = "Status: " + statusToString(currentCircuitArrObj[i].status) + " --> " + statusToString(circuitArrObj[i].status)
                         if (sendInitialBroadcast.haveCircuitNames) {
-
-                            if (circuitArrObj[i].circuitFunction.toUpperCase() === "SPA" || circuitArrObj[i].circuitFunction.toUpperCase() === "POOL") {
-                                saveLastKnownTemp(circuitArrObj[i])
+                            // save last known temp
+                            if (currentCircuitArrObj[i].circuitFunction.toUpperCase() === "SPA" || currentCircuitArrObj[i].circuitFunction.toUpperCase() === "POOL") {
+                                saveLastKnownTemp(currentCircuitArrObj[i])
                             }
                            
 
@@ -552,11 +551,11 @@ module.exports = function (container) {
     }
 
 
-    const saveLastKnownTemp = (circuitArrObj) => {
+    const saveLastKnownTemp = (currentCircuitArrObj) => {
         // if status is now off (aka it was previously on)
         // then save the last known temp
-        if (circuitArrObj.status===0){
-            container.temperature.saveLastKnownTemp(circuitArrObj.circuitFunction)
+        if (currentCircuitArrObj.status===0){
+            container.temperature.saveLastKnownTemp(currentCircuitArrObj.circuitFunction)
         }
     }
 

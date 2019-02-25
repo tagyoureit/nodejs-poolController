@@ -88,6 +88,7 @@ module.exports = function(container) {
         }
     }
 
+    // This logic isn't correct... need to investigate further.
     function setHeatActiveFromController(data) {
         if (data === 0) {
             currentHeat.heaterActive = 0

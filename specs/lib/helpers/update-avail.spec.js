@@ -10,13 +10,15 @@ describe('checks if there is a newer version available', function () {
         context('1.', function () {
 
             before(function () {
-                return global.initAllAsync()
+                return global.initAllAsync({'configLocation': '/specs/assets/config/templates/config_updateavail_410_dismissfalse.json'})
 
                     .then(function () {
 
 
                         loggers = setupLoggerStubOrSpy('stub', 'spy')
+
                     })
+
 
             })
 
@@ -44,6 +46,7 @@ describe('checks if there is a newer version available', function () {
                 var scope = nock('https://api.github.com')
                     .get('/repos/tagyoureit/nodejs-poolController/releases/latest')
                     .replyWithFile(200, path.join(process.cwd(), '/specs/assets/webJsonReturns/gitLatestRelease4.1.200.json'))
+                    .log(console.log)
                     .persist()
 
                 Promise.resolve()
@@ -86,7 +89,7 @@ describe('checks if there is a newer version available', function () {
             })
         })
 
-        context('2.', function () {
+         context('2.', function () {
 
             before(function () {
 
@@ -461,7 +464,7 @@ describe('checks if there is a newer version available', function () {
                 })
 
             })
-        })
+        }) 
 
     })
 })

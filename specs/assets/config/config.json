@@ -1,4 +1,15 @@
 {
+    "meta": {
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "4.1.200",
+                    "tag_name": "v4.1.200",
+                    "dismissUntilNextRemoteVersionBump": false
+                }
+            }
+        }
+    },
     "version": "6.0.0",
     "equipment": {
         "controller": {
@@ -9,10 +20,10 @@
             "intellitouch": {
                 "installed": 1,
                 "friendlyName": "",
-                "numberOfCircuits": 50,
-                "numberOfPumps": 8,
-                "numberOfCustomNames": 20,
-                "numberOfSchedules": 100
+                "numberOfCircuits": 20,
+                "numberOfPumps": 2,
+                "numberOfCustomNames": 10,
+                "numberOfSchedules": 12
             },
             "virtual": {
                 "pumpController": "default",
@@ -41,48 +52,18 @@
                 "17": "",
                 "18": "",
                 "19": "",
-                "20": "",
-                "21": "",
-                "22": "",
-                "23": "",
-                "24": "",
-                "25": "",
-                "26": "",
-                "27": "",
-                "28": "",
-                "29": "",
-                "30": "",
-                "31": "",
-                "32": "",
-                "33": "",
-                "34": "",
-                "35": "",
-                "36": "",
-                "37": "",
-                "38": "",
-                "39": "",
-                "40": "",
-                "41": "",
-                "42": "",
-                "43": "",
-                "44": "",
-                "45": "",
-                "46": "",
-                "47": "",
-                "48": "",
-                "49": "",
-                "50": ""
+                "20": ""
             }
         },
         "chlorinator": {
             "installed": 0,
             "desiredOutput": {
-                "pool": 0,
-                "spa": 0
+                "pool": -1,
+                "spa": -1
             },
             "friendlyName": "",
             "id": {
-                "productName": "                "
+                "productName": ""
             }
         },
         "pump": {
@@ -105,60 +86,6 @@
                     "4": -1
                 },
                 "friendlyName": ""
-            },
-            "3": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
-            },
-            "4": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
-            },
-            "5": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
-            },
-            "6": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
-            },
-            "7": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
-            },
-            "8": {
-                "type": "none",
-                "externalProgram": {
-                    "1": -1,
-                    "2": -1,
-                    "3": -1,
-                    "4": -1
-                }
             }
         },
         "intellichem": {
@@ -182,36 +109,36 @@
         },
         "https": {
             "enabled": 0,
-            "expressPort": 33001,
+            "expressPort": 3001,
             "expressAuth": 0,
             "expressAuthFile": "/users.htpasswd",
-            "expressKeyFile": "certs/privkey.pem",
-            "expressCertFile": "certs/fullchain.pem"
+            "expressKeyFile": "/data/server.key",
+            "expressCertFile": "/data/server.crt"
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
             "netConnect": 0,
             "netHost": "raspberrypi",
             "netPort": 9801,
-            "inactivityRetry": 10
+            "inactivityRetry": 60
         },
         "log": {
-            "logLevel": "debug",
-            "socketLogLevel": "debug",
+            "logLevel": "info",
+            "socketLogLevel": "info",
             "logPumpMessages": 0,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,
-            "logConfigMessages": 1,
-            "logMessageDecoding": 1,
+            "logConfigMessages": 0,
+            "logMessageDecoding": 0,
             "logChlorinator": 0,
             "logIntellichem": 0,
-            "logPacketWrites": 1,
+            "logPacketWrites": 0,
             "logPumpTimers": 0,
-            "logReload": 1,
-            "logApi": 1,
-            "logIntellibrite": 1,
+            "logReload": 0,
+            "logApi": 0,
+            "logIntellibrite": 0,
             "fileLog": {
-                "enable": 1,
+                "enable": 0,
                 "fileLogLevel": "silly",
                 "fileName": "output.log"
             }
@@ -265,71 +192,5 @@
             }
         }
     },
-    "meta": {
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "5.1.1",
-                    "tag_name": "v5.1.1",
-                    "dismissUntilNextRemoteVersionBump": false
-                }
-            }
-        }
-    },
-    "outputToNodeRED": {
-        "username": "blank",
-        "password": "blank",
-        "address": "rp.reade.tribeca.com",
-        "port": 1880,
-        "Variables": {
-            "temperatures": {
-                "airTemp": 90,
-                "poolTemp": 91,
-                "poolSetPoint": 92,
-                "poolHeatMode": 93,
-                "heaterActive": 94
-            },
-            "circuit": {
-                "2": {
-                    "status": 2
-                },
-                "3": {
-                    "status": 3
-                },
-                "4": {
-                    "status": 4
-                },
-                "5": {
-                    "status": 5
-                },
-                "6": {
-                    "status": 6
-                },
-                "41": {
-                    "status": 41
-                },
-                "42": {
-                    "status": 42
-                },
-                "43": {
-                    "status": 43
-                },
-                "44": {
-                    "status": 44
-                },
-                "45": {
-                    "status": 45
-                }
-            },
-            "pump": {
-                "1": {
-                    "watts": 25,
-                    "rpm": 24
-                }
-            }
-        }
-    },
-    "integrations": {
-        "outputToNodeRED": 1
-    }
+    "integrations": {}
 }

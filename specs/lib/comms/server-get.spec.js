@@ -85,7 +85,7 @@ describe('server', function() {
                 var heatStub = sinon.stub(bottle.container.heat, 'getCurrentHeat').callsFake(function() {
                     return JSON.parse(fs.readFileSync(path.join(process.cwd(), 'specs/assets/webJsonReturns', 'heat.json')))
                 })
-                global.requestPoolDataWithURLAsync('heat').then(function(obj) {
+                global.requestPoolDataWithURLAsync('temperature').then(function(obj) {
                     heatStub.callCount.should.eq(1)
                     obj.temperature.should.have.property('poolHeatMode');;
                 }).then(done,done);

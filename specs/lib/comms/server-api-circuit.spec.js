@@ -15,7 +15,7 @@ describe('server', function() {
             })
 
             beforeEach(function() {
-                loggers = setupLoggerStubOrSpy('spy','stub')
+                loggers = setupLoggerStubOrSpy('stub','stub')
                 writeSPPacketStub = sinon.stub(bottle.container.sp, 'writeSP')//.callsFake(function(){bottle.container.writePacket.postWritePacketHelper()})
                 preambleStub = sinon.stub(bottle.container.intellitouch, 'getPreambleByte').returns(33)
 

@@ -226,10 +226,10 @@ module.exports = function (container) {
         app.get('/cancelDelay', function (req, res) {
             res.send(container.circuit.setDelayCancel());
         });
-
-        app.get('/heat', function (req, res) {
+        // removed in 6.0
+/*         app.get('/heat', function (req, res) {
             res.send(container.temperature.getTemperature());
-        });
+        }); */
         // removed in 6.0
 /*         app.get('/temperatures', function (req, res) {
             res.send(container.temperature.getTemperature());

@@ -1551,17 +1551,6 @@ function startSocketRx() {
         $('#spaHeatModeStr').html(data.spaHeatModeStr);
         lastUpdate(true);
     });
-// socket.on('heat', function(data) {
-//     if (data !== null) {
-//         $('#poolHeatSetPoint').html(data.poolSetPoint);
-//         $('#poolHeatMode').data('poolHeatMode', data.poolHeatMode);
-//         $('#poolHeatModeStr').html(data.poolHeatModeStr);
-//         $('#spaHeatSetPoint').html(data.spaSetPoint);
-//         $('#spaHeatMode').data('spaHeatMode', data.spaHeatMode);
-//         $('#spaHeatModeStr').html(data.spaHeatModeStr);
-//     }
-//     lastUpdate(true);
-// });
 
     socket.on('chlorinator', function (data) {
         if (data.hasOwnProperty('chlorinator')) {

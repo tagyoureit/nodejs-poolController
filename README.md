@@ -15,7 +15,7 @@
 
 * Removed "one".  Use "all" instead.
 * Each client would be emitted with it's own name OR all.  Now it is only on it's own name.
-Temperature => no more temp/temperatures.  Only temperature.
+Temperature => no more heat/temp/temperatures.  Only temperature.
 * Use socket `all` and get version to add version compatibility to remote apps.
 * `configClient` moved from web page configuration file to socket.  Now is included with `all` socket.
 

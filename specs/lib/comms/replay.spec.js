@@ -75,7 +75,7 @@ describe('Tests the code that captures packets and a full log for troubleshootin
                     'suppressWrite': true
                 })
                     .then(function(){
-                        loggers = setupLoggerStubOrSpy('spy', 'spy')
+                        loggers = setupLoggerStubOrSpy('stub', 'spy')
                     })
                     .then(function () {
                         return loadFile('./specs/assets/replays/1/packetCapture.json')
