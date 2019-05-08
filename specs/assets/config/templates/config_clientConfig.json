@@ -1,0 +1,41 @@
+{
+    "poolController": {
+        "client": {
+            "panelState": {
+                "system": {
+                    "state": "visible"
+                },
+                "pool": {
+                    "state": "collapsed"
+                },
+                "spa": {
+                    "state": "hidden"
+                },
+                "chlorinator": {
+                    "state": "broken"
+                },
+                "feature": {
+                    "state": "visible"
+                },
+                "pump": {
+                    "state": "visible"
+                },
+                "schedule": {
+                    "state": "visible"
+                },
+                "eggtimer": {
+                    "state": "visible"
+                },
+                "debug": {
+                    "state": "visible"
+                },
+                "intellichem": {
+                    "state": "visible"
+                },
+                "release": {
+                    "state": "visible"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+       // "paths": { "*": [ "@types/*" ] },
+        "target":"es6",
+        "module":"commonjs",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "outDir": "dist",
+        "sourceMap": true,
+        "moduleResolution": "node",
+        "allowJs": true,
+        "allowSyntheticDefaultImports": false,
+        "esModuleInterop": true,
+        "jsx": "react"
+    },
+    "include": [
+        "src/**/*", 
+         "@types" 
+    ],
+    "exclude": [
+        "dist/**/*"
+    ]
+}

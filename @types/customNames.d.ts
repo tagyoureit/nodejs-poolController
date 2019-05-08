@@ -1,0 +1,7 @@
+
+
+export type CustomNames = string[];
+
+   
+
+    

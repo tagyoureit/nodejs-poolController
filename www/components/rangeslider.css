@@ -1,0 +1,20 @@
+/**
+  *  Rangeslider - Custom Labels
+  */
+
+.custom-labels .rangeslider__labels .rangeslider__label-item {
+    white-space: nowrap;
+    transform: translate3d(-70%, 0, 0);
+}
+
+
+/**
+ * TextArea Css
+*/
+
+.boxsizingBorder {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    font-size: 10px;
+}

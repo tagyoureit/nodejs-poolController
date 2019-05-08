@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.12.0
+version: v1.13.5
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
   'npm:brace-expansion:20170302':
@@ -225,6 +225,36 @@ ignore:
     - bootstrap:
         reason: None given
         expires: '2019-03-23T21:12:34.684Z'
+  SNYK-JS-JSYAML-173999:
+    - parcel-bundler > js-yaml:
+        reason: None given
+        expires: '2019-06-07T03:59:16.496Z'
+    - parcel-bundler > cssnano > cosmiconfig > js-yaml:
+        reason: None given
+        expires: '2019-05-07T05:04:15.958Z'
+    - parcel-bundler > htmlnano > svgo > js-yaml:
+        reason: None given
+        expires: '2019-05-07T05:04:15.958Z'
+    - parcel-bundler > cssnano > cssnano-preset-default > postcss-svgo > svgo > js-yaml:
+        reason: None given
+        expires: '2019-05-07T05:04:15.958Z'
+    - parcel-bundler > htmlnano > cssnano > postcss-svgo > svgo > js-yaml:
+        reason: None given
+        expires: '2019-05-07T05:04:15.958Z'
+  SNYK-JS-JQUERY-174006:
+    - jquery:
+        reason: None given
+        expires: '2019-05-07T05:04:15.958Z'
+  SNYK-JS-JSYAML-174129:
+    - parcel-bundler > htmlnano > cssnano > postcss-svgo > svgo > js-yaml:
+        reason: None given
+        expires: '2019-05-08T02:43:42.293Z'
+      parcel-bundler > js-yaml:
+        reason: None given
+        expires: '2019-06-07T03:59:16.496Z'
+    - parcel-bundler > js-yaml:
+        reason: None given
+        expires: '2019-05-08T02:48:51.317Z'
 # patches apply the minimum changes required to fix a vulnerability
 patch:
   'npm:ms:20170412':

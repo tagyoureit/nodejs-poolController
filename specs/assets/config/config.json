@@ -1,15 +1,4 @@
 {
-    "meta": {
-        "notifications": {
-            "version": {
-                "remote": {
-                    "version": "4.1.200",
-                    "tag_name": "v4.1.200",
-                    "dismissUntilNextRemoteVersionBump": false
-                }
-            }
-        }
-    },
     "version": "6.0.0",
     "equipment": {
         "controller": {
@@ -24,6 +13,10 @@
                 "numberOfPumps": 2,
                 "numberOfCustomNames": 10,
                 "numberOfSchedules": 12
+            },
+            "intellicenter": {
+                "installed": 0,
+                "friendlyName": ""
             },
             "virtual": {
                 "pumpController": "default",
@@ -152,6 +145,7 @@
             }
         },
         "client": {
+            "hideAux": true,
             "panelState": {
                 "system": {
                     "state": "visible"
@@ -165,7 +159,7 @@
                 "chlorinator": {
                     "state": "visible"
                 },
-                "features": {
+                "feature": {
                     "state": "visible"
                 },
                 "pump": {
@@ -188,6 +182,20 @@
                 },
                 "light": {
                     "state": "visible"
+                },
+                "updateStatus": {
+                    "state": "visible"
+                }
+            }
+        }
+    },
+    "meta": {
+        "notifications": {
+            "version": {
+                "remote": {
+                    "version": "6.0.0",
+                    "tag_name": "v6.0.0",
+                    "dismissUntilNextRemoteVersionBump": false
                 }
             }
         }
