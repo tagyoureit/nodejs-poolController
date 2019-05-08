@@ -59,7 +59,7 @@ export namespace logger
         log ( info: any, callback?: winston.LogCallback )
         {
 
-            console.log( `should be emitting to outputLog NOW: ${ info[MESSAGE]}` )
+            // console.log( `should be emitting to outputLog NOW: ${ info[MESSAGE]}` )
 
             io.emitToClients( 'outputLog', info[MESSAGE] )
 
