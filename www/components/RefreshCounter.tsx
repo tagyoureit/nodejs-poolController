@@ -96,16 +96,17 @@ class RefreshCounter extends React.Component<Props, State> {
     let _str = `Last update: ${this.state.seconds}s`;
 
     return (
-        <div style={{
+        <span className='ml-3' style={{
           borderRadius: '50%',
           width: '10px',
           height: '10px',
-          background: _color
+        background: _color,
+        display:'inline-block'
         }} id='stateToolTip'>
           <Tooltip placement="top" isOpen={this.state.tooltipOpen} target="stateToolTip" toggle={this.toggle}>
             {_str}
         </Tooltip>
-        </div>
+        </span>
     )
   }
 }

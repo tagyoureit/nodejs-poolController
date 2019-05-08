@@ -39,10 +39,14 @@ class PoolNav extends React.Component<Props, any> {
     render ()
     {
         return (
-            <Navbar color="light" light sticky="top">
-                <NavbarBrand href="/">nodejs-PoolController</NavbarBrand>
-                <RefreshCounter counter={this.props.counter}></RefreshCounter>
-                <Nav className="ml-auto" navbar>
+            <Navbar color="light" light sticky="top" >
+                <NavbarBrand href="/" >nodejs-PoolController
+                    <RefreshCounter counter={this.props.counter}></RefreshCounter>
+                 
+                </NavbarBrand>
+       
+                
+               
                     <NavbarToggler onClick={this.toggle} />
                     <Collapse isOpen={this.state.isOpen} navbar>
                         <Nav className="ml-auto" >
@@ -90,7 +94,7 @@ class PoolNav extends React.Component<Props, any> {
                             </NavItem>
                         </Nav>
                     </Collapse>
-                </Nav>
+        
             </Navbar>
         )
     }

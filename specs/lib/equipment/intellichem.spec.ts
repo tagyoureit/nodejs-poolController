@@ -21,7 +21,7 @@ describe( 'processes Intellichem packets', function ()
             before( async function ()
             {
                 await globalAny.initAllAsync( { 'configLocation': './specs/assets/config/templates/config_intellichem.json' } )
-                loggers = globalAny.setupLoggerStubOrSpy( 'stub', 'spy' )
+                loggers = globalAny.setupLoggerStubOrSpy( 'stubgit ', 'spy' )
                 checkIfNeedControllerConfigurationStub = sinon.stub( intellitouch, 'checkIfNeedControllerConfiguration' ).returns( 0 )
                 queuePacketStub = sinon.stub( queuePacket, 'queuePacket' ).callsFake( () => { console.log( 'faked...' ) } )
             } );

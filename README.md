@@ -21,6 +21,12 @@ Temperature => no more heat/temp/temperatures.  Only temperature.
 
 * last known temp added for pool/spa (#xyz).  When the pool/spa is on, use poolTemp/spaTemp.  When the circuit is off, you can use temperature.{pool/spa}LastKnownTemp
 
+* Default values for objects: Values that are ultimately strings (like chlorinator name) but were initially set as -1 will now contain "notset";  Conversely, values that should ultimately end up numbers but had "notset" as starting values are all now -1 (like pump rpm);
+
+* Updated mocha/nyc test runner.  Uses ts-node to transpile in place
+
+* Schedule time output now includes startTime/endTime... upgrade to new camelCase for consistency with other modules.
+
 # License
 
 nodejs-poolController.  An application to control pool equipment.
