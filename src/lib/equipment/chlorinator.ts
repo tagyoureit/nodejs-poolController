@@ -261,10 +261,10 @@ export namespace chlorinator
 
 
             influx.writeChlorinator( currentChlorinatorStatus )
-            emit();
             return currentChlorinatorStatus
         }
-
+        
+        emit();
 
     }
 

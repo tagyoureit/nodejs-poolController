@@ -174,8 +174,8 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                 },
                 temperature: { airTemp: 0, poolTemp: 0, spaTemp: 0, solarTemp: 0, freeze: 0 },
                 sysInfo: { airTemp: 0, solarTemp: 0, freezeProt: 0, time: '', date: '', locale: '', controllerDateStr: '', controllerTime: '' },
-                poolInfo: { name: 'Pool', state: 'Off', number: 0, temp: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0 },
-                spaInfo: { name: 'Spa', state: 'Off', number: 0, temp: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0 },
+                poolInfo: { name: 'Pool', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0 },
+                spaInfo: { name: 'Spa', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0},
                 pump: {
                     1: {
                         pump: 1,
@@ -344,28 +344,31 @@ class Utilities extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'temperature' || which === 'all' )
             {
+                
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     poolInfo: {
                         ...this.state.poolInfo,  // if we don't deep copy, it will lose previous attributes
                         ...pendingChanges.poolInfo,  // if we don't deep copy this, it will lose previous pending changes
                         name: "Pool",
                         state: this.circuitOn( "Pool", d.circuit ) ? "On" : "Off",
-                        temp: d.temperature.poolTemp,
+                        temperature: d.temperature.poolTemp,
                         setPoint: d.temperature.poolSetPoint,
                         heatMode: d.temperature.poolHeatMode,
                         heatModeStr: d.temperature.poolHeatModeStr,
-                        heatOn: d.temperature.heaterActive
+                        heatOn: d.temperature.heaterActive,
+                        lastKnownTemperature: d.temperature.poolLastKnownTemperature
                     },
                     spaInfo: {
                         ...this.state.spaInfo,
                         ...pendingChanges.spaInfo,
                         name: "Spa",
                         state: this.circuitOn( "Spa", d.circuit ) ? "On" : "Off",
-                        temp: d.temperature.spaTemp,
+                        temperature: d.temperature.spaTemp,
                         setPoint: d.temperature.spaSetPoint,
                         heatMode: d.temperature.spaHeatMode,
                         heatModeStr: d.temperature.spaHeatModeStr,
-                        heatOn: d.temperature.heaterActive
+                        heatOn: d.temperature.heaterActive,
+                        lastKnownTemperature: d.temperature.spaLastKnownTemperature
                     },
                     sysInfo: {
                         ...this.state.sysInfo,

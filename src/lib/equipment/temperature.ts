@@ -28,11 +28,13 @@ export namespace temperature
     export function init ()
     {
         _temperature = {
-            "poolTemp": 0,
-            "spaTemp": 0,
-            "airTemp": 0,
-            "solarTemp": 0,
-            "freeze": 0
+            poolTemp: 0,
+            spaTemp: 0,
+            airTemp: 0,
+            solarTemp: 0,
+            freeze: 0,
+            poolLastKnownTemperature: 0,
+            spaLastKnownTemperature: 0
         }
     }
 

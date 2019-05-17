@@ -101,7 +101,7 @@ class PoolSpaState extends React.Component<Props, any>
                     <Row>
                         <Col>Temp</Col>
                         <Col >
-                            {this.props.data.temp}
+                            {this.props.data.state==='On'?this.props.data.temperature:`${this.props.data.lastKnownTemperature} (Last)`}
                         </Col>
                     </Row>
                     <Row>

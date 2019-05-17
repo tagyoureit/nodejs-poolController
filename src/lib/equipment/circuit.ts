@@ -677,11 +677,6 @@ export namespace circuit
                         var results = "Status: " + statusToString( currentCircuitArrObj[ i ].status ) + " --> " + statusToString( circuitArrObj[ i ].status )
                         if ( sendInitialBroadcast.haveCircuitNames )
                         {
-                            // save last known temp
-                            if ( currentCircuitArrObj[ i ].circuitFunction.toUpperCase() === "SPA" || currentCircuitArrObj[ i ].circuitFunction.toUpperCase() === "POOL" )
-                            {
-                                saveLastKnownTemp( currentCircuitArrObj[ i ] )
-                            }
 
 
 
@@ -692,6 +687,15 @@ export namespace circuit
 
                         }
                     }
+                    // save last known temp if state changes to off
+                    if ( currentCircuitArrObj[ i ].circuitFunction.toUpperCase() === "SPA" || currentCircuitArrObj[ i ].circuitFunction.toUpperCase() === "POOL" )
+                    {
+                        if ( currentCircuitArrObj[ i ].status ) // prior status is on
+                        {
+                            //saveLastKnownTemp( currentCircuitArrObj[ i ] )
+                            temperature.saveLastKnownTemp( currentCircuitArrObj[i].circuitFunction )
+                        }
+                    }
                     currentCircuitArrObj[ i ].status = circuitArrObj[ i ].status
                     emit()
                 }
@@ -700,18 +704,9 @@ export namespace circuit
 
     }
 
-    function emit() {
-        io.emitToClients( 'circuit', { circuit: currentCircuitArrObj } )
-    }
-
-    const saveLastKnownTemp = ( circuit: Circuit.CircuitClass ): void =>
+    function emit ()
     {
-        // if status is now off (aka it was previously on)
-        // then save the last known temp
-        if ( circuit.status === 0 )
-        {
-            temperature.saveLastKnownTemp( circuit.circuitFunction )
-        }
+        io.emitToClients( 'circuit', { circuit: currentCircuitArrObj } )
     }
 
     export function requestUpdateCircuit ( source: number, dest: number, circuit: number, action: number, counter: number ): void
@@ -744,7 +739,7 @@ export namespace circuit
         response.text += statusToString( desiredStatus )
         response.status = desiredStatus === 1 ? 'on' : 'off';
         response.value = desiredStatus
-        logger.info( JSON.stringify(response,null,2) )
+        logger.info( JSON.stringify( response, null, 2 ) )
         //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
         if ( callback !== undefined )
         {

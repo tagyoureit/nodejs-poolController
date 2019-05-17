@@ -20,7 +20,8 @@ declare namespace WWW
         state: "On" | "Off";
         number: number;
         name: "Pool" | "Spa",
-        temp: number;
+        temperature: number;
+        lastKnownTemperature: number;
         setPoint: number;
         heatMode: number;
         heatModeStr: string;
