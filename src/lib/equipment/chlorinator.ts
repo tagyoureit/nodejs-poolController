@@ -16,9 +16,8 @@
  */
 
 
-import { settings, logger, chlorinatorController, queuePacket, intellitouch, io} from '../../etc/internal';
+import { settings, logger, chlorinatorController, queuePacket, intellitouch, io, influx} from '../../etc/internal';
 
-import * as influx from '../comms/influx-connector';
 import * as constants from '../../etc/constants'
 import * as _ from 'underscore';
 
@@ -26,10 +25,6 @@ export namespace chlorinator
 {
 
     let currentChlorinatorStatus: Chlorinator.IChlorinator;
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: chlorinator.js')
 
     class Chlorinator implements Chlorinator.IChlorinator
     {
@@ -513,7 +508,6 @@ export namespace chlorinator
 
     export function setChlorinatorStatusFromChlorinator ( data: number[], counter: number ): void
     {
-        //TODO: refactor to be a better promise/async return
         var destination, from, currentOutput;
         if ( data[ constants.chlorinatorPacketFields.DEST ] === 80 )
         {
@@ -660,9 +654,4 @@ export namespace chlorinator
             }
         }
     }
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: chlorinator.js')
 }

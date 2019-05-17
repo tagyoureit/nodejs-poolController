@@ -15,10 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-    /*istanbul ignore if */
-    // if (logModuleLoading)
-    //     ts.js')
-
     // this first four bytes of ANY packet are the same
     export let packetFields:Constants.StringLookup = {
         DEST: 2,

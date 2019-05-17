@@ -3,7 +3,7 @@ import { Row, Col, Button, Modal, ModalHeader, ModalBody, ModalFooter } from 're
 import InfiniteCalendar from 'react-infinite-calendar';
 import 'react-infinite-calendar/styles.css';
 import Timekeeper from 'react-timekeeper';
-import './modal.css'
+import '../css//modal.css'
 import {setDateTime} from './Socket_Client'
 import * as React from 'react';
 

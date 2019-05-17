@@ -110,11 +110,10 @@ describe( 'socket.io basic tests', function ()
 
     it( '#sends packets and checks the correct preamble is passed', ( done ) =>
     {
-
-        let client = ioclient.connect( globalAny.socketURL, globalAny.socketOptions )
+         let client = ioclient.connect( globalAny.socketURL, globalAny.socketOptions )
         client.on( 'connect', function ()
         {
-            client.emit( 'sendPacket', JSON.parse( '{"1":[96,16,6,1,10],"2":[16,2,80,20,0,118],"3":[16,34,134,2,9,0]}' ) )
+            client.emit( 'sendPacket', [[96,16,6,1,10],[16,2,80,20,0,118],[16,34,134,2,9,0]]  )
             //results should be Queued packet(s): [165,0,96,16,6,1,10] [16,2,80,20,0,118,236] [165,16,16,34,134,2,9,0]
         } )
 
@@ -128,7 +127,7 @@ describe( 'socket.io basic tests', function ()
             queuePacketStub.args[ 2 ][ 0 ].should.deep.eq( [ 165, 99, 16, 34, 134, 2, 9, 0 ] )
             client.disconnect()
             done()
-        } )
+        } ) 
     } )
 
 

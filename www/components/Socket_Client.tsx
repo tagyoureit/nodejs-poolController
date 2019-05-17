@@ -1,3 +1,4 @@
+import { string } from 'prop-types';
 
 
 let io = require( 'socket.io-client' )
@@ -105,6 +106,12 @@ function getAll ( cb:any )
                 cb( null, data, 'updateAvailable' )
         } )
 
+        socket.on( 'searchResults', function ( data: any )
+        {
+            cb(null, data, 'searchResults')
+        });
+
+
         subscribed = 1;
     }
     else
@@ -178,4 +185,36 @@ function updateVersionNotification (bool: boolean): void
     socket.emit('updateVersionNotificationSetting', bool)
 }
 
-export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode,  updateVersionNotification};
+function search ( src: number, dest: number, action: number )
+{
+    console.log(`Emitting search start: ${src} ${dest} ${action}`)
+    socket.emit('search','start',src,dest,action)
+}
+
+function searchStop ()
+{
+    socket.emit('search', 'stop')
+}
+
+function searchLoad ()
+{
+    socket.emit('search','load');
+}
+
+function sendPacket (arrToBeSent: number[][])
+{
+    socket.emit( 'sendPacket', arrToBeSent )
+}
+
+function receivePacket (arrToBeSent: number[][])
+{
+   
+    socket.emit('receivePacket', JSON.stringify(arrToBeSent))
+}
+
+function receivePacketRaw (packets:number[])
+{
+    socket.emit('receivePacketRaw', packets)
+}
+
+export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode,  updateVersionNotification, search, searchStop, searchLoad, sendPacket, receivePacket, receivePacketRaw};

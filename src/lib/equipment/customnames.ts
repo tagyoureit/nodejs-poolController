@@ -29,11 +29,6 @@ export namespace customNames
     var initialCustomNamesDiscovered = 0
     var numberOfCustomNames = 10;
 
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: circuit.js')
-
-
     export function getCustomName ( index: number ): string
     {
         return customNameArr[ index ]
@@ -91,13 +86,4 @@ export namespace customNames
     {
         return numberOfCustomNames
     }
-
-
-    //     return {
-    //         init: init,
-    //         getCustomName: getCustomName,
-    //         setCustomName: setCustomName,
-    //         getNumberOfCustomNames: getNumberOfCustomNames
-    //     }
-    // }
 }

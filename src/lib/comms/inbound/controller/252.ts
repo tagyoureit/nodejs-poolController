@@ -17,11 +17,6 @@
 
 //Get system settings
 import { settings, logger } from'../../../../etc/internal';
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 252.js')
-
 export function process ( data:number[], counter:number )
 {
     //Software/Bootloader Revision
@@ -32,8 +27,3 @@ export function process ( data:number[], counter:number )
     var decoded = true
     return decoded
 }
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 252.js')

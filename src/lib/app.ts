@@ -1,6 +1,6 @@
 
 import * as bluebird from 'bluebird';
-import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, integrations, clientConfig, io } from '../etc/internal';
+import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, integrations, clientConfig, io, influx } from '../etc/internal';
 import {getConfigOverview} from '../etc/getConfigOverview'
 //import * as intellicenter from './equipment/intellicenter';
 // import * as helpers from '../etc/helpers'
@@ -72,6 +72,7 @@ export async function initAsync ()
         UOM.init()
         valve.init()
         intellichem.init()
+        influx.init()
 
         // logger.info('Intro: ', settings.displayIntroMsg())
         // logger.info('Settings: ', settings.displaySettingsMsg())

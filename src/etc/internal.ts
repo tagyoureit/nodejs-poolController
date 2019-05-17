@@ -8,6 +8,7 @@ export * from '../etc/update-available'
 export * from '../etc/integrations'
 export * from '../etc/client-config-editor'
 export * from '../etc/getConfigOverview'
+export * from '../lib/comms/influx-connector';
 
 // controllers
 export * from '../lib/controllers/chlorinator-controller'

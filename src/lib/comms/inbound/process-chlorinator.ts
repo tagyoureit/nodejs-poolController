@@ -16,9 +16,6 @@
  */
 
 import { chlorinator } from '../../../etc/internal';
-/*istanbul ignore next */
-// if (logModuleLoading)
-//         logger.info('Loading: process-chlorinator.js')
 
 export namespace processChlorinator
 {
@@ -29,12 +26,4 @@ export namespace processChlorinator
         //End Chlorinator Decode
         return true
     }
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //         logger.info('Loaded: process-chlorinator.js')
-
-
-    //End Pump Decode
 }

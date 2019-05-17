@@ -17,11 +17,6 @@
 import { logger, pump } from '../../../../etc/internal';
 import * as constants from '../../../../etc/constants';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: (pump)5.js')
-
-
 export function process ( data: number[], counter: number )
 {
     var mode = data[ 7 ]
@@ -29,12 +24,3 @@ export function process ( data: number[], counter: number )
     pump.setRunMode( mode, data[ constants.packetFields.FROM ], data, counter )
 
 }
-
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: (pump)5.js')
-
-
-

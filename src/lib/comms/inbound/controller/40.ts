@@ -19,19 +19,9 @@
 import { settings, logger, heat } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 40.js')
-
 export function process ( data: number[], counter: number )
 {
   heat.setSpaManualHeatMode( data, counter )
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 40.js')

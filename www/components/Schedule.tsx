@@ -27,7 +27,7 @@ class Schedule extends React.Component<Props, any> {
 
         days.map( day =>
         {
-            res.push( <Button className="m-1" key={day + 'button'} color={schedule.DAYS.includes( day ) ? "success" : "secondary"} size="sm">{day.substring( 0, 3 )}</Button> )
+            res.push( <Button className="m-1" key={day + 'button'} color={schedule.days.includes( day ) ? "success" : "secondary"} size="sm">{day.substring( 0, 3 )}</Button> )
         } )
         return res;
     }
@@ -41,7 +41,7 @@ class Schedule extends React.Component<Props, any> {
         {
             // this had size='sm' but typescript doesn't like it... do we need to keep it small?
 
-            res.push( <span key={day + 'letter'} className={schedule.DAYS.includes( day ) ? "text-success" : "text-muted"} >{day.substring( 0, 1 )}</span> )
+            res.push( <span key={day + 'letter'} className={schedule.days.includes( day ) ? "text-success" : "text-muted"} >{day.substring( 0, 1 )}</span> )
         } )
         return res;
     }
@@ -102,15 +102,15 @@ class Schedule extends React.Component<Props, any> {
             {
                 // is the current schedule active?
                 let active = false
-                if ( this.compareTimeAgtB( now, k[ 1 ].START_TIME ) && this.compareTimeAgtB( k[ 1 ].END_TIME, now ) )
+                if ( this.compareTimeAgtB( now, k[ 1 ].startTime ) && this.compareTimeAgtB( k[ 1 ].endTime, now ) )
                 {
                     // current time is between schedule start and end time
                     active = true
                 }
                 return (
-                    <Row key={k[ 1 ].ID + 'row'}>
-                        <Col xs={3} lg={2} key={k[ 1 ].ID + 'col'} className={active ? 'text-primary font-weight-bold' : ''}>
-                            {k[ 1 ].friendlyName} ({k[ 1 ].ID})
+                    <Row key={k[ 1 ].id + 'row'}>
+                        <Col xs={3} lg={2} key={k[ 1 ].Iid + 'col'} className={active ? 'text-primary font-weight-bold' : ''}>
+                            {k[ 1 ].friendlyName} ({k[ 1 ].id})
 
                         </Col>
                         <Col xs={3} lg={2} className={active ? 'text-primary font-weight-bold' : ''}>

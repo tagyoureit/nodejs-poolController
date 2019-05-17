@@ -21,10 +21,6 @@ import * as constants from '../../../../etc/constants'
 import * as circuit from '../../../equipment/circuit';
 var _ = require( 'underscore' );
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 150.js')
-
 var packet: number[];
 var pumpNum: number, stepSize: number, pumpFriendlyName: string;
 
@@ -79,7 +75,3 @@ export function process ( data: number[], counter: number )
 
   return true
 }
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 150.js')

@@ -16,12 +16,6 @@
  */
 import { settings, logger, pump, pumpControllerMiddleware, io } from'../../etc/internal';
 
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: pump-controller-timers.js')
-
     var pump1Timer: NodeJS.Timeout
     var pump1TimerRunning = 0;
 
@@ -606,8 +600,4 @@ export namespace pumpControllerTimers
             logger.warn( 'Request to start pump power timer %s, but config.json numberOfPumps = %s', index, pump.numberOfPumps() )
         }
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: pump-controller-timers.js')
 }

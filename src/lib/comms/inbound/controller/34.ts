@@ -19,11 +19,6 @@
 import { logger } from '../../../../etc/internal';
 import * as constants from '../../../../etc/constants';
 import * as time from '../../../equipment/time';
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 34.js')
-
 export function process ( data: number[], counter: number )
 {
   // 17:50:49.257 VERBOSE Msg# 2216   Controller packet is a Get Solar/Heat Pump packet: 165,33,16,32,226,1,0,1,217
@@ -35,11 +30,3 @@ export function process ( data: number[], counter: number )
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 34.js')
-
-

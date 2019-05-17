@@ -17,11 +17,6 @@
 
 import { settings, logger, pump } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: (pump)1.js')
-
     export function process(data: number[], counter: number) {
         var pumpNum = data[constants.packetFields.FROM]
 
@@ -128,10 +123,3 @@ import * as constants from '../../../../etc/constants'
 
 
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: (pump)1.js')
-
-
-

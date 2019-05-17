@@ -18,11 +18,6 @@
 // Get Schedules
 import { settings, logger, intellichem } from'../../../../etc/internal';
 
-/*gnore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 18.js')
-
-
 export function process ( data: number[], counter: number )
 {
   //byte:      0  1  2  3  4 5 6 7 8  9 10 11  12 13 14
@@ -31,8 +26,3 @@ export function process ( data: number[], counter: number )
   intellichem.processIntellichemControllerPacket( data, counter );
   return true
 }
-
-/*gnore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 18.js')
-

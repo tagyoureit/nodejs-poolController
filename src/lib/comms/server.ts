@@ -32,13 +32,11 @@ let MDNS = require( 'multicast-dns' )()
 import * as ip from 'ip';
 import * as customRoutes from '../../integrations/customExpressRoutes';
 import auth = require( 'http-auth' )
-
+import helmet = require( 'helmet' );
+import * as validator from 'validator'
 
 // import * as Bundler from 'parcel-bundler';
-const Bundler = require( 'parcel-bundler' )
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: server.js');
+import Bundler = require( 'parcel-bundler' );
 
 interface IServersObj 
 {
@@ -107,7 +105,7 @@ export namespace server
             }
 
             servers[ type ].app = express();
-
+            servers [type].app.use(helmet())
             servers[ type ].port = settings.get( type + 'ExpressPort' ) || defaultPort[ type ];
             servers[ type ].server = undefined;
 
@@ -335,15 +333,17 @@ export namespace server
             res.send( valve.getValve() );
         } );
 
-        app.get( '/schedule/toggle/id/:id/day/:day', function ( req: { params: { id: string; day: any; }; }, res: { send: ( arg0: API.Response ) => void; } )
+        app.get( '/schedule/toggle/id/:id/day/:_day', function ( req: { params: { id: string; _day: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
         {
-            var id = parseInt( req.params.id );
-            var day = req.params.day;
-            var response: API.Response = {};
-            response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id;
-            logger.info( response );
-            schedule.toggleDay( id, day );
-            res.send( response );
+                var id = parseInt( req.params.id );
+                var day = parseInt(req.params._day);
+                var response: API.Response = {};
+               
+                    response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id;
+                    logger.info( response );
+                    schedule.toggleDay( id, day );
+                    res.send( response );
+
         } );
 
         app.get( '/schedule/delete/id/:id', function ( req: { params: { id: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
@@ -408,22 +408,22 @@ export namespace server
             res.send( response )
         } )
 
-        // TODO:  merge above and this code into single function
-        app.get( '/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function ( req: { params: { id: string; circuit: string; starthh: string; startmm: string; endhh: string; endmm: string; days: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
-        {
-            var id = parseInt( req.params.id )
-            var circuit = parseInt( req.params.circuit )
-            var starthh = parseInt( req.params.starthh )
-            var startmm = parseInt( req.params.startmm )
-            var endhh = parseInt( req.params.endhh )
-            var endmm = parseInt( req.params.endmm )
-            var days = parseInt( req.params.days )
-            var response: API.Response = {}
-            response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
-            logger.info( response )
-            schedule.setControllerSchedule( id, circuit, starthh, startmm, endhh, endmm, days )
-            res.send( response )
-        } )
+        // // TODO:  merge above and this code into single function
+        // app.get( '/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function ( req: { params: { id: string; circuit: string; starthh: string; startmm: string; endhh: string; endmm: string; days: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
+        // {
+        //     var id = parseInt( req.params.id )
+        //     var circuit = parseInt( req.params.circuit )
+        //     var starthh = parseInt( req.params.starthh )
+        //     var startmm = parseInt( req.params.startmm )
+        //     var endhh = parseInt( req.params.endhh )
+        //     var endmm = parseInt( req.params.endmm )
+        //     var days = parseInt( req.params.days )
+        //     var response: API.Response = {}
+        //     response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
+        //     logger.info( response )
+        //     schedule.setControllerSchedule( id, circuit, starthh, startmm, endhh, endmm, days )
+        //     res.send( response )
+        // } )
 
         app.get( '/time', function ( req: any, res: { send: ( arg0: { 'time': ITime.ETime; } ) => void; } )
         {
@@ -435,8 +435,6 @@ export namespace server
             res.send( time.getTime() )
         } )
 
-
-        //TODO: do we need DOW in these???
         app.get( '/datetime/set/time/:hh/:mm/date/:dow/:dd/:mon/:yy/:dst', function ( req: { params: { hh: string; mm: string; dd: string; mon: string; yy: string; dst: string; dow: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
         {
             var hour = parseInt( req.params.hh )
@@ -513,7 +511,7 @@ export namespace server
             res.send( intellichem.getCurrentIntellichem() )
         } )
 
-        // This should be deprecated
+        // TODO: This should be deprecated
         app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
         {
             let response = chlorinator.setChlorinatorLevel( parseInt( req.params.chlorinateLevel ) )
@@ -829,7 +827,6 @@ export namespace server
             let pump: Pump.PumpIndex = <Pump.PumpIndex> parseInt( req.params.pump )
             var program = parseInt( req.params.program )
 
-            //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
             var response: API.Response = {}
             response.text = 'REST API pumpCommand variables - pump: ' + pump + ', program: ' + program + ', value: null, duration: null'
             response.pump = pump
@@ -1045,7 +1042,6 @@ export namespace server
         /* Invalid pump commands -- sends response */
         app.get( '/pumpCommand/save/pump/:pump/rpm/:rpm', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
         {
-            //TODO:  this should be valid.  Just turn the pump on with no program at a specific speed.  Maybe 5,1,1 (manual)?
             var response: API.Response = {}
             response.text = 'FAIL: Please provide the program number when saving the program.  /pumpCommand/save/pump/#/program/#/rpm/#'
             res.send( response )
@@ -1057,7 +1053,6 @@ export namespace server
             let pump: Pump.PumpIndex = <Pump.PumpIndex> parseInt( req.params.pump )
             var program = parseInt( req.params.program )
 
-            //TODO: Push the callback into the pump functions so we can get confirmation back and not simply regurgitate the request
             var response: API.Response = {}
             response.text = 'FAIL: Please provide a speed /speed/{speed} when requesting to save the program'
             response.pump = pump

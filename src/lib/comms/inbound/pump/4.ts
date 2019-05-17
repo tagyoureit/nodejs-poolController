@@ -18,11 +18,6 @@
 import { logger, pump } from '../../../../etc/internal';
 import * as constants from '../../../../etc/constants';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 2.js')
-
-
 export function process ( data: number[], counter: number )
 {
     let remotecontrol: number;
@@ -35,10 +30,3 @@ export function process ( data: number[], counter: number )
     }
     pump.setRemoteControl( remotecontrol, data[ constants.packetFields.FROM ], data, counter )
 }
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 2.js')
-
-
-

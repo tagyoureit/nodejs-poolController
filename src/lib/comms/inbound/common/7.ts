@@ -21,12 +21,6 @@ import * as c from '../../../../etc/constants';
 import { pump } from '../../../../etc/internal';
 import { pumpAddressToIndex, packetFromPump, packetToPump, getPumpIndexFromSerialBusAddress } from '../../../../etc/pumpAddress'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 2.js')
-
-
-
 export function process ( data: number[], counter: number )
 {
     // changes to support 16 pumps
@@ -54,9 +48,3 @@ export function process ( data: number[], counter: number )
     }
     return true;
 }
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 2.js')
-
-

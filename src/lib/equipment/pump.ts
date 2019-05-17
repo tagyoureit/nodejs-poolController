@@ -17,11 +17,10 @@
 
 
 
-import { settings, logger, time, queuePacket, intellitouch, io } from'../../etc/internal'
+import { settings, logger, time, queuePacket, intellitouch, io, influx } from'../../etc/internal'
 import * as constants from '../../etc/constants';
 import {formatTime} from "../../etc/formatTime";
 
-import * as influx from '../comms/influx-connector';
 import {pumpAddressToIndex, PumpIndexToAddress, getPumpIndexFromSerialBusAddress, packetFromPump, packetToPump} from '../../etc/pumpAddress'
 
 
@@ -106,6 +105,10 @@ export namespace pump
             if ( pumpConfig.friendlyName !== "" )
             {
                 this.friendlyName = pumpConfig.friendlyName
+            }
+            else
+            {
+                this.friendlyName = this.name
             }
 
         }

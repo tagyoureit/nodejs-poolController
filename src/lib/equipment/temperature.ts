@@ -15,22 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { heat, io } from '../../etc/internal';
-
-import * as influx from '../../lib/comms/influx-connector';
+import { heat, io, influx } from '../../etc/internal';
 
 var _temperature: { poolTemp: any; spaTemp: any; airTemp: any; solarTemp: any; freeze: any; spaLastKnownTemperature?: any; poolLastKnownTemperature?: any; }
 
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//      loggers.info('Loading: temperature.js')
-
 var _ = require( 'underscore' )
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: temperature.js')
 
 var _ = require( 'underscore' )
 export namespace temperature
@@ -79,8 +69,4 @@ export namespace temperature
             _temperature.poolLastKnownTemperature = _temperature.poolTemp
         }
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: temperature.js')
 }

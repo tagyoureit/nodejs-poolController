@@ -23,12 +23,6 @@ import * as pump_5 from './pump/5'
 import * as pump_6 from './pump/6'
 import * as common_7 from './common/7'
 
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: process-pump.js')
-
     var decoded
 export namespace processPump
 {
@@ -97,18 +91,4 @@ export namespace processPump
         }
         return decoded
     }
-
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: process-pump.js')
-
-    // return {
-    //     processPumpPacket: processPumpPacket
-    // }
-
-
-
-    //End Pump Decode
 }

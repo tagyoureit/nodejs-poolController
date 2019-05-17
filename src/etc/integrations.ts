@@ -23,9 +23,6 @@ import { settings, logger } from './internal';
 
 export namespace integrations
 {
-    // if (logModuleLoading)
-    //     console.log('Loading: integrations.js')
-
 
     //var configFile = settings.getConfig();
 
@@ -87,7 +84,4 @@ export namespace integrations
         } );
     }
 
-
-    // if (logModuleLoading)
-    //     console.log('Loaded: integrations.js')
 }

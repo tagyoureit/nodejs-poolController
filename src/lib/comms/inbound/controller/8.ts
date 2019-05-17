@@ -17,11 +17,6 @@
 
 //Broadcast current heat set point and mode
 import { settings, logger, heat, temperature } from'../../../../etc/internal';
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 8.js')
-
 export function process ( data: number[], counter: number )
 {
     //   0 1  2  3 4  5  6 7   8  9  19 11 12 13  14 15 16 17 18 19  20
@@ -44,8 +39,3 @@ export function process ( data: number[], counter: number )
 
     return decoded
 }
-
-/*istanbul ignore next */
-        // if (logModuleLoading)
-        //     logger.info('Loaded: 8.js')
-

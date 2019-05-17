@@ -24,7 +24,7 @@ export namespace intellicenterCircuit
 
     class Circuit implements Circuit.CircuitClass
     {
-        [k: number]: any,
+        [ k: number ]: any,
         name: string;
         number: number;
         numberStr: string;
@@ -36,7 +36,8 @@ export namespace intellicenterCircuit
         delay: 0 | 1;
         light: Circuit.LightClass;
 
-        constructor( circuitNum: number, nameByte ?: number, functionByte ?: number ){
+        constructor( circuitNum: number, nameByte?: number, functionByte?: number )
+        {
             this.number = circuitNum; //1
             this.numberStr = 'circuit' + circuitNum;
             this.name = ''; //Pool
@@ -236,9 +237,4 @@ export namespace intellicenterCircuit
     {
         return currentCircuitArrObj
     }
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: intellicenter_circuit.js')
 }

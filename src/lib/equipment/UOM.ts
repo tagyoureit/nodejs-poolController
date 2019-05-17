@@ -20,10 +20,6 @@ var _UOM = {
     "UOMStr": "unknown"
 }
 
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: UOM.js')
 export namespace UOM
 {
     export function init ()
@@ -53,8 +49,4 @@ export namespace UOM
     {
         return _UOM.UOMStr
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    // logger.info('Loaded: UOM.js')
 }

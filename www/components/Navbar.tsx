@@ -91,6 +91,9 @@ class PoolNav extends React.Component<Props, any> {
                             </NavItem>
                             <NavItem>
                                 <NavLink onClick={this.toggle} href="#debug" id='debug-tab' data-toggle='tab' aria-controls='debug' aria-selected='false'>Debug Log</NavLink>
+                        </NavItem>
+                        <NavItem>
+                                <NavLink onClick={this.toggle} href="/utilities" id='utilities' >Utilities</NavLink>
                             </NavItem>
                         </Nav>
                     </Collapse>

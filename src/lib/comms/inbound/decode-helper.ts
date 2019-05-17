@@ -23,10 +23,6 @@ import * as processIntellicenter from '../../comms/inbound/process-intellicenter
 import * as _ from 'underscore';
 
 
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: decode.js')
-
     var emitter = new events.EventEmitter();
 
 
@@ -57,7 +53,7 @@ export namespace decodeHelper
     export function checksum ( chatterdata:number[], counter:number, packetType:string )
     {
         //make a copy so when we callback the decode method it isn't changing our log output in Winston
-        if ( settings.get( 'logMessageDecoding' ) ) logger.silly( "Msg# %s   Making sure we have a valid %s packet (matching checksum to actual packet): %s", counter, packetType, JSON.stringify( chatterdata ) );
+        /* if ( settings.get( 'logMessageDecoding' ) ) logger.silly( "Msg# %s   Making sure we have a valid %s packet (matching checksum to actual packet): %s", counter, packetType, JSON.stringify( chatterdata ) ); */
 
         var chatterCopy = chatterdata.slice( 0 );
         var len = chatterCopy.length;
@@ -104,7 +100,7 @@ export namespace decodeHelper
 
         } else
         {
-            if ( settings.get( 'logMessageDecoding' ) ) logger.silly( 'Msg# %s   Match on Checksum:    %s==%s   %s', counter, chatterdatachecksum, databytes, chatterCopy )
+           // if ( settings.get( 'logMessageDecoding' ) ) logger.silly( 'Msg# %s   Match on Checksum:    %s==%s   %s', counter, chatterdatachecksum, databytes, chatterCopy )
         }
 
 
@@ -224,7 +220,7 @@ export namespace decodeHelper
     export function isResponse ( chatter:number[], counter:number, packetType:string )
     {
 
-        if ( settings.get( 'logMessageDecoding' ) ) logger.silly( 'Msg# %s  Checking to see if inbound message matches previously sent outbound message (isResponse function): %s ', counter, chatter, packetType )
+       /*  if ( settings.get( 'logMessageDecoding' ) ) logger.silly( 'Msg# %s  Checking to see if inbound message matches previously sent outbound message (isResponse function): %s ', counter, chatter, packetType ) */
 
 
         //For Broadcast Packets
@@ -232,8 +228,8 @@ export namespace decodeHelper
         //Ex ACK circuit name[255,0,255,165, 10, 15, 16,  10,12, 0,85,83,69,82,78, 65,77,69,45,48,49]
 
 
-        if ( settings.get( 'logMessageDecoding' ) ) logger.silly( '   isResponse:  Msg#: %s  chatterreceived.action: %s (10?) === queue[0].action&63: %s ALL TRUE?  %s \n\n', counter, chatter[ constants.packetFields.ACTION ], ( ( queuePacket.first()[ 7 ] ) & 63 ), ( ( chatter[ constants.packetFields.ACTION ] === ( queuePacket.first()[ 7 ] & 63 ) ) ) )
-
+/*         if ( settings.get( 'logMessageDecoding' ) ) logger.silly( '   isResponse:  Msg#: %s  chatterreceived.action: %s (10?) === queue[0].action&63: %s ALL TRUE?  %s \n\n', counter, chatter[ constants.packetFields.ACTION ], ( ( queuePacket.first()[ 7 ] ) & 63 ), ( ( chatter[ constants.packetFields.ACTION ] === ( queuePacket.first()[ 7 ] & 63 ) ) ) )
+ */
         if ( packetType === 'pump' )
         {
             return isResponsePump( chatter, counter )
@@ -284,9 +280,14 @@ export namespace decodeHelper
             }
             if ( searchMatch === true )
             {
-                var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify( data )
+                var resultObj = {
+                    message: counter,
+                    packet: data
+                }
+
+                // var resultStr = 'Msg#: ' + counter + ' Data: ' + JSON.stringify( data )
                 io.emitToClients( 'searchResults',
-                    resultStr
+                    resultObj
                 )
             }
         }
@@ -294,9 +295,9 @@ export namespace decodeHelper
         //intellicenter.checkIfNeedControllerConfiguration()
         intellitouch.checkIfNeedControllerConfiguration()
 
-        if ( settings.get( 'logMessageDecoding' ) )
+/*         if ( settings.get( 'logMessageDecoding' ) )
             logger.silly( 'Msg# %s  TYPE %s,  packet %s', counter, packetType, data )
-
+ */
         //Start Controller Decode
 
         if ( packetType === 'controller' )
@@ -369,10 +370,4 @@ export namespace decodeHelper
             // }
         }
     }
-
-    
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: decode.js')
 }

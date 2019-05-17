@@ -20,12 +20,6 @@ import { settings, logger } from'../../../../etc/internal';
 import * as c from '../../../../etc/constants'
 import * as circuit from '../../../equipment/circuit';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 136.js')
-
-
-
 export function process ( data: number[], counter: number )
 {
     //  [16,34,136,4,POOL HEAT,SPA HEAT,Heat Mode,0,2,56]
@@ -54,10 +48,3 @@ export function process ( data: number[], counter: number )
 
     return decoded
 }
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 136.js')
-
-

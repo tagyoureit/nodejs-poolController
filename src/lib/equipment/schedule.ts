@@ -27,16 +27,14 @@ export namespace schedule
     //TODO: rename all UPPERCASE to camelCase
     class Schedule implements ScheduleModule.ScheduleClass
     {
-        CIRCUIT: string;
-        CIRCUITNUM: number;
-        BYTES: number[];
-        ID: number;
-        MODE: ScheduleModule.SchedType;
-        START_TIME: string;
-        END_TIME: string;
-        DURATION: string;
+        circuit: string;
+        circuitNum: number;
+        bytes: number[];
+        id: number;
+        mode: ScheduleModule.SchedType;
+        duration: string;
         friendlyName: string;
-        DAYS: string;
+        days: string;
         startTime: ITime.BaseTime;
         endTime: ITime.BaseTime
 
@@ -50,24 +48,23 @@ export namespace schedule
                 time: 'notset',
                 time24: 'notset'
             }
-            this.ID = id;
+            this.id = id;
             if ( _circuit !== undefined )
             {
-                this.CIRCUIT = _circuit === 0 ? constants.strCircuitName[ _circuit ] : circuit.getCircuitName( _circuit );
+                this.circuit = _circuit === 0 ? constants.strCircuitName[ _circuit ] : circuit.getCircuitName( _circuit );
                 this.friendlyName = _circuit === 0 ? constants.strCircuitName[ _circuit ] : circuit.getFriendlyName( _circuit );
-                this.CIRCUITNUM = _circuit
-                this.BYTES = bytes
+                this.circuitNum = _circuit
+                this.bytes = bytes
                 this.startTime = Object.assign( {}, BaseTime);
                 this.endTime = Object.assign( {}, BaseTime);
                 if ( time1 === 25 ) //25 = Egg Timer
                 {
-                    this.MODE = 'Egg Timer'
-                    this.DURATION = time3 + ':' + time4;
+                    this.mode = 'Egg Timer'
+                    this.duration = time3 + ':' + time4;
                 } else
                 {
-                    this.MODE = 'Schedule'
-                    this.DURATION = 'n/a'
-                    this.START_TIME = pad( time1, 2, "0" ) + ':' + pad( time2, 2, "0" )
+                    this.mode = 'Schedule'
+                    this.duration = 'n/a'
                     // Extended Start Time parameters
                     if ( time1 > 12 )
                     {
@@ -83,9 +80,8 @@ export namespace schedule
                     this.startTime.hour24 = time1;
                     this.startTime.minute = time2;
                     this.startTime.time = formatTime( this.startTime.hour, this.startTime.minute )
-                    this.startTime.time24 = this.START_TIME;
+                    this.startTime.time24 = pad( time1, 2, "0" ) + ':' + pad( time2, 2, "0" )
 
-                    this.END_TIME = pad( time3, 2, "0" ) + ':' + pad( time4, 2, "0" );
                     // Extended End Time parameters
                     if ( time3 > 12 )
                     {
@@ -101,8 +97,8 @@ export namespace schedule
                     this.endTime.hour24 = time3;
                     this.endTime.minute = time4;
                     this.endTime.time = formatTime( this.endTime.hour, this.endTime.minute )
-                    this.endTime.time24 = this.END_TIME;
-                    this.DAYS = dayStr( days )
+                    this.endTime.time24 = pad( time3, 2, "0" ) + ':' + pad( time4, 2, "0" );
+                    this.days = dayStr( days )
 
                 }
             }
@@ -111,9 +107,6 @@ export namespace schedule
 
     }
 
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: schedule.js')
 
     //var bufferArr = []; //variable to process buffer.  interimBufferArr will be copied here when ready to process
     //var interimBufferArr = []; //variable to hold all serialport.open data; incomind data is appended to this with each read
@@ -128,17 +121,17 @@ export namespace schedule
 
     }
 
-    export function formatSchedId ( id: number )
+    export function formatSchedId ( _id: number )
     {
         var str = ''
         str += '\nID:'
-        str += currentSchedule[ id ].ID < 10 ? ' ' + currentSchedule[ id ].ID : currentSchedule[ id ].ID
+        str += currentSchedule[ _id ].id < 10 ? ' ' + currentSchedule[_id ].id : currentSchedule[ _id ].id
         return str
     }
 
     export function formatEggTimerStr ( id: number )
     {
-        var str = ' MODE:' + currentSchedule[ id ].MODE + ' DURATION:' + currentSchedule[ id ].DURATION
+        var str = ' MODE:' + currentSchedule[ id ].mode + ' DURATION:' + currentSchedule[ id ].duration
         return str
     }
 
@@ -147,11 +140,11 @@ export namespace schedule
         var str = ''
         if ( id === 0 )
         { //format the temp schedule
-            str += 'MODE:' + schedule.MODE + ' START_TIME:' + schedule.START_TIME + ' END_TIME:' + schedule.END_TIME + ' DAYS:' + schedule.DAYS
+            str += 'MODE:' + schedule.mode + ' startTime:' + schedule.startTime.time24 + ' END_TIME:' + schedule.endTime.time24 + ' days:' + schedule.days
 
         } else //format currentSchedule
         {
-            str += ' MODE:' + currentSchedule[ id ].MODE + ' START_TIME:' + currentSchedule[ id ].START_TIME + ' END_TIME:' + currentSchedule[ id ].END_TIME + ' DAYS:' + currentSchedule[ id ].DAYS
+            str += ' MODE:' + currentSchedule[ id ].mode + ' startTime:' + currentSchedule[ id ].startTime.time24 + ' END_TIME:' + currentSchedule[ id ].endTime.time24 + ' DAYS:' + currentSchedule[ id ].days
         }
         return str
 
@@ -169,10 +162,10 @@ export namespace schedule
         for ( var i = 1; i <= numberOfSchedules; i++ )
         {
             scheduleStr += formatSchedId( i )
-            scheduleStr += '  CIRCUIT:(' + currentSchedule[ i ].CIRCUITNUM + ')' + currentSchedule[ i ].CIRCUIT + ' '
-            if ( currentSchedule[ i ].CIRCUIT !== 'NOT USED' )
+            scheduleStr += '  CIRCUIT:(' + currentSchedule[ i ].circuitNum + ')' + currentSchedule[ i ].circuit + ' '
+            if ( currentSchedule[ i ].circuit !== 'NOT USED' )
             {
-                if ( currentSchedule[ i ].MODE === 'Egg Timer' )
+                if ( currentSchedule[ i ].mode === 'Egg Timer' )
                 {
                     scheduleStr += formatEggTimerStr( i )
                 } else
@@ -194,9 +187,9 @@ export namespace schedule
         scheduleChgStr += '  Schedule '
         scheduleChgStr += formatSchedId( id )
         scheduleChgStr += ' changed from:\n'
-        scheduleChgStr += 'ID:' + currentSchedule[ id ].ID + ' CIRCUIT:(' + id + ')' + currentSchedule[ id ].CIRCUIT
+        scheduleChgStr += 'ID:' + currentSchedule[ id ].id + ' CIRCUIT:(' + id + ')' + currentSchedule[ id ].circuit
         //FROM string
-        if ( currentSchedule[ id ].MODE === 'Egg Timer' )
+        if ( currentSchedule[ id ].mode === 'Egg Timer' )
         {
             scheduleChgStr += formatEggTimerStr( id )
 
@@ -210,9 +203,9 @@ export namespace schedule
 
 
         scheduleChgStr += '\n'
-        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.CIRCUIT + ' '
+        scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.circuit + ' '
         //TO string
-        if ( schedule.MODE === 'Egg Timer' )
+        if ( schedule.mode === 'Egg Timer' )
         {
 
             scheduleChgStr += formatEggTimerStr( id )
@@ -292,10 +285,10 @@ export namespace schedule
         return Object.keys( currentSchedule ).length
     }
 
-    export function getControllerScheduleByID ( id: number )
+    export function getControllerScheduleByID ( _id: number )
     {
-        logger.verbose( 'Queueing packet to retrieve schedule by id %s', id )
-        queuePacket.queuePacket( [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 209, 1, id ] );
+        logger.verbose( 'Queueing packet to retrieve schedule by id %s', _id )
+        queuePacket.queuePacket( [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 209, 1, _id ] );
     }
 
     export function getControllerScheduleAll ()
@@ -317,14 +310,14 @@ export namespace schedule
             scheduleStr += id < 10 ? ' ' + id : id
             // var circuitTmpStr = circuit === 0 ? constants.strCircuitName[circuit] : circuit.getCircuitName(circuit)
             var circuitTmpStr = _circuit === 0 ? constants.strCircuitName[ _circuit ] : circuit.getCircuit( _circuit ).name
-            scheduleStr += '  CIRCUIT:(' + _circuit + ')' + circuitTmpStr + ' '
+            scheduleStr += ' CIRCUIT:(' + _circuit + ')' + circuitTmpStr + ' '
 
             if ( starthh === 25 )
             {
                 scheduleStr += ' MODE: Egg Timer DURATION:' + endhh + ':' + endmm
             } else
             {
-                scheduleStr += 'MODE: Schedule START_TIME:' + starthh + ':' + startmm + ' END_TIME:' + endhh + ':' + endmm + ' DAYS:' + dayStr( days )
+                scheduleStr += 'MODE: Schedule startTime:' + starthh + ':' + startmm + ' endTime:' + endhh + ':' + endmm + ' DAYS:' + dayStr( days )
             }
 
             logger.info( scheduleStr )
@@ -346,8 +339,8 @@ export namespace schedule
         {
             for ( var i = 0; i <= numberOfSchedules; i++ )
             {
-                // if ( currentSchedule[CIRCUIT] === _circuit )
-                if ( currentSchedule[i].CIRCUITNUM === _circuit )
+                // if ( currentSchedule[circuit] === _circuit )
+                if ( currentSchedule[i].circuitNum === _circuit )
                 {
                     logger.verbose( 'Queueing packet to retrieve schedule %s by circuit id %s', i, _circuit )
                     queuePacket.queuePacket( [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 209, 1, i ] );
@@ -382,15 +375,15 @@ export namespace schedule
             dayIndex = dayOfWeekAsInt( day )
         }
 
-        var old_days = currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.DAYS ]
-        var new_days = currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.DAYS ]
+        var old_days = currentSchedule[ id ].bytes[ constants.schedulePacketBytes.DAYS ]
+        var new_days = currentSchedule[ id ].bytes[ constants.schedulePacketBytes.DAYS ]
         new_days = new_days ^= dayIndex
 
         if ( settings.get( 'logApi' ) )
             logger.info( "Schedule change requested for %s (id:%s). Toggle Day(s) %s: \n\tFrom: %s \n\tTo: %s", currentSchedule[ id ].friendlyName, id, day, dayStr( old_days ), dayStr( new_days ) )
-        setControllerSchedule( currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.ID ],
-            currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.CIRCUIT ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME2 ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME3 ],
-            currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME4 ],
+        setControllerSchedule( currentSchedule[ id ].bytes[ constants.schedulePacketBytes.ID ],
+            currentSchedule[ id ].bytes[ constants.schedulePacketBytes.CIRCUIT ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME2 ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME3 ],
+            currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME4 ],
             new_days )
     }
 
@@ -404,15 +397,15 @@ export namespace schedule
 
         if ( startOrEnd === 'start' )
         {
-            setControllerSchedule( currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.ID ],
-                currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.CIRCUIT ], hour, min, currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME3 ],
-                currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME4 ],
-                currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.DAYS ] )
+            setControllerSchedule( currentSchedule[ id ].bytes[ constants.schedulePacketBytes.ID ],
+                currentSchedule[ id ].bytes[ constants.schedulePacketBytes.CIRCUIT ], hour, min, currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME3 ],
+                currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME4 ],
+                currentSchedule[ id ].bytes[ constants.schedulePacketBytes.DAYS ] )
         } else
         {
-            setControllerSchedule( currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.ID ],
-                currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.CIRCUIT ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME2 ], hour, min,
-                currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.DAYS ] )
+            setControllerSchedule( currentSchedule[ id ].bytes[ constants.schedulePacketBytes.ID ],
+                currentSchedule[ id ].bytes[ constants.schedulePacketBytes.CIRCUIT ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME2 ], hour, min,
+                currentSchedule[ id ].bytes[ constants.schedulePacketBytes.DAYS ] )
         }
     }
 
@@ -424,7 +417,7 @@ export namespace schedule
         if ( settings.get( 'logApi' ) )
             logger.info( "Egg Timer change requested for %s (id:%s). Set %s duration to %s hours, %s minutes", currentSchedule[ id ].friendlyName, id, hour, min )
 
-        setControllerSchedule( currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.ID ],
+        setControllerSchedule( currentSchedule[ id ].bytes[ constants.schedulePacketBytes.ID ],
             circuit, 25, 0, hour, min, 0 )
 
     }
@@ -435,15 +428,10 @@ export namespace schedule
 
 
         if ( settings.get( 'logApi' ) )
-            logger.info( "Schedule change requested for %s (id:%s). Change circuit to: %s", currentSchedule[ id ].CIRCUIT, id, circuit.getCircuit( _circuit ).friendlyName )
-        setControllerSchedule( currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.ID ],
-            _circuit, currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME2 ], currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME3 ],
-            currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.TIME4 ],
-            currentSchedule[ id ].BYTES[ constants.schedulePacketBytes.DAYS ] )
+            logger.info( "Schedule change requested for %s (id:%s). Change circuit to: %s", currentSchedule[ id ].circuit, id, circuit.getCircuit( _circuit ).friendlyName )
+        setControllerSchedule( currentSchedule[ id ].bytes[ constants.schedulePacketBytes.ID ],
+            _circuit, currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME1 ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME2 ], currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME3 ],
+            currentSchedule[ id ].bytes[ constants.schedulePacketBytes.TIME4 ],
+            currentSchedule[ id ].bytes[ constants.schedulePacketBytes.DAYS ] )
     }
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: schedule.js')
 }

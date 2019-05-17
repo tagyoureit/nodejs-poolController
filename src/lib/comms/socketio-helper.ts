@@ -15,17 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import socket = require( 'socket.io' )
-import { settings, logger, reload, pumpControllerTimers, circuit, schedule, chlorinator, queuePacket, packetBuffer, intellitouch, intellichem, intellicenterCircuitFunctions, UOM, heat, pump, time, pumpControllerMiddleware, helpers, temperature, clientConfig, updateAvailable } from '../../etc/internal';
+import { settings, logger, reload, pumpControllerTimers, circuit, schedule, chlorinator, queuePacket, packetBuffer, intellitouch, intellichem, intellicenterCircuitFunctions, UOM, heat, pump, time, pumpControllerMiddleware, helpers, temperature, clientConfig, updateAvailable, getConfigOverview } from '../../etc/internal';
 import * as constants from '../../etc/constants';
 import * as intellicenter from '../equipment/intellicenter';
 
 import { ISearch, setSearch } from '../../etc/api-search'
-import { stringify } from 'querystring';
-
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: socketio-helper.js')
+import * as validator from 'validator'
 
 
 let ioServer: { [ key: string ]: any, http: { sockets: any }, https: { sockets: any }, httpEnabled: number, httpsEnabled: number } = { http: { sockets: [] }, https: { sockets: [] }, httpEnabled: 0, httpsEnabled: 0 }
@@ -56,13 +51,15 @@ export namespace io
         // emitToClientsOnEnabledSockets('temp', temp )
         // removed 6.0
         // emitToClientsOnEnabledSockets('temperatures', temp)
-        //emitToClientsOnEnabledSockets( 'all', helpers.allEquipmentInOneJSON() );
 
 
         if ( data === undefined || data === null )
         {
             switch ( outputType )
             {
+                case 'all':
+                    data = helpers.allEquipmentInOneJSON()
+                    break;
                 case 'heat':
                     data = heat.getCurrentHeat()
                     break;
@@ -132,10 +129,10 @@ export namespace io
 
         ioServer[ type ].on( 'connection', function ( socket: SocketIO.Socket )
         {
-            logger.silly( `New SOCKET.IO Client connected ${socket.id}` )
+            logger.silly( `New SOCKET.IO Client connected ${ socket.id }` )
             socketHandler( socket, type )
             emitToClients( 'all', helpers.allEquipmentInOneJSON() )
-            emitToClients('updateAvailable')
+            emitToClients( 'updateAvailable' )
         } )
 
 
@@ -249,7 +246,7 @@ export namespace io
         // when the client emits 'toggleEquipment', this listens and executes
         socket.on( 'toggleCircuit', function ( equipment: string )
         {
-            circuit.toggleCircuit( parseInt(equipment) )
+            circuit.toggleCircuit( parseInt( equipment ) )
         } );
 
         // when the client emits 'cancelDelay', this listens and executes
@@ -276,14 +273,14 @@ export namespace io
             if ( mode === 'start' )
             {
                 var resultStr = "Listening for source: " + src + ", destination: " + dest + ", action: " + action
-                emitToClientsOnEnabledSockets( "searchResults", resultStr )
+                //emitToClientsOnEnabledSockets( "searchResults", resultStr )
             } else if ( mode === 'stop' )
             {
-                emitToClientsOnEnabledSockets( "searchResults", 'Stopped listening.' )
+                //emitToClientsOnEnabledSockets( "searchResults", 'Stopped listening.' )
             }
             else if ( mode === 'load' )
             {
-                emitToClientsOnEnabledSockets( "searchResults", 'Input values and click start. All values optional. Please refer to https://github.com/tagyoureit/nodejs-poolController/wiki/Broadcast for possible action values.' )
+                //emitToClientsOnEnabledSockets( "searchResults", 'Input values and click start. All values optional. Please refer to https://github.com/tagyoureit/nodejs-poolController/wiki/Broadcast for possible action values.' )
             }
 
         } )
@@ -301,8 +298,18 @@ export namespace io
 
         socket.on( 'setConfigClient', function ( a: any, b: any, c: any, d: any )
         {
-            logger.debug( 'Setting config_client properties: ', a, b, c, d )
-            clientConfig.updateConfigEntry( a, b, c, d )
+            logger.debug( `Setting config_client properties: ${ a }, ${ b }, ${ c }, ${ d }` )
+            try
+            {
+                if ( validator.isAlpha( a ) && ( validator.isAlpha( b ) || b === undefined ) && ( validator.isAlpha( c ) || c === undefined ) && validator.isAlpha( d ) )
+                {
+                    clientConfig.updateConfigEntry( a, b, c, d )
+                }
+            }
+            catch ( err )
+            {
+                logger.error( `setConfigClient emit received invalid input: a:${ a } b:${ b } c:${ c } d:${ d }. \n${ err.message }` )
+            }
 
         } )
 
@@ -314,60 +321,70 @@ export namespace io
 
         socket.on( 'sendPacket', function ( incomingPacket: number[][] )
         {
-            var preamblePacket, sendPacket;
-            var str = 'Queued packet(s): '
-            logger.info( 'User request (send_request.html) to send packet: %s', JSON.stringify( incomingPacket ) );
-
-            for ( var packet in incomingPacket )
+            try
             {
-                // for (var byte in incomingPacket[packet]) {
-                //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
-                // }
+                var preamblePacket, sendPacket;
+                var str = 'Queued packet(s): '
+                logger.info( 'User request (send_request.html) to send packet: %s', JSON.stringify( incomingPacket ) );
+                // console.log( _incomingPacket )
+                
+                incomingPacket.forEach( ( packet: number[], idx: number ) =>
+                {
+                    // for (var byte in incomingPacket[packet]) {
+                    //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
+                    // }
 
-                if ( incomingPacket[ packet ][ 0 ] === 16 && incomingPacket[ packet ][ 1 ] === constants.ctrl.CHLORINATOR )
-                {
-                    sendPacket = incomingPacket[ packet ]
-                    if ( settings.get( 'logApi' ) ) logger.silly( 'packet (chlorinator) now: ', packet )
-                } else
-                {
-                    if ( incomingPacket[ packet ][ 0 ] === 96 || incomingPacket[ packet ][ 0 ] === 97 || incomingPacket[ packet ][ 1 ] === 96 || incomingPacket[ packet ][ 1 ] === 97 )
-                    //if a message to the pumps, use 165,0
+                    if ( packet[ 0 ] === 16 && packet[ 1 ] === constants.ctrl.CHLORINATOR )
                     {
-                        preamblePacket = [ 165, 0 ]
+                        sendPacket = packet
+                        if ( settings.get( 'logApi' ) ) logger.silly( 'packet (chlorinator) now: ', packet )
                     } else
-                    //If a message to the controller, use the preamble that we have recorded
                     {
-                        preamblePacket = [ 165, intellitouch.getPreambleByte() ]; //255,0,255 will be added later
+                        if ( packet[ 0 ] === 96 || packet[ 0 ] === 97 || packet[ 1 ] === 96 || packet[ 1 ] === 97 )
+                        //if a message to the pumps, use 165,0
+                        {
+                            preamblePacket = [ 165, 0 ]
+                        } else
+                        //If a message to the controller, use the preamble that we have recorded
+                        {
+                            preamblePacket = [ 165, intellitouch.getPreambleByte() ]; //255,0,255 will be added later
 
+                        }
+                        sendPacket = preamblePacket.concat( packet );
                     }
-                    sendPacket = preamblePacket.concat( incomingPacket[ packet ] );
-                }
-                queuePacket.queuePacket( sendPacket );
-                str += JSON.stringify( sendPacket ) + ' '
+                    queuePacket.queuePacket( sendPacket );
+                    str += JSON.stringify( sendPacket ) + ' '
+                } )
+
+                emitToClientsOnEnabledSockets( 'sendPacketResults', str )
+                logger.info( str )
             }
-            emitToClientsOnEnabledSockets( 'sendPacketResults', str )
-            logger.info( str )
+            catch ( err )
+            {
+                logger.error( `Error with sendPacket socket: ${ err.message }` )
+            }
         } )
 
-        socket.on( 'receivePacket', function ( incomingPacket: number[][] )
+        socket.on( 'receivePacket', function ( _incomingPacket: string )
         {
             var preamblePacket, sendPacket
             var str = 'Receiving packet(s): '
-            logger.info( 'User request (send_request.html) to RECEIVE packet: %s', JSON.stringify( incomingPacket ) );
-
-            for ( var packet in incomingPacket )
+            logger.info( 'User request (send_request.html) to RECEIVE packet: %s', JSON.stringify( _incomingPacket ) );
+            let incomingPacket = JSON.parse( _incomingPacket )
+            incomingPacket.forEach( ( packet: number[], idx: number ) =>
             {
+
                 // for (var byte in incomingPacket[packet]) {
                 //     incomingPacket[packet][byte] = parseInt(incomingPacket[packet][byte])
                 // }
 
-                if ( incomingPacket[ packet ][ 0 ] === 16 && incomingPacket[ packet ][ 1 ] === constants.ctrl.CHLORINATOR )
+                if ( packet[ 0 ] === 16 && packet[ 1 ] === constants.ctrl.CHLORINATOR )
                 {
-                    sendPacket = incomingPacket[ packet ]
+                    sendPacket = packet
                     if ( settings.get( 'logApi' ) ) logger.silly( 'packet (chlorinator) now: ', packet )
                 } else
                 {
-                    if ( incomingPacket[ packet ][ 0 ] === 96 || incomingPacket[ packet ][ 0 ] === 97 || incomingPacket[ packet ][ 1 ] === 96 || incomingPacket[ packet ][ 1 ] === 97 )
+                    if ( packet[ 0 ] === 96 || packet[ 0 ] === 97 || packet[ 1 ] === 96 || packet[ 1 ] === 97 )
                     //if a message to the pumps, use 165,0
                     {
                         preamblePacket = [ 255, 0, 255, 165, 0 ]
@@ -377,14 +394,16 @@ export namespace io
                         preamblePacket = [ 255, 0, 255, 165, intellitouch.getPreambleByte() ]; //255,0,255 will be added later
 
                     }
-                    sendPacket = preamblePacket.concat( incomingPacket[ packet ] );
+                    sendPacket = preamblePacket.concat( packet );
                 }
                 //queuePacket.queuePacket(sendPacket);
                 packetBuffer.push( new Buffer( sendPacket ) );
                 str += JSON.stringify( sendPacket ) + ' '
-            }
+            } )
+
             emitToClientsOnEnabledSockets( 'sendPacketResults', str )
             logger.info( str )
+
         } )
 
         socket.on( 'receivePacketRaw', function ( incomingPacket: any[] )
@@ -473,7 +492,6 @@ export namespace io
             heat.decrementPoolSetPoint( decrement )
         } )
 
-        //TODO: make the heat mode call either setHeatMode or the specific setPoolHeatMode/setSpaHeatMode
         socket.on( 'poolheatmode', function ( _poolheatmode: string | number )
         {
             let poolheatmode = toNum( _poolheatmode )
@@ -854,14 +872,22 @@ export namespace io
             {
                 bool = _bool
             }
-            logger.info( `updateVersionNotificationSetting requested from Socket.io.  value: ${bool}` )
+            logger.info( `updateVersionNotificationSetting requested from Socket.io.  value: ${ bool }` )
             settings.updateVersionNotificationSetting( bool, null )
         } )
 
         socket.on( 'hidePanel', ( panel: string ): void =>
         {
             console.log( `received hide panel ${ panel }` )
-            clientConfig.updatePanel( panel, 'hidden' )
+            if ( validator.isAlpha( panel ) )
+            {
+
+                clientConfig.updatePanel( panel, 'hidden' )
+            }
+            else
+            {
+                logger.error( `hidePanel socket received invalid input: ${ panel }` )
+            }
         } )
 
 
@@ -898,8 +924,4 @@ export namespace io
         //console.log('EMITTING DEBUG LOG: %s', msg)
         emitToClientsOnEnabledSockets( 'outputLog', msg )
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: socketio-helper.js')
 }

@@ -19,10 +19,6 @@ class ShouldDisplay extends React.Component<Props, any>
 
     render ()
     {
-        console.log( `this.props` )
-        console.log( this.props )
-        console.log( `props.state:` )
-        console.log( this.props.visibility )
         // state = is the compenent hidden or visible per the configuration settings
         // ready = is the component loaded?  true or false
         let content:any = 'Loading....'

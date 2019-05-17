@@ -19,24 +19,10 @@
 import { settings, logger } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: intellicenter_164.js')
-
-
 export function process ( data: number[], counter: number )
 {
-
-
-
   if ( settings.get( 'logMessageDecoding' ) )
     logger.debug( `Msg#: ${ counter }:  ${ constants.intellicenterPackets[ data[ constants.packetFields.ACTION ] ] }  \n\tFull packet: $s`, data );
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //   logger.info('Loaded: intellicenter_164.js')

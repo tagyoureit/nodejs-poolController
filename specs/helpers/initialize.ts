@@ -292,11 +292,6 @@ globalAny.setupLoggerStubOrSpy = function ( normalLvL: string, errorLvl: string 
 
     if ( normalLvL === 'spy' )
     {
-        // globalAny.loggerInfoStub = sinon.spy( logger, 'info' )
-        // globalAny.loggerVerboseStub = sinon.spy( logger, 'verbose' )
-        // globalAny.loggerDebugStub = sinon.spy( logger, 'debug' )
-        // globalAny.loggerSillyStub = sinon.spy( logger, 'silly' )
-
         normstub = {
             loggerInfoStub: sinon.spy( logger, 'info' ),
             loggerVerboseStub: sinon.spy( logger, 'verbose' ),
@@ -306,10 +301,6 @@ globalAny.setupLoggerStubOrSpy = function ( normalLvL: string, errorLvl: string 
     }
     else
     {
-        // globalAny.loggerInfoStub = sinon.stub( logger, 'info' )
-        // globalAny.loggerVerboseStub = sinon.stub( logger, 'verbose' )
-        // globalAny.loggerDebugStub = sinon.stub( logger, 'debug' )
-        // globalAny.loggerSillyStub = sinon.stub( logger, 'silly' )
         normstub = {
             loggerInfoStub: sinon.stub( logger, 'info' ),
             loggerVerboseStub: sinon.stub( logger, 'verbose' ),
@@ -319,8 +310,6 @@ globalAny.setupLoggerStubOrSpy = function ( normalLvL: string, errorLvl: string 
     }
     if ( errorLvl === 'spy' )
     {
-        // globalAny.loggerWarnStub = sinon.spy( logger, 'warn' )
-        // globalAny.loggerErrorStub = sinon.spy( logger, 'error' )
         errstub = {
             loggerWarnStub: sinon.spy( logger, 'warn' ),
             loggerErrorStub: sinon.spy( logger, 'error' )
@@ -328,25 +317,12 @@ globalAny.setupLoggerStubOrSpy = function ( normalLvL: string, errorLvl: string 
     }
     else
     {
-        // globalAny.loggerWarnStub = sinon.stub( logger, 'warn' )
-        // globalAny.loggerErrorStub = sinon.stub( logger, 'error' )
         errstub = {
             loggerWarnStub: sinon.stub( logger, 'warn' ),
             loggerErrorStub: sinon.stub( logger, 'error' )
         }
     }
-    //return Object.assign( {}, normstub, errstub )
 
-    // TODO: if this works, clean it up to just use the loggers globally themselves or one global object, but not both
-    // globalAny.loggers = {
-    //     loggerInfoStub:    globalAny.loggerInfoStub,  
-    //     loggerVerboseStub:  globalAny.loggerVerboseStub,
-    //     loggerDebugStub:   globalAny.loggerDebugStub, 
-    //     loggerSillyStub:   globalAny.loggerSillyStub, 
-    //     loggerWarnStub:    globalAny.loggerWarnStub,  
-    //     loggerErrorStub:   globalAny.loggerErrorStub 
-    // }
-    // return globalAny.loggers
     return Object.assign({}, normstub, errstub)
 }
 

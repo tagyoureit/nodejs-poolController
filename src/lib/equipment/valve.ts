@@ -15,15 +15,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { logger, io } from '../../etc/internal';
+import { logger, io, settings } from '../../etc/internal';
 import * as constants from '../../etc/constants';
 
 
 let _valve: { valve: number};
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: valve.js')
 export namespace valve
 {
     export function init ()
@@ -35,7 +32,10 @@ export namespace valve
 
     export function setValve ( data: number[] )
     {
-        logger.silly( 'Received valve status packet.  \n\tPossible association with %s. \n\t  valve data: %s', data[ constants.controllerStatusPacketFields.VALVE ], data )
+        if ( settings.get( 'logConsoleNotDecoded' ) )
+        {
+            logger.silly( 'Received valve status packet.  \n\tPossible association with %s. \n\t  valve data: %s', data[ constants.controllerStatusPacketFields.VALVE ], data )
+        }
         _valve.valve = data[ constants.controllerStatusPacketFields.VALVE ];
         io.emitToClients( 'valve', { valve: _valve } )
     }
@@ -44,8 +44,4 @@ export namespace valve
     {
         return { 'valve': _valve }
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: valve.js')
 }

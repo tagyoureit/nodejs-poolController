@@ -18,10 +18,6 @@
 //Set Intellibrite Lights
 import { settings, logger, circuit } from'../../../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 96.js')
-
 
 export function process ( data: number[], counter: number )
 {
@@ -37,10 +33,3 @@ export function process ( data: number[], counter: number )
 
     return true
 }
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 96.js')
-
-

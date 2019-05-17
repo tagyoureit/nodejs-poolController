@@ -19,11 +19,6 @@
 import { settings, logger, circuit } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 134.js')
-
-
 export function process ( data: number[], counter: number )
 {
     circuit.requestUpdateCircuit( data[ constants.packetFields.FROM ], data[ constants.packetFields.DEST ], data[ 6 ], data[ 7 ], counter )
@@ -32,10 +27,3 @@ export function process ( data: number[], counter: number )
 
     return decoded
 }
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 134.js')
-
-

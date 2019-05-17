@@ -90,7 +90,7 @@ describe( 'updates/resets client configClient.json', function ()
 
         beforeEach( async function ()
         {
-            loggers = globalAny.setupLoggerStubOrSpy( 'stub', 'spy' )
+            loggers = globalAny.setupLoggerStubOrSpy( 'spy', 'spy' )
             let fakeObj: IUpdateAvailable.Ijsons = { local: { version: '1.2.3' }, remote: { version: '4.5.6', tag_name: '4.5.6' }, result: 'faked1a!' }
             updateAvailStub = sinon.stub( updateAvailable, 'getResultsAsync' ).returns( Promise.resolve( fakeObj ) )
         } )

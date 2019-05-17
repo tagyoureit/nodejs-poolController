@@ -15,15 +15,11 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
-import * as fs from 'fs';
+
 import { logger, io } from './internal';
 import { testJson } from './testJson';
 import { settings } from './settings';
 import * as _path from 'path'
-import { config } from 'bluebird';
-
-let path = _path.posix
 
 let configClient: Client.IPanelState
 
@@ -111,6 +107,7 @@ export namespace clientConfig
             }
 
             settings.updateClientPanelState( configClient )
+            console.log(`OUTPUTTING ALL SOCKET`)
             io.emitToClients('all')
         }
         catch ( err )

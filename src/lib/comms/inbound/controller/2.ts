@@ -18,14 +18,11 @@
 import { settings, logger, circuit, time, temperature, heat, valve, UOM } from'../../../../etc/internal';
 import * as c from '../../../../etc/constants';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 2.js')
-
-
-
 export function process ( data: number[], counter: number )
 {
+  if ( settings.get( 'logMessageDecoding' ) )
+  logger.debug( `Msg#: ${counter}  Controller Status Packet.  ${data}` );
+
   //Only run through this if there is a change
   if ( JSON.stringify( data ) !== JSON.stringify( circuit.getCurrentStatusBytes() ) )
   {

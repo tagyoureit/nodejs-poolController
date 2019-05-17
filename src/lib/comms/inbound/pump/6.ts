@@ -17,10 +17,6 @@
 
 import { settings, logger, pump } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants';
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: (pump)6.js')
-
 export function process ( data: number[], counter: number )
 {
     var power;
@@ -31,9 +27,3 @@ export function process ( data: number[], counter: number )
     pump.setPowerFromController( power, data[ constants.packetFields.FROM ], data, counter )
 
 }
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: (pump)6.js')
-
-

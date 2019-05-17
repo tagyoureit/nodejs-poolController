@@ -138,7 +138,7 @@ export namespace time
 
     }
 
-    export function updateDateTime ( hour: number, min: number, dayofweek: number, day: number, month: number, year: number, autodst: number, callback?: ( ( func: any ) => {} ) )
+    export function updateDateTime ( hour: number, min: number, dayofweek: number, day: number, month: number, year: number, autodst: number, callback?: ( ( func: any ) => {} ) ): void
     {
         //setControllerDate(dayofweek, day, month, year, autodst)
         //setControllerTime(hour, min)
@@ -204,9 +204,4 @@ export namespace time
     {
         return { 'time': time }
     }
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: time.js')
 }

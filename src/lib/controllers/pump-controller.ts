@@ -18,12 +18,6 @@
 import { pumpAddressToIndex } from '../../etc/pumpAddress';
 import { settings, logger, pump, queuePacket } from'../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: pump-controller.js')
-
-
-
 /* ----- COMMANDS SENT DIRECTLY TO THE PUMP -----*/
 
 //turn pump on/off
@@ -180,13 +174,4 @@ export namespace pumpController
         if ( settings.get( 'logApi' ) ) logger.verbose( 'Sending Request Pump Status: %s', statusPacket )
         queuePacket.queuePacket( statusPacket );
     }
-
-
-    /* ----- COMMANDS SENT DIRECTLY TO THE PUMP END -----*/
-
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: pump-controller.js')
 }

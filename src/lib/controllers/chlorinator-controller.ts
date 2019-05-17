@@ -20,10 +20,6 @@ import { settings, logger, chlorinator, queuePacket } from '../../etc/internal';
 let chlorinatorTimer: NodeJS.Timeout, isRunning:ZeroOrOne = 0;
 let alreadyChecked: boolean = false;
 
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: chlorinator-controller.js')
 export namespace chlorinatorController
 {
     export function isChlorinatorTimerRunning (): 0|1
@@ -109,8 +105,4 @@ export namespace chlorinatorController
         }
 
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: chlorinator-controller.js')
 }

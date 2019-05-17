@@ -24,11 +24,6 @@ import { UriOptions } from 'request';
 import * as fs from 'fs';
 import { clientConfig } from './client-config-editor';
 
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: updateAvail.js')
-
 var userAgent = 'tagyoureit-nodejs-poolController-app',
 
     gitApiHost = 'api.github.com',

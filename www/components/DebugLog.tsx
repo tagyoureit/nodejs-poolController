@@ -2,7 +2,7 @@ import
 {
     Row, Col, Button, ButtonGroup, ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem
 } from 'reactstrap';
-import './rangeslider.css'
+import '../css/rangeslider.css'
 
 import CustomCard from './CustomCard'
 import * as React from 'react';

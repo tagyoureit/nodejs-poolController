@@ -228,12 +228,4 @@ export namespace pumpControllerMiddleware
         logger.warn( 'FAIL: Request to set pump %s (address: %s) to Program %s for @ %s RPM for %s minutes', index, address, program, speed, duration );
         return false
     }
-
-
-    /* -----API, SOCKET OR INTERNAL FUNCTION CALLS -----*/
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: pump-controller-middleware.js')
 }

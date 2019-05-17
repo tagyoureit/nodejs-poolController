@@ -18,10 +18,9 @@
 
 
 
-import { settings, logger, customNames, intellitouch, queuePacket, temperature, io } from '../../etc/internal';
+import { settings, logger, customNames, intellitouch, queuePacket, temperature, io, influx } from '../../etc/internal';
 import * as constants from '../../etc/constants';
 
-import * as influx from '../comms/influx-connector';
 import * as deepdiff from 'deep-diff';
 var _ = require( 'underscore' );
 
@@ -565,7 +564,7 @@ export namespace circuit
                     currentCircuitArrObj[ circuit ].assignCircuitVars( circuitArrObj )
                 } else
                 {
-                    logger.debug( 'Msg# %s  No change in circuit %s', counter, circuit )
+                    logger.debug( 'Msg# %s No change in circuit %s', counter, circuit )
                 }
 
             }
@@ -789,7 +788,7 @@ export namespace circuit
             if ( currentCircuitArrObj[ key ].circuitFunction === 'Intellibrite' )
             {
 
-                // TODO: not exactly sure what the param does here.  Doesn't seem to apply to the light groups.  Is the lightGroup ever another number besides 0?
+                // NOTE: not exactly sure what the param does here.  Doesn't seem to apply to the light groups.  Is the lightGroup ever another number besides 0?
 
                 if ( color === 0 )
                 {

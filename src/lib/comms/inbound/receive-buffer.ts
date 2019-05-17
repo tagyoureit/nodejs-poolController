@@ -15,23 +15,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { settings, logger, packetBuffer, decodeHelper, intellitouch } from'../../../etc/internal'
+import { settings, logger, packetBuffer, decodeHelper, intellitouch } from '../../../etc/internal'
 import * as constants from '../../../etc/constants';
 
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: receive-buffer.js')
 
 var processingBuffer = {
     processingBuffer: false
 }
-var bufferToProcess:number[] = []
+var bufferToProcess: number[] = []
 var msgCounter = {
     counter: 0
 }
 
-var iterateTimer:NodeJS.Timeout;  // timer to check for new packets
+var iterateTimer: NodeJS.Timeout;  // timer to check for new packets
 export namespace receiveBuffer
 {
     export function getCurrentMsgCounter ()
@@ -57,9 +53,9 @@ export namespace receiveBuffer
         // es3 bufferToProcess.push.apply(bufferToProcess, tempPkt)
         bufferToProcess.push( ...tempPkt ) // es6
         //bufferToProcess.push.apply(bufferToProcess, packetBuffer.pop())
-        if ( settings.get( 'logMessageDecoding' ) )
-            logger.silly( 'pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT packetBuffer to BTP' )
-
+        /*         if ( settings.get( 'logMessageDecoding' ) )
+                    logger.silly( 'pBTA: bufferToProcess length>0;  bufferArrayOfArrays>0.  CONCAT packetBuffer to BTP' )
+         */
     }
 
     export function iterateOverArrayOfArrays ()
@@ -76,10 +72,10 @@ export namespace receiveBuffer
 
         pushBufferToArray()
 
-        if ( logMessageDecoding )
+        /* if ( logMessageDecoding )
         {
             logger.silly( 'iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess );
-        }
+        } */
 
 
         while ( bufferToProcess.length > 0 && !breakLoop )
@@ -98,34 +94,34 @@ export namespace receiveBuffer
 
                 } else if ( ( bufferToProcess.length - chatterlen ) <= 0 )
                 {
-                    if ( logMessageDecoding )
+/*                     if ( logMessageDecoding )
                         logger.silly( 'Msg#  n/a   Incomplete message in bufferToProcess. %s', bufferToProcess )
-                    if ( packetBuffer.length() > 0 )
+ */                    if ( packetBuffer.length() > 0 )
                     {
                         pushBufferToArray()
                     } else
                     {
-                        if ( logMessageDecoding ) logger.silly( 'iOAOA: Setting breakLoop=true because (bufferToProcess.length(%s) - chatterlen) <= 0(%s): %s', bufferToProcess.length, chatterlen === undefined || ( ( bufferToProcess.length - chatterlen ), chatterlen === undefined || ( bufferToProcess.length - chatterlen ) <= 0 ) )
-                        breakLoop = true //do nothing, but exit until we get a second buffer to concat
+/*                         if ( logMessageDecoding ) logger.silly( 'iOAOA: Setting breakLoop=true because (bufferToProcess.length(%s) - chatterlen) <= 0(%s): %s', bufferToProcess.length, chatterlen === undefined || ( ( bufferToProcess.length - chatterlen ), chatterlen === undefined || ( bufferToProcess.length - chatterlen ) <= 0 ) )
+ */                        breakLoop = true //do nothing, but exit until we get a second buffer to concat
                     }
                 } else
                     if ( chatterlen === undefined || isNaN( chatterlen ) )
                     {
-                        if ( logMessageDecoding )
+/*                         if ( logMessageDecoding )
                             logger.silly( 'Msg#  n/a   chatterlen NaN: %s.', bufferToProcess )
-                        if ( packetBuffer.length() > 0 )
+ */                        if ( packetBuffer.length() > 0 )
                         {
                             pushBufferToArray()
                         } else
                         {
-                            if ( logMessageDecoding ) logger.silly( 'iOAOA: Setting breakLoop=true because isNan(chatterlen) is %s.  bufferToProcess:', chatterlen, bufferToProcess )
+                            // if ( logMessageDecoding ) logger.silly( 'iOAOA: Setting breakLoop=true because isNan(chatterlen) is %s.  bufferToProcess:', chatterlen, bufferToProcess )
                             breakLoop = true //do nothing, but exit until we get a second buffer to concat
                         }
                     } else
                     {
-                        if ( logMessageDecoding )
+/*                         if ( logMessageDecoding )
                             logger.silly( 'iOAOA: Think we have a packet. bufferToProcess: %s  chatterlen: %s', bufferToProcess, chatterlen )
-                        msgCounter.counter += 1;
+ */                        msgCounter.counter += 1;
                         bufferToProcess.shift() //remove the 255 byte
                         chatter = bufferToProcess.splice( 0, chatterlen ); //splice modifies the existing buffer.  We remove chatter from the bufferarray.
 
@@ -134,7 +130,7 @@ export namespace receiveBuffer
                         if ( ( ( chatter[ 2 ] >= constants.ctrl.PUMP1 && chatter[ 2 ] <= constants.ctrl.PUMP16 ) ) || ( chatter[ 3 ] >= constants.ctrl.PUMP1 && chatter[ 3 ] <= constants.ctrl.PUMP16 ) )
                         {
                             packetType = 'pump'
-                            if ( logMessageDecoding && settings.get( 'logPumpMessages' ) )
+                            if ( logMessageDecoding )
                                 logger.debug( 'Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter )
                         } else
                         {
@@ -183,7 +179,7 @@ export namespace receiveBuffer
                             chatter.push( bufferToProcess[ i + 1 ] );
                             i += 2;
                             msgCounter.counter += 1;
-                            if ( logMessageDecoding && settings.get( 'logChlorinator' ) )
+                            if ( logMessageDecoding )
                                 logger.debug( 'Msg# %s  Incoming %s packet: %s', msgCounter.counter, packetType, chatter )
                             decodeHelper.processChecksum( chatter, msgCounter.counter, 'chlorinator' );
                             bufferToProcess.splice( 0, i )
@@ -199,31 +195,31 @@ export namespace receiveBuffer
             }
 
         }
-        if ( settings.get( 'logMessageDecoding' ) )
-            logger.silly( 'iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\npacketBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, packetBuffer.length(), bufferToProcess.length, packetBuffer.length() === 0 && bufferToProcess.length > 0 )
+        /*         if ( settings.get( 'logMessageDecoding' ) )
+                    logger.silly( 'iOAOA: Criteria for recursing/exting.  \nbreakLoop: %s\npacketBuffer.length()(%s) === 0 && bufferToProcess.length(%s) > 0: %s', breakLoop, packetBuffer.length(), bufferToProcess.length, packetBuffer.length() === 0 && bufferToProcess.length > 0 ) */
         if ( breakLoop )
         {
             processingBuffer.processingBuffer = false;
-            if ( logMessageDecoding )
+/*             if ( logMessageDecoding )
                 logger.silly( 'iOAOA: Exiting because breakLoop: %s', breakLoop )
-        } else
+ */        } else
             if ( bufferToProcess.length > 0 )
             {
-                if ( logMessageDecoding )
+/*                 if ( logMessageDecoding )
                     logger.silly( 'iOAOA: Recursing back into iOAOA because no bufferToProcess.length > 0: %s', bufferToProcess.length > 0 )
-                iterateOverArrayOfArrays()
+ */                iterateOverArrayOfArrays()
             } else
                 if ( packetBuffer.length() === 0 )
                 {
                     processingBuffer.processingBuffer = false;
-                    if ( logMessageDecoding )
-                        logger.silly( 'iOAOA: Exiting out of loop because no further incoming buffers to append. packetBuffer.length() === 0 (%s) ', packetBuffer.length() === 0 )
-
+                    /*                     if ( logMessageDecoding )
+                                            logger.silly( 'iOAOA: Exiting out of loop because no further incoming buffers to append. packetBuffer.length() === 0 (%s) ', packetBuffer.length() === 0 )
+                     */
                 } else
                 {
-                    if ( logMessageDecoding )
+/*                     if ( logMessageDecoding )
                         logger.silly( 'iOAOA: Recursing back into iOAOA because no other conditions met.' )
-                    iterateOverArrayOfArrays()
+ */                    iterateOverArrayOfArrays()
                 }
     }
 
@@ -241,10 +237,6 @@ export namespace receiveBuffer
     {
         return bufferToProcess.length
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: receive-buffer.js')
 
     export function clear ()
     {

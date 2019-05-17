@@ -15,25 +15,16 @@ declare namespace ScheduleModule
 
     interface ScheduleClass
     {
-        CIRCUIT: string;
-        CIRCUITNUM: number;
-        BYTES: number[];
-        ID: number;
-        MODE: SchedType;
-        START_TIME: string;
-        END_TIME: string;
-        DURATION: string;
+        circuit: string;
+        circuitNum: number;
+        bytes: number[];
+        id: number;
+        mode: SchedType;
+        duration: string;
         friendlyName: string;
-        DAYS: string;
-        // mode: number;
-        // modeStr: string;
+        days: string;
         startTime: ITime.BaseTime;
         endTime: ITime.BaseTime
     }
-
-
-
     type Packet = number[]
-
-
 }

@@ -17,11 +17,6 @@
 
 //Set Intellichlor status
 import { settings, logger } from'../../../../etc/internal';
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 35.js')
-
 var pumpOffDuringValveOperation = -1
 
 export function process ( data: number[], counter: number )
@@ -46,9 +41,3 @@ export function process ( data: number[], counter: number )
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 35.js')

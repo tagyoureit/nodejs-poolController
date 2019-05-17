@@ -21,10 +21,6 @@ import * as intellicenter_164 from './intellicenter/164'
 import * as intellicenter_204 from './intellicenter/204'
 import { settings, logger } from'../../../etc/internal'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: process-controller.js')
-
 
 export function processIntellicenterPacket ( data: number[], counter: number )
 {
@@ -241,12 +237,3 @@ export function processIntellicenterPacket ( data: number[], counter: number )
   }
   return decoded
 }
-
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: process-controller.js')
-
-
-

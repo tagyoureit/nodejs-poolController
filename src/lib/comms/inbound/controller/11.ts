@@ -19,11 +19,6 @@
 import { settings, logger, circuit } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 11.js')
-
-
 export function process ( data: number[], counter: number )
 {
 
@@ -33,8 +28,3 @@ export function process ( data: number[], counter: number )
     circuit.setCircuitFromController( circuitNum, data[ constants.namePacketFields.NAME ], data[ constants.namePacketFields.CIRCUITFUNCTION ], counter )
     return true
 }
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: 11.js')
-

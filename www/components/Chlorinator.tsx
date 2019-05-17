@@ -60,8 +60,20 @@ class Chlorinator extends React.Component<Props, any> {
         setHeatSetPoint(this.props.data.name, this.state.setPoint)
     }
 
-    render() {
+    render ()
+    {
         const closeBtn = <button className="close" onClick={this.toggle}>&times;</button>;
+        let chlorStatus = 'Off'
+        if ( this.props.data.currentOutput >= 100 )
+        {
+            chlorStatus = `Super Chlorinate (${this.props.data.superChlorinateHours} hours)`
+        } else if( this.props.data.currentOutput>0 ){
+           chlorStatus =  'On'
+        }  
+        else
+        {
+            chlorStatus = 'Off'
+        }
 
         if (this.props.data.hasOwnProperty('name')) {
             return (
@@ -71,7 +83,7 @@ class Chlorinator extends React.Component<Props, any> {
                         <Row>
                             <Col xs="6">{this.props.data.name}</Col>
                             <Col>
-                                <Button onClick={this.toggle} color={this.props.data.currentOutput>0 ? 'success' : 'primary'}>{this.props.data.currentOutput>=100 ? (this.props.data.superChlorinate ? `SuperChlorinate (${this.props.data.superChlorinateHours})` : 'On') : 'Off'}</Button>
+                                <Button onClick={this.toggle} color={this.props.data.currentOutput>0 ? 'success' : 'primary'}>{chlorStatus}</Button>
                             </Col>
                         </Row>
 

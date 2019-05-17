@@ -19,11 +19,6 @@
 import { settings, logger } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: intellicenter_30_2.js')
-
-
 export function process ( data: number[], counter: number )
 {
 
@@ -35,10 +30,3 @@ export function process ( data: number[], counter: number )
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //   logger.info('Loaded: intellicenter_30_2˝.js')
-

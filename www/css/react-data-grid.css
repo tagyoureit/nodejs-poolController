@@ -1,0 +1,9 @@
+.customDataGrid .react-grid-Cell {
+    padding-left: 4px;
+    padding-right: 0px
+}
+
+.customDataGrid .react-grid-HeaderCell {
+    padding-left: 4px;
+    padding-right: 0px
+}

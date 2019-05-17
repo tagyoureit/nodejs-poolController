@@ -86,7 +86,7 @@ export namespace logger
                 winston.format.splat(),
                 winston.format.simple(),
                 myFormat)
-        } ),
+        } )
 
     };
 
@@ -101,11 +101,6 @@ export namespace logger
 
         _logger = winston.createLogger( {
             level: 'error',
-            
-    
-
-
-
             //handleExceptions: true,  <-- add back when TS is updated
             exitOnError: false,
             transports: [ _transports.console ]

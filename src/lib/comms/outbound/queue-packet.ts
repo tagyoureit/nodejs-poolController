@@ -18,10 +18,6 @@
 import { settings, logger, sp, writePacket, packetBuffer, intellitouch } from'../../../etc/internal';
 import * as constants from '../../../etc/constants';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: queue-packet.js')
-
 
 var queuePacketsArr: number[][] = []; //array to hold messages to send
 export namespace queuePacket
@@ -258,9 +254,4 @@ export namespace queuePacket
         }
 
     }
-
-
-    /*istanbul ignore next */
-    //     if (logModuleLoading)
-    //         logger.info('Loaded: queue-packet.js')
 }

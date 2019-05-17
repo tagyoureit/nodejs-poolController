@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { getAll, emitSocket, hidePanel } from '../components/Socket_Client';
-import Layout from '../components/Layout';
-import SysInfo from '../components/SysInfo'
-import PoolSpaState from '../components/PoolSpaState'
-import Pump from '../components/Pump'
-import Feature from '../components/Feature'
-import Schedule from '../components/Schedule'
-import EggTimer from '../components/EggTimer'
-import Chlorinator from '../components/Chlorinator'
-import ShouldDisplay from '../components/ShouldDisplay'
-import Light from '../components/Light'
-import DebugLog from '../components/DebugLog'
-
+import { getAll, emitSocket, hidePanel } from './Socket_Client';
+import Layout from './Layout';
+import SysInfo from './SysInfo'
+import PoolSpaState from './PoolSpaState'
+import Pump from './Pump'
+import Feature from './Feature'
+import Schedule from './Schedule'
+import EggTimer from './EggTimer'
+import Chlorinator from './Chlorinator'
+import ShouldDisplay from './ShouldDisplay'
+import Light from './Light'
+import DebugLog from './DebugLog'
+import Footer from './Footer'
 
 
 
@@ -29,7 +29,6 @@ interface IPoolControllerState
     circuit?: Circuit.ICurrentCircuitsArr;
     feature?: Circuit.ICurrentCircuitsArr;
 
-
     counter?: number;
     chlorinator?: Chlorinator.IBaseChlorinator,
     UOM?: string;
@@ -46,7 +45,7 @@ interface IPoolControllerState
 
 let state: IPoolControllerState;
 
-class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
+class Utilities extends React.Component<any, IPoolControllerState> {
     constructor( props: IPoolControllerState )
     {
         super( props );
@@ -167,7 +166,7 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
                     minute: 0,
                     hour: 0,
                     hour24: 0,
-                    meridiem: 'AM',
+                    meridiem: 'am',
                     UTC: 'none',
                     locale: 'none',
                     ISO: 'none',
@@ -247,8 +246,8 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
 
         getAll( ( err: Error, d: any, which: string ) =>
         {
-
-            let pendingChanges: IPoolControllerState = {}
+            console.log(`received ${which}`)
+            let pendingChanges: IPoolControllerState = {...this.state}
 
             if ( err )
             {
@@ -400,11 +399,12 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'chlorinator' || which === 'all' )
             {
+                console.log(`chlorinator Obj: ${JSON.stringify(d.chlorinator,null,2)}`)
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     chlorinator:
                     {
                         ...d.chlorinator,
-                        state: d.currentOutput === '0' ? false : true
+                        state: d.chlorinator.currentOutput === '0' ? false : true
                     }
                 } )
             }
@@ -438,12 +438,12 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
                
             }
 
-            if ( Date.now() - lastUpdateTime > 1000 )
-            {
+            // if ( Date.now() - lastUpdateTime > 1000 )
+            // {
                 lastUpdateTime = Date.now()
                 // set counter +1 for resetting time keeping
                 pendingChanges = Object.assign( {}, pendingChanges, { counter: this.state.counter + 1 } )
-            }
+            // }
 
             // and finally, apply pending changes
             this.setState( ( state ) =>
@@ -457,14 +457,11 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
 
     }
 
-
-
-
     scheduleEntries ( schedule: ScheduleModule.ScheduleObj )
     {
         const entries = Object.keys( schedule )
         //console.log(entries[1][1].name)
-        const filter = entries.filter( key => !( schedule[ parseInt( key ) ].CIRCUITNUM === 0 || schedule[ parseInt( key ) ].MODE === 'Egg Timer' )
+        const filter = entries.filter( key => !( schedule[ parseInt( key ) ].circuitNum === 0 || schedule[ parseInt( key ) ].mode === 'Egg Timer' )
         )
         //console.log(filter)
 
@@ -481,7 +478,7 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
     {
         const entries = Object.keys( schedule )
         //console.log(entries[1][1].name)
-        const filter = entries.filter( key => !( schedule[ parseInt( key ) ].CIRCUITNUM === 0 || schedule[ parseInt( key ) ].MODE === 'Schedule' )
+        const filter = entries.filter( key => !( schedule[ parseInt( key ) ].circuitNum === 0 || schedule[ parseInt( key ) ].mode === 'Schedule' )
         )
         //console.log(filter)
 
@@ -497,8 +494,6 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
 
     circuitsWithoutPoolSpa ( circuit: Circuit.ICurrentCircuits )
     {
-        console.log( `in poolSpa` )
-        console.log( circuit )
         if ( Object.keys( circuit ).length !== 0 )
         {
             const entries = Object.keys( circuit )
@@ -668,8 +663,7 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
     render ()
     {
         return (
-            <Layout counter={this.state.counter} updateStatus={this.state.updateStatus} updateStatusVisibility={this.state.config.client.panelState.updateStatus.state}>
-
+            <Layout counter={this.state.counter} >
                 <ShouldDisplay
                     visibility={this.state.config.client.panelState.system.state}
                     systemReady={this.state.config.systemReady}>
@@ -712,9 +706,10 @@ class NodeJSPoolController extends React.Component<any, IPoolControllerState> {
                 <DebugLog
                     id='debug'
                     visibility={this.state.config.client.panelState.debug.state} debugText={this.state.debugText} clearLog={this.clearLog}/>
+                    <Footer updateStatus={this.state.updateStatus} updateStatusVisibility={this.state.config.client.panelState.updateStatus.state}/>
             </Layout>
         );
     }
 }
 
-export default NodeJSPoolController;
+export default Utilities;

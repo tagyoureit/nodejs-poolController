@@ -15,7 +15,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: Type Declaration Files
 import { logger } from '../etc/internal';
 import * as deepdiff from 'deep-diff';
 import { testJson } from './testJson';
@@ -763,16 +762,13 @@ export namespace settings
         try
         {
             configurationFileContent.equipment.pump[ _pump ].type = _type
-            get( 'pump' )[ _pump ].type = _type //TODO: we should re-read the file from disk at this point?
+            get( 'pump' )[ _pump ].type = _type 
             if ( !testJson( configurationFileContent ) )
             {
                 throw new Error( 'Error with updatePumpType format.  Aborting write.' )
             }
-
             writeConfigFile()
             logger.verbose( 'Updated pump %s type %s', _pump, _type, configurationFileContent )
-            //pump.init()
-            //pumpControllerTimers.startPumpController()
 
         }
         catch ( err )
@@ -800,21 +796,6 @@ export namespace settings
             logger.warn( 'Error updating pump RPM settings %s: ', configurationFileContent, err )
         }
     }
-
-    // export function updatePumpProgramGPM(_pump, program, gpm) {
-    //     return Promise.resolve()
-    //         .then(function() {
-    //             configurationFileContent.equipment.pump[_pump].programGPM[program] = gpm  //TODO: this does not exist.  can we get rid of it?
-    //             return fs.writeFileAsync(configurationFileContent, JSON.stringify(config, null, 4), 'utf-8')
-    //         })
-    //         .then(function() {
-    //             logger.verbose('Updated pump GPM settings %s', configurationFileContent)
-    //         })
-    //         .catch(function(err) {
-    //             logger.warn('Error updating config GPM pump settings %s: ', configurationFileContent, err)
-    //         })
-    // }
-
 
     export function updateVersionNotificationSetting ( dismissUntilNextRemoteVersionBump:boolean, _remote?:IUpdateAvailable.IJsonsRemote): void
     {

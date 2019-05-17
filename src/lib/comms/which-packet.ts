@@ -17,11 +17,6 @@
 
 import * as constants from '../../etc/constants';
 
-
-  /*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loading: which-packet.js')
-
 export namespace whichPacket
 {
   export function outbound ( packet: number[] )
@@ -54,13 +49,4 @@ export namespace whichPacket
       return 'controller'
     }
   }
-
-  /*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: which-packet.js')
-
-  // return {
-  //   outbound: outbound,
-  //   inbound: inbound
-  // }
 }

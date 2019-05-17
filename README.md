@@ -25,8 +25,15 @@ Temperature => no more heat/temp/temperatures.  Only temperature.
 
 * Updated mocha/nyc test runner.  Uses ts-node to transpile in place
 
-* Schedule time output now includes startTime/endTime... upgrade to new camelCase for consistency with other modules.
+* Schedule time output is all camelCase and  includes startTime/endTime as objects... upgrade to new camelCase for consistency with other modules.
 
+* Sourcemaps, Parcel, Typescript, ts-node, React
+
+* Removed `/setSchedule`.  Use `/schedule/set`.
+
+ //TODO: Document better here...
+ //TODO: make sure all NPM scripts work
+//TODO: include VS Code files so others can run in IDE
 # License
 
 nodejs-poolController.  An application to control pool equipment.
@@ -73,6 +80,7 @@ Extend nodejs-Poolcontroller with these additional integration points
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
+* [poolBlynkLink](https://github.com/rerouted/poolBlynkLink) is a Blynk app that communicates with this app by @rerouted.
 
 ***
 

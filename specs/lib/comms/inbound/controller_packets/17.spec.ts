@@ -10,11 +10,11 @@ let updateAvailStub: sinon.SinonStub;
 
 describe( 'processes 17 (Schedule) packets', function ()
 {
-    let data = [
-        Buffer.from( [ 255, 0, 255, 165, 16, 15, 16, 17, 7, 1, 6, 9, 25, 15, 55, 255, 2, 90 ] )
-    ]
+    // let data = [
+    //     Buffer.from( [ 255, 0, 255, 165, 16, 15, 16, 17, 7, 1, 6, 9, 25, 15, 55, 255, 2, 90 ] )
+    // ]
 
-    let equip = 'controller'
+    // let equip = 'controller'
 
     describe( '#When packets arrive', function ()
     {
@@ -53,9 +53,9 @@ describe( 'processes 17 (Schedule) packets', function ()
                 } )
                 await globalAny.wait( 200 )
                 let json = schedule.getCurrentSchedule().schedule
-                json[ 1 ].ID.should.equal( 1 )
-                json[ 1 ].START_TIME.should.equal( "09:20" )
-                json[ 1 ].CIRCUITNUM.should.equal( 6 )
+                json[ 1 ].id.should.equal( 1 )
+                json[ 1 ].startTime.time24.should.equal( "09:20" )
+                json[ 1 ].circuitNum.should.equal( 6 )
             } )
         } )
     } )

@@ -64,11 +64,6 @@ export namespace intellichem
 {
     var intellichem: any = {}
 
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: intellichem.js')
-
     var intellichemPresent = 0;
 
     export function calculateCalciumHardnessFactor ()
@@ -223,10 +218,4 @@ export namespace intellichem
         }
         logger.debug( 'Initialized intellichem module' )
     }
-
-
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: intellichem.js')
 }

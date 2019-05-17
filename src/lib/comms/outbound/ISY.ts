@@ -15,28 +15,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//var NanoTimer = require('nanotimer');
-//var ISYTimer = new NanoTimer();
 import { settings, logger, pump, chlorinator } from'../../../etc/internal';
 import request =require('request')
 
-    var ISYConfig = settings.get('ISYConfig')
-    var ISYTimer //= new nanotimer
-
-    //var ISYConfig; //object to hold ISY variables.
-    //TODO: We don't need to assign this anymore.  Can use the bottle... to access it directly.
-    //ISYConfig = JSON.parse(JSON.stringify(s.ISYConfig))
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loading: ISY.js')
-
-
+var ISYConfig = settings.get( 'ISYConfig' )
+let ISYTimer: NodeJS.Timeout;
 
     function send(connectionString: any, logger: any) {
-        //var request = require('request')
-
-
         request(connectionString, function(error: any, response: any, body: any) {
             if (error) {
                 logger.error('ISY: Error writing ISY Request: %s  (value: %s)', error, connectionString)
@@ -79,8 +64,3 @@ import request =require('request')
             }
         }
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: ISY.js')
-

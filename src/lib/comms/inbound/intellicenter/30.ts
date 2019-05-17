@@ -23,11 +23,6 @@ import * as intellicenter_30_2 from './30_2';
 import * as intellicenter_30_12 from './30_12';
 import * as intellicenter_30_15 from './30_15';
 
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: intellicenter_30.js')
-
 const subAction = 6;
 
 export function process ( data: number[], counter: number )
@@ -82,10 +77,3 @@ export function process ( data: number[], counter: number )
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //   logger.info('Loaded: intellicenter_30.js')
-

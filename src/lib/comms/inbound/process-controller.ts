@@ -42,10 +42,6 @@ import * as controller_get from './controller/get';
 import * as common_7 from '../inbound/common/7';
 
 
-  /*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loading: process-controller.js')
-
 export namespace processController
 {
   export function processControllerPacket ( data: number[], counter: number )
@@ -254,11 +250,4 @@ export namespace processController
     }
     return decoded
   }
-
-
-
-  /*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: process-controller.js')
-
 }

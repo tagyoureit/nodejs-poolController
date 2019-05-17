@@ -15,13 +15,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//TODO: make an 'update' function so poolHeatModeStr/spaHeatModeStr update when we set the corresponding modes.
-
 import { server, settings, logger, sp, pumpControllerTimers, chlorinator, chlorinatorController, time, heat, pump, schedule, circuit, customNames, intellitouch, temperature, UOM, valve } from './internal'
 
-/*istanbul ignore if */
-// if (logModuleLoading)
-//     logger.info('Loading: reload.js')
 export namespace reload
 {
     export async function stopAsync ()
@@ -54,7 +49,7 @@ export namespace reload
     }
 
     // export async function reloadAsync ( from?: string, callback?: () => {} )
-    export async function reloadAsync ( from?: string)
+    export async function reloadAsync ( from?: string )
     {
         //reset is a variable to also reset the status of objects.
         var reloadStr = 'Reloading settings.  Stopping/Starting Serialport.  Pool, Pump and Chlorinator controllers will be re-initialized \r\n \
@@ -107,23 +102,5 @@ export namespace reload
         {
             logger.error( 'Error reloading services:', err )
         }
-
-        // return res
-        // if ( callback !== undefined )
-        // {
-        //     return res
-        // }
-
-        // logger.info( res )
-
-
     }
-
-
-
-
-    /*istanbul ignore if */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: reload.js')
-
 }

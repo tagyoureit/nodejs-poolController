@@ -46,9 +46,6 @@ import { settings, logger, queuePacket, intellitouch, io } from '../../etc/inter
  */
 
 var currentHeat: HeatModule.CurrentHeat;
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: heat.js')
 export namespace heat
 {
     class Heat implements HeatModule.CurrentHeat
@@ -166,7 +163,7 @@ export namespace heat
 
             if ( newHeatSameAsExistingHeat( heat ) )
             {
-                logger.debug( 'Msg# %s   Pool/Spa heat set point HAS NOT CHANGED:  pool heat mode: %s @ %s degrees; spa heat mode %s at %s degrees', counter, currentHeat.poolHeatModeStr, currentHeat.poolSetPoint, currentHeat.spaHeatModeStr, currentHeat.spaSetPoint )
+                logger.debug( 'Msg# %s  Pool/Spa heat set point HAS NOT CHANGED:  pool heat mode: %s @ %s degrees; spa heat mode %s at %s degrees', counter, currentHeat.poolHeatModeStr, currentHeat.poolSetPoint, currentHeat.spaHeatModeStr, currentHeat.spaSetPoint )
             } else
             {
 
@@ -388,9 +385,4 @@ export namespace heat
             logger.debug( 'Msg#: %s  Settings/Manual heat packet.  Manual Heat %s  Full packet: %s', counter, spaManualHeatMode, data );
 
     }
-
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: heat.js')
-
 }

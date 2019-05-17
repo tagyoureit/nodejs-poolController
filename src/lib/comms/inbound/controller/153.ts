@@ -18,10 +18,6 @@
 //Set Intellichlor status
 import { settings, logger } from'../../../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: 153.js')
-
 export function process ( data:number[], counter:number )
 {
 
@@ -30,8 +26,3 @@ export function process ( data:number[], counter:number )
     var decoded = true;
     return decoded
 }
-
-
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loaded: 153.js')

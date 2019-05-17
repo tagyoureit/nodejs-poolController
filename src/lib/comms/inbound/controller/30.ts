@@ -18,10 +18,6 @@
 //Set Intellichlor status
 import { settings, logger, circuit } from '../../../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 30.js')
-
 export function process ( data: number[], counter: number )
 {
   // set packet:

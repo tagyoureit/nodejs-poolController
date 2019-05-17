@@ -19,19 +19,14 @@ import { settings, logger, queuePacket, writePacket } from '../../etc/internal'
 import * as events from 'events';
 import * as net from 'net';
 //const SerialPort = require('serialport')
-// import * MockBinding  from '@serialport/binding-mock';
 
 import SerialPort = require( 'serialport' );
 const MockBinding = require( '@serialport/binding-mock' )
 
-
-//let MockBinding = new _MockBinding()
 var connectionTimer: NodeJS.Timeout;
 var useMockBinding = false
 var _isOpen = false // net.socket does not have a native open property/function call
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: sp-helper.js')
+
 var emitter = new events.EventEmitter();
 
 // let serialport: SerialPort;
@@ -255,29 +250,12 @@ export namespace sp
                     }
                 } )
                 serialport.destroy();
-
-
                 logger.debug( `Serialport destroyed on port ${ tempPort }.` )
             }
             else if ( _isOpen )
             {
-                // // TODO: following was over complicated due to testing inaccuracies.  Might be able to simplify this moving forward.
-                // if ( serialport !== undefined )
-                // {
-                // if ( commType === 'sp' )
-                // {
-                //     if ( !serialport.destroy )
-                //     {
-
-
-                //     }
-                // } else
-                // {
                 netsocket.destroy()
                 logger.debug( 'Net socket closed' )
-                // }
-
-                // }
             }
             else
             {
@@ -310,7 +288,12 @@ export namespace sp
         return emitter
     }
 
-    /*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: serialport-helper.js')
+    export function getLastWriteMockSP ():number[]
+    {
+        return (<any>serialport).binding.lastWrite.toJSON().data
+    }
+    export function mockSPFlush (): void
+    {
+        serialport.flush()
+    }
 }

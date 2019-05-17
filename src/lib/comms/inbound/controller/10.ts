@@ -18,14 +18,9 @@
 //Get Custom Names
 import { settings, logger, customNames} from'../../../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loaded: 10.js')
-
 export function process ( data: number[], counter: number )
 {
 
-  //TODO: move to constants
   var customNameArrBytes = {
     "circuit": 6
   }

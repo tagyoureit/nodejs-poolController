@@ -13,11 +13,11 @@ import
     Button,
     Tooltip
 } from 'reactstrap';
-import { S_IFREG } from 'constants';
+
 interface Props
 {
-    updateStatus: IUpdateAvailable.Ijsons
-    updateStatusVisibility: string
+    updateStatus: IUpdateAvailable.Ijsons,
+    updateStatusVisibility: string,
 }
 interface State
 {
@@ -77,7 +77,7 @@ class Footer extends React.Component<Props, State> {
             }
             else if ( this.props.updateStatus.result === 'local_is_newer' )
             {
-                color = 'danger'
+                color = 'info'
             }
             else if ( this.props.updateStatus.result === 'local_is_older' )
             {

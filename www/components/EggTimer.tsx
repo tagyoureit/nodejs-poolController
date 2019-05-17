@@ -41,13 +41,13 @@ class EggTimer extends React.Component<Props, any> {
             {
 
                 return (
-                    <Row key={k[ 1 ].ID + 'row'}>
-                        <Col xs="4" key={k[ 1 ].ID + 'col'}>
-                            {k[ 1 ].friendlyName} ({k[ 1 ].ID})
+                    <Row key={k[ 1 ].id + 'row'}>
+                        <Col xs="4" key={k[ 1 ].id + 'col'}>
+                            {k[ 1 ].friendlyName} ({k[ 1 ].id})
 
                         </Col>
                         <Col>
-                            {this.formatDuration( k[ 1 ].DURATION )}
+                            {this.formatDuration( k[ 1 ].duration )}
                         </Col>
                     </Row>
                 )

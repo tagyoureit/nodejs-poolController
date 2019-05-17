@@ -198,7 +198,8 @@
                     "dismissUntilNextRemoteVersionBump": false
                 }
             }
-        }
+        },
+        "needAppConfiguration": true
     },
     "integrations": {}
 }

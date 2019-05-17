@@ -18,10 +18,6 @@
 //Set Intellichlor status
 import { settings, logger, circuit } from '../../../../etc/internal';
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 32_33.js')
-
 declare interface ISpaSideRemote
 {
   [ key: string ]: any,
@@ -158,8 +154,3 @@ export function getSpaSideRemotes (): ISpaSideRemote
 {
   return spasideRemote
 }
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 32_33.js')

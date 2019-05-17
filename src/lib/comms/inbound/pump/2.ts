@@ -17,12 +17,6 @@
 import { logger } from '../../../../etc/internal';
 
 
-/*istanbul ignore next */
-// if (logModuleLoading)
-//     logger.info('Loading: (pump)2.js')
-
-
-
 export function process ( data:number[], counter:number )
 {
     logger.info( 'in pump area 2: ', data )
@@ -30,10 +24,3 @@ export function process ( data:number[], counter:number )
     var decoded = true;
     return decoded
 }
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //     logger.info('Loaded: (pump)2.js')
-
-
-

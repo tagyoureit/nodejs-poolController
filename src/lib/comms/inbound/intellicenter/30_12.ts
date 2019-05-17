@@ -18,25 +18,14 @@
 //Set Intellichlor status
 import { settings, logger } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: intellicenter_30_12.js')
-
 
 export function process ( data: number[], counter: number )
 {
 
   //      intellicenterCircuits.setCircuitFunction()
 
-
   if ( settings.get( 'logMessageDecoding' ) )
     logger.debug( `Msg#: ${ counter }:  ${ constants.intellicenterPackets[ data[ 6 ] ] } \n\tFull packet: $s`, data );
 
   return true
 }
-
-
-
-/*istanbul ignore next */
-    // if (logModuleLoading)
-    //   logger.info('Loaded: intellicenter_30_12˝.js')

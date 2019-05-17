@@ -18,9 +18,6 @@
 //Get Intellichlor status
 import { settings, logger } from'../../../../etc/internal';
 import * as constants from '../../../../etc/constants'
-/*istanbul ignore next */
-// if (logModuleLoading)
-//   logger.info('Loading: 217.js')
 
 export function process ( data: number[], counter: number )
 {
@@ -33,12 +30,5 @@ export function process ( data: number[], counter: number )
     logger.verbose( 'Msg# %s   Controller packet is a %s packet: %s', counter, currentAction, data )
   }
 
-
   return true;
 }
-
-
-/*istanbul ignore next */
-  // if (logModuleLoading)
-  //   logger.info('Loaded: 217.js')
-
