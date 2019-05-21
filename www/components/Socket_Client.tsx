@@ -11,19 +11,19 @@ function emitSocket ( which: string )
     socket.emit( which )
 }
 
-function getAll ( cb:any )
+function getAll ( cb: any )
 {
 
-    console.log(`in getall`)
+    console.log( `in getall` )
 
     if ( !subscribed )
     {
         //console.log(`SUBSCRIBING!`)
         //socket.emit('all');
 
-        socket.on( 'all', ( data:WWW.IPoolOrSpaState ) =>
+        socket.on( 'all', ( data: WWW.IPoolOrSpaState ) =>
         {
-            console.log(`all socket!`)
+            console.log( `all socket!` )
             let milli = Date.now() - lastUpdateTime;
             lastUpdateTime = Date.now()
             if ( data === null || data === undefined )
@@ -33,7 +33,7 @@ function getAll ( cb:any )
                 cb( null, data, 'all' );
         } )
 
-        socket.on( 'circuit', (data:Circuit.ICurrentCircuitsArr) =>
+        socket.on( 'circuit', ( data: Circuit.ICurrentCircuitsArr ) =>
         {
             // console.log('circuit socket received')
             if ( data === null || data === undefined )
@@ -44,7 +44,7 @@ function getAll ( cb:any )
                 cb( null, data, 'circuit' )
         } )
 
-        socket.on( 'pump', (data: Pump.Equipment) =>
+        socket.on( 'pump', ( data: Pump.Equipment ) =>
         {
             //console.log('pump socket')
             if ( data === null || data === undefined )
@@ -55,7 +55,7 @@ function getAll ( cb:any )
                 cb( null, data, 'pump' )
         } )
 
-        socket.on( 'temperature', (data: Temperature.PoolTemperature) =>
+        socket.on( 'temperature', ( data: Temperature.PoolTemperature ) =>
         {
             if ( data === null || data === undefined )
             {
@@ -65,7 +65,7 @@ function getAll ( cb:any )
                 cb( null, data, 'temperature' )
         } )
 
-        socket.on( 'chlorinator', (data:Chlorinator.IChlorinatorOutput) =>
+        socket.on( 'chlorinator', ( data: Chlorinator.IChlorinatorOutput ) =>
         {
             if ( data === null || data === undefined )
             {
@@ -75,7 +75,7 @@ function getAll ( cb:any )
                 cb( null, data, 'chlorinator' )
         } )
 
-        socket.on( 'intellichem', (data:any) =>
+        socket.on( 'intellichem', ( data: any ) =>
         {
             if ( data === null || data === undefined )
             {
@@ -85,9 +85,8 @@ function getAll ( cb:any )
                 cb( null, data, 'intellichem' )
         } )
 
-        socket.on( 'outputLog', (data:any) =>
+        socket.on( 'outputLog', ( data: any ) =>
         {
-            console.log(`received OutputLog`)
             if ( data === null || data === undefined )
             {
                 console.log( `ALERT: Null socket data received for 'outputLog'` )
@@ -95,9 +94,8 @@ function getAll ( cb:any )
 
                 cb( null, data, 'outputLog' )
         } )
-        socket.on( 'updateAvailable', (data:IUpdateAvailable.Ijsons) =>
+        socket.on( 'updateAvailable', ( data: IUpdateAvailable.Ijsons ) =>
         {
-            console.log(`received updateAvailable`)
             if ( data === null || data === undefined )
             {
                 console.log( `ALERT: Null socket data received for 'outputLog'` )
@@ -108,8 +106,13 @@ function getAll ( cb:any )
 
         socket.on( 'searchResults', function ( data: any )
         {
-            cb(null, data, 'searchResults')
-        });
+            cb( null, data, 'searchResults' )
+        } );
+
+        socket.on( 'schedule', function ( data: any )
+        {
+            cb( null, data, 'schedule' )
+        } );
 
 
         subscribed = 1;
@@ -148,7 +151,7 @@ function setHeatMode ( equip: string, mode: number ): void
     }
 }
 
-function setHeatSetPoint ( equip:string, temp:number ): void
+function setHeatSetPoint ( equip: string, temp: number ): void
 {
     if ( equip.toLowerCase() === 'spa' )
     {
@@ -165,56 +168,81 @@ function setChlorinatorLevels ( poolLevel: number, spaLevel: number, superChlori
     socket.emit( 'setchlorinator', poolLevel, spaLevel, superChlorinateHours )
 }
 
-function hidePanel ( panel:string ): void
+function hidePanel ( panel: string ): void
 {
     socket.emit( 'hidePanel', panel )
 }
 
-function resetPanels () : void
+function resetPanels (): void
 {
-    socket.emit('resetConfigClient')
+    socket.emit( 'resetConfigClient' )
 }
 
-function setLightMode (light: number): void
+function setLightMode ( light: number ): void
 {
-    socket.emit('setLightMode', light)
+    socket.emit( 'setLightMode', light )
 }
 
-function updateVersionNotification (bool: boolean): void
+function updateVersionNotification ( bool: boolean ): void
 {
-    socket.emit('updateVersionNotificationSetting', bool)
+    socket.emit( 'updateVersionNotificationSetting', bool )
 }
 
 function search ( src: number, dest: number, action: number )
 {
-    console.log(`Emitting search start: ${src} ${dest} ${action}`)
-    socket.emit('search','start',src,dest,action)
+    console.log( `Emitting search start: ${ src } ${ dest } ${ action }` )
+    socket.emit( 'search', 'start', src, dest, action )
 }
 
 function searchStop ()
 {
-    socket.emit('search', 'stop')
+    socket.emit( 'search', 'stop' )
 }
 
 function searchLoad ()
 {
-    socket.emit('search','load');
+    socket.emit( 'search', 'load' );
 }
 
-function sendPacket (arrToBeSent: number[][])
+function sendPacket ( arrToBeSent: number[][] )
 {
     socket.emit( 'sendPacket', arrToBeSent )
 }
 
-function receivePacket (arrToBeSent: number[][])
+function receivePacket ( arrToBeSent: number[][] )
 {
-   
-    socket.emit('receivePacket', JSON.stringify(arrToBeSent))
+
+    socket.emit( 'receivePacket', JSON.stringify( arrToBeSent ) )
 }
 
-function receivePacketRaw (packets:number[])
+function receivePacketRaw ( packets: number[] )
 {
-    socket.emit('receivePacketRaw', packets)
+    socket.emit( 'receivePacketRaw', packets )
 }
 
-export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode,  updateVersionNotification, search, searchStop, searchLoad, sendPacket, receivePacket, receivePacketRaw};
+function setLightColor ( circuit: number, color: number )
+{
+    socket.emit( 'setLightColor', circuit, color )
+}
+
+function setLightPosition ( circuit: number, position: number )
+{
+    socket.emit( 'setLightPosition', circuit, position )
+}
+
+function setLightSwimDelay ( circuit: number, position: number )
+{
+    socket.emit( 'setLightSwimDelay', circuit, position )
+}
+
+function setScheduleCircuit ( _id: number, _circuit: number )
+{
+    socket.emit( 'setScheduleCircuit', _id, _circuit )
+}
+
+export function setEggTimer ( _id: number, _circuit: number, _hour: number, _minute: number )
+    {
+    socket.emit( 'setEggTimer', _id, _circuit, _hour, _minute )
+}
+
+export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode, updateVersionNotification, search, searchStop, searchLoad, sendPacket, receivePacket, receivePacketRaw, setLightColor, setLightPosition, setLightSwimDelay, setScheduleCircuit};

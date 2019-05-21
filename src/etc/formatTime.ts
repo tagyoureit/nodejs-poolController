@@ -25,7 +25,10 @@ export function formatTime ( _hour: number | string, _min: number | string )
         {
         hour = parseInt( _hour )
     }
-    else hour = _hour
+    else
+    {
+        hour = _hour
+    }
     if ( typeof _min === 'string' )
     {
         min = parseInt( _min );        
@@ -34,15 +37,14 @@ export function formatTime ( _hour: number | string, _min: number | string )
         min = _min
 
 
-
     let ampm = '';
     if ( hour >= 12 )
     {
-        ampm += "PM";
+        ampm = "PM";
     }
     else
     {
-        ampm += "AM";
+        ampm = "AM";
     }
     if ( hour >= 13 )
         hour = hour - 12;

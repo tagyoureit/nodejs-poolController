@@ -4,7 +4,7 @@ import {
 import CustomCard from './CustomCard'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
-import CustomSlider from '../components/ChlorinatorCustomSlider'
+import ChlorinatorCustomSlider from '../components/ChlorinatorCustomSlider'
 import * as React from 'react';
 import {setHeatSetPoint} from './Socket_Client'
 
@@ -14,24 +14,18 @@ interface Props
     id: string;
     visibility: string;
 }
+interface State
+{
+    modal: boolean
+}
 
-class Chlorinator extends React.Component<Props, any> {
+class Chlorinator extends React.Component<Props, State> {
 
     constructor(props:Props) {
         super(props)
         this.state = {
-            modal: false,
-            outputPoolPercent: this.props.data.outputPoolPercent,
-            outputSpaPercent: this.props.data.outputSpaPercent
+            modal: false
         };
-
-        // if (this.state.outputPoolPercent !== this.props.outputPoolPercent) {
-        //     this.state.outputPoolPercent= this.props.outputPoolPercent
-        // }
-        // if (this.state.outputSpaPercent !== this.props.outputSpaPercent) {
-        //     this.setState({ outputSpaPercent: this.props.outputSpaPercent })
-        // }
-
         this.toggle = this.toggle.bind( this )
 
     }
@@ -45,19 +39,6 @@ class Chlorinator extends React.Component<Props, any> {
         this.setState({
             modal: !this.state.modal
         });
-    }
-
-    changeOutputPoolPercentVal = (outputPoolPercent:number): void => {
-        if (this.state.outputPoolPercent !== outputPoolPercent) {
-
-            this.setState({
-                outputPoolPercent: outputPoolPercent
-            });
-        }
-    };
-
-    changeOutputPoolPercentComplete = () => {
-        setHeatSetPoint(this.props.data.name, this.state.setPoint)
     }
 
     render ()
@@ -78,7 +59,7 @@ class Chlorinator extends React.Component<Props, any> {
         if (this.props.data.hasOwnProperty('name')) {
             return (
                 <div className="tab-pane active" id="chlorinator" role="tabpanel" aria-labelledby="chlorinator-tab">
-                    <CustomCard name='Chlorinator' id={this.props.id} visibility={this.props.visibility}>
+                    <CustomCard name='Chlorinator' id={this.props.id} visibility={this.props.visibility} edit={this.toggle}>
 
                         <Row>
                             <Col xs="6">{this.props.data.name}</Col>
@@ -111,7 +92,7 @@ class Chlorinator extends React.Component<Props, any> {
                         <ModalHeader toggle={this.toggle} close={closeBtn}>Adjust Chlorinator Levels</ModalHeader>
                         <ModalBody>
                           
-                               <CustomSlider {...this.props.data} />
+                               <ChlorinatorCustomSlider {...this.props.data} />
                            
 
                         </ModalBody>

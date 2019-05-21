@@ -1159,13 +1159,14 @@ export namespace circuit
 
                     if ( changed )
                     {
-
+                        // TODO: this emit isn't catching when the light color is changed (setLightColor)
                         emit()
                     }
                     if ( sendInitialBroadcast.initialCircuitsBroadcast === 1 ) influx.writeCircuit( currentCircuitArrObj )
                 }
             }
         }
+        emit()
     }
 
     export function getLightGroup (): Circuit.ILightGroups

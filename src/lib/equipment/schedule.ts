@@ -32,7 +32,7 @@ export namespace schedule
         bytes: number[];
         id: number;
         mode: ScheduleModule.SchedType;
-        duration: string;
+        duration: ITime.BaseTime;
         friendlyName: string;
         days: string;
         startTime: ITime.BaseTime;
@@ -40,7 +40,7 @@ export namespace schedule
 
         constructor( id: number, _circuit?: number, days?: number, time1?: number, time2?: number, time3?: number, time4?: number, bytes?: number[], counter?: number )
         {
-            let BaseTime:ITime.BaseTime = {
+            let BaseTime: ITime.BaseTime = {
                 minute: -1,
                 hour: -1,
                 hour24: -1,
@@ -55,31 +55,42 @@ export namespace schedule
                 this.friendlyName = _circuit === 0 ? constants.strCircuitName[ _circuit ] : circuit.getFriendlyName( _circuit );
                 this.circuitNum = _circuit
                 this.bytes = bytes
-                this.startTime = Object.assign( {}, BaseTime);
-                this.endTime = Object.assign( {}, BaseTime);
+                this.startTime = Object.assign( {}, BaseTime );
+                this.endTime = Object.assign( {}, BaseTime );
                 if ( time1 === 25 ) //25 = Egg Timer
                 {
                     this.mode = 'Egg Timer'
-                    this.duration = time3 + ':' + time4;
+                    let _duration = {
+                        hour: time3,
+                        minute: time4,
+                        time: `${ time3 }:${ pad( time4, 2, "0" ) }`
+                    }
+                    this.duration = _duration;
                 } else
                 {
                     this.mode = 'Schedule'
-                    this.duration = 'n/a'
+                    this.duration = BaseTime
                     // Extended Start Time parameters
-                    if ( time1 > 12 )
+                    if ( time1 < 12 )
                     {
-                        this.startTime.hour = time1 - 12;
-                        this.startTime.meridiem = 'pm';
-                    }
-                    else
-                    {
-
                         this.startTime.hour = time1;
                         this.startTime.meridiem = 'am';
                     }
+                    else
+                    {
+                        if ( this.startTime.hour === 0 )
+                        {
+                            this.startTime.hour = 12
+                        }
+                        else
+                        {
+                            this.startTime.hour = time1 - 12;
+                        }
+                        this.startTime.meridiem = 'pm';
+                    }
                     this.startTime.hour24 = time1;
                     this.startTime.minute = time2;
-                    this.startTime.time = formatTime( this.startTime.hour, this.startTime.minute )
+                    this.startTime.time = formatTime( this.startTime.hour24, this.startTime.minute )
                     this.startTime.time24 = pad( time1, 2, "0" ) + ':' + pad( time2, 2, "0" )
 
                     // Extended End Time parameters
@@ -96,7 +107,7 @@ export namespace schedule
                     }
                     this.endTime.hour24 = time3;
                     this.endTime.minute = time4;
-                    this.endTime.time = formatTime( this.endTime.hour, this.endTime.minute )
+                    this.endTime.time = formatTime( this.endTime.hour24, this.endTime.minute )
                     this.endTime.time24 = pad( time3, 2, "0" ) + ':' + pad( time4, 2, "0" );
                     this.days = dayStr( days )
 
@@ -125,13 +136,13 @@ export namespace schedule
     {
         var str = ''
         str += '\nID:'
-        str += currentSchedule[ _id ].id < 10 ? ' ' + currentSchedule[_id ].id : currentSchedule[ _id ].id
+        str += currentSchedule[ _id ].id < 10 ? ' ' + currentSchedule[ _id ].id : currentSchedule[ _id ].id
         return str
     }
 
     export function formatEggTimerStr ( id: number )
     {
-        var str = ' MODE:' + currentSchedule[ id ].mode + ' DURATION:' + currentSchedule[ id ].duration
+        var str = ' MODE:' + currentSchedule[ id ].mode + ' DURATION:' + currentSchedule[ id ].duration.time
         return str
     }
 
@@ -186,7 +197,7 @@ export namespace schedule
         scheduleChgStr += 'Msg# ' + counter
         scheduleChgStr += '  Schedule '
         scheduleChgStr += formatSchedId( id )
-        scheduleChgStr += ' changed from:\n'
+        scheduleChgStr += ' changed from:\n\t'
         scheduleChgStr += 'ID:' + currentSchedule[ id ].id + ' CIRCUIT:(' + id + ')' + currentSchedule[ id ].circuit
         //FROM string
         if ( currentSchedule[ id ].mode === 'Egg Timer' )
@@ -202,7 +213,7 @@ export namespace schedule
         }
 
 
-        scheduleChgStr += '\n'
+        scheduleChgStr += '\n\t'
         scheduleChgStr += ' CIRCUIT:(' + id + ')' + schedule.circuit + ' '
         //TO string
         if ( schedule.mode === 'Egg Timer' )
@@ -215,6 +226,7 @@ export namespace schedule
             scheduleChgStr += formatScheduleStr( 0, schedule )
         }
         logger.verbose( scheduleChgStr )
+
     }
 
     export function dayStr ( days: number )
@@ -255,13 +267,14 @@ export namespace schedule
         {
             broadcastInitialSchedules( counter )
             initialSchedulesDiscovered = 1
+            emit()
         } else if ( initialSchedulesDiscovered === 1 )
         { //TODO: AND A CHANGE.  Either circuit by circuit or all of them?
             if ( JSON.stringify( currentSchedule[ id ] ) !== JSON.stringify( schedule ) )
             {
                 broadcastScheduleChange( id, schedule, counter )
                 currentSchedule[ id ] = schedule
-               emit()
+                emit()
             } else
             {
                 if ( settings.get( 'logConfigMessages' ) )

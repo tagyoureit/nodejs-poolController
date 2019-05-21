@@ -17,17 +17,17 @@ import Footer from './Footer'
 
 interface IPoolControllerState
 {
-    config?: Settings.IConfigInterface;
-    time?: ITime.ETime;
-    temperature?: Temperature.PoolTemperature;
-    sysInfo?: WWW.ISysInfo;
-    poolInfo?: WWW.IPoolOrSpaState;
-    spaInfo?: WWW.IPoolOrSpaState;
-    pump?: Pump.PumpStatus;
+    config: Settings.IConfigInterface;
+    time: ITime.ETime;
+    temperature: Temperature.PoolTemperature;
+    sysInfo: WWW.ISysInfo;
+    poolInfo: WWW.IPoolOrSpaState;
+    spaInfo: WWW.IPoolOrSpaState;
+    pump: Pump.PumpStatus;
 
-    //TODO: Why are these two the same?
-    circuit?: Circuit.ICurrentCircuitsArr;
-    feature?: Circuit.ICurrentCircuitsArr;
+    circuit: Circuit.ICurrentCircuitsArr;
+    feature: Circuit.ICurrentCircuitsArr;
+    light: Circuit.ICurrentCircuitsArr;
 
     counter?: number;
     chlorinator?: Chlorinator.IBaseChlorinator,
@@ -45,7 +45,7 @@ interface IPoolControllerState
 
 let state: IPoolControllerState;
 
-class Utilities extends React.Component<any, IPoolControllerState> {
+class PoolController extends React.Component<any, IPoolControllerState> {
     constructor( props: IPoolControllerState )
     {
         super( props );
@@ -152,6 +152,19 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                         friendlyName: 'notset'
                     }
                 },
+                light: {
+                    1: {
+                        number: 1,
+                        numberStr: "circuit1",
+                        status: 0,
+                        delay: 0,
+                        freeze: 0,
+                        macro: 0,
+                        circuitFunction: "notset",
+                        name: 'notset',
+                        friendlyName: 'notset'
+                    }
+                },
                 time: {
                     controllerTime: 'none',
                     controllerDateStr: 'none',
@@ -175,7 +188,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                 temperature: { airTemp: 0, poolTemp: 0, spaTemp: 0, solarTemp: 0, freeze: 0 },
                 sysInfo: { airTemp: 0, solarTemp: 0, freezeProt: 0, time: '', date: '', locale: '', controllerDateStr: '', controllerTime: '' },
                 poolInfo: { name: 'Pool', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0 },
-                spaInfo: { name: 'Spa', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0},
+                spaInfo: { name: 'Spa', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0 },
                 pump: {
                     1: {
                         pump: 1,
@@ -222,11 +235,11 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                 intellichem: {},
                 eggTimer: {},
                 schedule: {},
-            debugText: '',
-            updateStatus: {
-                local: {version: ''},
-                remote: {version: '', tag_name: ''},
-                result: ''
+                debugText: '',
+                updateStatus: {
+                    local: { version: '' },
+                    remote: { version: '', tag_name: '' },
+                    result: ''
                 }
             }
 
@@ -246,8 +259,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
 
         getAll( ( err: Error, d: any, which: string ) =>
         {
-            console.log(`received ${which}`)
-            let pendingChanges: IPoolControllerState = {...this.state}
+            let pendingChanges: IPoolControllerState = { ...this.state }
 
             if ( err )
             {
@@ -317,6 +329,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                     d.circuit
                 )
                 pendingChanges = Object.assign( {}, pendingChanges, {
+                    light: this.circuitsWithLights( d.circuit ),
                     circuit: circChanges,
                     feature: this.circuitsWithoutPoolSpa( d.circuit ),
                     poolInfo: {
@@ -344,7 +357,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'temperature' || which === 'all' )
             {
-                
+
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     poolInfo: {
                         ...this.state.poolInfo,  // if we don't deep copy, it will lose previous attributes
@@ -402,7 +415,6 @@ class Utilities extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'chlorinator' || which === 'all' )
             {
-                console.log(`chlorinator Obj: ${JSON.stringify(d.chlorinator,null,2)}`)
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     chlorinator:
                     {
@@ -434,18 +446,18 @@ class Utilities extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'updateAvailable' )
             {
-                console.log(`updateAvailable ${JSON.stringify(d,null,2)}`)
-                    pendingChanges = Object.assign( {}, pendingChanges, {
-                        updateStatus: d
-                    } )
-               
+                console.log( `updateAvailable ${ JSON.stringify( d, null, 2 ) }` )
+                pendingChanges = Object.assign( {}, pendingChanges, {
+                    updateStatus: d
+                } )
+
             }
 
             // if ( Date.now() - lastUpdateTime > 1000 )
             // {
-                lastUpdateTime = Date.now()
-                // set counter +1 for resetting time keeping
-                pendingChanges = Object.assign( {}, pendingChanges, { counter: this.state.counter + 1 } )
+            lastUpdateTime = Date.now()
+            // set counter +1 for resetting time keeping
+            pendingChanges = Object.assign( {}, pendingChanges, { counter: this.state.counter + 1 } )
             // }
 
             // and finally, apply pending changes
@@ -512,8 +524,28 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                 //console.log(`obj: ${JSON.stringify(obj,null,2)}`)
                 obj[ parseInt( el ) ] = circuit[ parseInt( el ) ];
             }
-            console.log( `returning circuitWithoutPoolSpa` )
-            console.log( obj )
+            return obj
+        }
+        else
+        {
+            return {}
+        }
+    }
+
+    circuitsWithLights ( circuit: Circuit.ICurrentCircuits )
+    {
+        if ( Object.keys( circuit ).length !== 0 )
+        {
+            const entries = Object.keys( circuit )
+            //console.log(entries[1][1].name)
+            const filter = entries.filter( key => ( circuit[ parseInt( key ) ].hasOwnProperty( 'light' ) )
+            )
+
+            const obj: Circuit.ICurrentCircuits = {}
+            for ( const el of filter )
+            {
+                obj[ parseInt( el ) ] = circuit[ parseInt( el ) ];
+            }
             return obj
         }
         else
@@ -552,7 +584,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
         }
         catch ( err ) 
         {
-            console.log(`Caught in circuitOn: ${err.message}`)
+            console.log( `Caught in circuitOn: ${ err.message }` )
         }
     }
 
@@ -574,21 +606,21 @@ class Utilities extends React.Component<any, IPoolControllerState> {
         }
         catch ( err )
         {
-            console.log(`Caught in circuitNumber: ${err.message}`)
+            console.log( `Caught in circuitNumber: ${ err.message }` )
         }
     }
 
     clearLog (): void
     {
-        this.setState({debugText:''})
+        this.setState( { debugText: '' } )
     }
 
-    formatLog ( strMessage:string ): string
+    formatLog ( strMessage: string ): string
     {
         let strColor: string = '';
         interface LogColors
         {
-            [k: string]: string
+            [ k: string ]: string
         }
         let logColors: LogColors = {
             error: "red",
@@ -599,16 +631,17 @@ class Utilities extends React.Component<any, IPoolControllerState> {
             silly: "magenta"
         };
         // Colorize Message, in HTML format
-        var strSplit = strMessage.split(' ');
-        if (typeof(logColors) !== "undefined")
-            strColor = logColors[strSplit[1].toLowerCase()];
+        var strSplit = strMessage.split( ' ' );
+        if ( typeof ( logColors ) !== "undefined" )
+            strColor = logColors[ strSplit[ 1 ].toLowerCase() ];
         else
             strColor = "lightgrey";
-        if (strColor) {
-            strSplit[1] = strSplit[1].fontcolor(strColor).bold();
+        if ( strColor )
+        {
+            strSplit[ 1 ] = strSplit[ 1 ].fontcolor( strColor ).bold();
         }
-    
-        return strSplit.join(' ')
+
+        return strSplit.join( ' ' )
     }
 
     DisplayIfSystemReady = function ()
@@ -697,6 +730,7 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                     visibility={this.state.config.client.panelState.schedule.state} />
                 <EggTimer
                     data={this.state.eggTimer}
+                    allCircuits={this.state.circuit}
                     id='eggtimer'
                     visibility={this.state.config.client.panelState.eggtimer.state} />
                 <Chlorinator
@@ -704,15 +738,16 @@ class Utilities extends React.Component<any, IPoolControllerState> {
                     id='chlorinator'
                     visibility={this.state.config.client.panelState.chlorinator.state} />
                 <Light
+                    data={this.state.light}
                     id='light'
                     visibility={this.state.config.client.panelState.light.state} />
                 <DebugLog
                     id='debug'
-                    visibility={this.state.config.client.panelState.debug.state} debugText={this.state.debugText} clearLog={this.clearLog}/>
-                    <Footer updateStatus={this.state.updateStatus} updateStatusVisibility={this.state.config.client.panelState.updateStatus.state}/>
+                    visibility={this.state.config.client.panelState.debug.state} debugText={this.state.debugText} clearLog={this.clearLog} />
+                <Footer updateStatus={this.state.updateStatus} updateStatusVisibility={this.state.config.client.panelState.updateStatus.state} />
             </Layout>
         );
     }
 }
 
-export default Utilities;
+export default PoolController;

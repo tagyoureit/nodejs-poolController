@@ -9,7 +9,7 @@
 [Full Changelog](#module_nodejs-poolController--changelog)
 
 ### 6.0-DEV
-* Utilizing next.js (react/webpack) stack for new HTML front end
+* Utilizing Parcel (react/webpack) stack for new HTML front end
 * Updated /time endpoint and socket with more verbose information
 * (TBD) deprecated/changes to sockets
 

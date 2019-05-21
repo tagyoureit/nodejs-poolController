@@ -8,7 +8,7 @@ declare namespace ScheduleModule
 
     interface ScheduleObj
     {
-        [k: number]: any
+        [ k: number ]: ScheduleClass
     }
 
     type SchedType = 'Egg Timer' | 'Schedule'
@@ -20,7 +20,7 @@ declare namespace ScheduleModule
         bytes: number[];
         id: number;
         mode: SchedType;
-        duration: string;
+        duration: ITime.BaseTime;
         friendlyName: string;
         days: string;
         startTime: ITime.BaseTime;

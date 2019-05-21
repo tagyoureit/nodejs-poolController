@@ -67,29 +67,14 @@ export namespace io
                     data = await updateAvailable.getResultsAsync()
                     break;
                 default:
-                    // if ( outputType === 'all' || data === undefined )
                     console.log( `No data was provided for ${ outputType } and there is not a case statement.  Sending 'all'.` )
                     data = helpers.allEquipmentInOneJSON()
-
             }
         }
 
 
         emitToClientsOnEnabledSockets( outputType, data );
     }
-
-    // /**
-    //  * Function to check the emit queue on the timer interval
-    //  */
-    // function checkQueue ()
-    // {
-    //     let queue: [ string, any ][] = getEmitToClientsQueue()
-    //     queue.forEach( ( [ output, data ] ) =>
-    //     {
-    //         console.log( `emitting queue: ${ output }` )
-
-    //     } )
-    // }
 
     function toNum ( x: string | number ): number
     {
@@ -327,7 +312,7 @@ export namespace io
                 var str = 'Queued packet(s): '
                 logger.info( 'User request (send_request.html) to send packet: %s', JSON.stringify( incomingPacket ) );
                 // console.log( _incomingPacket )
-                
+
                 incomingPacket.forEach( ( packet: number[], idx: number ) =>
                 {
                     // for (var byte in incomingPacket[packet]) {
@@ -542,7 +527,6 @@ export namespace io
 
         socket.on( 'setLightColor', function ( _circuit: string | number, _color: string | number )
         {
-
             let circuitNum = toNum( _circuit )
             let color = toNum( _color )
             if ( circuitNum > 0 && circuitNum <= circuit.getNumberOfCircuits() )

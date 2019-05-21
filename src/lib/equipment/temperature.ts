@@ -45,6 +45,8 @@ export namespace temperature
         _temperature.airTemp = airTemp
         _temperature.solarTemp = solarTemp
         _temperature.freeze = freeze
+        _temperature.spaLastKnownTemperature = spaTemp
+        _temperature.poolLastKnownTemperature = poolTemp
         let retTemp = getTemperature()
         io.emitToClients( 'temperature', retTemp)
         // TODO: Check in Influx should write retTemp or just _temperature values

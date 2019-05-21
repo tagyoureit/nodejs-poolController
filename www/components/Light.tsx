@@ -1,15 +1,17 @@
 import
 {
-    Row, Col, Button, ButtonGroup, ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem
+    Row, Col, Button, ButtonGroup, ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem, Modal, ModalHeader, ModalBody, ModalFooter
 } from 'reactstrap';
 
 import CustomCard from './CustomCard'
 import * as React from 'react';
 import { setLightMode } from './Socket_Client';
+import EggTimerEdit from './LightEdit'
+
 
 interface Props
 {
-    // data: ScheduleModule.ScheduleObj
+    data: Circuit.ICurrentCircuitsArr
     id: string;
     visibility: string;
 }
@@ -17,6 +19,7 @@ interface Props
 interface State
 {
     dropdownOpen: boolean
+    modalOpen: boolean
 }
 
 class Light extends React.Component<Props, State> {
@@ -25,13 +28,21 @@ class Light extends React.Component<Props, State> {
     {
         super( props )
         this.state = {
-            dropdownOpen: false
+            dropdownOpen: false,
+            modalOpen: false
         };
-        this.toggle = this.toggle.bind( this );
+        this.toggleDropDown = this.toggleDropDown.bind( this );
+        this.toggleModal = this.toggleModal.bind( this )
         this.handleClick = this.handleClick.bind( this );
     }
 
-    toggle ()
+    toggleModal() {
+        // open and close the modal
+        this.setState({
+            modalOpen: !this.state.modalOpen
+        });
+    }
+    toggleDropDown ()
     {
         this.setState( {
             dropdownOpen: !this.state.dropdownOpen
@@ -45,12 +56,14 @@ class Light extends React.Component<Props, State> {
 
     render ()
     {
+        const closeBtn = <button className="close" onClick={this.toggleModal}>&times;</button>;
+
         return (
             <div className="tab-pane active" id="light" role="tabpanel" aria-labelledby="light-tab">
-                <CustomCard name='Lights' id={this.props.id} visibility={this.props.visibility}>
+                <CustomCard name='Lights' id={this.props.id} visibility={this.props.visibility} edit={this.toggleModal}>
 
 
-                    <ButtonDropdown isOpen={this.state.dropdownOpen} toggle={this.toggle}>
+                    <ButtonDropdown isOpen={this.state.dropdownOpen} toggle={this.toggleDropDown}>
                         <DropdownToggle caret>
                             Intellibrite Mode
                     </DropdownToggle>
@@ -92,6 +105,15 @@ class Light extends React.Component<Props, State> {
                     </ButtonDropdown>
 
                 </CustomCard>
+                <Modal isOpen={this.state.modalOpen} toggle={this.toggleModal} size='xl' >
+                        <ModalHeader toggle={this.toggleModal} close={closeBtn}>Adjust Intellibrite Lights</ModalHeader>
+                        <ModalBody>
+                               <EggTimerEdit data={this.props.data} />
+                        </ModalBody>
+                        <ModalFooter>
+                            <Button  onClick={this.toggleModal}>Close</Button>
+                        </ModalFooter>
+                    </Modal>
             </div>
         );
     }

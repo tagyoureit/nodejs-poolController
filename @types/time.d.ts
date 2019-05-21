@@ -29,8 +29,8 @@ declare namespace ITime
     {
         minute: number;
         hour: number;
-        hour24: number;
-        meridiem: MERIDIEM;
+        hour24?: number;
+        meridiem?: MERIDIEM;
         UTC?: string;
         locale?: string;
         ISO?: string;

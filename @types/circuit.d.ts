@@ -19,7 +19,7 @@ declare namespace Circuit
         prevMode?: number;
         prevModeStr?: string;
         circuit?: number;
-        
+        // TODO: Circuit should be number OR be removed
 
     }
 
@@ -84,6 +84,4 @@ declare namespace Circuit
         colorSetStr: string;
         colorSwimDelay: number;
     }
-
-
 }
