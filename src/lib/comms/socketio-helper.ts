@@ -231,7 +231,15 @@ export namespace io
         // when the client emits 'toggleEquipment', this listens and executes
         socket.on( 'toggleCircuit', function ( equipment: string )
         {
-            circuit.toggleCircuit( parseInt( equipment ) )
+            try
+            {
+                validator.isNumeric( equipment )
+                circuit.toggleCircuit( parseInt( equipment ) )
+            }
+            catch ( err )
+            {
+                logger.error(`Error calling toggleCircuit with '${equipment}'. \nError: ${err.message}`)
+            }
         } );
 
         // when the client emits 'cancelDelay', this listens and executes

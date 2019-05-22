@@ -10,6 +10,7 @@ interface Props
     data: ScheduleModule.ScheduleObj
     id: string;
     visibility: string;
+    idOfFirstUnusedSchedule: number;
 }
 
 class Schedule extends React.Component<Props, any> {
@@ -126,29 +127,16 @@ class Schedule extends React.Component<Props, any> {
                             <span className="d-none d-lg-block">
 
                                 {this.buttons( k[ 1 ] )}
-
-
                             </span>
-
-
                         </Col>
                     </Row>
-
-
-
-
                 )
-
-
             } )
         }
         else
         {
             return ( <div>No schedules yet</div> )
         }
-
-
-
 
         return (
 

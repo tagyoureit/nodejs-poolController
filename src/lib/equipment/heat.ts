@@ -170,7 +170,8 @@ export namespace heat
                 if ( settings.get( 'logConfigMessages' ) )
                 {
                     logger.verbose( 'Msg# %s   Pool/Spa heat set point changed:  pool heat mode: %s @ %s degrees; spa heat mode %s at %s degrees', counter, heat.poolHeatModeStr, heat.poolSetPoint, heat.spaHeatModeStr, heat.spaSetPoint );
-                    logger.info( 'Msg# %s  Change in Pool/Spa Heat Mode:  %s', counter, currentHeat.whatsDifferent( heat ) )
+                    logger.info( `Msg# ${counter}  Change in Pool/Spa Heat Mode:  \n\tNew: ${JSON.stringify(heat)} \n\tOld: ${JSON.stringify(heat)}` )
+                    // Todo: display differences without 'whats different'
                 }
                 copyHeat( heat )
                 emit()

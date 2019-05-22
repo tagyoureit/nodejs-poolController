@@ -14,6 +14,7 @@ interface Props
     allCircuits: Circuit.ICurrentCircuitsArr
     id: string;
     visibility: string;
+    idOfFirstUnusedSchedule: number;
 }
 interface State
 {
@@ -86,7 +87,7 @@ class EggTimer extends React.Component<Props, State> {
                 <Modal isOpen={this.state.modalOpen} toggle={this.toggleModal} size='xl' >
                     <ModalHeader toggle={this.toggleModal} close={closeBtn}>Adjust Intellibrite Lights</ModalHeader>
                     <ModalBody>
-                        <EggTimerEdit data={this.props.data} allCircuits={this.props.allCircuits} />
+                        <EggTimerEdit data={this.props.data} allCircuits={this.props.allCircuits} idOfFirstUnusedSchedule={this.props.idOfFirstUnusedSchedule}/>
                     </ModalBody>
                     <ModalFooter>
                         <Button onClick={this.toggleModal}>Close</Button>

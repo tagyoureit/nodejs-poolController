@@ -23,7 +23,6 @@ function getAll ( cb: any )
 
         socket.on( 'all', ( data: WWW.IPoolOrSpaState ) =>
         {
-            console.log( `all socket!` )
             let milli = Date.now() - lastUpdateTime;
             lastUpdateTime = Date.now()
             if ( data === null || data === undefined )
@@ -243,6 +242,11 @@ function setScheduleCircuit ( _id: number, _circuit: number )
 export function setEggTimer ( _id: number, _circuit: number, _hour: number, _minute: number )
     {
     socket.emit( 'setEggTimer', _id, _circuit, _hour, _minute )
+}
+
+export function deleteScheduleOrEggTimer ( _id: number )
+    {
+    socket.emit( 'deleteScheduleOrEggTimer', _id )
 }
 
 export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode, updateVersionNotification, search, searchStop, searchLoad, sendPacket, receivePacket, receivePacketRaw, setLightColor, setLightPosition, setLightSwimDelay, setScheduleCircuit};

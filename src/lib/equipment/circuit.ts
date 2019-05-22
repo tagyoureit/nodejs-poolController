@@ -693,7 +693,7 @@ export namespace circuit
                         if ( currentCircuitArrObj[ i ].status ) // prior status is on
                         {
                             //saveLastKnownTemp( currentCircuitArrObj[ i ] )
-                            temperature.saveLastKnownTemp( currentCircuitArrObj[i].circuitFunction )
+                            temperature.saveLastKnownTemp( currentCircuitArrObj[ i ].circuitFunction )
                         }
                     }
                     currentCircuitArrObj[ i ].status = circuitArrObj[ i ].status
@@ -731,19 +731,26 @@ export namespace circuit
 
     export function toggleCircuit ( circuit: number, callback?: any ): void
     {
-        var desiredStatus = currentCircuitArrObj[ circuit ].status === 1 ? 0 : 1;
-        var toggleCircuitPacket = [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 134, 2, circuit, desiredStatus ];
-        queuePacket.queuePacket( toggleCircuitPacket );
-        var response: API.Response = {}
-        response.text = 'User request to toggle ' + currentCircuitArrObj[ circuit ].name + ' to '
-        response.text += statusToString( desiredStatus )
-        response.status = desiredStatus === 1 ? 'on' : 'off';
-        response.value = desiredStatus
-        logger.info( JSON.stringify( response, null, 2 ) )
-        //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
-        if ( callback !== undefined )
+        try
         {
-            callback( response )
+            var desiredStatus = currentCircuitArrObj[ circuit ].status === 1 ? 0 : 1;
+            var toggleCircuitPacket = [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 134, 2, circuit, desiredStatus ];
+            queuePacket.queuePacket( toggleCircuitPacket );
+            var response: API.Response = {}
+            response.text = 'User request to toggle ' + currentCircuitArrObj[ circuit ].name + ' to '
+            response.text += statusToString( desiredStatus )
+            response.status = desiredStatus === 1 ? 'on' : 'off';
+            response.value = desiredStatus
+            logger.info( JSON.stringify( response, null, 2 ) )
+            //callback will be present when we are responding back to the Express auth and showing the user a message.  But not with SocketIO call where we will just log it.
+            if ( callback !== undefined )
+            {
+                callback( response )
+            }
+        }
+        catch ( err )
+        {
+            logger.error( `Error calling toggleCircuit with circuit: ${ circuit }` )
         }
 
     }
@@ -885,287 +892,275 @@ export namespace circuit
 
     export function assignControllerLightGroup ( _lightGroupPacketArr: number[], counter: number ): void
     {
-
-        /*         if ( 1 === 0 )
-                {//(lightGroupPacket === _lightGroupPacketArr) {
-                    //no change
-                    if ( logIntellibrite )
-                    {
-                        logger.silly( 'Msg# %s  Duplicate Light all on/off and position packet is: %s', counter, _lightGroupPacketArr )
-                    }
-                }
-                else */
+        // log the packets to the local var before proceeding
+        if ( _lightGroupPacketArr.length === 32 )
         {
-
-            // log the packets to the local var before proceeding
-            if ( _lightGroupPacketArr.length === 32 )
+            lightGroupPackets[ 0 ] = _lightGroupPacketArr.slice()
+        }
+        else if ( _lightGroupPacketArr.length === 25 )
+        {
+            // lightGroupPacket[6] is either 0 or 1; 12 slots total (6 per packet)
+            lightGroupPackets[ _lightGroupPacketArr[ 0 ] ] = _lightGroupPacketArr.slice()
+            lightGroupPackets.numPackets = 2
+        }
+        // don't process the packets/differences unless we have the single packet (len 32) or the 2nd packet of length 25
+        if ( _lightGroupPacketArr.length === 32 || ( lightGroupPackets.numPackets === 2 && _lightGroupPacketArr[ 0 ] === 1 ) )
+        {
+            if ( logIntellibrite )
             {
-                lightGroupPackets[ 0 ] = _lightGroupPacketArr.slice()
+                logger.debug( 'Msg# %s  Light all on/off and position packet is: %s', counter, _lightGroupPacketArr )
             }
-            else if ( _lightGroupPacketArr.length === 25 )
+            // var tempLightGroup:Circuit.TempLightGroup = {} //temporary object to hold light group/position assignments
+            let tempLightGroups: Circuit.ILightGroups = {} //temporary object to hold light group/position assignments
+            let tempLightGroupPacketArr: number[];
+            let discovered = 0;
+            if ( Object.keys( lightGroups ).length === 0 )
+            {
+                discovered = 1
+            }
+
+            if ( lightGroupPackets.numPackets === 1 )
+            {
+                tempLightGroupPacketArr = lightGroupPackets[ 0 ].slice()
+            }
+            else if ( lightGroupPackets.numPackets === 2 )
             {
                 // lightGroupPacket[6] is either 0 or 1; 12 slots total (6 per packet)
-                lightGroupPackets[ _lightGroupPacketArr[ 0 ] ] = _lightGroupPacketArr.slice()
-                lightGroupPackets.numPackets = 2
+                // concat the arrays excluding the
+                tempLightGroupPacketArr = lightGroupPackets[ 0 ].slice( 1 ).concat( lightGroupPackets[ 1 ].slice( 1 ) )
             }
-            // don't process the packets/differences unless we have the single packet (len 32) or the 2nd packet of length 25
-            if ( _lightGroupPacketArr.length === 32 || ( lightGroupPackets.numPackets === 2 && _lightGroupPacketArr[ 0 ] === 1 ) )
+
+
+            let numGroups = tempLightGroupPacketArr.length / 4
+            for ( let i = 0; i < numGroups; i++ )
+            {
+
+                // split off groups of 4 packets and assign them to a copy of the lightGroup
+                let _temp = tempLightGroupPacketArr.splice( 0, 4 ) // remove this light group
+
+                if ( _temp[ 0 ] !== 0 )
+                {
+                    let _circuit = _temp[ 0 ]
+                    let _position = ( _temp[ 1 ] >> 4 ) + 1  // group/position 0000=1; 0001=2; 0010=3, etc.
+                    let _colorSet = ( _temp[ 1 ] & 15 )
+                    let _colorSetStr = constants.lightColors[ _temp[ 1 ] & 15 ]
+                    let _colorSwimDelay = _temp[ 2 ] >> 1
+                    let tempLightGroup = new LightGroup(
+                        _circuit,
+                        _position,
+                        _colorSet,
+                        _colorSetStr,
+                        _colorSwimDelay
+                    )
+                    tempLightGroups[ i ] = tempLightGroup;
+
+                    /*                         tempLightGroup[ i ] = {
+                                                'circuit': _temp[ 0 ],
+                                                'position': ( _temp[ 1 ] >> 4 ) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
+                                                'colorSet': ( _temp[ 1 ] & 15 ),
+                                                'colorSetStr': constants.lightColors[ _temp[ 1 ] & 15 ],
+                                                'colorSwimDelay': _temp[ 2 ] >> 1
+                                            } */
+                }
+
+
+
+
+            }
+            /*
+
+               Use IndexBy to Pivot the array.
+               We pivot the array because the positions can change and we don't want to lose any details.
+               For example, if a light group changes from the 4th position to the 3rd, we don't want to delete it from the 4th position when we look for changes.
+
+               Example output:
+                   indexBy:  {
+                     "7": {
+                       "position": 1,
+                       "circuit": 7
+                     },
+                     "8": {
+                       "position": 2,
+                       "circuit": 8
+                     },
+                     "9": {
+                       "position": 4,
+                       "circuit": 9
+                     },
+                     "16": {
+                       "position": 3,
+                       "circuit": 16
+                     }
+                   }
+
+                */
+            tempLightGroups = _.indexBy( tempLightGroups, 'circuit' )
+            var changed = 0
+
+            var diff1: any = deepdiff.diff( lightGroups, tempLightGroups )
+
+
+            if ( logIntellibrite )
+            {
+                logger.silly( 'Intellibrite All on/off groups indexBy: ', JSON.stringify( tempLightGroups, null, 2 ) )
+            }
+
+            if ( diff1 === undefined )
             {
                 if ( logIntellibrite )
                 {
-                    logger.debug( 'Msg# %s  Light all on/off and position packet is: %s', counter, _lightGroupPacketArr )
+
+                    logger.silly( 'Intellibrite all on/off packet retrieved, but there were no changes.' )
                 }
-                // var tempLightGroup:Circuit.TempLightGroup = {} //temporary object to hold light group/position assignments
-                let tempLightGroups: Circuit.ILightGroups = {} //temporary object to hold light group/position assignments
-                let tempLightGroupPacketArr: number[];
-                let discovered = 0;
-                if ( Object.keys( lightGroups ).length === 0 )
-                {
-                    discovered = 1
-                }
-
-                if ( lightGroupPackets.numPackets === 1 )
-                {
-                    tempLightGroupPacketArr = lightGroupPackets[ 0 ].slice()
-                }
-                else if ( lightGroupPackets.numPackets === 2 )
-                {
-                    // lightGroupPacket[6] is either 0 or 1; 12 slots total (6 per packet)
-                    // concat the arrays excluding the
-                    tempLightGroupPacketArr = lightGroupPackets[ 0 ].slice( 1 ).concat( lightGroupPackets[ 1 ].slice( 1 ) )
-                }
-
-
-                let numGroups = tempLightGroupPacketArr.length / 4
-                for ( let i = 0; i < numGroups; i++ )
-                {
-
-                    // split off groups of 4 packets and assign them to a copy of the lightGroup
-                    let _temp = tempLightGroupPacketArr.splice( 0, 4 ) // remove this light group
-
-                    if ( _temp[ 0 ] !== 0 )
-                    {
-                        let _circuit = _temp[ 0 ]
-                        let _position = ( _temp[ 1 ] >> 4 ) + 1  // group/position 0000=1; 0001=2; 0010=3, etc.
-                        let _colorSet = ( _temp[ 1 ] & 15 )
-                        let _colorSetStr = constants.lightColors[ _temp[ 1 ] & 15 ]
-                        let _colorSwimDelay = _temp[ 2 ] >> 1
-                        let tempLightGroup = new LightGroup(
-                            _circuit,
-                            _position,
-                            _colorSet,
-                            _colorSetStr,
-                            _colorSwimDelay
-                        )
-                        tempLightGroups[ i ] = tempLightGroup;
-
-                        /*                         tempLightGroup[ i ] = {
-                                                    'circuit': _temp[ 0 ],
-                                                    'position': ( _temp[ 1 ] >> 4 ) + 1,  // group/position 0000=1; 0001=2; 0010=3, etc.
-                                                    'colorSet': ( _temp[ 1 ] & 15 ),
-                                                    'colorSetStr': constants.lightColors[ _temp[ 1 ] & 15 ],
-                                                    'colorSwimDelay': _temp[ 2 ] >> 1
-                                                } */
-                    }
-
-
-
-
-                }
-                /*
-
-                   Use IndexBy to Pivot the array.
-                   We pivot the array because the positions can change and we don't want to lose any details.
-                   For example, if a light group changes from the 4th position to the 3rd, we don't want to delete it from the 4th position when we look for changes.
-
-                   Example output:
-                       indexBy:  {
-                         "7": {
-                           "position": 1,
-                           "circuit": 7
-                         },
-                         "8": {
-                           "position": 2,
-                           "circuit": 8
-                         },
-                         "9": {
-                           "position": 4,
-                           "circuit": 9
-                         },
-                         "16": {
-                           "position": 3,
-                           "circuit": 16
-                         }
-                       }
-
-                    */
-                tempLightGroups = _.indexBy( tempLightGroups, 'circuit' )
-                var changed = 0
-
-                var diff1: any = deepdiff.diff( lightGroups, tempLightGroups )
-
-
+            }
+            else
+            {
                 if ( logIntellibrite )
                 {
-                    logger.silly( 'Intellibrite All on/off groups indexBy: ', JSON.stringify( tempLightGroups, null, 2 ) )
+
+                    logger.debug( 'Intellibrite all on/off differences: %s\n\tStored values: %s', JSON.stringify( diff1, null, 2 ), JSON.stringify( lightGroupPackets, null, 2 ) )
+                }
+                for ( var key in diff1 )
+                {
+                    let cir: any = diff1[ key ].path;//circuit we want to change
+
+                    if ( diff1[ key ].kind === 'D' )
+                    {
+
+
+                        changed = 1
+
+                        // use the prior value, and set it to 0
+                        //currentCircuitArrObj[cir].light = {}
+                        delete currentCircuitArrObj[ cir ].light
+
+                        // use the new circuit
+                        if ( logIntellibrite )
+                        {
+                            logger.silly( 'Intellibrite all on/off group DELETED key:', JSON.stringify( diff1[ key ], null, 2 ) )
+                            logger.verbose( 'Msg# %s  Light group deleted for circuit %s (%s):', counter, getFriendlyName( cir ), cir, JSON.stringify( lightGroups[ cir ], null, 2 ) )
+                        }
+                    }
+
+                    else if ( diff1[ key ].kind === 'N' )
+                    {
+
+                        changed = 1
+
+                        /*
+                        diff1[key].path] is the key for the tempLightGroup
+                        when N(ew), we want to add it.
+
+                             {
+                                "kind": "N",
+                                "path": [
+                                  "7"
+                                ],
+                                "rhs": {
+                                  "position": 1,
+                                  "circuit": 7
+                                }
+                              }
+                         */
+
+                        // if (currentCircuitArrObj[cir].hasOwnProperty('light')) {
+                        currentCircuitArrObj[ cir ].light = new Light( diff1[ key ].rhs.position, 'off', 0 )
+
+
+                        // }
+                        // else {
+                        //
+                        //     logger.warn('Trying to add light to circuit %s but it has no light property. \n\t %j', currentCircuitArrObj[cir].number, currentCircuitArrObj[cir])
+                        // }
+                        if ( logIntellibrite )
+                        {
+                            logger.silly( `NEW key: ${ JSON.stringify( diff1[ key ], null, 2 ) }` )
+                            logger.verbose( `Msg# ${ counter }  Light details added for circuit ${ getFriendlyName( cir ) } (${ cir }): ${ diff1[ key ].rhs.position }` )
+                        }
+
+                    }
+                    else if ( diff1[ key ].kind === 'E' )
+                    {
+                        cir = diff1[ key ].path[ 0 ] //circuit we want to change; different for edited because of the path
+
+                        changed = 1
+
+                        /*
+                        diff1[key].path] is the key for the tempLightGroup
+                        when E(dited), we want to change it.
+
+                             [
+                              {
+                                "kind": "E",
+                                "path": [
+                                  "7",
+                                  "group"
+                                ],
+                                "lhs": 3,
+                                "rhs": 2
+                              }
+                            ]
+                         */
+
+                        var el = diff1[ key ].path[ 1 ]
+                        //var val = diff1[ key ].rhs
+                        // currentCircuitArrObj[ cir ].light[ el ] = val
+                        // done below??  or copy whole obj here?
+                        // currentCircuitArrObj[ cir ].light.position = val
+
+
+                        if ( logIntellibrite )
+                        {
+                            logger.silly( 'NEW key:', JSON.stringify( diff1[ key ], null, 2 ) )
+                            logger.verbose( 'Msg# %s  Light attribute `%s` changed for circuit %s (%s) to', counter, el, getFriendlyName( cir ), cir, JSON.stringify( diff1[ key ].rhs, null, 2 ) )
+                        }
+                    }
+                    else
+                    {
+                        logger.warn( 'Msg# %s  Intellibrite all on/off change -- unknown for circuit %s (%s):', counter, getFriendlyName( cir ), cir, JSON.stringify( diff1, null, 2 ) )
+                    }
                 }
 
-                if ( diff1 === undefined )
-                {
-                    if ( logIntellibrite )
-                    {
+                // lightGroup = JSON.parse( JSON.stringify( tempLightGroup ) )
 
-                        logger.silly( 'Intellibrite all on/off packet retrieved, but there were no changes.' )
-                    }
+                // reset and assign the light group
+                lightGroups = Object.assign( {}, lightGroups, tempLightGroups )
+
+                for ( var _key in lightGroups )
+                {
+                    let key = parseInt( _key )
+                    Object.assign( currentCircuitArrObj[ key ].light, lightGroups[ key ] )
+                    // currentCircuitArrObj[ key ].light.position = lightGroup[ key ].position
+                    // currentCircuitArrObj[ key ].light.colorSet = lightGroup[ key ].colorSet
+                    // currentCircuitArrObj[ key ].light.colorSetStr = lightGroup[ key ].colorSetStr
+                    // currentCircuitArrObj[ key ].light.colorSwimDelay = lightGroup[ key ].colorSwimDelay
+
                 }
-                else
+
+                if ( discovered === 1 )
                 {
                     if ( logIntellibrite )
-                    {
+                        logger.silly( `Msg# ${ counter }:  Intellibrite All On/Off Light positions discovered:\n${ JSON.stringify( lightGroups, null, 2 ) }` )
+                    var str = ''
 
-                        logger.debug( 'Intellibrite all on/off differences: %s\n\tStored values: %s', JSON.stringify( diff1, null, 2 ), JSON.stringify( lightGroupPackets, null, 2 ) )
-                    }
-                    for ( var key in diff1 )
-                    {
-                        let cir: any = diff1[ key ].path;//circuit we want to change
-
-                        if ( diff1[ key ].kind === 'D' )
-                        {
-
-
-                            changed = 1
-
-                            // use the prior value, and set it to 0
-                            //currentCircuitArrObj[cir].light = {}
-                            delete currentCircuitArrObj[ cir ].light
-
-                            // use the new circuit
-                            if ( logIntellibrite )
-                            {
-                                logger.silly( 'Intellibrite all on/off group DELETED key:', JSON.stringify( diff1[ key ], null, 2 ) )
-                                logger.verbose( 'Msg# %s  Light group deleted for circuit %s (%s):', counter, getFriendlyName( cir ), cir, JSON.stringify( lightGroups[ cir ], null, 2 ) )
-                            }
-                        }
-
-                        else if ( diff1[ key ].kind === 'N' )
-                        {
-
-                            changed = 1
-
-                            /*
-                            diff1[key].path] is the key for the tempLightGroup
-                            when N(ew), we want to add it.
-
-                                 {
-                                    "kind": "N",
-                                    "path": [
-                                      "7"
-                                    ],
-                                    "rhs": {
-                                      "position": 1,
-                                      "circuit": 7
-                                    }
-                                  }
-                             */
-
-                            // if (currentCircuitArrObj[cir].hasOwnProperty('light')) {
-                            currentCircuitArrObj[ cir ].light = new Light( diff1[ key ].rhs.position, 'off', 0 )
-
-
-                            // }
-                            // else {
-                            //
-                            //     logger.warn('Trying to add light to circuit %s but it has no light property. \n\t %j', currentCircuitArrObj[cir].number, currentCircuitArrObj[cir])
-                            // }
-                            if ( logIntellibrite )
-                            {
-                                logger.silly( `NEW key: ${ JSON.stringify( diff1[ key ], null, 2 ) }` )
-                                logger.verbose( `Msg# ${ counter }  Light details added for circuit ${ getFriendlyName( cir ) } (${ cir }): ${ diff1[ key ].rhs.position }` )
-                            }
-
-                        }
-                        else if ( diff1[ key ].kind === 'E' )
-                        {
-                            cir = diff1[ key ].path[ 0 ] //circuit we want to change; different for edited because of the path
-
-                            changed = 1
-
-                            /*
-                            diff1[key].path] is the key for the tempLightGroup
-                            when E(dited), we want to change it.
-
-                                 [
-                                  {
-                                    "kind": "E",
-                                    "path": [
-                                      "7",
-                                      "group"
-                                    ],
-                                    "lhs": 3,
-                                    "rhs": 2
-                                  }
-                                ]
-                             */
-
-                            var el = diff1[ key ].path[ 1 ]
-                            //var val = diff1[ key ].rhs
-                            // currentCircuitArrObj[ cir ].light[ el ] = val
-                            // done below??  or copy whole obj here?
-                            // currentCircuitArrObj[ cir ].light.position = val
-
-
-                            if ( logIntellibrite )
-                            {
-                                logger.silly( 'NEW key:', JSON.stringify( diff1[ key ], null, 2 ) )
-                                logger.verbose( 'Msg# %s  Light attribute `%s` changed for circuit %s (%s) to', counter, el, getFriendlyName( cir ), cir, JSON.stringify( diff1[ key ].rhs, null, 2 ) )
-                            }
-                        }
-                        else
-                        {
-                            logger.warn( 'Msg# %s  Intellibrite all on/off change -- unknown for circuit %s (%s):', counter, getFriendlyName( cir ), cir, JSON.stringify( diff1, null, 2 ) )
-                        }
-                    }
-
-                    // lightGroup = JSON.parse( JSON.stringify( tempLightGroup ) )
-
-                    // reset and assign the light group
-                    lightGroups = Object.assign( {}, lightGroups, tempLightGroups )
 
                     for ( var _key in lightGroups )
                     {
                         let key = parseInt( _key )
-                        Object.assign( currentCircuitArrObj[ key ].light, lightGroups[ key ] )
-                        // currentCircuitArrObj[ key ].light.position = lightGroup[ key ].position
-                        // currentCircuitArrObj[ key ].light.colorSet = lightGroup[ key ].colorSet
-                        // currentCircuitArrObj[ key ].light.colorSetStr = lightGroup[ key ].colorSetStr
-                        // currentCircuitArrObj[ key ].light.colorSwimDelay = lightGroup[ key ].colorSwimDelay
-
+                        str += `${ getFriendlyName( key ) } (${ currentCircuitArrObj[ key ].number }): Position ${ lightGroups[ key ].position } \n`
                     }
-
-                    if ( discovered === 1 )
-                    {
-                        if ( logIntellibrite )
-                            logger.silly( `Msg# ${ counter }:  Intellibrite All On/Off Light positions discovered:\n${ JSON.stringify( lightGroups, null, 2 ) }` )
-                        var str = ''
-
-
-                        for ( var _key in lightGroups )
-                        {
-                            let key = parseInt( _key )
-                            str += `${ getFriendlyName( key ) } (${ currentCircuitArrObj[ key ].number }): Position ${ lightGroups[ key ].position } \n`
-                        }
-                        logger.info( `Msg# ${ counter }:  Intellibrite All On/Off and Light positions discovered: \n${ str }` )
-                    }
-
-                    if ( changed )
-                    {
-                        // TODO: this emit isn't catching when the light color is changed (setLightColor)
-                        emit()
-                    }
-                    if ( sendInitialBroadcast.initialCircuitsBroadcast === 1 ) influx.writeCircuit( currentCircuitArrObj )
+                    logger.info( `Msg# ${ counter }:  Intellibrite All On/Off and Light positions discovered: \n${ str }` )
                 }
+
+                if ( changed )
+                {
+                    // TODO: this emit isn't catching when the light color is changed (setLightColor)
+                    emit()
+                }
+                if ( sendInitialBroadcast.initialCircuitsBroadcast === 1 ) influx.writeCircuit( currentCircuitArrObj )
             }
         }
+
         emit()
     }
 

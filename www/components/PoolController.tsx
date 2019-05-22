@@ -27,6 +27,7 @@ interface IPoolControllerState
 
     circuit: Circuit.ICurrentCircuitsArr;
     feature: Circuit.ICurrentCircuitsArr;
+    idOfFirstUnusedSchedule: number;
     light: Circuit.ICurrentCircuitsArr;
 
     counter?: number;
@@ -152,6 +153,7 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                         friendlyName: 'notset'
                     }
                 },
+                idOfFirstUnusedSchedule: -1,
                 light: {
                     1: {
                         number: 1,
@@ -245,8 +247,6 @@ class PoolController extends React.Component<any, IPoolControllerState> {
 
         // console.log( `after set state:  ${ JSON.stringify( this.state ) }` )
 
-        this.DisplayIfSystemReady = this.DisplayIfSystemReady.bind( this )
-
         let lastUpdateTime = 0;
         let once = false;
         if ( !once )
@@ -326,7 +326,7 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                     {},
                     this.state.circuit,
                     pendingChanges.circuit,
-                    d.circuit
+                    this.filterAux( d.circuit )
                 )
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     light: this.circuitsWithLights( d.circuit ),
@@ -351,7 +351,8 @@ class PoolController extends React.Component<any, IPoolControllerState> {
             {
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     schedule: this.scheduleEntries( d.schedule ),
-                    eggTimer: this.eggTimerEntries( d.schedule )
+                    eggTimer: this.eggTimerEntries( d.schedule ),
+                    idOfFirstUnusedSchedule: this.nextUnusedScheduleId( d.schedule )
                 } )
             }
 
@@ -446,7 +447,6 @@ class PoolController extends React.Component<any, IPoolControllerState> {
 
             if ( which === 'updateAvailable' )
             {
-                console.log( `updateAvailable ${ JSON.stringify( d, null, 2 ) }` )
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     updateStatus: d
                 } )
@@ -489,13 +489,35 @@ class PoolController extends React.Component<any, IPoolControllerState> {
         }
         return obj
     }
+    filterAux ( circuit: Circuit.ICurrentCircuitsArr )
+    {
+        let hideAux = this.state.config.client.hideAux
+        const entries = Object.keys( circuit )
+        const filter = entries.filter( key =>
+        {
+            if ( hideAux && circuit[ parseInt( key ) ].friendlyName === 'AUX EXTRA' )
+            {
+                return false
+            }
+            return true
+        } )
+        //console.log(filter)
+
+        const obj: Circuit.ICurrentCircuitsArr = {}
+        for ( const el of filter )
+        {
+            //console.log(`el: ${el}`)
+            //console.log(`obj: ${JSON.stringify(obj,null,2)}`)
+            obj[ parseInt( el ) ] = circuit[ parseInt( el ) ];
+        }
+        return obj
+    }
     eggTimerEntries ( schedule: ScheduleModule.ScheduleObj )
     {
+
         const entries = Object.keys( schedule )
-        //console.log(entries[1][1].name)
         const filter = entries.filter( key => !( schedule[ parseInt( key ) ].circuitNum === 0 || schedule[ parseInt( key ) ].mode === 'Schedule' )
         )
-        //console.log(filter)
 
         const obj: ScheduleModule.ScheduleObj = {}
         for ( const el of filter )
@@ -505,6 +527,21 @@ class PoolController extends React.Component<any, IPoolControllerState> {
             obj[ parseInt( el ) ] = schedule[ parseInt( el ) ];
         }
         return obj
+    }
+
+    nextUnusedScheduleId ( schedule: ScheduleModule.ScheduleObj )
+    {
+        const entries = Object.keys( schedule )
+        const filter = entries.filter( key => schedule[ parseInt( key ) ].circuit === 'NOT USED' )
+        if ( !filter )
+        {
+            return -1
+        }
+        else
+        {
+            // return first unused schedule
+            return filter[ 0 ]
+        }
     }
 
     circuitsWithoutPoolSpa ( circuit: Circuit.ICurrentCircuits )
@@ -644,58 +681,6 @@ class PoolController extends React.Component<any, IPoolControllerState> {
         return strSplit.join( ' ' )
     }
 
-    DisplayIfSystemReady = function ()
-    {
-
-        if ( this !== undefined )
-        {
-            let systemReady = this.state.config.systemReady
-            if ( systemReady )
-            {
-                return (
-                    // <div>
-                    //     <ShouldDisplay _state={this.state.config.client.panelState.panelState.system.state} systemReady={this.state.config.systemReady}>
-                    //         <SysInfo {...this.state.sysInfo} />
-                    //     </ShouldDisplay>
-                    //     <PoolSpaState {...this.state.poolInfo} />
-                    //     <PoolSpaState {...this.state.spaInfo} />
-                    //     <Pump {...this.state.pump} />
-                    //                     <Feature feature = {this.state.feature} hideAux= {this.state.config.client.panelState.hideAux}/>
-                    //     <Schedule {...this.scheduleEntries( this.state.schedule )} />
-                    //     <EggTimer {...this.eggTimerEntries( this.state.eggTimer )} />
-                    //     <Chlorinator {...this.state.chlorinator} />
-                    // </div>
-
-                    <>
-                        <SysInfo {...this.state.sysInfo} />
-                    </>
-                )
-            }
-            else
-            {
-                return (
-                    <div>
-                        System Not Ready
-           <br />
-                        add configuration
-       </div>
-                )
-            }
-        }
-        else
-        {
-            console.log( `this is undefined` )
-            return (
-                <div>
-                    System Not Ready
-   <br />
-                    add configuration
-</div>
-            )
-        }
-
-        let clientState = this.state.config.client.panelState.system.state || false;
-    }
     render ()
     {
         return (
@@ -727,12 +712,16 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                 <Schedule
                     data={this.state.schedule}
                     id='schedule'
-                    visibility={this.state.config.client.panelState.schedule.state} />
+                    visibility={this.state.config.client.panelState.schedule.state}
+                    idOfFirstUnusedSchedule={this.state.idOfFirstUnusedSchedule}
+                />
                 <EggTimer
                     data={this.state.eggTimer}
                     allCircuits={this.state.circuit}
                     id='eggtimer'
-                    visibility={this.state.config.client.panelState.eggtimer.state} />
+                    visibility={this.state.config.client.panelState.eggtimer.state}
+                    idOfFirstUnusedSchedule={this.state.idOfFirstUnusedSchedule}
+                />
                 <Chlorinator
                     data={this.state.chlorinator}
                     id='chlorinator'
