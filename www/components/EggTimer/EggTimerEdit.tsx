@@ -1,7 +1,7 @@
 import { Container, Row, Col, Button, Table, DropdownMenu, ButtonDropdown, Dropdown, DropdownItem, DropdownToggle, Breadcrumb, UncontrolledTooltip } from 'reactstrap'
-import { setEggTimer, deleteScheduleOrEggTimer } from './Socket_Client'
+import { setEggTimer, deleteScheduleOrEggTimer } from '../Socket_Client'
 import 'react-rangeslider/lib/index.css'
-import '../css/rangeslider.css'
+import '../../css/rangeslider.css'
 import * as React from 'react';
 import EggTimerCircuit from './EggTimerEditCircuit'
 import EggTimerHour from './EggTimerEditHour'

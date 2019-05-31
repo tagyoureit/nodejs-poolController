@@ -1,13 +1,16 @@
-
-
+export as namespace Pump;
+export = Pump;
+import {BYTES} from '../src/etc/internal'
 declare namespace Pump
 {
-    export type PumpType = 'VS' | 'VSF' | 'VF' | 'none';
+    export type PumpType = 'VS' | 'VSF' | 'VF' | 'NONE';
     export type VirtualControllerType = 'always' | 'never' | 'default';
     export type VirtualControllerStatus = 'enabled' | 'disabled'
+    export type PumpSpeedType = 'rpm' | 'gpm'
+    export type BYTES = Symbol
     export interface PumpStatus
     {
-        [k: number]: Equipment
+        [ k: number ]: Equipment
     }
 
     export type PumpIndex = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16
@@ -31,6 +34,7 @@ declare namespace Pump
 
     export interface Equipment
     {
+        [ key: number ]: any
         pump: number;
         name: string;
         friendlyName: string;
@@ -54,5 +58,75 @@ declare namespace Pump
         virtualControllerType: VirtualControllerType;
         virtualControllerStatus: VirtualControllerStatus
 
+    }
+
+    export interface ExtendedConfigObj
+    {
+        [ key: number ]: ExtendedConfig
+    }
+
+    interface ExtendedConfig{
+        type: PumpType
+        [BYTES]?: number[]
+        prime?: ConfigPrimingValues
+        circuitSlot: {
+            [ key: number ]: ConfigCircuitSlotValues
+        }
+        filtering?: {
+            filter: ConfigFilterValues
+            vacuum: ConfigVacuumValues
+            priming: ConfigVFPrimingValues
+            backwash: ConfigBackwashValues
+        }
+        backgroundCircuit?: PumpType
+
+        setSpeed?: ( _circuitSlot: number, _speed: number ) => void
+        setCircuit?: (_circuitSlot: number, _circuit: number) => void
+        setType?: (_type: Pump.PumpType) => void
+        setRPMGPM?: (_circuitSlot: number, _speedType: PumpSpeedType) => void
+    }
+
+    interface ConfigFilterValues
+    {
+        poolSize: number
+        turnOvers: number
+        manualFilterGPM: number
+    }
+
+    interface ConfigVacuumValues
+    {
+        flow: number
+        time: number
+    }
+
+    // Values specific to the VF Pump Config
+    interface ConfigVFPrimingValues
+    {
+        maxFlow: number
+        maxTime: number
+        systemMaxTime: Number
+    }
+
+    interface ConfigBackwashValues
+    {
+        maxPressureIncrease: number
+        flow: number
+        time: number
+        rinseTime: number
+    }
+
+    interface ConfigCircuitSlotValues
+    {
+        number: number
+        friendlyName: string
+        flag: PumpSpeedType
+        rpm?: number
+        gpm?: number
+    }
+
+    interface ConfigPrimingValues
+    {
+        primingMinutes: number
+        rpm: number
     }
 }

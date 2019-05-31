@@ -27,8 +27,9 @@ var _ = require( 'underscore' );
 export namespace circuit
 {
 
-    class LightGroup implements Circuit.ILightGroup
+    class LightGroup implements Circuit.ILightGroups
     {
+        [ key: number ]: any;
         circuit: number;
         position: number;
         colorSet: number;

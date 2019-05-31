@@ -104,10 +104,12 @@ declare namespace Settings
         controller: any;
         circuit: any;
         chlorinator: any;
-        pump: any;
+        pump: Pump.Equipment;
+        pumpConfig: Pump.ExtendedConfigObj
         intellichem: any;
         spa: any;
         solar: any;
+
     }
 
     export interface IFileLog

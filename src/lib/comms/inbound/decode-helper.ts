@@ -23,6 +23,7 @@ import * as processIntellicenter from '../../comms/inbound/process-intellicenter
 import * as _ from 'underscore';
 
 
+
     var emitter = new events.EventEmitter();
 
 
@@ -253,34 +254,48 @@ export namespace decodeHelper
     export function decode ( data:number[], counter:number, packetType:string )
     {
         var decoded = false;
-        var searchMatch = true;
-        //when searchMode (from socket.io) is in 'start' status, any matching packets will be set to the browser at http://machine.ip:3000/debug.html
+        var resAction = false, resDest = false, resSrc = false, searchMatch = false;
+        //when searchMode (from socket.io) is in 'start' status, any matching packets will be set to the browser through the socket to the packetsniffer utility
+
+
+
+
         if ( apiSearch.searchMode === 'start' )
         {
-            if ( apiSearch.searchAction !== -1 )
+            if ( apiSearch.searchAction[0] !== -1 )
             {
-                if ( apiSearch.searchAction !== data[ constants.packetFields.ACTION ] )
+                if ( apiSearch.searchAction.indexOf(data[ constants.packetFields.ACTION ])>=0 || apiSearch.searchAction.indexOf(65535)>=0  )
                 {
-                    searchMatch = false
+                    resAction = true
                 }
             }
-            if ( apiSearch.searchSrc !== -1 )
+            if ( apiSearch.searchSrc[0] !== -1 )
             {
-                if ( apiSearch.searchSrc !== data[ constants.packetFields.FROM ] )
+                if (apiSearch.searchSrc.indexOf(data[ constants.packetFields.FROM ])>=0 || apiSearch.searchSrc.indexOf(65535)>=0 )
                 {
-                    searchMatch = false
+                    resSrc = true
                 }
             }
-            if ( apiSearch.searchDest !== -1 )
+            if ( apiSearch.searchDest[0] !== -1 )
             {
-                if ( apiSearch.searchDest !== data[ constants.packetFields.DEST ] )
+                apiSearch.searchDest.indexOf(data[ constants.packetFields.DEST ])>=0 || apiSearch.searchDest.indexOf(65535)>=0 
                 {
-                    searchMatch = false
+                    resDest = true
                 }
             }
+            if ( apiSearch.searchAllorAny === 'all' )
+            {
+                searchMatch = resAction && resSrc && resSrc
+            }
+            else
+            {
+                // or mode
+                searchMatch = resAction || resSrc || resSrc
+            }
+
             if ( searchMatch === true )
             {
-                var resultObj = {
+                var resultObj:Search.IPacketObj = {
                     message: counter,
                     packet: data
                 }

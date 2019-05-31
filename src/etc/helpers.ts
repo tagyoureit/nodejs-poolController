@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { logger, circuit, pump, schedule, temperature, time, UOM, valve, chlorinator, intellichem, updateAvailable } from './internal';
+import { logger, circuit, pump, schedule, temperature, time, UOM, valve, chlorinator, intellichem, updateAvailable, pumpConfig } from './internal';
 import * as getConfigOverview from "./getConfigOverview";
 let getmac = require( 'getmac' )
 

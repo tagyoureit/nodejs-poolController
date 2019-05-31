@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 import socket = require( 'socket.io' )
-import { settings, logger, reload, pumpControllerTimers, circuit, schedule, chlorinator, queuePacket, packetBuffer, intellitouch, intellichem, intellicenterCircuitFunctions, UOM, heat, pump, time, pumpControllerMiddleware, helpers, temperature, clientConfig, updateAvailable, getConfigOverview } from '../../etc/internal';
+import { settings, logger, reload, pumpControllerTimers, circuit, schedule, chlorinator, queuePacket, packetBuffer, intellitouch, intellichem, intellicenterCircuitFunctions, UOM, heat, pump, time, pumpControllerMiddleware, helpers, temperature, clientConfig, updateAvailable, getConfigOverview, pumpConfig } from '../../etc/internal';
 import * as constants from '../../etc/constants';
 import * as intellicenter from '../equipment/intellicenter';
 
@@ -229,16 +229,16 @@ export namespace io
             socket.emit( 'echo', msg )
         } )
         // when the client emits 'toggleEquipment', this listens and executes
-        socket.on( 'toggleCircuit', function ( equipment: string )
+        socket.on( 'toggleCircuit', function ( equipment: number )
         {
             try
             {
-                validator.isNumeric( equipment )
-                circuit.toggleCircuit( parseInt( equipment ) )
+                validator.isNumeric( equipment.toString() )
+                circuit.toggleCircuit( equipment )
             }
             catch ( err )
             {
-                logger.error(`Error calling toggleCircuit with '${equipment}'. \nError: ${err.message}`)
+                logger.error( `Error calling toggleCircuit with '${ equipment }'. \nError: ${ err.message }` )
             }
         } );
 
@@ -249,31 +249,107 @@ export namespace io
         } );
 
 
-        socket.on( 'search', function ( mode: string, src: string, dest: string, action: string )
+        socket.on( 'search', function ( mode: string, allOrAny: 'all' | 'any', _dest: string, _src: string, _action: string )
         {
-            //check if we don't have all valid values, and then emit a message to correct.
-            let apiSearch: ISearch
-            logger.debug( 'from socket.on search: mode: %s  src %s  dest %s  action %s', mode, src, dest, action );
 
-            apiSearch = {
-                searchMode: mode,
-                searchSrc: parseInt( src ),
-                searchDest: parseInt( dest ),
-                searchAction: parseInt( action )
-            }
-            setSearch( apiSearch )
+            try
+            {
+                validator.isWhitelisted( _src + '', [ '*,01234566789' ] )
+                validator.isWhitelisted( _dest + '', [ '*,01234566789' ] )
+                validator.isWhitelisted( _action + '', [ '*,01234566789' ] )
 
-            if ( mode === 'start' )
-            {
-                var resultStr = "Listening for source: " + src + ", destination: " + dest + ", action: " + action
-                //emitToClientsOnEnabledSockets( "searchResults", resultStr )
-            } else if ( mode === 'stop' )
-            {
-                //emitToClientsOnEnabledSockets( "searchResults", 'Stopped listening.' )
+                //check if we don't have all valid values, and then emit a message to correct.
+                let apiSearch: ISearch
+                logger.debug( 'from socket.on search: mode: %s  src %s  dest %s  action %s', mode, _src, _dest, _action );
+
+                let src: number[], dest: number[], action: number[]
+
+                try
+                {
+                    if ( _src.includes( '*' ) )
+                    {
+                        src = [65535]
+                    }
+                    else if ( _src.includes( ',' ) )
+                    {
+                        src = _src.split(',').map(Number)
+                    }
+                    else
+                    {
+                        src = [parseInt(_src)]                        
+                    }
+                }
+                catch ( err )
+                {
+                    src = [ -1 ]
+                }
+
+                try
+                {
+                    if ( _dest.includes( '*' ) )
+                    {
+                        dest = [65535]
+                    }
+                    else if ( _dest.includes( ',' ) )
+                    {
+                        dest = _dest.split(',').map(Number)
+                    }
+                    else
+                    {
+                        dest = [parseInt(_dest)]                        
+                    }
+                }
+                catch ( err )
+                {
+                    dest = [ -1 ]
+                }
+
+                try
+                {
+                    if ( _action.includes( '*' ) )
+                    {
+                        action = [65535]
+                    }
+                    else if ( _action.includes( ',' ) )
+                    {
+                        action = _action.split(',').map(Number)
+                    }
+                    else
+                    {
+                        action = [parseInt(_action)]                        
+                    }
+                }
+                catch ( err )
+                {
+                    action = [ -1 ]
+                }
+
+
+                apiSearch = {
+                    searchMode: mode,
+                    searchSrc: src,
+                    searchDest: dest,
+                    searchAction: action,
+                    searchAllorAny: allOrAny
+                }
+                setSearch( apiSearch )
+
+                if ( mode === 'start' )
+                {
+                    var resultStr = "Listening for source: " + src + ", destination: " + dest + ", action: " + action
+                    //emitToClientsOnEnabledSockets( "searchResults", resultStr )
+                } else if ( mode === 'stop' )
+                {
+                    //emitToClientsOnEnabledSockets( "searchResults", 'Stopped listening.' )
+                }
+                else if ( mode === 'load' )
+                {
+                    //emitToClientsOnEnabledSockets( "searchResults", 'Input values and click start. All values optional. Please refer to https://github.com/tagyoureit/nodejs-poolController/wiki/Broadcast for possible action values.' )
+                }
             }
-            else if ( mode === 'load' )
+            catch ( err )
             {
-                //emitToClientsOnEnabledSockets( "searchResults", 'Input values and click start. All values optional. Please refer to https://github.com/tagyoureit/nodejs-poolController/wiki/Broadcast for possible action values.' )
+                logger.error( `setSearch socket received invalid input.  Only [,*0123456789] are allowed.` )
             }
 
         } )
@@ -731,7 +807,7 @@ export namespace io
             logger.info( response )
         } )
 
-        socket.on( 'setPumpType', function ( _pumpNum: string, _type: string )
+        socket.on( 'setPumpType', function ( _pumpNum: string, _type: Pump.PumpType )
         {
             let pumpNum = <Pump.PumpIndex> toNum( _pumpNum )
             var response: any = {}
@@ -907,6 +983,25 @@ export namespace io
             emitToClientsOnEnabledSockets( _which, data )
         } )
 
+        socket.on( 'setPumpConfigSpeed', ( _pump: Pump.PumpIndex, _circuitSlot: number, _speed: number) =>  
+        {
+            pumpConfig.setSpeedViaAPI(_pump, _circuitSlot, _speed)
+        } )
+        
+        socket.on( 'setPumpConfigCircuit', ( _pump: Pump.PumpIndex, _circuitSlot: number, _circuit: number) =>  
+        {
+            pumpConfig.setCircuitViaAPI(_pump, _circuitSlot, _circuit)
+        } )
+        
+        socket.on( 'setPumpConfigType', ( _pump: Pump.PumpIndex, _type: Pump.PumpType) =>  
+        {
+            pumpConfig.setTypeViaAPI(_pump, _type)
+        })
+        
+        socket.on( 'setPumpConfigRPMGPM', ( _pump: Pump.PumpIndex, _circuitSlot: number, _speedType: Pump.PumpSpeedType ) =>  
+        {
+            pumpConfig.setRPMGPMViaAPI(_pump, _circuitSlot, _speedType)
+        })
 
     }
 

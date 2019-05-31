@@ -1,4 +1,7 @@
 // following patterned after https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de
+
+export const BYTES = Symbol.for('poolController.BYTES')
+
 export * from './settings'
 export * from './constants'
 export * from './reload'
@@ -39,6 +42,7 @@ export * from '../lib/comms/inbound/process-intellicenter'
 export * from '../lib/equipment/heat';
 export * from '../lib/equipment/time';
 export * from '../lib/equipment/pump';
+export * from '../lib/equipment/pump-config';
 export * from '../lib/equipment/customnames';
 export * from '../lib/equipment/schedule'
 export * from '../lib/equipment/circuit'

@@ -15,7 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { settings, intellitouch, queuePacket, circuit } from './internal';
+import { settings, intellitouch, queuePacket, circuit, pumpConfig } from './internal';
 
 interface IConfigObj
 {
@@ -39,7 +39,8 @@ export function getConfigOverview () : IConfigObj
             // configTemp.equipment = JSON.parse( JSON.stringify( configurationFileContent.equipment ) );
             // configTemp.circuit = {}
             configTemp.equipment.circuit.nonLightCircuit = Object.assign({}, circuit.getAllNonLightCircuits()) 
-            configTemp.equipment.circuit.lightCircuit =Object.assign({}, circuit.getAllLightCircuits())
+            configTemp.equipment.circuit.lightCircuit = Object.assign( {}, circuit.getAllLightCircuits() )
+
             // configTemp.circuit.hideAux = configurationFileContent.equipment.circuit.hideAux
             // configTemp.chlorinator = _settings.chlorinator.installed
             // configTemp.pumps = pump.numberOfPumps()

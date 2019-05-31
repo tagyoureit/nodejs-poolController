@@ -2,30 +2,33 @@
 import CustomCard from '../CustomCard'
 import * as React from 'react';
 import { search, searchLoad, searchStop } from '../Socket_Client'
-import { InputGroup, InputGroupAddon, Input, InputGroupText, Button } from 'reactstrap'
+import
+{
+    InputGroup, InputGroupAddon, Input, InputGroupText, Button,
+    ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu
+} from 'reactstrap'
 import ReactDataGrid from 'react-data-grid';
 import '../../css/react-data-grid.css'
-
+import { getAll, emitSocket, hidePanel } from '../Socket_Client';
 
 interface Props
 {
-    dest: number
-    src: number
-    action: number
-    packets: Search.IPacketObj[]
     id: string
-    handleSniff: ( _dest: string, _src: string, _action: string ) => void
 }
 
 
 interface State
 {
     columns: any[]
-    numPacketColumns: number
+    numColumns: number
     dest: string;
     src: string;
     action: string;
+    allOrAny: 'all' | 'any'
     lastPacket: number[]
+    dropdownOpen: boolean
+    packets: Search.IPacketObj[]
+    sniffing: boolean
 }
 
 
@@ -35,102 +38,151 @@ class PacketSniffer extends React.Component<Props, State> {
     constructor( props: Props )
     {
         super( props )
-        //search( this.props.src, this.props.dest, this.props.action )
-
-
-        let numPacketColumns = 1
-
-        let packetCols = [ { key: 'waiting', name: 'Waiting for 1st message...' } ]
-        if ( this.props.packets.length )
-        {
-            numPacketColumns = this.props.packets[ 0 ].packet.length
-            for ( let i = 1; i <= numPacketColumns; i++ )
-            {
-                packetCols.push( { key: `${ i }`, name: `${ this.keyFetch( i, numPacketColumns ) }` } )
-            }
-        }
 
         this.state = {
-            numPacketColumns: numPacketColumns,
-            columns: packetCols,
-            dest: this.props.dest.toString() || '15',
-            src: this.props.src.toString() || '16',
-            action: this.props.action.toString() || '2',
-            lastPacket: []
+            numColumns: 1,
+            columns: [ { key: 'waiting', name: 'Waiting for 1st message...' } ],
+            dest: '15',
+            src: '16',
+            action: '2',
+            lastPacket: [],
+            dropdownOpen: false,
+            allOrAny: 'all',
+            packets: [],
+            sniffing: false
 
         }
+
+
+        // if ( this.state.packets.length )
+        // {
+        //     let numPacketRows = this.state.packets.length
+        //     for ( let i = 1; i <= numPacketRows; i++ )
+        //     {
+        //         if ( i <= this.state.numColumns )
+        //         {
+        //             columns.push( { key: `${ i }`, name: `${ this.keyFetch( i, numColumns ) }` } )
+        //         }
+        //     }
+        // }
+
+
         this.rowGetter = this.rowGetter.bind( this )
         this.keyFetch = this.keyFetch.bind( this )
         this.onDestChange = this.onDestChange.bind( this )
         this.onSrcChange = this.onSrcChange.bind( this )
         this.onActionChange = this.onActionChange.bind( this )
-        this._handleSniff = this._handleSniff.bind( this )
+        this.handleSniff = this.handleSniff.bind( this )
+        this.handleAllorAny = this.handleAllorAny.bind( this )
+        this.toggleDropDown = this.toggleDropDown.bind( this )
+        this.handleClear = this.handleClear.bind( this )
+        this.stopSearching = this.stopSearching.bind( this )
+
+        getAll( ( err: Error, d: any, which: string ) =>
+        {
+
+            // here we handle all objects which do not need to have additional configuration
+            if ( which === 'searchResults' )
+            {
+
+                this.setState( ( prevState ) =>
+                {
+                    let p: Search.IPacketObj = {
+                        message: d.message,
+                        packet: d.packet
+                    }
+
+                    let newPackets: Search.IPacketObj[] = prevState.packets.concat( p )
+
+                    return {
+                        packets: newPackets
+
+                    }
+                } )
+            }
+        } )
+
     }
 
-    
+    handleClear ()
+    {
+        this.setState( {
+            numColumns: 1,
+            columns: [ { key: 'waiting', name: 'Waiting for 1st message...' } ],
+            lastPacket: [],
+            packets: [],
+        })
+    }
+
+    handleAllorAny ( event: any )
+    {
+        this.setState( {
+            allOrAny: event.target.value
+        } )
+    }
+
+    toggleDropDown ()
+    {
+        this.setState( {
+            dropdownOpen: !this.state.dropdownOpen
+        } );
+    }
+
     onDestChange ( event: any )
     {
-
-        console.log( 'do validate' );
-        console.log( `setting local state: ${ event.target.value }` )
         this.setState( { dest: event.target.value } )
-
     }
     onSrcChange ( event: any )
     {
-
-        console.log( 'do validate' );
-        console.log( `setting local state: ${ event.target.value }` )
         this.setState( { src: event.target.value } )
-
     }
     onActionChange ( event: any )
     {
-
-        console.log( 'do validate' );
-        console.log( `setting local state: ${ event.target.value }` )
         this.setState( { action: event.target.value } )
 
     }
-    _handleSniff ()
+    handleSniff ()
     {
-        this.props.handleSniff( this.state.dest, this.state.src, this.state.action )
+        search( this.state.allOrAny, this.state.dest, this.state.src, this.state.action )
+        this.setState({sniffing: true})
     }
 
 
-    keyFetch ( key: number, numPacketColumns: number )
+    keyFetch ( key: number )
     {
         // idx will be the index of the column we are analyzing
         // last column might be 37-37=0;
         // first column might be 37-0=37 (address)
-        let idx = numPacketColumns - key;
 
-        switch ( idx )
+
+        switch ( key )
         {
-            case numPacketColumns - 1:
+            case 0:
                 return `Pre (${ key })`;
                 break;
-            case numPacketColumns - 2:
+            case 1:
                 return `Addr (${ key })`;
                 break;
-            case numPacketColumns - 3:
+            case 2:
                 return `Dest (${ key })`;
                 break;
-            case numPacketColumns - 4:
+            case 3:
                 return `Src (${ key })`;
                 break;
-            case numPacketColumns - 5:
+            case 4:
                 return `Action (${ key })`;
                 break;
-            case numPacketColumns - 6:
+            case 5:
                 return `Len (${ key })`;
                 break;
-            case 1:
-                return `ChkL (${ key })`;
-                break;
-            case 0:
-                return `ChkH (${ key })`;
-                break;
+            // removed these because we may have different packet lengths
+            // and therfore the chk bytes will be different for each
+            // case 1:
+            //     return `ChkL (${ key })`;
+            //     break;
+            // case 0:
+            //     return `ChkH (${ key })`;
+            //     break;
             default:
                 return key;
 
@@ -143,9 +195,9 @@ class PacketSniffer extends React.Component<Props, State> {
     componentWillUpdate ( nextProps: Props, nextState: State )
     {
         // if we change the src/dest/action resubmit search.
-        if ( this.props.src !== nextProps.src || this.props.dest !== nextProps.dest || this.props.action !== nextProps.action )
+        if ( this.state.src !== nextState.src || this.state.dest !== nextState.dest || this.state.action !== nextState.action )
         {
-            search( nextProps.src, nextProps.dest, nextProps.action )
+            // search( nextState.allOrAny, nextState.src, nextState.dest, nextState.action )
 
             let packetCols = [ { key: 'waiting', name: 'Waiting for 1st message...' } ]
             nextState.columns = packetCols;
@@ -155,54 +207,78 @@ class PacketSniffer extends React.Component<Props, State> {
     componentDidUpdate ( prevProps: Props, prevState: State )
     {
         // if we have new packets, update the column headers
-        if ( this.props.packets.length && prevState.numPacketColumns !== this.props.packets[ 0 ].packet.length )
+        if ( this.state.packets.length !== prevState.packets.length && this.state.packets.length!==0)
         {
-            
-            
-            let packetCols: AdazzleReactDataGrid.Column<number>[] = [ { key: 'message', name: 'Msg', resizable: true, width: 50} ]
-        
-            
-            let numPacketColumns = 1
-            numPacketColumns = this.props.packets[ 0 ].packet.length
-            for ( let i = 1; i <= numPacketColumns; i++ )
+            let lastPacketNum = this.state.packets.length - 1
+            // if length of last packet > # of columns then add new columns
+            if ( this.state.packets[ lastPacketNum ].packet.length > Object.keys( this.state.columns ).length )
             {
-                packetCols.push( { key: `${ i }`, name: `${ this.keyFetch( i, numPacketColumns ) }`, resizable: true  } )
-            }
-    
-            this.setState( () =>
-            {
-                return {
-                    numPacketColumns: numPacketColumns,
-                    columns: packetCols,
-                    lastPacket: (this.props.packets.slice(-1))[0].packet
+
+
+                let packetCols: AdazzleReactDataGrid.Column<number>[];
+                if ( Object.keys( this.state.columns ).length === 1 )
+                {
+                    packetCols = [ { key: 'message', name: 'Msg', resizable: true, width: 50 } ]
                 }
-            } )
+                else
+                {
+                    // packetCols = Object.assign( {}, this.state.columns )
+                    packetCols = this.state.columns.slice()
+                }
+
+                // get count of columns with the message key
+                let numColumnsWithoutMsg: number = 0;
+                Object.keys( packetCols ).forEach( ( el: any ) =>
+                {
+                    if ( packetCols[ el ].key !== 'message' )
+                        numColumnsWithoutMsg += 1;
+                } )
+
+                // for each data byte >= the number of Columns we already have
+                for ( let byte = 0; byte < this.state.packets[ lastPacketNum ].packet.length; byte++ )
+                {
+                    // if the # of bytes is less than the number of headers we already have,
+                    // add the new headers
+                    if ( byte >= numColumnsWithoutMsg )
+                    {
+                        let newCol = { key: `${ byte }`, name: `${ this.keyFetch( byte ) }`, resizable: true } 
+                        packetCols.push(newCol)
+                    }
+                }
+                this.setState( {
+                    numColumns: Object.keys( packetCols ).length,
+                    columns: packetCols,
+                    lastPacket: ( this.state.packets.slice( -1 ) )[ 0 ].packet
+                } )
+            }
         }
-
-        
-
     }
 
     componentWillUnmount ()
     {
+    
         // if we leave the page, stop searching
+        this.stopSearching()
+    }
+    
+    stopSearching ()
+    {
         searchStop()
+        this.setState({sniffing: false})
     }
 
     rowGetter ( i: number )
     {
-        //( i: number ) => this.props.packets[ i ]
         if ( i >= 0 )
         {
-            let dataCols = this.props.packets[ i ].packet
+            let dataRows = this.state.packets[ i ]
             let res: any = {
-                message: this.props.packets[ i ].message
+                message: this.state.packets[ i ].message
             }
-            for ( let j = 0; j <= this.state.numPacketColumns; j++ )
+            for ( let byte = 0; byte <= this.state.numColumns - 1; byte++ )
             {
-                res[ j ] = dataCols[ j - 1 ]
+                res[ byte ] = dataRows.packet[ byte ]
             }
-
             return res
         }
     }
@@ -218,7 +294,7 @@ class PacketSniffer extends React.Component<Props, State> {
                             <InputGroupAddon addonType="prepend">
                                 <InputGroupText>Destination</InputGroupText>
                             </InputGroupAddon>
-                            <Input placeholder={this.props.dest.toString()} onChange={this.onDestChange} />
+                            <Input placeholder={this.state.dest} onChange={this.onDestChange} />
                         </InputGroup>
 
                         <InputGroup>
@@ -234,19 +310,48 @@ class PacketSniffer extends React.Component<Props, State> {
                             </InputGroupAddon>
                             <Input placeholder='2' onChange={this.onActionChange} />
                         </InputGroup>
-                        <Button color="primary" size="sm" onClick={this._handleSniff}>Sniff</Button>
+
+                        <ButtonDropdown size='sm' isOpen={this.state.dropdownOpen} toggle={this.toggleDropDown} className='mr-1 mb-1 mt-1' >
+                            <DropdownToggle caret color='primary'>
+                                {`${ this.state.allOrAny === 'any' ? 'At least one match on any row' : 'At least one match on all rows' }`}
+                            </DropdownToggle>
+                            <DropdownMenu>
+                                <DropdownItem value='all' onClick={this.handleAllorAny}>
+                                    All
+
+                                </DropdownItem>
+                                <DropdownItem value='any' onClick={this.handleAllorAny}>
+                                    Any
+
+                                </DropdownItem>
+                            </DropdownMenu>
+                        </ButtonDropdown>
+                        <br />
+                        <Button color={this.state.sniffing?'secondary':'primary'} size="sm" onClick={this.handleSniff} className='mr-1'>Sniff</Button>
+                        <Button color={this.state.sniffing?'primary':'secondary'} size="sm" onClick={this.stopSearching} className='mr-1'>Stop</Button>
+                        <Button color="primary" size="sm" onClick={this.handleClear}>Clear</Button>
+
                     </div>
 
                     <div className='customDataGrid'>
                         <ReactDataGrid
                             columns={this.state.columns}
                             rowGetter={this.rowGetter}
-                            rowsCount={this.props.packets.length}
+                            rowsCount={this.state.packets.length}
                             minHeight={550}
                             minColumnWidth={30}
                             headerRowHeight={65}
                         />
                     </div>
+                    <p />
+                    <h5>Directions</h5>
+                    Enter one or more numbers (decimal) on each line.
+                    <ul>
+                        <li>For wildcard matching, use *</li>
+                        <li>For multiple values, use comma separated values.  Eg "2,8" in the action field will listen both for packets 2 and 8.</li>
+                        <li>At least one match on <b>any</b> row will show results if they match any one criteria on any row.</li>
+                        <li>At least one match on <b>all</b> rows will show results only if there is 1+ match on each line.</li>
+                    </ul>
                 </CustomCard>
 
             </div>

@@ -22,7 +22,7 @@ export function process ( data: number[], counter: number )
 {
 
   if ( settings.get( 'logMessageDecoding' ) )
-    logger.info( 'Msg# %s   Set Pump/Circuit/Speed Config: %s', counter, data )
+    logger.info( 'Msg# %s   Set Pump/Circuit/Speed Extended Config: %s', counter, data )
   var decoded = true;
 
   pumpConfig.process( data, counter )

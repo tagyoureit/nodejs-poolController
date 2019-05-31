@@ -81,6 +81,14 @@
                 "friendlyName": ""
             }
         },
+        "pumpConfig": {
+            "1": {
+                "type": "NONE"
+            },
+            "2": {
+                "type": "NONE"
+            }
+        },
         "intellichem": {
             "installed": 0
         },

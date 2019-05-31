@@ -24,7 +24,7 @@
             }
         },
         "circuit": {
-            "hideAux": false,
+            "hideAux": true,
             "friendlyName": {
                 "1": "",
                 "2": "",
@@ -33,7 +33,7 @@
                 "5": "",
                 "6": "",
                 "7": "",
-                "8": "",
+                "8": "Pool Lights Shallow",
                 "9": "",
                 "10": "",
                 "11": "",
@@ -46,17 +46,19 @@
                 "18": "",
                 "19": "",
                 "20": ""
-            }
+            },
+            "nonLightCircuit": {},
+            "lightCircuit": {}
         },
         "chlorinator": {
-            "installed": 0,
+            "installed": 1,
             "desiredOutput": {
-                "pool": -1,
-                "spa": -1
+                "pool": 30,
+                "spa": 17
             },
             "friendlyName": "",
             "id": {
-                "productName": ""
+                "productName": "Intellichlor--40"
             }
         },
         "pump": {
@@ -68,25 +70,17 @@
                     "3": -1,
                     "4": -1
                 },
-                "friendlyName": ""
+                "friendlyName": "Pool Pump"
             },
             "2": {
-                "type": "none",
+                "type": "VS",
                 "externalProgram": {
                     "1": -1,
                     "2": -1,
                     "3": -1,
                     "4": -1
                 },
-                "friendlyName": ""
-            }
-        },
-        "pumpConfig": {
-            "1": {
-                "type": "NONE"
-            },
-            "2": {
-                "type": "NONE"
+                "friendlyName": "Waterfall Pump"
             }
         },
         "intellichem": {
@@ -97,6 +91,118 @@
         },
         "solar": {
             "installed": 0
+        },
+        "pumpConfig": {
+            "1": {
+                "type": "VS",
+                "circuitSlot": {
+                    "1": {
+                        "number": 16,
+                        "friendlyName": "JETS",
+                        "flag": "rpm",
+                        "rpm": 3200
+                    },
+                    "2": {
+                        "number": 6,
+                        "friendlyName": "POOL",
+                        "flag": "rpm",
+                        "rpm": 1250
+                    },
+                    "3": {
+                        "number": 1,
+                        "friendlyName": "SPA",
+                        "flag": "rpm",
+                        "rpm": 2500
+                    },
+                    "4": {
+                        "number": 4,
+                        "friendlyName": "CLEANER",
+                        "flag": "rpm",
+                        "rpm": 3000
+                    },
+                    "5": {
+                        "number": 11,
+                        "friendlyName": "SPILLWAY",
+                        "flag": "rpm",
+                        "rpm": 1000
+                    },
+                    "6": {
+                        "number": 128,
+                        "friendlyName": "Solar",
+                        "flag": "rpm",
+                        "rpm": 2200
+                    },
+                    "7": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "rpm",
+                        "rpm": 700
+                    },
+                    "8": {
+                        "number": 18,
+                        "friendlyName": "FEATURE 8",
+                        "flag": "rpm",
+                        "rpm": 750
+                    }
+                },
+                "prime": {
+                    "primingMinutes": 0,
+                    "rpm": 1000
+                }
+            },
+            "2": {
+                "type": "VSF",
+                "circuitSlot": {
+                    "1": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "2": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "3": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "4": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "5": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "6": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "7": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    },
+                    "8": {
+                        "number": 0,
+                        "friendlyName": "none",
+                        "flag": "gpm",
+                        "gpm": 30
+                    }
+                }
+            }
         }
     },
     "poolController": {
@@ -118,22 +224,22 @@
         },
         "network": {
             "rs485Port": "/dev/ttyUSB0",
-            "netConnect": 0,
-            "netHost": "raspberrypi",
+            "netConnect": 1,
+            "netHost": "poolcontroller.local",
             "netPort": 9801,
             "inactivityRetry": 60
         },
         "log": {
-            "logLevel": "info",
+            "logLevel": "silly",
             "socketLogLevel": "info",
             "logPumpMessages": 0,
             "logDuplicateMessages": 0,
             "logConsoleNotDecoded": 0,
             "logConfigMessages": 0,
-            "logMessageDecoding": 0,
+            "logMessageDecoding": 1,
             "logChlorinator": 0,
             "logIntellichem": 0,
-            "logPacketWrites": 0,
+            "logPacketWrites": 1,
             "logPumpTimers": 0,
             "logReload": 0,
             "logApi": 0,
@@ -146,9 +252,9 @@
         },
         "database": {
             "influx": {
-                "enabled": 0,
-                "host": "localhost",
-                "port": 8086,
+                "enabled": 1,
+                "host": "goldinfiles.local",
+                "port": 32769,
                 "database": "pool"
             }
         },
@@ -165,10 +271,10 @@
                     "state": "visible"
                 },
                 "chlorinator": {
-                    "state": "visible"
+                    "state": "hidden"
                 },
                 "feature": {
-                    "state": "visible"
+                    "state": "hidden"
                 },
                 "pump": {
                     "state": "visible"
@@ -203,7 +309,7 @@
                 "remote": {
                     "version": "6.0.0",
                     "tag_name": "v6.0.0",
-                    "dismissUntilNextRemoteVersionBump": false
+                    "dismissUntilNextRemoteVersionBump": true
                 }
             }
         },

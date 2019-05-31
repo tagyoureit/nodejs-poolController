@@ -4,7 +4,7 @@ import
     Modal, ModalHeader, ModalBody, ModalFooter
 } from 'reactstrap';
 
-import CustomCard from '../components/CustomCard'
+import CustomCard from '../CustomCard'
 import * as React from 'react';
 import EggTimerEdit from './EggTimerEdit'
 

@@ -73,15 +73,16 @@ declare namespace Circuit
 
     interface ILightGroups
     {
-        [key: number]: ILightGroup
+        [ key: number ]: {
+            circuit: number;
+            position: number;
+            colorSet: number;
+            colorSetStr: string;
+            colorSwimDelay: number;}
     }
 
-    interface ILightGroup
-    {
-        circuit: number;
-        position: number;
-        colorSet: number;
-        colorSetStr: string;
-        colorSwimDelay: number;
-    }
+    // interface ILightGroup
+    // {
+        
+    // }
 }

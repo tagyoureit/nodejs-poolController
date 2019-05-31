@@ -15,18 +15,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Set Intellichlor status
+// Extended Pump Config
 import { settings, logger, pumpConfig } from '../../../../etc/internal';
 
 export function process ( data: number[], counter: number )
 {
 
-  if ( settings.get( 'logMessageDecoding' ) )
-    logger.info( 'Msg# %s   Set Pump/Circuit/Speed Config: %s', counter, data )
-  var decoded = true;
 
-  pumpConfig.process( data, counter )
-  return decoded
+  if ( settings.get( 'logPumpMessages' ) )
+    logger.debug( 'Msg# %s   Pump Config status packet: %s', counter, data )
 
+  pumpConfig.process(data, counter)
 
+  return true
 }

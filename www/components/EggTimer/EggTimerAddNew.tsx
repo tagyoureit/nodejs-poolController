@@ -1,12 +1,10 @@
 import { Container, Row, Col, Button, Table, Dropdown, ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu } from 'reactstrap'
-import { setScheduleCircuit } from './Socket_Client'
 import * as React from 'react';
-import '../css/dropdownselect.css'
+import '../../css/dropdownselect.css'
 
 interface Props
 {
   data: Circuit.ICurrentCircuitsArr
-  currentScheduleId: number
   idOfFirstUnusedSchedule: number
   onClick: (event: any)=>void
 }
@@ -85,7 +83,6 @@ class EggTimerCircuit extends React.Component<Props, State> {
               key={`eggTimer${ this.props.data[ i ].number }${ i }`}
               onClick={this.handleClick}
               data-type='add-new'
-              data-schedule-id={this.props.currentScheduleId}
               value={this.props.data[ i ].number}
             >
               {this.props.data[ i ].friendlyName} ({this.props.data[ i ].number})

@@ -1,253 +1,109 @@
-// Todo: implement these
 
-// /*
-//
-// 09:55:04.008 DEBUG Msg# 12  Incoming controller packet: 165,33,15,16,10,12,2,87,116,114,70,97,108,108,32,50,0,251,5,6
-// 09:55:04.192 DEBUG Msg# 13  Incoming controller packet: 165,33,15,16,10,12,3,87,116,114,70,97,108,108,32,51,0,251,5,8
-// 09:55:05.055 DEBUG Msg# 16  Incoming controller packet: 165,33,15,16,10,12,5,85,83,69,82,78,65,77,69,45,48,54,3,243
-// 09:55:05.201 DEBUG Msg# 17  Incoming controller packet: 165,33,15,16,10,12,6,85,83,69,82,78,65,77,69,45,
-// 09:55:05.374 DEBUG Msg# 18  Incoming controller packet: 165,33,15,16,10,12,7,85,83,69,82,78,65,77,69,45
-// 09:55:05.550 DEBUG Msg# 19  Incoming controller packet: 165,33,15,16,10,12,8,85,83,69,82,78,65,77,69,45,48,57,3,249
-// 09:55:05.728 DEBUG Msg# 20  Incoming controller packet: 165,33,15,16,10,12,9,85,83,69,82,78,65,77,69,45
-// 09:55:05.749 INFO
-//   Custom Circuit Names retrieved from configuration:
-//         ["WtrFall 1","WtrFall 1.5","WtrFall 2","WtrFall 3","Pool Low2","USERNAME-06","USERNAME-07","USERNAME-08","USERNAME-09","USERNAME-10"]
-//  */
-//
-// describe('circuit controller', function() {
-//
-//     describe('#sets the friendlyNames', function() {
-//
-//         var equip = 'controller'
-//         before(function() {
-//             await globalAny.initAllAsync()
-//
-//         });
-//
-//         beforeEach(function() {
-//             loggers = globalAny.setupLoggerStubOrSpy('stub', 'stub')
-//             clock = sinon.useFakeTimers()
-//
-//             updateAvailStub = sinon.stub(updateAvailable, 'getResultsAsync').returns(Promise.resolve({}))
-//         })
-//
-//         afterEach(function() {
-//             //restore the sinon after each function
-//             sinon.restore()
-//
-//
-//         })
-//
-//         after(function() {
-//             await globalAny.stopAllAsync()
-//         })
-//
-//         it('sets the names for circuits other than pool and spa', function() {
-//
-//             var fnArr = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/specs/assets/config', 'configFriendlyNames.json'), 'utf8'))
-//             //var _response = {}
-//             myModule.__with__({
-//                 'currentCircuitArrObj': globalAny.circuitJson,
-//                 'settings.circuitFriendlyNames': fnArr
-//             })(function() {
-//                 myModule(bottle.container).setCircuitFriendlyNames()
-//
-//                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
-//                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
-//                 fnArr[1]['circuit1'] = "Try to rename spa"
-//                 myModule(bottle.container).setCircuitFriendlyNames()
-//                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
-//                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
-//                 fnArr[1]['circuit1'] = "SPA"
-//                 fnArr[6]['circuit6'] = "Try to rename pool"
-//                 myModule(bottle.container).setCircuitFriendlyNames()
-//                 myModule.__get__('currentCircuitArrObj')[1].friendlyName.should.eq('SPA')
-//                 myModule.__get__('currentCircuitArrObj')[5].friendlyName.should.eq('WATERFALL MEDIUM LOW')
-//                 myModule.__get__('currentCircuitArrObj')[6].friendlyName.should.eq('POOL')
-//             })
-//
-//
-//
-//         });
-//     })
-//
-//
-//     describe('#functions that get and set circuits', function() {
-//
-//       before(function() {
-//           globalAny.initAllAsync()
-//       });
-//
-//       beforeEach(function() {
-//           sinon = sinon.sinon.create()
-//           clock = sinon.useFakeTimers()
-//           loggerInfoStub = sinon.stub(logger, 'info')
-//           loggerWarnStub = sinon.spy(logger, 'warn')
-//           loggerVerboseStub = sinon.stub(logger, 'verbose')
-//           loggerDebugStub = sinon.stub(logger, 'debug')
-//           loggerSillyStub = sinon.stub(logger, 'silly')
-//         })
-//
-//         afterEach(function() {
-//             sinon.restore()
-//         })
-//
-//         after(function() {
-//             globalAny.stopAllAsync()
-//         })
-//
-//         it('gets a circuit (1)', function() {
-//
-//             myModule.__set__(
-//                 'currentCircuitArrObj', ['blank',
-//                     {
-//                         name: 'myCircuit',
-//                         number: 1,
-//                         numberStr: 'circuit1',
-//                         circuitFunction: 'Generic',
-//                         status: 0,
-//                         freeze: 0,
-//                         friendlyName: 'nice_name'
-//                     }
-//                 ]
-//             )
-//
-//             //console.log('inside: ', myModule('blank').getCircuit(1))
-//
-//             //console.log('myMod?? ', myModule.__get__('currentCircuitArrObj'))
-//             return myModule(bottle.container).getCircuit(1).name.should.eq('myCircuit')
-//         });
-//
-//         it('gets a circuit (1) name', function() {
-//
-//             myModule.__set__(
-//                 'currentCircuitArrObj', ['blank',
-//                     {
-//                         name: 'myCircuit',
-//                         number: 1,
-//                         numberStr: 'circuit1',
-//                         circuitFunction: 'Generic',
-//                         status: 0,
-//                         freeze: 0,
-//                         friendlyName: 'nice_name'
-//                     }
-//                 ]
-//             )
-//
-//             //console.log('inside: ', myModule('blank').getCircuit(1))
-//
-//             //console.log('myMod?? ', myModule.__get__('currentCircuitArrObj'))
-//             var result = myModule(bottle.container).getCircuitName(1)
-//             return result.should.eq('myCircuit')
-//         });
-//
-//         it('gets a circuit (1) friendly name', function() {
-//
-//             myModule.__set__(
-//                 'currentCircuitArrObj', ['blank',
-//                     {
-//                         name: 'myCircuit',
-//                         number: 1,
-//                         numberStr: 'circuit1',
-//                         circuitFunction: 'Generic',
-//                         status: 0,
-//                         freeze: 0,
-//                         friendlyName: 'nice_name'
-//                     }
-//                 ]
-//             )
-//
-//             //console.log('inside: ', myModule('blank').getCircuit(1))
-//
-//             //console.log('myMod?? ', myModule.__get__('currentCircuitArrObj'))
-//             var result = myModule(bottle.container).getFriendlyName(1)
-//             return result.should.eq('nice_name')
-//         });
-//
-//     });
-//
-//     describe('#functions that get and set circuits', function() {
-//         it('toggles circuit 1 with no callback', function() {
-//             var queuePacketStub = sinon.stub()
-//             var loggerInfoStub = sinon.stub()
-//             //var _response = {}
-//             myModule.__with__({
-//                 'currentCircuitArrObj': globalAny.circuitJson,
-//                 //'response': _response,
-//                 'bottle.container': {
-//                     'queuePacket': {
-//                         'queuePacket': queuePacketStub
-//                     },
-//                     'logger': {
-//                         'info': loggerInfoStub
-//                     },
-//                     'intellitouch': {
-//                         'getPreambleByte': function() {
-//                             return 99
-//                         }
-//                     },
-//                     'settings': {
-//                         'appAddress': 999
-//                     }
-//                 }
-//             })(function() {
-//                 myModule(bottle.container).toggleCircuit(1)
-//                 //console.log('response: ', _response)
-//                 //console.log('stub: ', queuePacketStub.args)
-//                 //console.log('logger stub: ', loggerInfoStub.args[0])
-//
-//                 loggerInfoStub.args[0][0].status.should.eq('on')
-//                 loggerInfoStub.args[0][0].value.should.eq(1)
-//                 queuePacketStub.args[0][0].should.deep.eq([165, 99, 16, 999, 134, 2, 1, 1])
-//
-//
-//             })
-//
-//
-//
-//         });
-//
-//         it('toggles circuit 1 with a callback', function() {
-//             var queuePacketStub = sinon.stub()
-//             var loggerInfoStub = sinon.stub()
-//             //var _response = {}
-//             myModule.__with__({
-//                 'currentCircuitArrObj': globalAny.circuitJson,
-//                 //'response': _response,
-//                 'bottle.container': {
-//                     'queuePacket': {
-//                         'queuePacket': queuePacketStub
-//                     },
-//                     'logger': {
-//                         'info': loggerInfoStub
-//                     },
-//                     'intellitouch': {
-//                         'getPreambleByte': function() {
-//                             return 99
-//                         }
-//                     },
-//                     'settings': {
-//                         'appAddress': 999
-//                     }
-//                 }
-//             })(function() {
-//                 var response;
-//                 myModule(bottle.container).toggleCircuit(1, function(res) {
-//                     response = res
-//                 })
-//
-//                 //console.log('response: ', _response)
-//                 //console.log('stub: ', queuePacketStub.args)
-//                 //console.log('logger stub: ', loggerInfoStub.args[0])
-//
-//                 loggerInfoStub.args[0][0].status.should.eq('on')
-//                 loggerInfoStub.args[0][0].value.should.eq(1)
-//                 queuePacketStub.args[0][0].should.deep.eq([165, 99, 16, 999, 134, 2, 1, 1])
-//                 response.value.should.eq(1)
-//             })
-//
-//         });
-//
-//
-//     })
-// })
+let customNamePackets = [
+    [ 255,0,255,165,33, 15, 16, 10, 12, 0, 87, 116, 114, 70, 97, 108, 108, 32, 49, 0, 251, 5, 3 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 1, 87, 116, 114, 70, 97, 108, 108, 32, 49, 46, 53, 4, 108 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 2, 87, 116, 114, 70, 97, 108, 108, 32, 50, 0, 251, 5, 6 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 3, 87, 116, 114, 70, 97, 108, 108, 32, 51, 0, 251, 5, 8 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 4, 80, 111, 111, 108, 32, 72, 105, 103, 104, 0, 251, 5, 52 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 5, 80, 111, 111, 108, 32, 76, 116, 68, 101, 101, 112, 4, 248 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 6, 80, 111, 111, 108, 32, 76, 116, 83, 104, 108, 119, 5, 25 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 7, 85, 83, 69, 82, 78, 65, 77, 69, 45, 48, 56, 3, 247 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 8, 85, 83, 69, 82, 78, 65, 77, 69, 45, 48, 57, 3, 249 ],
+    [ 255,0,255,165,33, 15, 16, 10, 12, 9, 85, 83, 69, 82, 78, 65, 77, 69, 45, 49, 48, 3, 242 ]
+]
+
+let circPackets = [
+    [ 255,0,255,165,33, 15, 16, 11, 5, 1, 1, 72, 0, 0, 1, 63 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 2, 16, 205, 0, 0, 1, 212 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 3, 0, 2, 0, 0, 0, 250 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 4, 5, 22, 0, 0, 1, 20 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 5, 64, 201, 0, 0, 2, 3 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 6, 66, 61, 0, 0, 1, 122 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 7, 16, 74, 0, 0, 1, 86 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 8, 16, 206, 0, 0, 1, 219 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 9, 7, 55, 0, 0, 1, 60 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 10, 0, 0, 0, 0, 0, 255 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 11, 14, 79, 0, 0, 1, 93 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 12, 0, 200, 0, 0, 1, 201 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 13, 0, 202, 0, 0, 1, 204 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 14, 0, 203, 0, 0, 1, 206 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 15, 0, 204, 0, 0, 1, 208 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 16, 0, 46, 0, 0, 1, 51 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 17, 14, 53, 0, 0, 1, 73 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 18, 14, 101, 0, 0, 1, 122 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 19, 0, 0, 0, 0, 1, 8 ],
+    [ 255,0,255,165,33, 15, 16, 11, 5, 20, 0, 93, 0, 0, 1, 102 ]
+]
+
+
+
+
+import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, temperature, UOM, valve, intellichem, chlorinatorController, promise, queuePacket, intellicenter, intellitouch, updateAvailable, pumpConfig } from '../../../src/etc/internal';
+import * as sinon from 'sinon';
+const globalAny: any = global;
+let loggers: Init.StubType;
+let updateAvailStub: sinon.SinonStub
+let controllerConfigNeededStub: sinon.SinonStub;
+describe( 'circuit controller', function ()
+{
+
+    describe( '#sets the friendlyNames', function ()
+    {
+
+        var equip = 'controller'
+        before( async function ()
+        {
+            await globalAny.initAllAsync( { 'configLocation': './specs/assets/config/templates/configFriendlyNames.json' } )
+
+        } );
+
+        beforeEach( function ()
+        {
+            loggers = globalAny.setupLoggerStubOrSpy( 'spy', 'stub' )
+            let fakeObj: IUpdateAvailable.Ijsons = { local: { version: '1.2.3' }, remote: { version: '4.5.6', tag_name: '4.5.6' }, result: 'faked9!' }
+            updateAvailStub = sinon.stub( updateAvailable, 'getResultsAsync' ).returns( Promise.resolve( fakeObj ) )
+            controllerConfigNeededStub = sinon.stub( intellitouch, 'checkIfNeedControllerConfiguration' )
+        } )
+
+        afterEach( function ()
+        {
+            //restore the sinon after each function
+            sinon.restore()
+
+
+        } )
+
+        after( async function ()
+        {
+            await globalAny.stopAllAsync()
+        } )
+        
+        it( 'reads incoming custom names', async function ()
+        {
+            customNamePackets.forEach( ( packet ) =>
+            {
+                packetBuffer.push( new Buffer( packet ) )
+            } )
+            await globalAny.wait( 500 )
+            customNames.getCustomName(0).should.eq('WtrFall 1')
+            customNames.getCustomName(5).should.eq('Pool LtDeep')            
+        } )
+
+        it( 'reads incoming circuit packets', async function ()
+        {
+            circPackets.forEach( ( packet ) =>
+            {
+                packetBuffer.push( new Buffer( packet ) )
+            } )
+            await globalAny.wait( 500 )
+            let circuits = circuit.getCurrentCircuits().circuit
+            circuits[ 1 ].friendlyName.should.eq( 'SPA' )
+            circuits[ 20 ].name.should.eq( 'AUX EXTRA' )
+            
+        } )
+
+    } )
+
+
+
+} )

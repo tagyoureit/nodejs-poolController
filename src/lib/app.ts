@@ -1,6 +1,6 @@
 
 import * as bluebird from 'bluebird';
-import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, integrations, clientConfig, io, influx } from '../etc/internal';
+import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, integrations, clientConfig, io, influx, pumpConfig } from '../etc/internal';
 import {getConfigOverview} from '../etc/getConfigOverview'
 //import * as intellicenter from './equipment/intellicenter';
 // import * as helpers from '../etc/helpers'
@@ -14,17 +14,8 @@ export async function initAsync ()
 
     try
     {
-        // return promise.resolve()
-        //     .then( function ()
-        //     {
         logger.init()
-        // } )
-        // .then( settings.load )
         settings.load()
-
-        // .delay( 25 )
-        // .then( function ()
-        // {
         if ( settings.isReady() )
         {
             logger.init( settings.get( 'logLevel' ) )
@@ -45,12 +36,6 @@ export async function initAsync ()
             console.log( 'App should be ready by now, but it is not.' )
         }
 
-        // } )
-        // .delay( 25 )
-
-
-        // .then( function ()
-        // {
         await server.initAsync()
         sp.init()
         packetBuffer.init()
@@ -61,6 +46,7 @@ export async function initAsync ()
         updateAvailable.initAsync()
         // initialize variables to hold status
         pump.init()
+        pumpConfig.init()
         chlorinator.init()
         heat.init()
         time.init()
@@ -73,27 +59,17 @@ export async function initAsync ()
         valve.init()
         intellichem.init()
         influx.init()
-
-        // logger.info('Intro: ', settings.displayIntroMsg())
-        // logger.info('Settings: ', settings.displaySettingsMsg())
         settings.displaySettingsMsg()
         //logic if we start the virtual pump/chlorinator controller is in the function
         pumpControllerTimers.startPumpController()
         chlorinatorController.startChlorinatorController()
-
-        // helpers
-
-
         sysReadyEmitTimer = setInterval(checkSysReady, 250)
-
-
     }
     catch ( err )
     {
         logger.error( 'Error with initialization:', err )
         console.error( err )
     } 
-
 
 }
 

@@ -6,13 +6,12 @@ import PoolSpaState from './PoolSpaState'
 import Pump from './Pump'
 import Feature from './Feature'
 import Schedule from './Schedule'
-import EggTimer from './EggTimer'
+import EggTimer from './EggTimer/EggTimer'
 import Chlorinator from './Chlorinator'
 import ShouldDisplay from './ShouldDisplay'
-import Light from './Light'
+import Light from './Light/Light'
 import DebugLog from './DebugLog'
 import Footer from './Footer'
-
 
 
 interface IPoolControllerState
@@ -24,6 +23,7 @@ interface IPoolControllerState
     poolInfo: WWW.IPoolOrSpaState;
     spaInfo: WWW.IPoolOrSpaState;
     pump: Pump.PumpStatus;
+    pumpConfig: Pump.ExtendedConfigObj;
 
     circuit: Circuit.ICurrentCircuitsArr;
     feature: Circuit.ICurrentCircuitsArr;
@@ -83,7 +83,49 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                             lightCircuit: {}
                         },
                         pump: {
-
+                            pump: 1,
+                            name: '',
+                            friendlyName: '',
+                            type: 'VS',
+                            time: '',
+                            run: 0,
+                            mode: 0,
+                            drivestate: 0,
+                            watts: 0,
+                            rpm: 0,
+                            gpm: 0,
+                            ppc: 0,
+                            err: 0,
+                            timer: 0,
+                            duration: 0,//duration on pump, not program duration
+                            currentrunning: {
+                                mode: '',
+                                value: 0,
+                                remainingduration: 0
+                            },
+                            currentprogram: 0,
+                            externalProgram: {
+                                1: 0,
+                                2: 0,
+                                3: 0,
+                                4: 0
+                            },
+                            remotecontrol: 0,
+                            power: 0,
+                            virtualControllerType: 'never',
+                            virtualControllerStatus: 'disabled' 
+                        },
+                        pumpConfig: {
+                            1: {
+                                type: 'VS',
+                                circuitSlot: {
+                                    1: {
+                                        number: 1,
+                                        friendlyName: '',
+                                        flag: 'rpm'
+                                    }
+                                }
+                            }
                         },
                         intellichem: {
                             installed: 0
@@ -217,6 +259,20 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                         virtualControllerStatus: 'disabled'
                     }
                 },
+                pumpConfig: {
+                    1: {
+                        type: "NONE",
+                        circuitSlot: {
+                            1: {
+                                number: 1,
+                                friendlyName: "none",
+                                flag: "rpm",
+                                rpm: 400
+                            }
+                        }
+                    }
+                }
+                ,
                 feature: {},
                 counter: 0,
                 chlorinator: {
@@ -271,7 +327,6 @@ class PoolController extends React.Component<any, IPoolControllerState> {
             {
                 pendingChanges = Object.assign( {}, pendingChanges, {
                     config: d.config,
-                    pump: d.pump,
                     UOM: d.UOM,
                     valve: d.valve,
                     intellichem: d.intellchem
@@ -283,9 +338,11 @@ class PoolController extends React.Component<any, IPoolControllerState> {
              * so we skip them here
              */
 
-            if ( which === 'pump' )
+            if ( which === 'pump' || which === 'all' )
             {
-                pendingChanges = Object.assign( {}, pendingChanges, { pump: d.pump } )
+                // pumpConfig changes shouldn't be merged.  Delete keys first
+                delete pendingChanges.pumpConfig
+                pendingChanges = Object.assign( {}, pendingChanges, { pump: d.pump }, {pumpConfig: d.pumpConfig} )
                 // this.setState( ( state ) => { return { pump: d.pump } } )
             }
 
@@ -683,6 +740,7 @@ class PoolController extends React.Component<any, IPoolControllerState> {
 
     render ()
     {
+        const pumpControlType = (this.state.config.equipment.controller.intellitouch.installed || this.state.config.equipment.controller.intellicenter.installed)?'pumpConfig':'manual'
         return (
             <Layout counter={this.state.counter} >
                 <ShouldDisplay
@@ -703,7 +761,11 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                 <Pump
                     data={this.state.pump}
                     id='pump'
-                    visibility={this.state.config.client.panelState.pump.state} />
+                    visibility={this.state.config.client.panelState.pump.state}
+                    circuit={this.state.circuit}
+                    pumpConfig={this.state.pumpConfig}
+                    controlType={pumpControlType}
+                />
                 <Feature
                     feature={this.state.feature}
                     hideAux={this.state.config.client.hideAux}

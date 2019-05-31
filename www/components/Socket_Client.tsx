@@ -6,16 +6,13 @@ const socket = io( {} )
 let lastUpdateTime = 0;
 let subscribed = 0;
 
-function emitSocket ( which: string )
+export function emitSocket ( which: string )
 {
     socket.emit( which )
 }
 
-function getAll ( cb: any )
+export function getAll ( cb: any )
 {
-
-    console.log( `in getall` )
-
     if ( !subscribed )
     {
         //console.log(`SUBSCRIBING!`)
@@ -124,7 +121,7 @@ function getAll ( cb: any )
 
 
 
-function setDateTime ( newDT: any )
+export function setDateTime ( newDT: any )
 {
     //socket.on('setDateTime', function (hh, mm, dow, dd, mon, yy, dst)
     //socket.emit('setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow(2, newDT.getDay()), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice(-2), autoDST)
@@ -132,13 +129,13 @@ function setDateTime ( newDT: any )
     socket.emit( 'setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow( 2, newDT.getDay() ), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice( -2 ), autoDST )
 }
 
-function toggleCircuit ( circuit: number ): void
+export function toggleCircuit ( circuit: number ): void
 {
     console.log( `emitting toggle circuit ${ circuit }` )
     socket.emit( 'toggleCircuit', circuit )
 }
 
-function setHeatMode ( equip: string, mode: number ): void
+export function setHeatMode ( equip: string, mode: number ): void
 {
     if ( equip.toLowerCase() === 'spa' )
     {
@@ -150,7 +147,7 @@ function setHeatMode ( equip: string, mode: number ): void
     }
 }
 
-function setHeatSetPoint ( equip: string, temp: number ): void
+export function setHeatSetPoint ( equip: string, temp: number ): void
 {
     if ( equip.toLowerCase() === 'spa' )
     {
@@ -167,74 +164,75 @@ function setChlorinatorLevels ( poolLevel: number, spaLevel: number, superChlori
     socket.emit( 'setchlorinator', poolLevel, spaLevel, superChlorinateHours )
 }
 
-function hidePanel ( panel: string ): void
+export function hidePanel ( panel: string ): void
 {
     socket.emit( 'hidePanel', panel )
 }
 
-function resetPanels (): void
+export function resetPanels (): void
 {
     socket.emit( 'resetConfigClient' )
 }
 
-function setLightMode ( light: number ): void
+export function setLightMode ( light: number ): void
 {
     socket.emit( 'setLightMode', light )
 }
 
-function updateVersionNotification ( bool: boolean ): void
+export function updateVersionNotification ( bool: boolean ): void
 {
     socket.emit( 'updateVersionNotificationSetting', bool )
 }
 
-function search ( src: number, dest: number, action: number )
+export function search (  allOrAny: string, dest: string, src: string, action: string )
 {
-    console.log( `Emitting search start: ${ src } ${ dest } ${ action }` )
-    socket.emit( 'search', 'start', src, dest, action )
+
+    console.log( `Emitting search start: ${ dest } ${ src } ${ action }` )
+    socket.emit( 'search', 'start', allOrAny, dest, src, action )
 }
 
-function searchStop ()
+export function searchStop ()
 {
     socket.emit( 'search', 'stop' )
 }
 
-function searchLoad ()
+export function searchLoad ()
 {
     socket.emit( 'search', 'load' );
 }
 
-function sendPacket ( arrToBeSent: number[][] )
+export function sendPacket ( arrToBeSent: number[][] )
 {
     socket.emit( 'sendPacket', arrToBeSent )
 }
 
-function receivePacket ( arrToBeSent: number[][] )
+export function receivePacket ( arrToBeSent: number[][] )
 {
 
     socket.emit( 'receivePacket', JSON.stringify( arrToBeSent ) )
 }
 
-function receivePacketRaw ( packets: number[] )
+export function receivePacketRaw ( packets: number[] )
 {
     socket.emit( 'receivePacketRaw', packets )
 }
 
-function setLightColor ( circuit: number, color: number )
+export function setLightColor ( circuit: number, color: number )
 {
     socket.emit( 'setLightColor', circuit, color )
 }
 
-function setLightPosition ( circuit: number, position: number )
+export function setLightPosition ( circuit: number, position: number )
 {
     socket.emit( 'setLightPosition', circuit, position )
 }
 
-function setLightSwimDelay ( circuit: number, position: number )
+export function setLightSwimDelay ( circuit: number, position: number )
 {
     socket.emit( 'setLightSwimDelay', circuit, position )
 }
 
-function setScheduleCircuit ( _id: number, _circuit: number )
+export function setScheduleCircuit ( _id: number, _circuit: number )
 {
     socket.emit( 'setScheduleCircuit', _id, _circuit )
 }
@@ -245,8 +243,27 @@ export function setEggTimer ( _id: number, _circuit: number, _hour: number, _min
 }
 
 export function deleteScheduleOrEggTimer ( _id: number )
-    {
+{
     socket.emit( 'deleteScheduleOrEggTimer', _id )
 }
 
-export { getAll, emitSocket, setDateTime, toggleCircuit, setHeatMode, setHeatSetPoint, setChlorinatorLevels, hidePanel, resetPanels, setLightMode, updateVersionNotification, search, searchStop, searchLoad, sendPacket, receivePacket, receivePacketRaw, setLightColor, setLightPosition, setLightSwimDelay, setScheduleCircuit};
+export function setPumpConfigSpeed  (_pump: Pump.PumpIndex, _circuitSlot: number, _speed: number)
+{
+    socket.emit('setPumpConfigSpeed', _pump, _circuitSlot, _speed)
+}
+
+export function setPumpConfigCircuit ( _pump: Pump.PumpIndex, _circuitSlot: number, _circuit: number )
+{
+    socket.emit('setPumpConfigCircuit', _pump, _circuitSlot, _circuit)
+}
+
+export function setPumpConfigType ( _pump: Pump.PumpIndex, _type: Pump.PumpType )
+{
+    socket.emit('setPumpConfigType', _pump, _type)
+}
+
+export function setPumpConfigRPMGPM ( _pump: Pump.PumpIndex, _circuitSlot: number, _speedType: Pump.PumpType )
+{
+    socket.emit('setPumpConfigRPMGPM', _pump, _circuitSlot, _speedType)
+}
+

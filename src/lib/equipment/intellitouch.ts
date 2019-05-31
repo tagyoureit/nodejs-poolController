@@ -16,7 +16,7 @@
  */
 
 
-import { settings, logger, pump, queuePacket, schedule, customNames, circuit } from'../../etc/internal';
+import { settings, logger, pumpConfig, queuePacket, schedule, customNames, circuit } from'../../etc/internal';
 
 let controllerSettings: Intellitouch.ControllerSettings;
 export namespace intellitouch
@@ -76,7 +76,7 @@ export namespace intellitouch
         schedule.getControllerScheduleAll()
 
         logger.verbose( 'Queueing messages to retrieve pump configurations' )
-        pump.getPumpConfiguration()
+        pumpConfig.getPumpConfiguration()
 
     }
 

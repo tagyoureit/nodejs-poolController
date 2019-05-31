@@ -1,8 +1,8 @@
 import { Container, Row, Col, Button, Table, Dropdown, ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu } from 'reactstrap'
-import { setLightColor } from './Socket_Client'
+import { setLightColor } from '../Socket_Client'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
-import '../css/rangeslider.css'
+import '../../css/rangeslider.css'
 import * as React from 'react';
 
 

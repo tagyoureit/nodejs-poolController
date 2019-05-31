@@ -191,7 +191,7 @@ export namespace pumpControllerTimers
 
     function emit ()
     {
-        io.emitToClients( 'pump', { pump: pump.getCurrentPumpStatus() } )
+        io.emitToClients( 'pump', pump.getCurrentPumpStatus()  )
     }
 
     export function pump2ProgramTimerMode ()

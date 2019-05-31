@@ -17,20 +17,14 @@
 
 
 
-import { settings, logger, time, queuePacket, intellitouch, io, influx } from'../../etc/internal'
+import { settings, logger, time, queuePacket, intellitouch, io, influx, pumpConfig } from '../../etc/internal'
 import * as constants from '../../etc/constants';
-import {formatTime} from "../../etc/formatTime";
+import { formatTime } from "../../etc/formatTime";
 
-import {pumpAddressToIndex, PumpIndexToAddress, getPumpIndexFromSerialBusAddress, packetFromPump, packetToPump} from '../../etc/pumpAddress'
-
-
-var _ = require ('underscore')
+import { pumpAddressToIndex, PumpIndexToAddress, getPumpIndexFromSerialBusAddress, packetFromPump, packetToPump } from '../../etc/pumpAddress'
 
 
-    /*istanbul ignore next */
-    // if ( logModuleLoading )
-    //     logger.info( 'Loading: pump.js' )
-
+var _ = require( 'underscore' )
 
 export namespace pump
 {
@@ -78,7 +72,7 @@ export namespace pump
 
             this.pump = pumpNum;
             this.name = constants.ctrlString[ pumpNum + 95 ]
-            this.type = 'none';
+            this.type = 'NONE';
             this.time = 'timenotset';
             this.run = -1;
             this.mode = -1;
@@ -172,23 +166,13 @@ export namespace pump
         return numPumps
     }
 
-    export function getPumpConfiguration ()
-    {
-        //get pump Configution
-        for ( var i = 1; i <= numPumps; i++ )
-        {
-            if ( currentPumpStatus[ i ].type === 'VS' || currentPumpStatus[ i ].type === 'VF' || currentPumpStatus[ i ].type === 'VSF' )
-                queuePacket.queuePacket( [ 165, intellitouch.getPreambleByte(), 16, settings.get( 'appAddress' ), 219, 1, i ] );
-        }
-    }
-
     export function setVirtualControllerStatus ( status: Pump.VirtualControllerStatus )
     {
         for ( var _pump in settings.get( 'pump' ) )
         {
             if ( parseInt( _pump ) <= numPumps )
             {
-                currentPumpStatus[ parseInt(_pump)  ].virtualControllerStatus = status
+                currentPumpStatus[ parseInt( _pump ) ].virtualControllerStatus = status
             }
         }
     }
@@ -251,7 +235,7 @@ export namespace pump
             return currentPumpStatus[ index ].type
         } else
         {
-            return "none"
+            return "NONE"
         }
     }
 
@@ -302,7 +286,7 @@ export namespace pump
                 if ( settings.get( 'logPumpMessages' ) )
                     logger.verbose( 'Msg# %s   %s: Set Current Program to %s %s', counter, constants.ctrlString[ from ], program.toString(), JSON.stringify( data ) );
             }
-emit()
+            emit()
             influx.writePumpData( currentPumpStatus )
 
 
@@ -311,7 +295,10 @@ emit()
 
     function emit ()
     {
-        io.emitToClients( 'pump', { pump: currentPumpStatus } )
+        io.emitToClients( 'pump', {
+            pump: currentPumpStatus,
+            pumpConfig: pumpConfig.getExtendedPumpConfig() 
+        } )
     }
 
     // export function getCurrentProgram ( pump: number )
@@ -326,7 +313,7 @@ emit()
     // }
 
 
-    export function saveExternalProgramAs ( program:number, value: number, from: number, data:number[], counter:number )
+    export function saveExternalProgramAs ( program: number, value: number, from: number, data: number[], counter: number )
     {
 
         var _pump = getPumpIndexFromSerialBusAddress( data )
@@ -345,7 +332,7 @@ emit()
         }
     }
 
-    export function setRemoteControl ( remotecontrol: number, from: number, data: number[] , counter: number )
+    export function setRemoteControl ( remotecontrol: number, from: number, data: number[], counter: number )
     {
 
         var remoteControlStr = remotecontrol === 0 ? 'enable' : 'disable'
@@ -457,7 +444,7 @@ emit()
         }
     }
 
-    export function setPowerFromController ( power: number, from: number, data: number[] , counter: number )
+    export function setPowerFromController ( power: number, from: number, data: number[], counter: number )
     {
 
 
@@ -485,7 +472,7 @@ emit()
         }
     }
 
-    export function provideStatus ( data: number[] , counter: number )
+    export function provideStatus ( data: number[], counter: number )
     {
         if ( settings.get( 'logPumpMessages' ) )
             logger.verbose( 'Msg# %s   %s --> %s: Provide status: %s', counter, constants.ctrlString[ data[ constants.packetFields.FROM ] ], constants.ctrlString[ data[ constants.packetFields.DEST ] ], JSON.stringify( data ) );
@@ -645,7 +632,9 @@ emit()
 
     export function getCurrentPumpStatus ()
     {
-        return { 'pump': currentPumpStatus }
+        return { pump: currentPumpStatus ,
+             pumpConfig: pumpConfig.getExtendedPumpConfig() }
+        
     }
 
     export function setDuration ( index: number, _duration: number )
@@ -724,34 +713,20 @@ emit()
                 'value': value,
                 'remainingduration': duration
             }
-            if ( !_.isEqual(currentPumpStatus[ index ].currentrunning, newCurrentRunning) )
+            if ( !_.isEqual( currentPumpStatus[ index ].currentrunning, newCurrentRunning ) )
             {
                 if ( settings.get( 'logPumpMessages' ) )
                 {
-                    logger.info( `Pump ${index} program changing from:
+                    logger.info( `Pump ${ index } program changing from:
                     \t    Mode: ${currentPumpStatus[ index ].currentrunning.mode }     Value: ${ currentPumpStatus[ index ].currentrunning.value }    remaining duration: ${ currentPumpStatus[ index ].currentrunning.remainingduration } \r\n    to 
-                    \t    Mode: ${program}     Value: ${value}    remainingduration: ${duration}`)
+                    \t    Mode: ${program }     Value: ${ value }    remainingduration: ${ duration }` )
                 }
-                
-                Object.assign(currentPumpStatus[ index ].currentrunning, newCurrentRunning)
+
+                Object.assign( currentPumpStatus[ index ].currentrunning, newCurrentRunning )
                 // currentPumpStatus[ index ].currentrunning = JSON.parse( JSON.stringify( newCurrentRunning ) )
                 emit()
             }
         }
     }
 
-
-    //    export function getPumpOverview ()
-    //     {
-    //         // var tempObj = {}
-    //         // currentPumpStatus.forEach(function(key){
-    //         //     if (['VS','VF','VSF','SS','DS'].indexOf(currentPumpStatus[key].type)>=0){
-    //         //       tempObj[key]=
-    //         //     }
-    //         // })
-    //     }
-
-    /*istanbul ignore next */
-    // if ( logModuleLoading )
-    //     logger.info( 'Loaded: pump.js' )
 }

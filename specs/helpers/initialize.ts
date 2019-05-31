@@ -1,4 +1,4 @@
-import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, queuePacket, writePacket, clientConfig } from '../../src/etc/internal';
+import { server, settings, logger, reload, sp, pumpControllerTimers, packetBuffer, receiveBuffer, pump, chlorinator, heat, time, schedule, customNames, circuit, intellitouch, temperature, UOM, valve, intellichem, chlorinatorController, updateAvailable, queuePacket, writePacket, clientConfig, pumpConfig } from '../../src/etc/internal';
 import * as _path from 'path'
 import * as sinon from 'sinon'
 import * as ioclient from 'socket.io-client'
@@ -49,6 +49,7 @@ globalAny.initAllAsync = async function ( opts: Init.OptsType = {} ): Promise<an
         heat.init() // synchronous
         time.init() // synchronous
         pump.init() // synchronous
+        pumpConfig.init() 
         schedule.init() // synchronous
         customNames.init() // synchronous
         circuit.init() // synchronous

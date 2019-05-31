@@ -18,22 +18,25 @@
 
 //search placeholders for sockets.io Search
 export var searchMode  = 'load'
-export var searchSrc  =  0;
-export var searchDest = 0;
-export var searchAction = 0;
+export var searchSrc  =  [0];
+export var searchDest = [0];
+export var searchAction = [ 0 ];
+export var searchAllorAny = 'all'
 
 
     export interface ISearch
     {
         searchMode: string,
-        searchSrc: number,
-        searchDest: number,
-        searchAction: number
+        searchSrc: number[],
+        searchDest: number[],
+        searchAction: number[]
+        searchAllorAny: 'all'|'any'
     }
 
     export function setSearch ( apiSearch: ISearch )
     {
         searchMode = apiSearch.searchMode
+        searchAllorAny = apiSearch.searchAllorAny
         searchSrc = apiSearch.searchSrc
         searchDest = apiSearch.searchDest
         searchAction = apiSearch.searchAction

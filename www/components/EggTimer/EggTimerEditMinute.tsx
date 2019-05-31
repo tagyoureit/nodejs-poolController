@@ -1,5 +1,5 @@
 import { Container, Row, Col, Button, Table, Dropdown, ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu } from 'reactstrap'
-import { setLightPosition } from './Socket_Client'
+import { setLightPosition } from '../Socket_Client'
 import * as React from 'react';
 
 

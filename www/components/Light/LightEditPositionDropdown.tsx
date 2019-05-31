@@ -1,26 +1,27 @@
 import { Container, Row, Col, Button, Table, Dropdown, ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu } from 'reactstrap'
-import { setLightSwimDelay } from './Socket_Client'
+import { setLightPosition } from '../Socket_Client'
 import Slider from 'react-rangeslider'
 import 'react-rangeslider/lib/index.css'
-import '../css/rangeslider.css'
+import '../../css/rangeslider.css'
 import * as React from 'react';
 
 
-//TODO: when the modal is showing and this dropdown is open, the modal is scrolling in the background instead of the dropdown scrolling
+
 
 interface Props
 {
   data: Circuit.LightClass
+  numLights: number
 }
 
 interface State
 {
   dropdownOpen: boolean
   disabled: boolean
-  targetSwimDelay: number
+  targetPosition: number
 }
 
-class LightSwimDelay extends React.Component<Props, State> {
+class LightPosition extends React.Component<Props, State> {
   constructor( props: Props )
   {
     super( props )
@@ -28,7 +29,7 @@ class LightSwimDelay extends React.Component<Props, State> {
     this.state = {
       dropdownOpen: false,
       disabled: false,
-      targetSwimDelay: -1
+      targetPosition: -1
     }
     this.toggleDropDown = this.toggleDropDown.bind( this )
     this.handleClick = this.handleClick.bind( this )
@@ -36,11 +37,11 @@ class LightSwimDelay extends React.Component<Props, State> {
   }
   componentDidUpdate ( prevProps: Props, prevState: State )
   {
-    if ( this.state.disabled && (this.state.targetSwimDelay===this.props.data.colorSwimDelay) )
+    if ( this.state.disabled && (this.state.targetPosition===this.props.data.position) )
     {
       this.setState( {
         disabled: false,
-        targetSwimDelay: 0
+        targetPosition: 0
       } );
     }
   }
@@ -54,19 +55,20 @@ class LightSwimDelay extends React.Component<Props, State> {
 
   handleClick (event: any)
   {
-    setLightSwimDelay( this.props.data.circuit, event.target.value )
+    console.log(`this.props.data.circuit, event.target.value: ${this.props.data.circuit}, ${event.target.value}`)
+    setLightPosition( this.props.data.circuit, event.target.value )
     this.setState( {
       disabled: true,
-      targetSwimDelay: parseInt(event.target.value)
+      targetPosition: parseInt(event.target.value)
     } );
   }
 
   render ()
   {
-    const delays = () =>
+    const positions = () =>
     {
       let positionArray: number[] = [] 
-      for ( let i = 0; i <= 60; i++ )
+      for ( let i = 1; i <= this.props.numLights; i++ )
       {
         positionArray.push(i)
       }
@@ -75,7 +77,7 @@ class LightSwimDelay extends React.Component<Props, State> {
       <>
          {positionArray.map( i => (
           ( <DropdownItem
-            key={`delay${ this.props.data.circuit }${ i }`}
+            key={`light${ this.props.data.circuit }${ i }`}
             onClick={this.handleClick}
             value={i}
           >
@@ -93,10 +95,10 @@ class LightSwimDelay extends React.Component<Props, State> {
       <div>
         <ButtonDropdown isOpen={this.state.dropdownOpen} toggle={this.toggleDropDown} disabled={this.state.disabled} >
           <DropdownToggle caret disabled={this.state.disabled}>
-            {this.props.data.colorSwimDelay}{console.log(`If this isn't here, then 0 won't show up as a swim delay current value...????: ${this.props.data.colorSwimDelay}`)}
+            {this.props.data.position}
                     </DropdownToggle>
           <DropdownMenu>
-            {delays()}
+            {positions()}
           </DropdownMenu>
         </ButtonDropdown>
 
@@ -106,4 +108,4 @@ class LightSwimDelay extends React.Component<Props, State> {
   }
 }
 
-export default LightSwimDelay;
+export default LightPosition;

@@ -118,7 +118,7 @@
     }
 
     export let pumpConfigFieldsVF:Constants.StringLookup = {
-        POOLSIZE: 8,  // GALLONS
+        POOLSIZE: 8,  // GALLONS (1,000)
         TURNOVERS: 9,  // PER DAY
         UNUSED_10: 10,
         CIRCUIT1: 11,
@@ -139,7 +139,7 @@
         CIRCUIT8GPM: 26,
         MANUALFILTERGPM: 27,
         MAXPRIMEFLOW: 28,
-        MAXPRIMESYSTEMTIME: 29,
+        MAXPRIMESYSTEMTIME: 29, // aaaabbbb; bbbb-1=max prime time; aaaa=system max time
         MAXPRESSUREINCREASE: 30,
         BACKWASHFLOW: 31,
         BACKWASHTIME: 32,
@@ -185,15 +185,16 @@
     }
 
     export let pumpTypeStr:Constants.IndexLookup = {
-        0: 'None',
+        0: 'NONE',
         1: 'VF', // VF is really any circuit assignment between 1-63(?)
+        6: 'VF', // VF is really any circuit assignment between 1-63(?)
         64: 'VSF',
         128: 'VS'
     }
 
     export let pumpType:Constants.StringLookup = {
         NONE: 0,
-        VF: 1,
+        VF: 6,
         VSF: 64,
         VS: 128
     }

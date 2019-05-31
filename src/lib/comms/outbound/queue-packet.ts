@@ -159,7 +159,7 @@ export namespace queuePacket
                     }
 
                 }
-                if ( logPacketWrites ) logger.silly( 'queuePacket: Message: %s now has checksum added: %s', message, packet )
+                if ( logPacketWrites ) logger.silly( `queuePacket: Message to be written: \n\t${packet}` )
 
                 //if length > 0 then we will loop through from isResponse
                 if ( !writePacket.isWriteQueueActive() )

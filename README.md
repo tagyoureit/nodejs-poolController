@@ -30,10 +30,21 @@ Temperature => no more heat/temp/temperatures.  Only temperature.
 * Sourcemaps, Parcel, Typescript, ts-node, React
 
 * Removed `/setSchedule`.  Use `/schedule/set`.
+* Removed `/chlorinator/chlorinateLevel`.  Use `chlarinator/pool/:chlorinateLevel` instead.
 
  //TODO: Document better here...
  //TODO: make sure all NPM scripts work
 //TODO: include VS Code files so others can run in IDE
+
+* Added 4 socket calls and 4 rest API endpoints for pump configurations
+ - /pumpConfig/pump/:pump/circuitSlot/:circuitSlot/speedType/:type
+ - /pumpConfig/pump/:pump/type/:type
+ - /pumpConfig/pump/:pump/circuitSlot/:circuitSlot/circuit/:circuit
+ - /pumpConfig/pump/:pump/circuitSlot/:circuitSlot/speed/:speed
+
+ * Added UI for above 4 pump configurations, Light editing, Schedule editing, packet sniffer, packet tester, replay
+ 
+
 # License
 
 nodejs-poolController.  An application to control pool equipment.
@@ -824,6 +835,42 @@ Run these commands on the remote machine
 
 ### Another alternative method
 Props to @antamy.  Another approach to an `etc/init.d` script.  The script is `runAtBoot.sh`.  See https://github.com/chovy/node-startup for instructions to use this script.
+
+### Easiest method yet 
+Thanks to @rerouted
+How to get PM2 installed and running poolController on RPi or Linux
+
+*Install PM2 with npm sudo npm install -g pm2*
+Environment File method 
+1. Quit nodejs-poolController if its running.
+1. Put the script below in your home directory and call in `pm2.json`.
+1. Launch nodejs-poolController with PM2 `pm2 start pm2.json`
+1. Run `pm2 ls` to see your app(s) running with pm2. It will show uptime of the app and reset counter.
+1. Type `pm2 startup` If you want pm2 to auto-start at boot (recommended). This command will give you a command based on your platform to run so pm2 starts on its own. `pm2 unstartup` will reverse this behavior.
+1. Finally run `pm2 save` to save what apps you have running so if your machine reboots or crashes, it when PM2 starts back up again it will launch your saved apps again.
+
+```
+module.exports = {
+    apps: [{
+        name: 'poolController',
+        script: 'npm',
+        args: 'start config.json',
+        cwd: '/home/pi/nodejs-poolController',
+        autorestart: true,
+        watch: false,
+        listen_timeout: 10000,
+        restart_delay: 3000,
+        env_dev: {
+            NODE_ENV: 'development'
+        },
+        env: {
+            NODE_ENV: 'production'
+        }
+    }]
+};
+```
+
+`pm2 logs` is useful for looking at the console logs of your app(s) for troubleshooting.
 
 #### Test socat
 

@@ -1,12 +1,13 @@
 import { Container, Row, Col, Button, Table, Dropdown, ButtonDropdown, DropdownToggle, DropdownItem, DropdownMenu } from 'reactstrap'
-import { setLightPosition } from './Socket_Client'
+import { setScheduleCircuit } from '../Socket_Client'
 import * as React from 'react';
-
+import '../../css/dropdownselect.css'
 
 interface Props
 {
-  currentHour: number
+  data: Circuit.ICurrentCircuitsArr
   currentScheduleId: number
+  currentCircuit: number
   onClick: (event: any)=>void
 }
 
@@ -14,10 +15,10 @@ interface State
 {
   dropdownOpen: boolean
   disabled: boolean
-  targetHour: number
+  targetCircuitNum: number
 }
 
-class LightPosition extends React.Component<Props, State> {
+class EggTimerCircuit extends React.Component<Props, State> {
   constructor( props: Props )
   {
     super( props )
@@ -25,18 +26,20 @@ class LightPosition extends React.Component<Props, State> {
     this.state = {
       dropdownOpen: false,
       disabled: false,
-      targetHour: -1
+      targetCircuitNum: -1
     }
     this.toggleDropDown = this.toggleDropDown.bind( this )
     this.handleClick = this.handleClick.bind(this)
+
+
   }
   componentDidUpdate ( prevProps: Props, prevState: State )
   {
-    if ( this.state.disabled && ( this.state.targetHour === this.props.currentHour ) )
+    if ( this.state.disabled && ( this.state.targetCircuitNum === this.props.currentCircuit ))
     {
       this.setState( {
         disabled: false,
-        targetHour: -1
+        targetCircuitNum: -1,
       } );
     }
   }
@@ -46,7 +49,7 @@ class LightPosition extends React.Component<Props, State> {
     this.props.onClick( event )
     this.setState( {
       disabled: true,
-      targetHour: parseInt(event.target.value)
+      targetCircuitNum: parseInt(event.target.value)
     })
   }
 
@@ -57,52 +60,47 @@ class LightPosition extends React.Component<Props, State> {
     } );
   }
 
+
+
   render ()
   {
-    const positions = () =>
+
+
+    const circuits = () =>
     {
-      let hoursArray: number[] = []
-      for ( let i = 1; i <= 12; i++ )
-      {
-        hoursArray.push( i )
-      }
+      let circuitArray: number[] = Object.keys( this.props.data ).map( key => parseInt( key ) )
 
       return (
         <>
-          {hoursArray.map( i => (
+          {circuitArray.map( i => (
             ( <DropdownItem
-              key={`hour${ i }`}
+              key={`eggTimer${ this.props.data[ i ].number }${ i }`}
               onClick={this.handleClick}
-              value={i}
               data-schedule-id={this.props.currentScheduleId}
-              data-type='hour'
-              className={this.props.currentHour === i  ? 'dropdown-item-checked' : ''}
+              data-type='circuit'
+              value={this.props.data[ i ].number}
+              className={this.props.currentCircuit === i ? 'dropdown-item-checked' : ''}
             >
-              {i}
-            </DropdownItem> )
+              {this.props.data[ i ].friendlyName} ({this.props.data[ i ].number})
+          </DropdownItem> )
 
           ) )}
         </>
       )
     }
-
     return (
-
-
       <div>
         <ButtonDropdown isOpen={this.state.dropdownOpen} toggle={this.toggleDropDown} disabled={this.state.disabled} >
-          <DropdownToggle caret disabled={this.state.disabled}>
-            {this.props.currentHour}{''}
-          </DropdownToggle>
+          <DropdownToggle caret disabled={this.state.disabled} color='primary'>
+            {this.props.data[ this.props.currentCircuit ].friendlyName} ({this.props.data[ this.props.currentCircuit ].number})
+                    </DropdownToggle>
           <DropdownMenu>
-            {positions()}
+            {circuits()}
           </DropdownMenu>
         </ButtonDropdown>
-
       </div >
-
     )
   }
 }
 
-export default LightPosition;
+export default EggTimerCircuit;

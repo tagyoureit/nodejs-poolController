@@ -23,6 +23,7 @@ import * as controller_10 from './controller/10';
 import * as controller_11 from './controller/11';
 import * as controller_17 from './controller/17';
 import * as controller_18 from './controller/18';
+import * as controller_24 from './controller/24';
 import * as controller_25 from './controller/25';
 import * as controller_27 from './controller/27';
 import * as controller_29 from './controller/29';
@@ -36,7 +37,9 @@ import * as controller_96 from './controller/96';
 import * as controller_134 from './controller/134';
 import * as controller_136 from './controller/136';
 import * as controller_150 from './controller/150';
+import * as controller_152 from './controller/152';
 import * as controller_153 from './controller/153';
+import * as controller_155 from './controller/155';
 import * as controller_252 from './controller/252';
 import * as controller_get from './controller/get';
 import * as common_7 from '../inbound/common/7';
@@ -95,6 +98,11 @@ export namespace processController
       case 18: // IntelliChem
         {
           decoded = controller_18.process( data, counter )
+          break;
+        }
+      case 24: //Pump Config
+        {
+          decoded = controller_24.process( data, counter )
           break;
         }
       case 25: //Intellichlor status
@@ -163,9 +171,19 @@ export namespace processController
           decoded = controller_150.process( data, counter )
           break;
         }
-      case 153: //Set Intellichlor status
+      case 152: //Set Pump Config
+        {
+          decoded = controller_152.process( data, counter )
+          break;
+        }
+      case 153: //Set Intellichlor
         {
           decoded = controller_153.process( data, counter )
+          break;
+        }
+      case 155: //Set Pump Config Extended
+        {
+          decoded = controller_155.process( data, counter )
           break;
         }
 

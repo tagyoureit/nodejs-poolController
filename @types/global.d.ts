@@ -5,7 +5,3 @@ declare namespace NodeJS
         exit_nodejs_poolController (): void;
     }
 }
-
-
-
-

@@ -3,9 +3,9 @@ import
     Row, Col, Button, ButtonGroup, ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem, Modal, ModalHeader, ModalBody, ModalFooter
 } from 'reactstrap';
 
-import CustomCard from './CustomCard'
+import CustomCard from '../CustomCard'
 import * as React from 'react';
-import { setLightMode } from './Socket_Client';
+import { setLightMode } from '../Socket_Client';
 import EggTimerEdit from './LightEdit'
 
 

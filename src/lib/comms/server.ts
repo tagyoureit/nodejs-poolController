@@ -19,7 +19,7 @@
 
 
 import events = require( 'events' );
-import { settings, logger, reload, pumpControllerTimers, temperature, schedule, valve, time, chlorinator, intellichem, heat, queuePacket, pumpControllerMiddleware, circuit, pump, io, helpers } from '../../etc/internal'
+import { settings, logger, reload, pumpControllerTimers, temperature, schedule, valve, time, chlorinator, intellichem, heat, queuePacket, pumpControllerMiddleware, circuit, pump, io, helpers, pumpConfig } from '../../etc/internal'
 import * as getConfigOverview from "../../etc/getConfigOverview";
 import * as http from 'http';
 import * as https from 'https'
@@ -408,23 +408,6 @@ export namespace server
             res.send( response )
         } )
 
-        // // TODO:  merge above and this code into single function
-        // app.get( '/setSchedule/:id/:circuit/:starthh/:startmm/:endhh/:endmm/:days', function ( req: { params: { id: string; circuit: string; starthh: string; startmm: string; endhh: string; endmm: string; days: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
-        // {
-        //     var id = parseInt( req.params.id )
-        //     var circuit = parseInt( req.params.circuit )
-        //     var starthh = parseInt( req.params.starthh )
-        //     var startmm = parseInt( req.params.startmm )
-        //     var endhh = parseInt( req.params.endhh )
-        //     var endmm = parseInt( req.params.endmm )
-        //     var days = parseInt( req.params.days )
-        //     var response: API.Response = {}
-        //     response.text = 'REST API received request to set schedule ' + id + ' with values (start) ' + starthh + ':' + startmm + ' (end) ' + endhh + ':' + endmm + ' with days value ' + days
-        //     logger.info( response )
-        //     schedule.setControllerSchedule( id, circuit, starthh, startmm, endhh, endmm, days )
-        //     res.send( response )
-        // } )
-
         app.get( '/time', function ( req: any, res: { send: ( arg0: { 'time': ITime.ETime; } ) => void; } )
         {
             res.send( time.getTime() )
@@ -510,15 +493,15 @@ export namespace server
         {
             res.send( intellichem.getCurrentIntellichem() )
         } )
+        
+        // // TODO: This should be deprecated
+        // app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
+        // {
+        //     let response = chlorinator.setChlorinatorLevel( parseInt( req.params.chlorinateLevel ) )
 
-        // TODO: This should be deprecated
-        app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
-        {
-            let response = chlorinator.setChlorinatorLevel( parseInt( req.params.chlorinateLevel ) )
+        //     res.send( response )
 
-            res.send( response )
-
-        } )
+        // } )
 
         app.get( '/chlorinator/pool/:poolChlorinateLevel', function ( req: { params: { poolChlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
         {
@@ -742,7 +725,7 @@ export namespace server
         app.get( 'pumpCommand/pump/:pump/type/:type', function ( req: { params: { _pumpNum: string; _type: string }; }, res: any )
         {
             var pumpNum = parseInt( req.params._pumpNum )
-            var type = req.params._type
+            var type = <Pump.PumpType>req.params._type
             var response: API.Response = {}
             response.text = 'Socket setPumpType variables - pump: ' + pumpNum + ', type: ' + type
             response.pump = pumpNum
@@ -750,7 +733,7 @@ export namespace server
             settings.updatePumpType( pumpNum, type )
             pump.init()
             pumpControllerTimers.startPumpController()
-            io.emitToClients( 'pump', { pump: pump.getCurrentPumpStatus() } )
+            io.emitToClients( 'pump', pump.getCurrentPumpStatus() ) 
             logger.info( response )
         } )
 
@@ -1062,6 +1045,53 @@ export namespace server
         } )
 
         /* END Invalid pump commands -- sends response */
+
+        app.get( '/pumpConfig/pump/:pump/circuitSlot/:circuitSlot/speed/:speed', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
+        {
+            let _pump: Pump.PumpIndex = <Pump.PumpIndex> parseInt( req.params.pump )
+            var _circuitSlot = parseInt( req.params.circuitSlot )
+            var _speed = parseInt( req.params.speed )
+            var response: API.Response = {}
+            response.text = `Request to set pump ${_pump} circuit slot ${_circuitSlot} to speed ${_speed}`
+            response.pump = _pump
+            pumpConfig.setSpeedViaAPI(_pump, _circuitSlot, _speed)
+            res.send( response )
+        } )
+
+        app.get( '/pumpConfig/pump/:pump/circuitSlot/:circuitSlot/circuit/:circuit', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
+        {
+            let _pump = <Pump.PumpIndex> parseInt( req.params.pump )
+            var _circuitSlot = parseInt( req.params.circuitSlot )
+            var _circuit = parseInt( req.params.circuit )
+            var response: API.Response = {}
+            response.text = `Request to set pump ${_pump} circuit slot ${_circuit} to circuit ${_circuit}`
+            response.pump = _pump
+            pumpConfig.setCircuitViaAPI(_pump, _circuitSlot, _circuit)
+            res.send( response )
+        } )
+
+        app.get( '/pumpConfig/pump/:pump/type/:type', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
+        {
+            let _pump = <Pump.PumpIndex> parseInt( req.params.pump )
+            var _type = <Pump.PumpType>  req.params.type 
+            var response: API.Response = {}
+            response.text = `Request to set pump ${_pump} to type ${_type}`
+            response.pump = _pump
+            pumpConfig.setTypeViaAPI(_pump, _type)
+            res.send( response )
+        } )
+
+        app.get( '/pumpConfig/pump/:pump/circuitSlot/:circuitSlot/speedType/:type', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
+        {
+            let _pump = <Pump.PumpIndex> parseInt( req.params.pump )
+            var _circuitSlot = parseInt( req.params.circuitSlot )
+            var _type = <Pump.PumpSpeedType> req.params.type 
+            var response: API.Response = {}
+            response.text = `Request to set pump ${_pump} circuit slot ${_circuitSlot} to type ${_type}`
+            response.pump = _pump
+            pumpConfig.setRPMGPMViaAPI(_pump, _circuitSlot, _type)
+            res.send( response )
+        } )
 
         if ( dev )
         {

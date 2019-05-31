@@ -1,0 +1,18 @@
+module.exports = {
+    apps: [{
+        name: 'poolController',
+        script: 'npm',
+        args: 'start config.json',
+        cwd: '/home/pi/nodejs-poolController',
+        autorestart: true,
+        watch: false,
+        listen_timeout: 10000,
+        restart_delay: 3000,
+        env_dev: {
+            NODE_ENV: 'development'
+        },
+        env: {
+            NODE_ENV: 'production'
+        }
+    }]
+};

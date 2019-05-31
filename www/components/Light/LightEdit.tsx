@@ -1,8 +1,8 @@
 import { Container, Row, Col, Button, Table, DropdownMenu, ButtonDropdown, Dropdown, DropdownItem, DropdownToggle } from 'reactstrap'
-import { setChlorinatorLevels } from './Socket_Client'
+import { setChlorinatorLevels } from '../Socket_Client'
 
 import 'react-rangeslider/lib/index.css'
-import '../css/rangeslider.css'
+import '../../css/rangeslider.css'
 import * as React from 'react';
 import LightColor from './LightEditColorDropdown'
 import LightPosition from './LightEditPositionDropdown'

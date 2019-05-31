@@ -20,6 +20,8 @@ import * as deepdiff from 'deep-diff';
 import { testJson } from './testJson';
 import * as fs from 'fs';
 import * as _path from 'path'
+import { PublicKeyInput } from 'crypto';
+import { config } from 'bluebird';
 let path = _path.posix
 let _settings:any = {}
 let observableDiff = deepdiff.observableDiff
@@ -536,6 +538,7 @@ export namespace settings
 
             //pump(s)
             _settings.pump = configurationFileContent.equipment.pump;
+            _settings.pumpConfig = configurationFileContent.equipment.pumpConfig
             /*   END Equipment   */
             _settings.appAddress = configurationFileContent.poolController.appAddress;
 
@@ -757,7 +760,7 @@ export namespace settings
         writeConfigFile()
     }
 
-    export function updatePumpType ( _pump: number, _type: string )
+    export function updatePumpType ( _pump: number, _type: Pump.PumpType )
     {
         try
         {
@@ -794,6 +797,28 @@ export namespace settings
         catch ( err )
         {
             logger.warn( 'Error updating pump RPM settings %s: ', configurationFileContent, err )
+        }
+    }
+
+    export function updatePumpConfig ( _pumpConfig: Pump.ExtendedConfigObj ): void
+    {
+        try
+        {
+            // delete the existing keys in case of a pump type change, or add/remove pump.
+            // We don't want the old/new keys to be merged in this case
+            // this function will only be called when the last pumpConfig is found
+            delete configurationFileContent.equipment.pumpConfig
+            Object.assign( configurationFileContent.equipment, { pumpConfig: _pumpConfig })
+            if ( !testJson( configurationFileContent ) )
+            {
+                throw new Error( 'Error with updatExternalPumpProgram format.  Aborting write.' )
+            }
+            writeConfigFile()
+            logger.verbose( `Updated extended pump config.` )
+        }
+        catch ( err )
+        {
+            logger.warn(`Error updating extended pump config.\n${err.message}`)
         }
     }
 

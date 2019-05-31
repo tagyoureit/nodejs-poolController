@@ -81,7 +81,7 @@ describe( 'Tests the code that captures packets and a full log for troubleshooti
                     'suppressWrite': true
                 } )
 
-                loggers = globalAny.setupLoggerStubOrSpy( 'stub', 'spy' )
+                loggers = globalAny.setupLoggerStubOrSpy( 'spy', 'spy' )
             } );
 
             beforeEach( function ()
