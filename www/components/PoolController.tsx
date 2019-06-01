@@ -231,8 +231,8 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                 },
                 temperature: { airTemp: 0, poolTemp: 0, spaTemp: 0, solarTemp: 0, freeze: 0 },
                 sysInfo: { airTemp: 0, solarTemp: 0, freezeProt: 0, time: '', date: '', locale: '', controllerDateStr: '', controllerTime: '' },
-                poolInfo: { name: 'Pool', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0 },
-                spaInfo: { name: 'Spa', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heatOn: 0, lastKnownTemperature: 0 },
+                poolInfo: { name: 'Pool', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heaterActive: 0, solarActive: 0, lastKnownTemperature: 0 },
+                spaInfo: { name: 'Spa', state: 'Off', number: 0, temperature: 0, setPoint: 0, heatMode: 0, heatModeStr: '', heaterActive: 0, solarActive: 0, lastKnownTemperature: 0 },
                 pump: {
                     1: {
                         pump: 1,
@@ -426,7 +426,8 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                         setPoint: d.temperature.poolSetPoint,
                         heatMode: d.temperature.poolHeatMode,
                         heatModeStr: d.temperature.poolHeatModeStr,
-                        heatOn: d.temperature.heaterActive,
+                        heaterActive: d.temperature.heaterActive,
+                        solarActive: d.temperature.solarActive,
                         lastKnownTemperature: d.temperature.poolLastKnownTemperature
                     },
                     spaInfo: {
@@ -438,7 +439,8 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                         setPoint: d.temperature.spaSetPoint,
                         heatMode: d.temperature.spaHeatMode,
                         heatModeStr: d.temperature.spaHeatModeStr,
-                        heatOn: d.temperature.heaterActive,
+                        heaterActive: d.temperature.heaterActive,
+                        solarActive: d.temperature.solarActive,
                         lastKnownTemperature: d.temperature.spaLastKnownTemperature
                     },
                     sysInfo: {

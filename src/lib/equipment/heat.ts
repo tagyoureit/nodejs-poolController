@@ -51,7 +51,16 @@ export namespace heat
     class Heat implements HeatModule.CurrentHeat
     {
 
-        poolSetPoint: number; poolHeatMode: number; poolHeatModeStr: any; spaSetPoint: number; spaHeatMode: number; spaHeatModeStr: any; heaterActive: number; whatsDifferent: ( arg0: any ) => void; spaManualHeatMode: string;
+        poolSetPoint: number;
+        poolHeatMode: number;
+        poolHeatModeStr: any;
+        spaSetPoint: number;
+        spaHeatMode: number;
+        spaHeatModeStr: any;
+        heaterActive: number;
+        solarActive: number;
+        spaManualHeatMode: string;
+        whatsDifferent: ( arg0: any ) => void;
 
         constructor( poolSetPoint?: number, poolHeatMode?: number, spaSetPoint?: number, spaHeatMode?: number, spaManualHeatMode?: string )
         {
@@ -63,36 +72,18 @@ export namespace heat
             this.spaHeatMode = spaHeatMode;
             this.spaHeatModeStr = constants.heatModeStr[ spaHeatMode ]
             this.heaterActive = 0
+            this.solarActive = 0
         }
     }
 
-    /*     export function Heat ( poolSetPoint?: number, poolHeatMode?: number, spaSetPoint?: number, spaHeatMode?: number, spaManualHeatMode?: number )
-        {
-            this.poolSetPoint = poolSetPoint;
-            this.poolHeatMode = poolHeatMode;
-            this.poolHeatModeStr = constants.heatModeStr[ poolHeatMode ]
-            this.spaSetPoint = spaSetPoint;
-            this.spaManualHeatMode = spaManualHeatMode;
-            this.spaHeatMode = spaHeatMode;
-            this.spaHeatModeStr = constants.heatModeStr[ spaHeatMode ]
-            this.heaterActive = 0
-        }
-     */
     export function init ()
     {
         currentHeat = new Heat();
     }
 
-
     export function copyHeat ( heat: any )
     {
         Object.assign(currentHeat, heat)
-        // currentHeat.poolSetPoint = heat.poolSetPoint;
-        // currentHeat.poolHeatMode = heat.poolHeatMode;
-        // currentHeat.poolHeatModeStr = heat.poolHeatModeStr
-        // currentHeat.spaSetPoint = heat.spaSetPoint;
-        // currentHeat.spaHeatMode = heat.spaHeatMode;
-        // currentHeat.spaHeatModeStr = heat.spaHeatModeStr
     }
 
     export function newHeatSameAsExistingHeat ( heat: { poolSetPoint: number; poolHeatMode: number; poolHeatModeStr: any; spaSetPoint: number; spaHeatMode: number; spaHeatModeStr: any; } )
@@ -113,28 +104,37 @@ export namespace heat
         }
     }
 
-    // This logic isn't correct... need to investigate further.
+
     export function setHeatActiveFromController ( data: number )
     {
-        if ( data === 0 )
+        // heater active bits
+        if ( (( data >> 2 ) & 3) === 3)
+        {
+            currentHeat.heaterActive = 1
+        }
+        else
         {
             currentHeat.heaterActive = 0
-        } else
-            if ( data === 32 )
-            {
-                currentHeat.heaterActive = 1
-            } else
-            {
-                currentHeat.heaterActive = -1 //Unknown
-            }
+        }
+        // solar active bits
+        if ( (( data >> 4 ) & 3)===3  )
+        {
+            currentHeat.solarActive = 1
+        }
+        else
+        {
+            currentHeat.solarActive = 0
+        }
     }
 
-    export function setHeatModeFromController ( poolHeat: number, spaHeat: number )
+    export function setHeatModeFromController ( poolHeat: number, spaHeat: number)
     {
         currentHeat.poolHeatMode = poolHeat
         currentHeat.poolHeatModeStr = constants.heatModeStr[ poolHeat ]
         currentHeat.spaHeatMode = spaHeat
         currentHeat.spaHeatModeStr = constants.heatModeStr[ spaHeat ]
+
+
     }
 
     export function getCurrentHeat (): HeatModule.CurrentHeat 

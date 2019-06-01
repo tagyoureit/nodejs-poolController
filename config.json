@@ -47,8 +47,61 @@
                 "19": "",
                 "20": ""
             },
-            "nonLightCircuit": {},
-            "lightCircuit": {}
+            "nonLightCircuit": {
+                "1": {
+                    "circuitName": "SPA"
+                },
+                "3": {
+                    "circuitName": "AIR BLOWER"
+                },
+                "4": {
+                    "circuitName": "CLEANER"
+                },
+                "5": {
+                    "circuitName": "WtrFall 1.5"
+                },
+                "6": {
+                    "circuitName": "POOL"
+                },
+                "11": {
+                    "circuitName": "SPILLWAY"
+                },
+                "12": {
+                    "circuitName": "WtrFall 1"
+                },
+                "13": {
+                    "circuitName": "WtrFall 2"
+                },
+                "14": {
+                    "circuitName": "WtrFall 3"
+                },
+                "15": {
+                    "circuitName": "Pool High"
+                },
+                "16": {
+                    "circuitName": "JETS"
+                },
+                "18": {
+                    "circuitName": "FEATURE 8"
+                },
+                "20": {
+                    "circuitName": "AUX EXTRA"
+                }
+            },
+            "lightCircuit": {
+                "2": {
+                    "circuitName": "Pool LtDeep"
+                },
+                "7": {
+                    "circuitName": "SPA LIGHT"
+                },
+                "8": {
+                    "circuitName": "POOL LIGHTS SHALLOW"
+                },
+                "9": {
+                    "circuitName": "PATH LIGHTS"
+                }
+            }
         },
         "chlorinator": {
             "installed": 1,
@@ -151,56 +204,60 @@
                 }
             },
             "2": {
-                "type": "VSF",
+                "type": "VS",
                 "circuitSlot": {
                     "1": {
-                        "number": 0,
-                        "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "number": 5,
+                        "friendlyName": "WtrFall 1.5",
+                        "flag": "rpm",
+                        "rpm": 1500
                     },
                     "2": {
-                        "number": 0,
-                        "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "number": 12,
+                        "friendlyName": "WtrFall 1",
+                        "flag": "rpm",
+                        "rpm": 1000
                     },
                     "3": {
-                        "number": 0,
-                        "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "number": 13,
+                        "friendlyName": "WtrFall 2",
+                        "flag": "rpm",
+                        "rpm": 2000
                     },
                     "4": {
-                        "number": 0,
-                        "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "number": 14,
+                        "friendlyName": "WtrFall 3",
+                        "flag": "rpm",
+                        "rpm": 2500
                     },
                     "5": {
                         "number": 0,
                         "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "flag": "rpm",
+                        "rpm": 1000
                     },
                     "6": {
                         "number": 0,
                         "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "flag": "rpm",
+                        "rpm": 1000
                     },
                     "7": {
                         "number": 0,
                         "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "flag": "rpm",
+                        "rpm": 1000
                     },
                     "8": {
                         "number": 0,
                         "friendlyName": "none",
-                        "flag": "gpm",
-                        "gpm": 30
+                        "flag": "rpm",
+                        "rpm": 1000
                     }
+                },
+                "prime": {
+                    "primingMinutes": 0,
+                    "rpm": 1000
                 }
             }
         }
@@ -271,10 +328,10 @@
                     "state": "visible"
                 },
                 "chlorinator": {
-                    "state": "hidden"
+                    "state": "visible"
                 },
                 "feature": {
-                    "state": "hidden"
+                    "state": "visible"
                 },
                 "pump": {
                     "state": "visible"

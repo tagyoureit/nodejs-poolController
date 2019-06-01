@@ -60,9 +60,7 @@ class PoolSpaState extends React.Component<Props, any>
     {
         try
         {
-            // if this is null or not ready yet, it will catch as an error
-            let circ = parseInt(event.target.value)
-            toggleCircuit( circ )
+            toggleCircuit( event.target.value )
         }
         catch ( err )
         {
@@ -79,7 +77,20 @@ class PoolSpaState extends React.Component<Props, any>
         const high = 110;
         const labelStr = `{"${ low }": "${ low }", "${ high }": "${ high }"}`
         let labels = JSON.parse( labelStr )
-
+        const showFlameSolar = () =>
+        {
+            if ( this.props.data.state === "On" && this.props.data.solarActive )
+            {
+                return (<img src='../images/flame.png' />)
+            }
+        }
+        const showFlameHeater = () =>
+        {
+            if ( this.props.data.state === "On" && this.props.data.heaterActive )
+            {
+                return (<img src='../images/flame.png' />)
+            }
+        }
 
         return (
             <div className='tab-pane active' id={this.props.id} role="tabpanel" aria-labelledby={this.props.id + '-tab'} >
@@ -126,9 +137,9 @@ class PoolSpaState extends React.Component<Props, any>
                                 <div className='d-flex justify-content-center'>
                                 <ButtonGroup >
                                     <Button onClick={() => this.changeHeat( 0 )} color={this.props.data.heatMode === 0 ? 'success' : 'secondary'}>Off</Button>
-                                    <Button onClick={() => this.changeHeat( 1 )} color={this.props.data.heatMode === 1 ? 'success' : 'secondary'}>Heater</Button>
+                                    <Button onClick={() => this.changeHeat( 1 )} color={this.props.data.heatMode === 1 ? 'success' : 'secondary'}>Heater{' '}{showFlameHeater()}</Button>
                                     <Button onClick={() => this.changeHeat( 2 )} color={this.props.data.heatMode === 2 ? 'success' : 'secondary'}>Solar Pref</Button>
-                                    <Button onClick={() => this.changeHeat( 3 )} color={this.props.data.heatMode === 3 ? 'success' : 'secondary'}>Solar</Button>
+                                    <Button onClick={() => this.changeHeat( 3 )} color={this.props.data.heatMode === 3 ? 'success' : 'secondary'}>Solar{' '}{showFlameSolar()}</Button>
                                 </ButtonGroup>
                             </div>
                         </Col>

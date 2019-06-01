@@ -7,7 +7,7 @@ declare namespace WWW
     {
         airTemp: number;
         solarTemp: number;
-        freezeProt: 0 | 1
+        freezeProt: ZeroOrOne
         time: string;
         date: string;
         locale: string;
@@ -25,6 +25,7 @@ declare namespace WWW
         setPoint: number;
         heatMode: number;
         heatModeStr: string;
-        heatOn: 0 | 1;
+        heaterActive: ZeroOrOne;
+        solarActive: ZeroOrOne
     }
 }

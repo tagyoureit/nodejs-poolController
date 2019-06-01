@@ -495,13 +495,13 @@ export namespace server
         } )
         
         // // TODO: This should be deprecated
-        // app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
-        // {
-        //     let response = chlorinator.setChlorinatorLevel( parseInt( req.params.chlorinateLevel ) )
+        app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
+        {
+            let response = chlorinator.setChlorinatorLevel( parseInt( req.params.chlorinateLevel ) )
 
-        //     res.send( response )
+            res.send( response )
 
-        // } )
+        } )
 
         app.get( '/chlorinator/pool/:poolChlorinateLevel', function ( req: { params: { poolChlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
         {

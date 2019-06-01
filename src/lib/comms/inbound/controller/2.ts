@@ -48,7 +48,7 @@ export function process ( data: number[], counter: number )
 
 
 
-    heat.setHeatActiveFromController( data[ c.controllerStatusPacketFields.HEATER_ACTIVE ] )
+    heat.setHeatActiveFromController(  data[ c.controllerStatusPacketFields.VALVE ] )
     circuit.assignCircuitStatusFromControllerStatus( data, counter )
 
     circuit.assignCircuitDelayFromControllerStatus( data[ c.controllerStatusPacketFields.DELAY ] & 63, counter )
