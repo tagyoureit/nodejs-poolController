@@ -129,10 +129,9 @@ export function setDateTime ( newDT: any )
     socket.emit( 'setDateTime', newDT.getHours(), newDT.getMinutes(), Math.pow( 2, newDT.getDay() ), newDT.getDate(), newDT.getMonth() + 1, newDT.getFullYear().toString().slice( -2 ), autoDST )
 }
 
-export function toggleCircuit ( circuit: number ): void
+export function toggleCircuit ( circuit: string ): void
 {
-    console.log( `emitting toggle circuit ${ circuit }` )
-    socket.emit( 'toggleCircuit', circuit )
+    socket.emit( 'toggleCircuit', parseInt(circuit) )
 }
 
 export function setHeatMode ( equip: string, mode: number ): void

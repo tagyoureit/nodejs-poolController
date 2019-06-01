@@ -93,6 +93,7 @@ class Pump extends React.Component<Props, any> {
                 return (<div>Manual pump control to be implemented</div>)
         }
 
+        // TODO: remove "hide" button on modal 
         return (
             <div className="tab-pane active" id="pump" role="tabpanel" aria-labelledby="pump-tab">
                 <CustomCard name='Pumps' key='title' id={this.props.id} visibility={this.props.visibility} edit={this.toggleModal}>
