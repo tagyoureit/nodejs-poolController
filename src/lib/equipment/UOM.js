@@ -36,7 +36,10 @@ module.exports = function(container) {
 
     function setUOM(uom) {
         UOM.UOM = uom
-        UOM.UOMStr = (uom === 0) ? 'Fahrenheit' : 'Celsius'
+        UOM.UOMStr = String.fromCharCode(176) +
+            (uom === 0 ?
+                ' Farenheit' :
+                ' Celsius')
     }
 
     function getUOM() {
