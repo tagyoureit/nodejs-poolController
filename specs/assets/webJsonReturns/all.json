@@ -324,7 +324,7 @@
         "pump1Time": -1,
         "pump2Time": -1
     },
-    "UOM": "° Farenheit",
+    "UOM": "Fahrenheit",
     "valves": {
         "valves": "Pool"
     }

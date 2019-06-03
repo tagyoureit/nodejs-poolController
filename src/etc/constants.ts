@@ -1,19 +1,18 @@
-/*  nodejs-poolController.  An application to control pool equipment.
- *  Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+//  nodejs-poolController.  An application to control pool equipment.
+//  Copyright (C) 2016, 2017, 2018, 2019.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     // this first four bytes of ANY packet are the same
     export let packetFields:Constants.StringLookup = {
@@ -29,7 +28,7 @@
         EQUIP1: 8,
         EQUIP2: 9,
         EQUIP3: 10,
-        UOM: 15, //Celsius (4) or Farenheit (0); Also Service/Timeout.  See strRunMode below.
+        UOM: 15, //Celsius (4) or Fahrenheit (0); Also Service/Timeout.  See strRunMode below.
         VALVE: 16,
         DELAY: 18,  //64==??; 65-135 (for 50 circuits) is the circuit that is currently delayed.
         UNKNOWN: 19, //Something to do with heat.
@@ -509,7 +508,7 @@
         //same bit as UOM.  Need to fix naming.
         0: 'Auto', //0x00000000
         1: 'Service', //0x00000001
-        4: 'Celsius', //if 1, Celsius.  If 0, Farenheit
+        4: 'Celsius', //if 1, Celsius.  If 0, Fahrenheit
         8: 'Freeze', //0 if no freeze, 1 if freeze mode active
         128: '/Timeout' //Timeout always appears with Service; eg this bit has not been observed to be 128 but rather 129.  Not sure if the timer is in the controller.  0x10000001
 

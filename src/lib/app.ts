@@ -7,7 +7,11 @@ import {getConfigOverview} from '../etc/getConfigOverview'
 let promise = bluebird.Promise
 let sysReadyEmitTimer: NodeJS.Timeout
 
-/* istanbul ignore next */
+/**
+ * initAsync
+ * starts up the app and initializes modules
+ * @export
+ */
 export async function initAsync ()
 {
     //Call the modules to initialize them
