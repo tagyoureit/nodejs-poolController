@@ -111,7 +111,7 @@ export namespace server
             }
 
             servers[ type ].app = express();
-            servers [type].app.use(helmet())
+            servers[ type ].app.use( helmet() )
             servers[ type ].port = settings.get( type + 'ExpressPort' ) || defaultPort[ type ];
             servers[ type ].server = undefined;
 
@@ -346,14 +346,14 @@ export namespace server
 
         app.get( '/schedule/toggle/id/:id/day/:_day', function ( req: { params: { id: string; _day: string; }; }, res: { send: ( arg0: API.Response ) => void; } )
         {
-                var id = parseInt( req.params.id );
-                var day = parseInt(req.params._day);
-                var response: API.Response = {};
-               
-                    response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id;
-                    logger.info( response );
-                    schedule.toggleDay( id, day );
-                    res.send( response );
+            var id = parseInt( req.params.id );
+            var day = parseInt( req.params._day );
+            var response: API.Response = {};
+
+            response.text = 'REST API received request to toggle day ' + day + ' on schedule with ID:' + id;
+            logger.info( response );
+            schedule.toggleDay( id, day );
+            res.send( response );
 
         } );
 
@@ -504,7 +504,7 @@ export namespace server
         {
             res.send( intellichem.getCurrentIntellichem() )
         } )
-        
+
         // // TODO: This should be deprecated
         app.get( '/chlorinator/:chlorinateLevel', function ( req: { params: { chlorinateLevel: string; }; }, res: { send: ( arg0: any ) => void; } )
         {
@@ -556,7 +556,7 @@ export namespace server
                 res.send( 'Not a valid light power command.' )
             }
         } )
-//
+        //
         app.get( '/light/circuit/:circuit/setColor/:color', function ( req: { params: { circuit: string; color: string; }; }, res: { send: { ( arg0: string ): void; ( arg0: string ): void; }; } )
         {
             if ( parseInt( req.params.circuit ) > 0 && parseInt( req.params.circuit ) <= circuit.getNumberOfCircuits() )
@@ -736,7 +736,7 @@ export namespace server
         app.get( 'pumpCommand/pump/:pump/type/:type', function ( req: { params: { _pumpNum: string; _type: string }; }, res: any )
         {
             var pumpNum = parseInt( req.params._pumpNum )
-            var type = <Pump.PumpType>req.params._type
+            var type = <Pump.PumpType> req.params._type
             var response: API.Response = {}
             response.text = 'Socket setPumpType variables - pump: ' + pumpNum + ', type: ' + type
             response.pump = pumpNum
@@ -744,7 +744,7 @@ export namespace server
             settings.updatePumpType( pumpNum, type )
             pump.init()
             pumpControllerTimers.startPumpController()
-            io.emitToClients( 'pump', pump.getCurrentPumpStatus() ) 
+            io.emitToClients( 'pump', pump.getCurrentPumpStatus() )
             logger.info( response )
         } )
 
@@ -1063,9 +1063,9 @@ export namespace server
             var _circuitSlot = parseInt( req.params.circuitSlot )
             var _speed = parseInt( req.params.speed )
             var response: API.Response = {}
-            response.text = `Request to set pump ${_pump} circuit slot ${_circuitSlot} to speed ${_speed}`
+            response.text = `Request to set pump ${ _pump } circuit slot ${ _circuitSlot } to speed ${ _speed }`
             response.pump = _pump
-            pumpConfig.setSpeedViaAPI(_pump, _circuitSlot, _speed)
+            pumpConfig.setSpeedViaAPI( _pump, _circuitSlot, _speed )
             res.send( response )
         } )
 
@@ -1075,20 +1075,20 @@ export namespace server
             var _circuitSlot = parseInt( req.params.circuitSlot )
             var _circuit = parseInt( req.params.circuit )
             var response: API.Response = {}
-            response.text = `Request to set pump ${_pump} circuit slot ${_circuit} to circuit ${_circuit}`
+            response.text = `Request to set pump ${ _pump } circuit slot ${ _circuit } to circuit ${ _circuit }`
             response.pump = _pump
-            pumpConfig.setCircuitViaAPI(_pump, _circuitSlot, _circuit)
+            pumpConfig.setCircuitViaAPI( _pump, _circuitSlot, _circuit )
             res.send( response )
         } )
 
         app.get( '/pumpConfig/pump/:pump/type/:type', function ( req: any, res: { send: ( arg0: API.Response ) => void; } )
         {
             let _pump = <Pump.PumpIndex> parseInt( req.params.pump )
-            var _type = <Pump.PumpType>  req.params.type 
+            var _type = <Pump.PumpType> req.params.type
             var response: API.Response = {}
-            response.text = `Request to set pump ${_pump} to type ${_type}`
+            response.text = `Request to set pump ${ _pump } to type ${ _type }`
             response.pump = _pump
-            pumpConfig.setTypeViaAPI(_pump, _type)
+            pumpConfig.setTypeViaAPI( _pump, _type )
             res.send( response )
         } )
 
@@ -1096,11 +1096,11 @@ export namespace server
         {
             let _pump = <Pump.PumpIndex> parseInt( req.params.pump )
             var _circuitSlot = parseInt( req.params.circuitSlot )
-            var _type = <Pump.PumpSpeedType> req.params.type 
+            var _type = <Pump.PumpSpeedType> req.params.type
             var response: API.Response = {}
-            response.text = `Request to set pump ${_pump} circuit slot ${_circuitSlot} to type ${_type}`
+            response.text = `Request to set pump ${ _pump } circuit slot ${ _circuitSlot } to type ${ _type }`
             response.pump = _pump
-            pumpConfig.setRPMGPMViaAPI(_pump, _circuitSlot, _type)
+            pumpConfig.setRPMGPMViaAPI( _pump, _circuitSlot, _type )
             res.send( response )
         } )
 
@@ -1108,6 +1108,14 @@ export namespace server
         {
             // Parcel: middleware
             app.use( bundlerParcel.middleware() )
+        }
+        else
+        {
+            // Single Page App: fallback to index.html
+            // https://github.com/parcel-bundler/parcel/issues/3117#issuecomment-498280051
+            app.get( "*", ( req, res ) =>
+                res.sendFile( path.join( __dirname + "/www/index.html" ) )
+            );
         }
     }
 
@@ -1131,10 +1139,10 @@ export namespace server
             servers[ 'ssdp' ].server.addUSN( 'urn:schemas-upnp-org:device:PoolController:1' );
             // start the server
             await servers[ 'ssdp' ].server.start()
-               
+
             logger.verbose( 'SSDP/UPnP Server started.' )
             servers[ 'ssdp' ].isRunning = 1
-              
+
 
             servers[ 'ssdp' ].server.on( 'error', function ( e: any )
             {
@@ -1148,9 +1156,9 @@ export namespace server
         }
         catch ( err )
         {
-            logger.warn(`Error starting SSDP Server ${err.message}`)
+            logger.warn( `Error starting SSDP Server ${ err.message }` )
         }
-       
+
 
     }
 
@@ -1268,7 +1276,7 @@ export namespace server
                 {
                     if ( servers[ 'mdns' ].isRunning )
                     {
-                        servers['mdns'].removeAllListeners()
+                        servers[ 'mdns' ].removeAllListeners()
                         await servers[ 'mdns' ].destroy()
                     }
                 }
@@ -1276,7 +1284,7 @@ export namespace server
                 {
                     if ( servers[ 'ssdp' ].isRunning )
                     {
-                        servers['ssdp'].server.removeAllListeners()
+                        servers[ 'ssdp' ].server.removeAllListeners()
                         await servers[ 'ssdp' ].server.stop()
                         logger.verbose( 'SSDP/uPNP Server closed' );
                     }
