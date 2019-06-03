@@ -97,7 +97,7 @@ module.exports = function(container) {
     function calculateTemperatureFactor() {
         var TF = 0;
         var temp = container.temperatures.getTemperatures().poolTemp
-        if (container.UOM.getUOMStr === 'Farenheit') {
+        if (container.UOM.getUOMStr() === 'Fahrenheit') {
             if (temp <= 32) TF = 0.0
             else if (temp <= 37) TF = 0.1
             else if (temp <= 46) TF = 0.2
