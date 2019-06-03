@@ -1,5 +1,5 @@
 {
-    "version": "5.3.0",
+    "version": "6.0.0",
     "equipment": {
         "controller": {
             "intellicom": {
@@ -17,6 +17,10 @@
             "virtual": {
                 "pumpController": "default",
                 "chlorinatorController": "never"
+            },
+            "intellicenter": {
+                "installed": 0,
+                "friendlyName": ""
             }
         },
         "circuit": {
@@ -42,7 +46,9 @@
                 "18": "",
                 "19": "",
                 "20": ""
-            }
+            },
+            "nonLightCircuit": {},
+            "lightCircuit": {}
         },
         "chlorinator": {
             "installed": 0,
@@ -85,6 +91,14 @@
         },
         "solar": {
             "installed": 1
+        },
+        "pumpConfig": {
+            "1": {
+                "type": "NONE"
+            },
+            "2": {
+                "type": "NONE"
+            }
         }
     },
     "poolController": {
@@ -139,6 +153,50 @@
                 "port": 8086,
                 "database": "pool"
             }
+        },
+        "client": {
+            "hideAux": true,
+            "panelState": {
+                "system": {
+                    "state": "visible"
+                },
+                "pool": {
+                    "state": "visible"
+                },
+                "spa": {
+                    "state": "visible"
+                },
+                "chlorinator": {
+                    "state": "visible"
+                },
+                "feature": {
+                    "state": "visible"
+                },
+                "pump": {
+                    "state": "visible"
+                },
+                "schedule": {
+                    "state": "visible"
+                },
+                "eggtimer": {
+                    "state": "visible"
+                },
+                "debug": {
+                    "state": "visible"
+                },
+                "intellichem": {
+                    "state": "visible"
+                },
+                "release": {
+                    "state": "visible"
+                },
+                "light": {
+                    "state": "visible"
+                },
+                "updateStatus": {
+                    "state": "visible"
+                }
+            }
         }
     },
     "meta": {
@@ -150,7 +208,8 @@
                     "dismissUntilNextRemoteVersionBump": false
                 }
             }
-        }
+        },
+        "needAppConfiguration": true
     },
     "integrations": {}
 }

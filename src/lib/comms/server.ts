@@ -95,7 +95,9 @@ export namespace server
                 const file = path.join( process.cwd(), '/www/pages/index.html' )
                 logger.debug( `Parcel serving files from: ${ file }` )
                 // Parcel: set options
-                const options = {};
+                const options = {
+                    outDir: './dist/dev'
+                };
                 // Parcel: Initialize a new bundler
                 servers[ type ].parcel = new Bundler( file, options )
             }
@@ -120,7 +122,7 @@ export namespace server
                 servers[ type ].app.use( auth.connect( basic ) );
             }
 
-            // Create Server
+            //  Create Server
             if ( type === 'https' )
             {
                 let opt_https = {

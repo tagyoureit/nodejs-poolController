@@ -43,6 +43,9 @@
             "name": "Launch Replay from Replay Folder",
             "program": "${workspaceFolder}/dist/index.js",
             "args": [
+                "--nolazy",
+                "-r",
+                "ts-node/register",
                 "./replay/config.json",
                 "--suppressWrite"
             ],
@@ -54,13 +57,6 @@
             "request": "launch",
             "args": [
                 "${relativeFile}"
-            ],
-            "runtimeArgs": [
-                "NODE_ENV=production",
-                "TS_NODE_FILES=true",
-                "--nolazy",
-                "-r",
-                "ts-node/register"
             ],
             "sourceMaps": true,
             "cwd": "${workspaceRoot}",

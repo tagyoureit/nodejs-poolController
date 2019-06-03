@@ -211,7 +211,7 @@ export function receivePacket ( arrToBeSent: number[][] )
     socket.emit( 'receivePacket', JSON.stringify( arrToBeSent ) )
 }
 
-export function receivePacketRaw ( packets: number[] )
+export function receivePacketRaw ( packets: number[][] )
 {
     socket.emit( 'receivePacketRaw', packets )
 }

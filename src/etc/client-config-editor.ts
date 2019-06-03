@@ -107,7 +107,6 @@ export namespace clientConfig
             }
 
             settings.updateClientPanelState( configClient )
-            console.log(`OUTPUTTING ALL SOCKET`)
             io.emitToClients('all')
         }
         catch ( err )

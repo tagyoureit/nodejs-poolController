@@ -61,7 +61,9 @@ class PacketTester extends React.Component<any, State> {
 
     handleReceive ()
     {
-        receivePacket(this.dataRowsToPackets())
+        console.log( `this.dataRows:` )
+        console.log(this.dataRowsToPackets())
+        receivePacket( this.dataRowsToPackets() )
     }
 
     handleAdd ( event: any )
