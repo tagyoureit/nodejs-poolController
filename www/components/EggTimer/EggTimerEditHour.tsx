@@ -62,7 +62,7 @@ class LightPosition extends React.Component<Props, State> {
     const positions = () =>
     {
       let hoursArray: number[] = []
-      for ( let i = 1; i <= 12; i++ )
+      for ( let i = 0; i <= 12; i++ )
       {
         hoursArray.push( i )
       }
