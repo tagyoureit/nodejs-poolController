@@ -52,7 +52,7 @@ module.exports = function(container) {
                   container.valve.setValve(data)
 
                   status.runmode = c.strRunMode[data[c.controllerStatusPacketFields.UOM] & 129]; // more here?
-                  container.UOM.setUOM((data[c.controllerStatusPacketFields.UOM] & 4) >> 3)
+                  container.UOM.setUOM(data[c.controllerStatusPacketFields.UOM] & 4)
 
 
 

@@ -35,7 +35,7 @@ module.exports = function(container) {
         EQUIP1: 8,
         EQUIP2: 9,
         EQUIP3: 10,
-        UOM: 15, //Celsius (4) or Farenheit (0); Also Service/Timeout.  See strRunMode below.
+        UOM: 15, //Celsius (4) or Fahrenheit (0); Also Service/Timeout.  See strRunMode below.
         VALVE: 16,
         DELAY: 18,  //64==??; 65-135 (for 50 circuits) is the circuit that is currently delayed.
         UNKNOWN: 19, //Something to do with heat.
@@ -514,7 +514,7 @@ module.exports = function(container) {
         //same bit as UOM.  Need to fix naming.
         0: 'Auto', //0x00000000
         1: 'Service', //0x00000001
-        4: 'Celsius', //if 1, Celsius.  If 0, Farenheit
+        4: 'Celsius', //if 1, Celsius.  If 0, Fahrenheit
         8: 'Freeze', //0 if no freeze, 1 if freeze mode active
         128: '/Timeout' //Timeout always appears with Service; eg this bit has not been observed to be 128 but rather 129.  Not sure if the timer is in the controller.  0x10000001
 
