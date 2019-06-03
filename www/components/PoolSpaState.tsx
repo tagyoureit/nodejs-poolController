@@ -11,6 +11,7 @@ import { setHeatMode, setHeatSetPoint, toggleCircuit } from '../components/Socke
 interface Props
 {
     data: WWW.IPoolOrSpaState;
+    UOM: IUOM.UOM;
     id: string;
     visibility: string;
 }
@@ -73,8 +74,8 @@ class PoolSpaState extends React.Component<Props, any>
     render ()
     {
 
-        const low = 50;
-        const high = 110;
+        const low = this.props.UOM.UOM==='F'?50:10;
+        const high = this.props.UOM.UOM==='F'?110:43;
         const labelStr = `{"${ low }": "${ low }", "${ high }": "${ high }"}`
         let labels = JSON.parse( labelStr )
         const showFlameSolar = () =>

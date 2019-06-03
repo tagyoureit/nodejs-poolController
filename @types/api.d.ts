@@ -13,4 +13,13 @@ declare namespace API
         type?: string;
         
     }
+
+    interface ISearch
+    {
+        searchMode: string,
+        searchSrc: number[],
+        searchDest: number[],
+        searchAction: number[]
+        searchAllorAny: 'all'|'any'
+    }
 }

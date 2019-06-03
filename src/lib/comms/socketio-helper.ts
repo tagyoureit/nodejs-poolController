@@ -18,7 +18,7 @@ import { settings, logger, reload, pumpControllerTimers, circuit, schedule, chlo
 import * as constants from '../../etc/constants';
 import * as intellicenter from '../equipment/intellicenter';
 
-import { ISearch, setSearch } from '../../etc/api-search'
+import { setSearch } from '../../etc/api-search'
 import * as validator from 'validator'
 
 
@@ -258,7 +258,7 @@ export namespace io
                 validator.isWhitelisted( _action + '', [ '*,01234566789' ] )
 
                 //check if we don't have all valid values, and then emit a message to correct.
-                let apiSearch: ISearch
+                let apiSearch: API.ISearch
                 logger.debug( 'from socket.on search: mode: %s  src %s  dest %s  action %s', mode, _src, _dest, _action );
 
                 let src: number[], dest: number[], action: number[]

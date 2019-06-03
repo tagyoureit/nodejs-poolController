@@ -14,9 +14,10 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-var _UOM = {
-    "UOM": 0,
-    "UOMStr": "unknown"
+var _UOM:IUOM.UOM = {
+    UOMByte: 0,
+    UOM: 'C',
+    UOMStr: "unknown"
 }
 
 export namespace UOM
@@ -24,17 +25,20 @@ export namespace UOM
     export function init ()
     {
         _UOM = {
-            "UOM": 0,
-            "UOMStr": "unknown"
+            UOMByte: 0,
+            UOM: 'C',
+            UOMStr: "Celcius"
         }
     }
 
 
-    export function setUOM ( uom: number ): void
+    export function setUOM ( uombyte: IUOM.TUOMByte ): void
     {
-        _UOM.UOM = uom
-        _UOM.UOMStr = String.fromCharCode( 176 ) +
-            ( uom === 0 ? 'Fahrenheit' : 'Celsius' )
+        _UOM = {
+            UOMByte: uombyte,
+            UOMStr: uombyte === 0 ? 'Fahrenheit' : 'Celsius',
+            UOM: uombyte === 0 ? 'F' : 'C',
+        }
     }
 
     export function getUOM ()

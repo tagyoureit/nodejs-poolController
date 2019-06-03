@@ -1,5 +1,4 @@
 {
-    "plugins": [],
     "recurseDepth": 10,
     "source": {
         "include": ["./src"],
@@ -19,5 +18,9 @@
     "opts": {
         "recurse": true,
         "destination": "./docs/"
+    },
+    "plugins": ["node_modules/jsdoc-babel"],
+    "babel": {
+        "extensions": ["js", "es6", "jsx", "ts", "tsx"]
     }
 }

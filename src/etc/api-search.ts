@@ -28,16 +28,8 @@ export var searchAllorAny = 'all'
  * @export
  * @interface ISearch
  */
-export interface ISearch
-    {
-        searchMode: string,
-        searchSrc: number[],
-        searchDest: number[],
-        searchAction: number[]
-        searchAllorAny: 'all'|'any'
-    }
 
-    export function setSearch ( apiSearch: ISearch )
+    export function setSearch ( apiSearch: API.ISearch )
     {
         searchMode = apiSearch.searchMode
         searchAllorAny = apiSearch.searchAllorAny

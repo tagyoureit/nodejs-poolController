@@ -32,7 +32,7 @@ interface IPoolControllerState
 
     counter?: number;
     chlorinator?: Chlorinator.IBaseChlorinator,
-    UOM?: string;
+    UOM?: IUOM.UOM;
     valve?: any;
     intellichem?: any;
     schedule?: ScheduleModule.ScheduleObj;
@@ -288,7 +288,11 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                     name: '',
                     version: 0
                 },
-                UOM: '',
+                UOM: {
+                    UOMByte: 0,
+                    UOM: 'C',
+                    UOMStr: "Celcius"
+                },
                 valve: {},
                 intellichem: {},
                 eggTimer: {},
@@ -342,13 +346,19 @@ class PoolController extends React.Component<any, IPoolControllerState> {
             {
                 // pumpConfig changes shouldn't be merged.  Delete keys first
                 delete pendingChanges.pumpConfig
-                pendingChanges = Object.assign( {}, pendingChanges, { pump: d.pump }, {pumpConfig: d.pumpConfig} )
+                pendingChanges = Object.assign( {},
+                    pendingChanges,
+
+                    { pump: d.pump },
+                    { pumpConfig: d.pumpConfig }
+                )
                 // this.setState( ( state ) => { return { pump: d.pump } } )
             }
 
             if ( which === 'UOM' )
             {
                 pendingChanges = Object.assign( {}, pendingChanges, { UOM: d.UOM } )
+                
             }
 
             if ( which === 'valve' )
@@ -428,7 +438,7 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                         heatModeStr: d.temperature.poolHeatModeStr,
                         heaterActive: d.temperature.heaterActive,
                         solarActive: d.temperature.solarActive,
-                        lastKnownTemperature: d.temperature.poolLastKnownTemperature
+                        lastKnownTemperature: d.temperature.poolLastKnownTemperature,
                     },
                     spaInfo: {
                         ...this.state.spaInfo,
@@ -754,10 +764,12 @@ class PoolController extends React.Component<any, IPoolControllerState> {
                 </ShouldDisplay>
                 <PoolSpaState
                     data={this.state.poolInfo}
+                    UOM={this.state.UOM}
                     id='pool'
                     visibility={this.state.config.client.panelState.pool.state} />
                 <PoolSpaState
                     data={this.state.spaInfo}
+                    UOM={this.state.UOM}
                     id='spa'
                     visibility={this.state.config.client.panelState.spa.state} />
                 <Pump

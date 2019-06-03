@@ -43,7 +43,7 @@ export function process ( data: number[], counter: number )
     valve.setValve( data )
 
     status.runmode = c.strRunMode[ data[ c.controllerStatusPacketFields.UOM ] & 129 ]; // more here?
-    UOM.setUOM( data[ c.controllerStatusPacketFields.UOM ] & 4 )
+    UOM.setUOM( (data[ c.controllerStatusPacketFields.UOM ] & 4) as IUOM.TUOMByte)
 
 
 
