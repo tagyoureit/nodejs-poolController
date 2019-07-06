@@ -1,5 +1,5 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.12.0
+version: v1.13.5
 # ignores vulnerabilities until expiry date; change duration by modifying expiry date
 ignore:
   'npm:brace-expansion:20170302':
@@ -123,15 +123,9 @@ ignore:
     - snyk-go-plugin > graphlib > lodash:
         reason: None given
         expires: '2018-05-27T15:05:54.491Z'
-      node-ssdp > async > lodash:
-        reason: None given
-        expires: '2019-02-03T00:16:15.673Z'
     - node-ssdp > async > lodash:
         reason: None given
         expires: '2018-12-26T15:26:16.181Z'
-      request-promise > request-promise-core > lodash:
-        reason: None given
-        expires: '2019-02-03T00:16:15.674Z'
     - request-promise > request-promise-core > lodash:
         reason: None given
         expires: '2018-12-26T15:26:16.181Z'
@@ -159,6 +153,12 @@ ignore:
     - node-ip > node-localip > wmic > async > lodash:
         reason: None given
         expires: '2019-01-28T22:22:52.646Z'
+    - node-ssdp > async > lodash:
+        reason: None given
+        expires: '2019-02-03T00:16:15.673Z'
+    - request-promise > request-promise-core > lodash:
+        reason: None given
+        expires: '2019-02-03T00:16:15.674Z'
   'npm:hoek:20180212':
     - request > hawk > hoek:
         reason: None given
@@ -234,3 +234,8 @@ patch:
   'npm:qs:20170213':
     - serialport > node-pre-gyp > request > qs:
         patched: '2017-06-17T17:20:23.051Z'
+  SNYK-JS-LODASH-450202:
+    - node-ssdp > async > lodash:
+        patched: '2019-07-06T21:21:14.991Z'
+    - request-promise > request-promise-core > lodash:
+        patched: '2019-07-06T21:21:14.991Z'
