@@ -1,0 +1,387 @@
+{
+  "mode": {
+    "val": 0,
+    "name": "auto",
+    "desc": "Auto"
+  },
+  "temps": {
+    "units": {
+      "val": 0,
+      "name": "F",
+      "desc": "Fahrenheit"
+    },
+    "waterSensor1": 80,
+    "waterSensor2": 80,
+    "air": 86,
+    "solar": 72,
+    "bodies": [
+      {
+        "id": 1,
+        "heatMode": {
+          "val": 5,
+          "name": "solar",
+          "desc": "Solar Only"
+        },
+        "setPoint": 90,
+        "name": "Pool",
+        "circuit": 6,
+        "heatStatus": {
+          "val": 0,
+          "name": "off",
+          "desc": "Off"
+        },
+        "isOn": true,
+        "temp": 80
+      },
+      {
+        "id": 2,
+        "heatMode": {
+          "val": 5,
+          "name": "solar",
+          "desc": "Solar Only"
+        },
+        "setPoint": 104,
+        "name": "Spa",
+        "circuit": 1,
+        "heatStatus": {
+          "val": 0,
+          "name": "off",
+          "desc": "Off"
+        },
+        "temp": 81,
+        "isOn": false
+      }
+    ]
+  },
+  "equipment": {},
+  "pumps": [
+    {
+      "id": 1,
+      "command": 10,
+      "mode": 0,
+      "driveState": 0,
+      "watts": 404,
+      "rpm": 1800,
+      "flow": 0,
+      "ppc": 0,
+      "status": {
+        "val": 1,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      },
+      "runTime": 1205,
+      "type": {
+        "val": 3,
+        "name": "vs",
+        "desc": "Intelliflo VS"
+      }
+    },
+    {
+      "id": 2,
+      "command": 4,
+      "mode": 0,
+      "driveState": 0,
+      "watts": 0,
+      "rpm": 0,
+      "flow": 0,
+      "ppc": 0,
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      },
+      "runTime": 1205,
+      "type": {
+        "val": 3,
+        "name": "vs",
+        "desc": "Intelliflo VS"
+      }
+    },
+    {
+      "id": 0,
+      "type": {
+        "val": 5,
+        "name": "vf",
+        "desc": "Intelliflo VF"
+      }
+    }
+  ],
+  "valves": [],
+  "heaters": [],
+  "circuits": [
+    {
+      "id": 1,
+      "isOn": false,
+      "name": "SPA",
+      "type": {
+        "val": 1,
+        "name": "spillway",
+        "desc": "Spillway"
+      }
+    },
+    {
+      "id": 2,
+      "isOn": false,
+      "name": "Pool LtDeep",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 3,
+      "isOn": false,
+      "name": "AIR BLOWER",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 4,
+      "isOn": false,
+      "name": "CLEANER",
+      "type": {
+        "val": 5,
+        "name": "intellibrite",
+        "desc": "Intellibrite"
+      },
+      "lightingTheme": {
+        "val": 255,
+        "name": "none",
+        "desc": "None"
+      }
+    },
+    {
+      "id": 5,
+      "isOn": false,
+      "name": "WATERFALL",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 6,
+      "isOn": true,
+      "name": "POOL",
+      "type": {
+        "val": 2,
+        "name": "mastercleaner",
+        "desc": "Master Cleaner"
+      }
+    },
+    {
+      "id": 7,
+      "isOn": false,
+      "name": "SPA LIGHT",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 8,
+      "isOn": false,
+      "name": "Pool LtShlw",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 9,
+      "isOn": false,
+      "name": "PATH LIGHTS",
+      "type": {
+        "val": 7,
+        "name": "globritewhite",
+        "desc": "GloBrite White"
+      }
+    },
+    {
+      "id": 11,
+      "isOn": false,
+      "name": "SPILLWAY",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 12,
+      "isOn": false,
+      "name": "WATERFALL 1",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 13,
+      "isOn": false,
+      "name": "WtrFall 2",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 14,
+      "isOn": false,
+      "name": "WtrFall 3",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 15,
+      "isOn": false,
+      "name": "Pool High",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 16,
+      "isOn": false,
+      "name": "JETS",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 17,
+      "isOn": false,
+      "name": "AUX 1",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 18,
+      "isOn": false,
+      "name": "FEATURE 8",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    },
+    {
+      "id": 20,
+      "isOn": false,
+      "name": "AUX EXTRA",
+      "type": {
+        "val": 0,
+        "name": "generic",
+        "desc": "Generic"
+      }
+    }
+  ],
+  "features": [],
+  "chlorinators": [
+    {
+      "id": 1,
+      "saltLevel": 6000,
+      "saltRequired": 0,
+      "status": {
+        "val": 0,
+        "name": "ok",
+        "desc": "Ok"
+      },
+      "lastComm": 1565838409042,
+      "targetOutput": 0,
+      "currentOutput": 95
+    }
+  ],
+  "schedules": [
+    {
+      "id": 1,
+      "startTime": 519,
+      "endTime": 15119,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 6
+    },
+    {
+      "id": 2,
+      "startTime": 21,
+      "endTime": 14103,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 6
+    },
+    {
+      "id": 3,
+      "startTime": 12,
+      "endTime": 14092,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 4
+    },
+    {
+      "id": 4,
+      "startTime": 7691,
+      "endTime": 14863,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 0
+    },
+    {
+      "id": 5,
+      "startTime": 11528,
+      "endTime": 11529,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 11
+    },
+    {
+      "id": 6,
+      "startTime": 14,
+      "endTime": 2574,
+      "scheduleDays": {
+        "val": 0,
+        "days": []
+      },
+      "circuit": 13
+    }
+  ],
+  "circuitGroups": [],
+  "status": {
+    "val": 1,
+    "name": "loading",
+    "desc": "Loading",
+    "percent": 100
+  },
+  "time": "2019-08-14T20:06:55.000-0700",
+  "valve": 3,
+  "delay": 64,
+  "body": 6
+}

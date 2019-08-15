@@ -1,0 +1,507 @@
+{
+  "lastUpdated": "2019-8-14 20:06:47",
+  "pool": {
+    "options": {
+      "adjustDST": false,
+      "clockMode": 12,
+      "clockSource": "manual",
+      "pumpDelay": false,
+      "manualHeat": false,
+      "waterTempAdj2": -126
+    }
+  },
+  "bodies": [
+    {
+      "id": 2,
+      "name": "Spa",
+      "isActive": true,
+      "heatMode": 5,
+      "setPoint": 104
+    },
+    {
+      "id": 1,
+      "name": "Pool",
+      "isActive": true,
+      "heatMode": 5,
+      "setPoint": 90
+    }
+  ],
+  "schedules": [
+    {
+      "id": 1,
+      "circuit": 6,
+      "startTime": 519,
+      "endTime": 15119,
+      "isActive": true,
+      "scheduleDays": 255
+    },
+    {
+      "id": 2,
+      "circuit": 6,
+      "startTime": 21,
+      "endTime": 14103,
+      "isActive": true,
+      "scheduleDays": 255
+    },
+    {
+      "id": 3,
+      "circuit": 4,
+      "startTime": 12,
+      "endTime": 14092,
+      "isActive": true,
+      "scheduleDays": 255
+    },
+    {
+      "id": 4,
+      "circuit": 0,
+      "startTime": 0,
+      "endTime": 0,
+      "isActive": false,
+      "scheduleDays": 0
+    },
+    {
+      "id": 5,
+      "circuit": 11,
+      "startTime": 11528,
+      "endTime": 11529,
+      "isActive": true,
+      "scheduleDays": 213
+    },
+    {
+      "id": 6,
+      "circuit": 13,
+      "startTime": 14,
+      "endTime": 2574,
+      "isActive": true,
+      "scheduleDays": 255
+    }
+  ],
+  "eggTimers": [
+    {
+      "id": 7,
+      "circuit": 16,
+      "runTime": 3840,
+      "isActive": true
+    },
+    {
+      "id": 11,
+      "circuit": 11,
+      "runTime": 5,
+      "isActive": true
+    }
+  ],
+  "customNames": [
+    {
+      "id": 0,
+      "name": "\u0001",
+      "isActive": true
+    },
+    {
+      "id": 1,
+      "name": "\u0001",
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "name": "WtrFall 2",
+      "isActive": true
+    },
+    {
+      "id": 3,
+      "name": "WtrFall 3",
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "name": "Pool High",
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "name": "Pool LtDeep",
+      "isActive": true
+    },
+    {
+      "id": 6,
+      "name": "Pool LtShlw",
+      "isActive": true
+    },
+    {
+      "id": 7,
+      "name": "USERNAME-08",
+      "isActive": false
+    },
+    {
+      "id": 8,
+      "name": "USERNAME-09",
+      "isActive": false
+    },
+    {
+      "id": 9,
+      "name": "USERNAME-aa",
+      "isActive": false
+    }
+  ],
+  "equipment": {
+    "maxBodies": 2,
+    "highSpeedCircuits": [
+      {
+        "id": 0,
+        "isActive": false,
+        "type": 4,
+        "name": "CLEANER"
+      },
+      {
+        "id": 1,
+        "isActive": false
+      },
+      {
+        "id": 2,
+        "isActive": false
+      },
+      {
+        "id": 3,
+        "isActive": false,
+        "type": 14,
+        "name": "WtrFall 3"
+      }
+    ],
+    "maxIntelliBrites": 8,
+    "maxPumps": 2,
+    "bootloaderVersion": "1.010",
+    "softwareVersion": "2.090"
+  },
+  "valves": [
+    {
+      "id": 2,
+      "circuit": 1,
+      "isActive": true,
+      "name": "SPA"
+    }
+  ],
+  "circuits": [
+    {
+      "id": 1,
+      "type": 1,
+      "name": "SPA",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "type": 16,
+      "name": "Pool LtDeep",
+      "freeze": false,
+      "isActive": true,
+      "intellibrite": {
+        "position": 2,
+        "colorSet": 4,
+        "swimDelay": 6
+      }
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "name": "AIR BLOWER",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 4,
+      "type": 5,
+      "name": "CLEANER",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "name": "WATERFALL",
+      "freeze": true,
+      "isActive": true
+    },
+    {
+      "id": 6,
+      "type": 2,
+      "name": "POOL",
+      "freeze": true,
+      "isActive": true
+    },
+    {
+      "id": 7,
+      "type": 16,
+      "name": "SPA LIGHT",
+      "freeze": false,
+      "isActive": true,
+      "intellibrite": {
+        "position": 2,
+        "colorSet": 14,
+        "swimDelay": 0
+      }
+    },
+    {
+      "id": 8,
+      "type": 16,
+      "name": "Pool LtShlw",
+      "freeze": false,
+      "isActive": true,
+      "intellibrite": {
+        "position": 2,
+        "colorSet": 14,
+        "swimDelay": 3
+      }
+    },
+    {
+      "id": 9,
+      "type": 7,
+      "name": "PATH LIGHTS",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 10,
+      "type": 0,
+      "name": "NOT USED",
+      "freeze": false,
+      "isActive": false
+    },
+    {
+      "id": 11,
+      "type": 14,
+      "name": "SPILLWAY",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 12,
+      "type": 0,
+      "name": "WATERFALL 1",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 13,
+      "type": 0,
+      "name": "WtrFall 2",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 14,
+      "type": 0,
+      "name": "WtrFall 3",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 15,
+      "type": 0,
+      "name": "Pool High",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 16,
+      "type": 0,
+      "name": "JETS",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 17,
+      "type": 14,
+      "name": "AUX 1",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 18,
+      "type": 14,
+      "name": "FEATURE 8",
+      "freeze": false,
+      "isActive": true
+    },
+    {
+      "id": 19,
+      "type": 0,
+      "name": "NOT USED",
+      "freeze": false,
+      "isActive": false
+    },
+    {
+      "id": 20,
+      "type": 0,
+      "name": "AUX EXTRA",
+      "freeze": false,
+      "isActive": true
+    }
+  ],
+  "features": [],
+  "pumps": [
+    {
+      "id": 1,
+      "type": 3,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 16,
+          "speed": 3200,
+          "units": 0
+        },
+        {
+          "id": 2,
+          "circuit": 6,
+          "speed": 1800,
+          "units": 0
+        },
+        {
+          "id": 3,
+          "circuit": 1,
+          "speed": 2500,
+          "units": 0
+        },
+        {
+          "id": 4,
+          "circuit": 4,
+          "speed": 3000,
+          "units": 0
+        },
+        {
+          "id": 5,
+          "circuit": 11,
+          "speed": 1000,
+          "units": 0
+        },
+        {
+          "id": 6,
+          "circuit": 128,
+          "speed": 2200,
+          "units": 0
+        },
+        {
+          "id": 8,
+          "circuit": 18,
+          "speed": 750,
+          "units": 0
+        }
+      ],
+      "primingSpeed": 1000,
+      "primingTime": 0,
+      "minSpeed": 450,
+      "maxSpeed": 3450,
+      "speedStepSize": 100,
+      "isActive": true
+    },
+    {
+      "id": 2,
+      "type": 3,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 5,
+          "speed": 1500,
+          "units": 0
+        },
+        {
+          "id": 2,
+          "circuit": 12,
+          "speed": 1000,
+          "units": 0
+        },
+        {
+          "id": 3,
+          "circuit": 13,
+          "speed": 2000,
+          "units": 0
+        },
+        {
+          "id": 4,
+          "circuit": 14,
+          "speed": 2500,
+          "units": 0
+        }
+      ],
+      "primingSpeed": 1000,
+      "primingTime": 0,
+      "minSpeed": 450,
+      "maxSpeed": 3450,
+      "speedStepSize": 100,
+      "isActive": true
+    }
+  ],
+  "chlorinators": [
+    {
+      "id": 1,
+      "isActive": true,
+      "body": 32,
+      "spaSetpoint": 0,
+      "poolSetpoint": 95,
+      "suplerChlor": false,
+      "superChlorHours": 0,
+      "name": "Intellichlor--40"
+    }
+  ],
+  "remotes": [
+    {
+      "id": 3,
+      "type": 3,
+      "button1": 0,
+      "button2": 0,
+      "button3": 0,
+      "button4": 0,
+      "isActive": false,
+      "name": "QuickTouch"
+    },
+    {
+      "id": 1,
+      "type": 1,
+      "name": "is4",
+      "button1": 0,
+      "button2": 0,
+      "button3": 0,
+      "button4": 0,
+      "button5": 0,
+      "isActive": false
+    },
+    {
+      "id": 2,
+      "pumpId": 2,
+      "stepSize": 240,
+      "type": 2,
+      "name": "is10",
+      "button1": 0,
+      "button2": 0,
+      "button3": 0,
+      "button4": 0,
+      "button5": 0,
+      "button6": 0,
+      "button7": 0,
+      "button8": 0,
+      "button9": 0,
+      "button10": 0,
+      "isActive": false
+    }
+  ],
+  "intellibrite": [
+    {
+      "id": 7,
+      "position": 2,
+      "colorSet": 14,
+      "swimDelay": 0
+    },
+    {
+      "id": 8,
+      "position": 2,
+      "colorSet": 14,
+      "swimDelay": 3
+    },
+    {
+      "id": 2,
+      "position": 2,
+      "colorSet": 4,
+      "swimDelay": 6
+    }
+  ],
+  "heaters": [],
+  "controllerType": "intellitouch"
+}

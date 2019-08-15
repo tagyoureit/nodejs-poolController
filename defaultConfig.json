@@ -1,0 +1,109 @@
+﻿{
+    "controller": {
+        "address": 36,
+        "comms": {
+            "rs485Port": "/dev/ttyUSB0",
+            "portSettings": {
+                "baudRate": 9600,
+                "dataBits": 8,
+                "parity": "none",
+                "stopBits": 1,
+                "flowControl": false,
+                "autoOpen": false,
+                "lock": false
+            },
+            "mockPort": true,
+            "netConnect": true,
+            "netHost": "raspberrypi",
+            "netPort": 9801,
+            "inactivityRetry": 10
+        },
+        "type": {
+            "intellicenter": false,
+            "intellitouch": true,
+            "intellicom": false
+        }
+    },
+    "web": {
+        "servers": {
+            "http2": {
+                "enabled": false
+            },
+            "http": {
+                "enabled": true,
+                "ip": "127.0.0.1",
+                "port": 4200,
+                "httpsRedirect": false,
+                "authentication": "none",
+                "authFile": "/users.htpasswd"
+            },
+            "https": {
+                "enabled": true,
+                "ip": "127.0.0.1",
+                "port": 4201,
+                "authentication": "none",
+                "authFile": "/users.htpasswd",
+                "sslKeyFile": "",
+                "sslCertFile": ""
+            },
+            "mdns": {
+                "enabled": false
+            },
+            "sspd": {
+                "enabled": false
+            }
+        },
+        "services": {
+
+        },
+        "dashboard": {
+            "startPage": "index.html"
+        }
+    },
+    "log": {
+        "packet": {
+            "enabled": false,
+            "logToConsole": false,
+            "logToFile": false,
+            "filename": "packetLog",
+            "replay": false,
+            "broadcast": {
+                "enabled": true,
+                "includeActions": [],
+                "includeSource": [],
+                "includeDest": [],
+                "excludeActions": [],
+                "excludeSource": [],
+                "excludeDest": []
+            },
+            "pump": {
+                "enabled": false,
+                "includeActions": [],
+                "includeSource": [],
+                "includeDest": [],
+                "excludeActions": [],
+                "excludeSource": [],
+                "excludeDest": []
+            },
+            "chlorinator": {
+                "enabled": true,
+                "includeSource": [],
+                "includeDest": [],
+                "excludeSource": [],
+                "excludeDest": []
+            },
+            "unknown": {
+                "enabled": true,
+                "includeSource": [],
+                "includeDest": [],
+                "excludeSource": [],
+                "excludeDest": []
+            }
+        },
+        "app": {
+            "enabled": true,
+            "level": "info"
+        }
+    },
+    "appVersion": "0.0.1"
+}

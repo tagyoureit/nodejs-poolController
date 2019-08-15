@@ -1,0 +1,47 @@
+﻿<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Intellicenter Dashboard</title>
+    <script src="../socket.io-client/socket.io.js"></script>
+    <script src="../../jquery/dist/jquery.min.js"></script>
+    <script src="../../jquery-ui/jquery-ui.min.js"></script>
+    <script src="widgets.js"></script>
+    <script src="controller.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="bodies.js"></script>
+    <script src="circuits.js"></script>
+    <script src="pumps.js"></script>
+    <script src="chemistry.js"></script>
+    <link rel="stylesheet" href="../../jquery-ui/jquery-ui.css" />
+    <link rel="stylesheet" href="../../jquery-ui/jquery-ui.theme.css" />
+    <link rel="stylesheet" href="/font-awesome/css/all.css" />
+    <link rel="stylesheet" href="/themes/intellibrite.css" />
+    <link rel="stylesheet" href="/themes/widgets.css" />
+</head>
+<body>
+    <div class="picDashboard">
+        <div style="display:inline-block;vertical-align:top;max-width:20rem">
+            <div class="picController picControlPanel" style="display:block;"></div>
+            <div class="picChemistry picControlPanel" style="display:block;"></div>
+        </div>
+        <div style="display:inline-block;vertical-align:top;">
+            <div class="picBodies picControlPanel" style="display:block;"></div>
+            <div class="picPumps picControlPanel picPumpContainer" style="display:block;"></div>
+        </div>
+        <div class="picCircuits picControlPanel"></div>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('div.picDashboard').dashboard();
+            $('div.picController').controller();
+            $('div.picBodies').bodies();
+            $('div.picCircuits').circuits();
+            $('div.picPumps').pumps();
+            $('div.picChemistry').chemistry();
+        });
+    </script>
+</body>
+</html>

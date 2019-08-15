@@ -1,0 +1,28 @@
+{
+  "name": "nodejs-intellicenter",
+  "version": "0.0.1",
+  "description": "nodejs-Intellicenter",
+  "main": "app.js",
+  "author": {
+    "name": "Robert Strouse"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.8.1",
+    "@types/express": "^4.16.1",
+    "@types/extend": "^3.0.1",
+    "@types/node": "^11.13.4",
+    "@types/socket.io": "^2.1.2",
+    "express": "^4.16.4",
+    "extend": "^3.0.2",
+    "jquery": "^3.4.0",
+    "jquery-ui": "^1.12.1",
+    "jquery-ui-dist": "^1.12.1",
+    "serialport": "^7.1.5",
+    "socket.io": "^2.2.0",
+    "source-map-support": "^0.5.12",
+    "winston": "^3.2.1"
+  },
+  "devDependencies": {
+    "ts-node": "^8.3.0"
+  }
+}
