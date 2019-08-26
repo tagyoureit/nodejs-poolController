@@ -64,6 +64,7 @@ Extend nodejs-Poolcontroller with these additional integration points
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
+* [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
 
 ***
 
