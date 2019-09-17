@@ -72,7 +72,10 @@ module.exports = function(container) {
             logger.silly('iOAOA: Packet being analyzed: %s  ******START OF NEW PACKET******', bufferToProcess);
         }
 
-
+        if (bufferToProcess.length <= 9) {
+            processingBuffer = false;
+            return;
+        }
         while (bufferToProcess.length > 0 && !breakLoop) {
             if (preambleStd[0] === bufferToProcess[0] && preambleStd[1] === bufferToProcess[1]) //match on pump or controller packet
             {
