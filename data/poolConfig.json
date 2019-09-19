@@ -1,6 +1,6 @@
 {
-  "testChange": true,
-  "test2Change3": true,
+  "localTestChange": false,
+  "testChange": false,
   "lastUpdated": "2019-9-19 14:23:42",
   "controllerType": "intellitouch",
   "pool": {
