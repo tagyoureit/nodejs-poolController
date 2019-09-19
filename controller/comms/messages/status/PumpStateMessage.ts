@@ -1,9 +1,10 @@
 ﻿import { Inbound } from "../Messages";
 import { state } from "../../../State";
-import { sys } from"../../../Equipment";
-
+import { sys, ControllerType } from"../../../Equipment";
 export class PumpStateMessage {
-    public static process(msg: Inbound) {
+    public static process ( msg: Inbound )
+    {
+        if ( sys.controllerType === ControllerType.Unknown ) return;
         let pumpId = msg.source - 96 + 1;
         let pump = state.pumps.getItemById(pumpId, true);
         let pumpCfg = sys.pumps.getItemById(pumpId);

@@ -1,5 +1,6 @@
-﻿import { Inbound, ControllerType } from "../Messages";
+﻿import { Inbound } from "../Messages";
 import { sys, Remote } from "../../../Equipment";
+import { ControllerType } from "../../../Constants";
 export class RemoteMessage
 {
     private static maxCircuits: number = 8;

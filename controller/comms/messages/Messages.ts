@@ -5,7 +5,7 @@ import { PumpStateMessage } from "./status/PumpStateMessage";
 import { EquipmentStateMessage } from "./status/EquipmentStateMessage";
 import { ChlorinatorStateMessage } from "./status/ChlorinatorStateMessage";
 import { ExternalMessage } from "./config/ExternalMessage";
-import { Timestamp } from "../../Constants";
+import { Timestamp, ControllerType } from "../../Constants";
 import { CircuitMessage } from "./config/CircuitMessage"
 import { config } from '../../../config/Config';
 import { logger } from "../../../logger/Logger";
@@ -13,10 +13,8 @@ import { CustomNameMessage } from "./config/CustomNameMessage";
 import { ScheduleMessage } from "./config/ScheduleMessage";
 import { RemoteMessage } from "./config/RemoteMessage";
 import { OptionsMessage } from "./config/OptionsMessage";
-import { ControllerType } from "../../Constants"
 import { EquipmentMessage } from "./config/EquipmentMessage";
 import { ValveMessage } from "./config/ValveMessage";
-export { ControllerType } from "../../Constants";
 export enum Direction
 {
     In = 'in',
@@ -261,6 +259,7 @@ export class Inbound extends Message
             case 2:  // Shared IntelliCenter/IntelliTouch
             case 5:
             case 8:
+            case 96: // intellibrite lights
             case 204:
                 EquipmentStateMessage.process( this );
                 break;
@@ -276,6 +275,8 @@ export class Inbound extends Message
                 break;
             case 24:
             case 27:
+            case 152:
+            case 155:
                 PumpMessage.process( this );
                 break;
             case 25:
@@ -283,9 +284,9 @@ export class Inbound extends Message
                 break;
             // IntelliCenter & IntelliTouch
             case 30:
-                if ( this.controllerType = ControllerType.IntelliTouch )
+                if ( this.controllerType === ControllerType.IntelliTouch )
                     OptionsMessage.process( this );
-                else if ( this.controllerType = ControllerType.IntelliCenter )
+                else if ( this.controllerType === ControllerType.IntelliCenter )
                     ConfigMessage.process( this );
                 break;
             case 22:
@@ -371,7 +372,7 @@ export class Outbound extends Message
         else
         {
             this.preamble.push.apply( this.preamble, [ 255, 0, 255 ] );
-            this.header.push.apply( this.header, [ 165, super.headerSubByte, 15, 16, 0, 0 ] );
+            this.header.push.apply( this.header, [ 165, super.headerSubByte, 15, Message.pluginAddress, 0, 0 ] );
             this.term.push.apply( this.term, [ 0, 0 ] );
         }
         this.source = source;
@@ -382,7 +383,19 @@ export class Outbound extends Message
     // Factory
     public static createMessage ( action: number, payload: number[], retries?: number, response?: Response ): Outbound
     {
-        return new Outbound( Protocol.Broadcast, 15, 16, action, payload, retries, response );
+        let c = config.getSection( 'controller' ).type
+        if ( c.intellitouch || c.intellicom )
+        {
+            return new Outbound( Protocol.Broadcast, Message.pluginAddress, 16, action, payload, retries, response )
+        }
+        else if ( c.intellicenter )
+        {
+            return new Outbound( Protocol.Broadcast, 15, Message.pluginAddress, action, payload, retries, response );
+        }
+    }
+    public static createBroadcastRaw ( dest: number, source: number, action: number, payload: number[], retries?: number, response?: Response ): Outbound
+    {
+        return new Outbound( Protocol.Broadcast, source, dest, action, payload, retries )
     }
     // Fields
     public retries: number = 0;
@@ -471,6 +484,11 @@ export class Response extends Message
         if ( typeof ( ack ) !== "undefined" && ack !== null ) this.ack = new Ack( ack );
         this.callback = callback;
     }
+    // Factory
+    public static createResponse ( action: number, payload: number[] ): Response
+    {
+        return new Response( 15, Message.pluginAddress, action, payload );
+    }
     // Fields
     public ack: Ack;
     public callback: () => void;
@@ -501,6 +519,7 @@ export class Response extends Message
             switch ( this.action )
             {
                 // these responses have multiple items so match the 1st payload byte
+                case 1: // ack
                 case 10:
                 case 11:
                 case 17:

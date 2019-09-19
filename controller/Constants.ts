@@ -70,6 +70,14 @@ export class Timestamp
             this.emitter.emit( 'change' );
         }
     }
+    public get dayOfWeek (): number
+    {
+        // for IntelliTouch set date/time
+        if ( this._dt.getUTCDay() === 0 )
+            return 0;
+        else
+            return Math.pow( 2, this._dt.getUTCDay() - 1 );
+    }
     public format (): string { return Timestamp.toISOLocal( this._dt ); }
     public static toISOLocal ( dt ): string
     {
@@ -86,7 +94,8 @@ export enum ControllerType
 {
     IntelliCenter = 'intellicenter',
     IntelliTouch = 'intellitouch',
-    IntelliCom = 'intellicom'
+    IntelliCom = 'intellicom',
+    Unknown = 'unknown'
 }
 export class Enums
 {
@@ -94,6 +103,7 @@ export class Enums
     public static PanelModes = {
         0: { val: 0, name: 'auto', desc: 'Auto' },
         1: { val: 1, name: 'service', desc: 'Service' },
+        8: { val: 8, name: 'freeze', desc: 'Freeze' },
         128: { val: 128, name: 'timeout', desc: 'Timeout' },
         129: { val: 129, name: 'service-timeout', desc: 'Service/Timeout' },
         transform: function ( byte ) { return extend( true, {}, this[ byte & 0x83 ] ); }
@@ -183,7 +193,7 @@ export class Enums
         transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
     }
     // Circuit Constants
-    public static CircuitFunctions_IT = {
+    public static CircuitTypes_IT = {
         0: { val: 0, name: 'generic', desc: 'Generic' },
         1: { val: 1, name: 'spa', desc: 'Spa' },
         2: { val: 2, name: 'Pool', desc: 'Pool' },
@@ -204,6 +214,7 @@ export class Enums
         129: { val: 129, name: 'eitherheater', desc: 'Either Heater' },
         130: { val: 130, name: 'poolheater', desc: 'Pool Heater' },
         131: { val: 131, name: 'spaheater', desc: 'spa Heater' },
+        132: { val: 132, name: 'freeze', desc: 'Freeze' },
         transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
     }
     public static VirtualCircuits = {
@@ -244,6 +255,48 @@ export class Enums
         9: { val: 9, name: 'american', desc: 'American' },
         10: { val: 10, name: 'sunset', desc: 'Sunset' },
         11: { val: 11, name: 'royal', desc: 'Royal' },
+        255: { val: 255, name: 'none', desc: 'None' },
+        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 255 ] ); },
+        get: function ()
+        {
+            let themes = [];
+            for ( let ndx in this )
+            {
+                if ( typeof ( this[ ndx ] ) !== 'function' ) themes.push( extend( true, {}, this[ ndx ] ) );
+            }
+            return themes;
+        }
+    }
+    // This is a combination of colors (color set) and themes in intellitouch.  
+    // There was an overlap with 0 but we will not actually change the value with just an on / off call hence we should be able to combine these.
+    public static LightThemes_IT = {
+        // 0: { val: 0, name: 'off', desc: 'Off' },
+        // 1: { val: 1, name: 'on', desc: 'On' },
+        0: { val: 0, name: 'white', desc: 'White' },
+        // 1: { val: 1, name: 'custom', desc: 'Custom' },
+        2: { val: 2, name: 'lightgreen', desc: 'Light Green' },
+        4: { val: 4, name: 'green', desc: 'Green' },
+        6: { val: 6, name: 'cyan', desc: 'Cyan' },
+        8: { val: 8, name: 'blue', desc: 'Blue' },
+        10: { val: 10, name: 'lavender', desc: 'Lavender' },
+        12: { val: 12, name: 'magenta', desc: 'Magenta' },
+        14: { val: 14, name: 'lightmagenta', desc: 'Light Magenta' },
+        128: { val: 128, name: 'colorsync', desc: 'Color Sync' },
+        144: { val: 144, name: 'colorswim', desc: 'Color Swim' },
+        160: { val: 160, name: 'colorset', desc: 'Color Set' },
+        177: { val: 177, name: 'party', desc: 'Party' },
+        178: { val: 178, name: 'romance', desc: 'Romance' },
+        179: { val: 179, name: 'caribbean', desc: 'Caribbean' },
+        180: { val: 180, name: 'american', desc: 'American' },
+        181: { val: 181, name: 'sunset', desc: 'Sunset' },
+        182: { val: 182, name: 'royal', desc: 'Royal' },
+        190: { val: 190, name: 'save', desc: 'Save' },
+        191: { val: 191, name: 'recall', desc: 'Recall' },
+        193: { val: 193, name: 'blue', desc: 'Blue' },
+        194: { val: 194, name: 'green', desc: 'Green' },
+        195: { val: 195, name: 'red', desc: 'Red' },
+        196: { val: 196, name: 'white', desc: 'White' },
+        197: { val: 197, name: 'magenta', desc: 'Magenta' },
         255: { val: 255, name: 'none', desc: 'None' },
         transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 255 ] ); },
         get: function ()

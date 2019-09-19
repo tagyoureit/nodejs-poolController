@@ -1,4 +1,4 @@
-﻿import { Inbound, ControllerType } from "../Messages";
+﻿import { Inbound } from "../Messages";
 import { CircuitMessage } from "./CircuitMessage";
 import { HeaterMessage } from "./HeaterMessage";
 import { FeatureMessage } from "./FeatureMessage";
@@ -14,6 +14,7 @@ import { SecurityMessage } from "./SecurityMessage";
 import { OptionsMessage } from "./OptionsMessage";
 import { CoverMessage } from "./CoverMessage";
 import { IntellichemMessage } from "./IntellichemMessage";
+import { ControllerType } from "../../../Constants";
 
 export class ConfigMessage
 {

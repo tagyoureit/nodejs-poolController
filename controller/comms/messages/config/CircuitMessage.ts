@@ -1,12 +1,12 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, Circuit } from "../../../Equipment";
+import { sys, Circuit, CircuitOrFeatureFactory } from "../../../Equipment";
 import { Enums } from "../../../Constants"
-import { brotliDecompressSync } from "zlib";
 
 export class CircuitMessage
 {
     public static process ( msg: Inbound ): void
     {
+
         switch ( msg.action )
         {
             case 11: // IntelliTouch Circuits
@@ -85,38 +85,52 @@ export class CircuitMessage
         Thus, we must keep track of all current items and delete/re-init them every time.
         The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
 
-        if ( msg.datalen === 25 && sys.equipment.maxIntelliBrites < ( msg.extractPayloadByte( 0 ) * 4 ) ) { sys.equipment.maxIntelliBrites = msg.extractPayloadByte( 0 ) * 4 }
-        else if ( msg.datalen === 32 ) { sys.equipment.maxIntelliBrites = 8 };
-        if ( ( msg.datalen === 25 && msg.extractPayloadByte( 0 ) === 1 ) || msg.datalen === 32 ) { sys.intellibrite.clear() };
-        for ( let i = 0; i <= msg.datalen / 4; i = i + 4 )
+        let index = 1; // which intellibrite position are we updating?
+        let byte = 0; // which byte are we starting with?
+        if ( msg.datalen === 25 )
         {
-            if ( i === 0 && msg.datalen === 25 ) { i++ };
-            if ( msg.extractPayloadByte( i ) === 0 ) continue;
-            let intellibriteCollection = sys.intellibrite;
-            let intellibrite = intellibriteCollection.getItemById( msg.extractPayloadByte( i ), true )
-            intellibrite.position = ( msg.extractPayloadByte( i + 1 ) >> 4 ) + 1;
-            intellibrite.colorSet = ( msg.extractPayloadByte( i + 1 ) ) & 15;
-            intellibrite.swimDelay = msg.extractPayloadByte( i + 2 ) >> 1;
+            // increase intellibrite max if necessary
+            if ( sys.equipment.maxIntelliBrites <= ( msg.extractPayloadByte( 0 ) * 4 ) ) sys.equipment.maxIntelliBrites = msg.extractPayloadByte( 0 ) * 4;
+            index = ( msg.extractPayloadByte( 0 ) * 4 ) - 3;
+            byte = 1;  // start iterating after the byte that tells us which ib packet # this is
         }
-        if ( ( msg.datalen === 25 && msg.extractPayloadByte( 0 ) === 2 ) || msg.datalen === 32 ) { CircuitMessage.promoteIntelliBrite() }
-    }
-    private static promoteIntelliBrite ()
-    {
-        // Clean all circuits of Intellibrite info
-        for ( let i = 1; i <= sys.equipment.maxCircuits; i++ )
+        else if ( msg.datalen === 32 )
         {
-            let circuit: Circuit = sys.circuits.getItemById( i );
-            if ( typeof ( circuit.intellibrite ) !== 'undefined' ) { circuit.removeIntelliBrite() };
-        }
-        for ( let i = 0; i < sys.intellibrite.length; i++ )
-        {
-            let sib = sys.intellibrite.getItemByIndex( i );
-            let circuit: Circuit = sys.circuits.getItemById( sib.id, sib.id <= sys.equipment.maxCircuits );
-            let cintellibrite = circuit.intellibrite;
-            cintellibrite.position = sib.position;
-            cintellibrite.colorSet = sib.colorSet;
-            cintellibrite.swimDelay = sib.swimDelay;
+            if ( sys.equipment.maxIntelliBrites !== 8 ) sys.equipment.maxIntelliBrites = 8;
         };
+        if ( (index === 1 && msg.datalen===25) || msg.datalen===32 )
+            {
+                // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
+                for ( let i = 0; i < sys.intellibrite.length; i++ )
+                    sys.intellibrite.getItemByIndex( i ).isActive = false;
+            }
+        let intellibriteCollection = sys.intellibrite;
+        for ( byte; byte <= msg.datalen; byte = byte + 4 )
+        {
+            let circuit = msg.extractPayloadByte( byte );
+            if ( circuit > 0 )
+            {
+                let intellibrite = intellibriteCollection.getItemById( circuit, true );
+                intellibrite.isActive = circuit > 0 && msg.extractPayloadByte( byte + 1 ) > 0;
+                if ( intellibrite.isActive )
+                {
+                    intellibrite.position = ( msg.extractPayloadByte( byte + 1 ) >> 4 ) + 1;
+                    intellibrite.colorSet = ( msg.extractPayloadByte( byte + 1 ) ) & 15;
+                    intellibrite.swimDelay = msg.extractPayloadByte( byte + 2 ) >> 1;
+                    intellibrite.isActive = true;
+                }
+            }
+            index++;
+        }
+        for ( let ib = 0; ib < sys.intellibrite.length; ib++ )
+        {
+            let intellibrite = sys.intellibrite.getItemByIndex( ib );
+            if ( intellibrite.isActive===false ) continue;
+            let circ = sys.circuits.getItemById( intellibrite.id );
+            circ.intellibrite.colorSet = intellibrite.colorSet;
+            circ.intellibrite.swimDelay = intellibrite.swimDelay;
+            circ.intellibrite.position = intellibrite.position;
+        }
     }
     private static processCircuitTypes ( msg: Inbound )
     {
@@ -189,47 +203,56 @@ export class CircuitMessage
     {
         // Sample packet
         // [255, 0, 255], [165, 33, 15, 16, 11, 5], [1, 1, 72, 0, 0], [1, 63]
-        let circuitId = msg.extractPayloadByte( 0 );
-        let circuitFunction = msg.extractPayloadByte( 1 );
+        let id = msg.extractPayloadByte( 0 );
+        let functionId = msg.extractPayloadByte( 1 );
         let nameId = msg.extractPayloadByte( 2 );
-        let circuit = sys.circuits.getItemById( circuitId++, true )
-        circuit.type = circuitFunction & 63;
+        // need better logic here for units with expansions.
+        let CF = new CircuitOrFeatureFactory()
+        let circuit = CF.getItemById( id, true );
+        circuit.type = functionId & 63;
         if ( nameId < 200 )
         {
-            circuit.name = Enums.IntelliTouchCircuitNames.transform(nameId).desc
+            circuit.name = Enums.IntelliTouchCircuitNames.transform( nameId ).desc
         }
         else
         {
             circuit.name = sys.customNames.getItemById( nameId - 200 ).name
         }
-        circuit.freeze = ( circuitFunction & 64 ) === 64;
-        circuit.macro = ( circuitFunction & 128 ) === 128;
-        circuit.isActive = circuitFunction !== 19 && nameId !== 0;  // "not used"
-
-        if ( circuit.type === 0 ) return; // do not process if type doesn't exist
-        switch ( msg.extractPayloadByte( 0 ) )
+        circuit.freeze = ( functionId & 64 ) === 64;
+        circuit.macro = ( functionId & 128 ) === 128;
+        circuit.isActive = functionId !== 19 && nameId !== 0;  // "not used"
+        if ( id <= 8 ) // Circuits
         {
-            case 6: // pool
-                var body = sys.bodies.getItemById( 1, sys.equipment.maxBodies > 0 );
-                body.name = 'Pool'
-                circuitFunction === 0 ? body.isActive = false : body.isActive = true;
-                break;
-            case 1: // spa
-                body = sys.bodies.getItemById( 2, sys.equipment.maxBodies > 1 );
-                body.name = 'Spa'
-                if ( circuitFunction === 0 )
-                {
-                    // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                    // hack to determine equipment by circuits (for now) because IntelliCenter will tell us but we need to determine it programatically for IT.
-                    sys.equipment.maxBodies = 1;
-                    body.isActive = false
-                }
-                else
-                {
-                    sys.equipment.maxBodies = 2
-                    body.isActive = true;
-                }
-                break;
+            sys.equipment.maxCircuits = 8; // todo: move this to configuration
+            if ( circuit.type === 0 ) return; // do not process if type doesn't exist
+            switch ( msg.extractPayloadByte( 0 ) )
+            {
+                case 6: // pool
+                    var body = sys.bodies.getItemById( 1, sys.equipment.maxBodies > 0 );
+                    body.name = 'Pool'
+                    functionId === 0 ? body.isActive = false : body.isActive = true;
+                    break;
+                case 1: // spa
+                    body = sys.bodies.getItemById( 2, sys.equipment.maxBodies > 1 );
+                    body.name = 'Spa'
+                    if ( functionId === 0 )
+                    {
+                        // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
+                        // hack to determine equipment by circuits (for now) because IntelliCenter will tell us but we need to determine it programatically for IT.
+                        sys.equipment.maxBodies = 1;
+                        body.isActive = false
+                    }
+                    else
+                    {
+                        sys.equipment.maxBodies = 2
+                        body.isActive = true;
+                    }
+                    break;
+            }
+        }
+        else // features
+        {
+            sys.equipment.maxFeatures = 12; //todo: move this to configuration
         }
     }
 

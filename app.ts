@@ -5,7 +5,7 @@ import { logger } from "./logger/Logger";
 import { config } from "./config/Config";
 import { conn } from "./controller/comms/Comms";
 import { PF, sys } from "./controller/Equipment";
-import { state } from "./controller/State";
+import { SF, state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
 import { ControllerType } from "./controller/Constants";
@@ -21,35 +21,25 @@ export function initAsync ()
         {
             let c = config.getSection( 'controller.type' )
             if ( c.intellitouch )
-            // return Promise.resolve().then( function () { IntelliTouchState.init(); } )
-            {
-                console.log( `init intellitouch state` )
-                return Promise.resolve().then( function () { state.init(); } )
-            }
-            else if ( c.intellicenter )
-                return Promise.resolve().then( function () { state.init(); } )
-        } )
-        .then( function ()
-        {
-            let c = config.getSection( 'controller.type' )
-            if ( c.intellitouch )
-                return Promise.resolve().then( function ()
                 {
                     PF.controllerType = ControllerType.IntelliTouch;
-                    console.log( `Init ${ PF.controllerType } in App.js` )
-                    PF.getPool()
-                    sys.init();
-                } )
+                    SF.controllerType = ControllerType.IntelliTouch;
+                } 
             else if ( c.intellicenter )
-                return Promise.resolve().then( function ()
                 {
                     PF.controllerType = ControllerType.IntelliCenter;
-                    console.log( `Init ${ PF.controllerType } in App.js` )
-                    PF.getPool();
-                    PF.getPool()
-                    sys.init();
-                } )
+                    SF.controllerType = ControllerType.IntelliCenter;
+            } 
+            else
+            {
+                PF.controllerType = ControllerType.Unknown;
+                SF.controllerType = ControllerType.Unknown;
+            }
+            console.log(`Init ${PF.controllerType} in App.js`)
         } )
+        // Moved the following into the factory set functions.
+        // .then( function () { state.init(); } )
+        // .then( function () { sys.init(); } )
         .then( function () { webApp.init(); } );
 }
 export function stopAsync (): Promise<void>

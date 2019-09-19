@@ -1,0 +1,16 @@
+.customDataGrid .react-grid-Cell {
+    padding-left: 4px;
+    padding-right: 0px
+}
+
+.customDataGrid .react-grid-HeaderCell {
+    padding-left: 4px;
+    padding-right: 0px
+}
+
+.react-grid-Cell {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}

@@ -1,11 +1,12 @@
 ﻿import { Inbound, Protocol } from "../Messages";
 import { state } from "../../../State";
-import { sys } from "../../../Equipment";
+import { sys, ControllerType } from "../../../Equipment";
 
 export class ChlorinatorStateMessage
 {
     public static process ( msg: Inbound )
     {
+        if ( sys.controllerType === ControllerType.Unknown ) return;
         if ( msg.protocol === Protocol.Chlorinator )
         {
             if ( msg.datalen === 3 )
@@ -88,8 +89,14 @@ export class ChlorinatorStateMessage
                 schlor.saltLevel = msg.extractPayloadByte( 3 ) * 50;
                 schlor.status = msg.extractPayloadByte( 4 ) & 0x007F ; // Strip off the high bit.  The chlorinator does not actually report this.;
                 schlor.lastComm = new Date().getTime();  // rely solely on "true" chlor messages for this?
-                if ( state.body === 6 ) schlor.targetOutput = chlor.spaSetpoint
-                else if ( state.body === 1 ) schlor.targetOutput = chlor.poolSetpoint;
+                schlor.poolSetpoint = chlor.poolSetpoint;
+                schlor.spaSetpoint = chlor.spaSetpoint;
+                schlor.superChlor = chlor.superChlor;
+                schlor.superChlorHours = chlor.superChlorHours;
+                schlor.name = chlor.name;
+                schlor.body = chlor.body;
+                if ( state.body === 6 ) schlor.targetOutput = chlor.poolSetpoint
+                else if ( state.body === 1 ) schlor.targetOutput = chlor.spaSetpoint;
             }
         }
     }

@@ -10,37 +10,36 @@
       "name": "F",
       "desc": "Fahrenheit"
     },
-    "waterSensor1": 80,
-    "waterSensor2": 80,
-    "air": 86,
-    "solar": 72,
+    "waterSensor1": 74,
+    "air": 85,
+    "solar": 99,
     "bodies": [
       {
         "id": 1,
-        "heatMode": {
-          "val": 5,
-          "name": "solar",
-          "desc": "Solar Only"
-        },
-        "setPoint": 90,
-        "name": "Pool",
-        "circuit": 6,
+        "isOn": false,
         "heatStatus": {
           "val": 0,
           "name": "off",
           "desc": "Off"
         },
-        "isOn": true,
-        "temp": 80
-      },
-      {
-        "id": 2,
+        "circuit": 6,
         "heatMode": {
           "val": 5,
           "name": "solar",
           "desc": "Solar Only"
         },
-        "setPoint": 104,
+        "setPoint": 89,
+        "name": "Pool",
+        "temp": 74
+      },
+      {
+        "id": 2,
+        "isOn": true,
+        "heatMode": {
+          "val": 3,
+          "name": "heater",
+          "desc": "Heater"
+        },
         "name": "Spa",
         "circuit": 1,
         "heatStatus": {
@@ -48,10 +47,11 @@
           "name": "off",
           "desc": "Off"
         },
-        "temp": 81,
-        "isOn": false
+        "setPoint": 102,
+        "temp": 74
       }
-    ]
+    ],
+    "waterSensor2": 74
   },
   "equipment": {},
   "pumps": [
@@ -60,7 +60,7 @@
       "command": 10,
       "mode": 0,
       "driveState": 0,
-      "watts": 404,
+      "watts": 397,
       "rpm": 1800,
       "flow": 0,
       "ppc": 0,
@@ -69,7 +69,7 @@
         "name": "stoppedok",
         "desc": "Ok - Stopped"
       },
-      "runTime": 1205,
+      "runTime": 862,
       "type": {
         "val": 3,
         "name": "vs",
@@ -90,19 +90,193 @@
         "name": "stoppedok",
         "desc": "Ok - Stopped"
       },
-      "runTime": 1205,
-      "type": {
-        "val": 3,
-        "name": "vs",
-        "desc": "Intelliflo VS"
-      }
-    },
-    {
-      "id": 0,
+      "runTime": 862,
       "type": {
         "val": 5,
         "name": "vf",
         "desc": "Intelliflo VF"
+      }
+    },
+    {
+      "id": 3,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 4,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 5,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 6,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 7,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 8,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 9,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 10,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 11,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 12,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 13,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 14,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 15,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
+      }
+    },
+    {
+      "id": 16,
+      "type": {
+        "val": 0,
+        "name": "none",
+        "desc": "No pump"
+      },
+      "status": {
+        "val": 0,
+        "name": "stoppedok",
+        "desc": "Ok - Stopped"
       }
     }
   ],
@@ -115,8 +289,8 @@
       "name": "SPA",
       "type": {
         "val": 1,
-        "name": "spillway",
-        "desc": "Spillway"
+        "name": "spa",
+        "desc": "Spa"
       }
     },
     {
@@ -124,9 +298,9 @@
       "isOn": false,
       "name": "Pool LtDeep",
       "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
+        "val": 16,
+        "name": "intellibrite",
+        "desc": "Intellibrite"
       }
     },
     {
@@ -145,13 +319,8 @@
       "name": "CLEANER",
       "type": {
         "val": 5,
-        "name": "intellibrite",
-        "desc": "Intellibrite"
-      },
-      "lightingTheme": {
-        "val": 255,
-        "name": "none",
-        "desc": "None"
+        "name": "mastercleaner",
+        "desc": "Master Cleaner"
       }
     },
     {
@@ -170,8 +339,8 @@
       "name": "POOL",
       "type": {
         "val": 2,
-        "name": "mastercleaner",
-        "desc": "Master Cleaner"
+        "name": "Pool",
+        "desc": "Pool"
       }
     },
     {
@@ -179,9 +348,9 @@
       "isOn": false,
       "name": "SPA LIGHT",
       "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
+        "val": 16,
+        "name": "intellibrite",
+        "desc": "Intellibrite"
       }
     },
     {
@@ -189,9 +358,9 @@
       "isOn": false,
       "name": "Pool LtShlw",
       "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
+        "val": 16,
+        "name": "intellibrite",
+        "desc": "Intellibrite"
       }
     },
     {
@@ -200,187 +369,347 @@
       "name": "PATH LIGHTS",
       "type": {
         "val": 7,
-        "name": "globritewhite",
-        "desc": "GloBrite White"
+        "name": "light",
+        "desc": "light"
       }
-    },
+    }
+  ],
+  "features": [
     {
       "id": 11,
       "isOn": false,
-      "name": "SPILLWAY",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "SPILLWAY"
     },
     {
       "id": 12,
       "isOn": false,
-      "name": "WATERFALL 1",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "WATERFALL 1"
     },
     {
       "id": 13,
       "isOn": false,
-      "name": "WtrFall 2",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "WtrFall 2"
     },
     {
       "id": 14,
       "isOn": false,
-      "name": "WtrFall 3",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "WtrFall 3"
     },
     {
       "id": 15,
       "isOn": false,
-      "name": "Pool High",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "Pool High"
     },
     {
       "id": 16,
       "isOn": false,
-      "name": "JETS",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "JETS"
     },
     {
       "id": 17,
       "isOn": false,
-      "name": "AUX 1",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "AUX 1"
     },
     {
       "id": 18,
       "isOn": false,
-      "name": "FEATURE 8",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "FEATURE 8"
     },
     {
       "id": 20,
       "isOn": false,
-      "name": "AUX EXTRA",
-      "type": {
-        "val": 0,
-        "name": "generic",
-        "desc": "Generic"
-      }
+      "name": "AUX EXTRA"
     }
   ],
-  "features": [],
   "chlorinators": [
     {
       "id": 1,
-      "saltLevel": 6000,
-      "saltRequired": 0,
+      "lastComm": 1568928195934,
+      "currentOutput": 40,
       "status": {
         "val": 0,
         "name": "ok",
         "desc": "Ok"
       },
-      "lastComm": 1565838409042,
-      "targetOutput": 0,
-      "currentOutput": 95
+      "saltLevel": 3500,
+      "saltRequired": 0,
+      "poolSetpoint": 40,
+      "spaSetpoint": 29,
+      "superChlor": false,
+      "superChlorHours": 0,
+      "name": "Intellichlor--40",
+      "body": {
+        "val": 32,
+        "name": "poolspa",
+        "desc": "Pool/Spa"
+      },
+      "targetOutput": 40
     }
   ],
   "schedules": [
     {
       "id": 1,
+      "circuit": 6,
       "startTime": 519,
       "endTime": 15119,
-      "scheduleDays": {
+      "scheduleType": {
         "val": 0,
-        "days": []
+        "name": "repeat",
+        "desc": "Repeats"
       },
-      "circuit": 6
+      "scheduleDays": {
+        "val": 127,
+        "days": [
+          {
+            "val": 7,
+            "name": "sun",
+            "desc": "Sunday",
+            "dow": 0
+          },
+          {
+            "val": 6,
+            "name": "mon",
+            "desc": "Monday",
+            "dow": 1
+          },
+          {
+            "val": 5,
+            "name": "tue",
+            "desc": "Tuesday",
+            "dow": 2
+          },
+          {
+            "val": 4,
+            "name": "wed",
+            "desc": "Wednesday",
+            "dow": 3
+          },
+          {
+            "val": 3,
+            "name": "thu",
+            "desc": "Thursday",
+            "dow": 4
+          },
+          {
+            "val": 2,
+            "name": "fri",
+            "desc": "Friday",
+            "dow": 5
+          },
+          {
+            "val": 1,
+            "name": "sat",
+            "desc": "Saturday",
+            "dow": 6
+          }
+        ]
+      }
     },
     {
       "id": 2,
+      "circuit": 6,
       "startTime": 21,
       "endTime": 14103,
-      "scheduleDays": {
+      "scheduleType": {
         "val": 0,
-        "days": []
+        "name": "repeat",
+        "desc": "Repeats"
       },
-      "circuit": 6
+      "scheduleDays": {
+        "val": 127,
+        "days": [
+          {
+            "val": 7,
+            "name": "sun",
+            "desc": "Sunday",
+            "dow": 0
+          },
+          {
+            "val": 6,
+            "name": "mon",
+            "desc": "Monday",
+            "dow": 1
+          },
+          {
+            "val": 5,
+            "name": "tue",
+            "desc": "Tuesday",
+            "dow": 2
+          },
+          {
+            "val": 4,
+            "name": "wed",
+            "desc": "Wednesday",
+            "dow": 3
+          },
+          {
+            "val": 3,
+            "name": "thu",
+            "desc": "Thursday",
+            "dow": 4
+          },
+          {
+            "val": 2,
+            "name": "fri",
+            "desc": "Friday",
+            "dow": 5
+          },
+          {
+            "val": 1,
+            "name": "sat",
+            "desc": "Saturday",
+            "dow": 6
+          }
+        ]
+      }
     },
     {
       "id": 3,
+      "circuit": 4,
       "startTime": 12,
       "endTime": 14092,
-      "scheduleDays": {
+      "scheduleType": {
         "val": 0,
-        "days": []
+        "name": "repeat",
+        "desc": "Repeats"
       },
-      "circuit": 4
+      "scheduleDays": {
+        "val": 107,
+        "days": [
+          {
+            "val": 7,
+            "name": "sun",
+            "desc": "Sunday",
+            "dow": 0
+          },
+          {
+            "val": 6,
+            "name": "mon",
+            "desc": "Monday",
+            "dow": 1
+          },
+          {
+            "val": 4,
+            "name": "wed",
+            "desc": "Wednesday",
+            "dow": 3
+          },
+          {
+            "val": 2,
+            "name": "fri",
+            "desc": "Friday",
+            "dow": 5
+          },
+          {
+            "val": 1,
+            "name": "sat",
+            "desc": "Saturday",
+            "dow": 6
+          }
+        ]
+      }
     },
     {
       "id": 4,
-      "startTime": 7691,
-      "endTime": 14863,
-      "scheduleDays": {
+      "circuit": 6,
+      "startTime": 8,
+      "endTime": 17,
+      "scheduleType": {
         "val": 0,
-        "days": []
+        "name": "repeat",
+        "desc": "Repeats"
       },
-      "circuit": 0
+      "scheduleDays": {
+        "val": 127,
+        "days": [
+          {
+            "val": 7,
+            "name": "sun",
+            "desc": "Sunday",
+            "dow": 0
+          },
+          {
+            "val": 6,
+            "name": "mon",
+            "desc": "Monday",
+            "dow": 1
+          },
+          {
+            "val": 5,
+            "name": "tue",
+            "desc": "Tuesday",
+            "dow": 2
+          },
+          {
+            "val": 4,
+            "name": "wed",
+            "desc": "Wednesday",
+            "dow": 3
+          },
+          {
+            "val": 3,
+            "name": "thu",
+            "desc": "Thursday",
+            "dow": 4
+          },
+          {
+            "val": 2,
+            "name": "fri",
+            "desc": "Friday",
+            "dow": 5
+          },
+          {
+            "val": 1,
+            "name": "sat",
+            "desc": "Saturday",
+            "dow": 6
+          }
+        ]
+      }
     },
     {
       "id": 5,
+      "circuit": 11,
       "startTime": 11528,
       "endTime": 11529,
-      "scheduleDays": {
+      "scheduleType": {
         "val": 0,
-        "days": []
+        "name": "repeat",
+        "desc": "Repeats"
       },
-      "circuit": 11
-    },
-    {
-      "id": 6,
-      "startTime": 14,
-      "endTime": 2574,
       "scheduleDays": {
-        "val": 0,
-        "days": []
-      },
-      "circuit": 13
+        "val": 84,
+        "days": [
+          {
+            "val": 7,
+            "name": "sun",
+            "desc": "Sunday",
+            "dow": 0
+          },
+          {
+            "val": 5,
+            "name": "tue",
+            "desc": "Tuesday",
+            "dow": 2
+          },
+          {
+            "val": 3,
+            "name": "thu",
+            "desc": "Thursday",
+            "dow": 4
+          }
+        ]
+      }
     }
   ],
   "circuitGroups": [],
   "status": {
-    "val": 1,
-    "name": "loading",
-    "desc": "Loading",
+    "val": 0,
+    "name": "ready",
+    "desc": "Ready",
     "percent": 100
   },
-  "time": "2019-08-14T20:06:55.000-0700",
+  "time": "-016781-09-19T14:23:42.000-0700",
   "valve": 3,
   "delay": 64,
   "body": 6

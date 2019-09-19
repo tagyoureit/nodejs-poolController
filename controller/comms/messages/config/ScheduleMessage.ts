@@ -1,6 +1,7 @@
-﻿import { Inbound, ControllerType } from "../Messages";
-import { sys, Schedule, EggTimer } from "../../../Equipment";
+﻿import { Inbound } from "../Messages";
+import { sys, Schedule, EggTimer, CircuitOrFeatureFactory } from "../../../Equipment";
 import { state } from '../../../State';
+import { ControllerType } from "../../../Constants";
 export class ScheduleMessage
 {
     //[165, 63, 15, 16, 30, 42][3, 28, 5, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][1, 143]
@@ -93,40 +94,58 @@ export class ScheduleMessage
         // Sample packet
         // [165,16,15,16,17,7],[1,6,9,25,15,55,255],[2, 90]
         let schedId = msg.extractPayloadByte( 0 );
+
+        // set sched/eggtimer to inactive; will set active belowe if still true.
+        sys.schedules.getItemById( schedId ).isActive = false;
+        sys.eggTimers.getItemById( schedId ).isActive = false;
+
         let circuitId = msg.extractPayloadByte( 1 )
         let time1 = msg.extractPayloadInt( 2 );
-        //let time2 = msg.extractPayloadByte( 3 );
-        let time3 = msg.extractPayloadInt( 4 );
-        //let time4 = msg.extractPayloadByte( 5 );
+        let CF = new CircuitOrFeatureFactory()
         if ( time1 === 25 ) // egg timer
         {
             let eggTimer: EggTimer = sys.eggTimers.getItemById( schedId, true )
             eggTimer.circuit = circuitId;
-            eggTimer.runTime = time3
-            eggTimer.isActive = true;
+            eggTimer.runTime = (msg.extractPayloadByte( 4 ) * 60) + msg.extractPayloadInt( 5 );
+            eggTimer.isActive = circuitId > 0 && !( eggTimer.runTime === 256 );
+            let circuit = CF.getItemById( circuitId, true );
+            circuit.eggTimer = eggTimer.runTime;
         }
-        else
+        else if (circuitId > 0)
         {
-            let schedule: Schedule = sys.schedules.getItemById( schedId, time1 !== 0 );
+            let schedule: Schedule = sys.schedules.getItemById( schedId, time1 > 0 );
             schedule.circuit = circuitId;
-            state.schedules.getItemById( schedule.id ).circuit = schedule.circuit;
-
             schedule.startTime = time1;
-            schedule.endTime = time3;
-            // If our start time is 0 and the schedule is active delete it.
-            // if ( schedule.isActive && schedule.startTime === 0 ) sys.schedules.removeItemById( schedule.id );
+            if ( msg.extractPayloadByte( 4 ) !== 26 )
+                schedule.endTime = msg.extractPayloadInt( 4 );;
             schedule.isActive = schedule.startTime !== 0;
-            //todo: what is run once in Intellitouch?
-            // schedule.runOnce = msg.extractPayloadByte( i + 1 );
-            // state.schedules.getItemById( schedule.id ).scheduleType = schedule.runOnce;
-            schedule.scheduleDays = msg.extractPayloadByte( 6 );
+            // reverse the 7 LSB  to match IntelliCenter numbering
+            let origBits = ( msg.extractPayloadByte( 6 ) & 127 ).toString( 2 );
+            let revBits = 0;
+            let length = 7 - origBits.length;
+            while ( length-- > 0 ) origBits = '0' + origBits; // pad to 8 bits
+            revBits = parseInt( ( msg.extractPayloadByte( 6 ) >> 7 ) + origBits.split( "" ).reverse().join( "" ), 2 )
+            schedule.scheduleDays = revBits;
             if ( schedule.isActive )
             {
-                let sstate = state.schedules.getItemById( schedule.id, true ) 
+                let sstate = state.schedules.getItemById( schedule.id, true )
+                sstate.circuit = schedule.circuit;
                 sstate.startTime = schedule.startTime;
                 sstate.endTime = schedule.endTime;
-                sstate.scheduleDays = ( ( schedule.runOnce & 128 ) > 0 ) ? schedule.scheduleDays : schedule.runOnce;
+                sstate.scheduleType = schedule.scheduleDays;
+                sstate.scheduleDays = schedule.scheduleDays;
             }
+        }
+        if ( sys.schedules.getItemById( schedId ).isActive === false )
+        {
+            sys.schedules.removeItemById( schedId );
+            state.schedules.removeItemById( schedId );
+        }
+        if ( sys.eggTimers.getItemById( schedId ).isActive === false )
+        {
+            var circuit = CF.getItemById( sys.eggTimers.getItemById( schedId ).circuit );
+            circuit.eggTimer = 0;
+            sys.eggTimers.removeItemById( schedId );
         }
     }
     private static processStartMonth ( msg: Inbound )

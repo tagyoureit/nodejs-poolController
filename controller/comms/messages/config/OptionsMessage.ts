@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, General, IntelliTouchCircuit } from "../../../Equipment";
+import { sys } from "../../../Equipment";
 import { Enums } from "../../../Constants";
 export class OptionsMessage
 {
@@ -40,7 +40,7 @@ export class OptionsMessage
                             hs.type = val;
                             val < 64 ?
                                 hs.name = sys.circuits.getItemById( val ).name
-                                : hs.name = Enums.CircuitFunctions_IT.transform( val ).desc
+                                : hs.name = Enums.CircuitTypes_IT.transform( val ).desc
                         }
                     }
                     break;

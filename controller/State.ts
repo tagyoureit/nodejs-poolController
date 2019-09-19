@@ -4,23 +4,59 @@ import * as fs from 'fs';
 import * as extend from 'extend';
 import { setTimeout } from 'timers';
 import { logger } from '../logger/Logger';
-import { Enums, Timestamp } from './Constants';
+import { Enums, Timestamp, ControllerType } from './Constants';
 import { EventEmitter } from 'events';
 import { webApp } from '../web/Server';
 import { sys } from './Equipment';
-import { Outbound, Protocol, Response, Message, ControllerType } from './comms/messages/Messages';
+import { Outbound, Protocol, Response, Message } from './comms/messages/Messages';
 import { conn } from './comms/Comms';
 
-export class State
+class PoolStateFactory
+{
+    private _controllerType: string;
+    private _state: State;
+    public set controllerType ( ct: string )
+    {
+        console.log( `Getting Pool State` )
+        this._controllerType = ct;
+        if ( typeof ( this._state ) === 'undefined' || this._state instanceof UnknownControllerState )
+        {
+
+            switch ( this._controllerType )
+            {
+                case ControllerType.IntelliCenter:
+                    this._state = new IntelliCenterState();
+                    break;
+                case ControllerType.IntelliTouch:
+                    this._state = new IntelliTouchState();
+                    break;
+                default:
+                    this._state = new UnknownControllerState();
+            }
+        }
+        state = this._state;
+        state.init();
+    }
+    // get method for Intellitouch
+    public getCircuitOrFeatureStateById ( circuitId: number, add?: boolean )
+    {
+        if ( circuitId <= 9 )
+        {
+            return state.circuits.getItemById( circuitId, add );
+        }
+        else return state.features.getItemById( circuitId, add );
+    }
+}
+abstract class State
 {
     statePath: string;
     data: any;
-    private _lastUpdated: Date;
+    protected _lastUpdated: Date;
     private _isDirty: boolean;
     private _timerDirty: NodeJS.Timeout;
-    private _dt: Timestamp;
-    private _controllerType: ControllerType;
-    private onchange = ( obj, fn ) =>
+    protected _dt: Timestamp;
+    protected _controllerType: ControllerType;
+    protected onchange = ( obj, fn ) =>
     {
         const handler = {
             get ( target, property, receiver )
@@ -33,6 +69,14 @@ export class State
             {
                 if ( property !== 'time1' && Reflect.get( target, property, receiver ) !== value ) fn();
                 return Reflect.set( target, property, value, receiver );
+            },
+            deleteProperty ( target, property )
+            {
+                if ( property in target )
+                {
+                    delete target[ property ];
+                }
+                return true;
             }
         };
         return new Proxy( obj, handler );
@@ -91,34 +135,8 @@ export class State
         if ( this._timerDirty ) clearTimeout( this._timerDirty );
         this.persist();
     }
-    public init ()
-    {
-        console.log( `Init state for Pool Controller` )
-        var state = fs.existsSync( this.statePath ) ? JSON.parse( fs.readFileSync( this.statePath, 'utf8' ) || '{}' ) : {};
-        state = extend( true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, state );
-        var self = this;
-        this._dt = new Timestamp( new Date() );
-        this._dt.milliseconds = 0;
-        this.data = this.onchange( state, function () { self.dirty = true; } );
-        this._dt.emitter.on( 'change', function ()
-        {
-            self.data.time = self._dt.format();
-            self.hasChanged = true;
-        } );
-        this.equipment = new EquipmentState( this.data, 'equipment' );
-        this.equipment.controllerType = this._controllerType;
-        this.temps = new TemperatureState( this.data, 'temps' );
-        this.pumps = new PumpStateCollection( this.data, 'pumps' );
-        this.valves = new ValveStateCollection( this.data, 'valves' );
-        this.heaters = new HeaterStateCollection( this.data, 'heaters' );
-        this.circuits = new CircuitStateCollection( this.data, 'circuits' );
-        this.features = new FeatureStateCollection( this.data, 'features' );
-        this.chlorinators = new ChlorinatorStateCollection( this.data, 'chlorinators' );
-        this.schedules = new ScheduleStateCollection( this.data, 'schedules' );
-        this.circuitGroups = new CircuitGroupStateCollection( this.data, 'circuitGroups' );
-        this._controllerType = sys.controllerType;
-    }
-    private hasChanged = false;
+
+    protected hasChanged = false;
     public get controllerState ()
     {
         var self = this;
@@ -127,10 +145,10 @@ export class State
             body: self.data.body || {},
             valve: self.data.valve || 0,
             delay: self.data.delay || 0,
-            adjDST: self.data.adjDST || false,
+            adjustDST: self.data.adjustDST || false,
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
-            heatMode: self.data.heatMode || 0,
+            // heatMode: self.data.heatMode || 0,
             mode: self.data.mode || {},
             freeze: self.data.freeze || false,
         };
@@ -164,7 +182,7 @@ export class State
             this.hasChanged = true;
         }
     }
-    public get heatMode (): number { return typeof ( this.data.heatMode ) !== this.data.heatMode ? this.data.heatMode : -1; }
+/*     public get heatMode (): number { return typeof ( this.data.heatMode ) !== this.data.heatMode ? this.data.heatMode : -1; }
     public set heatMode ( val: number )
     {
         if ( this.data.heatMode !== val )
@@ -172,7 +190,7 @@ export class State
             this.data.heatMode = val;
             this.hasChanged = true;
         }
-    }
+    } */
 
     public get status () { return typeof ( this.data.status ) !== 'undefined' ? this.data.status.val : -1; }
     public set status ( val )
@@ -223,12 +241,12 @@ export class State
             this.hasChanged = true;
         }
     }
-    public get adjDST (): boolean { return this.data.adjDST === true; }
-    public set adjDST ( val: boolean )
+    public get adjustDST (): boolean { return this.data.adjustDST === true; }
+    public set adjustDST ( val: boolean )
     {
-        if ( this.data.adjDST )
+        if ( this.data.adjustDST )
         {
-            this.data.adjDST = val;
+            this.data.adjustDST = val;
             this.hasChanged = true;
         }
     }
@@ -241,17 +259,94 @@ export class State
             this.hasChanged = true;
         }
     }
-    public equipment: EquipmentState;
-    public temps: TemperatureState;
-    public pumps: PumpStateCollection;
-    public valves: ValveStateCollection;
-    public heaters: HeaterStateCollection;
-    public circuits: CircuitStateCollection;
-    public features: FeatureStateCollection;
-    public chlorinators: ChlorinatorStateCollection;
-    public schedules: ScheduleStateCollection;
-    public circuitGroups: CircuitGroupStateCollection;
     public comms: CommsState = new CommsState();
+    public init ()
+    {
+        console.log( `Init state for Pool Controller` )
+        var state = fs.existsSync( this.statePath ) ? JSON.parse( fs.readFileSync( this.statePath, 'utf8' ) || '{}' ) : {};
+        state = extend( true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, state );
+        var self = this;
+        this._dt = new Timestamp( new Date() );
+        this._dt.milliseconds = 0;
+        this.data = this.onchange( state, function () { self.dirty = true; } );
+        this._dt.emitter.on( 'change', function ()
+        {
+            self.data.time = self._dt.format();
+            self.hasChanged = true;
+        } );
+    }
+}
+interface State
+{
+    equipment: EquipmentState;
+    temps: TemperatureState;
+    pumps: PumpStateCollection;
+    valves: ValveStateCollection;
+    heaters: HeaterStateCollection;
+    circuits: CircuitStateCollection;
+    features: FeatureStateCollection;
+    chlorinators: ChlorinatorStateCollection;
+    schedules: ScheduleStateCollection;
+    circuitGroups: CircuitGroupStateCollection;
+    comms: CommsState;
+    createCircuitStateMessage (): Outbound;
+    cancelDelay (): void;
+}
+class UnknownControllerState extends State implements State
+{
+    public init ()
+    {
+        super.init()
+    }
+}
+class IntelliTouchState extends State implements State 
+{
+    public init ()
+    {
+        super.init()
+        this.equipment = new EquipmentState( this.data, 'equipment' );
+        this.equipment.controllerType = this._controllerType;
+        this.temps = new TemperatureState( this.data, 'temps' );
+        this.pumps = new PumpStateCollection( this.data, 'pumps' );
+        this.valves = new ValveStateCollection( this.data, 'valves' );
+        this.heaters = new HeaterStateCollection( this.data, 'heaters' );
+        this.circuits = new IntelliTouchCircuitStateCollection( this.data, 'circuits' );
+        this.features = new FeatureStateCollection( this.data, 'features' );
+        this.chlorinators = new IntelliTouchChlorinatorStateCollection( this.data, 'chlorinators' );
+        this.schedules = new ScheduleStateCollection( this.data, 'schedules' );
+        this.circuitGroups = new CircuitGroupStateCollection( this.data, 'circuitGroups' );
+        this._controllerType = ControllerType.IntelliTouch;
+    }
+    public cancelDelay ()
+    {
+        let out = Outbound.createMessage( 131, [ 0 ], 3, new Response( Message.pluginAddress, 16, 1, [ 131 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                // todo: track delay status?
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+}
+class IntelliCenterState extends State implements State 
+{
+    public init ()
+    {
+        super.init();
+        this.equipment = new EquipmentState( this.data, 'equipment' );
+        this.equipment.controllerType = this._controllerType;
+        this.temps = new TemperatureState( this.data, 'temps' );
+        this.pumps = new PumpStateCollection( this.data, 'pumps' );
+        this.valves = new ValveStateCollection( this.data, 'valves' );
+        this.heaters = new HeaterStateCollection( this.data, 'heaters' );
+        this.circuits = new IntelliCenterCircuitStateCollection( this.data, 'circuits' );
+        this.features = new FeatureStateCollection( this.data, 'features' );
+        this.chlorinators = new IntelliCenterChlorinatorStateCollection( this.data, 'chlorinators' );
+        this.schedules = new ScheduleStateCollection( this.data, 'schedules' );
+        this._controllerType = ControllerType.IntelliCenter;
+        this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
+    }
 
     public createCircuitStateMessage (): Outbound
     {
@@ -304,14 +399,12 @@ class EqState implements IEqStateCreator<EqState> {
     public set hasChanged ( val: boolean ) { this._hasChanged = val; }
     ctor ( data, name?: string ): EqState
     {
-        console.log( `_Creating Equipment: ${ name }` )
         return new EqState( data, name );
     };
     constructor( data, name?: string )
     {
         if ( typeof ( name ) !== 'undefined' )
         {
-            console.log( `Creating Equipment: ${ name }` )
             if ( typeof ( data[ name ] ) === 'undefined' ) data[ name ] = {};
             this.data = data[ name ];
             this.dataName = name;
@@ -401,6 +494,8 @@ export class EquipmentState extends EqState
     public set maxCircuits ( val: number ) { this.setDataVal( 'maxCircuits', val ); }
     public get maxBodies (): number { return this.data.maxBodies; }
     public set maxBodies ( val: number ) { this.setDataVal( 'maxBodies', val ); }
+    public get maxSchedules (): number { return this.data.maxSchedules; }
+    public set maxSchedules ( val: number ) { this.setDataVal( 'maxSchedules', val ); }
     // This could be extended to include all the expansion panels but not sure why.
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
@@ -673,9 +768,52 @@ export class BodyTempState extends EqState
     public set name ( val: string ) { this.setDataVal( 'name', val ); }
     public get temp (): number { return this.data.id; };
     public set temp ( val: number ) { this.setDataVal( 'temp', val ); }
-    public get heatMode (): number { return typeof ( this.data.heatMode ) !== 'undefined' ? this.data.heatMode.val : -1; }
+    public get heatMode (): number
+    {
+        // return typeof ( this.data.heatMode ) !== 'undefined' ? this.data.heatMode.val : -1;
+        if ( typeof ( this.data.heatMode ) !== 'undefined' )
+        {
+            switch ( sys.controllerType )
+            {
+                case ControllerType.IntelliCenter:
+                    return this.data.heatMode.val;
+                case ControllerType.IntelliTouch:
+                    switch ( this.data.heatMode.val )
+                    {
+                        case 0: // off
+                            return 0;
+                        case 3: // heater
+                            return 1;
+                        case 21: // solar pref
+                            return 2;
+                        case 5: // solar only
+                            return 53;
+                    }
+                    break;    
+            }
+        }
+        else return -1;
+    }
     public set heatMode ( val: number )
     {
+        if ( sys.controllerType === ControllerType.IntelliTouch )
+        {
+            switch ( val )
+            {
+                case 0: // off
+                    val = 0;
+                    break;
+                case 1: // heater
+                    val = 3;
+                    break;
+                case 2: // solar pref
+                    val = 21;
+                    break;
+                case 3: // solar only
+                    val = 5;
+                    break;
+            }
+        }
         if ( this.heatMode !== val )
         {
             this.data.heatMode = Enums.HeatMode.transform( val )
@@ -739,8 +877,16 @@ export class HeaterState extends EqState
     public get isOn (): boolean { return this.data.isOn; }
     public set isOn ( val: boolean ) { this.setDataVal( 'isOn', val ); }
 }
+export interface FeatureStateCollection
+{
+    createItem ( data: any ): FeatureState;
+    setFeatureState ( id: number, val: boolean ): void;
+}
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem ( data: any ): FeatureState { return new FeatureState( data ); }
+}
+export class IntelliCenterFeatureStateCollection extends FeatureStateCollection
+{
     public setFeatureState ( id: number, val: boolean )
     {
         let out = state.createCircuitStateMessage();
@@ -752,7 +898,6 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
         out.payload[ ndx + 9 ] = byte;
         conn.queueSendMessage( out );
     }
-
 }
 export class FeatureState extends EqState
 {
@@ -764,8 +909,91 @@ export class FeatureState extends EqState
     public get isOn (): boolean { return this.data.isOn; }
     public set isOn ( val: boolean ) { this.setDataVal( 'isOn', val ); }
 }
+export interface CircuitStateCollection
+{
+    createItem ( data: any ): CircuitState;
+    setCircuitState ( id: number, val: boolean ): void;
+    toggleCircuitState ( id: number ): void;
+    setCircuitTheme ( id: number, theme: number ): void;
+    setDimmerLevel ( id: number, level: number ): void;
+    setLightColor ( id: number, color: number ): void;
+    setLightSwimDelay ( id: number, delay: number ): void;
+    setLightPosition ( id: number, position: number ): void;
+}
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem ( data: any ): CircuitState { return new CircuitState( data ); }
+}
+export class IntelliTouchCircuitStateCollection extends CircuitStateCollection
+{
+    public setCircuitState ( id: number, val: boolean )
+    {
+        let cstate = SF.getCircuitOrFeatureStateById( id );
+        let out = Outbound.createMessage( 134, [ id, val?1:0], 3, new Response( Message.pluginAddress, 16, 1, [ 134 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                cstate.isOn = true;
+                cstate.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+    public toggleCircuitState ( id: number )
+    {
+        let cstate = SF.getCircuitOrFeatureStateById( id );
+        let out = Outbound.createMessage( 134, [ id, cstate.isOn===true ? 0 : 1 ], 3, new Response( Message.pluginAddress, 16, 1, [ 134 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                cstate.isOn = !cstate.isOn;
+                cstate.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+    public setCircuitTheme ( id: number, theme: number )
+    {
+        let cstate = state.circuits.getItemById( id );
+        let circuit = sys.circuits.getItemById( id );
+        let out = Outbound.createMessage( 96, [ theme, 0 ], 3, new Response( Message.pluginAddress, 16, 1, [ 96 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                circuit.lightingTheme = theme;
+                cstate.lightingTheme = theme;
+                cstate.isOn = true;
+                cstate.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+        if ( !cstate.isOn )
+        {
+            // If the circuit is off we need to turn it on.
+            this.setCircuitState( id, true );
+        }
+    }
+    public setDimmerLevel ( id: number, level: number )
+    {
+        // todo: implement
+    }
+    public setLightColor ( id: number, color: number )
+    {
+        // todo: implement
+        // this sets the light color for the "color set" mode
+    }
+    public setLightSwimDelay ( id: number, delay: number )
+    {
+        // todo: implement
+        // this sets the delay for the "color swim" mode
+    }
+    public setLightPosition( id: number, position: number )
+    {
+        // todo: implement
+        // this sets the position for the "color swim" mode
+    }
+}
+export class IntelliCenterCircuitStateCollection extends CircuitStateCollection
+{
     public setCircuitTheme ( id: number, theme: number )
     {
         let circuit = sys.circuits.getItemById( id );
@@ -852,7 +1080,8 @@ export class CircuitState extends EqState
     {
         if ( this.type !== val )
         {
-            this.data.type = Enums.CircuitTypes.transform( val );
+            sys.controllerType === ControllerType.IntelliCenter ?
+                this.data.type = Enums.CircuitTypes.transform( val ) : this.data.type = Enums.CircuitTypes_IT.transform( val );
             this.hasChanged = true;
         }
     }
@@ -861,7 +1090,15 @@ export class CircuitState extends EqState
     {
         if ( this.lightingTheme !== val )
         {
-            this.data.lightingTheme = Enums.LightThemes.transform( val );
+            switch ( sys.controllerType )
+            {
+                case ControllerType.IntelliCenter:
+                    this.data.lightingTheme = Enums.LightThemes.transform( val );
+                    break;
+                case ControllerType.IntelliTouch:
+                    this.data.lightingTheme = Enums.LightThemes_IT.transform( val );
+                    break;
+            }
             this.hasChanged = true;
         }
     }
@@ -879,24 +1116,45 @@ export class ValveState extends EqState
     public get name (): string { return this.data.name; }
     public set name ( val: string ) { this.setDataVal( 'name', val ); }
 }
+export interface ChlorinatorStateCollection
+{
+    createItem ( data: any ): ChlorinatorState;
+}
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
     public superChlorReference: number = 0;
     public lastDispatchSuperChlor: number = 0;
-    public createItem ( data: any ): ChlorinatorState
-    {
-        return new ChlorinatorState( data );
-    }
+
+    public setChlor ( id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number ) { this.getItemById( id ).setChlor( poolSetpoint, spaSetpoint, superChlorHours );};
     public setPoolSetpoint ( id: number, setpoint: number ) { this.getItemById( id ).setPoolSetpoint( setpoint ); }
     public setSpaSetpoint ( id: number, setpoint: number ) { this.getItemById( id ).setSpaSetpoint( setpoint ); }
     public setSuperChlorHours ( id: number, hours: number ) { this.getItemById( id ).setSuperChlorHours( hours ); }
     public superChlorinate ( id: number, bSet: boolean ) { this.getItemById( id ).superChlorinate( bSet ); }
-
-
+}
+export class IntelliCenterChlorinatorStateCollection extends ChlorinatorStateCollection
+{
+    public createItem ( data: any ): ChlorinatorState
+    {
+        return new IntelliCenterChlorinatorState( data );
+    }
+}
+export class IntelliTouchChlorinatorStateCollection extends ChlorinatorStateCollection
+{
+    public createItem ( data: any ): ChlorinatorState
+    {
+        return new IntelliTouchChlorinatorState( data );
+    }
+}
+export interface ChlorinatorState
+{
+    setChlor ( poolSetpoint: number, spaSetpoint?: number, superChlorHours?:number ): void;
+    setPoolSetpoint ( setpoint: number ): void;
+    setSpaSetpoint ( setpoint: number ): void;
+    setSuperChlorHours ( hours: number ): void;
+    superChlorinate ( bSet: boolean ): void;
 }
 export class ChlorinatorState extends EqState
 {
     public dataName: string = 'chlorinator';
-
     public get lastComm (): number
     {
         return this.data.lastComm;
@@ -990,6 +1248,24 @@ export class ChlorinatorState extends EqState
             this.setDataVal( 'superChlor', false );
         //else this.data.superChlor = false;
     }
+
+
+}
+export class IntelliCenterChlorinatorState extends ChlorinatorState
+{
+    public setChlor ( poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours )
+    {
+        var self = this;
+        //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
+        this.poolSetpoint = poolSetpoint;
+        this.spaSetpoint = spaSetpoint;
+        this.superChlor = superChlorHours > 0;
+        this.superChlorHours = superChlorHours;
+        this.emitEquipmentChange();
+        let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, poolSetpoint, spaSetpoint, superChlorHours>0 ? 1 : 0, superChlorHours, 0, 1 ], 3,
+            new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
+        conn.queueSendMessage( out );
+    }
     public setPoolSetpoint ( setpoint: number )
     {
         //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
@@ -997,6 +1273,7 @@ export class ChlorinatorState extends EqState
         let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
             new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
         conn.queueSendMessage( out );
+        this.emitEquipmentChange();
     }
     public setSpaSetpoint ( setpoint: number )
     {
@@ -1005,6 +1282,7 @@ export class ChlorinatorState extends EqState
         let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
             new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
         conn.queueSendMessage( out );
+        this.emitEquipmentChange();
     }
     public setSuperChlorHours ( hours: number )
     {
@@ -1013,6 +1291,7 @@ export class ChlorinatorState extends EqState
         let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
             new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
         conn.queueSendMessage( out );
+        this.emitEquipmentChange();
     }
     public superChlorinate ( bSet: boolean )
     {
@@ -1020,12 +1299,87 @@ export class ChlorinatorState extends EqState
         let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
             new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
         conn.queueSendMessage( out );
+        this.emitEquipmentChange();
+    }
+}
+export class IntelliTouchChlorinatorState extends ChlorinatorState
+{
+    public setChlor ( poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours )
+    {
+        var self = this;
+        let out = new Outbound( Protocol.Broadcast, Message.pluginAddress, 16, 153, [ ( this.spaSetpoint << 1 ) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0 ], 3, new Response( 16, Message.pluginAddress, 1, [ 153 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                let chlor = sys.chlorinators.getItemById( self.id );
+                self.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
+                self.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
+                self.superChlorHours = chlor.superChlorHours = superChlorHours;
+                self.superChlor = chlor.superChlor = self.superChlorHours > 0;
+                self.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );        
     }
 
+    public setPoolSetpoint ( setpoint: number )
+    {
+        var self = this;
+        let out = new Outbound( Protocol.Broadcast, Message.pluginAddress, 16, 153, [ ( this.spaSetpoint << 1 ) + 1, setpoint, this.superChlorHours > 0 ? this.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0 ], 3, new Response( 16, Message.pluginAddress, 1, [ 153 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                let chlor = sys.chlorinators.getItemById( self.id );
+                self.poolSetpoint = chlor.poolSetpoint = setpoint;
+                self.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+    public setSpaSetpoint ( setpoint: number )
+    {
+        var self = this;
+        let out = new Outbound( Protocol.Broadcast, Message.pluginAddress, 16, 153, [ ( setpoint << 1 ) + 1, this.poolSetpoint, this.superChlorHours > 0 ? this.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0 ], 3, new Response( 16, Message.pluginAddress, 1, [ 153 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                let chlor = sys.chlorinators.getItemById( self.id );
+                self.spaSetpoint = chlor.spaSetpoint = setpoint;
+                self.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+    public setSuperChlorHours ( hours: number )
+    {
+        var self = this;
+        let out = new Outbound( Protocol.Broadcast, Message.pluginAddress, 16, 153, [ ( this.spaSetpoint << 1 ) + 1, this.poolSetpoint, hours > 0 ? hours + 128 : 0, 0, 0, 0, 0, 0, 0, 0 ], 3, new Response( 16, Message.pluginAddress, 1, [ 153 ], null, function ( msg )
+        {
+            if ( !msg.failed )
+            {
+                let chlor = sys.chlorinators.getItemById( self.id );
+                self.superChlorHours = chlor.superChlorHours = hours;
+                self.superChlor = chlor.superChlor = self.superChlorHours > 0;
+                self.emitEquipmentChange();
+            }
+        } ) );
+        conn.queueSendMessage( out );
+    }
+    public superChlorinate ( bSet: boolean )
+    {
+        /*         this.superChlor = bSet;
+                let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
+                    new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
+                conn.queueSendMessage( out ); */
+    }
 }
 export class CommsState
 {
     public keepAlives: number;
 }
-export var state: State = new State();
+
+export var SF = new PoolStateFactory();
+// export var state = {} as State;
+export var state = new UnknownControllerState();
+// export var state: State = new State();
 

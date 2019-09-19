@@ -1,13 +1,13 @@
 {
-  "lastUpdated": "2019-8-14 20:06:47",
+  "lastUpdated": "2019-9-19 14:23:42",
+  "controllerType": "intellitouch",
   "pool": {
     "options": {
       "adjustDST": false,
       "clockMode": 12,
       "clockSource": "manual",
       "pumpDelay": false,
-      "manualHeat": false,
-      "waterTempAdj2": -126
+      "manualHeat": false
     }
   },
   "bodies": [
@@ -15,15 +15,15 @@
       "id": 2,
       "name": "Spa",
       "isActive": true,
-      "heatMode": 5,
-      "setPoint": 104
+      "heatMode": 3,
+      "setPoint": 102
     },
     {
       "id": 1,
       "name": "Pool",
       "isActive": true,
       "heatMode": 5,
-      "setPoint": 90
+      "setPoint": 89
     }
   ],
   "schedules": [
@@ -49,15 +49,15 @@
       "startTime": 12,
       "endTime": 14092,
       "isActive": true,
-      "scheduleDays": 255
+      "scheduleDays": 235
     },
     {
       "id": 4,
-      "circuit": 0,
-      "startTime": 0,
-      "endTime": 0,
-      "isActive": false,
-      "scheduleDays": 0
+      "circuit": 6,
+      "startTime": 8,
+      "endTime": 17,
+      "isActive": true,
+      "scheduleDays": 255
     },
     {
       "id": 5,
@@ -65,40 +65,21 @@
       "startTime": 11528,
       "endTime": 11529,
       "isActive": true,
-      "scheduleDays": 213
-    },
-    {
-      "id": 6,
-      "circuit": 13,
-      "startTime": 14,
-      "endTime": 2574,
-      "isActive": true,
-      "scheduleDays": 255
+      "scheduleDays": 212
     }
   ],
   "eggTimers": [
     {
-      "id": 7,
-      "circuit": 16,
-      "runTime": 3840,
-      "isActive": true
-    },
-    {
       "id": 11,
       "circuit": 11,
-      "runTime": 5,
+      "runTime": 300,
       "isActive": true
     }
   ],
   "customNames": [
     {
       "id": 0,
-      "name": "\u0001",
-      "isActive": true
-    },
-    {
-      "id": 1,
-      "name": "\u0001",
+      "name": "WtrFall 1",
       "isActive": true
     },
     {
@@ -140,16 +121,27 @@
       "id": 9,
       "name": "USERNAME-aa",
       "isActive": false
+    },
+    {
+      "id": 1,
+      "name": "WtrFall 1.5",
+      "isActive": true
     }
   ],
   "equipment": {
     "maxBodies": 2,
+    "maxCircuits": 8,
+    "shared": true,
+    "maxChlorinators": 1,
+    "maxSchedules": 12,
+    "maxPumps": 2,
+    "maxValves": 2,
+    "model": "EasyTouch2 8",
+    "maxIntelliBrites": 8,
     "highSpeedCircuits": [
       {
         "id": 0,
-        "isActive": false,
-        "type": 4,
-        "name": "CLEANER"
+        "isActive": false
       },
       {
         "id": 1,
@@ -161,13 +153,10 @@
       },
       {
         "id": 3,
-        "isActive": false,
-        "type": 14,
-        "name": "WtrFall 3"
+        "isActive": false
       }
     ],
-    "maxIntelliBrites": 8,
-    "maxPumps": 2,
+    "maxFeatures": 12,
     "bootloaderVersion": "1.010",
     "softwareVersion": "2.090"
   },
@@ -185,6 +174,7 @@
       "type": 1,
       "name": "SPA",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -192,11 +182,12 @@
       "type": 16,
       "name": "Pool LtDeep",
       "freeze": false,
+      "macro": false,
       "isActive": true,
       "intellibrite": {
-        "position": 2,
         "colorSet": 4,
-        "swimDelay": 6
+        "swimDelay": 6,
+        "position": 3
       }
     },
     {
@@ -204,6 +195,7 @@
       "type": 0,
       "name": "AIR BLOWER",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -211,6 +203,7 @@
       "type": 5,
       "name": "CLEANER",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -218,6 +211,7 @@
       "type": 0,
       "name": "WATERFALL",
       "freeze": true,
+      "macro": false,
       "isActive": true
     },
     {
@@ -225,6 +219,7 @@
       "type": 2,
       "name": "POOL",
       "freeze": true,
+      "macro": false,
       "isActive": true
     },
     {
@@ -232,11 +227,12 @@
       "type": 16,
       "name": "SPA LIGHT",
       "freeze": false,
+      "macro": false,
       "isActive": true,
       "intellibrite": {
-        "position": 2,
         "colorSet": 14,
-        "swimDelay": 0
+        "swimDelay": 0,
+        "position": 1
       }
     },
     {
@@ -244,11 +240,12 @@
       "type": 16,
       "name": "Pool LtShlw",
       "freeze": false,
+      "macro": false,
       "isActive": true,
       "intellibrite": {
-        "position": 2,
-        "colorSet": 14,
-        "swimDelay": 3
+        "colorSet": 0,
+        "swimDelay": 3,
+        "position": 2
       }
     },
     {
@@ -256,6 +253,18 @@
       "type": 7,
       "name": "PATH LIGHTS",
       "freeze": false,
+      "macro": false,
+      "isActive": true
+    }
+  ],
+  "features": [
+    {
+      "id": 11,
+      "eggTimer": 300,
+      "type": 14,
+      "name": "SPILLWAY",
+      "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -263,20 +272,15 @@
       "type": 0,
       "name": "NOT USED",
       "freeze": false,
+      "macro": false,
       "isActive": false
-    },
-    {
-      "id": 11,
-      "type": 14,
-      "name": "SPILLWAY",
-      "freeze": false,
-      "isActive": true
     },
     {
       "id": 12,
       "type": 0,
       "name": "WATERFALL 1",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -284,6 +288,7 @@
       "type": 0,
       "name": "WtrFall 2",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -291,6 +296,7 @@
       "type": 0,
       "name": "WtrFall 3",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -298,6 +304,7 @@
       "type": 0,
       "name": "Pool High",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -305,20 +312,31 @@
       "type": 0,
       "name": "JETS",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
       "id": 17,
-      "type": 14,
+      "type": 0,
       "name": "AUX 1",
       "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
       "id": 18,
-      "type": 14,
+      "type": 0,
       "name": "FEATURE 8",
       "freeze": false,
+      "macro": false,
+      "isActive": true
+    },
+    {
+      "id": 20,
+      "type": 0,
+      "name": "AUX EXTRA",
+      "freeze": false,
+      "macro": false,
       "isActive": true
     },
     {
@@ -326,17 +344,10 @@
       "type": 0,
       "name": "NOT USED",
       "freeze": false,
+      "macro": false,
       "isActive": false
-    },
-    {
-      "id": 20,
-      "type": 0,
-      "name": "AUX EXTRA",
-      "freeze": false,
-      "isActive": true
     }
   ],
-  "features": [],
   "pumps": [
     {
       "id": 1,
@@ -345,87 +356,1092 @@
         {
           "id": 1,
           "circuit": 16,
-          "speed": 3200,
-          "units": 0
+          "units": 0,
+          "body": 32,
+          "speed": 3210,
+          "flow": 0
         },
         {
           "id": 2,
           "circuit": 6,
+          "units": 0,
+          "body": 32,
           "speed": 1800,
-          "units": 0
+          "flow": 0
         },
         {
           "id": 3,
           "circuit": 1,
+          "units": 0,
+          "body": 32,
           "speed": 2500,
-          "units": 0
+          "flow": 0
         },
         {
           "id": 4,
           "circuit": 4,
+          "units": 0,
+          "body": 32,
           "speed": 3000,
-          "units": 0
+          "flow": 0
         },
         {
           "id": 5,
           "circuit": 11,
+          "units": 0,
+          "body": 32,
           "speed": 1000,
-          "units": 0
+          "flow": 0
         },
         {
           "id": 6,
           "circuit": 128,
+          "units": 0,
+          "body": 32,
           "speed": 2200,
-          "units": 0
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 390,
+          "flow": 0
         },
         {
           "id": 8,
           "circuit": 18,
-          "speed": 750,
-          "units": 0
+          "units": 0,
+          "body": 32,
+          "speed": 1000,
+          "flow": 0
         }
       ],
-      "primingSpeed": 1000,
+      "isActive": true,
+      "primingSpeed": 0,
       "primingTime": 0,
       "minSpeed": 450,
       "maxSpeed": 3450,
-      "speedStepSize": 100,
-      "isActive": true
+      "speedStepSize": 100
     },
     {
       "id": 2,
-      "type": 3,
+      "type": 5,
       "circuits": [
         {
           "id": 1,
-          "circuit": 5,
-          "speed": 1500,
-          "units": 0
+          "circuit": 12,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 35
         },
         {
           "id": 2,
-          "circuit": 12,
-          "speed": 1000,
-          "units": 0
+          "circuit": 13,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 20
         },
         {
           "id": 3,
-          "circuit": 13,
-          "speed": 2000,
-          "units": 0
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
         },
         {
           "id": 4,
-          "circuit": 14,
-          "speed": 2500,
-          "units": 0
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 1,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 1,
+          "circuit": 12
         }
       ],
-      "primingSpeed": 1000,
+      "isActive": true,
+      "turnovers": 0,
+      "primingSpeed": 0,
+      "primingTime": 0,
+      "minFlow": 15,
+      "maxFlow": 130,
+      "flowStepSize": 1,
+      "manualFilterGPM": 0,
+      "maxPrimeFlow": 0,
+      "maxPrimeTime": -1,
+      "maxSystemTime": 0,
+      "maxPressureIncrease": 0,
+      "backwashFlow": 0,
+      "backwashTime": 0,
+      "rinseTime": 0,
+      "vacuumFlow": 0,
+      "vacuumTime": 0
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 4,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 6,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 7,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 8,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 9,
+      "type": 0,
+      "circuits": [],
+      "isActive": true,
+      "primingSpeed": 297,
       "primingTime": 0,
       "minSpeed": 450,
       "maxSpeed": 3450,
-      "speedStepSize": 100,
+      "speedStepSize": 100
+    },
+    {
+      "id": 10,
+      "type": 0,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": false
+    },
+    {
+      "id": 11,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 12,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 13,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 14,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 15,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
+      "isActive": true
+    },
+    {
+      "id": 16,
+      "circuits": [
+        {
+          "id": 1,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 2,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 3,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 4,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 5,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 6,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 7,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        },
+        {
+          "id": 8,
+          "circuit": 0,
+          "units": 0,
+          "body": 32,
+          "speed": 0,
+          "flow": 0
+        }
+      ],
       "isActive": true
     }
   ],
@@ -434,8 +1450,8 @@
       "id": 1,
       "isActive": true,
       "body": 32,
-      "spaSetpoint": 0,
-      "poolSetpoint": 95,
+      "spaSetpoint": 29,
+      "poolSetpoint": 40,
       "suplerChlor": false,
       "superChlorHours": 0,
       "name": "Intellichlor--40"
@@ -485,23 +1501,26 @@
   "intellibrite": [
     {
       "id": 7,
-      "position": 2,
+      "isActive": true,
+      "position": 1,
       "colorSet": 14,
       "swimDelay": 0
     },
     {
       "id": 8,
+      "isActive": true,
       "position": 2,
-      "colorSet": 14,
+      "colorSet": 0,
       "swimDelay": 3
     },
     {
       "id": 2,
-      "position": 2,
+      "isActive": true,
+      "position": 3,
       "colorSet": 4,
       "swimDelay": 6
     }
   ],
   "heaters": [],
-  "controllerType": "intellitouch"
+  "appVersion": "6.0.0"
 }

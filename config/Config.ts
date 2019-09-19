@@ -44,6 +44,9 @@ class Config {
             c = c[section];
         return extend(true, {}, opts || {}, c || {});
     }
-    public init() { setTimeout(function () { config.update(); }, 100); }
+    public init() {
+        this.update();
+
+    }
 }
 export var config:Config = new Config();

@@ -1,6 +1,6 @@
-﻿import { Inbound, ControllerType } from "../Messages";
+﻿import { Inbound } from "../Messages";
 import { sys, Valve } from "../../../Equipment";
-import { Enums } from "../../../Constants";
+import { Enums, ControllerType } from "../../../Constants";
 export class ValveMessage
 {
     public static process ( msg: Inbound ): void
@@ -71,7 +71,7 @@ export class ValveMessage
         }
         else
         {
-            return Enums.CircuitFunctions_IT.transform( cir ).desc;
+            return Enums.CircuitTypes_IT.transform( cir ).desc;
         }
     }
     private static processCircuit(msg: Inbound) {

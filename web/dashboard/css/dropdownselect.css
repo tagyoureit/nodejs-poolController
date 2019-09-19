@@ -1,0 +1,11 @@
+.dropdown-item-checked::before {
+    position: absolute;
+    left: .4rem;
+    content: '✓';
+    font-weight: 600;
+}
+
+.fullWidth>.dropdown-toggle {
+    width: 100%;
+    margin-bottom: 2px
+}
