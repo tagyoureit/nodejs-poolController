@@ -80,7 +80,7 @@ export class Connection {
             });
 
         }
-        if (typeof (conn.buffer) === "undefined") {
+        if (typeof (conn.buffer) === 'undefined') {
             conn.buffer = new SendRecieveBuffer();
             conn.emitter.on('packetread', function (pkt) { conn.buffer.pushIn(pkt); });
             conn.emitter.on('messagewrite', function (msg) { conn.buffer.pushOut(msg); })
@@ -94,7 +94,7 @@ export class Connection {
     }
     public close() {
         if (conn.connTimer) clearTimeout(conn.connTimer);
-        if (typeof (conn._port) !== "undefined" && conn._cfg.netConnect) {
+        if (typeof (conn._port) !== 'undefined' && conn._cfg.netConnect) {
             if (typeof (conn._port.destroy) !== 'function')
                 conn._port.close(function (err) {
                     if (err) logger.error('Error closing %s:%s', conn._cfg.netHost, conn._cfg.netPort);
@@ -146,7 +146,7 @@ export class SendRecieveBuffer {
     constructor() {
         this._inBuffer = [];
         this._outBuffer = [];
-        this.procTimer = setInterval(this.processPackets, 40);
+        this.procTimer = setInterval(this.processPackets, 300);
     }
     public counter: Counter = new Counter();
     private procTimer: NodeJS.Timeout;
@@ -165,11 +165,11 @@ export class SendRecieveBuffer {
         conn.buffer._processing = true;
         conn.buffer.processInbound();
         // If the port is really busy let the process continue.
-        if (conn.buffer._inBytes.length < 12) conn.buffer.processOutbound();
+        if (conn.buffer._inBytes.length === 0 && conn.buffer._inBuffer.length === 0) conn.buffer.processOutbound();
         conn.buffer._processing = false;
     }
     private processWaitPacket(): boolean {
-        if (typeof (conn.buffer._waitingPacket) !== "undefined" && conn.buffer._waitingPacket) {
+        if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
             let timeout = conn.buffer._waitingPacket.timeout || 2000;
             let dt = new Date();
             if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) conn.buffer.writeMessage(conn.buffer._waitingPacket);
@@ -181,7 +181,7 @@ export class SendRecieveBuffer {
         if (conn.isOpen) {
             if (!conn.buffer.processWaitPacket()) {
                 var msg: Outbound = conn.buffer._outBuffer.shift();
-                if (typeof (msg) === "undefined" || !msg) return;
+                if (typeof (msg) === 'undefined' || !msg) return;
                 conn.buffer.writeMessage(msg);
             }
         }
@@ -222,7 +222,7 @@ export class SendRecieveBuffer {
         if (conn.buffer._outBuffer.length === 0 && typeof (conn.buffer._waitingPacket) !== 'object' && conn.buffer._waitingPacket) return;
         var callback;
         let msgOut = conn.buffer._waitingPacket;
-        if (typeof (conn.buffer._waitingPacket) !== "undefined" && conn.buffer._waitingPacket) {
+        if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
             var resp: Response = msgOut.response;
             if (msgOut.requiresResponse && resp.isResponse(msg)) {
                 conn.buffer._waitingPacket = null;
@@ -251,7 +251,7 @@ export class SendRecieveBuffer {
             var ndx: number = 0;
             var msg: Inbound = conn.buffer._msg;
             do {
-                if (typeof (msg) == "undefined" || msg === null || msg.isComplete || !msg.isValid) {
+                if (typeof (msg) == 'undefined' || msg === null || msg.isComplete || !msg.isValid) {
                     conn.buffer._msg = msg = new Inbound();
                     ndx = msg.readPacket(conn.buffer._inBytes);
                 }

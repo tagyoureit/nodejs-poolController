@@ -5,621 +5,488 @@ import { sys, Body, PF } from "../../../Equipment";
 import { logger } from "logger/Logger";
 
 export class EquipmentStateMessage {
-  public static process(msg: Inbound) {
-    if (sys.controllerType === ControllerType.Unknown) {
-      if (msg.action !== 2) return;
-      let model1 = msg.extractPayloadByte(27);
-      switch (model1) {
-        case 23: // IntelliCenter
-          PF.controllerType = ControllerType.IntelliCenter;
-          SF.controllerType = ControllerType.IntelliCenter;
-          // let EquipmentMessage handle maxValves, Circuits, etc
-          break;
-        case 11: // SunTouch.  Eq to IntelliCom??
-          break;
-        case 0: // IntelliTouch i5
-        case 1: // IntelliTouch i7+3
-        case 2: // IntelliTouch i9+3
-        case 3: // IntelliTouch i5+3S
-        case 4: // IntelliTouch i9+3S
-        case 5: // IntelliTouch i10+3D
-        case 13: // EasyTouch2 Models
-        case 14: // EasyTouch1 Models
-          PF.controllerType = ControllerType.IntelliTouch;
-          SF.controllerType = ControllerType.IntelliTouch;
-          break;
-        // IntelliCom?
-      }
-      EquipmentStateMessage.processEquipmentState(msg);
-      return;
-    }
-    var ndx = 0;
-    switch (msg.action) {
-      case 2:
-        // Shared
-        let dt = new Date();
-        state.time.hours = msg.extractPayloadByte(0);
-        state.time.minutes = msg.extractPayloadByte(1);
-        state.time.seconds = dt.getSeconds();
-
-        state.mode = msg.extractPayloadByte(9) & 0x81;
-        state.temps.units = msg.extractPayloadByte(9) & 0x04;
-        state.valve = msg.extractPayloadByte(10);
-        //EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
-
-        //state.heatMode = msg.extractPayloadByte(11);
-        state.delay = msg.extractPayloadByte(12);
-
-        if (msg.controllerType === ControllerType.IntelliCenter) {
-          // Legacy message is *ALMOST* the same.
-          //[165,  1, 15, 16, 2, 29][15, 10,  2, 0, 0, 0, 0,  0, 0,  4, 64, 0, 0, 0, 26, 26, 0,   0, 27,   0,  0,   0, 0, 4, 0, 0, 0,  1, 3][1,154]
-
-          // Everything is off
-          //[165, 63, 15, 16, 2, 29][ 9, 18,  0, 0, 0, 0, 0,  0, 0, 32,  0, 0, 2, 0, 46, 46, 0, 241, 47, 116, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 116]
-          // Turned on Spa Light
-          //[165, 63, 15, 16, 2, 29][ 9, 18, 64, 0, 0, 0, 0,  0, 0, 32,  0, 0, 2, 0, 46, 46, 0, 241, 47, 115, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 179]
-          // Turned on sheer descent.
-          //[165, 63, 15, 16, 2, 29][ 9, 18,  0, 0, 0, 0, 0,  0, 0, 32,  0, 0, 2, 0, 46, 46, 0, 241, 47, 116, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 116]
-          //[165, 63, 15, 16, 2, 29][10, 38,  0, 0, 0, 0, 0, 32, 0, 32,  0, 0, 2, 0, 50, 50, 0, 241, 53, 119, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 186]
-          // Pool is currently running
-          //[165, 63, 15, 16, 2, 29][11, 59, 32, 0, 0, 0, 0,  0, 0, 32,  0, 0, 2, 0, 59, 59, 0, 241, 57, 121, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 232]
-
-          // Spa turned on.  This says that it is heating with the heater but the heater never turned on.
-          //[165, 63, 15, 16, 2, 29][14, 24, 32, 0, 0, 0, 0,  0, 0, 32, 0,  0, 2, 0, 60, 60, 0, 241, 59,  94, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 177]
-          //[165, 63, 15, 16, 2, 29][14, 24,  1, 0, 0, 0, 0,  0, 0, 32, 8, 16, 2, 0, 60, 60, 0, 241, 59,  94, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 170]
-          // After turning on heater
-          //[165, 63, 15, 16, 2, 29][14, 38,  1, 0, 0, 0, 0,  0, 0, 32, 8, 16, 2, 0, 57, 57, 0, 241, 50,  89, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 164]
-          // After setting solar only
-          //[165, 63, 15, 16, 2, 29][14, 38,  1, 0, 0, 0, 0,  0, 0, 32, 8, 16, 2, 0, 57, 57, 0, 241, 50,  89, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 164]
-          //After setting solar preferred
-          //[165, 63, 15, 16, 2, 29][14, 40,  1, 0, 0, 0, 0,  0, 0, 32, 8, 32, 2, 0, 57, 57, 0, 241, 49,  89, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 181]
-          //After setting heat mode off
-          //[165, 63, 15, 16, 2, 29][14, 42, 32, 0, 0, 0, 0,  0, 0, 32, 0,  0, 2, 0, 57, 57, 0, 241, 49,  89, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 174]
-
-          //Previous tests invalid.  Spa RPM too low.  This didn't seem to matter as only the temp is changing
-          //[165, 63, 15, 16, 2, 29][11, 19,  1, 0, 0, 0, 0,  0, 0, 32, 8, 16, 2, 0, 60, 60, 0, 241, 57, 100, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 166]
-
-          // Everything off
-          //[165, 63, 15, 16, 2, 29][14, 18,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 62, 62, 0, 241, 61, 96, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 147]
-          // Pool on
-          //[165, 63, 15, 16, 2, 29][14, 19, 32, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 62, 62, 0, 241, 62, 98, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 183]
-          //[165, 63, 15, 16, 2, 29][14, 20, 32, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 63, 63, 0, 241, 61, 97, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 184]
-          // Everything off
-          //[165, 63, 15, 16, 2, 29][14, 21,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 63, 63, 0, 241, 61, 99, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 155]
-          // Spa on
-          //[165, 63, 15, 16, 2, 29][14, 22,  1, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 63, 63, 0, 241, 62, 96, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 179]
-          //[165, 63, 15, 16, 2, 29][14, 22,  1, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 63, 63, 0, 241, 62, 96, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 179]
-          // Everything off
-          //[165, 63, 15, 16, 2, 29][14, 24,  0, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 65, 65, 0, 241, 63, 97, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 186]
-          //[165, 63, 15, 16, 2, 29][14, 24,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 65, 65, 0, 241, 63, 96, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 161]
-
-          // Pool On with heater
-          //[165, 63, 15, 16, 2, 29][14, 29, 32, 0, 0, 0, 0, 0, 0, 32,  4,  1, 2, 0, 65, 65, 0, 241, 63, 95, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 202]
-          // After change to solar only
-          //[165, 63, 15, 16, 2, 29][14, 32, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 64, 64, 0, 241, 63, 99, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 208]
-          //[165, 63, 15, 16, 2, 29][14, 33, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 64, 64, 0, 241, 63, 98, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 208]
-          // After change to solar preferred
-          //[165, 63, 15, 16, 2, 29][14, 33, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 64, 64, 0, 241, 63, 99, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 209]
-          //[165, 63, 15, 16, 2, 29][14, 34, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 64, 64, 0, 241, 62, 96, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 206]
-          // After heater off
-          //[165, 63, 15, 16, 2, 29][14, 35, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 64, 64, 0, 241, 62, 94, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 205]
-          //[165, 63, 15, 16, 2, 29][14, 36, 32, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 62, 93, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 199]
-          //Spa on with solar
-          //[165, 63, 15, 16, 2, 29][15, 38,  1, 0, 0, 0, 0, 0, 0, 32,  8, 32, 2, 0, 64, 64, 0, 241, 62, 98, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 216]
-          //[165, 63, 15, 16, 2, 29][15, 41,  1, 0, 0, 0, 0, 0, 0, 32,  8, 32, 2, 0, 65, 65, 0, 241, 62, 99, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 222]
-          //Spa heater mode off
-          //[165, 63, 15, 16, 2, 29][15, 45,  1, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 65, 65, 0, 241, 63, 99, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 211]
-
-          //Pool On no heat
-          //[165, 63, 15, 16, 2, 29][15, 54, 32, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 62, 102, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 227]
-          //Spa On no heat
-          //[165, 63, 15, 16, 2, 29][15, 56,  1, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 63, 106, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 203]
-          //Spa On solar heat
-          //[165, 63, 15, 16, 2, 29][15, 58,  1, 0, 0, 0, 0, 0, 0, 32,  8, 32, 2, 0, 66, 66, 0, 241, 63, 104, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 247]
-          //[165, 63, 15, 16, 2, 29][15, 58,  1, 0, 0, 0, 0, 0, 0, 32,  8, 32, 2, 0, 66, 66, 0, 241, 63, 104, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 247]
-          //Spa On heater heat
-          //[165, 63, 15, 16, 2, 29][16,  0,  1, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 67, 67, 0, 241, 63, 101, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 173]
-          //[165, 63, 15, 16, 2, 29][16,  1,  1, 0, 0, 0, 0, 0, 0, 32,  8, 16, 2, 0, 67, 67, 0, 241, 63, 102, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 175]
-          //Spa On solar preferred
-          //[165, 63, 15, 16, 2, 29][16,  1,  1, 0, 0, 0, 0, 0, 0, 32,  8, 32, 2, 0, 67, 67, 0, 241, 63, 101, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 190]
-          //Pool On solar heat
-          //[165, 63, 15, 16, 2, 29][16,  3, 32, 0, 0, 0, 0, 0, 0, 32,  4,  2, 2, 0, 68, 68, 0, 241, 63, 102, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 192]
-          //Pool On heater heat
-          //[165, 63, 15, 16, 2, 29][16,  4, 32, 0, 0, 0, 0, 0, 0, 32,  4,  1, 2, 0, 65, 65, 0, 241, 63, 104, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 188]
-          //[165, 63, 15, 16, 2, 29][16,  4, 32, 0, 0, 0, 0, 0, 0, 32,  4,  1, 2, 0, 65, 65, 0, 241, 63, 104, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 188]
-          //Pool On no heat
-          //[165, 63, 15, 16, 2, 29][16,  6, 32, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 63, 105, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 184]
-
-          //Pool off no heat
-          //[165, 63, 15, 16, 2, 29][16, 36,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 65, 65, 0, 241, 62, 106, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 184]
-          //Pool off solar only
-          //[165, 63, 15, 16, 2, 29][16, 37,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 62, 104, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 181]
-          //[165, 63, 15, 16, 2, 29][16, 38,  0, 0, 0, 0, 0, 0, 0, 32,  0,  0, 2, 0, 64, 64, 0, 241, 63, 103, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 182]
-
-          //All heat off.
-          //[165, 63, 15, 16, 2, 29][19, 32, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 71, 71, 0, 241, 68, 69, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 164]
-          //[165, 63, 15, 16, 2, 29][19, 33, 0, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 71, 71, 0, 241, 68, 69, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 165]
-
-          //All Heat off
-          //[255, 0, 255][165, 63, 15, 16, 2, 29][11, 13, 32, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 65, 65, 0, 241, 65, 91, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 176]
-          //Change pool to solar only while running
-          //[255, 0, 255][165, 63, 15, 16, 2, 29][11, 13, 32, 0, 0, 0, 0, 0, 0, 32, 4, 2, 2, 0, 66, 66, 0, 241, 65, 91, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 184]
-
-          state.temps.waterSensor1 =
-            msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
-          if (sys.bodies.length > 2)
-            state.temps.waterSensor2 =
-              msg.extractPayloadByte(15) + sys.general.options.waterTempAdj2;
-          // We are making an assumption here in that the circuits are always labeled the same.
-          // 1=Spa
-          // 6=Pool
-          // 12=Body3
-          // 22=Body4 -- Really not sure about this one.
-          if (sys.bodies.length > 0) {
-            // We will not go in here is this is not a shared body.
-            let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-            let cbody: Body = sys.bodies.getItemById(1);
-            tbody.heatMode = cbody.heatMode;
-            tbody.setPoint = cbody.setPoint;
-            tbody.name = cbody.name;
-            tbody.circuit = 6;
-            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-            if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-              tbody.temp = state.temps.waterSensor1;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-          }
-          if (sys.bodies.length > 1) {
-            let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-            let cbody: Body = sys.bodies.getItemById(2);
-            tbody.heatMode = cbody.heatMode;
-            tbody.setPoint = cbody.setPoint;
-            tbody.name = cbody.name;
-            tbody.circuit = 1;
-            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-            if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-              tbody.temp = state.temps.waterSensor1;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-          }
-          if (sys.bodies.length > 2) {
-            let tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
-            let cbody: Body = sys.bodies.getItemById(3);
-            tbody.name = cbody.name;
-            tbody.heatMode = cbody.heatMode;
-            tbody.setPoint = cbody.setPoint;
-            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-            tbody.circuit = 12;
-            if ((msg.extractPayloadByte(3) & 0x08) == 8) {
-              // This is the first circuit on the second body.
-              tbody.temp = state.temps.waterSensor2;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-          }
-          if (sys.bodies.length > 3) {
-            let tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
-            let cbody: Body = sys.bodies.getItemById(4);
-            tbody.name = cbody.name;
-            tbody.heatMode = cbody.heatMode;
-            tbody.setPoint = cbody.setPoint;
-            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-            tbody.circuit = 22;
-            if ((msg.extractPayloadByte(5) & 0x20) === 32) {
-              // This is the first circuit on the third body or the first circuit on the second expansion.
-              tbody.temp = state.temps.waterSensor2;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-          }
-          state.temps.air =
-            msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
-          state.temps.solar =
-            msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
-          // todo: do not think this is correct - at least not for IntelliTouch
-          state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
-        } else if (msg.controllerType === ControllerType.IntelliTouch) {
-          state.temps.waterSensor1 = msg.extractPayloadByte(14);
-          if (sys.bodies.length > 2)
-            state.temps.waterSensor2 = msg.extractPayloadByte(15);
-          if (sys.bodies.length > 0) {
-            let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-            let cbody: Body = sys.bodies.getItemById(1);
-            if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-              tbody.temp = state.temps.waterSensor1;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-            if ((msg.extractPayloadByte(10) & 0x0c) >> 2 === 3 && tbody.isOn) {
-              // heater
-              tbody.heatStatus = 1;
-            } else if (
-              (msg.extractPayloadByte(10) & 0x30) >> 4 === 3 &&
-              tbody.isOn
-            ) {
-              // solar
-              tbody.heatStatus = 2;
-            } else {
-              tbody.heatStatus = 0;
+    public static process(msg: Inbound) {
+        if (sys.controllerType === ControllerType.Unknown) {
+            if (msg.action !== 2) return;
+            let model1 = msg.extractPayloadByte(27);
+            switch (model1) {
+                case 23: // IntelliCenter
+                    PF.controllerType = ControllerType.IntelliCenter;
+                    SF.controllerType = ControllerType.IntelliCenter;
+                    // let EquipmentMessage handle maxValves, Circuits, etc
+                    break;
+                case 11: // SunTouch.  Eq to IntelliCom??
+                    break;
+                case 0: // IntelliTouch i5
+                case 1: // IntelliTouch i7+3
+                case 2: // IntelliTouch i9+3
+                case 3: // IntelliTouch i5+3S
+                case 4: // IntelliTouch i9+3S
+                case 5: // IntelliTouch i10+3D
+                case 13: // EasyTouch2 Models
+                case 14: // EasyTouch1 Models
+                    PF.controllerType = ControllerType.IntelliTouch;
+                    SF.controllerType = ControllerType.IntelliTouch;
+                    break;
+                // IntelliCom?
             }
-            tbody.setPoint = cbody.setPoint;
-            tbody.name = cbody.name;
-            tbody.circuit = 6;
-            let heatMode = msg.extractPayloadByte(22) & 0x03;
-            tbody.heatMode = heatMode;
-            cbody.heatMode = heatMode;
-          }
-          if (sys.bodies.length > 1) {
-            let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-            let cbody: Body = sys.bodies.getItemById(2);
-            if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-              tbody.temp = state.temps.waterSensor2;
-              tbody.isOn = true;
-            } else tbody.isOn = false;
-            let heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
-            tbody.heatMode = heatMode;
-            cbody.heatMode = heatMode;
-            tbody.setPoint = cbody.setPoint;
-            tbody.name = cbody.name;
-            tbody.circuit = 1;
-            if ((msg.extractPayloadByte(10) & 0xc) >> 2 === 3 && tbody.isOn) {
-              // heater
-              tbody.heatStatus = 1;
-            } else if (
-              (msg.extractPayloadByte(10) & 0x30) >> 4 === 3 &&
-              tbody.isOn
-            ) {
-              // solar
-              tbody.heatStatus = 2;
-            } else {
-              tbody.heatStatus = 0;
-            }
-          }
+            EquipmentStateMessage.processEquipmentState(msg);
+            return;
         }
-        EquipmentStateMessage.processCircuitState(msg);
-        EquipmentStateMessage.processFeatureState(msg);
-        EquipmentStateMessage.processEquipmentState(msg);
-      case 5: // Intellitouch only.  Date/Time packet
-        //[255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
-        state.time.date = msg.extractPayloadByte(3);
-        state.time.month = msg.extractPayloadByte(4);
-        state.time.year = msg.extractPayloadByte(5);
-        sys.general.options.adjustDST = state.adjustDST =
-          msg.extractPayloadByte(7) === 0x01;
-        // defaults
-        sys.general.options.clockMode = 12;
-        sys.general.options.clockSource = "manual";
-        break;
-      case 8: // IntelliTouch only.  Heat status
-        // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
-        state.temps.waterSensor1 = msg.extractPayloadByte(0);
-        if (sys.bodies.length > 1)
-          state.temps.waterSensor2 = msg.extractPayloadByte(1);
-        state.temps.air = msg.extractPayloadByte(2);
-        state.temps.solar = msg.extractPayloadByte(8);
-        if (sys.bodies.length > 0) {
-          // pool
-          // We will not go in here is this is not a shared body.
-          let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-          let cbody: Body = sys.bodies.getItemById(1);
-          tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
-          tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
-          tbody.name = cbody.name;
-          tbody.circuit = 6;
-          tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-          if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-            tbody.temp = state.temps.waterSensor1;
-            tbody.isOn = true;
-          } else tbody.isOn = false;
-        }
-        if (sys.bodies.length > 1) {
-          // spa
-          let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-          let cbody: Body = sys.bodies.getItemById(2);
-          tbody.heatMode = cbody.heatMode =
-            (msg.extractPayloadByte(5) & 12) >> 2;
-          tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
-          tbody.name = cbody.name;
-          tbody.circuit = 1;
-          tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-          if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-            tbody.temp = state.temps.waterSensor1;
-            tbody.isOn = true;
-          } else tbody.isOn = false;
-        }
-        break;
-      case 96:
-        EquipmentStateMessage.processIntelliBriteMode(msg);
-        break;
-      case 204: // IntelliCenter only.
-        // All Off
-        //[165, 63, 15, 16, 204, 39][222, 153, 175, 255,  71, 250, 29, 3, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,   0,  0,   0, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 255, 0][8, 22]
-        // Pool Turned on ------------ Known -------XXX-------------------|                                                            |---- Start of circuit array
-        //[165, 63, 15, 16, 204, 39][222, 201, 176,  31,  71, 253, 29, 3, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0,   1,   0, 16, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 255, 0][7, 127]
-        // Spa Turned on
-        //[165, 63, 15, 16, 204, 39][233, 143, 176,   0,  72, 153, 29, 3, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0, 252, 255, 47, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 255, 0][8, 231]
-        // Switched heat mode to heater
-        //[165, 63, 15, 16, 204, 39][242,  25, 176,   3,  73,  33, 29, 3, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0, 252, 255, 47, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 255, 0][8, 6]
-        //[165, 63, 15, 16, 204, 39][251, 142, 178, 191,  73, 189, 29, 3, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 252, 255, 47, 0, 0, 0, 0,  0, 0, 0, 1, 0, 0, 255, 0][9, 218]
-
-        //Everything is off
-        //[165, 63, 15, 16, 204, 39][ 11,  58, 129, 181, 247, 155, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,   0,   0,  0, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][6, 192]
-        //After turning on pool. No heat settings.
-        //[165, 63, 15, 16, 204, 39][ 28,  89, 139,  73, 248, 120, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0,   1,   0, 16, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][6, 129]
-        //After turning off pool
-        //[165, 63, 15, 16, 204, 39][ 35, 186, 139,  46, 249,  52, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,   0,   0,  0, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][6, 117]
-        //After turning on the cleaner circuit which turns on the pool this message came across.
-        //[165, 63, 15, 16, 204, 39][ 43, 174, 139,  47, 249, 155, 19, 4, 19, 1, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,   2,   0,  0, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][6, 221]
-        //Added the pool circuit to the mix.
-        //[165, 63, 15, 16, 204, 39][ 48, 169, 139,  79, 249, 219, 19, 4, 19, 1, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0,   3,   0, 16, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][7, 82]
-        //After turning cleaner back off
-        //[165, 63, 15, 16, 204, 39][ 53, 117, 139,  73, 250,  78, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0,   1,   0, 16, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 255, 0][6, 141]
-        //Switch from pool to spa
-        //[165, 63, 15, 16, 204, 39][ 55,  95, 139,  42, 250, 134, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 4, 0, 248, 255, 47, 0, 0, 0, 0, 12, 0, 0, 0, 0, 0, 255, 0][8, 167]
-        //After turning spa back off again
-        //[165, 63, 15, 16, 204, 39][ 61, 122, 139,  41, 251,  54, 19, 4, 19, 0, 0, 0, 0, 133, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0,   0,   0,  0, 0, 0, 0, 0, 12, 0, 0, 1, 0, 0, 255, 0][6, 79]
-        state.batteryVoltage = msg.extractPayloadByte(2) / 50;
-        state.comms.keepAlives = msg.extractPayloadInt(4);
-        state.time.date = msg.extractPayloadByte(6);
-        state.time.month = msg.extractPayloadByte(7);
-        state.time.year = msg.extractPayloadByte(8);
-        if (msg.extractPayloadByte(37, 255) !== 255) {
-          let chlor = state.chlorinators.getItemById(1);
-          chlor.superChlorRemaining =
-            msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
-          chlor.emitEquipmentChange();
-        } else {
-          let chlor = state.chlorinators.getItemById(1);
-          chlor.superChlorRemaining = 0;
-          chlor.superChlor = false;
-          chlor.emitEquipmentChange();
-        }
-        EquipmentStateMessage.processEquipmentState();
-        state.emitControllerChange();
-
-        break;
-    }
-  }
-  private static processEquipmentState(msg?: Inbound) {
-    // defaults; set to lowest possible values
-    sys.equipment.maxBodies = 1;
-    sys.equipment.maxCircuits = 4;
-    sys.equipment.shared = false;
-    sys.equipment.maxChlorinators = 1;
-    sys.equipment.maxSchedules = 12;
-    sys.equipment.maxPumps = 2;
-    sys.equipment.maxSchedules = 12;
-    sys.equipment.maxValves = 2;
-    if (sys.controllerType === ControllerType.IntelliTouch) {
-      let model1 = msg.extractPayloadByte(27);
-      let model2 = msg.extractPayloadByte(28);
-      switch (model2) {
-        case 23: // IntelliCenter
-          // let EquipmentMessage handle maxValves, Circuits, etc
-          sys.equipment.maxSchedules = 100;
-          sys.equipment.maxFeatures = 32;
-          sys.equipment.maxChlorinators = 2;
-          sys.equipment.maxPumps = 16;
-          break;
-        case 11: // SunTouch.  Eq to IntelliCom??
-          break;
-        case 0: // IntelliTouch i5+3
-          sys.equipment.model = "IntelliTouch i5+3S";
-          sys.equipment.shared = true;
-          sys.equipment.maxBodies = 2;
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
-        case 1: // IntelliTouch i7+3
-          sys.equipment.model = "IntelliTouch i7+3";
-          sys.equipment.shared = true;
-          sys.equipment.maxBodies = 2;
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
-        case 2: // IntelliTouch i9+3
-          sys.equipment.model = "IntelliTouch i9+3";
-          sys.equipment.shared = true;
-          sys.equipment.maxBodies = 2;
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-        case 3: // IntelliTouch i5+3S
-          sys.equipment.model = "IntelliTouch i5+3S";
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
-        case 4: // IntelliTouch i9+3S
-          sys.equipment.model = "IntelliTouch i9+3S";
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-        case 5: // IntelliTouch i10+3D
-          sys.equipment.model = "IntelliTouch i10+3D";
-          sys.equipment.maxBodies = 2;
-          sys.equipment.maxValves = 3;
-          sys.equipment.maxSchedules = 99;
-          sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
-        case 13: // EasyTouch2 Models
-          switch (model1) {
-            case 0:
-              sys.equipment.model = "EasyTouch2 8";
-              sys.equipment.shared = true;
-              sys.equipment.maxBodies = 2;
-              sys.equipment.maxCircuits = 8;
-              // max features??
-              break;
-            case 1:
-              sys.equipment.model = "EasyTouch2 8P";
-              sys.equipment.maxCircuits = 8;
-              // max features??
-              break;
+        var ndx = 0;
+        switch (msg.action) {
             case 2:
-              sys.equipment.model = "EasyTouch2 4";
-              sys.equipment.shared = true;
-              sys.equipment.maxBodies = 2;
-              // max features??
-              break;
-            case 3:
-              sys.equipment.model = "EasyTouch2 4P";
-              // max features??
-              break;
-          }
-          break;
+                // Shared
+                let dt = new Date();
+                state.time.hours = msg.extractPayloadByte(0);
+                state.time.minutes = msg.extractPayloadByte(1);
+                state.time.seconds = dt.getSeconds();
 
-        case 14: // EasyTouch1 Models
-          switch (model1) {
-            case 0:
-              sys.equipment.model = "EasyTouch1 8";
-              sys.equipment.shared = true;
-              sys.equipment.maxBodies = 2;
-              sys.equipment.maxValves = 2;
-              sys.equipment.maxCircuits = 8;
-              // max features??
-              break;
-            case 1:
-              sys.equipment.model = "EasyTouch1 8P";
-              sys.equipment.maxBodies = 1;
-              sys.equipment.maxValves = 2;
-              sys.equipment.maxCircuits = 8;
-              // max features??
-              break;
-            case 2: // check...
-              sys.equipment.model = "EasyTouch1 4";
-              sys.equipment.shared = true;
-              sys.equipment.maxBodies = 2;
-              sys.equipment.maxValves = 2;
-              sys.equipment.maxCircuits = 4;
-              // max features??
-              break;
-            case 3: //check...
-              sys.equipment.model = "EasyTouch1 4P";
-              sys.equipment.maxValves = 2;
-              sys.equipment.maxCircuits = 4;
-              // max features??
-              break;
-          }
-          break;
-      }
-      // state.equipment.model = sys.equipment.model;
-      // state.equipment.maxBodies = sys.equipment.maxBodies;
-      // state.equipment.maxCircuits = sys.equipment.maxCircuits;
-      // state.equipment.maxValves = sys.equipment.maxValves;
-      // state.equipment.maxSchedules = sys.equipment.maxSchedules;
-      // state.equipment.shared = sys.equipment.shared;
-      // state.emitControllerChange();
-    }
-  }
-  private static processFeatureState(msg: Inbound) {
-    // Somewhere in this packet we need to find support for 32 bits of features.
-    // Turning on the first defined feature set by 7 to 16
-    // Turning on the second defined feature set byte 7 to 32
-    // This means that the first 4 feature circuits are located at byte 7 on the 4 most significant bits.  This leaves 28 bits
-    // unaccounted for when it comes to a total of 32 features.
+                state.mode = msg.extractPayloadByte(9) & 0x81;
+                state.temps.units = msg.extractPayloadByte(9) & 0x04;
+                state.valve = msg.extractPayloadByte(10);
+                //EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
 
-    // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-    switch (sys.controllerType) {
-      case ControllerType.IntelliCenter:
-        for (let i = 1; i <= sys.features.length; i++) {
-          // Use a case statement here since we don't know where to go after 4.
-          switch (i) {
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-              let byte = msg.extractPayloadByte(7);
-              let feature = sys.features.getItemById(i);
-              let fstate = state.features.getItemById(i, feature.isActive);
-              fstate.isOn = ((byte >> 4) & (1 << (i - 1))) > 0;
-              fstate.emitEquipmentChange();
-              fstate.name = feature.name;
-              break;
-          }
-        }
-        break;
-      case ControllerType.IntelliTouch:
-        let count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
-        let featureId = 9;
-        for (let i = 3; i < msg.payload.length && i <= count; i++) {
-          let byte = msg.extractPayloadByte(i);
-          // Shift each bit getting the circuit identified by each value.
-          for (let j = 0; j < 8; j++) {
-            let feature = sys.features.getItemById(featureId);
-            if (feature.isActive) {
-              var fstate = state.features.getItemById(
-                featureId,
-                feature.isActive
-              );
-              fstate.isOn = (byte & (1 << j)) >> j > 0;
-              fstate.name = feature.name;
-              fstate.emitEquipmentChange();
-            }
-            featureId++;
-          }
-        }
-        break;
-    }
-  }
-  private static processCircuitState(msg: Inbound) {
-    // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
-    // configuration already determined how many available circuits we have by querying the model of the panel
-    // and any installed expansion panel models.  Only the number of available circuits will appear in this
-    // array.
-    let count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
-    let circuitId = 1;
-    let body = 0; // Off
-    for (let i = 2; i < msg.payload.length && i <= count; i++) {
-      let byte = msg.extractPayloadByte(i);
-      // Shift each bit getting the circuit identified by each value.
-      for (let j = 0; j < 8; j++) {
-        let circuit = sys.circuits.getItemById(circuitId);
-        if (circuit.isActive) {
-          var cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-          cstate.isOn = (byte & (1 << j)) >> j > 0;
-          cstate.name = circuit.name;
-          cstate.showInFeatures = circuit.showInFeatures;
-          cstate.type = circuit.type;
-          if (cstate.isOn && circuitId === 6) body = 6;
-          if (cstate.isOn && circuitId === 1) body = 1;
-          if (sys.controllerType === ControllerType.IntelliCenter)
-            // intellitouch sends a separate msg with themes
-            switch (circuit.type) {
-              case 6: // Globrite
-              case 5: // Magicstream
-              case 8: // Intellibrite
-              case 10: // Colorcascade
-                cstate.lightingTheme = circuit.lightingTheme;
+                //state.heatMode = msg.extractPayloadByte(11);
+                state.delay = msg.extractPayloadByte(12);
+
+                if (msg.controllerType === ControllerType.IntelliCenter) {
+                    state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
+                    if (sys.bodies.length > 2)
+                        state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.general.options.waterTempAdj2;
+                    // We are making an assumption here in that the circuits are always labeled the same.
+                    // 1=Spa
+                    // 6=Pool
+                    // 12=Body3
+                    // 22=Body4 -- Really not sure about this one.
+                    if (sys.bodies.length > 0) {
+                        // We will not go in here if this is not a shared body.
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                        let cbody: Body = sys.bodies.getItemById(1);
+                        tbody.heatMode = cbody.heatMode;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.name = cbody.name;
+                        tbody.circuit = 6;
+                        tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                        if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                            tbody.temp = state.temps.waterSensor1;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                    }
+                    if (sys.bodies.length > 1) {
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                        let cbody: Body = sys.bodies.getItemById(2);
+                        tbody.heatMode = cbody.heatMode;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.name = cbody.name;
+                        tbody.circuit = 1;
+                        tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                        if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                            tbody.temp = state.temps.waterSensor1;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                    }
+                    if (sys.bodies.length > 2) {
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
+                        let cbody: Body = sys.bodies.getItemById(3);
+                        tbody.name = cbody.name;
+                        tbody.heatMode = cbody.heatMode;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                        tbody.circuit = 12;
+                        if ((msg.extractPayloadByte(3) & 0x08) == 8) {
+                            // This is the first circuit on the second body.
+                            tbody.temp = state.temps.waterSensor2;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                    }
+                    if (sys.bodies.length > 3) {
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
+                        let cbody: Body = sys.bodies.getItemById(4);
+                        tbody.name = cbody.name;
+                        tbody.heatMode = cbody.heatMode;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                        tbody.circuit = 22;
+                        if ((msg.extractPayloadByte(5) & 0x20) === 32) {
+                            // This is the first circuit on the third body or the first circuit on the second expansion.
+                            tbody.temp = state.temps.waterSensor2;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                    }
+                    state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
+                    state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
+                    // todo: do not think this is correct - at least not for IntelliTouch
+                    state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
+                } else if (msg.controllerType === ControllerType.IntelliTouch) {
+                    state.temps.waterSensor1 = msg.extractPayloadByte(14);
+                    if (sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
+                    if (sys.bodies.length > 0) {
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                        let cbody: Body = sys.bodies.getItemById(1);
+                        if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                            tbody.temp = state.temps.waterSensor1;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.name = cbody.name;
+                        tbody.circuit = 6;
+                        let heatMode = msg.extractPayloadByte(22) & 0x03;
+                        tbody.heatMode = heatMode;
+                        cbody.heatMode = heatMode;
+                        if (tbody.isOn) {
+                            let byte = msg.extractPayloadByte(10);
+                            if ((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
+                            else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
+                        }
+                        else
+                            tbody.heatStatus = 0; // Off
+
+                    }
+                    if (sys.bodies.length > 1) {
+                        let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                        let cbody: Body = sys.bodies.getItemById(2);
+                        if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                            tbody.temp = state.temps.waterSensor2;
+                            tbody.isOn = true;
+                        } else tbody.isOn = false;
+                        let heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
+                        tbody.heatMode = heatMode;
+                        cbody.heatMode = heatMode;
+                        tbody.setPoint = cbody.setPoint;
+                        tbody.name = cbody.name;
+                        tbody.circuit = 1;
+                        if (tbody.isOn) {
+                            let byte = msg.extractPayloadByte(10);
+                            if ((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
+                            else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
+                        }
+                        else
+                            tbody.heatStatus = 0; // Off
+                    }
+                }
+                EquipmentStateMessage.processCircuitState(msg);
+                EquipmentStateMessage.processFeatureState(msg);
+                EquipmentStateMessage.processEquipmentState(msg);
+                state.emitControllerChange();
                 break;
-              case 9:
-                cstate.level = circuit.level;
+            case 5: // Intellitouch only.  Date/Time packet
+                //[255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
+                state.time.date = msg.extractPayloadByte(3);
+                state.time.month = msg.extractPayloadByte(4);
+                state.time.year = msg.extractPayloadByte(5);
+                sys.general.options.adjustDST = state.adjustDST =
+                    msg.extractPayloadByte(7) === 0x01;
+                // defaults
+                sys.general.options.clockMode = 12;
+                sys.general.options.clockSource = "manual";
                 break;
-            }
-          cstate.emitEquipmentChange();
+            case 8: // IntelliTouch only.  Heat status
+                // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
+                state.temps.waterSensor1 = msg.extractPayloadByte(0);
+                if (sys.bodies.length > 1)
+                    state.temps.waterSensor2 = msg.extractPayloadByte(1);
+                state.temps.air = msg.extractPayloadByte(2);
+                state.temps.solar = msg.extractPayloadByte(8);
+                if (sys.bodies.length > 0) {
+                    // pool
+                    // We will not go in here is this is not a shared body.
+                    let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                    let cbody: Body = sys.bodies.getItemById(1);
+                    tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
+                    tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
+                    tbody.name = cbody.name;
+                    tbody.circuit = 6;
+                    tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                    if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                        tbody.temp = state.temps.waterSensor1;
+                        tbody.isOn = true;
+                    } else tbody.isOn = false;
+                }
+                if (sys.bodies.length > 1) {
+                    // spa
+                    let tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                    let cbody: Body = sys.bodies.getItemById(2);
+                    tbody.heatMode = cbody.heatMode =
+                        (msg.extractPayloadByte(5) & 12) >> 2;
+                    tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
+                    tbody.name = cbody.name;
+                    tbody.circuit = 1;
+                    tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                    if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                        tbody.temp = state.temps.waterSensor1;
+                        tbody.isOn = true;
+                    } else tbody.isOn = false;
+                }
+                break;
+            case 96:
+                EquipmentStateMessage.processIntelliBriteMode(msg);
+                break;
+            case 204: // IntelliCenter only.
+                state.batteryVoltage = msg.extractPayloadByte(2) / 50;
+                state.comms.keepAlives = msg.extractPayloadInt(4);
+                state.time.date = msg.extractPayloadByte(6);
+                state.time.month = msg.extractPayloadByte(7);
+                state.time.year = msg.extractPayloadByte(8);
+                if (msg.extractPayloadByte(37, 255) !== 255) {
+                    let chlor = state.chlorinators.getItemById(1);
+                    chlor.superChlorRemaining =
+                        msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
+                    chlor.emitEquipmentChange();
+                } else {
+                    let chlor = state.chlorinators.getItemById(1);
+                    chlor.superChlorRemaining = 0;
+                    chlor.superChlor = false;
+                    chlor.emitEquipmentChange();
+                }
+                EquipmentStateMessage.processEquipmentState();
+                state.emitControllerChange();
+                break;
         }
-        circuitId++;
-      }
     }
-    state.body = body;
-  }
-  private static processIntelliBriteMode(msg: Inbound) {
-    // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
-    // data[0] = color
-    let color = msg.extractPayloadByte(0);
-    for (let i = 0; i <= sys.intellibrite.length; i++) {
-      let ib = sys.intellibrite.getItemByIndex(i);
-      let cstate = state.circuits.getItemById(ib.id, true);
-      let circuit = sys.circuits.getItemById(ib.id, true);
-      switch (color) {
-        case 0: // off
-        case 1: // on
-        case 190: // save
-        case 191: // recall
-          break;
-        case 160: // color set (pre-defined colors)
-          cstate.lightingTheme = circuit.lightingTheme = ib.colorSet;
-          break;
-        default:
-          // intellibrite themes
-          cstate.lightingTheme = circuit.lightingTheme = color;
-          break;
-      }
+    private static processEquipmentState(msg?: Inbound) {
+        // defaults; set to lowest possible values
+        sys.equipment.maxBodies = 1;
+        sys.equipment.maxCircuits = 4;
+        sys.equipment.shared = false;
+        sys.equipment.maxChlorinators = 1;
+        sys.equipment.maxSchedules = 12;
+        sys.equipment.maxPumps = 2;
+        sys.equipment.maxSchedules = 12;
+        sys.equipment.maxValves = 2;
+        if (sys.controllerType === ControllerType.IntelliTouch) {
+            let model1 = msg.extractPayloadByte(27);
+            let model2 = msg.extractPayloadByte(28);
+            switch (model2) {
+                case 23: // IntelliCenter
+                    // let EquipmentMessage handle maxValves, Circuits, etc
+                    sys.equipment.maxSchedules = 100;
+                    sys.equipment.maxFeatures = 32;
+                    sys.equipment.maxChlorinators = 2;
+                    sys.equipment.maxPumps = 16;
+                    break;
+                case 11: // SunTouch.  Eq to IntelliCom??
+                    break;
+                case 0: // IntelliTouch i5+3
+                    sys.equipment.model = "IntelliTouch i5+3S";
+                    sys.equipment.shared = true;
+                    sys.equipment.maxBodies = 2;
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
+                case 1: // IntelliTouch i7+3
+                    sys.equipment.model = "IntelliTouch i7+3";
+                    sys.equipment.shared = true;
+                    sys.equipment.maxBodies = 2;
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
+                case 2: // IntelliTouch i9+3
+                    sys.equipment.model = "IntelliTouch i9+3";
+                    sys.equipment.shared = true;
+                    sys.equipment.maxBodies = 2;
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                case 3: // IntelliTouch i5+3S
+                    sys.equipment.model = "IntelliTouch i5+3S";
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
+                case 4: // IntelliTouch i9+3S
+                    sys.equipment.model = "IntelliTouch i9+3S";
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                case 5: // IntelliTouch i10+3D
+                    sys.equipment.model = "IntelliTouch i10+3D";
+                    sys.equipment.maxBodies = 2;
+                    sys.equipment.maxValves = 3;
+                    sys.equipment.maxSchedules = 99;
+                    sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
+                case 13: // EasyTouch2 Models
+                    switch (model1) {
+                        case 0:
+                            sys.equipment.model = "EasyTouch2 8";
+                            sys.equipment.shared = true;
+                            sys.equipment.maxBodies = 2;
+                            sys.equipment.maxCircuits = 8;
+                            // max features??
+                            break;
+                        case 1:
+                            sys.equipment.model = "EasyTouch2 8P";
+                            sys.equipment.maxCircuits = 8;
+                            // max features??
+                            break;
+                        case 2:
+                            sys.equipment.model = "EasyTouch2 4";
+                            sys.equipment.shared = true;
+                            sys.equipment.maxBodies = 2;
+                            // max features??
+                            break;
+                        case 3:
+                            sys.equipment.model = "EasyTouch2 4P";
+                            // max features??
+                            break;
+                    }
+                    break;
+
+                case 14: // EasyTouch1 Models
+                    switch (model1) {
+                        case 0:
+                            sys.equipment.model = "EasyTouch1 8";
+                            sys.equipment.shared = true;
+                            sys.equipment.maxBodies = 2;
+                            sys.equipment.maxValves = 2;
+                            sys.equipment.maxCircuits = 8;
+                            // max features??
+                            break;
+                        case 1:
+                            sys.equipment.model = "EasyTouch1 8P";
+                            sys.equipment.maxBodies = 1;
+                            sys.equipment.maxValves = 2;
+                            sys.equipment.maxCircuits = 8;
+                            // max features??
+                            break;
+                        case 2: // check...
+                            sys.equipment.model = "EasyTouch1 4";
+                            sys.equipment.shared = true;
+                            sys.equipment.maxBodies = 2;
+                            sys.equipment.maxValves = 2;
+                            sys.equipment.maxCircuits = 4;
+                            // max features??
+                            break;
+                        case 3: //check...
+                            sys.equipment.model = "EasyTouch1 4P";
+                            sys.equipment.maxValves = 2;
+                            sys.equipment.maxCircuits = 4;
+                            // max features??
+                            break;
+                    }
+                    break;
+            }
+            // state.equipment.model = sys.equipment.model;
+            // state.equipment.maxBodies = sys.equipment.maxBodies;
+            // state.equipment.maxCircuits = sys.equipment.maxCircuits;
+            // state.equipment.maxValves = sys.equipment.maxValves;
+            // state.equipment.maxSchedules = sys.equipment.maxSchedules;
+            // state.equipment.shared = sys.equipment.shared;
+            // state.emitControllerChange();
+        }
     }
-  }
+    private static processFeatureState(msg: Inbound) {
+        // Somewhere in this packet we need to find support for 32 bits of features.
+        // Turning on the first defined feature set by 7 to 16
+        // Turning on the second defined feature set byte 7 to 32
+        // This means that the first 4 feature circuits are located at byte 7 on the 4 most significant bits.  This leaves 28 bits
+        // unaccounted for when it comes to a total of 32 features.
+
+        // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
+        switch (sys.controllerType) {
+            case ControllerType.IntelliCenter:
+                for (let i = 1; i <= sys.features.length; i++) {
+                    // Use a case statement here since we don't know where to go after 4.
+                    switch (i) {
+                        case 1:
+                        case 2:
+                        case 3:
+                        case 4:
+                            let byte = msg.extractPayloadByte(7);
+                            let feature = sys.features.getItemById(i);
+                            let fstate = state.features.getItemById(i, feature.isActive);
+                            fstate.isOn = ((byte >> 4) & (1 << (i - 1))) > 0;
+                            fstate.emitEquipmentChange();
+                            fstate.name = feature.name;
+                            break;
+                    }
+                }
+                break;
+            case ControllerType.IntelliTouch:
+                let count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
+                let featureId = 9;
+                for (let i = 3; i < msg.payload.length && i <= count; i++) {
+                    let byte = msg.extractPayloadByte(i);
+                    // Shift each bit getting the circuit identified by each value.
+                    for (let j = 0; j < 8; j++) {
+                        let feature = sys.features.getItemById(featureId);
+                        if (feature.isActive) {
+                            var fstate = state.features.getItemById(
+                                featureId,
+                                feature.isActive
+                            );
+                            fstate.isOn = (byte & (1 << j)) >> j > 0;
+                            fstate.name = feature.name;
+                            fstate.emitEquipmentChange();
+                        }
+                        featureId++;
+                    }
+                }
+                break;
+        }
+    }
+    private static processCircuitState(msg: Inbound) {
+        // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
+        // configuration already determined how many available circuits we have by querying the model of the panel
+        // and any installed expansion panel models.  Only the number of available circuits will appear in this
+        // array.
+        let count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
+        let circuitId = 1;
+        let body = 0; // Off
+        for (let i = 2; i < msg.payload.length && i <= count; i++) {
+            let byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the circuit identified by each value.
+            for (let j = 0; j < 8; j++) {
+                let circuit = sys.circuits.getItemById(circuitId);
+                if (circuit.isActive) {
+                    var cstate = state.circuits.getItemById(circuitId, circuit.isActive);
+                    cstate.isOn = (byte & (1 << j)) >> j > 0;
+                    cstate.name = circuit.name;
+                    cstate.showInFeatures = circuit.showInFeatures;
+                    cstate.type = circuit.type;
+                    if (cstate.isOn && circuitId === 6) body = 6;
+                    if (cstate.isOn && circuitId === 1) body = 1;
+                    if (sys.controllerType === ControllerType.IntelliCenter)
+                        // intellitouch sends a separate msg with themes
+                        switch (circuit.type) {
+                            case 6: // Globrite
+                            case 5: // Magicstream
+                            case 8: // Intellibrite
+                            case 10: // Colorcascade
+                                cstate.lightingTheme = circuit.lightingTheme;
+                                break;
+                            case 9:
+                                cstate.level = circuit.level;
+                                break;
+                        }
+                    cstate.emitEquipmentChange();
+                }
+                circuitId++;
+            }
+        }
+        state.body = body;
+    }
+    private static processIntelliBriteMode(msg: Inbound) {
+        // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
+        // data[0] = color
+        let color = msg.extractPayloadByte(0);
+        for (let i = 0; i <= sys.intellibrite.length; i++) {
+            let ib = sys.intellibrite.getItemByIndex(i);
+            let cstate = state.circuits.getItemById(ib.id, true);
+            let circuit = sys.circuits.getItemById(ib.id, true);
+            switch (color) {
+                case 0: // off
+                case 1: // on
+                case 190: // save
+                case 191: // recall
+                    break;
+                case 160: // color set (pre-defined colors)
+                    cstate.lightingTheme = circuit.lightingTheme = ib.colorSet;
+                    break;
+                default:
+                    // intellibrite themes
+                    cstate.lightingTheme = circuit.lightingTheme = color;
+                    break;
+            }
+        }
+    }
 }
