@@ -1,20 +1,21 @@
-import {ConfigMessage} from './config/ConfigMessage';
-import {PumpMessage} from './config/PumpMessage';
-import {VersionMessage} from './status/VersionMessage';
-import {PumpStateMessage} from './status/PumpStateMessage';
-import {EquipmentStateMessage} from './status/EquipmentStateMessage';
-import {ChlorinatorStateMessage} from './status/ChlorinatorStateMessage';
-import {ExternalMessage} from './config/ExternalMessage';
-import {Timestamp, ControllerType} from '../../Constants';
-import {CircuitMessage} from './config/CircuitMessage';
-import {config} from '../../../config/Config';
-import {logger} from '../../../logger/Logger';
-import {CustomNameMessage} from './config/CustomNameMessage';
-import {ScheduleMessage} from './config/ScheduleMessage';
-import {RemoteMessage} from './config/RemoteMessage';
-import {OptionsMessage} from './config/OptionsMessage';
-import {EquipmentMessage} from './config/EquipmentMessage';
-import {ValveMessage} from './config/ValveMessage';
+import { ConfigMessage } from './config/ConfigMessage';
+import { PumpMessage } from './config/PumpMessage';
+import { VersionMessage } from './status/VersionMessage';
+import { PumpStateMessage } from './status/PumpStateMessage';
+import { EquipmentStateMessage } from './status/EquipmentStateMessage';
+import { ChlorinatorStateMessage } from './status/ChlorinatorStateMessage';
+import { ExternalMessage } from './config/ExternalMessage';
+import { Timestamp, ControllerType } from '../../Constants';
+import { CircuitMessage } from './config/CircuitMessage';
+import { config } from '../../../config/Config';
+import { logger } from '../../../logger/Logger';
+import { CustomNameMessage } from './config/CustomNameMessage';
+import { ScheduleMessage } from './config/ScheduleMessage';
+import { RemoteMessage } from './config/RemoteMessage';
+import { OptionsMessage } from './config/OptionsMessage';
+import { EquipmentMessage } from './config/EquipmentMessage';
+import { ValveMessage } from './config/ValveMessage';
+import { sys } from '../../Equipment';
 export enum Direction {
   In='in',
   Out='out'
@@ -26,19 +27,13 @@ export enum Protocol {
   Chlorinator='chlorinator'
 }
 export class Message {
-  constructor() {
-    // let c = config.getSection( 'controller' ).type
-    // if ( c.intellitouch )
-    //    this.controllerType = ControllerType.IntelliTouch
-    // else if ( c.intellicom )
-    //    this.controllerType = ControllerType.IntelliCom
-  }
+  constructor() { }
 
   // Internal Storage
   protected _complete: boolean=false;
   public static headerSubByte: number=33;
-  public static pluginAddress: number=config.getSection('controller', {address: 33}).address;
-  public static _controllerType: ControllerType=ControllerType.IntelliCenter;
+  public static pluginAddress: number=config.getSection('controller', { address: 33 }).address;
+  public static _controllerType: ControllerType=sys.controllerType;
 
 
   // Fields
@@ -54,121 +49,113 @@ export class Message {
 
   public isValid: boolean=true;
   // Properties
-  public get isComplete(): boolean {
-    return this._complete;
-  }
-  public get sub(): number {
-    return this.header.length>1? this.header[1]:-1;
-  }
-  public get dest(): number {
-    return this.protocol===Protocol.Chlorinator? 2:this.header.length>2? this.header[2]:-1;
-  }
+  public get isComplete(): boolean { return this._complete; };
+  public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; };
+  public get dest(): number { return this.protocol === Protocol.Chlorinator ? 2 : this.header.length > 2 ? this.header[2] : -1; } ;
   public get source(): number {
-    return this.protocol===Protocol.Chlorinator? 2:this.header.length>3? this.header[3]:-1;
+    return this.protocol === Protocol.Chlorinator ? 2 : this.header.length > 3 ? this.header[3] : -1;
   }
   public get action(): number {
-    return this.protocol===Protocol.Chlorinator? 0:this.header.length>5? this.header[4]:-1;
+    return this.protocol === Protocol.Chlorinator ? 0 : this.header.length > 5 ? this.header[4] : -1;
   }
-  public get datalen(): number {
-    return this.protocol===Protocol.Chlorinator? this.payload.length:this.header.length>5? this.header[5]:-1;
-  }
+  public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; } ;
   public get chkHi(): number {
-    return this.protocol===Protocol.Chlorinator? 0:this.term.length>0? this.term[0]:-1;
+    return this.protocol === Protocol.Chlorinator ? 0 : this.term.length > 0 ? this.term[0] : -1;
   }
   public get chkLo(): number {
-    return this.protocol===Protocol.Chlorinator? this.term[0]:this.term[1];
+    return this.protocol === Protocol.Chlorinator ? this.term[0] : this.term[1];
   }
   public get controllerType(): ControllerType {
     return Message._controllerType;
   }
   public get checksum(): number {
-    let sum=0;
-    for (let i=0; i<this.header.length; i++) sum+=this.header[i];
-    for (let i=0; i<this.payload.length; i++) sum+=this.payload[i];
+    let sum = 0;
+    for (let i = 0; i < this.header.length; i++) sum += this.header[i];
+    for (let i = 0; i < this.payload.length; i++) sum += this.payload[i];
     return sum;
   }
 
   // Methods
   public toPacket(): number[] {
-    const pkt=[];
-    pkt.push.apply(pkt, this.padding);
-    pkt.push.apply(pkt, this.preamble);
-    pkt.push.apply(pkt, this.header);
-    pkt.push.apply(pkt, this.payload);
-    pkt.push.apply(pkt, this.term);
+    const pkt = [];
+    pkt.push(...this.padding);
+    pkt.push(...this.preamble);
+    pkt.push(...this.header);
+    pkt.push(...this.payload);
+    pkt.push(...this.term);
     return pkt;
   }
   public toShortPacket(): number[] {
-    const pkt=[];
+    const pkt = [];
     // pkt.push.apply( pkt, this.padding );
     // pkt.push.apply( pkt, this.preamble );
-    pkt.push.apply(pkt, this.header);
-    pkt.push.apply(pkt, this.payload);
-    pkt.push.apply(pkt, this.term);
+    pkt.push(...this.header);
+    pkt.push(...this.payload);
+    pkt.push(...this.term);
     return pkt;
   }
   public toLog(): string {
-    return '{"valid":'+this.isValid+',"dir":"'+this.direction+'","proto":"'+this.protocol
-      +'","pkt":['+JSON.stringify(this.padding)+JSON.stringify(this.preamble)+JSON.stringify(this.header)+JSON.stringify(this.payload)+JSON.stringify(this.term)+']'
-      +',"ts":"'+Timestamp.toISOLocal(this.timestamp)+'"}';
+    return '{"valid":' + this.isValid + ',"dir":"' + this.direction + '","proto":"' + this.protocol
+      + '","pkt":[' + JSON.stringify(this.padding) + JSON.stringify(this.preamble) + JSON.stringify(this.header) + JSON.stringify(this.payload) + JSON.stringify(this.term) + ']'
+      + ',"ts":"' + Timestamp.toISOLocal(this.timestamp) + '"}';
   }
   public toReplay(): string {
-    return '{"type":"packet","packet":['+this.toPacket().join(',')+'],"direction":"'+(this.direction===Direction.In? 'inbound':'outbound')+'","level":"info","timestamp":"'
-      +this.timestamp.toISOString()+'"}';
+    return '{"type":"packet","packet":[' + this.toPacket().join(',') + '],"direction":"' + (this.direction === Direction.In ? 'inbound' : 'outbound') + '","level":"info","timestamp":"'
+      + this.timestamp.toISOString() + '"}';
   }
   private(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[2]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
   }
 }
 export class Inbound extends Message {
   // usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyB0,b9600,raw
   constructor() {
     super();
-    this.direction=Direction.In;
+    this.direction = Direction.In;
   }
   // Private methods
   private isValidChecksum(): boolean {
     // Check for the crazy intellichlor -- 40 packet.
-    if (this.protocol===Protocol.Chlorinator&&this.payload.length===19&&this.chkLo===188) return true;
-    return this.chkHi*256+this.chkLo===this.checksum;
+    if (this.protocol === Protocol.Chlorinator && this.payload.length === 19 && this.chkLo === 188) return true;
+    return this.chkHi * 256 + this.chkLo === this.checksum;
   }
   private testChlorHeader(bytes: number[], ndx: number): boolean {
-    return ndx+1<bytes.length&&bytes[ndx]===16&&bytes[ndx+1]===2;
+    return ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2;
   }
   private testBroadcastHeader(bytes: number[], ndx: number): boolean {
-    return ndx<bytes.length-3&&bytes[ndx]===255&&bytes[ndx+1]===0&&bytes[ndx+2]===255&&bytes[ndx+3]===165;
+    return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165;
   }
   private testChlorTerm(bytes: number[], ndx: number): boolean {
-    return ndx<bytes.length-2&&bytes[ndx+1]===16&&bytes[ndx+2]===3;
+    return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3;
   }
   private pushBytes(target: number[], bytes: number[], ndx: number, length: number): number {
-    const end=ndx+length;
-    while (ndx<bytes.length&&ndx<end)
+    const end = ndx + length;
+    while (ndx < bytes.length && ndx < end)
       target.push(bytes[ndx++]);
     return ndx;
   }
   // Methods
   public readPacket(bytes: number[]): number {
-    let ndx=this.readHeader(bytes, 0);
-    if (this.isValid) ndx=this.readPayload(bytes, ndx);
-    if (this.isValid) ndx=this.readChecksum(bytes, ndx);
+    let ndx = this.readHeader(bytes, 0);
+    if (this.isValid) ndx = this.readPayload(bytes, ndx);
+    if (this.isValid) ndx = this.readChecksum(bytes, ndx);
     return ndx;
   }
   public mergeBytes(bytes) {
-    let ndx=0;
-    if (this.header.length===0) ndx=this.readHeader(bytes, ndx);
-    if (this.isValid) ndx=this.readPayload(bytes, ndx);
-    if (this.isValid) ndx=this.readChecksum(bytes, ndx);
+    let ndx = 0;
+    if (this.header.length === 0) ndx = this.readHeader(bytes, ndx);
+    if (this.isValid) ndx = this.readPayload(bytes, ndx);
+    if (this.isValid) ndx = this.readChecksum(bytes, ndx);
     return ndx;
   }
   public readHeader(bytes: number[], ndx: number): number {
-    while (ndx<bytes.length) {
+    while (ndx < bytes.length) {
       if (this.testChlorHeader(bytes, ndx)) {
-        this.protocol=Protocol.Chlorinator;
+        this.protocol = Protocol.Chlorinator;
         break;
       }
       if (this.testBroadcastHeader(bytes, ndx)) {
-        this.protocol=Protocol.Broadcast;
+        this.protocol = Protocol.Broadcast;
         break;
       }
       this.padding.push(bytes[ndx++]);
@@ -176,14 +163,14 @@ export class Inbound extends Message {
     switch (this.protocol) {
       case Protocol.Pump:
       case Protocol.Broadcast:
-        ndx=this.pushBytes(this.preamble, bytes, ndx, 3);
-        ndx=this.pushBytes(this.header, bytes, ndx, 6);
-        if (this.source>=96&&this.source<=111) this.protocol=Protocol.Pump;
-        if (this.dest>=96&&this.dest<=111) this.protocol=Protocol.Pump;
-        if (this.datalen>50) this.isValid=false;
+        ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
+        ndx = this.pushBytes(this.header, bytes, ndx, 6);
+        if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
+        if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
+        if (this.datalen > 50) this.isValid = false;
         break;
       case Protocol.Chlorinator:
-        ndx=this.pushBytes(this.header, bytes, ndx, 2);
+        ndx = this.pushBytes(this.header, bytes, ndx, 2);
         break;
       default:
         break;
@@ -195,13 +182,13 @@ export class Inbound extends Message {
     switch (this.protocol) {
       case Protocol.Broadcast:
       case Protocol.Pump:
-        ndx=this.pushBytes(this.payload, bytes, ndx, this.datalen-this.payload.length);
+        ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
         break;
       case Protocol.Chlorinator:
-        while (ndx<bytes.length&&!this.testChlorTerm(bytes, ndx)) {
+        while (ndx < bytes.length && !this.testChlorTerm(bytes, ndx)) {
           this.payload.push(bytes[ndx++]);
-          if (this.payload.length>20) {
-            this.isValid=false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
+          if (this.payload.length > 20) {
+            this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
             break;
           }
         }
@@ -211,39 +198,39 @@ export class Inbound extends Message {
   }
   public readChecksum(bytes: number[], ndx: number): number {
     if (!this.isValid) return bytes.length;
-    if (ndx>=bytes.length) return ndx;
+    if (ndx >= bytes.length) return ndx;
     switch (this.protocol) {
       case Protocol.Broadcast:
       case Protocol.Pump:
-        if (this.payload.length>=this.datalen) {
-          this._complete=true;
-          ndx=this.pushBytes(this.term, bytes, ndx, 2);
-          this.isValid=this.isValidChecksum();
+        if (this.payload.length >= this.datalen) {
+          this._complete = true;
+          ndx = this.pushBytes(this.term, bytes, ndx, 2);
+          this.isValid = this.isValidChecksum();
         }
         break;
       case Protocol.Chlorinator:
         if (this.testChlorTerm(bytes, ndx)) {
-          this._complete=true;
-          ndx=this.pushBytes(this.term, bytes, ndx, 3);
-          this.isValid=this.isValidChecksum();
+          this._complete = true;
+          ndx = this.pushBytes(this.term, bytes, ndx, 3);
+          this.isValid = this.isValidChecksum();
         }
         break;
     }
     return ndx;
   }
   public extractPayloadString(start: number, length: number) {
-    let s='';
-    for (let i=start; i<this.payload.length&&i<start+length; i++) {
-      if (this.payload[i]<=0) break;
-      s+=String.fromCharCode(this.payload[i]);
+    let s = '';
+    for (let i = start; i < this.payload.length && i < start + length; i++) {
+      if (this.payload[i] <= 0) break;
+      s += String.fromCharCode(this.payload[i]);
     }
     return s;
   }
   public extractPayloadInt(ndx: number, def?: number) {
-    return ndx+1<this.payload.length? this.payload[ndx+1]*256+this.payload[ndx]:def;
+    return ndx + 1 < this.payload.length ? this.payload[ndx + 1] * 256 + this.payload[ndx] : def;
   }
   public extractPayloadByte(ndx: number, def?: number) {
-    return ndx<this.payload.length? this.payload[ndx]:def;
+    return ndx < this.payload.length ? this.payload[ndx] : def;
   }
   private processBroadcast(): void {
     switch (this.action) {
@@ -276,9 +263,9 @@ export class Inbound extends Message {
         break;
       // IntelliCenter & IntelliTouch
       case 30:
-        if (this.controllerType===ControllerType.IntelliTouch)
+        if (this.controllerType === ControllerType.IntelliTouch)
           OptionsMessage.process(this);
-        else if (this.controllerType===ControllerType.IntelliCenter)
+        else if (this.controllerType === ControllerType.IntelliCenter)
           ConfigMessage.process(this);
         break;
       case 22:
@@ -328,7 +315,7 @@ export class Inbound extends Message {
         this.processBroadcast();
         break;
       case Protocol.Pump:
-        if (this.source>=96&&this.source<=111)
+        if (this.source >= 96 && this.source <= 111)
           PumpStateMessage.process(this);
         else
           this.processBroadcast();
@@ -344,15 +331,15 @@ export class Inbound extends Message {
 export class Outbound extends Message {
   constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response) {
     super();
-    this.protocol=proto;
-    this.direction=Direction.Out;
-    this.retries=retries||0;
-    this.response=response;
-    this.preamble.length=0;
-    this.header.length=0;
-    this.term.length=0;
-    this.payload.length=0;
-    if (proto===Protocol.Chlorinator) {
+    this.protocol = proto;
+    this.direction = Direction.Out;
+    this.retries = retries || 0;
+    this.response = response;
+    this.preamble.length = 0;
+    this.header.length = 0;
+    this.term.length = 0;
+    this.payload.length = 0;
+    if (proto === Protocol.Chlorinator) {
       this.header.push.apply(this.header, [16, 2]);
       this.term.push.apply(this.term, [0, 16, 3]);
     } else {
@@ -360,10 +347,10 @@ export class Outbound extends Message {
       this.header.push.apply(this.header, [165, Message.headerSubByte, 15, Message.pluginAddress, 0, 0]);
       this.term.push.apply(this.term, [0, 0]);
     }
-    this.source=source;
-    this.dest=dest;
-    this.action=action;
-    this.payload.push.apply(this.payload, payload);
+    this.source = source;
+    this.dest = dest;
+    this.action = action;
+    this.payload.push(...payload);
   }
   // Factory
   public static createMessage(action: number, payload: number[], retries?: number, response?: Response): Outbound {
@@ -400,62 +387,61 @@ export class Outbound extends Message {
     return super.chkLo;
   }
   public set sub(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[1]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[1] = val;
   }
   public set dest(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[2]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
   }
   public set source(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[3]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;
   }
   public set action(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[4]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[4] = val;
   }
   public set datalen(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[5]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[5] = val;
   }
   public set chkHi(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.term[0]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.term[0] = val;
   }
   public set chkLo(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.term[1]=val; else this.term[0]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val;
   }
   public get requiresResponse(): boolean {
-    return typeof this.response!=='undefined'&&this.response!==null;
+    return typeof this.response !== 'undefined' && this.response !== null;
   }
   // Methods
   public calcChecksum() {
-    this.datalen=this.payload.length;
-    const sum: number=this.checksum;
+    this.datalen = this.payload.length;
+    const sum: number = this.checksum;
     switch (this.protocol) {
       case Protocol.Pump:
       case Protocol.Broadcast:
-        this.chkHi=Math.floor(sum/256);
-        this.chkLo=sum-super.chkHi*256;
+        this.chkHi = Math.floor(sum / 256);
+        this.chkLo = sum - super.chkHi * 256;
         break;
       case Protocol.Chlorinator:
-        this.term[0]=sum;
+        this.term[0] = sum;
         break;
     }
   }
   public appendPayloadString(s: string, len?: number) {
-    for (let i=0; i<s.length; i++) {
-      if (typeof len!=='undefined'&&i>=len) break;
+    for (var i = 0; i < s.length; i++) {
+      if (typeof len !== 'undefined' && i >= len) break;
       this.payload.push(s.charCodeAt(i));
     }
-    if (typeof len!=='undefined')
-      for (let j=i; j<len; j++) this.payload.push(0);
-
+    if (typeof len !== 'undefined')
+      for (let j = i; j < len; j++) this.payload.push(0);
     return this;
   }
   public toPacket(): number[] {
-    const pkt=[];
+    const pkt = [];
     this.calcChecksum();
-    pkt.push.apply(pkt, this.padding);
-    pkt.push.apply(pkt, this.preamble);
-    pkt.push.apply(pkt, this.header);
-    pkt.push.apply(pkt, this.payload);
-    pkt.push.apply(pkt, this.term);
+    pkt.push(...this.padding);
+    pkt.push(...this.preamble);
+    pkt.push(...this.header);
+    pkt.push(...this.payload);
+    pkt.push(...this.term);
     return pkt;
   }
 }
@@ -467,17 +453,17 @@ export class Ack extends Outbound {
 export class Response extends Message {
   constructor(source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
     super();
-    this.protocol=Protocol.Broadcast;
-    this.direction=Direction.In;
+    this.protocol = Protocol.Broadcast;
+    this.direction = Direction.In;
     this.preamble.push.apply(this.preamble, [255, 0, 255]);
     this.header.push.apply(this.header, [165, Message.headerSubByte, 0, 0, 0, 0]);
     this.term.push.apply(this.term, [0, 0]);
-    this.source=source;
-    this.dest=dest;
-    this.action=action;
-    if (typeof payload!=='undefined'&&payload.length>0) this.payload.push.apply(this.payload, payload);
-    if (typeof ack!=='undefined'&&ack!==null) this.ack=new Ack(ack);
-    this.callback=callback;
+    this.source = source;
+    this.dest = dest;
+    this.action = action;
+    if (typeof payload !== 'undefined' && payload.length > 0) this.payload.push(...payload);
+    if (typeof ack !== 'undefined' && ack !== null) this.ack = new Ack(ack);
+    this.callback = callback;
   }
   // Factory
   public static createResponse(action: number, payload: number[]): Response {
@@ -504,53 +490,53 @@ export class Response extends Message {
     return super.datalen;
   }
   public set sub(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[1]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[1] = val;
   }
   public set dest(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[2]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
   }
   public set source(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[3]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;
   }
   public set action(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[4]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[4] = val;
   }
   public set datalen(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.header[5]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.header[5] = val;
   }
   public set chkHi(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.term[0]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.term[0] = val;
   }
   public set chkLo(val: number) {
-    if (this.protocol!==Protocol.Chlorinator) this.term[1]=val; else this.term[0]=val;
+    if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val;
   }
 
   // Methods
   public isResponse(msg: Message): boolean {
-    if (typeof this.action!=='undefined'&&this.action!==null&&msg.action!==this.action)
+    if (typeof this.action !== 'undefined' && this.action !== null && msg.action !== this.action)
       return false;
-    if (this.controllerType===ControllerType.IntelliTouch) {
-      if (this.action===252&&msg.action===253) return true;
+    if (this.controllerType === ControllerType.IntelliTouch) {
+      if (this.action === 252 && msg.action === 253) return true;
       switch (this.action) {
         // these responses have multiple items so match the 1st payload byte
         case 1: // ack
         case 10:
         case 11:
         case 17:
-          if (msg.payload[0]!==this.payload[0]) return false;
+          if (msg.payload[0] !== this.payload[0]) return false;
           break;
         case 252:
-          if (msg.action!==253) return false;
+          if (msg.action !== 253) return false;
           break;
         default:
-          if (this.action!==msg.action) return false;
+          if (this.action !== msg.action) return false;
       }
-    } else if (this.controllerType===ControllerType.IntelliCenter)
+    } else if (this.controllerType === ControllerType.IntelliCenter)
       // intellicenter packets
-      for (let i=0; i<this.payload.length; i++) {
-        if (i>msg.payload.length-1)
+      for (let i = 0; i < this.payload.length; i++) {
+        if (i > msg.payload.length - 1)
           return false;
-        if (msg.payload[i]!==this.payload[i]) return false;
+        if (msg.payload[i] !== this.payload[i]) return false;
       }
 
     return true;
