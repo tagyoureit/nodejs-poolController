@@ -29,7 +29,7 @@ interface Props {
   pumpConfig: IConfigPump;
   currentPump: number;
   pumpState: IStatePoolPump;
-  condensedCircuitsAndFeatures: { id: number; name: string; type: string }[];
+  condensedCircuitsAndFeatures: {id: number; name: string; type: string}[];
 }
 interface State {
   currentPump: number;
@@ -37,52 +37,47 @@ interface State {
 class PumpConfigTabs extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {
+    this.state={
       currentPump:
-        typeof this.props.currentPump === "undefined"
+        typeof this.props.currentPump==="undefined"
           ? 1
-          : this.props.currentPump
+          :this.props.currentPump
     };
   }
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.currentPump !== this.props.currentPump) {
-      this.setState({ currentPump: this.props.currentPump });
+    if(prevState.currentPump!==this.props.currentPump) {
+      this.setState({currentPump: this.props.currentPump});
     }
   }
   render() {
-    const CircuitSelectors = () => {
-      if (this.props.pumpConfig.type === 0)
+    const CircuitSelectors=() => {
+      if(this.props.pumpConfig.type===0)
         return <div>Select a pump type to edit circuits</div>;
-      let circRows: React.ReactFragment[] = [];
-      for (let idx = 1; idx <= 8; idx++) {
-        let circ: IConfigPumpCircuit = getItemById(
-          this.props.pumpConfig.circuits,
-          idx
-        );
+      const circRows: React.ReactFragment[]=[];
+      for(let idx=1;idx<=8;idx++) {
+        let circ: IConfigPumpCircuit=getItemById(this.props.pumpConfig.circuits, idx);
 
-        if (!circ)
-          switch (this.props.pumpConfig.type) {
+        if(!circ) {
+          switch(this.props.pumpConfig.type) {
             case 0:
             case 1:
             case 2:
             case 3:
             case 4:
-              circ = { id: idx, circuit: 0, speed: 0, units: 0 };
+              circ={id: idx, circuit: 0, speed: 0, units: 0};
               break;
             case 5:
-              circ = { id: idx, circuit: 0, speed: 0, units: 1 };
+              circ={id: idx, circuit: 0, speed: 0, units: 1};
               break;
           }
-
-        let unitsDisplayOrSelect: React.ReactFragment = `${circ.speed} ${
-          circ.units ? "gpm" : "rpm"
-        }`;
-        if (this.props.pumpConfig.type === 4) {
-          unitsDisplayOrSelect = (
+        };
+        let unitsDisplayOrSelect: React.ReactFragment=`${circ.speed} ${circ.units? 'gpm':'rpm'}`;
+        if(this.props.pumpConfig.type===4) {
+          unitsDisplayOrSelect=(
             <PumpConfigSelectUnits
               currentPump={this.state.currentPump}
               pumpConfigId={circ.id}
-              rate={circ.units ? circ.flow : circ.speed}
+              rate={circ.units? circ.flow:circ.speed}
               units={circ.units}
             />
           );
@@ -109,7 +104,7 @@ class PumpConfigTabs extends React.Component<Props, State> {
               <PumpConfigSelectSpeedSlider
                 currentPump={this.props.currentPump}
                 currentCircuitSlotNum={circ.id}
-                currentSpeed={circ.units ? circ.flow : circ.speed}
+                currentSpeed={circ.units? circ.flow:circ.speed}
                 units={circ.units}
               />
             </Col>

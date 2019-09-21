@@ -8,9 +8,7 @@
     "es6": true,
     "worker": true
   },
-  "extends": [
-    "google"
-  ],
+  "extends": ["google"],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly"
@@ -23,16 +21,13 @@
     "ecmaVersion": 2018,
     "sourceType": "module"
   },
-  "plugins": [
-    "react",
-    "@typescript-eslint"
-  ],
+  "plugins": ["react", "@typescript-eslint"],
   "rules": {
-    "max-len": [
-      "off"
-    ],
+    "max-len": ["off"],
     "eqeqeq": "error",
-    "comma-dangle": 1,
+    "comma-dangle": 0,
+    "comma-style": ["error", "first"],
+    "curly": ["error", "multi"],
     "no-console": 0,
     "no-debugger": 1,
     "no-extra-semi": 1,
@@ -40,6 +35,11 @@
     "no-irregular-whitespace": 0,
     "no-undef": 0,
     "no-unused-vars": 0,
+    "object-curly-newline": 2,
+    "object-curly-spacing": 0,
+    "operator-linebreak": 0,
+    "linebreak-style": "off",
+    "quotes": ["error", "single"],
     "semi": 1,
     "semi-spacing": 2,
     "require-jsdoc": "off",
@@ -74,8 +74,9 @@
     "react/react-in-jsx-scope": 0,
     // "react/require-extension": 1,
     "react/self-closing-comp": 1,
-    "react/sort-comp": 1
+    "react/sort-comp": 1,
     // "react/wrap-multilines": 1
+    "space-infix-ops": "error"
   },
   "settings": {
     "react": {

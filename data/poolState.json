@@ -10,31 +10,30 @@
       "name": "F",
       "desc": "Fahrenheit"
     },
-    "waterSensor1": 74,
-    "air": 85,
-    "solar": 99,
+    "waterSensor1": 72,
+    "air": 66,
+    "solar": 59,
     "bodies": [
       {
         "id": 1,
-        "isOn": false,
-        "heatStatus": {
-          "val": 0,
-          "name": "off",
-          "desc": "Off"
-        },
-        "circuit": 6,
         "heatMode": {
           "val": 5,
           "name": "solar",
           "desc": "Solar Only"
         },
-        "setPoint": 89,
         "name": "Pool",
-        "temp": 74
+        "circuit": 6,
+        "heatStatus": {
+          "val": 0,
+          "name": "off",
+          "desc": "Off"
+        },
+        "temp": 72,
+        "isOn": true,
+        "setPoint": 78
       },
       {
         "id": 2,
-        "isOn": true,
         "heatMode": {
           "val": 3,
           "name": "heater",
@@ -47,11 +46,12 @@
           "name": "off",
           "desc": "Off"
         },
+        "isOn": false,
         "setPoint": 102,
-        "temp": 74
+        "temp": 72
       }
     ],
-    "waterSensor2": 74
+    "waterSensor2": 72
   },
   "equipment": {},
   "pumps": [
@@ -60,16 +60,16 @@
       "command": 10,
       "mode": 0,
       "driveState": 0,
-      "watts": 397,
+      "watts": 401,
       "rpm": 1800,
       "flow": 0,
       "ppc": 0,
       "status": {
-        "val": 1,
+        "val": 0,
         "name": "stoppedok",
         "desc": "Ok - Stopped"
       },
-      "runTime": 862,
+      "runTime": 1383,
       "type": {
         "val": 3,
         "name": "vs",
@@ -90,193 +90,11 @@
         "name": "stoppedok",
         "desc": "Ok - Stopped"
       },
-      "runTime": 862,
+      "runTime": 1382,
       "type": {
         "val": 5,
         "name": "vf",
         "desc": "Intelliflo VF"
-      }
-    },
-    {
-      "id": 3,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 4,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 5,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 6,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 7,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 8,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 9,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 10,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 11,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 12,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 13,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 14,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 15,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
-      }
-    },
-    {
-      "id": 16,
-      "type": {
-        "val": 0,
-        "name": "none",
-        "desc": "No pump"
-      },
-      "status": {
-        "val": 0,
-        "name": "stoppedok",
-        "desc": "Ok - Stopped"
       }
     }
   ],
@@ -424,15 +242,14 @@
   "chlorinators": [
     {
       "id": 1,
-      "lastComm": 1568928195934,
-      "currentOutput": 40,
+      "saltLevel": 4750,
+      "saltRequired": 0,
       "status": {
         "val": 0,
         "name": "ok",
         "desc": "Ok"
       },
-      "saltLevel": 3500,
-      "saltRequired": 0,
+      "lastComm": 1569045753286,
       "poolSetpoint": 40,
       "spaSetpoint": 29,
       "superChlor": false,
@@ -443,7 +260,8 @@
         "name": "poolspa",
         "desc": "Pool/Spa"
       },
-      "targetOutput": 40
+      "targetOutput": 40,
+      "currentOutput": 40
     }
   ],
   "schedules": [
@@ -709,7 +527,7 @@
     "desc": "Ready",
     "percent": 100
   },
-  "time": "-016781-09-19T14:23:42.000-0700",
+  "time": "-000800-12-30T23:03:41.000-0800",
   "valve": 3,
   "delay": 64,
   "body": 6
