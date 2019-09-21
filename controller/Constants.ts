@@ -135,12 +135,12 @@ export class Enums
         transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
     }
     public static ControllerStatus = {
-        0: { val: 0, name: 'ready', desc: 'Ready', percent: 100 },
-        1: { val: 1, name: 'loading', desc: 'Loading', percent: 0 },
-        transform: function ( byte, percent?: number )
-        {
-            let v = extend( true, {}, this[ byte ] || this[ 0 ] );
-            if ( typeof ( percent ) !== "undefined" ) v.percent = percent;
+        0: { val: 0, name: 'initializing', percent: 0 },
+        1: { val: 1, name: 'ready', desc: 'Ready', percent: 100 },
+        2: { val: 2, name: 'loading', desc: 'Loading', percent: 0 },
+        transform: function (byte, percent?: number) {
+            let v = extend(true, {}, this[byte] || this[0]);
+            if (typeof (percent) !== "undefined") v.percent = percent;
             return v;
         }
     }

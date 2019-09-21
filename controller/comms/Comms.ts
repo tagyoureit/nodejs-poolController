@@ -179,7 +179,7 @@ export class SendRecieveBuffer {
     }
     protected processOutbound() {
         if (conn.isOpen) {
-            if (!conn.buffer.processWaitPacket()) {
+            if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
                 var msg: Outbound = conn.buffer._outBuffer.shift();
                 if (typeof (msg) === 'undefined' || !msg) return;
                 conn.buffer.writeMessage(msg);
@@ -206,7 +206,8 @@ export class SendRecieveBuffer {
                     if (msg.retries <= 0) {
                         msg.failed = true;
                         conn.buffer._waitingPacket = null;
-                        if (msg.requiresResponse && typeof (msg.response.callback) === 'function') setTimeout(msg.response.callback, 100, msg);
+                        if (msg.requiresResponse && typeof (msg.response.callback) === 'function') 
+                            setTimeout(msg.response.callback, 100, msg);
                     }
                     else conn.buffer._waitingPacket = msg;
                 }
@@ -220,6 +221,7 @@ export class SendRecieveBuffer {
     }
     private clearResponses(msg: Inbound) {
         if (conn.buffer._outBuffer.length === 0 && typeof (conn.buffer._waitingPacket) !== 'object' && conn.buffer._waitingPacket) return;
+
         var callback;
         let msgOut = conn.buffer._waitingPacket;
         if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
@@ -227,7 +229,7 @@ export class SendRecieveBuffer {
             if (msgOut.requiresResponse && resp.isResponse(msg)) {
                 conn.buffer._waitingPacket = null;
                 callback = resp.callback;
-                if (resp.ack) conn.buffer.writeMessage(resp.ack);
+                if (resp.ack) conn.queueSendMessage(resp.ack);
             }
         }
         // Go through and remove all the packets that need to be removed from the queue.
@@ -241,7 +243,9 @@ export class SendRecieveBuffer {
             }
             i--;
         }
-        if (typeof (callback) === 'function') setTimeout(callback, 100, msgOut);
+        if (typeof (callback) === 'function') {
+            setTimeout(callback, 100, msgOut);
+        }
     }
     protected processInbound() {
         if (conn.buffer._inBuffer.length == 0) return;

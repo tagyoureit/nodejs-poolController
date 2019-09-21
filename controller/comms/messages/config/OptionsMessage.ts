@@ -4,7 +4,7 @@ import { Enums, ControllerType } from "../../../Constants";
 export class OptionsMessage
 {
     public static process(msg: Inbound): void {
-        switch (msg.controllerType) {
+        switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
                 OptionsMessage.processIntelliCenter(msg);
                 break;

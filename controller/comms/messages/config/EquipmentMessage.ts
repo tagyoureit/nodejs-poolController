@@ -7,7 +7,7 @@ export class EquipmentMessage {
     let pnl: ExpansionPanel;
     let bodyId: number;
     let body: Body;
-    switch (msg.controllerType) {
+    switch (sys.controllerType) {
       case ControllerType.IntelliCenter:
         switch (msg.extractPayloadByte(1)) {
           case 0:
