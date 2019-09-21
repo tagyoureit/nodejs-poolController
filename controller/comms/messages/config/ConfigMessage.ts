@@ -15,6 +15,7 @@ import {OptionsMessage} from "./OptionsMessage";
 import {CoverMessage} from "./CoverMessage";
 import {IntellichemMessage} from "./IntellichemMessage";
 import {ControllerType} from "../../../Constants";
+import { sys } from '../../../Equipment';
 
 export class ConfigMessage {
   // Firing up the mobi after changing settings.
