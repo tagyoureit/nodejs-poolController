@@ -12,33 +12,6 @@ import { webApp } from "../web/Server";
 import { SystemBoard } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 
-//class PoolFactory {
-//    private _controllerType: string;
-//    private _sys: PoolSystem;
-//    public get controllerType(): string { return this._controllerType; }
-//    public set controllerType(ct: string) {
-//        //this._controllerType = ct;
-//        //if (this._controllerType === ct && typeof this._sys !== 'undefined' && this._sys instanceof UnknownSystem) return;
-//        //console.log(`Getting Pool Context`);
-
-//        //if (typeof this._sys === 'undefined' || this._sys instanceof UnknownSystem) {
-//        //    switch (this._controllerType) {
-//        //        case ControllerType.IntelliCenter:
-//        //            this._sys = new IntelliCenterSystem();
-//        //            Message.headerSubByte = 63;
-//        //            break;
-//        //        case ControllerType.IntelliTouch:
-//        //            this._sys = new IntelliTouchSystem();
-//        //            Message.headerSubByte = 33;
-//        //            break;
-//        //        default:
-//        //            this._sys = new UnknownSystem();
-//        //    }
-//        //    sys = this._sys; // overwrite global
-//        //    sys.init();
-//        //}
-//    }
-//}
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -94,9 +67,11 @@ export class PoolSystem implements IPoolSystem {
         this.circuitGroups = new CircuitGroupCollection(this.data, 'circuitGroups');
         this.remotes = new RemoteCollection(this.data, 'remotes');
         this.security = new Security(this.data, 'security');
+        this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         // TODO: We should do this only after we get our first action 2.
+
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -117,9 +92,30 @@ export class PoolSystem implements IPoolSystem {
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val) {
+            this.resetData();
             this.data.controllerType = val;
+            // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
         }
+    }
+    public resetData() {
+        this.circuitGroups.clear();
+        this.circuits.clear();
+        this.bodies.clear();
+        this.chlorinators.clear();
+        this.configVersion.clear();
+        this.covers.clear();
+        this.customNames.clear();
+        this.equipment.clear();
+        this.features.clear();
+        this.data.general = {};
+        this.heaters.clear();
+        this.pumps.clear();
+        this.remotes.clear();
+        this.schedules.clear();
+        this.security.clear();
+        this.valves.clear();
+        this.covers.clear();
     }
     public stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
@@ -132,7 +128,7 @@ export class PoolSystem implements IPoolSystem {
     public data: any;
     protected _lastUpdated: Date;
     protected _isDirty: boolean;
-    protected _timerDirty: NodeJS.Timeout;
+    protected _timerDirty: NodeJS.Timeout = null;
     protected _timerChanges: NodeJS.Timeout;
     protected _needsChanges: boolean;
     // All the equipment items below.
@@ -160,11 +156,13 @@ export class PoolSystem implements IPoolSystem {
         this._isDirty = val;
         this._lastUpdated = new Date();
         this.data.lastUpdated = this._lastUpdated.toLocaleString();
-        if (this._timerDirty) {
+        if (this._timerDirty !== null) {
             clearTimeout(this._timerDirty);
             this._timerDirty = null;
         }
-        if (this._isDirty) this._timerDirty = setTimeout(sys.persist, 3000);
+        if (this._isDirty) {
+            this._timerDirty = setTimeout(() => this.persist(), 3000);
+        }
     }
     public persist() {
         this._isDirty = false;
@@ -186,7 +184,9 @@ export class PoolSystem implements IPoolSystem {
                 return val;
             },
             set(target, property, value, receiver) {
-                if (property !== 'lastUpdated' && Reflect.get(target, property, receiver) !== value) fn();
+                if (property !== 'lastUpdated' && Reflect.get(target, property, receiver) !== value) {
+                    fn();
+                }
                 return Reflect.set(target, property, value, receiver);
             },
             deleteProperty(target, property) {
@@ -381,6 +381,12 @@ class EqItem implements IEqItemCreator<EqItem> {
         } else this.data = data;
     }
     public get(): any { return this.data; }
+    public clear() {
+        for (let prop in this.data) {
+            if (Array.isArray(this.data[prop])) this.data[prop].length = 0;
+            else this.data[prop] = undefined;
+        }
+    }
 }
 class EqItemCollection<T> {
     protected data: any;
@@ -402,7 +408,7 @@ class EqItemCollection<T> {
             if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 return this.createItem(this.data[i]);
             }
-        if (typeof add !== "undefined" && add)
+        if (typeof add !== 'undefined' && add)
             return this.add({ id: id });
         return this.createItem({ id: id });
     }
@@ -627,11 +633,12 @@ export class ConfigVersion extends EqItem {
     public get schedules(): number { return this.data.schedules; }
     public set schedules(val: number) { this.data.schedules = val; }
     public hasChanges(ver: ConfigVersion) {
-        for (var prop in this) {
+        // This will only check for items that are in the incoming ver data. This
+        // is intentional so that only new versioned items will be detected.
+        for (let prop in ver.data) {
             if (prop === 'lastUpdated') continue;
-            if (this.hasOwnProperty(prop)) {
-                // Gotta do it this way cuz typescript went stupid with the var references. no ver[prop].
-                if (this.data[prop] !== ver.data[prop]) return true;
+            if (ver.data[prop] !== this.data[prop]) {
+                return true;
             }
         }
         return false;
@@ -639,6 +646,7 @@ export class ConfigVersion extends EqItem {
 }
 export class BodyCollection extends EqItemCollection<Body> {
     constructor(data: any, name?: string) { super(data, name || "bodies"); }
+    public createItem(data: any): Body { return new Body(data); }
     public setHeatMode(id: number, mode: number) {
         let body = this.getItemById(id);
         sys.board.setHeatMode(body, mode);
@@ -811,7 +819,6 @@ export class IntelliBrite extends EqItem {
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.data.isActive = val; }
 }
-export interface FeatureCollection { }
 export class FeatureCollection extends EqItemCollection<Feature> {
     constructor(data: any, name?: string) { super(data, name || "features"); }
     public createItem(data: any): Feature { return new Feature(data); }
@@ -931,7 +938,7 @@ export class Pump extends EqItem {
         
         let setPumpType = Outbound.createMessage(155, []);
         // TODO: Move this into SystemBoard.  I am not sure but I think this is to delete a pump or clear the circuits.
-        if (sys.controllerType === ControllerType.IntelliTouch) {
+        if (sys.controllerType !== ControllerType.IntelliCenter) {
             switch (pumpType) {
                 case 0: // none
                     setPumpType.payload = [
@@ -1245,7 +1252,7 @@ export class Heater extends EqItem {
 export class CoverCollection extends EqItemCollection<Cover> {
     constructor(data: any, name?: string) { super(data, name || "covers"); }
     public createItem(data: any): Cover {
-        if (typeof data.circuits === "undefined") data.circuits = [];
+        if (typeof data.circuits === 'undefined') data.circuits = [];
         return new Cover(data);
     }
 }
@@ -1264,7 +1271,7 @@ export class Cover extends EqItem {
     public set circuits(val: number[]) { this.data.circuits = val; }
 }
 export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroupCircuit> {
-    constructor(data: any, name?: string) { super(data, name || "circuits"); }
+    constructor(data: any, name?: string) { super(data, name || 'circuits'); }
     public createItem(data: any): CircuitGroupCircuit { return new CircuitGroupCircuit(data); }
 }
 export class CircuitGroupCircuit extends EqItem {

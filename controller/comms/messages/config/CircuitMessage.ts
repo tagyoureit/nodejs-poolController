@@ -6,7 +6,8 @@ export class CircuitMessage {
   public static process(msg: Inbound): void {
 
     switch (msg.action) {
-      case 11: // IntelliTouch Circuits
+        case 11: // IntelliTouch Circuits
+            console.log('Here i am');
         CircuitMessage.processCircuitAttributes(msg);
         break;
       case 30: // IntelliCenter

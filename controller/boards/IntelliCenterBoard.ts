@@ -347,7 +347,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     public queueChanges(ver: ConfigVersion) {
         let curr: ConfigVersion = sys.configVersion;
         let self = this;
+        //console.log(curr.hasChanges(ver));
         if (!curr.hasChanges(ver)) return;
+        sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
         state.status = Enums.ControllerStatus.transform(2, 0);
         this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, [0, 1, 2, 3]);
@@ -386,7 +388,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         }
         this.maybeQueueItems(curr.security, ver.security, ConfigCategories.security, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
         if (this.compareVersions(curr.remotes, ver.remotes)) {
-            let req = new IntelliCenterConfigRequest(ConfigCategories.security, ver.security, [0, 1], function (req: IntelliCenterConfigRequest) {
+            let req = new IntelliCenterConfigRequest(ConfigCategories.remotes, ver.remotes, [0, 1], function (req: IntelliCenterConfigRequest) {
                 // Only get remote attributes if we actually have something other than the 2 is4s.
                 if (sys.remotes.length > 2) req.fillRange(3, sys.remotes.length - 2 + 3);
             });
@@ -417,7 +419,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         }
         if (this.compareVersions(curr.intellichem, ver.intellichem)) {
             // TODO: RKS -- Dunno what the intellichem data looks like.
-
+            curr.intellichem = ver.intellichem;
         }
         if (this.compareVersions(curr.heaters, ver.heaters)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.heaters, ver.heaters, [0, 1, 2, 3, 4],
@@ -443,6 +445,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             });
             this.push(req);
         }
+        logger.info(`Queued ${this.remainingItems} configuration items`);
         if (this.remainingItems > 0) setTimeout(function () { self.processNext() }, 50);
         else state.status = 1;
         state.emitControllerChange();

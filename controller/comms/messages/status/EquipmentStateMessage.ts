@@ -6,41 +6,170 @@ import { logger } from 'logger/Logger';
 
 export class EquipmentStateMessage {
     private static initController(msg: Inbound) {
-        let sysFlag = msg.extractPayloadByte(27);
-        let ct: ControllerType = ControllerType.Unknown;
-        switch (sysFlag) {
-            case 23:
-                ct = ControllerType.IntelliCenter;
-                //PF.controllerType = ControllerType.IntelliCenter;
-                SF.controllerType = ControllerType.IntelliCenter;
-                Message.headerSubByte = 63;
+        Message.headerSubByte = msg.header[1];
+        // defaults; set to lowest possible values
+        // RKS: You cannot do this as IntelliCenter acquires the additional information
+        // from another message.
+        const model1 = msg.extractPayloadByte(27);
+        const model2 = msg.extractPayloadByte(28);
+        switch (model2) {
+            case 11: // SunTouch.  Eq to IntelliCom??
+                sys.controllerType = ControllerType.IntelliCom;
+                sys.equipment.maxBodies = 1;
+                sys.equipment.maxCircuits = 4;
+                sys.equipment.shared = false;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxPumps = 2;
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxValves = 2;
                 break;
-            case 11:
-                ct = ControllerType.IntelliCom;
-                Message.headerSubByte = 36;
+            case 0:
+                switch (model1) {
+                    case 23: // IntelliCenter
+                        sys.controllerType = ControllerType.IntelliCenter;
+                        break;
+                    default: // IntelliTouch i5+3
+                        sys.controllerType = ControllerType.IntelliTouch;
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                        sys.equipment.model = 'IntelliTouch i5+3S';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                        sys.equipment.maxSchedules = 99;
+                        sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
+                        break;
+                }
                 break;
-            case 0: // IntelliTouch i5
             case 1: // IntelliTouch i7+3
+                sys.controllerType = ControllerType.IntelliTouch;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i7+3';
+                sys.equipment.shared = true;
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
+                break;
             case 2: // IntelliTouch i9+3
+                sys.controllerType = ControllerType.IntelliTouch;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i9+3';
+                sys.equipment.shared = true;
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                break;
             case 3: // IntelliTouch i5+3S
+                sys.controllerType = ControllerType.IntelliTouch;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i5+3S';
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
+                break;
             case 4: // IntelliTouch i9+3S
+                sys.controllerType = ControllerType.IntelliTouch;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i9+3S';
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                break;
             case 5: // IntelliTouch i10+3D
+                sys.controllerType = ControllerType.IntelliTouch;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i10+3D';
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
+                break;
             case 13: // EasyTouch2 Models
+                sys.controllerType = ControllerType.EasyTouch;
+                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
+                switch (model1) {
+                    case 0:
+                        sys.equipment.model = 'EasyTouch2 8';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 8;
+                        // max features??
+                        break;
+                    case 1:
+                        sys.equipment.model = 'EasyTouch2 8P';
+                        sys.equipment.maxCircuits = 8;
+                        sys.equipment.shared = false;
+                        sys.equipment.maxBodies = 1; // All Ps are single body
+                        // max features??
+                        break;
+                    case 2:
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.model = 'EasyTouch2 4';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 4;
+                        // max features??
+                        break;
+                    case 3:
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.model = 'EasyTouch2 4P';
+                        sys.equipment.shared = false;
+                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxBodies = 1; // All Ps are single body
+                        // max features??
+                        break;
+                }
+                break;
+
             case 14: // EasyTouch1 Models
-                ct = ControllerType.IntelliTouch;
-                //PF.controllerType = ControllerType.IntelliTouch;
-                SF.controllerType = ControllerType.IntelliTouch;
-                Message.headerSubByte = 36;
+                sys.controllerType = ControllerType.EasyTouch;
+                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
+                switch (model1) {
+                    case 0:
+                        sys.equipment.model = 'EasyTouch1 8';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 8;
+                        // max features??
+                        break;
+                    case 1:
+                        sys.equipment.model = 'EasyTouch1 8P';
+                        sys.equipment.maxBodies = 1;
+                        sys.equipment.maxCircuits = 8;
+                        sys.equipment.shared = false;
+                        // max features??
+                        break;
+                    case 2: // check...
+                        sys.equipment.model = 'EasyTouch1 4';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 4;
+                        // max features??
+                        break;
+                    case 3: // check...
+                        sys.equipment.model = 'EasyTouch1 4P';
+                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.shared = false;
+                        // max features??
+                        break;
+                }
                 break;
         }
-        if (sys.controllerType === ControllerType.Unknown || ct !== sys.controllerType) {
-            sys.controllerType = ct;
-            // We need to reset.  The information we have is wrong.  This will come after we
-            // normalize the sys and state.
-            //sys.reset(ct);
-            //state.reset(ct);
-        }
-        EquipmentStateMessage.processEquipmentState(msg);
+        SF.controllerType = sys.controllerType;
         state.status = 1;
         setTimeout(() => sys.checkConfiguration(), 300);
     }
@@ -137,7 +266,7 @@ export class EquipmentStateMessage {
                     // todo: do not think this is correct - at least not for IntelliTouch
                     state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
                 }
-                else if (sys.controllerType === ControllerType.IntelliTouch) {
+                else if (sys.controllerType !== ControllerType.Unknown) {
                     state.temps.waterSensor1 = msg.extractPayloadByte(14);
                     if (sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
                     if (sys.bodies.length > 0) {
@@ -183,7 +312,7 @@ export class EquipmentStateMessage {
                 }
                 EquipmentStateMessage.processCircuitState(msg);
                 EquipmentStateMessage.processFeatureState(msg);
-                EquipmentStateMessage.processEquipmentState(msg);
+                //EquipmentStateMessage.processEquipmentState(msg);
                 state.emitControllerChange();
                 break;
             case 5: // Intellitouch only.  Date/Time packet
@@ -255,132 +384,163 @@ export class EquipmentStateMessage {
                     chlor.superChlor = false;
                     chlor.emitEquipmentChange();
                 }
-                EquipmentStateMessage.processEquipmentState(msg);
                 state.emitControllerChange();
                 break;
         }
     }
+
     private static processEquipmentState(msg?: Inbound) {
         // defaults; set to lowest possible values
-        sys.equipment.maxBodies = 1;
-        sys.equipment.maxCircuits = 4;
-        sys.equipment.shared = false;
-        sys.equipment.maxChlorinators = 1;
-        sys.equipment.maxSchedules = 12;
-        sys.equipment.maxPumps = 2;
-        sys.equipment.maxSchedules = 12;
-        sys.equipment.maxValves = 2;
-        if (sys.controllerType === ControllerType.IntelliTouch) {
-            const model1 = msg.extractPayloadByte(27);
-            const model2 = msg.extractPayloadByte(28);
-            switch (model2) {
-                case 23: // IntelliCenter
-                    // let EquipmentMessage handle maxValves, Circuits, etc
-                    sys.equipment.maxSchedules = 100;
-                    sys.equipment.maxFeatures = 32;
-                    sys.equipment.maxChlorinators = 2;
-                    sys.equipment.maxPumps = 16;
-                    break;
-                case 11: // SunTouch.  Eq to IntelliCom??
-                    break;
-                case 0: // IntelliTouch i5+3
-                    sys.equipment.model = 'IntelliTouch i5+3S';
-                    sys.equipment.shared = true;
-                    sys.equipment.maxBodies = 2;
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
-                case 1: // IntelliTouch i7+3
-                    sys.equipment.model = 'IntelliTouch i7+3';
-                    sys.equipment.shared = true;
-                    sys.equipment.maxBodies = 2;
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
-                case 2: // IntelliTouch i9+3
-                    sys.equipment.model = 'IntelliTouch i9+3';
-                    sys.equipment.shared = true;
-                    sys.equipment.maxBodies = 2;
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-                case 3: // IntelliTouch i5+3S
-                    sys.equipment.model = 'IntelliTouch i5+3S';
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
-                case 4: // IntelliTouch i9+3S
-                    sys.equipment.model = 'IntelliTouch i9+3S';
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-                case 5: // IntelliTouch i10+3D
-                    sys.equipment.model = 'IntelliTouch i10+3D';
-                    sys.equipment.maxBodies = 2;
-                    sys.equipment.maxValves = 3;
-                    sys.equipment.maxSchedules = 99;
-                    sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
-                case 13: // EasyTouch2 Models
-                    switch (model1) {
-                        case 0:
-                            sys.equipment.model = 'EasyTouch2 8';
-                            sys.equipment.shared = true;
-                            sys.equipment.maxBodies = 2;
-                            sys.equipment.maxCircuits = 8;
-                            // max features??
-                            break;
-                        case 1:
-                            sys.equipment.model = 'EasyTouch2 8P';
-                            sys.equipment.maxCircuits = 8;
-                            // max features??
-                            break;
-                        case 2:
-                            sys.equipment.model = 'EasyTouch2 4';
-                            sys.equipment.shared = true;
-                            sys.equipment.maxBodies = 2;
-                            // max features??
-                            break;
-                        case 3:
-                            sys.equipment.model = 'EasyTouch2 4P';
-                            // max features??
-                            break;
-                    }
-                    break;
+        // RKS: You cannot do this as IntelliCenter acquires the additional information
+        // from another message.
+        const model1 = msg.extractPayloadByte(27);
+        const model2 = msg.extractPayloadByte(28);
+        switch (model2) {
+            case 11: // SunTouch.  Eq to IntelliCom??
+                sys.equipment.maxBodies = 1;
+                sys.equipment.maxCircuits = 4;
+                sys.equipment.shared = false;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxPumps = 2;
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxValves = 2;
+                break;
+            case 0: 
+                switch (model1) {
+                    case 23: // IntelliCenter
+                        break;
+                    default: // IntelliTouch i5+3
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                        sys.equipment.model = 'IntelliTouch i5+3S';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                        sys.equipment.maxSchedules = 99;
+                        sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
+                        break;
+                }
+                break;
+            case 1: // IntelliTouch i7+3
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i7+3';
+                sys.equipment.shared = true;
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
+                break;
+            case 2: // IntelliTouch i9+3
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i9+3';
+                sys.equipment.shared = true;
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                break;
+            case 3: // IntelliTouch i5+3S
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i5+3S';
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
+                break;
+            case 4: // IntelliTouch i9+3S
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i9+3S';
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                break;
+            case 5: // IntelliTouch i10+3D
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
+                sys.equipment.model = 'IntelliTouch i10+3D';
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxSchedules = 99;
+                sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
+                break;
+            case 13: // EasyTouch2 Models
+                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
+                switch (model1) {
+                    case 0:
+                        sys.equipment.model = 'EasyTouch2 8';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 8;
+                        // max features??
+                        break;
+                    case 1:
+                        sys.equipment.model = 'EasyTouch2 8P';
+                        sys.equipment.maxCircuits = 8;
+                        sys.equipment.shared = false;
+                        sys.equipment.maxBodies = 1; // All Ps are single body
+                        // max features??
+                        break;
+                    case 2:
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.model = 'EasyTouch2 4';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 4;
+                        // max features??
+                        break;
+                    case 3:
+                        sys.equipment.maxChlorinators = 1;
+                        sys.equipment.model = 'EasyTouch2 4P';
+                        sys.equipment.shared = false;
+                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxBodies = 1; // All Ps are single body
+                        // max features??
+                        break;
+                }
+                break;
 
-                case 14: // EasyTouch1 Models
-                    switch (model1) {
-                        case 0:
-                            sys.equipment.model = 'EasyTouch1 8';
-                            sys.equipment.shared = true;
-                            sys.equipment.maxBodies = 2;
-                            sys.equipment.maxValves = 2;
-                            sys.equipment.maxCircuits = 8;
-                            // max features??
-                            break;
-                        case 1:
-                            sys.equipment.model = 'EasyTouch1 8P';
-                            sys.equipment.maxBodies = 1;
-                            sys.equipment.maxValves = 2;
-                            sys.equipment.maxCircuits = 8;
-                            // max features??
-                            break;
-                        case 2: // check...
-                            sys.equipment.model = 'EasyTouch1 4';
-                            sys.equipment.shared = true;
-                            sys.equipment.maxBodies = 2;
-                            sys.equipment.maxValves = 2;
-                            sys.equipment.maxCircuits = 4;
-                            // max features??
-                            break;
-                        case 3: // check...
-                            sys.equipment.model = 'EasyTouch1 4P';
-                            sys.equipment.maxValves = 2;
-                            sys.equipment.maxCircuits = 4;
-                            // max features??
-                            break;
-                    }
-                    break;
-            }
+            case 14: // EasyTouch1 Models
+                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxSchedules = 12;
+                sys.equipment.maxChlorinators = 1;
+                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
+                switch (model1) {
+                    case 0:
+                        sys.equipment.model = 'EasyTouch1 8';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 8;
+                        // max features??
+                        break;
+                    case 1:
+                        sys.equipment.model = 'EasyTouch1 8P';
+                        sys.equipment.maxBodies = 1;
+                        sys.equipment.maxCircuits = 8;
+                        sys.equipment.shared = false;
+                        // max features??
+                        break;
+                    case 2: // check...
+                        sys.equipment.model = 'EasyTouch1 4';
+                        sys.equipment.shared = true;
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxCircuits = 4;
+                        // max features??
+                        break;
+                    case 3: // check...
+                        sys.equipment.model = 'EasyTouch1 4P';
+                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.shared = false;
+                        // max features??
+                        break;
+                }
+                break;
             // state.equipment.model = sys.equipment.model;
             // state.equipment.maxBodies = sys.equipment.maxBodies;
             // state.equipment.maxCircuits = sys.equipment.maxCircuits;
@@ -417,6 +577,8 @@ export class EquipmentStateMessage {
                     }
 
                 break;
+            case ControllerType.IntelliCom:
+            case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
                 const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
                 let featureId = 9;

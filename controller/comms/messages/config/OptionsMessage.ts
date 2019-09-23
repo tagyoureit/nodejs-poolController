@@ -8,6 +8,8 @@ export class OptionsMessage
             case ControllerType.IntelliCenter:
                 OptionsMessage.processIntelliCenter(msg);
                 break;
+            case ControllerType.IntelliCom:
+            case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
                 OptionsMessage.processIntelliTouch(msg);
                 break;

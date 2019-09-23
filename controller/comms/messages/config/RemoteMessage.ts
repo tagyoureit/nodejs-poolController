@@ -38,7 +38,7 @@ export class RemoteMessage {
         }
         RemoteMessage.processRemoteName(msg);
       }
-      else if (sys.controllerType===ControllerType.IntelliTouch)
+      else if (sys.controllerType !== ControllerType.Unknown)
         RemoteMessage.processRemote_IT(msg);
 
     }

@@ -24,6 +24,8 @@ class PoolStateFactory {
                 case ControllerType.IntelliCenter:
                     this._state = new IntelliCenterState();
                     break;
+                case ControllerType.IntelliCom:
+                case ControllerType.EasyTouch:
                 case ControllerType.IntelliTouch:
                     this._state = new IntelliTouchState();
                     break;
@@ -945,6 +947,8 @@ export class CircuitState extends EqState {
     public set lightingTheme(val: number) {
         if (this.lightingTheme !== val) {
             switch (sys.controllerType) {
+                case ControllerType.IntelliCom:
+                case ControllerType.EasyTouch:
                 case ControllerType.IntelliCenter:
                     this.data.lightingTheme = Enums.LightThemes.transform(val);
                     break;

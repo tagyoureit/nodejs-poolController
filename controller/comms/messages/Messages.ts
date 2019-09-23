@@ -254,10 +254,16 @@ export class Inbound extends Message {
                 break;
             // IntelliCenter & IntelliTouch
             case 30:
-                if (sys.controllerType === ControllerType.IntelliTouch)
-                    OptionsMessage.process(this);
-                else if (sys.controllerType === ControllerType.IntelliCenter)
-                    ConfigMessage.process(this);
+                switch (sys.controllerType) {
+                    case ControllerType.IntelliCenter:
+                        ConfigMessage.process(this);
+                        break;
+                    case ControllerType.Unknown:
+                        break;
+                    default:
+                        OptionsMessage.process(this);
+                        break;
+                }
                 break;
             case 22:
             case 32:
@@ -454,7 +460,7 @@ export class Response extends Message {
     public isResponse(msg: Message): boolean {
         if (typeof this.action !== 'undefined' && this.action !== null && msg.action !== this.action)
             return false;
-        if (sys.controllerType === ControllerType.IntelliTouch) {
+        if (sys.controllerType !== ControllerType.IntelliCenter) {
             if (this.action === 252 && msg.action === 253) return true;
             switch (this.action) {
                 // these responses have multiple items so match the 1st payload byte

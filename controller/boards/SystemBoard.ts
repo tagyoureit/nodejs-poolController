@@ -99,28 +99,6 @@ export class byteValueMaps {
 // acquiring state and configuration data.
 export class SystemBoard {
     constructor(system: PoolSystem) {}
-    // Factory create the system board from the controller type.  Resist storing
-    // the pool system as this can cause a leak.  The PoolSystem object already has a reference to this.
-    static fromControllerType(ct: ControllerType, system: PoolSystem) {
-        console.log(ct);
-        switch (ct) {
-            case ControllerType.IntelliCenter:
-                return eval('new IntelliCenterBoard(system)');
-                //return new IntelliCenterBoard(system);
-            case ControllerType.IntelliTouch:
-                return eval('new IntelliTouchBoard(system)');
-                //return new IntelliTouchBoard(system);
-            case ControllerType.IntelliCom:
-                return eval('new IntelliComBoard(system)');
-                //return new IntelliComBoard(system);
-            case ControllerType.EasyTouch:
-                return eval('new EasyTouchBoard(system)');
-                //return new EasyTouchBoard(system);
-        }
-        return new SystemBoard(system);
-    }
-    // These are all the value mappings that are default to the board.  Override these in the specific
-    // board definition.
     public valueMaps: byteValueMaps = new byteValueMaps();
     public checkConfiguration() { };
     public requestConfiguration(ver?: ConfigVersion) { };

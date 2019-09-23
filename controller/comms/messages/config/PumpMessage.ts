@@ -1,396 +1,398 @@
-﻿import {Inbound} from "../Messages";
-import {sys, Pump, PumpCircuit} from "../../../Equipment";
-import {state, CircuitState} from "../../../State";
-import {Enums, ControllerType} from "../../../Constants";
-import {publicDecrypt} from "crypto";
+﻿import { Inbound } from "../Messages";
+import { sys, Pump, PumpCircuit } from "../../../Equipment";
+import { state, CircuitState } from "../../../State";
+import { Enums, ControllerType } from "../../../Constants";
+import { publicDecrypt } from "crypto";
 export class PumpMessage {
-  private static maxCircuits: number=8;
-  public static process(msg: Inbound): void {
-    switch (sys.controllerType) {
-      case ControllerType.IntelliCenter:
-        PumpMessage.processIntelliCenterPump(msg);
-        break;
-      case ControllerType.IntelliTouch:
-        PumpMessage.processPumpConfig_IT(msg);
-        break;
+    private static maxCircuits: number = 8;
+    public static process(msg: Inbound): void {
+        switch (sys.controllerType) {
+            case ControllerType.IntelliCenter:
+                PumpMessage.processIntelliCenterPump(msg);
+                break;
+            case ControllerType.IntelliCom:
+            case ControllerType.EasyTouch:
+            case ControllerType.IntelliTouch:
+                PumpMessage.processPumpConfig_IT(msg);
+                break;
+        }
     }
-  }
-  public static processPumpConfig_IT(msg: Inbound) {
-    // packet 24/27/152/155 - Pump Config: IntelliTouch
-    const pumpId=msg.extractPayloadByte(0);
-    const pump: Pump=sys.pumps.getItemById(pumpId, pumpId<=sys.equipment.maxPumps);
-    pump.type=msg.extractPayloadByte(1);
-    pump.circuits.clear();
-    for (let i=1; i<=8; i++)
-      pump.circuits.add({
-        id: i
-        , circuit: 0
-        , units: 0
-        , body: 32
-        , speed: 0
-        , flow: 0
-      });
-
-    pump.isActive=pump.type!==0;
-    // add pump to state
-    const spump=state.pumps.getItemById(pump.id, pumpId<=sys.equipment.maxPumps);
-    spump.type=pump.type;
-    spump.status=0;
-    switch (pump.type) {
-      case 0: // none
-        pump.name="none";
-        break;
-      case 5: // vf
-        PumpMessage.processVF_IT(msg);
-        break;
-      case 4: // vsf
-        PumpMessage.processVSF_IT(msg);
-        break;
-      case 3: // vs
-        PumpMessage.processVS_IT(msg);
-        break;
-    }
-  }
-  private static processIntelliCenterPump(msg: Inbound) {
-    let pumpId;
-    let pump: Pump;
-    if (msg.extractPayloadByte(1)<=15) {
-      let circuitId=1;
-      pumpId=msg.extractPayloadByte(1)+1;
-      pump=sys.pumps.getItemById(pumpId);
-      pump.circuits.clear();
-      // Circuit #
-      if (pump.type===1) {
-        // Single Speed Pump.  For dual speed pumps the high speed circuits will be acquired by the next statement.
-        const body=msg.extractPayloadByte(34);
-        if (body===0) pump.circuits.add({id: 1, body: 0});
-        else if (body===101) pump.circuits.add({id: 1, body: 1});
-        else pump.circuits.add({id: 1, body: 32});
-      } else
-        for (
-          let i=34;
-          i<msg.payload.length&&circuitId<=this.maxCircuits;
-          i++
-        ) {
-          if (msg.extractPayloadByte(i)!==255)
+    public static processPumpConfig_IT(msg: Inbound) {
+        // packet 24/27/152/155 - Pump Config: IntelliTouch
+        const pumpId = msg.extractPayloadByte(0);
+        const pump: Pump = sys.pumps.getItemById(pumpId, pumpId <= sys.equipment.maxPumps);
+        pump.type = msg.extractPayloadByte(1);
+        pump.circuits.clear();
+        for (let i = 1; i <= 8; i++)
             pump.circuits.add({
-              id: circuitId
-              , circuit: msg.extractPayloadByte(i)+1
+                id: i
+                , circuit: 0
+                , units: 0
+                , body: 32
+                , speed: 0
+                , flow: 0
             });
-          circuitId++;
-        }
 
-      // Speed/Flow
-      if (pump.type>2) {
-        // Filter out the single speed and dual speed pumps.  We have no flow or speed for these.
-        circuitId=1;
+        pump.isActive = pump.type !== 0;
+        // add pump to state
+        const spump = state.pumps.getItemById(pump.id, pumpId <= sys.equipment.maxPumps);
+        spump.type = pump.type;
+        spump.status = 0;
+        switch (pump.type) {
+            case 0: // none
+                pump.name = "none";
+                break;
+            case 5: // vf
+                PumpMessage.processVF_IT(msg);
+                break;
+            case 4: // vsf
+                PumpMessage.processVSF_IT(msg);
+                break;
+            case 3: // vs
+                PumpMessage.processVS_IT(msg);
+                break;
+        }
+    }
+    private static processIntelliCenterPump(msg: Inbound) {
+        let pumpId;
+        let pump: Pump;
+        if (msg.extractPayloadByte(1) <= 15) {
+            let circuitId = 1;
+            pumpId = msg.extractPayloadByte(1) + 1;
+            pump = sys.pumps.getItemById(pumpId);
+            pump.circuits.clear();
+            // Circuit #
+            if (pump.type === 1) {
+                // Single Speed Pump.  For dual speed pumps the high speed circuits will be acquired by the next statement.
+                const body = msg.extractPayloadByte(34);
+                if (body === 0) pump.circuits.add({ id: 1, body: 0 });
+                else if (body === 101) pump.circuits.add({ id: 1, body: 1 });
+                else pump.circuits.add({ id: 1, body: 32 });
+            } else
+                for (
+                    let i = 34;
+                    i < msg.payload.length && circuitId <= this.maxCircuits;
+                    i++
+                ) {
+                    if (msg.extractPayloadByte(i) !== 255)
+                        pump.circuits.add({
+                            id: circuitId
+                            , circuit: msg.extractPayloadByte(i) + 1
+                        });
+                    circuitId++;
+                }
+
+            // Speed/Flow
+            if (pump.type > 2) {
+                // Filter out the single speed and dual speed pumps.  We have no flow or speed for these.
+                circuitId = 1;
+                for (
+                    let i = 18;
+                    i < msg.payload.length && circuitId <= this.maxCircuits;
+
+                ) {
+                    const circuit: PumpCircuit = pump.circuits.getItemById(circuitId);
+                    const rate = msg.extractPayloadInt(i);
+                    // If the rate is < 450 then this must be a flow based value.
+                    if (rate < 450) {
+                        circuit.flow = rate;
+                        circuit.units = 1;
+                    } else {
+                        circuit.speed = msg.extractPayloadInt(i);
+                        circuit.units = 0;
+                    }
+                    i += 2;
+                    circuitId++;
+                }
+            }
+        }
+        switch (msg.extractPayloadByte(1)) {
+            case 1:
+                PumpMessage.processFlowStepSize(msg);
+                break;
+            case 2:
+                PumpMessage.processMinFlow(msg);
+                break;
+            case 3:
+                PumpMessage.processMaxFlow(msg);
+                break;
+            case 4:
+                PumpMessage.processPumpType(msg);
+                break;
+            case 5:
+                PumpMessage.processAddress(msg);
+                break;
+            case 6:
+                PumpMessage.processPrimingTime(msg);
+                break;
+            case 7:
+                PumpMessage.processSpeedStepSize(msg);
+                break;
+            case 8: // Unknown
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+                break;
+            case 16:
+                PumpMessage.processMinSpeed(msg);
+                break;
+            case 17:
+                PumpMessage.processMaxSpeed(msg);
+                break;
+            case 18:
+                PumpMessage.processPrimingSpeed(msg);
+                break;
+            case 19: // Pump names
+            case 20:
+            case 21:
+            case 22:
+            case 23:
+            case 24:
+            case 25:
+            case 26:
+                PumpMessage.processPumpNames(msg);
+                break;
+        }
+    }
+    private static processFlowStepSize(msg: Inbound) {
+        let pumpId = 1;
         for (
-          let i=18;
-          i<msg.payload.length&&circuitId<=this.maxCircuits;
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.flowStepSize = msg.extractPayloadByte(i);
+        }
+    }
+    private static processMinFlow(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.minFlow = msg.extractPayloadByte(i);
+        }
+    }
+    private static processMaxFlow(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.maxFlow = msg.extractPayloadByte(i);
+        }
+    }
+    private static processPumpType(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(
+                pumpId++,
+                msg.extractPayloadByte(i) !== 0
+            );
+            pump.type = msg.extractPayloadByte(i);
+            if (pump.isActive && pump.type === 0)
+                sys.pumps.removeItemById(pump.id);
+
+            if (pump.type === 0)
+                state.pumps.removeItemById(pump.id);
+            else {
+                const spump = state.pumps.getItemById(pump.id, true);
+                spump.type = pump.type;
+            }
+            pump.isActive = pump.type !== 0;
+        }
+    }
+    private static processAddress(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.address = msg.extractPayloadByte(i);
+        }
+    }
+    private static processPrimingTime(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.primingTime = msg.extractPayloadByte(i);
+        }
+    }
+    private static processSpeedStepSize(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
+            i++
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.speedStepSize = msg.extractPayloadByte(i) * 10;
+        }
+    }
+    private static processMinSpeed(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
 
         ) {
-          const circuit: PumpCircuit=pump.circuits.getItemById(circuitId);
-          const rate=msg.extractPayloadInt(i);
-          // If the rate is < 450 then this must be a flow based value.
-          if (rate<450) {
-            circuit.flow=rate;
-            circuit.units=1;
-          } else {
-            circuit.speed=msg.extractPayloadInt(i);
-            circuit.units=0;
-          }
-          i+=2;
-          circuitId++;
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.minSpeed = msg.extractPayloadInt(i);
+            i += 2;
         }
-      }
     }
-    switch (msg.extractPayloadByte(1)) {
-      case 1:
-        PumpMessage.processFlowStepSize(msg);
-        break;
-      case 2:
-        PumpMessage.processMinFlow(msg);
-        break;
-      case 3:
-        PumpMessage.processMaxFlow(msg);
-        break;
-      case 4:
-        PumpMessage.processPumpType(msg);
-        break;
-      case 5:
-        PumpMessage.processAddress(msg);
-        break;
-      case 6:
-        PumpMessage.processPrimingTime(msg);
-        break;
-      case 7:
-        PumpMessage.processSpeedStepSize(msg);
-        break;
-      case 8: // Unknown
-      case 9:
-      case 10:
-      case 11:
-      case 12:
-      case 13:
-      case 14:
-      case 15:
-        break;
-      case 16:
-        PumpMessage.processMinSpeed(msg);
-        break;
-      case 17:
-        PumpMessage.processMaxSpeed(msg);
-        break;
-      case 18:
-        PumpMessage.processPrimingSpeed(msg);
-        break;
-      case 19: // Pump names
-      case 20:
-      case 21:
-      case 22:
-      case 23:
-      case 24:
-      case 25:
-      case 26:
-        PumpMessage.processPumpNames(msg);
-        break;
-    }
-  }
-  private static processFlowStepSize(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.flowStepSize=msg.extractPayloadByte(i);
-    }
-  }
-  private static processMinFlow(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.minFlow=msg.extractPayloadByte(i);
-    }
-  }
-  private static processMaxFlow(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.maxFlow=msg.extractPayloadByte(i);
-    }
-  }
-  private static processPumpType(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(
-          pumpId++,
-          msg.extractPayloadByte(i)!==0
-      );
-      pump.type=msg.extractPayloadByte(i);
-      if (pump.isActive&&pump.type===0)
-        sys.pumps.removeItemById(pump.id);
+    private static processMaxSpeed(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
 
-      if (pump.type===0)
-        state.pumps.removeItemById(pump.id);
-      else {
-        const spump=state.pumps.getItemById(pump.id, true);
-        spump.type=pump.type;
-      }
-      pump.isActive=pump.type!==0;
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.maxSpeed = msg.extractPayloadInt(i);
+            i += 2;
+        }
     }
-  }
-  private static processAddress(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.address=msg.extractPayloadByte(i);
-    }
-  }
-  private static processPrimingTime(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.primingTime=msg.extractPayloadByte(i);
-    }
-  }
-  private static processSpeedStepSize(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-      i++
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.speedStepSize=msg.extractPayloadByte(i)*10;
-    }
-  }
-  private static processMinSpeed(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
+    private static processPrimingSpeed(msg: Inbound) {
+        let pumpId = 1;
+        for (
+            let i = 2;
+            i < msg.payload.length && pumpId <= sys.equipment.maxPumps;
 
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.minSpeed=msg.extractPayloadInt(i);
-      i+=2;
+        ) {
+            const pump: Pump = sys.pumps.getItemById(pumpId++);
+            pump.primingSpeed = msg.extractPayloadInt(i);
+            i += 2;
+        }
     }
-  }
-  private static processMaxSpeed(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
+    private static processPumpNames(msg: Inbound) {
+        let pumpId = (msg.extractPayloadByte(1) - 19) * 2 + 1;
+        if (pumpId <= sys.equipment.maxPumps) {
+            const pump = sys.pumps.getItemById(pumpId);
+            pump.name = msg.extractPayloadString(2, 16);
+            state.pumps.getItemById(pumpId++).name = pump.name;
+        }
+        if (pumpId <= sys.equipment.maxPumps) {
+            const pump = sys.pumps.getItemById(pumpId);
+            pump.name = msg.extractPayloadString(18, 16);
+            state.pumps.getItemById(pumpId++).name = pump.name;
+        }
+    }
+    private static processVS_IT(msg: Inbound) {
+        // Sample Packet
+        // [255, 0, 255], [165, 33, 15, 16, 27, 46], [1, 128, 1, 2, 0, 1, 6, 2, 12, 4, 9, 11, 7, 6, 7, 128, 8, 132, 3, 15, 5, 3, 234, 128, 46, 108, 58, 2, 232, 220, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [8, 5]
+        const pumpId = msg.extractPayloadByte(0);
+        const pump = sys.pumps.getItemById(pumpId);
+        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+            // question: why use add instead of just createItemById?
+            if (msg.extractPayloadByte(circuitId * 2 + 3) !== 0)
+                pump.circuits.getItemById(circuitId);
+            const circuit: PumpCircuit = pump.circuits.getItemById(circuitId);
+            circuit.circuit = msg.extractPayloadByte(circuitId * 2 + 3);
+            circuit.speed =
+                msg.extractPayloadByte(circuitId * 2 + 4) * 256 +
+                msg.extractPayloadByte(circuitId + 21);
+            circuit.units = 0;
+        }
+        pump.primingSpeed =
+            msg.extractPayloadByte(21) * 256 + msg.extractPayloadByte(30);
+        pump.primingTime = msg.extractPayloadByte(2);
+        pump.minSpeed = 450;
+        pump.maxSpeed = 3450;
+        pump.speedStepSize = 100;
+    }
+    private static processVF_IT(msg: Inbound) {
+        // Sample Packet
+        // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 6, 15, 2, 0, 1, 29, 11, 35, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 30, 55, 5, 10, 60, 5, 1, 50, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [3, 41]
+        const pumpId = msg.extractPayloadByte(0);
+        const pump = sys.pumps.getItemById(pumpId);
+        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+            if (msg.extractPayloadByte(circuitId * 2 + 3) !== 0)
+                pump.circuits.add({
+                    id: circuitId
+                    , circuit: msg.extractPayloadByte(circuitId * 2 + 3)
+                });
+            const circuit: PumpCircuit = pump.circuits.getItemById(circuitId);
+            circuit.flow = msg.extractPayloadByte(circuitId * 2 + 3);
+            circuit.units = 1;
+            switch (circuit.circuit) {
+                case 1:
+                    var body = sys.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
+                    body.type = 1; // spa
+                    body.isActive = true;
+                    body.capacity = msg.extractPayloadByte(6) * 1000;
+                    break;
+                case 6:
+                    var body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+                    body.type = 0; // pool
+                    body.isActive = true;
+                    body.capacity = msg.extractPayloadByte(6) * 1000;
+                    break;
+            }
+        }
+        pump.turnovers = msg.extractPayloadByte(3);
+        pump.primingSpeed =
+            msg.extractPayloadByte(21) * 256 + msg.extractPayloadByte(30);
+        pump.primingTime = msg.extractPayloadByte(23);
+        pump.minFlow = 15;
+        pump.maxFlow = 130;
+        pump.flowStepSize = 1;
+        pump.manualFilterGPM = msg.extractPayloadByte(21);
+        pump.maxPrimeFlow = msg.extractPayloadByte(22);
+        pump.maxPrimeTime = (msg.extractPayloadByte(23) & 0xf) - 1;
+        pump.maxSystemTime = msg.extractPayloadByte(23) >> 4;
+        pump.maxPressureIncrease = msg.extractPayloadByte(24);
+        pump.backwashFlow = msg.extractPayloadByte(25);
+        pump.backwashTime = msg.extractPayloadByte(26);
+        pump.rinseTime = msg.extractPayloadByte(27);
+        pump.vacuumFlow = msg.extractPayloadByte(28);
+        pump.vacuumTime = msg.extractPayloadByte(30);
+        // todo: add remaining vf pump fields(?)
+    }
+    private static processVSF_IT(msg: Inbound) {
+        // Sample packet
+        // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 64, 0, 0, 2, 1, 33, 2, 4, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 94]
+        const pumpId = msg.extractPayloadByte(0);
+        const pump = sys.pumps.getItemById(pumpId);
+        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+            // if ( msg.extractPayloadByte( ( circuitId * 2 ) + 3 ) !== 0 ) pump.circuits.add( { id: circuitId, circuit: msg.extractPayloadByte( ( circuitId * 2 ) + 3 ) } );
+            const circuit: PumpCircuit = pump.circuits.getItemById(circuitId, true);
+            circuit.circuit = msg.extractPayloadByte(circuitId * 2 + 3);
+            circuit.units =
+                (msg.extractPayloadByte(4) >> circuitId - 1 & 1) === 0 ? 1 : 0;
+            if (circuit.units)
+                circuit.flow = msg.extractPayloadByte(circuitId * 2 + 4);
+            else
+                circuit.speed =
+                    msg.extractPayloadByte(circuitId * 2 + 4) * 256 +
+                    msg.extractPayloadByte(circuitId + 21);
 
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.maxSpeed=msg.extractPayloadInt(i);
-      i+=2;
+        }
+        pump.speedStepSize = 100;
+        pump.flowStepSize = 1;
+        pump.minFlow = 15;
+        pump.maxFlow = 130;
+        pump.minSpeed = 450;
+        pump.maxSpeed = 3450;
+        // todo: add remaining vsf pump fields(?)
     }
-  }
-  private static processPrimingSpeed(msg: Inbound) {
-    let pumpId=1;
-    for (
-      let i=2;
-      i<msg.payload.length&&pumpId<=sys.equipment.maxPumps;
-
-    ) {
-      const pump: Pump=sys.pumps.getItemById(pumpId++);
-      pump.primingSpeed=msg.extractPayloadInt(i);
-      i+=2;
-    }
-  }
-  private static processPumpNames(msg: Inbound) {
-    let pumpId=(msg.extractPayloadByte(1)-19)*2+1;
-    if (pumpId<=sys.equipment.maxPumps) {
-      const pump=sys.pumps.getItemById(pumpId);
-      pump.name=msg.extractPayloadString(2, 16);
-      state.pumps.getItemById(pumpId++).name=pump.name;
-    }
-    if (pumpId<=sys.equipment.maxPumps) {
-      const pump=sys.pumps.getItemById(pumpId);
-      pump.name=msg.extractPayloadString(18, 16);
-      state.pumps.getItemById(pumpId++).name=pump.name;
-    }
-  }
-  private static processVS_IT(msg: Inbound) {
-    // Sample Packet
-    // [255, 0, 255], [165, 33, 15, 16, 27, 46], [1, 128, 1, 2, 0, 1, 6, 2, 12, 4, 9, 11, 7, 6, 7, 128, 8, 132, 3, 15, 5, 3, 234, 128, 46, 108, 58, 2, 232, 220, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [8, 5]
-    const pumpId=msg.extractPayloadByte(0);
-    const pump=sys.pumps.getItemById(pumpId);
-    for (let circuitId=1; circuitId<=this.maxCircuits; circuitId++) {
-      // question: why use add instead of just createItemById?
-      if (msg.extractPayloadByte(circuitId*2+3)!==0)
-        pump.circuits.getItemById(circuitId);
-      const circuit: PumpCircuit=pump.circuits.getItemById(circuitId);
-      circuit.circuit=msg.extractPayloadByte(circuitId*2+3);
-      circuit.speed=
-        msg.extractPayloadByte(circuitId*2+4)*256+
-        msg.extractPayloadByte(circuitId+21);
-      circuit.units=0;
-    }
-    pump.primingSpeed=
-      msg.extractPayloadByte(21)*256+msg.extractPayloadByte(30);
-    pump.primingTime=msg.extractPayloadByte(2);
-    pump.minSpeed=450;
-    pump.maxSpeed=3450;
-    pump.speedStepSize=100;
-  }
-  private static processVF_IT(msg: Inbound) {
-    // Sample Packet
-    // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 6, 15, 2, 0, 1, 29, 11, 35, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 30, 55, 5, 10, 60, 5, 1, 50, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [3, 41]
-    const pumpId=msg.extractPayloadByte(0);
-    const pump=sys.pumps.getItemById(pumpId);
-    for (let circuitId=1; circuitId<=this.maxCircuits; circuitId++) {
-      if (msg.extractPayloadByte(circuitId*2+3)!==0)
-        pump.circuits.add({
-          id: circuitId
-          , circuit: msg.extractPayloadByte(circuitId*2+3)
-        });
-      const circuit: PumpCircuit=pump.circuits.getItemById(circuitId);
-      circuit.flow=msg.extractPayloadByte(circuitId*2+3);
-      circuit.units=1;
-      switch (circuit.circuit) {
-        case 1:
-          var body=sys.bodies.getItemById(2, sys.equipment.maxBodies>=2);
-          body.type=1; // spa
-          body.isActive=true;
-          body.capacity=msg.extractPayloadByte(6)*1000;
-          break;
-        case 6:
-          var body=sys.bodies.getItemById(1, sys.equipment.maxBodies>=1);
-          body.type=0; // pool
-          body.isActive=true;
-          body.capacity=msg.extractPayloadByte(6)*1000;
-          break;
-      }
-    }
-    pump.turnovers=msg.extractPayloadByte(3);
-    pump.primingSpeed=
-      msg.extractPayloadByte(21)*256+msg.extractPayloadByte(30);
-    pump.primingTime=msg.extractPayloadByte(23);
-    pump.minFlow=15;
-    pump.maxFlow=130;
-    pump.flowStepSize=1;
-    pump.manualFilterGPM=msg.extractPayloadByte(21);
-    pump.maxPrimeFlow=msg.extractPayloadByte(22);
-    pump.maxPrimeTime=(msg.extractPayloadByte(23)&0xf)-1;
-    pump.maxSystemTime=msg.extractPayloadByte(23)>>4;
-    pump.maxPressureIncrease=msg.extractPayloadByte(24);
-    pump.backwashFlow=msg.extractPayloadByte(25);
-    pump.backwashTime=msg.extractPayloadByte(26);
-    pump.rinseTime=msg.extractPayloadByte(27);
-    pump.vacuumFlow=msg.extractPayloadByte(28);
-    pump.vacuumTime=msg.extractPayloadByte(30);
-    // todo: add remaining vf pump fields(?)
-  }
-  private static processVSF_IT(msg: Inbound) {
-    // Sample packet
-    // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 64, 0, 0, 2, 1, 33, 2, 4, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 94]
-    const pumpId=msg.extractPayloadByte(0);
-    const pump=sys.pumps.getItemById(pumpId);
-    for (let circuitId=1; circuitId<=this.maxCircuits; circuitId++) {
-      // if ( msg.extractPayloadByte( ( circuitId * 2 ) + 3 ) !== 0 ) pump.circuits.add( { id: circuitId, circuit: msg.extractPayloadByte( ( circuitId * 2 ) + 3 ) } );
-      const circuit: PumpCircuit=pump.circuits.getItemById(circuitId, true);
-      circuit.circuit=msg.extractPayloadByte(circuitId*2+3);
-      circuit.units=
-        (msg.extractPayloadByte(4)>>circuitId-1&1)===0? 1:0;
-      if (circuit.units)
-        circuit.flow=msg.extractPayloadByte(circuitId*2+4);
-      else
-        circuit.speed=
-          msg.extractPayloadByte(circuitId*2+4)*256+
-          msg.extractPayloadByte(circuitId+21);
-
-    }
-    pump.speedStepSize=100;
-    pump.flowStepSize=1;
-    pump.minFlow=15;
-    pump.maxFlow=130;
-    pump.minSpeed=450;
-    pump.maxSpeed=3450;
-    // todo: add remaining vsf pump fields(?)
-  }
 }
