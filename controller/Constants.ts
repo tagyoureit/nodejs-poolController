@@ -1,104 +1,86 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-export class Timestamp
-{
+export class Timestamp {
     private _dt: Date;
     public emitter: EventEmitter;
-    constructor( dt?: Date )
-    {
+    constructor(dt?: Date) {
         this._dt = dt || new Date();
         this.emitter = new EventEmitter();
     }
-    public get hours (): number { return this._dt.getHours(); }
-    public set hours ( val: number )
-    {
-        if ( this.hours !== val )
-        {
-            this._dt.setHours( val );
-            this.emitter.emit( 'change' );
+    public get hours(): number { return this._dt.getHours(); }
+    public set hours(val: number) {
+        if (this.hours !== val) {
+            this._dt.setHours(val);
+            this.emitter.emit('change');
         }
     }
-    public get minutes (): number { return this._dt.getMinutes(); }
-    public set minutes ( val: number )
-    {
-        if ( this.minutes !== val )
-        {
-            this._dt.setMinutes( val );
-            this.emitter.emit( 'change' );
+    public get minutes(): number { return this._dt.getMinutes(); }
+    public set minutes(val: number) {
+        if (this.minutes !== val) {
+            this._dt.setMinutes(val);
+            this.emitter.emit('change');
         }
     }
-    public get seconds (): number { return this._dt.getSeconds(); }
-    public set seconds ( val: number )
-    {
-        if ( this.seconds !== val )
-        {
-            this._dt.setSeconds( val );
+    public get seconds(): number { return this._dt.getSeconds(); }
+    public set seconds(val: number) {
+        if (this.seconds !== val) {
+            this._dt.setSeconds(val);
             // No need to emit this change as Intellicenter only
             // reports to the minute.
             //this.emitter.emit('change');
         }
     }
-    public get milliseconds (): number { return this._dt.getMilliseconds(); }
-    public set milliseconds ( val: number ) { this._dt.setMilliseconds( val ); }
-    public get fullYear (): number { return this._dt.getFullYear(); }
-    public set fullYear ( val: number ) { this._dt.setFullYear( val ); }
-    public get year (): number { return this._dt.getFullYear(); }
-    public set year ( val: number )
-    {
-        let y = val < 100 ? ( Math.floor( this._dt.getFullYear() / 100 ) * 100 ) + val : val;
-        if ( y !== this.year )
-        {
-            this._dt.setFullYear( y );
-            this.emitter.emit( 'change' );
+    public get milliseconds(): number { return this._dt.getMilliseconds(); }
+    public set milliseconds(val: number) { this._dt.setMilliseconds(val); }
+    public get fullYear(): number { return this._dt.getFullYear(); }
+    public set fullYear(val: number) { this._dt.setFullYear(val); }
+    public get year(): number { return this._dt.getFullYear(); }
+    public set year(val: number) {
+        let y = val < 100 ? (Math.floor(this._dt.getFullYear() / 100) * 100) + val : val;
+        if (y !== this.year) {
+            this._dt.setFullYear(y);
+            this.emitter.emit('change');
         }
     }
-    public get month (): number { return this._dt.getMonth() + 1; }
-    public set month ( val: number )
-    {
-        if ( this.month !== val )
-        {
-            this._dt.setMonth( val - 1 );
-            this.emitter.emit( 'change' );
+    public get month(): number { return this._dt.getMonth() + 1; }
+    public set month(val: number) {
+        if (this.month !== val) {
+            this._dt.setMonth(val - 1);
+            this.emitter.emit('change');
         }
     }
-    public get date (): number { return this._dt.getDate(); }
-    public set date ( val: number )
-    {
-        if ( this.date !== val )
-        {
-            this._dt.setDate( val );
-            this.emitter.emit( 'change' );
+    public get date(): number { return this._dt.getDate(); }
+    public set date(val: number) {
+        if (this.date !== val) {
+            this._dt.setDate(val);
+            this.emitter.emit('change');
         }
     }
-    public get dayOfWeek (): number
-    {
+    public get dayOfWeek(): number {
         // for IntelliTouch set date/time
-        if ( this._dt.getUTCDay() === 0 )
+        if (this._dt.getUTCDay() === 0)
             return 0;
         else
-            return Math.pow( 2, this._dt.getUTCDay() - 1 );
+            return Math.pow(2, this._dt.getUTCDay() - 1);
     }
-    public format (): string { return Timestamp.toISOLocal( this._dt ); }
-    public static toISOLocal ( dt ): string
-    {
+    public format(): string { return Timestamp.toISOLocal(this._dt); }
+    public static toISOLocal(dt): string {
         let tzo = dt.getTimezoneOffset();
-        var pad = function ( n )
-        {
-            var t = Math.floor( Math.abs( n ) );
-            return ( t < 10 ? '0' : '' ) + t;
+        var pad = function (n) {
+            var t = Math.floor(Math.abs(n));
+            return (t < 10 ? '0' : '') + t;
         };
-        return new Date( dt.getTime() - ( tzo * 60000 ) ).toISOString().slice( 0, -1 ) + ( tzo > 0 ? '-' : '+' ) + pad( tzo / 60 ) + pad( tzo % 60 )
+        return new Date(dt.getTime() - (tzo * 60000)).toISOString().slice(0, -1) + (tzo > 0 ? '-' : '+') + pad(tzo / 60) + pad(tzo % 60)
     }
 }
-export enum ControllerType
-{
+export enum ControllerType {
     IntelliCenter = 'intellicenter',
     IntelliTouch = 'intellitouch',
     IntelliCom = 'intellicom',
+    EasyTouch = 'easytouch',
     Unknown = 'unknown'
 }
-export class Enums
-{
+export class Enums {
     // Controller Constants
     public static PanelModes = {
         0: { val: 0, name: 'auto', desc: 'Auto' },
@@ -106,15 +88,14 @@ export class Enums
         8: { val: 8, name: 'freeze', desc: 'Freeze' },
         128: { val: 128, name: 'timeout', desc: 'Timeout' },
         129: { val: 129, name: 'service-timeout', desc: 'Service/Timeout' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte & 0x83 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte & 0x83]); }
     };
     public static TempUnits = {
         0: { val: 0, name: 'F', desc: 'Fahrenheit' },
         4: { val: 4, name: 'C', desc: 'Celcius' },
-        transform: function ( byte )
-        {
-            console.log( 'Setting Temp Units to byte' + byte, this[ byte ] );
-            return extend( true, {}, this[ byte & 0x04 ] );
+        transform: function (byte) {
+            console.log('Setting Temp Units to byte' + byte, this[byte]);
+            return extend(true, {}, this[byte & 0x04]);
         }
     };
     public static Addresses = {
@@ -126,13 +107,13 @@ export class Enums
         36: { val: 36, name: 'intellicenter', desc: 'Intellicenter Plugin' },
         37: { val: 37, name: 'indoor2', desc: 'Indoor panel #2' },
         144: { val: 144, name: 'intellichem', desc: 'Intellichem' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static Bodies = {
         0: { val: 0, name: 'pool', desc: 'Pool' },
         1: { val: 1, name: 'spa', desc: 'Spa' },
         32: { val: 32, name: 'poolspa', desc: 'Pool/Spa' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static ControllerStatus = {
         0: { val: 0, name: 'initializing', percent: 0 },
@@ -148,9 +129,8 @@ export class Enums
     public static ScheduleType = {
         0: { val: 128, name: 'runonce', desc: 'Run Once' },
         128: { val: 0, name: 'repeat', desc: 'Repeats' },
-        transform: function ( byte )
-        {
-            return ( byte & 128 ) > 0 ? extend( true, {}, this[ 128 ] ) : extend( true, {}, this[ 0 ] );
+        transform: function (byte) {
+            return (byte & 128) > 0 ? extend(true, {}, this[128]) : extend(true, {}, this[0]);
         }
     }
     public static ScheduleDays = {
@@ -163,12 +143,10 @@ export class Enums
         7: { val: 7, name: 'sun', desc: 'Sunday', dow: 0 },
         // Return an array based upon the bits present. We want this
         // in reverse order as the bits represented from Intellicenter are reversed.  Saturday is the first day of week.
-        transform: function ( byte )
-        {
+        transform: function (byte) {
             let days = [];
-            for ( let bit = 7; bit >= 0; bit-- )
-            {
-                if ( ( byte & ( 1 << ( bit - 1 ) ) ) > 0 ) days.push( extend( true, {}, this[ bit ] ) );
+            for (let bit = 7; bit >= 0; bit--) {
+                if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this[bit]));
             }
             return days;
         }
@@ -180,7 +158,7 @@ export class Enums
         1: { val: 1, name: 'spillway', desc: 'Spillway' },
         2: { val: 2, name: 'mastercleaner', desc: 'Master Cleaner' },
         3: { val: 3, name: 'chemrelay', desc: 'Chem Relay' },
-        4: { val: 4, name: 'light', desc: 'light' },
+        4: { val: 4, name: 'light', desc: 'Light' },
         5: { val: 5, name: 'intellibrite', desc: 'Intellibrite' },
         6: { val: 6, name: 'globrite', desc: 'GloBrite' },
         7: { val: 7, name: 'globritewhite', desc: 'GloBrite White' },
@@ -190,7 +168,7 @@ export class Enums
         11: { val: 11, name: 'mastercleaner2', desc: 'Master Cleaner 2' },
         12: { val: 12, name: 'pool', desc: 'Pool' },
         13: { val: 13, name: 'spa', desc: 'Spa' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     // Circuit Constants
     public static CircuitTypes_IT = {
@@ -215,7 +193,7 @@ export class Enums
         130: { val: 130, name: 'poolheater', desc: 'Pool Heater' },
         131: { val: 131, name: 'spaheater', desc: 'spa Heater' },
         132: { val: 132, name: 'freeze', desc: 'Freeze' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static VirtualCircuits = {
         // NOTE: I think this is a bug in Intellicenter as 37-39 should be not defined the first 40 circuits are
@@ -233,13 +211,13 @@ export class Enums
         251: { id: 251, name: 'Heater' },
         252: { id: 252, name: 'Solar' },
         255: { id: 255, name: 'Pool Heat Enable' },
-        get: function ( id: number ) { return extend( true, {}, { id: id, name: 'Unknown ' + id }, this[ id ], { showInFeatures: false, showInCircuits: false } ); }
+        get: function (id: number) { return extend(true, {}, { id: id, name: 'Unknown ' + id }, this[id], { showInFeatures: false, showInCircuits: false }); }
     }
     public static CircuitGroupTypes = {
         0: { val: 0, name: 'none', desc: 'Unspecified' },
         1: { val: 1, name: 'light', desc: 'Light' },
         2: { val: 2, name: 'circuit', desc: 'Circuit' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
 
     public static LightThemes = {
@@ -256,13 +234,11 @@ export class Enums
         10: { val: 10, name: 'sunset', desc: 'Sunset' },
         11: { val: 11, name: 'royal', desc: 'Royal' },
         255: { val: 255, name: 'none', desc: 'None' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 255 ] ); },
-        get: function ()
-        {
+        transform: function (byte) { return extend(true, {}, this[byte] || this[255]); },
+        get: function () {
             let themes = [];
-            for ( let ndx in this )
-            {
-                if ( typeof ( this[ ndx ] ) !== 'function' ) themes.push( extend( true, {}, this[ ndx ] ) );
+            for (let ndx in this) {
+                if (typeof (this[ndx]) !== 'function') themes.push(extend(true, {}, this[ndx]));
             }
             return themes;
         }
@@ -298,13 +274,11 @@ export class Enums
         196: { val: 196, name: 'white', desc: 'White' },
         197: { val: 197, name: 'magenta', desc: 'Magenta' },
         255: { val: 255, name: 'none', desc: 'None' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 255 ] ); },
-        get: function ()
-        {
+        transform: function (byte) { return extend(true, {}, this[byte] || this[255]); },
+        get: function () {
             let themes = [];
-            for ( let ndx in this )
-            {
-                if ( typeof ( this[ ndx ] ) !== 'function' ) themes.push( extend( true, {}, this[ ndx ] ) );
+            for (let ndx in this) {
+                if (typeof (this[ndx]) !== 'function') themes.push(extend(true, {}, this[ndx]));
             }
             return themes;
         }
@@ -318,7 +292,7 @@ export class Enums
         3: { val: 3, name: 'heatpump', desc: 'Heat Pump' },
         4: { val: 4, name: 'ultratemp', desc: 'Ultratemp' },
         5: { val: 5, name: 'hybrid', desc: 'hybrid' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static HeatSource = {
         0: { val: 0, name: 'off', desc: 'No Heater' },
@@ -326,22 +300,21 @@ export class Enums
         5: { val: 5, name: 'solar', desc: 'Solar Only' },
         21: { val: 21, name: 'solarpref', desc: 'Solar Preferred' },
         32: { val: 32, name: 'nochange', desc: 'No Change' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static HeatMode = {
         0: { val: 0, name: 'off', desc: 'Off' },
         3: { val: 3, name: 'heater', desc: 'Heater' },
         5: { val: 5, name: 'solar', desc: 'Solar Only' },
         21: { val: 21, name: 'solarpref', desc: 'Solar Preferred' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static HeatStatus = {
         0: { val: 0, name: 'off', desc: 'Off' },
         1: { val: 1, name: 'heater', desc: 'Heater' },
         2: { val: 2, name: 'solar', desc: 'Solar' },
-        transform: function ( byte )
-        {
-            return extend( true, {}, this[ byte ] || this[ 0 ] );
+        transform: function (byte) {
+            return extend(true, {}, this[byte] || this[0]);
         }
     }
 
@@ -349,7 +322,7 @@ export class Enums
     public static pumpUnits = {
         0: { val: 0, name: 'rpm', desc: 'RPM' },
         1: { val: 1, name: 'gpm', desc: 'GPM' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static PumpTypes = {
         0: { val: 0, name: 'none', desc: 'No pump' },
@@ -358,7 +331,7 @@ export class Enums
         3: { val: 3, name: 'vs', desc: 'Intelliflo VS' },
         4: { val: 4, name: 'vsf', desc: 'Intelliflo VSF' },
         5: { val: 5, name: 'vf', desc: 'Intelliflo VF' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); }
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
     }
     public static PumpErrors = {
         0: { val: 0, name: 'stoppedok', desc: 'Ok - Stopped' },
@@ -378,17 +351,13 @@ export class Enums
         14: { val: 14, name: 'error14', desc: 'Unspecified Error 14' },
         15: { val: 15, name: 'error15', desc: 'Unspecified Error 15' },
         16: { val: 18, name: 'commfailure', desc: 'Communication failure' },
-        transform: function ( byte )
-        {
-            for ( let b = 16; b >= 0; b-- )
-            {
-                let bit = ( 1 << ( b - 1 ) );
-                let ndx = ( byte & bit );
-                if ( ( byte & bit ) >= 0 )
-                {
-                    if ( typeof ( this[ ndx ] ) !== "undefined" )
-                    {
-                        return extend( true, {}, this[ ndx ], { val: byte } );
+        transform: function (byte) {
+            for (let b = 16; b >= 0; b--) {
+                let bit = (1 << (b - 1));
+                let ndx = (byte & bit);
+                if ((byte & bit) >= 0) {
+                    if (typeof (this[ndx]) !== "undefined") {
+                        return extend(true, {}, this[ndx], { val: byte });
                     }
                 }
             }
@@ -406,19 +375,15 @@ export class Enums
         6: { val: 6, name: 'lowvoltage', desc: 'Low Voltage' },
         7: { val: 7, name: 'lowtemp', dest: 'Water Temp Low' },
         8: { val: 8, name: 'commlost', desc: 'Communication Lost' },
-        transform: function ( byte )
-        {
-            if ( byte === 128 ) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
-            else if ( byte === 0 ) return { val: 0, name: 'ok', desc: 'Ok' };
-            for ( let b = 8; b >= 0; b-- )
-            {
-                let bit = ( 1 << ( b ) );
-                let ndx = ( byte & bit );
-                if ( ( byte & bit ) > 0 )
-                {
-                    if ( typeof ( this[ ndx ] ) !== "undefined" )
-                    {
-                        return extend( true, {}, this[ ndx ], { val: byte & 0x00FF } );
+        transform: function (byte) {
+            if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
+            else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
+            for (let b = 8; b >= 0; b--) {
+                let bit = (1 << (b));
+                let ndx = (byte & bit);
+                if ((byte & bit) > 0) {
+                    if (typeof (this[ndx]) !== "undefined") {
+                        return extend(true, {}, this[ndx], { val: byte & 0x00FF });
                     }
                 }
             }
@@ -529,7 +494,7 @@ export class Enums
         99: { val: 99, name: 'feature6', desc: 'FEATURE 6' },
         100: { val: 100, name: 'feature7', desc: 'FEATURE 7' },
         101: { val: 101, name: 'feature8', desc: 'FEATURE 8' },
-        transform: function ( byte ) { return extend( true, {}, this[ byte ] || this[ 0 ] ); },
+        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); },
     }
 
 

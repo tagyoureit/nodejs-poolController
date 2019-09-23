@@ -1,7 +1,7 @@
-﻿import { Inbound } from '../Messages';
+﻿import { Inbound, Message } from '../Messages';
 import { ControllerType } from '../../../Constants';
 import { state, BodyTempState, SF } from '../../../State';
-import { sys, Body, PF } from '../../../Equipment';
+import { sys, Body } from '../../../Equipment';
 import { logger } from 'logger/Logger';
 
 export class EquipmentStateMessage {
@@ -11,11 +11,13 @@ export class EquipmentStateMessage {
         switch (sysFlag) {
             case 23:
                 ct = ControllerType.IntelliCenter;
-                PF.controllerType = ControllerType.IntelliCenter;
+                //PF.controllerType = ControllerType.IntelliCenter;
                 SF.controllerType = ControllerType.IntelliCenter;
+                Message.headerSubByte = 63;
                 break;
             case 11:
                 ct = ControllerType.IntelliCom;
+                Message.headerSubByte = 36;
                 break;
             case 0: // IntelliTouch i5
             case 1: // IntelliTouch i7+3
@@ -26,11 +28,13 @@ export class EquipmentStateMessage {
             case 13: // EasyTouch2 Models
             case 14: // EasyTouch1 Models
                 ct = ControllerType.IntelliTouch;
-                PF.controllerType = ControllerType.IntelliTouch;
+                //PF.controllerType = ControllerType.IntelliTouch;
                 SF.controllerType = ControllerType.IntelliTouch;
+                Message.headerSubByte = 36;
                 break;
         }
         if (sys.controllerType === ControllerType.Unknown || ct !== sys.controllerType) {
+            sys.controllerType = ct;
             // We need to reset.  The information we have is wrong.  This will come after we
             // normalize the sys and state.
             //sys.reset(ct);
@@ -38,6 +42,7 @@ export class EquipmentStateMessage {
         }
         EquipmentStateMessage.processEquipmentState(msg);
         state.status = 1;
+        setTimeout(() => sys.checkConfiguration(), 300);
     }
     public static process(msg: Inbound) {
         if (!state.isInitialized) {
@@ -250,7 +255,7 @@ export class EquipmentStateMessage {
                     chlor.superChlor = false;
                     chlor.emitEquipmentChange();
                 }
-                EquipmentStateMessage.processEquipmentState();
+                EquipmentStateMessage.processEquipmentState(msg);
                 state.emitControllerChange();
                 break;
         }

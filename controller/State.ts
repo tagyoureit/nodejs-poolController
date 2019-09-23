@@ -14,6 +14,7 @@ import { conn } from './comms/Comms';
 class PoolStateFactory {
     private _controllerType: string;
     private _state: State;
+    public get controllerType(): string { return this._controllerType };
     public set controllerType(ct: string) {
         console.log(`Getting Pool State`)
         this._controllerType = ct;

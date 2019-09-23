@@ -49,7 +49,7 @@ class PacketTester extends React.Component<any, State> {
         let packets: number[][] = []
         this.state.rows.forEach( ( el:number[] ) =>
         {
-            packets.push(Object.values(el))
+            //packets.push(Object.values(el))
         } ) 
         return packets;
     }
@@ -93,18 +93,18 @@ class PacketTester extends React.Component<any, State> {
             } )
         } )
 
-        _arrObj.forEach( ( el, idx ) =>
-        {
-            console.log( idx )
-            console.log( el )
-            console.log( Object.keys( _arrObj[ idx ] ).length )
-            if ( Object.keys( _arrObj[ idx ] ).length > _columnLength )
-            {
+        //_arrObj.forEach( ( el, idx ) =>
+        //{
+        //    console.log( idx )
+        //    console.log( el )
+        //    console.log( Object.keys( _arrObj[ idx ] ).length )
+        //    if ( Object.keys( _arrObj[ idx ] ).length > _columnLength )
+        //    {
 
-                // increase col length
-                _columnLength = Object.keys( _arrObj[ idx ] ).length
-            }
-        } )
+        //        // increase col length
+        //        _columnLength = Object.keys( _arrObj[ idx ] ).length
+        //    }
+        //} )
 
         console.log( `column length: ${ _columnLength }` )
 
