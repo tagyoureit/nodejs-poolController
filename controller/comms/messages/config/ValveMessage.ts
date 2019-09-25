@@ -1,6 +1,6 @@
 ﻿import { Inbound } from "../Messages";
 import { sys, Valve } from "../../../Equipment";
-import { Enums, ControllerType } from "../../../Constants";
+import { ControllerType } from "../../../Constants";
 export class ValveMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -61,9 +61,8 @@ export class ValveMessage {
     private static getName(cir: number) {
         if (cir < 64)
             return sys.circuits.getItemById(cir).name;
-
         else
-            return Enums.CircuitTypes_IT.transform(cir).desc;
+            return sys.board.valueMaps.circuitFunctions.transform(cir).desc;
 
     }
     private static processCircuit(msg: Inbound) {

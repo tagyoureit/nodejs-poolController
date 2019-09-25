@@ -1,7 +1,6 @@
 ﻿import * as express from "express";
 import { state } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
-import { Enums } from '../../../controller/Constants';
 export class StateRoute
 {
     public static initRoutes ( app: express.Application )
@@ -35,7 +34,7 @@ export class StateRoute
         } )
         app.put( '/state/circuit/setTheme', ( req, res ) =>
         {
-            state.circuits.setCircuitTheme( parseInt( req.body.id, 10 ), parseInt( req.body.theme, 10 ) );
+            state.circuits.setLightTheme(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
             return res.status( 200 ).send( 'OK' );
         } );
         app.put( '/state/circuit/setDimmerLevel', ( req, res ) =>
@@ -85,22 +84,25 @@ export class StateRoute
         } );
         app.put( '/state/cancelDelay', ( req, res ) =>
         {
-            state.cancelDelay();
+            state.equipment.cancelDelay();
             return res.status( 200 ).send( 'OK' );
         } )
         app.put( '/state/circuit/setLightColor', ( req, res ) =>
         {
-            state.circuits.setLightColor( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
+            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
+            //state.circuits.setLightColor( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
             return res.status(404).send('NOT IMPLEMENTED')
         })
         app.put( '/state/circuit/setLightSwimDelay', ( req, res ) =>
         {
-            state.circuits.setLightSwimDelay( parseInt( req.body.id, 10 ), parseInt( req.body.delay, 10 ) );
+            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
+            //state.circuits.setLightSwimDelay( parseInt( req.body.id, 10 ), parseInt( req.body.delay, 10 ) );
             return res.status(404).send('NOT IMPLEMENTED')
         })
         app.put( '/state/circuit/setLightPosition', ( req, res ) =>
         {
-            state.circuits.setLightPosition( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
+            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
+            //state.circuits.setLightPosition( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
             return res.status(404).send('NOT IMPLEMENTED')
         })
     }

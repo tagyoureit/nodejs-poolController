@@ -5,8 +5,8 @@ import { Protocol, Outbound, Response, Message } from "./comms/messages/Messages
 import { setTimeout } from "timers";
 import { conn } from "./comms/Comms";
 import { logger } from "../logger/Logger";
-import { state, IntelliTouchCircuitStateCollection } from "./State";
-import { Enums, Timestamp, ControllerType } from "./Constants";
+import { state, CircuitStateCollection, CommsState } from "./State";
+import { Timestamp, ControllerType } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
 import { SystemBoard } from "./boards/SystemBoard";
@@ -649,11 +649,11 @@ export class BodyCollection extends EqItemCollection<Body> {
     public createItem(data: any): Body { return new Body(data); }
     public setHeatMode(id: number, mode: number) {
         let body = this.getItemById(id);
-        sys.board.setHeatMode(body, mode);
+        sys.board.bodies.setHeatMode(body, mode);
     }
     public setHeatSetpoint(id: number, setPoint: number) {
         let body = this.getItemById(id);
-        sys.board.setHeatSetpoint(body, setPoint);
+        sys.board.bodies.setHeatSetpoint(body, setPoint);
     }
 }
 export class Body extends EqItem {
@@ -675,9 +675,9 @@ export class Body extends EqItem {
     public set setPoint(val: number) { this.data.setPoint = val; }
     public get heatMode(): number { return this.data.heatMode; }
     public set heatMode(val: number) { this.data.heatMode = val; }
-    public getHeatModes() { return sys.board.getHeatModes(this.id); }
-    public setHeatMode(mode: number) { sys.board.setHeatMode(this, mode); }
-    public setHeatSetpoint(setPoint: number) { sys.board.setHeatSetpoint(this, setPoint); }
+    public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
+    public setHeatMode(mode: number) { sys.board.bodies.setHeatMode(this, mode); }
+    public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpoint(this, setPoint); }
 }
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }
@@ -720,7 +720,7 @@ export class Schedule extends EqItem {
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.data.startDate = Timestamp.toISOLocal(this.startDate); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.data.flags = val; }
-    public set(obj: any) { sys.board.setSchedule(this, obj); }
+    public set(obj: any) { sys.board.schedules.setSchedule(this, obj); }
 }
 // TODO: Get rid of this
 export class EggTimerCollection extends EqItemCollection<EggTimer> {
@@ -787,7 +787,7 @@ export class Circuit extends EqItem {
         else return this.data.intellibrite;
     }
     public removeIntelliBrite(): void { delete this.data.intellibrite; }
-    public getLightThemes() { return sys.board.getLightThemes(this.type); }
+    public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
         let defName = "Aux" + (id + 1).toString();
@@ -911,252 +911,16 @@ export class Pump extends EqItem {
     public get vacuumTime() { return this.data.vacuumTime; }
     public set vacuumTime(val: number) { this.data.vacuumTime = val; }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
-    public setPump(obj?: any) { sys.board.setPump(this, obj); }
+    public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
     public setCircuitRate(circuitId: number, rate: number) {
         let c = this.circuits.getItemById(circuitId);
         if (c.units === 0) c.speed = rate;
         else c.flow = rate;
         this.setPump();
     }
-    public setCircuitRateUnits(circuitId: number, units: number) {
-        const c = this.circuits.getItemById(circuitId);
-        c.units = units;
-        if (c.units === 0) c.speed = 1000;
-        else c.flow = 30;
-        this.setPump();
-    }
-    public setCircuitId(pumpCircuitId: number, circuitId: number) {
-        const c = this.circuits.getItemById(pumpCircuitId, true);
-        c.circuit = circuitId;
-        if (typeof c.units === 'undefined') {
-            c.units = 0;
-            c.speed = 1000;
-        }
-        this.setPump();
-    }
-    public setType(pumpType: number) {
-        
-        let setPumpType = Outbound.createMessage(155, []);
-        // TODO: Move this into SystemBoard.  I am not sure but I think this is to delete a pump or clear the circuits.
-        if (sys.controllerType !== ControllerType.IntelliCenter) {
-            switch (pumpType) {
-                case 0: // none
-                    setPumpType.payload = [
-                        this.id
-                        , 0
-                        , 15
-                        , 2
-                        , 0
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 30
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 10
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        ,];
-                    break;
-                case 1: // VF
-                    setPumpType.payload = [
-                        this.id
-                        , 6
-                        , 15
-                        , 2
-                        , 0
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 30
-                        , 55
-                        , 5
-                        , 10
-                        , 60
-                        , 5
-                        , 1
-                        , 50
-                        , 0
-                        , 10
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        ,];
-                    break;
-                case 64: // VSF
-                    setPumpType.payload = [
-                        this.id
-                        , 64
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 30
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 255
-                        , 255
-                        , 255
-                        , 255
-                        , 255
-                        , 255
-                        , 255
-                        , 255
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        ,];
-                    break;
-                case 128: // VS
-                    setPumpType.payload = [
-                        this.id
-                        , 128
-                        , 15
-                        , 2
-                        , 0
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 0
-                        , 3
-                        , 30
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 232
-                        , 10
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        , 0
-                        ,];
-                    break;
-            }
-            this.type = pumpType;
-            this.circuits.clear();
-            for (let i = 1; i <= 8; i++) {
-                const pumpCircuit = this.circuits.getItemById(i);
-                pumpCircuit.circuit = 0;
-                pumpCircuit.units = 0;
-            }
-            const spump = state.pumps.getItemById(this.id, true);
-            spump.type = this.type;
-            spump.status = 0;
-            spump.emitEquipmentChange();
-            sys.pumps.emitEquipmentChange();
-            conn.queueSendMessage(setPumpType);
-        }
-        sys.checkConfiguration();
-    }
+    public setCircuitRateUnits(circuitId: number, units: number) { sys.board.pumps.setCircuitRateUnits(this, circuitId, units) }
+    public setCircuitId(pumpCircuitId: number, circuitId: number) { sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId); }
+    public setType(pumpType: number) { sys.board.pumps.setType(this, pumpType); }
 }
 export class PumpCircuitCollection extends EqItemCollection<PumpCircuit> {
     constructor(data: any, name?: string) { super(data, name || "circuits"); }
@@ -1295,7 +1059,11 @@ export class CircuitGroup extends EqItem {
     public set isActive(val: boolean) { this.data.isActive = val; }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public get lightingTheme(): number { return this.data.lightingTheme; }
+    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
+    public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
+
 }
 export class RemoteCollection extends EqItemCollection<Remote> {
     constructor(data: any, name?: string) { super(data, name || "remotes"); }

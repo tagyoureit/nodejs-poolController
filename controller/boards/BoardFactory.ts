@@ -3,7 +3,7 @@ import { IntelliTouchBoard } from './IntelliTouchBoard';
 import { IntelliComBoard } from './IntelliComBoard';
 import { EasyTouchBoard } from './EasyTouchBoard';
 import { SystemBoard } from './SystemBoard';
-import { ControllerType, Enums } from '../Constants';
+import { ControllerType } from '../Constants';
 import { PoolSystem } from '../Equipment';
 
 export class BoardFactory {

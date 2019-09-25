@@ -1,14 +1,12 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest } from './SystemBoard';
+import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands } from './SystemBoard';
 import { PoolSystem, Body, Heater, Pump, sys } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state } from '../State';
-import { Enums } from '../Constants';
+import { state, ChlorinatorState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
-    private _configQueue: TouchConfigQueue = new TouchConfigQueue();
     constructor(system: PoolSystem) {
         super(system);
         this.valueMaps.circuitNames = new byteValueMap([
@@ -259,20 +257,210 @@ export class EasyTouchBoard extends SystemBoard {
             [2, { name: 'solar', desc: 'Solar Only' }],
             [3, { name: 'solarpref', desc: 'Solar Preferred' }],
         ]);
-        this.valueMaps.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this[byte] || this[255]); };
-    }
-    public requestConfiguration() { this._configQueue.queueChanges(); };
-    public checkConfiguration() { this.requestConfiguration(); }; // Probably could put at least some time restrictions based upon the last time it was acquired.
-
-    public stopAsync() { this._configQueue.close(); };
-    public getLightThemes(type: number): any[] {
-        switch (type) {
-            case 16: // Intellibrite
-            case 8: // Magicstream
-                return this.valueMaps.lightThemes.toArray();
-            default:
-                return [];
+        this.valueMaps.scheduleDays = new byteValueMap([
+            [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
+            [2, { name: 'fri', desc: 'Friday', dow: 5 }],
+            [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
+            [4, { name: 'wed', desc: 'Wednesday', dow: 3 }],
+            [5, { name: 'tue', desc: 'Tuesday', dow: 2 }],
+            [6, { name: 'mon', desc: 'Monday', dow: 1 }],
+            [7, { val: 7, name: 'sun', desc: 'Sunday', dow: 0 }]
+        ]);
+        this.valueMaps.scheduleDays.transform = function (byte) {
+            let days = [];
+            let b = byte & 0x007F;
+            for (let bit = 7; bit >= 0; bit--) {
+                if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
+            }
+            return { val: b, days: days };
         }
+        this.valueMaps.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+    }
+    private _configQueue: TouchConfigQueue = new TouchConfigQueue();
+    public bodies: TouchBodyCommands = new TouchBodyCommands(this);
+    public system: TouchSystemCommands = new TouchSystemCommands(this);
+    public circuits: TouchCircuitCommands = new TouchCircuitCommands(this);
+    public features: TouchFeatureCommands = new TouchFeatureCommands(this);
+    public chemistry: TouchChemistryCommands = new TouchChemistryCommands(this);
+    public pumps: TouchPumpCommands = new TouchPumpCommands(this);
+    public requestConfiguration() { this._configQueue.queueChanges(); };
+    public checkConfiguration() { this.requestConfiguration(); }; // Probably could put at least some time restrictions based upon the last time it was acquired.  This is in the ConfigVersion object
+    public stopAsync() { this._configQueue.close(); };
+}
+export class TouchConfigRequest extends ConfigRequest {
+    constructor(setcat: number, items?: number[], oncomplete?: Function) {
+        super();
+        this.setcategory = setcat;
+        setcat === GetTouchConfigCategories.version ?
+            this.category = TouchConfigCategories.version :
+            this.category = setcat & 63;
+        if (typeof items !== 'undefined') this.items.push(...items);
+        this.oncomplete = oncomplete;
+    }
+    public category: TouchConfigCategories;
+    public setcategory: GetTouchConfigCategories;
+}
+class TouchConfigQueue extends ConfigQueue {
+    private queueRange(cat: number, start: number, end: number) {
+        let req = new TouchConfigRequest(cat, []);
+        req.fillRange(start, end);
+        this.push(req);
+    }
+    private queueItems(cat: number, items?: number[]) { this.push(new TouchConfigRequest(cat, items)); }
+    public queueChanges() {
+        this.reset();
+        if (conn.mockPort) {
+            logger.info(`Skipping Controller Init because MockPort enabled.`);
+        } else {
+            logger.info(`Requesting ${sys.controllerType} configuration`);
+            this.queueItems(GetTouchConfigCategories.dateTime, [0]);
+            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
+            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
+            this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames);
+            // todo: better formula for this that includes expansion boards
+            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits + sys.equipment.maxFeatures + 4);
+            this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
+            this.queueItems(GetTouchConfigCategories.delays, [0]);
+            this.queueItems(GetTouchConfigCategories.settings, [0]);
+            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
+            this.queueItems(GetTouchConfigCategories.is4is10, [0]);
+            this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);
+            this.queueItems(GetTouchConfigCategories.valves, [0]);
+            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
+            this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
+            this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+        }
+        if (this.remainingItems > 0) {
+            var self = this
+            setTimeout(() => { self.processNext() }, 50);
+        } else state.status = 1;
+        state.emitControllerChange();
+    }
+    // TODO: RKS -- Investigate why this is needed.  Me thinks that there really is no difference once the whole thing is optimized.  With a little
+    // bit of work I'll bet we can eliminate these extension objects altogether.
+    public processNext(msg?: Outbound) {
+        if (this.closed) return;
+        let self = this;
+        if (typeof msg !== "undefined" && msg !== null)
+            if (!msg.failed) {
+                // Remove all references to future items. We got it so we don't need it again.
+                this.removeItem(msg.action, msg.payload[0]);
+                if (this.curr && this.curr.isComplete) {
+                    if (!this.curr.failed) {
+                        // Call the identified callback.  This may add additional items.
+                        if (typeof this.curr.oncomplete === 'function') {
+                            this.curr.oncomplete(this.curr);
+                            this.curr.oncomplete = undefined;
+                        }
+                        // Let the process add in any additional information we might need.  When it does
+                        // this it will set the isComplete flag to false.
+                        /* if ( this.curr.isComplete )
+                                      sys.configVersion[ GetConfigCategories[ this.curr.setcategory ] ] = this.curr.version; */
+                    } else {
+                        // We failed to get the data.  Let the system retry when
+                        // we are done with the queue.
+                        /* sys.configVersion[ GetConfigCategories[ this.curr.setcategory ] ] = 0; */
+                    }
+                }
+                if (!this.curr) {
+                    // There never was anything for us to do. We will likely never get here.
+                    state.status = 1;
+                    state.emitControllerChange();
+                    return;
+                } else {
+                    state.status = sys.board.valueMaps.controllerStatus.transform(2, this.percent);
+                }
+                // Shift to the next config queue item.
+                logger.silly(
+                    `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
+                );
+                while (
+                    this.queue.length > 0 &&
+                    this.curr.isComplete
+                ) {
+                    this.curr = this.queue.shift() || null;
+                }
+                let itm = 0;
+                if (this.curr && !this.curr.isComplete) {
+                    itm = this.curr.items.shift();
+                    const out: Outbound = new Outbound(
+                        Protocol.Broadcast,
+                        Message.pluginAddress,
+                        16,
+                        this.curr.setcategory,
+                        [itm],
+                        5,
+                        new Response(
+                            16,
+                            15,
+                            this.curr.category,
+                            [itm],
+                            undefined,
+                            function (msgOut) { self.processNext(msgOut) })
+                    );
+                    setTimeout(() => conn.queueSendMessage(out), 50);
+                } else {
+                    // Now that we are done check the configuration a final time.  If we have anything outstanding
+                    // it will get picked up.
+                    state.status = 1;
+                    this.curr = null;
+                    sys.configVersion.lastUpdated = new Date();
+                    // setTimeout( sys.checkConfiguration, 100 );
+                    logger.info(`IntelliTouch system config complete.`);
+                }
+                // Notify all the clients of our processing status.
+                state.emitControllerChange();
+            }
+    }
+}
+export enum TouchConfigCategories {
+    dateTime = 5,
+    heatTemperature = 8,
+    customNames = 10,
+    circuits = 11,
+    schedules = 17,
+    spaSideRemote = 22,
+    pumpStatus = 23,
+    pumpConfig = 24,
+    intellichlor = 25,
+    valves = 29,
+    highSpeedCircuits = 30,
+    is4is10 = 32,
+    solarHeatPump = 34,
+    delays = 35,
+    lightGroupPositions = 39,
+    settings = 40,
+    version = 252
+}
+export enum GetTouchConfigCategories {
+    dateTime = 197,
+    heatTemperature = 200,
+    customNames = 202,
+    circuits = 203,
+    schedules = 209,
+    spaSideRemote = 214,
+    pumpStatus = 215,
+    pumpConfig = 216,
+    intellichlor = 217,
+    valves = 221,
+    highSpeedCircuits = 222,
+    is4is10 = 224,
+    intellifloSpaSideRemotes = 225,
+    solarHeatPump = 226,
+    delays = 227,
+    lightGroupPositions = 231,
+    settings = 232,
+    version = 253
+}
+class TouchSystemCommands extends SystemCommands {
+    public cancelDelay() {
+        let out = Outbound.createMessage(131, [0], 3, new Response(Message.pluginAddress, 16, 1, [131], null, function (msg) {
+            if (!msg.failed) {
+                // todo: track delay status?
+                state.delay = 0;
+            }
+        }));
+        conn.queueSendMessage(out);
     }
     public setDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {
         // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
@@ -307,6 +495,9 @@ export class EasyTouchBoard extends SystemBoard {
         );
         conn.queueSendMessage(out);
     }
+
+}
+class TouchBodyCommands extends BodyCommands {
     public setHeatMode(body: Body, mode: number) {
         //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
         // The mapping below is no longer required.
@@ -393,6 +584,99 @@ export class EasyTouchBoard extends SystemBoard {
         );
         conn.queueSendMessage(out);
     }
+}
+class TouchCircuitCommands extends CircuitCommands {
+    public getLightThemes(type: number): any[] {
+        switch (type) {
+            case 16: // Intellibrite
+            case 8: // Magicstream
+                return sys.board.valueMaps.lightThemes.toArray();
+            default:
+                return [];
+        }
+    }
+    public setCircuitState(id: number, val: boolean) {
+        if (id > 9) this.board.features.setFeatureState(id, val);
+        else {
+            let cstate = state.circuits.getItemById(id);
+            let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
+                if (!msg.failed) {
+                    // RKS: This should really be in transition until the action 2 comes in.  When it does it will automatically emit the equipment change. Either toggle
+                    // on the UI and let the 2 reset it or set the cursor to no-drop, dim the control, or set the entire display to wait until the next status.
+                    cstate.isOn = true;
+                    cstate.emitEquipmentChange();
+                }
+            }));
+            conn.queueSendMessage(out);
+        }
+    }
+    public toggleCircuitState(id: number) {
+        if (id > 9) this.board.features.toggleFeatureState(id);
+        else {
+            let cstate = state.circuits.getItemById(id);
+            this.setCircuitState(id, !cstate.isOn);
+        }
+    }
+    public setLightTheme(id: number, theme: number) {
+        let cstate = state.circuits.getItemById(id);
+        let circuit = sys.circuits.getItemById(id);
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+            if (!msg.failed) {
+                circuit.lightingTheme = theme;
+                cstate.lightingTheme = theme;
+                cstate.isOn = true;
+                cstate.emitEquipmentChange();
+            }
+        }));
+        conn.queueSendMessage(out);
+        if (!cstate.isOn) {
+            // If the circuit is off we need to turn it on.
+            this.setCircuitState(id, true);
+        }
+    }
+}
+class TouchFeatureCommands extends FeatureCommands {
+    public setFeatureState(id: number, val: boolean) {
+        if (id <= 9) this.board.circuits.setCircuitState(id, val);
+        else {
+            let fstate = state.features.getItemById(id);
+            let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
+                if (!msg.failed) {
+                    // RKS: This should really be in transition until the action 2 comes in.  When it does it will automatically emit the equipment change. Either toggle
+                    // on the UI and let the 2 reset it or set the cursor to no-drop, dim the control, or set the entire display to wait until the next status.
+                    fstate.isOn = true;
+                    fstate.emitEquipmentChange();
+                }
+            }));
+            conn.queueSendMessage(out);
+        }
+    }
+    public toggleFeatureState(id: number) {
+        if (id <= 9) this.board.circuits.toggleCircuitState(id);
+        else {
+            let cstate = state.circuits.getItemById(id);
+            this.setFeatureState(id, !cstate.isOn);
+        }
+    }
+}
+class TouchChemistryCommands extends ChemistryCommands {
+    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+        // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
+        // all map here unless overridden.
+        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function (msg) {
+            if (!msg.failed) {
+                let chlor = sys.chlorinators.getItemById(cstate.id);
+                cstate.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
+                cstate.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
+                cstate.superChlorHours = chlor.superChlorHours = superChlorHours;
+                cstate.superChlor = chlor.superChlor = superChlor;
+                cstate.emitEquipmentChange();
+            }
+        }));
+        conn.queueSendMessage(out);
+    }
+}
+class TouchPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
@@ -475,173 +759,48 @@ export class EasyTouchBoard extends SystemBoard {
         // sys.checkConfiguration();
         return [setPumpConfig, pumpConfigRequest, pumpConfigRequest2];
     }
-
-}
-export class TouchConfigRequest extends ConfigRequest {
-    constructor(setcat: number, items?: number[], oncomplete?: Function) {
-        super();
-        this.setcategory = setcat;
-        setcat === GetTouchConfigCategories.version ?
-            this.category = TouchConfigCategories.version :
-            this.category = setcat & 63;
-        if (typeof items !== 'undefined') this.items.push(...items);
-        this.oncomplete = oncomplete;
-    }
-    public category: TouchConfigCategories;
-    public setcategory: GetTouchConfigCategories;
-}
-class TouchConfigQueue extends ConfigQueue {
-    private queueRange(cat: number, start: number, end: number) {
-        let req = new TouchConfigRequest(cat, []);
-        req.fillRange(start, end);
-        this.push(req);
-    }
-    private queueItems(cat: number, items?: number[]) { this.push(new TouchConfigRequest(cat, items)); }
-    public queueChanges() {
-        this.reset();
-        if (conn.mockPort) {
-            logger.info(`Skipping Controller Init because MockPort enabled.`);
-        } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
-            this.queueItems(GetTouchConfigCategories.dateTime, [0]);
-            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
-            this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames);
-            // todo: better formula for this that includes expansion boards
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits + sys.equipment.maxFeatures + 4);
-            this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
-            this.queueItems(GetTouchConfigCategories.delays, [0]);
-            this.queueItems(GetTouchConfigCategories.settings, [0]);
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
-            this.queueItems(GetTouchConfigCategories.is4is10, [0]);
-            this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);
-            this.queueItems(GetTouchConfigCategories.valves, [0]);
-            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
-            this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
-            this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+    public setType(pump: Pump, pumpType: number) {
+        let setPumpType = Outbound.createMessage(155, []);
+        switch (pumpType) {
+            case 0: // none
+                setPumpType.payload = [
+                    pump.id, 0, 15, 2, 0, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, // 20
+                    3, 30, 232, 232, 232, 232, 232, 232, 232, 232, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0];
+                    break;
+            case 1: // VF
+                setPumpType.payload = [
+                    pump.id, 6, 15, 2, 0, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, // 20
+                    30, 30, 55, 5, 10, 60, 5, 1, 50, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0];
+                break;
+            case 64: // VSF
+                setPumpType.payload = [
+                    pump.id, 64, 0, 0, 0, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, // 20
+                    30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 0,
+                    0, 0, 0, 0, 0, 0];
+                break;
+            case 128: // VS
+                setPumpType.payload = [
+                    pump.id, 128, 15, 2, 0, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3, 0, // 20
+                    3, 30, 232, 232, 232, 232, 232, 232, 232, 232, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0];
+                break;
         }
-        if (this.remainingItems > 0) {
-            var self = this
-            setTimeout(() => { self.processNext() }, 50);
-        } else state.status = 1;
-        state.emitControllerChange();
+        pump.type = pumpType;
+        pump.circuits.clear();
+        for (let i = 1; i <= 8; i++) {
+            let pumpCircuit = pump.circuits.getItemById(i);
+            pumpCircuit.circuit = 0;
+            pumpCircuit.units = 0;
+        }
+        let spump = state.pumps.getItemById(pump.id, true);
+        spump.type = pump.type;
+        spump.status = 0;
+        spump.emitEquipmentChange();
+        sys.pumps.emitEquipmentChange();
+        conn.queueSendMessage(setPumpType);
+        sys.checkConfiguration();
     }
-    // TODO: RKS -- Investigate why this is needed.  Me thinks that there really is no difference once the whole thing is optimized.  With a little
-    // bit of work I'll bet we can eliminate these extension objects altogether.
-    public processNext(msg?: Outbound) {
-        if (this.closed) return;
-        let self = this;
-        if (typeof msg !== "undefined" && msg !== null)
-            if (!msg.failed) {
-                // Remove all references to future items. We got it so we don't need it again.
-                this.removeItem(msg.action, msg.payload[0]);
-                if (this.curr && this.curr.isComplete) {
-                    if (!this.curr.failed) {
-                        // Call the identified callback.  This may add additional items.
-                        if (typeof this.curr.oncomplete === 'function') {
-                            this.curr.oncomplete(this.curr);
-                            this.curr.oncomplete = undefined;
-                        }
-                        // Let the process add in any additional information we might need.  When it does
-                        // this it will set the isComplete flag to false.
-                        /* if ( this.curr.isComplete )
-                                      sys.configVersion[ GetConfigCategories[ this.curr.setcategory ] ] = this.curr.version; */
-                    } else {
-                        // We failed to get the data.  Let the system retry when
-                        // we are done with the queue.
-                        /* sys.configVersion[ GetConfigCategories[ this.curr.setcategory ] ] = 0; */
-                    }
-                }
-                if (!this.curr) {
-                    // There never was anything for us to do. We will likely never get here.
-                    state.status = 1;
-                    state.emitControllerChange();
-                    return;
-                } else {
-                    state.status = Enums.ControllerStatus.transform(2, this.percent);
-                }
-                // Shift to the next config queue item.
-                logger.silly(
-                    `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
-                );
-                while (
-                    this.queue.length > 0 &&
-                    this.curr.isComplete
-                ) {
-                    this.curr = this.queue.shift() || null;
-                }
-                let itm = 0;
-                if (this.curr && !this.curr.isComplete) {
-                    itm = this.curr.items.shift();
-                    const out: Outbound = new Outbound(
-                        Protocol.Broadcast,
-                        Message.pluginAddress,
-                        16,
-                        this.curr.setcategory,
-                        [itm],
-                        5,
-                        new Response(
-                            16,
-                            15,
-                            this.curr.category,
-                            [itm],
-                            undefined,
-                            function (msgOut) { self.processNext(msgOut) })
-                    );
-                    setTimeout(() => conn.queueSendMessage(out), 50);
-                } else {
-                    // Now that we are done check the configuration a final time.  If we have anything outstanding
-                    // it will get picked up.
-                    state.status = 1;
-                    this.curr = null;
-                    sys.configVersion.lastUpdated = new Date();
-                    // setTimeout( sys.checkConfiguration, 100 );
-                    logger.info(`IntelliTouch system config complete.`);
-                }
-                // Notify all the clients of our processing status.
-                state.emitControllerChange();
-            }
-    }
-}
-export enum TouchConfigCategories {
-    dateTime = 5,
-    heatTemperature = 8,
-    customNames = 10,
-    circuits = 11,
-    schedules = 17,
-    spaSideRemote = 22,
-    pumpStatus = 23,
-    pumpConfig = 24,
-    intellichlor = 25,
-    valves = 29,
-    highSpeedCircuits = 30,
-    is4is10 = 32,
-    solarHeatPump = 34,
-    delays = 35,
-    lightGroupPositions = 39,
-    settings = 40,
-    version = 252
-}
-export enum GetTouchConfigCategories {
-    dateTime = 197,
-    heatTemperature = 200,
-    customNames = 202,
-    circuits = 203,
-    schedules = 209,
-    spaSideRemote = 214,
-    pumpStatus = 215,
-    pumpConfig = 216,
-    intellichlor = 217,
-    valves = 221,
-    highSpeedCircuits = 222,
-    is4is10 = 224,
-    intellifloSpaSideRemotes = 225,
-    solarHeatPump = 226,
-    delays = 227,
-    lightGroupPositions = 231,
-    settings = 232,
-    version = 253
-}
 
-
-
+}

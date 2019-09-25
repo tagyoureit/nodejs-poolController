@@ -1,6 +1,6 @@
 ﻿import { Inbound } from "../Messages";
 import { sys, CircuitGroup, CircuitGroupCircuit } from"../../../Equipment";
-import { state, CircuitGroupState, GroupCircuitState } from '../../../State';
+import { state, CircuitGroupState } from '../../../State';
 export class CircuitGroupMessage {
     private static maxCircuits: number = 16;
     public static process(msg: Inbound): void {
@@ -46,6 +46,7 @@ export class CircuitGroupMessage {
     
     private static processGroupType(msg: Inbound) {
         var groupId = 1 + ((msg.extractPayloadByte(1) - 32) * 16);
+        let arrlightGrps = [];
         for (let i = 2; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups && i <= 17; i++) {
             let type = msg.extractPayloadByte(i);
             let group: CircuitGroup = sys.circuitGroups.getItemById(groupId++, type !== 0);
@@ -55,9 +56,17 @@ export class CircuitGroupMessage {
                 sys.circuitGroups.removeItemById(group.id);
                 state.circuitGroups.removeItemById(group.id);
             }
+            if (group.type === 1)
+                arrlightGrps.push(group);
             group.isActive = group.type !== 0;
             if (!group.isActive && state.circuitGroups.length > sys.circuitGroups.length) state.circuitGroups.removeItemById(group.id);
             if (group.isActive) sgroup.type = group.type;
+        }
+        for (let i = 0; i < arrlightGrps.length; i++) {
+            let group: CircuitGroup = arrlightGrps[i];
+            let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id);
+            group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
+            sgroup.lightingTheme = group.lightingTheme;
         }
     }
     private static processEggTimer(msg: Inbound) {

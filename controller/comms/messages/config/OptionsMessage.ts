@@ -1,6 +1,6 @@
 ﻿import { Inbound } from "../Messages";
 import { sys } from "../../../Equipment";
-import { Enums, ControllerType } from "../../../Constants";
+import { ControllerType } from "../../../Constants";
 export class OptionsMessage
 {
     public static process(msg: Inbound): void {
@@ -68,7 +68,7 @@ export class OptionsMessage
                         hs.type = val;
                         val < 64 ?
                             hs.name = sys.circuits.getItemById(val).name
-                            : hs.name = Enums.CircuitTypes_IT.transform(val).desc
+                            : hs.name = sys.board.valueMaps.circuitFunctions.transform(val).desc
                     }
                 }
                 break;

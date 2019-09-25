@@ -1,7 +1,7 @@
 ﻿import { Inbound } from "../Messages";
 import { sys, Pump, PumpCircuit } from "../../../Equipment";
 import { state, CircuitState } from "../../../State";
-import { Enums, ControllerType } from "../../../Constants";
+import { ControllerType } from "../../../Constants";
 import { publicDecrypt } from "crypto";
 export class PumpMessage {
     private static maxCircuits: number = 8;

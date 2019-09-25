@@ -1,15 +1,13 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest } from './SystemBoard';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChemistryCommands, PumpCommands, BodyCommands, ScheduleCommands } from './SystemBoard';
 import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
-import { state } from '../State';
-import { Enums } from '../Constants';
+import { state, ChlorinatorState } from '../State';
 export class IntelliCenterBoard extends SystemBoard {
     private _needsChanges: boolean = false;
-    private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     constructor(system: PoolSystem) {
         super(system);
         this.valueMaps.circuitFunctions = new byteValueMap([
@@ -48,10 +46,33 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'off', desc: 'Off' }],
             [3, { name: 'heater', desc: 'Heater' }],
             [5, { name: 'solar', desc: 'Solar Only' }],
-            [12, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [12, { name: 'solarpref', desc: 'Solar Preferred' }]
         ]);
-
+        this.valueMaps.scheduleDays = new byteValueMap([
+            [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
+            [2, { name: 'fri', desc: 'Friday', dow: 5 }],
+            [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
+            [4, { name: 'wed', desc: 'Wednesday', dow: 3 }],
+            [5, { name: 'tue', desc: 'Tuesday', dow: 2 }],
+            [6, { name: 'mon', desc: 'Monday', dow: 1 }],
+            [7, { val: 7, name: 'sun', desc: 'Sunday', dow: 0 }]
+        ]);
+        this.valueMaps.scheduleDays.transform = function (byte) {
+            let days = [];
+            let b = byte & 0x007F;
+            for (let bit = 7; bit >= 0; bit--) {
+                if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
+            }
+            return { val: b, days: days };
+        }
     }
+    private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
+    public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
+    public features: IntelliCenterFeatureCommands = new IntelliCenterFeatureCommands(this);
+    public chemistry: IntelliCenterChemistryCommands = new IntelliCenterChemistryCommands(this);
+    public bodies: IntelliCenterBodyCommands = new IntelliCenterBodyCommands(this);
+    public pumps: IntelliCenterPumpCommands = new IntelliCenterPumpCommands(this);
+    public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
     public checkConfiguration() {
         this._needsChanges = true;
         // Send out a message to the outdoor panel that we need info about
@@ -65,204 +86,6 @@ export class IntelliCenterBoard extends SystemBoard {
         this._configQueue.queueChanges(ver);
     }
     public stopAsync() { this._configQueue.close(); }
-    public getLightThemes(type: number): any[] {
-        switch (type) {
-            case 5: // Intellibrite
-            case 8: // Magicstream
-                return this.valueMaps.lightThemes.toArray();
-            default:
-                return [];
-        }
-    }
-    public setHeatMode(body: Body, mode: number) {
-        const self = this;
-        let byte2 = 18;
-        let mode1 = sys.bodies.getItemById(1).setPoint || 100;
-        let mode2 = sys.bodies.getItemById(2).setPoint || 100;
-        let mode3 = sys.bodies.getItemById(3).setPoint || 100;
-        let mode4 = sys.bodies.getItemById(4).setPoint || 100;
-        switch (body.id) {
-            case 1:
-                byte2 = 22;
-                mode1 = mode;
-                break;
-            case 2:
-                byte2 = 23;
-                mode2 = mode;
-                break;
-            case 3:
-                byte2 = 24;
-                mode3 = mode;
-                break;
-            case 4:
-                byte2 = 25;
-                mode4 = mode;
-                break;
-        }
-        let out = Outbound.createMessage(168,
-            [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
-                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0],
-            0,
-            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    body.heatMode = mode;
-                    state.temps.bodies.getItemById(body.id).heatMode = mode;
-                }
-            })
-        );
-        conn.queueSendMessage(out);
-
-    }
-    public setHeatSetpoint(body: Body, setPoint: number) {
-        let byte2 = 18;
-        let temp1 = sys.bodies.getItemById(1).setPoint || 100;
-        let temp2 = sys.bodies.getItemById(2).setPoint || 100;
-        let temp3 = sys.bodies.getItemById(3).setPoint || 100;
-        let temp4 = sys.bodies.getItemById(4).setPoint || 100;
-        switch (body.id) {
-            case 1:
-                byte2 = 18;
-                temp1 = setPoint;
-                break;
-            case 2:
-                byte2 = 20;
-                temp2 = setPoint;
-                break;
-            case 3:
-                byte2 = 19;
-                temp3 = setPoint;
-                break;
-            case 4:
-                byte2 = 21;
-                temp4 = setPoint;
-                break;
-        }
-        let out = Outbound.createMessage(
-            168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
-                , 0, 100, 0, 0, 0, 0, 0, 0], 0,
-            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    body.setPoint = setPoint;
-                    state.temps.bodies.getItemById(body.id).setPoint = setPoint;
-                    state.temps.emitEquipmentChange();
-                }
-            })
-        );
-        conn.queueSendMessage(out);
-    }
-    public setSchedule(sched: Schedule, obj: any) {
-        // We are going to extract the properties from
-        // the object then send a related message to set it
-        // on the controller.
-        if (typeof obj.startTime === 'number') sched.startTime = obj.startTime;
-        if (typeof obj.endTime === 'number') sched.endTime = obj.endTime;
-        if (typeof obj.scheduleType === 'number') sched.runOnce = (sched.runOnce & 0x007f) + (obj.scheduleType > 0 ? 128 : 0);
-        if (typeof obj.scheduleDays === 'number')
-            if ((sched.runOnce & 128) > 0) {
-                sched.runOnce = sched.runOnce & 0x00ff & obj.scheduleDays;
-            } else sched.scheduleDays = obj.scheduleDays & 0x00ff;
-
-        if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
-        const csched = state.schedules.getItemById(sched.id, true);
-        csched.startTime = sched.startTime;
-        csched.endTime = sched.endTime;
-        csched.circuit = sched.circuit;
-        csched.heatSetpoint = sched.heatSetpoint;
-        csched.heatSource = sched.heatSource;
-        csched.scheduleDays =
-            (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
-        csched.scheduleType = sched.runOnce;
-        csched.emitEquipmentChange();
-        let out = Outbound.createMessage(168, [
-            3
-            , 0
-            , sched.id - 1
-            , sched.startTime - Math.floor(sched.startTime / 256) * 256
-            , Math.floor(sched.startTime / 256)
-            , sched.endTime - Math.floor(sched.endTime / 256) * 256
-            , Math.floor(sched.endTime / 256)
-            , sched.circuit - 1
-            , sched.runOnce
-            , sched.scheduleDays
-            , sched.startMonth
-            , sched.startDay
-            , sched.startYear - 2000
-            , sched.heatSource
-            , sched.heatSetpoint
-            , sched.flags
-            ,],
-            0
-        );
-        conn.queueSendMessage(out); // Send it off in a letter to yourself.
-    }
-    public setPump(pump: Pump, obj?: any) {
-        super.setPump(pump, obj);
-        let msgs: Outbound[] = this.createPumpConfigMessages(pump);
-        sys.emitEquipmentChange();
-        sys.pumps.emitEquipmentChange();
-    }
-    private createPumpConfigMessages(pump: Pump): Outbound[] {
-        let arr: Outbound[] = [];
-        let outSettings = Outbound.createMessage(
-            168, [4, 0, pump.id - 1, pump.type, 0, pump.address, pump.minSpeed - Math.floor(pump.minSpeed / 256) * 256, Math.floor(pump.minSpeed / 256), pump.maxSpeed - Math.floor(pump.maxSpeed / 256) * 256
-                , Math.floor(pump.maxSpeed / 256), pump.minFlow, pump.maxFlow, pump.flowStepSize, pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256
-                , Math.floor(pump.primingSpeed / 256), pump.speedStepSize / 10, pump.primingTime
-                , 5, 255, 255, 255, 255, 255, 255, 255, 255
-                , 0, 0, 0, 0, 0, 0, 0, 0], 0); // All the circuits and units.
-        let outName = Outbound.createMessage(
-            168, [4, 1, pump.id - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
-        for (let i = 0; i < 8; i++) {
-            let circuit = pump.circuits.getItemById(i + 1);
-            if (typeof circuit.circuit === 'undefined' || circuit.circuit === 255 || circuit.circuit === 0) {
-                outSettings.payload[i + 18] = 255;
-                // If this is a VF or VSF then we want to put these units in the minimum flow category.
-                switch (pump.type) {
-                    case 1: // SS
-                    case 2: // DS
-                        outName.payload[i * 2 + 3] = 0;
-                        outName.payload[i * 2 + 4] = 0;
-                        break;
-                    case 4: // VSF
-                    case 5: // VF
-                        outName.payload[i * 2 + 3] =
-                            pump.minSpeed - Math.floor(pump.minFlow / 256) * 256;
-                        outName.payload[i * 2 + 4] = Math.floor(pump.minFlow / 256);
-                        break;
-                    default:
-                        // VS
-                        outName.payload[i * 2 + 3] = pump.minSpeed - Math.floor(pump.minSpeed / 256) * 256;
-                        outName.payload[i * 2 + 4] = Math.floor(pump.minSpeed / 256);
-                        break;
-                }
-            }
-            else {
-                outSettings.payload[i + 18] = circuit.circuit - 1; // Set this to the index not the id.
-                outSettings.payload[i + 26] = circuit.units;
-                switch (pump.type) {
-                    case 1: // SS
-                        outName.payload[i * 2 + 3] = 0;
-                        outName.payload[i * 2 + 4] = 0;
-                        break;
-                    case 2: // DS
-                        outName.payload[i * 2 + 3] = 1;
-                        outName.payload[i * 2 + 4] = 0;
-                        break;
-                    case 4: // VSF
-                    case 5: // VF
-                        outName.payload[i * 2 + 3] = circuit.flow - Math.floor(circuit.flow / 256) * 256;
-                        outName.payload[i * 2 + 4] = Math.floor(circuit.flow / 256);
-                        break;
-                    default:
-                        // VS
-                        outName.payload[i * 2 + 3] = circuit.speed - Math.floor(circuit.speed / 256) * 256;
-                        outName.payload[i * 2 + 4] = Math.floor(circuit.speed / 256);
-                        break;
-                }
-            }
-        }
-        outName.appendPayloadString(pump.name, 16);
-        return [outSettings, outName];
-    }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
     constructor(cat: number, ver: number, items?: number[], oncomplete?: Function) {
@@ -310,7 +133,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             state.emitControllerChange();
             return;
         } else
-            state.status = Enums.ControllerStatus.transform(2, this.percent);
+            state.status = sys.board.valueMaps.controllerStatus.transform(2, this.percent);
         // Shift to the next config queue item.
         while (
             this.queue.length > 0 &&
@@ -351,7 +174,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (!curr.hasChanges(ver)) return;
         sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
-        state.status = Enums.ControllerStatus.transform(2, 0);
+        state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
         this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, [0, 1, 2, 3]);
         this.maybeQueueItems(curr.options, ver.options, ConfigCategories.options, [0, 1]);
         if (this.compareVersions(curr.circuits, ver.circuits)) {
@@ -457,6 +280,276 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr, ver)) this.push(new IntelliCenterConfigRequest(cat, ver, opts));
     }
 
+}
+class IntelliCenterCircuitCommands extends CircuitCommands {
+    public board: IntelliCenterBoard;
+    public getLightThemes(type: number): any[] {
+        switch (type) {
+            case 5: // Intellibrite
+            case 8: // Magicstream
+                return sys.board.valueMaps.lightThemes.toArray();
+            default:
+                return [];
+        }
+    }
+    public createCircuitStateMessage(): Outbound {
+        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3,
+            new Response(16, Message.pluginAddress, 1, [168]));
+        for (let i = 1; i <= state.data.circuits.length; i++) {
+            let circuit = state.circuits.getItemById(i);
+            let ndx = Math.floor((i - 1) / 8);
+            let byte = out.payload[ndx + 3];
+            let bit = (i - 1) - (ndx * 8);
+            if (circuit.isOn) byte = byte | (1 << bit);
+            out.payload[ndx + 3] = byte;
+        }
+        for (let i = 1; i <= state.data.features.length; i++) {
+            let feature = state.data.features.getItemById(i);
+            let ndx = Math.floor((i - 1) / 8);
+            let byte = out.payload[ndx + 9];
+            let bit = (i - 1) - (ndx * 8);
+            if (feature.isOn) byte = byte | (1 << bit);
+            out.payload[ndx + 9] = byte;
+        }
+        return out;
+    }
+    public setDimmerLevel(id: number, level: number) {
+        let circuit = sys.circuits.getItemById(id);
+        let cstate = state.circuits.getItemById(id);
+        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+            level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+                if (!msg.failed) {
+                    circuit.level = level;
+                    cstate.level = level;
+                    cstate.isOn = true;
+                    cstate.emitEquipmentChange();
+                }
+            }));
+        out.appendPayloadString(circuit.name, 16);
+        conn.queueSendMessage(out);
+        if (!cstate.isOn) {
+            // If the circuit is off we need to turn it on.
+            this.setCircuitState(id, true);
+        }
+    }
+}
+class IntelliCenterFeatureCommands extends FeatureCommands {
+    public board: IntelliCenterBoard;
+    public setFeatureState(id, val) {
+        let out = this.board.circuits.createCircuitStateMessage();
+        let ndx = Math.floor((id - 1) / 8);
+        let byte = out.payload[ndx + 9];
+        let bit = (id - 1) - (ndx * 8);
+        if (val) byte |= (1 << bit);
+        else byte &= ~(1 << bit);
+        out.payload[ndx + 9] = byte;
+        conn.queueSendMessage(out);
+    }
+    public setGroupStates() { } // Do nothing and let IntelliCenter do it.
+}
+class IntelliCenterChemistryCommands extends ChemistryCommands {
+    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours) {
+        super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
+        let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlorHours > 0 ? 1 : 0, superChlorHours, 0, 1], 3,
+            new Response(16, Message.pluginAddress, 1, [168]));
+        conn.queueSendMessage(out);
+    }
+}
+class IntelliCenterPumpCommands extends PumpCommands {
+    private createPumpConfigMessages(pump: Pump): Outbound[] {
+        let arr: Outbound[] = [];
+        let outSettings = Outbound.createMessage(
+            168, [4, 0, pump.id - 1, pump.type, 0, pump.address, pump.minSpeed - Math.floor(pump.minSpeed / 256) * 256, Math.floor(pump.minSpeed / 256), pump.maxSpeed - Math.floor(pump.maxSpeed / 256) * 256
+                , Math.floor(pump.maxSpeed / 256), pump.minFlow, pump.maxFlow, pump.flowStepSize, pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256
+                , Math.floor(pump.primingSpeed / 256), pump.speedStepSize / 10, pump.primingTime
+                , 5, 255, 255, 255, 255, 255, 255, 255, 255
+                , 0, 0, 0, 0, 0, 0, 0, 0], 0); // All the circuits and units.
+        let outName = Outbound.createMessage(
+            168, [4, 1, pump.id - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
+        for (let i = 0; i < 8; i++) {
+            let circuit = pump.circuits.getItemById(i + 1);
+            if (typeof circuit.circuit === 'undefined' || circuit.circuit === 255 || circuit.circuit === 0) {
+                outSettings.payload[i + 18] = 255;
+                // If this is a VF or VSF then we want to put these units in the minimum flow category.
+                switch (pump.type) {
+                    case 1: // SS
+                    case 2: // DS
+                        outName.payload[i * 2 + 3] = 0;
+                        outName.payload[i * 2 + 4] = 0;
+                        break;
+                    case 4: // VSF
+                    case 5: // VF
+                        outName.payload[i * 2 + 3] =
+                            pump.minSpeed - Math.floor(pump.minFlow / 256) * 256;
+                        outName.payload[i * 2 + 4] = Math.floor(pump.minFlow / 256);
+                        break;
+                    default:
+                        // VS
+                        outName.payload[i * 2 + 3] = pump.minSpeed - Math.floor(pump.minSpeed / 256) * 256;
+                        outName.payload[i * 2 + 4] = Math.floor(pump.minSpeed / 256);
+                        break;
+                }
+            }
+            else {
+                outSettings.payload[i + 18] = circuit.circuit - 1; // Set this to the index not the id.
+                outSettings.payload[i + 26] = circuit.units;
+                switch (pump.type) {
+                    case 1: // SS
+                        outName.payload[i * 2 + 3] = 0;
+                        outName.payload[i * 2 + 4] = 0;
+                        break;
+                    case 2: // DS
+                        outName.payload[i * 2 + 3] = 1;
+                        outName.payload[i * 2 + 4] = 0;
+                        break;
+                    case 4: // VSF
+                    case 5: // VF
+                        outName.payload[i * 2 + 3] = circuit.flow - Math.floor(circuit.flow / 256) * 256;
+                        outName.payload[i * 2 + 4] = Math.floor(circuit.flow / 256);
+                        break;
+                    default:
+                        // VS
+                        outName.payload[i * 2 + 3] = circuit.speed - Math.floor(circuit.speed / 256) * 256;
+                        outName.payload[i * 2 + 4] = Math.floor(circuit.speed / 256);
+                        break;
+                }
+            }
+        }
+        outName.appendPayloadString(pump.name, 16);
+        return [outSettings, outName];
+    }
+    public setPump(pump: Pump, obj?: any) {
+        super.setPump(pump, obj);
+        let msgs: Outbound[] = this.createPumpConfigMessages(pump);
+        sys.emitEquipmentChange();
+        sys.pumps.emitEquipmentChange();
+    }
+}
+class IntelliCenterBodyCommands extends BodyCommands {
+    public setHeatMode(body: Body, mode: number) {
+        const self = this;
+        let byte2 = 18;
+        let mode1 = sys.bodies.getItemById(1).setPoint || 100;
+        let mode2 = sys.bodies.getItemById(2).setPoint || 100;
+        let mode3 = sys.bodies.getItemById(3).setPoint || 100;
+        let mode4 = sys.bodies.getItemById(4).setPoint || 100;
+        switch (body.id) {
+            case 1:
+                byte2 = 22;
+                mode1 = mode;
+                break;
+            case 2:
+                byte2 = 23;
+                mode2 = mode;
+                break;
+            case 3:
+                byte2 = 24;
+                mode3 = mode;
+                break;
+            case 4:
+                byte2 = 25;
+                mode4 = mode;
+                break;
+        }
+        let out = Outbound.createMessage(168,
+            [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
+                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0],
+            0,
+            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+                if (!msg.failed) {
+                    body.heatMode = mode;
+                    state.temps.bodies.getItemById(body.id).heatMode = mode;
+                }
+            })
+        );
+        conn.queueSendMessage(out);
+
+    }
+    public setHeatSetpoint(body: Body, setPoint: number) {
+        let byte2 = 18;
+        let temp1 = sys.bodies.getItemById(1).setPoint || 100;
+        let temp2 = sys.bodies.getItemById(2).setPoint || 100;
+        let temp3 = sys.bodies.getItemById(3).setPoint || 100;
+        let temp4 = sys.bodies.getItemById(4).setPoint || 100;
+        switch (body.id) {
+            case 1:
+                byte2 = 18;
+                temp1 = setPoint;
+                break;
+            case 2:
+                byte2 = 20;
+                temp2 = setPoint;
+                break;
+            case 3:
+                byte2 = 19;
+                temp3 = setPoint;
+                break;
+            case 4:
+                byte2 = 21;
+                temp4 = setPoint;
+                break;
+        }
+        let out = Outbound.createMessage(
+            168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
+                , 0, 100, 0, 0, 0, 0, 0, 0], 0,
+            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+                if (!msg.failed) {
+                    body.setPoint = setPoint;
+                    state.temps.bodies.getItemById(body.id).setPoint = setPoint;
+                    state.temps.emitEquipmentChange();
+                }
+            })
+        );
+        conn.queueSendMessage(out);
+    }
+}
+class IntelliCenterScheduleCommands extends ScheduleCommands {
+    public setSchedule(sched: Schedule, obj: any) {
+        // We are going to extract the properties from
+        // the object then send a related message to set it
+        // on the controller.
+        if (typeof obj.startTime === 'number') sched.startTime = obj.startTime;
+        if (typeof obj.endTime === 'number') sched.endTime = obj.endTime;
+        if (typeof obj.scheduleType === 'number') sched.runOnce = (sched.runOnce & 0x007f) + (obj.scheduleType > 0 ? 128 : 0);
+        if (typeof obj.scheduleDays === 'number')
+            if ((sched.runOnce & 128) > 0) {
+                sched.runOnce = sched.runOnce & 0x00ff & obj.scheduleDays;
+            } else sched.scheduleDays = obj.scheduleDays & 0x00ff;
+
+        if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
+        const csched = state.schedules.getItemById(sched.id, true);
+        csched.startTime = sched.startTime;
+        csched.endTime = sched.endTime;
+        csched.circuit = sched.circuit;
+        csched.heatSetpoint = sched.heatSetpoint;
+        csched.heatSource = sched.heatSource;
+        csched.scheduleDays =
+            (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
+        csched.scheduleType = sched.runOnce;
+        csched.emitEquipmentChange();
+        let out = Outbound.createMessage(168, [
+            3
+            , 0
+            , sched.id - 1
+            , sched.startTime - Math.floor(sched.startTime / 256) * 256
+            , Math.floor(sched.startTime / 256)
+            , sched.endTime - Math.floor(sched.endTime / 256) * 256
+            , Math.floor(sched.endTime / 256)
+            , sched.circuit - 1
+            , sched.runOnce
+            , sched.scheduleDays
+            , sched.startMonth
+            , sched.startDay
+            , sched.startYear - 2000
+            , sched.heatSource
+            , sched.heatSetpoint
+            , sched.flags
+            ,],
+            0
+        );
+        conn.queueSendMessage(out); // Send it off in a letter to yourself.
+    }
 }
 enum ConfigCategories {
     options = 0,

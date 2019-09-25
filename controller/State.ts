@@ -1,51 +1,12 @@
 ﻿import * as path from 'path';
 import * as fs from 'fs';
-// import * as extend from 'extend';
 import * as extend from 'extend';
 import { setTimeout } from 'timers';
 import { logger } from '../logger/Logger';
-import { Enums, Timestamp, ControllerType } from './Constants';
-import { EventEmitter } from 'events';
+import { Timestamp, ControllerType } from './Constants';
 import { webApp } from '../web/Server';
 import { sys } from './Equipment';
-import { Outbound, Protocol, Response, Message } from './comms/messages/Messages';
-import { conn } from './comms/Comms';
-
-class PoolStateFactory {
-    private _controllerType: string;
-    private _state: State;
-    public get controllerType(): string { return this._controllerType };
-    public set controllerType(ct: string) {
-        console.log(`Getting Pool State`)
-        this._controllerType = ct;
-        if (typeof (this._state) === 'undefined' || this._state instanceof UnknownControllerState) {
-
-            switch (this._controllerType) {
-                case ControllerType.IntelliCenter:
-                    this._state = new IntelliCenterState();
-                    break;
-                case ControllerType.IntelliCom:
-                case ControllerType.EasyTouch:
-                case ControllerType.IntelliTouch:
-                    this._state = new IntelliTouchState();
-                    break;
-                default:
-                    this._state = new UnknownControllerState();
-            }
-            state = this._state;
-            state.init();
-        }
-        state = this._state;
-    }
-    // get method for Intellitouch
-    public getCircuitOrFeatureStateById(circuitId: number, add?: boolean) {
-        if (circuitId <= 9) {
-            return state.circuits.getItemById(circuitId, add);
-        }
-        else return state.features.getItemById(circuitId, add);
-    }
-}
-abstract class State {
+export class State implements IState {
     statePath: string;
     data: any;
     protected _lastUpdated: Date;
@@ -61,7 +22,9 @@ abstract class State {
                 return val;
             },
             set(target, property, value, receiver) {
-                if (property !== 'time1' && Reflect.get(target, property, receiver) !== value) fn();
+                if (property !== 'lastComm' && Reflect.get(target, property, receiver) !== value) {
+                    fn();
+                }
                 return Reflect.set(target, property, value, receiver);
             },
             deleteProperty(target, property) {
@@ -118,6 +81,7 @@ abstract class State {
         this.persist();
     }
 
+
     protected hasChanged = false;
     public get controllerState() {
         var self = this;
@@ -144,9 +108,9 @@ abstract class State {
     public get time(): Timestamp { return this._dt; }
     public get mode(): number { return typeof (this.data.mode) !== 'undefined' ? this.data.mode.val : -1; }
     public set mode(val: number) {
-        let m = Enums.PanelModes.transform(val);
+        let m = sys.board.valueMaps.panelModes.transform(val);
         if (m.val !== this.mode) {
-            this.data.mode = Enums.PanelModes.transform(val);
+            this.data.mode = m;
             this.hasChanged = true;
         }
     }
@@ -157,25 +121,15 @@ abstract class State {
             this.hasChanged = true;
         }
     }
-    /*     public get heatMode (): number { return typeof ( this.data.heatMode ) !== this.data.heatMode ? this.data.heatMode : -1; }
-        public set heatMode ( val: number )
-        {
-            if ( this.data.heatMode !== val )
-            {
-                this.data.heatMode = val;
-                this.hasChanged = true;
-            }
-        } */
-
     public get status() { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val) {
         if (typeof (val) === 'number') {
             if (this.status !== val) {
-                this.data.status = Enums.ControllerStatus.transform(val);
+                this.data.status = sys.board.valueMaps.controllerStatus.transform(val);
                 this.hasChanged = true;
             }
         }
-        else if (typeof (val) !== 'undefined' && typeof (val.val) !== 'undefined') {
+        else if (typeof val !== 'undefined' && typeof val.val !== 'undefined') {
             if (this.status !== val.val || this.status.percent !== val.percent) {
                 this.data.status = val;
                 this.hasChanged = true;
@@ -197,7 +151,6 @@ abstract class State {
             this.hasChanged = true;
         }
     }
-
     public get delay(): number { return this.data.delay; }
     public set delay(val: number) {
         if (this.data.delay !== val) {
@@ -220,7 +173,6 @@ abstract class State {
         }
     }
     public get isInitialized(): boolean { return typeof (this.data.status) !== 'undefined' && this.data.status.val !== 0; }
-    public comms: CommsState = new CommsState();
     public init() {
         console.log(`Init state for Pool Controller`);
         var state = this.loadFile(this.statePath, {});
@@ -234,7 +186,30 @@ abstract class State {
             self.hasChanged = true;
         });
         this.status = 0; // Initializing
+        this.equipment = new EquipmentState(this.data, 'equipment');
+        this.equipment.controllerType = this._controllerType;
+        this.temps = new TemperatureState(this.data, 'temps');
+        this.pumps = new PumpStateCollection(this.data, 'pumps');
+        this.valves = new ValveStateCollection(this.data, 'valves');
+        this.heaters = new HeaterStateCollection(this.data, 'heaters');
+        this.circuits = new CircuitStateCollection(this.data, 'circuits');
+        this.features = new FeatureStateCollection(this.data, 'features');
+        this.chlorinators = new ChlorinatorStateCollection(this.data, 'chlorinators');
+        this.schedules = new ScheduleStateCollection(this.data, 'schedules');
+        this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
+        this.comms = new CommsState();
     };
+    public equipment: EquipmentState;
+    public temps: TemperatureState;
+    public pumps: PumpStateCollection;
+    public valves: ValveStateCollection;
+    public heaters: HeaterStateCollection;
+    public circuits: CircuitStateCollection;
+    public features: FeatureStateCollection;
+    public chlorinators: ChlorinatorStateCollection;
+    public schedules: ScheduleStateCollection;
+    public circuitGroups: CircuitGroupStateCollection;
+    public comms: CommsState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -252,7 +227,7 @@ abstract class State {
     }
 
 }
-interface State {
+interface IState {
     equipment: EquipmentState;
     temps: TemperatureState;
     pumps: PumpStateCollection;
@@ -264,95 +239,65 @@ interface State {
     schedules: ScheduleStateCollection;
     circuitGroups: CircuitGroupStateCollection;
     comms: CommsState;
-    createCircuitStateMessage(): Outbound;
-    cancelDelay(): void;
+    //createCircuitStateMessage(): Outbound;
+    //cancelDelay(): void;
 }
-class UnknownControllerState extends State implements State {
-    public init() {
-        super.init()
-    }
-}
-class IntelliTouchState extends State implements State {
-    public init() {
-        super.init()
-        this.equipment = new EquipmentState(this.data, 'equipment');
-        this.equipment.controllerType = this._controllerType;
-        this.temps = new TemperatureState(this.data, 'temps');
-        this.pumps = new PumpStateCollection(this.data, 'pumps');
-        this.valves = new ValveStateCollection(this.data, 'valves');
-        this.heaters = new HeaterStateCollection(this.data, 'heaters');
-        this.circuits = new IntelliTouchCircuitStateCollection(this.data, 'circuits');
-        this.features = new FeatureStateCollection(this.data, 'features');
-        this.chlorinators = new IntelliTouchChlorinatorStateCollection(this.data, 'chlorinators');
-        this.schedules = new ScheduleStateCollection(this.data, 'schedules');
-        this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
-        this._controllerType = ControllerType.IntelliTouch;
-    }
-    public cancelDelay() {
-        let out = Outbound.createMessage(131, [0], 3, new Response(Message.pluginAddress, 16, 1, [131], null, function (msg) {
-            if (!msg.failed) {
-                // todo: track delay status?
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-}
-class IntelliCenterState extends State implements State {
-    public init() {
-        super.init();
-        this.equipment = new EquipmentState(this.data, 'equipment');
-        this.equipment.controllerType = this._controllerType;
-        this.temps = new TemperatureState(this.data, 'temps');
-        this.pumps = new PumpStateCollection(this.data, 'pumps');
-        this.valves = new ValveStateCollection(this.data, 'valves');
-        this.heaters = new HeaterStateCollection(this.data, 'heaters');
-        this.circuits = new IntelliCenterCircuitStateCollection(this.data, 'circuits');
-        this.features = new FeatureStateCollection(this.data, 'features');
-        this.chlorinators = new IntelliCenterChlorinatorStateCollection(this.data, 'chlorinators');
-        this.schedules = new ScheduleStateCollection(this.data, 'schedules');
-        this._controllerType = ControllerType.IntelliCenter;
-        this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
-    }
+//class IntelliCenterState extends State implements State {
+//    public init() {
+//        super.init();
+//        this.equipment = new EquipmentState(this.data, 'equipment');
+//        this.equipment.controllerType = this._controllerType;
+//        this.temps = new TemperatureState(this.data, 'temps');
+//        this.pumps = new PumpStateCollection(this.data, 'pumps');
+//        this.valves = new ValveStateCollection(this.data, 'valves');
+//        this.heaters = new HeaterStateCollection(this.data, 'heaters');
+//        this.circuits = new IntelliCenterCircuitStateCollection(this.data, 'circuits');
+//        this.features = new FeatureStateCollection(this.data, 'features');
+//        this.chlorinators = new IntelliCenterChlorinatorStateCollection(this.data, 'chlorinators');
+//        this.schedules = new ScheduleStateCollection(this.data, 'schedules');
+//        this._controllerType = ControllerType.IntelliCenter;
+//        this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
+//    }
 
-    public createCircuitStateMessage(): Outbound {
-        //Command to turn on the pool light
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 234]
-        // Command to turn off the pool light
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 218]
-        //Command to turn on sheer descent
-        //
-        //Command to turn off sheer descent
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 218]
-        //Command to turn on spa light
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 26]
-        //Commant to turn off just the pool light
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 26]
-        //Command to turn on pool and spa light
-        //[165, 63, 15, 16, 168, 35][15, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 42]
-        //Me turning on spa jets
-        //[165, 63, 16, 36, 168, 35][15, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 241]
-        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        for (let i = 1; i <= this.data.circuits.length; i++) {
-            let circuit = this.circuits.getItemById(i);
-            let ndx = Math.floor((i - 1) / 8);
-            let byte = out.payload[ndx + 3];
-            let bit = (i - 1) - (ndx * 8);
-            if (circuit.isOn) byte = byte | (1 << bit);
-            out.payload[ndx + 3] = byte;
-        }
-        for (let i = 1; i <= this.data.features.length; i++) {
-            let feature = this.features.getItemById(i);
-            let ndx = Math.floor((i - 1) / 8);
-            let byte = out.payload[ndx + 9];
-            let bit = (i - 1) - (ndx * 8);
-            if (feature.isOn) byte = byte | (1 << bit);
-            out.payload[ndx + 9] = byte;
-        }
-        return out;
+//    public createCircuitStateMessage(): Outbound {
+//        //Command to turn on the pool light
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 234]
+//        // Command to turn off the pool light
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 218]
+//        //Command to turn on sheer descent
+//        //
+//        //Command to turn off sheer descent
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 218]
+//        //Command to turn on spa light
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 26]
+//        //Commant to turn off just the pool light
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 26]
+//        //Command to turn on pool and spa light
+//        //[165, 63, 15, 16, 168, 35][15, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][6, 42]
+//        //Me turning on spa jets
+//        //[165, 63, 16, 36, 168, 35][15, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1][5, 241]
+//        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3,
+//            new Response(16, Message.pluginAddress, 1, [168]));
+//        for (let i = 1; i <= this.data.circuits.length; i++) {
+//            let circuit = this.circuits.getItemById(i);
+//            let ndx = Math.floor((i - 1) / 8);
+//            let byte = out.payload[ndx + 3];
+//            let bit = (i - 1) - (ndx * 8);
+//            if (circuit.isOn) byte = byte | (1 << bit);
+//            out.payload[ndx + 3] = byte;
+//        }
+//        for (let i = 1; i <= this.data.features.length; i++) {
+//            let feature = this.features.getItemById(i);
+//            let ndx = Math.floor((i - 1) / 8);
+//            let byte = out.payload[ndx + 9];
+//            let bit = (i - 1) - (ndx * 8);
+//            if (feature.isOn) byte = byte | (1 << bit);
+//            out.payload[ndx + 9] = byte;
+//        }
+//        return out;
 
-    }
-}
+//    }
+//}
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
 class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
@@ -379,10 +324,10 @@ class EqState implements IEqStateCreator<EqState> {
         }
     }
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
-    protected setDataVal(name, val) {
+    protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             this.data[name] = val;
-            this.hasChanged = true;
+            this.hasChanged = typeof persist === 'undefined' || persist;
         }
     }
     public get(bCopy?: boolean): any {
@@ -442,6 +387,7 @@ export class EquipmentState extends EqState {
     public get maxSchedules(): number { return this.data.maxSchedules; }
     public set maxSchedules(val: number) { this.setDataVal('maxSchedules', val); }
     // This could be extended to include all the expansion panels but not sure why.
+    public cancelDelay() { sys.board.system.cancelDelay(); }
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
     public createItem(data: any): PumpState { return new PumpState(data); }
@@ -471,14 +417,14 @@ export class PumpState extends EqState {
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
         if (this.status !== val) {
-            this.data.status = Enums.PumpErrors.transform(val);
+            this.data.status = sys.board.valueMaps.pumpStatus.transform(val);
             this.hasChanged = true;
         }
     }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
-            this.data.type = Enums.PumpTypes.transform(val);
+            this.data.type = sys.board.valueMaps.pumpTypes.transform(val);
             this.hasChanged = true;
         }
     }
@@ -498,10 +444,10 @@ export class PumpState extends EqState {
             let c = cpump.circuits.getItemByIndex(i);
             if (c.circuit > 237) {
                 // These are virtual circuits.
-                let circuit = Enums.VirtualCircuits.get(c.circuit);
+                let circuit = sys.board.valueMaps.virtualCircuits.transform(c.circuit);
                 if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
                 if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
-                circuit.units = Enums.pumpUnits.transform(c.units);
+                circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
                 circuit.equipmentType = 'virtual';
                 pump.circuits.push(circuit);
             }
@@ -509,7 +455,7 @@ export class PumpState extends EqState {
                 let feature = state.features.getItemById(c.circuit - 128).get(true);
                 if (typeof (c.flow) !== 'undefined') feature.flow = c.flow;
                 if (typeof (c.speed) !== 'undefined') feature.speed = c.speed;
-                feature.units = Enums.pumpUnits.transform(c.units);
+                feature.units = sys.board.valueMaps.pumpUnits.transform(c.units);
                 feature.equipmentType = 'feature';
                 pump.circuits.push(feature);
             }
@@ -517,7 +463,7 @@ export class PumpState extends EqState {
                 let circuit = state.circuits.getItemById(c.circuit).get(true);
                 if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
                 if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
-                circuit.units = Enums.pumpUnits.transform(c.units);
+                circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
                 circuit.equipmentType = 'circuit';
                 pump.circuits.push(circuit);
             }
@@ -555,21 +501,21 @@ export class ScheduleState extends EqState {
     public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : 0; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {
-            this.data.scheduleType = Enums.ScheduleType.transform(val);
+            this.data.scheduleType = sys.board.valueMaps.scheduleTypes.transform(val);
             this.hasChanged = true;
         }
     }
     public get scheduleDays(): number { return typeof (this.data.scheduleDays) !== 'undefined' ? this.data.scheduleDays.val : -1; }
     public set scheduleDays(val: number) {
         if (this.scheduleDays !== val) {
-            this.data.scheduleDays = { val: (val & 0x007F), days: Enums.ScheduleDays.transform(val) };
+            this.data.scheduleDays = sys.board.valueMaps.scheduleDays.transform(val);
             this.hasChanged = true;
         }
     }
     public get heatSource(): number { return typeof (this.data.heatSource) !== 'undefined' ? this.data.heatSource.val : 0; }
     public set heatSource(val: number) {
         if (this.heatSource !== val) {
-            this.data.heatSource = Enums.HeatSource.transform(val);
+            this.data.heatSource = sys.board.valueMaps.heatSources.transform(val);
             this.hasChanged = true;
         }
     }
@@ -580,7 +526,7 @@ export class ScheduleState extends EqState {
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         if (this.circuit > 237) {
-            let circuit = Enums.VirtualCircuits.get(this.circuit);
+            let circuit = sys.board.valueMaps.virtualCircuits.transform(this.circuit);
             circuit.equipmentType = 'virtual';
             sched.circuit = circuit;
         }
@@ -605,15 +551,6 @@ export class ScheduleState extends EqState {
         }
     }
 }
-export class GroupCircuitStateCollection extends EqStateCollection<GroupCircuitState> {
-    public createItem(data: any): GroupCircuitState { return new GroupCircuitState(data); }
-}
-export class GroupCircuitState extends EqState {
-    public get id(): number { return this.data.id; }
-    public set id(val: number) { this.data.id = val; }
-    public get circuit(): number { return this.data.circuit; }
-    public set circuit(val: number) { this.data.circuit = val; }
-}
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
     public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data); }
 }
@@ -626,7 +563,14 @@ export class CircuitGroupState extends EqState {
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : 0; }
     public set type(val: number) {
         if (this.type !== val) {
-            this.data.type = Enums.CircuitGroupTypes.transform(val);
+            this.data.type = sys.board.valueMaps.circuitGroupTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get lightingTheme(): number { return typeof this.data.lightingTheme !== 'undefined' ? this.data.lightingTheme.val : 0; }
+    public set lightingTheme(val: number) {
+        if (this.lightingTheme !== val) {
+            this.data.lightingTheme = sys.board.valueMaps.lightThemes.transform(val);
             this.hasChanged = true;
         }
     }
@@ -640,7 +584,7 @@ export class CircuitGroupState extends EqState {
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemById(i + 1);
             if (cgc.circuit > 237) {
-                let circuit = Enums.VirtualCircuits.get(cgc.circuit);
+                let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
                 circuit.equipmentType = 'virtual';
                 sgrp.circuits.push(circuit);
             }
@@ -676,54 +620,17 @@ export class BodyTempState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get temp(): number { return this.data.id; };
     public set temp(val: number) { this.setDataVal('temp', val); }
-    public get heatMode(): number {
-        // return typeof ( this.data.heatMode ) !== 'undefined' ? this.data.heatMode.val : -1;
-        if (typeof (this.data.heatMode) !== 'undefined') {
-            switch (sys.controllerType) {
-                case ControllerType.IntelliCenter:
-                    return this.data.heatMode.val;
-                case ControllerType.IntelliTouch:
-                    switch (this.data.heatMode.val) {
-                        case 0: // off
-                            return 0;
-                        case 3: // heater
-                            return 1;
-                        case 21: // solar pref
-                            return 2;
-                        case 5: // solar only
-                            return 53;
-                    }
-                    break;
-            }
-        }
-        else return -1;
-    }
+    public get heatMode(): number { return typeof (this.data.heatMode) !== 'undefined' ? this.data.heatMode.val : -1; }
     public set heatMode(val: number) {
-        if (sys.controllerType === ControllerType.IntelliTouch) {
-            switch (val) {
-                case 0: // off
-                    val = 0;
-                    break;
-                case 1: // heater
-                    val = 3;
-                    break;
-                case 2: // solar pref
-                    val = 21;
-                    break;
-                case 3: // solar only
-                    val = 5;
-                    break;
-            }
-        }
         if (this.heatMode !== val) {
-            this.data.heatMode = Enums.HeatMode.transform(val)
+            this.data.heatMode = sys.board.valueMaps.heatModes.transform(val)
             this.hasChanged = true;
         }
     }
     public get heatStatus(): number { return typeof (this.data.heatStatus) !== 'undefined' ? this.data.heatStatus.val : -1; }
     public set heatStatus(val: number) {
         if (this.heatStatus !== val) {
-            this.data.heatStatus = Enums.HeatStatus.transform(val);
+            this.data.heatStatus = sys.board.valueMaps.heatStatus.transform(val);
             this.hasChanged = true;
         }
     }
@@ -732,10 +639,7 @@ export class BodyTempState extends EqState {
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get hasChanged(): boolean { return this.hasChanged; }
-    public set hasChanged(val: boolean) {
-        if (val)
-            state.temps.hasChanged = true;
-    }
+    public set hasChanged(val: boolean) { if (val) state.temps.hasChanged = true; }
 }
 export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     public createItem(data: any): BodyTempState { return new BodyTempState(data); }
@@ -753,7 +657,7 @@ export class TemperatureState extends EqState {
     public get units(): number { return typeof (this.data.units) !== 'undefined' ? this.data.units.val : -1; }
     public set units(val: number) {
         if (this.units !== val) {
-            this.data.units = Enums.TempUnits.transform(val);
+            this.data.units = sys.board.valueMaps.tempUnits.transform(val);
             this.hasChanged = true;
         }
     }
@@ -770,24 +674,10 @@ export class HeaterState extends EqState {
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
 }
-export interface FeatureStateCollection {
-    createItem(data: any): FeatureState;
-    setFeatureState(id: number, val: boolean): void;
-}
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
-}
-export class IntelliCenterFeatureStateCollection extends FeatureStateCollection {
-    public setFeatureState(id: number, val: boolean) {
-        let out = state.createCircuitStateMessage();
-        let ndx = Math.floor((id - 1) / 8);
-        let byte = out.payload[ndx + 9];
-        let bit = (id - 1) - (ndx * 8);
-        if (val) byte |= (1 << bit);
-        else byte &= ~(1 << bit);
-        out.payload[ndx + 9] = byte;
-        conn.queueSendMessage(out);
-    }
+    public setFeatureState(id: number, val: boolean) { sys.board.features.setFeatureState(id, val); }
+    public toggleFeatureState(id: number) { sys.board.features.toggleFeatureState(id); }
 }
 export class FeatureState extends EqState {
     public dataName: string = 'feature';
@@ -797,134 +687,136 @@ export class FeatureState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
-}
-export interface CircuitStateCollection {
-    createItem(data: any): CircuitState;
-    setCircuitState(id: number, val: boolean): void;
-    toggleCircuitState(id: number): void;
-    setCircuitTheme(id: number, theme: number): void;
-    setDimmerLevel(id: number, level: number): void;
-    setLightColor(id: number, color: number): void;
-    setLightSwimDelay(id: number, delay: number): void;
-    setLightPosition(id: number, position: number): void;
+    public get type() { return typeof this.data.type !== 'undefined' ? this.data.type.val : -1; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.featureFunctions.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
+    public setCircuitState(id: number, val: boolean) { sys.board.circuits.setCircuitState(id, val); }
+    public toggleCircuitState(id: number) { sys.board.circuits.toggleCircuitState(id); }
+    public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightTheme(id, theme); }
+    public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
 }
-export class IntelliTouchCircuitStateCollection extends CircuitStateCollection {
-    public setCircuitState(id: number, val: boolean) {
-        let cstate = SF.getCircuitOrFeatureStateById(id);
-        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-            if (!msg.failed) {
-                cstate.isOn = true;
-                cstate.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-    public toggleCircuitState(id: number) {
-        let cstate = SF.getCircuitOrFeatureStateById(id);
-        let out = Outbound.createMessage(134, [id, cstate.isOn === true ? 0 : 1], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-            if (!msg.failed) {
-                cstate.isOn = !cstate.isOn;
-                cstate.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-    public setCircuitTheme(id: number, theme: number) {
-        let cstate = state.circuits.getItemById(id);
-        let circuit = sys.circuits.getItemById(id);
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
-            if (!msg.failed) {
-                circuit.lightingTheme = theme;
-                cstate.lightingTheme = theme;
-                cstate.isOn = true;
-                cstate.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-        if (!cstate.isOn) {
-            // If the circuit is off we need to turn it on.
-            this.setCircuitState(id, true);
-        }
-    }
-    public setDimmerLevel(id: number, level: number) {
-        // todo: implement
-    }
-    public setLightColor(id: number, color: number) {
-        // todo: implement
-        // this sets the light color for the "color set" mode
-    }
-    public setLightSwimDelay(id: number, delay: number) {
-        // todo: implement
-        // this sets the delay for the "color swim" mode
-    }
-    public setLightPosition(id: number, position: number) {
-        // todo: implement
-        // this sets the position for the "color swim" mode
-    }
-}
-export class IntelliCenterCircuitStateCollection extends CircuitStateCollection {
-    public setCircuitTheme(id: number, theme: number) {
-        let circuit = sys.circuits.getItemById(id);
-        let cstate = this.getItemById(id);
-        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-            theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    circuit.lightingTheme = theme;
-                    cstate.lightingTheme = theme;
-                    cstate.isOn = true;
-                    cstate.emitEquipmentChange();
-                }
-            }));
-        out.appendPayloadString(circuit.name, 16);
-        conn.queueSendMessage(out);
-        if (!cstate.isOn) {
-            // If the circuit is off we need to turn it on.
-            this.setCircuitState(id, true);
-        }
-    }
-    public setDimmerLevel(id: number, level: number) {
-        let circuit = sys.circuits.getItemById(id);
-        let cstate = this.getItemById(id);
-        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-            level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    circuit.level = level;
-                    cstate.level = level;
-                    cstate.isOn = true;
-                    cstate.emitEquipmentChange();
-                }
-            }));
-        out.appendPayloadString(circuit.name, 16);
-        conn.queueSendMessage(out);
-        if (!cstate.isOn) {
-            // If the circuit is off we need to turn it on.
-            this.setCircuitState(id, true);
-        }
-    }
+//export class IntelliTouchCircuitStateCollection extends CircuitStateCollection {
+//    public setCircuitState(id: number, val: boolean) {
+//        let cstate = SF.getCircuitOrFeatureStateById(id);
+//        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
+//            if (!msg.failed) {
+//                cstate.isOn = true;
+//                cstate.emitEquipmentChange();
+//            }
+//        }));
+//        conn.queueSendMessage(out);
+//    }
+//    public toggleCircuitState(id: number) {
+//        let cstate = SF.getCircuitOrFeatureStateById(id);
+//        let out = Outbound.createMessage(134, [id, cstate.isOn === true ? 0 : 1], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
+//            if (!msg.failed) {
+//                cstate.isOn = !cstate.isOn;
+//                cstate.emitEquipmentChange();
+//            }
+//        }));
+//        conn.queueSendMessage(out);
+//    }
+//    public setCircuitTheme(id: number, theme: number) {
+//        let cstate = state.circuits.getItemById(id);
+//        let circuit = sys.circuits.getItemById(id);
+//        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+//            if (!msg.failed) {
+//                circuit.lightingTheme = theme;
+//                cstate.lightingTheme = theme;
+//                cstate.isOn = true;
+//                cstate.emitEquipmentChange();
+//            }
+//        }));
+//        conn.queueSendMessage(out);
+//        if (!cstate.isOn) {
+//            // If the circuit is off we need to turn it on.
+//            this.setCircuitState(id, true);
+//        }
+//    }
+//    public setDimmerLevel(id: number, level: number) {
+//        // todo: implement
+//    }
+//    TODO: Make these light groups.  There will only be one for IntelliTouch
+//    public setLightColor(id: number, color: number) {
+//        // todo: implement
+//        // this sets the light color for the "color set" mode
+//    }
+//    public setLightSwimDelay(id: number, delay: number) {
+//        // todo: implement
+//        // this sets the delay for the "color swim" mode
+//    }
+//    public setLightPosition(id: number, position: number) {
+//        // todo: implement
+//        // this sets the position for the "color swim" mode
+//    }
+//}
+//export class IntelliCenterCircuitStateCollection extends CircuitStateCollection {
+//    public setCircuitTheme(id: number, theme: number) {
+//        let circuit = sys.circuits.getItemById(id);
+//        let cstate = this.getItemById(id);
+//        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+//            theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+//            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+//                if (!msg.failed) {
+//                    circuit.lightingTheme = theme;
+//                    cstate.lightingTheme = theme;
+//                    cstate.isOn = true;
+//                    cstate.emitEquipmentChange();
+//                }
+//            }));
+//        out.appendPayloadString(circuit.name, 16);
+//        conn.queueSendMessage(out);
+//        if (!cstate.isOn) {
+//            // If the circuit is off we need to turn it on.
+//            this.setCircuitState(id, true);
+//        }
+//    }
+//    public setDimmerLevel(id: number, level: number) {
+//        let circuit = sys.circuits.getItemById(id);
+//        let cstate = this.getItemById(id);
+//        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+//            level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+//            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+//                if (!msg.failed) {
+//                    circuit.level = level;
+//                    cstate.level = level;
+//                    cstate.isOn = true;
+//                    cstate.emitEquipmentChange();
+//                }
+//            }));
+//        out.appendPayloadString(circuit.name, 16);
+//        conn.queueSendMessage(out);
+//        if (!cstate.isOn) {
+//            // If the circuit is off we need to turn it on.
+//            this.setCircuitState(id, true);
+//        }
+//    }
 
-    public setCircuitState(id: number, val: boolean) {
-        let out = state.createCircuitStateMessage();
-        let ndx = Math.floor((id - 1) / 8);
-        let byte = out.payload[ndx + 3];
-        let bit = (id - 1) - (ndx * 8);
-        if (val) byte |= (1 << bit);
-        else byte &= ~(1 << bit);
-        // Toggle pool/spa.
-        if (id === 6 && val) {
-            byte = byte & 254; // Turn off spa
-        }
-        else if (id === 1 && val) {
-            byte = byte & 223; // Turn off pool
-        }
-        out.payload[ndx + 3] = byte;
-        conn.queueSendMessage(out);
-    }
-}
+//    public setCircuitState(id: number, val: boolean) {
+//        let out = state.createCircuitStateMessage();
+//        let ndx = Math.floor((id - 1) / 8);
+//        let byte = out.payload[ndx + 3];
+//        let bit = (id - 1) - (ndx * 8);
+//        if (val) byte |= (1 << bit);
+//        else byte &= ~(1 << bit);
+//        // Toggle pool/spa.
+//        if (id === 6 && val) {
+//            byte = byte & 254; // Turn off spa
+//        }
+//        else if (id === 1 && val) {
+//            byte = byte & 223; // Turn off pool
+//        }
+//        out.payload[ndx + 3] = byte;
+//        conn.queueSendMessage(out);
+//    }
+//}
 export class CircuitState extends EqState {
     public dataName: string = 'circuit';
     public get id(): number { return this.data.id; }
@@ -938,24 +830,14 @@ export class CircuitState extends EqState {
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
-            sys.controllerType === ControllerType.IntelliCenter ?
-                this.data.type = Enums.CircuitTypes.transform(val) : this.data.type = Enums.CircuitTypes_IT.transform(val);
+            this.data.type = sys.board.valueMaps.circuitFunctions.transform(val);
             this.hasChanged = true;
         }
     }
     public get lightingTheme(): number { return typeof (this.data.lightingTheme) !== 'undefined' ? this.data.lightingTheme.val : 255; }
     public set lightingTheme(val: number) {
         if (this.lightingTheme !== val) {
-            switch (sys.controllerType) {
-                case ControllerType.IntelliCom:
-                case ControllerType.EasyTouch:
-                case ControllerType.IntelliCenter:
-                    this.data.lightingTheme = Enums.LightThemes.transform(val);
-                    break;
-                case ControllerType.IntelliTouch:
-                    this.data.lightingTheme = Enums.LightThemes_IT.transform(val);
-                    break;
-            }
+            this.data.lightingTheme = sys.board.valueMaps.lightThemes.transform(val);
             this.hasChanged = true;
         }
     }
@@ -971,43 +853,31 @@ export class ValveState extends EqState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-}
-export interface ChlorinatorStateCollection {
-    createItem(data: any): ChlorinatorState;
+    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type : -1 }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.valveTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
+    public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
     public superChlorReference: number = 0;
     public lastDispatchSuperChlor: number = 0;
-
     public setChlor(id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number) { this.getItemById(id).setChlor(poolSetpoint, spaSetpoint, superChlorHours); };
     public setPoolSetpoint(id: number, setpoint: number) { this.getItemById(id).setPoolSetpoint(setpoint); }
     public setSpaSetpoint(id: number, setpoint: number) { this.getItemById(id).setSpaSetpoint(setpoint); }
     public setSuperChlorHours(id: number, hours: number) { this.getItemById(id).setSuperChlorHours(hours); }
     public superChlorinate(id: number, bSet: boolean) { this.getItemById(id).superChlorinate(bSet); }
 }
-export class IntelliCenterChlorinatorStateCollection extends ChlorinatorStateCollection {
-    public createItem(data: any): ChlorinatorState {
-        return new IntelliCenterChlorinatorState(data);
-    }
-}
-export class IntelliTouchChlorinatorStateCollection extends ChlorinatorStateCollection {
-    public createItem(data: any): ChlorinatorState {
-        return new IntelliTouchChlorinatorState(data);
-    }
-}
-export interface ChlorinatorState {
-    setChlor(poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number): void;
-    setPoolSetpoint(setpoint: number): void;
-    setSpaSetpoint(setpoint: number): void;
-    setSuperChlorHours(hours: number): void;
-    superChlorinate(bSet: boolean): void;
-}
 export class ChlorinatorState extends EqState {
     public dataName: string = 'chlorinator';
-    public get lastComm(): number {
-        return this.data.lastComm;
-    }
-    public set lastComm(val: number) { this.data.lastComm = val; }
+    // The lastComm property has a fundamental flaw.  Although, the structure is
+    // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
+    // triggered by this. We need to find a way that the property change does not trigger persistence.
+    public get lastComm(): number {  return this.data.lastComm;  }
+    public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1019,14 +889,15 @@ export class ChlorinatorState extends EqState {
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
         if (this.status !== val) {
-            this.data.status = Enums.ChlorinatorStatus.transform(val);
+            this.data.status = sys.board.valueMaps.chlorinatorStatus.transform(val);
             this.hasChanged = true;
         }
     }
     public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
     public set body(val: number) {
         if (this.body !== val) {
-            this.data.body = Enums.Bodies.transform(val);
+            // TODO: Change this to return the body data from the bodies collection.
+            this.data.body = sys.board.valueMaps.bodies.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1086,117 +957,20 @@ export class ChlorinatorState extends EqState {
             this.setDataVal('superChlor', false);
         //else this.data.superChlor = false;
     }
-
-
-}
-export class IntelliCenterChlorinatorState extends ChlorinatorState {
     public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) {
-        var self = this;
-        //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
-        this.poolSetpoint = poolSetpoint;
-        this.spaSetpoint = spaSetpoint;
-        this.superChlor = superChlorHours > 0;
-        this.superChlorHours = superChlorHours;
-        this.emitEquipmentChange();
-        let out = Outbound.createMessage(168, [7, 0, this.id - 1, this.body, 1, poolSetpoint, spaSetpoint, superChlorHours > 0 ? 1 : 0, superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        conn.queueSendMessage(out);
+        sys.board.chemistry.setChlor(this, poolSetpoint, spaSetpoint, superChlorHours);
     }
-    public setPoolSetpoint(setpoint: number) {
-        //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
-        this.poolSetpoint = setpoint;
-        let out = Outbound.createMessage(168, [7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        conn.queueSendMessage(out);
-        this.emitEquipmentChange();
-    }
-    public setSpaSetpoint(setpoint: number) {
-        //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
-        this.spaSetpoint = setpoint;
-        let out = Outbound.createMessage(168, [7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        conn.queueSendMessage(out);
-        this.emitEquipmentChange();
-    }
-    public setSuperChlorHours(hours: number) {
-        //[255, 0, 255][165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 12, 0, 15, 0, 1][2, 45]
-        this.superChlorHours = hours;
-        let out = Outbound.createMessage(168, [7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        conn.queueSendMessage(out);
-        this.emitEquipmentChange();
-    }
-    public superChlorinate(bSet: boolean) {
-        this.superChlor = bSet;
-        let out = Outbound.createMessage(168, [7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
-        conn.queueSendMessage(out);
-        this.emitEquipmentChange();
-    }
-}
-export class IntelliTouchChlorinatorState extends ChlorinatorState {
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) {
-        var self = this;
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(this.spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function (msg) {
-            if (!msg.failed) {
-                let chlor = sys.chlorinators.getItemById(self.id);
-                self.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
-                self.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
-                self.superChlorHours = chlor.superChlorHours = superChlorHours;
-                self.superChlor = chlor.superChlor = self.superChlorHours > 0;
-                self.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-
-    public setPoolSetpoint(setpoint: number) {
-        var self = this;
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(this.spaSetpoint << 1) + 1, setpoint, this.superChlorHours > 0 ? this.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function (msg) {
-            if (!msg.failed) {
-                let chlor = sys.chlorinators.getItemById(self.id);
-                self.poolSetpoint = chlor.poolSetpoint = setpoint;
-                self.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-    public setSpaSetpoint(setpoint: number) {
-        var self = this;
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(setpoint << 1) + 1, this.poolSetpoint, this.superChlorHours > 0 ? this.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function (msg) {
-            if (!msg.failed) {
-                let chlor = sys.chlorinators.getItemById(self.id);
-                self.spaSetpoint = chlor.spaSetpoint = setpoint;
-                self.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-    public setSuperChlorHours(hours: number) {
-        var self = this;
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(this.spaSetpoint << 1) + 1, this.poolSetpoint, hours > 0 ? hours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function (msg) {
-            if (!msg.failed) {
-                let chlor = sys.chlorinators.getItemById(self.id);
-                self.superChlorHours = chlor.superChlorHours = hours;
-                self.superChlor = chlor.superChlor = self.superChlorHours > 0;
-                self.emitEquipmentChange();
-            }
-        }));
-        conn.queueSendMessage(out);
-    }
-    public superChlorinate(bSet: boolean) {
-        /*         this.superChlor = bSet;
-                let out = Outbound.createMessage( 168, [ 7, 0, this.id - 1, this.body, 1, this.poolSetpoint, this.spaSetpoint, this.superChlor ? 1 : 0, this.superChlorHours, 0, 1 ], 3,
-                    new Response( 16, Message.pluginAddress, 1, [ 168 ] ) );
-                conn.queueSendMessage( out ); */
-    }
+    public setPoolSetpoint(setpoint: number) { sys.board.chemistry.setPoolSetpoint(this, setpoint); }
+    public setSpaSetpoint(setpoint: number) { sys.board.chemistry.setSpaSetpoint(this, setpoint); }
+    public setSuperChlorHours(hours: number) { sys.board.chemistry.setSuperChlorHours(this, hours); }
+    public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chemistry.superChlorinate(this, bSet, hours); }
 }
 export class CommsState {
     public keepAlives: number;
 }
 
-export var SF = new PoolStateFactory();
+//export var SF = new PoolStateFactory();
 // export var state = {} as State;
-export var state = new UnknownControllerState();
+export var state = new State();
 // export var state: State = new State();
 

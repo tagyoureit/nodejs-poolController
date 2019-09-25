@@ -1,10 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import {
-    sys,
-    Schedule,
-    EggTimer,
-    CircuitOrFeatureFactory
-} from "../../../Equipment";
+import { sys, Schedule, EggTimer, CircuitOrFeatureFactory } from "../../../Equipment";
 import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
 export class ScheduleMessage {

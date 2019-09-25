@@ -1,7 +1,6 @@
 import * as express from "express";
 import { state } from "../../../controller/State";
 import { sys, Circuit } from "../../../controller/Equipment";
-import { Enums } from '../../../controller/Constants';
 export class UtilitiesRoute {
     public static initRoutes(app: express.Application) {
 
