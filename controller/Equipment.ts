@@ -92,7 +92,9 @@ export class PoolSystem implements IPoolSystem {
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val) {
-            this.resetData();
+            // Only go in here if there is a change to the controller type.
+            this.resetData(); // Clear the configuration data.
+            state.resetData(); // Clear the state data.
             this.data.controllerType = val;
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);

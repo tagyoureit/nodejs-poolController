@@ -197,8 +197,25 @@ export class State implements IState {
         this.chlorinators = new ChlorinatorStateCollection(this.data, 'chlorinators');
         this.schedules = new ScheduleStateCollection(this.data, 'schedules');
         this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
+        this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
     };
+    public resetData() {
+        this.circuitGroups.clear();
+        this.circuits.clear();
+        this.temps.clear();
+        this.chlorinators.clear();
+        this.covers.clear();
+        this.equipment.clear();
+        this.features.clear();
+        this.data.general = {};
+        this.heaters.clear();
+        this.pumps.clear();
+        this.schedules.clear();
+        this.valves.clear();
+        this.covers.clear();
+    }
+
     public equipment: EquipmentState;
     public temps: TemperatureState;
     public pumps: PumpStateCollection;
@@ -209,6 +226,7 @@ export class State implements IState {
     public chlorinators: ChlorinatorStateCollection;
     public schedules: ScheduleStateCollection;
     public circuitGroups: CircuitGroupStateCollection;
+    public covers: CoverStateCollection;
     public comms: CommsState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
@@ -333,6 +351,13 @@ class EqState implements IEqStateCreator<EqState> {
     public get(bCopy?: boolean): any {
         return (typeof (bCopy) === 'undefined' || !bCopy) ? this.data : extend(true, {}, this.data);
     }
+    public clear() {
+        for (let prop in this.data) {
+            if (Array.isArray(this.data[prop])) this.data[prop].length = 0;
+            else this.data[prop] = undefined;
+        }
+    }
+
 }
 class EqStateCollection<T> {
     protected data: any;
@@ -861,6 +886,19 @@ export class ValveState extends EqState {
         }
     }
 }
+export class CoverStateCollection extends EqStateCollection<CoverState> {
+    public createItem(data: any): CoverState { return new CoverState(data); }
+}
+export class CoverState extends EqState {
+    public dataName: string = 'valve';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = val; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get isOpen(): boolean { return this.data.isOpen }
+    public set isOpen(val: boolean) { this.setDataVal('isOpen', val); }
+}
+
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
     public superChlorReference: number = 0;
