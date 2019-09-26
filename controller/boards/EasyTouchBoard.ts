@@ -220,6 +220,7 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.pumpTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No pump' }],
             [1, { name: 'vfsrs', desc: 'Intelliflo VF+SRS' }],
+            [2, { name: 'ds', desc: 'Two-Speed' }],
             [6, { name: 'vf', desc: 'Intelliflo VF' }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
             [128, { name: 'vsf', desc: 'Intelliflo VSF' }]

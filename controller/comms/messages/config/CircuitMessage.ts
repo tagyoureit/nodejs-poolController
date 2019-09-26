@@ -93,16 +93,17 @@ export class CircuitMessage {
 
         if (index === 1 && msg.datalen === 25 || msg.datalen === 32)
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
-            for (let i = 0; i < sys.intellibrite.length; i++)
-                sys.intellibrite.getItemByIndex(i).isActive = false;
+            for (let i = 0; i < sys.intellibrite.circuits.length; i++)
+                sys.intellibrite.circuits.getItemByIndex(i).isActive = false;
 
         const intellibriteCollection = sys.intellibrite;
         for (byte; byte <= msg.datalen; byte = byte + 4) {
             const circuit = msg.extractPayloadByte(byte);
             if (circuit > 0) {
-                const intellibrite = intellibriteCollection.getItemById(circuit, true);
+                const intellibrite = intellibriteCollection.circuits.getItemById(circuit, true);
                 intellibrite.isActive = circuit > 0 && msg.extractPayloadByte(byte + 1) > 0;
                 if (intellibrite.isActive) {
+                    intellibrite.circuit = circuit
                     intellibrite.position = (msg.extractPayloadByte(byte + 1) >> 4) + 1;
                     intellibrite.colorSet = msg.extractPayloadByte(byte + 1) & 15;
                     intellibrite.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
@@ -111,14 +112,15 @@ export class CircuitMessage {
             }
             index++;
         }
-        for (let ib = 0; ib < sys.intellibrite.length; ib++) {
-            const intellibrite = sys.intellibrite.getItemByIndex(ib);
-            if (intellibrite.isActive === false) continue;
-            const circ = sys.circuits.getItemById(intellibrite.id);
-            circ.intellibrite.colorSet = intellibrite.colorSet;
-            circ.intellibrite.swimDelay = intellibrite.swimDelay;
-            circ.intellibrite.position = intellibrite.position;
-        }
+        // Don't set this on the circuits.  It is an attribute of the grouping.
+        //for (let ib = 0; ib < sys.intellibrite.circuits.length; ib++) {
+        //    const intellibrite = sys.intellibrite.circuits.getItemByIndex(ib);
+        //    if (intellibrite.isActive === false) continue;
+        //    const circ = sys.circuits.getItemById(intellibrite.id);
+        //    circ.intellibrite.colorSet = intellibrite.colorSet;
+        //    circ.intellibrite.swimDelay = intellibrite.swimDelay;
+        //    circ.intellibrite.position = intellibrite.position;
+        //}
     }
     private static processCircuitTypes(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxCircuits; i++) {

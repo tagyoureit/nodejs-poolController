@@ -197,11 +197,13 @@ export class State implements IState {
         this.chlorinators = new ChlorinatorStateCollection(this.data, 'chlorinators');
         this.schedules = new ScheduleStateCollection(this.data, 'schedules');
         this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
+        this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
     };
     public resetData() {
         this.circuitGroups.clear();
+        this.lightGroups.clear();
         this.circuits.clear();
         this.temps.clear();
         this.chlorinators.clear();
@@ -226,6 +228,7 @@ export class State implements IState {
     public chlorinators: ChlorinatorStateCollection;
     public schedules: ScheduleStateCollection;
     public circuitGroups: CircuitGroupStateCollection;
+    public lightGroups: LightGroupStateCollection;
     public covers: CoverStateCollection;
     public comms: CommsState;
 
@@ -576,10 +579,70 @@ export class ScheduleState extends EqState {
         }
     }
 }
+export interface ICircuitGroupState {
+    id: number;
+    type: number;
+    name: string;
+    eggTimer: number;
+    isOn: boolean;
+    emitEquipmentChange();
+}
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
     public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data); }
 }
-export class CircuitGroupState extends EqState {
+export class CircuitGroupState extends EqState implements ICircuitGroupState {
+    public dataName: string = 'circuitGroup';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = val; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : 0; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.circuitGroupTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get eggTimer(): number { return this.data.eggTimer; }
+    public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public get isOn(): boolean { return this.data.isOn; }
+    public set isOn(val: boolean) { this.data.isOn = val; }
+    public getExtended() {
+        let sgrp = this.get(true); // Always operate on a copy.
+        let cgrp = sys.circuitGroups.getItemById(this.id);
+        for (let i = 0; i < cgrp.circuits.length; i++) {
+            let cgc = cgrp.circuits.getItemById(i + 1);
+            if (cgc.circuit > 237) {
+                let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
+                circuit.equipmentType = 'virtual';
+                sgrp.circuits.push(circuit);
+            }
+            else if (cgc.circuit > 128) {
+                // This is a feature
+                let feature = state.features.getItemById(cgc.circuit - 128).get(true);
+                feature.equipmentType = 'feature';
+                sgrp.circuits.push(feature);
+            }
+            else {
+                let circuit = state.circuits.getItemById(cgc.circuit).get(true);
+                circuit.equipmentType = 'circuit';
+                sgrp.circuits.push(circuit);
+            }
+        }
+        return sgrp;
+    }
+    public emitEquipmentChange() {
+        // For schedules always emit the complete information
+        if (typeof (webApp) !== 'undefined' && webApp) {
+            if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
+            this.hasChanged = false;
+        }
+    }
+}
+export class LightGroupStateCollection extends EqStateCollection<LightGroupState> {
+    public createItem(data: any): LightGroupState { return new LightGroupState(data); }
+}
+export class LightGroupState extends EqState implements ICircuitGroupState {
     public dataName: string = 'circuitGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -635,6 +698,8 @@ export class CircuitGroupState extends EqState {
         }
     }
 }
+
+
 
 export class BodyTempState extends EqState {
     public get id(): number { return this.data.id; };

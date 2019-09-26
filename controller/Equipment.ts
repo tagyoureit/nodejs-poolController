@@ -65,11 +65,14 @@ export class PoolSystem implements IPoolSystem {
         this.heaters = new HeaterCollection(this.data, 'heaters');
         this.covers = new CoverCollection(this.data, 'covers');
         this.circuitGroups = new CircuitGroupCollection(this.data, 'circuitGroups');
+        this.lightGroups = new LightGroupCollection(this.data, 'lightGroups');
         this.remotes = new RemoteCollection(this.data, 'remotes');
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
+        this.intellibrite = this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 });
+        
         // TODO: We should do this only after we get our first action 2.
 
     }
@@ -102,6 +105,7 @@ export class PoolSystem implements IPoolSystem {
     }
     public resetData() {
         this.circuitGroups.clear();
+        this.lightGroups.clear();
         this.circuits.clear();
         this.bodies.clear();
         this.chlorinators.clear();
@@ -118,6 +122,7 @@ export class PoolSystem implements IPoolSystem {
         this.security.clear();
         this.valves.clear();
         this.covers.clear();
+       
     }
     public stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
@@ -148,10 +153,11 @@ export class PoolSystem implements IPoolSystem {
     public heaters: HeaterCollection;
     public covers: CoverCollection;
     public circuitGroups: CircuitGroupCollection;
+    public lightGroups: LightGroupCollection;
     public remotes: RemoteCollection;
     public security: Security;
     public customNames: CustomNameCollection;
-    public intellibrite: IntelliBriteCollection;
+    public intellibrite: LightGroup;
     protected appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
@@ -238,6 +244,7 @@ export class PoolSystem implements IPoolSystem {
     public emitData(name: string, data: any) {
         webApp.emitToClients(name, data);
     }
+   
 }
 //export class IntelliTouchSystem extends PoolSystem {
 //    // IntelliTouch Only
@@ -398,21 +405,21 @@ class EqItemCollection<T> {
         this.data = data[name];
         this.name = name;
     }
-    public getItemByIndex(ndx: number, add?: boolean): T {
+    public getItemByIndex(ndx: number, add?: boolean, data?: any): T {
         return this.data.length > ndx ?
             this.createItem(this.data[ndx]) :
-            typeof add !== "undefined" && add ?
-                this.add(this.createItem({ id: ndx + 1 })) :
-                this.createItem({ id: ndx + 1 });
+            typeof add !== 'undefined' && add ?
+                this.add(this.createItem(data || { id: ndx + 1 })) :
+                this.createItem(data || { id: ndx + 1 });
     }
-    public getItemById(id: number, add?: boolean): T {
+    public getItemById(id: number, add?: boolean, data?: any): T {
         for (let i = 0; i < this.data.length; i++)
             if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 return this.createItem(this.data[i]);
             }
         if (typeof add !== 'undefined' && add)
-            return this.add({ id: id });
-        return this.createItem({ id: id });
+            return this.add(data || { id: id });
+        return this.createItem(data || { id: id });
     }
     public removeItemById(id: number): T {
         let rem: T = null;
@@ -537,18 +544,18 @@ export class ExpansionPanel extends EqItem {
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.data.isActive = val; }
 }
-export class HighSpeedCircuitCollection extends EqItemCollection<HighSpeedCircuit> {
-    constructor(data: any, name?: string) { super(data, name || "highSpeedCircuits"); }
-    public createItem(data: any): HighSpeedCircuit { return new HighSpeedCircuit(data); }
-}
-export class HighSpeedCircuit extends EqItem {
-    public get name(): string { return this.data.name; }
-    public set name(val: string) { this.data.name = val; }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.data.type = val; }
-    public get isActive(): boolean { return this.data.isActive; }
-    public set isActive(val: boolean) { this.data.isActive = val; }
-}
+//export class HighSpeedCircuitCollection extends EqItemCollection<HighSpeedCircuit> {
+//    constructor(data: any, name?: string) { super(data, name || "highSpeedCircuits"); }
+//    public createItem(data: any): HighSpeedCircuit { return new HighSpeedCircuit(data); }
+//}
+//export class HighSpeedCircuit extends EqItem {
+//    public get name(): string { return this.data.name; }
+//    public set name(val: string) { this.data.name = val; }
+//    public get type(): number { return this.data.type; }
+//    public set type(val: number) { this.data.type = val; }
+//    public get isActive(): boolean { return this.data.isActive; }
+//    public set isActive(val: boolean) { this.data.isActive = val; }
+//}
 export class Equipment extends EqItem {
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.data.name = val; }
@@ -582,7 +589,7 @@ export class Equipment extends EqItem {
     public set maxIntelliBrites(val: number) { this.data.maxIntelliBrites = val; }
     public get expansions(): ExpansionPanelCollection { return new ExpansionPanelCollection(this.data, "expansions"); }
     // TODO: Get rid of this as these are simply circuits on a 2 speed pump.
-    public get highSpeedCircuits(): HighSpeedCircuitCollection { return new HighSpeedCircuitCollection(this.data, "highSpeedCircuits"); }
+    //public get highSpeedCircuits(): HighSpeedCircuitCollection { return new HighSpeedCircuitCollection(this.data, "highSpeedCircuits"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.data.maxCustomNames = val; }
     public set controllerFirmware(val: string) { this.data.softwareVersion = val; }
@@ -783,12 +790,12 @@ export class Circuit extends EqItem {
     public get macro(): boolean { return this.data.macro; }
     public set macro(val: boolean) { this.data.macro = val; }
     // TODO: This belongs in the circuit groups light category.
-    public get intellibrite(): IntelliBrite {
-        if (typeof this.data.intellibrite === "undefined")
-            return new IntelliBrite(this.data, 'intellibrite');
-        else return this.data.intellibrite;
-    }
-    public removeIntelliBrite(): void { delete this.data.intellibrite; }
+    //public get intellibrite(): IntelliBrite {
+    //    if (typeof this.data.intellibrite === "undefined")
+    //        return new IntelliBrite(this.data, 'intellibrite');
+    //    else return this.data.intellibrite;
+    //}
+    //public removeIntelliBrite(): void { delete this.data.intellibrite; }
     public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
@@ -800,27 +807,27 @@ export class Circuit extends EqItem {
     }
 }
 // TODO: Get rid of this.
-export class IntelliBriteCollection extends EqItemCollection<IntelliBrite> {
-    constructor(data: any, name?: string) { super(data, name || "intellibrite"); }
-    public createItem(data: any): IntelliBrite { return new IntelliBrite(data); }
-}
+//export class IntelliBriteCollection extends EqItemCollection<IntelliBrite> {
+//    constructor(data: any, name?: string) { super(data, name || "intellibrite"); }
+//    public createItem(data: any): IntelliBrite { return new IntelliBrite(data); }
+//}
 // TODO: Get rid of this... these should be attributes of the ligh group circuits.
-export class IntelliBrite extends EqItem {
-    public get id(): number { return this.data.id; }
-    public set id(val: number) { this.data.id = val; }
-    public get position(): number { return this.data.position; }
-    public set position(val: number) { this.data.position = val; }
-    public get color(): number { return this.data.color; }
-    public set color(val: number) { this.data.color = val; }
-    public get colorSet(): number { return this.data.colorSet; }
-    public set colorSet(val: number) { this.data.colorSet = val; }
-    public get swimDelay(): number { return this.data.swimDelay; }
-    public set swimDelay(val: number) { this.data.swimDelay = val; }
-    public get mode(): number { return this.data.mode; }
-    public set mode(val: number) { this.data.mode = val; }
-    public get isActive(): boolean { return this.data.isActive; }
-    public set isActive(val: boolean) { this.data.isActive = val; }
-}
+//export class IntelliBrite extends EqItem {
+//    public get id(): number { return this.data.id; }
+//    public set id(val: number) { this.data.id = val; }
+//    public get position(): number { return this.data.position; }
+//    public set position(val: number) { this.data.position = val; }
+//    public get color(): number { return this.data.color; }
+//    public set color(val: number) { this.data.color = val; }
+//    public get colorSet(): number { return this.data.colorSet; }
+//    public set colorSet(val: number) { this.data.colorSet = val; }
+//    public get swimDelay(): number { return this.data.swimDelay; }
+//    public set swimDelay(val: number) { this.data.swimDelay = val; }
+//    public get mode(): number { return this.data.mode; }
+//    public set mode(val: number) { this.data.mode = val; }
+//    public get isActive(): boolean { return this.data.isActive; }
+//    public set isActive(val: boolean) { this.data.isActive = val; }
+//}
 export class FeatureCollection extends EqItemCollection<Feature> {
     constructor(data: any, name?: string) { super(data, name || "features"); }
     public createItem(data: any): Feature { return new Feature(data); }
@@ -862,6 +869,9 @@ export class CircuitOrFeatureFactory
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
+    public getDualSpeed(add?: boolean): Pump {
+        return this.getItemByIndex(0, add, { id: 0, type: 2, name: 'Two Speed' });
+    }
 }
 export class Pump extends EqItem {
     public get id(): number { return this.data.id; }
@@ -1036,6 +1046,54 @@ export class Cover extends EqItem {
     public get circuits(): number[] { return this.data.circuits; }
     public set circuits(val: number[]) { this.data.circuits = val; }
 }
+export interface ICircuitGroup {
+    id: number;
+    type: number;
+    name: string;
+    eggTimer: number;
+    isActive: boolean;
+    circuits: LightGroupCircuitCollection | CircuitGroupCircuitCollection;
+}
+export class LightGroupCollection extends EqItemCollection<LightGroup> {
+    constructor(data: any, name?: string) { super(data, name || "lightGroups"); }
+    public createItem(data: any): LightGroup { return new LightGroup(data); }
+}
+export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCircuit> {
+    constructor(data: any, name?: string) { super(data, name || 'circuits'); }
+    public createItem(data: any): LightGroupCircuit { return new LightGroupCircuit(data); }
+}
+export class LightGroupCircuit extends EqItem {
+    public get circuit(): number { return this.data.circuit; }
+    public set circuit(val: number) { this.data.circuit = val; }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.data.isActive = val; }
+    public get lightingTheme(): number { return this.data.lightingTheme; }
+    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
+    public get position(): number { return this.data.position; }
+    public set position(val: number) { this.data.position = val; }
+    public get colorSet(): number { return this.data.colorSet; }
+    public set colorSet(val: number) { this.data.colorSet = val; }
+    public get swimDelay(): number { return this.data.swimDelay; }
+    public set swimDelay(val: number) { this.data.swimDelay = val; }
+
+}
+export class LightGroup extends EqItem implements ICircuitGroup {
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = val; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.data.name = val; }
+    public get type(): number { return this.data.type; }
+    public set type(val: number) { this.data.type = val; }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.data.isActive = val; }
+    public get eggTimer(): number { return this.data.eggTimer; }
+    public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public get lightingTheme(): number { return this.data.lightingTheme; }
+    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
+    public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
+    public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
+}
+
 export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroupCircuit> {
     constructor(data: any, name?: string) { super(data, name || 'circuits'); }
     public createItem(data: any): CircuitGroupCircuit { return new CircuitGroupCircuit(data); }
@@ -1049,8 +1107,14 @@ export class CircuitGroupCircuit extends EqItem {
 export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
     constructor(data: any, name?: string) { super(data, name || "circuitGroups"); }
     public createItem(data: any): CircuitGroup { return new CircuitGroup(data); }
+    public getInterfaceById(id: number): ICircuitGroup {
+        let iGroup: ICircuitGroup = this.getItemById(id, false, { id: id, isActive: false });
+        if (!iGroup.isActive) iGroup = sys.lightGroups.getItemById(id, false, { id: id, isActive: false });
+        return iGroup;
+    }
 }
-export class CircuitGroup extends EqItem {
+
+export class CircuitGroup extends EqItem implements ICircuitGroup {
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1061,11 +1125,8 @@ export class CircuitGroup extends EqItem {
     public set isActive(val: boolean) { this.data.isActive = val; }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.data.eggTimer = val; }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
-    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
     public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
-
 }
 export class RemoteCollection extends EqItemCollection<Remote> {
     constructor(data: any, name?: string) { super(data, name || "remotes"); }

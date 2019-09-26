@@ -59,17 +59,24 @@ export class OptionsMessage
                 // sample packet
                 // [165,33,15,16,30,16],[4,9,16,0,1,72,0,0,16,205,0,0,0,2,0,0],[2,88]
                 // this is (I believe) to assign circuits that require high speed mode with a dual speed pump
-                let hsCollection = sys.equipment.highSpeedCircuits
+                let pump = sys.pumps.getDualSpeed(true);
+                let hsCollection = pump.circuits;
                 for (let i = 0; i <= 3; i++) {
-                    let hs = hsCollection.getItemById(i, true);
                     let val = msg.extractPayloadByte(i);
-                    hs.isActive = val > 0;
-                    if (hs.isActive) {
-                        hs.type = val;
-                        val < 64 ?
-                            hs.name = sys.circuits.getItemById(val).name
-                            : hs.name = sys.board.valueMaps.circuitFunctions.transform(val).desc
+                    if (val > 0) {
+                        let hs = hsCollection.getItemById(i, val > 0);
+                        //hs.isActive = val > 0;
+                        hs.circuit = val;
+                        // RKS: No need to set the name of the circuit here.  Besides this has no bearing.
+                        //if (hs.isActive) {
+                        //    hs.type = val;
+                        //    val < 64 ?
+                        //        hs.name = sys.circuits.getItemById(val).name
+                        //        : hs.name = sys.board.valueMaps.circuitFunctions.transform(val).desc
+                        //}
                     }
+                    else
+                        pump.circuits.removeItemById(i);
                 }
                 break;
             case 40:

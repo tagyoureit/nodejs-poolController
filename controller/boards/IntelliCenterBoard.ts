@@ -221,10 +221,11 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             let req = new IntelliCenterConfigRequest(ConfigCategories.circuitGroups, ver.circuitGroups, [32,33], function (req: IntelliCenterConfigRequest) {
                 // Only get group attributes for the ones we have defined.  The total number of message for all potential groups exceeds 50.
                 if (sys.circuitGroups.length > 0) {
-                    req.fillRange(0, sys.circuitGroups.length - 1); // Circuits
-                    req.fillRange(16, sys.circuitGroups.length + 15); // Group names
-                    if (sys.circuitGroups.length > 0) req.fillRange(34, 34);  // Egg timer
-                    if (sys.circuitGroups.length > 16) req.fillRange(35, 35); // Egg timer
+                    let len = sys.circuitGroups.length + sys.lightGroups.length;
+                    req.fillRange(0, len - 1); // Circuits
+                    req.fillRange(16, len + 15); // Group names
+                    if (len > 0) req.fillRange(34, 34);  // Egg timer
+                    if (len > 16) req.fillRange(35, 35); // Egg timer
 
                     // TODO: RKS -- There are many more available messages for this but I don't yet see thier use.  My suspicion is that they are
                     // related to the color swim, sync and lighting themes.

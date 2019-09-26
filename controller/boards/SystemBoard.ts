@@ -183,9 +183,10 @@ export class byteValueMaps {
         [128, { val: 0, name: 'repeat', desc: 'Repeats' }]
     ]);
     public circuitGroupTypes: byteValueMap = new byteValueMap([
-        [0, {name: 'none', desc: 'Unspecified' }],
-        [1, {name: 'light', desc: 'Light' }],
-        [2, {name: 'circuit', desc: 'Circuit' }]
+        [0, { name: 'none', desc: 'Unspecified' }],
+        [1, { name: 'light', desc: 'Light' }],
+        [2, { name: 'circuit', desc: 'Circuit' }],
+        [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
     public tempUnits: byteValueMap = new byteValueMap([
         [0, {name: 'F', desc: 'Fahrenheit' }],

@@ -486,10 +486,10 @@ export class EquipmentStateMessage {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
         // data[0] = color
         const color = msg.extractPayloadByte(0);
-        for (let i = 0; i <= sys.intellibrite.length; i++) {
-            const ib = sys.intellibrite.getItemByIndex(i);
-            const cstate = state.circuits.getItemById(ib.id, true);
-            const circuit = sys.circuits.getItemById(ib.id, true);
+        for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+            const ib = sys.intellibrite.circuits.getItemByIndex(i);
+            const cstate = state.circuits.getItemById(ib.circuit, true);
+            const circuit = sys.circuits.getItemById(ib.circuit, true);
             switch (color) {
                 case 0: // off
                 case 1: // on
