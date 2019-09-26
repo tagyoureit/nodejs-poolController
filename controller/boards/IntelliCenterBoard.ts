@@ -144,16 +144,18 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         let itm = 0;
         if (this.curr && !this.curr.isComplete) {
             itm = this.curr.items.shift();
+            // RKS: Acks can sometimes conflict if there is another panel at the plugin address
+            // this used to send a 30 Ack when it received its response but it appears that is
+            // any other panel is awake at the same address it may actually collide with it
+            // as both boards are processing at the same time and sending an outbound ack.
             const out: Outbound = new Outbound(
                 Protocol.Broadcast,
                 Message.pluginAddress,
-                15,
-                222,
-                [this.curr.category, itm],
-                5,
+                15, 222,
+                [this.curr.category, itm], 5,
                 new Response(16, 15, 30,
                     [this.curr.category, itm],
-                    30,
+                    undefined,
                     function (msgOut) { self.processNext(msgOut) })
             );
             setTimeout(conn.queueSendMessage, 50, out);
