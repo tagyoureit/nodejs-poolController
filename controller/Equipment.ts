@@ -1071,8 +1071,8 @@ export class LightGroupCircuit extends EqItem {
     public set lightingTheme(val: number) { this.data.lightingTheme = val; }
     public get position(): number { return this.data.position; }
     public set position(val: number) { this.data.position = val; }
-    public get colorSet(): number { return this.data.colorSet; }
-    public set colorSet(val: number) { this.data.colorSet = val; }
+    public get color(): number { return this.data.color; }
+    public set color(val: number) { this.data.color = val; }
     public get swimDelay(): number { return this.data.swimDelay; }
     public set swimDelay(val: number) { this.data.swimDelay = val; }
 

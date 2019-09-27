@@ -225,13 +225,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 if (sys.circuitGroups.length > 0) {
                     let len = sys.circuitGroups.length + sys.lightGroups.length;
                     req.fillRange(0, len - 1); // Circuits
-                    req.fillRange(16, len + 15); // Group names
-                    if (len > 0) req.fillRange(34, 34);  // Egg timer
-                    if (len > 16) req.fillRange(35, 35); // Egg timer
-
-                    // TODO: RKS -- There are many more available messages for this but I don't yet see thier use.  My suspicion is that they are
-                    // related to the color swim, sync and lighting themes.
-
+                    req.fillRange(16, len + 15); // Group names and delay
+                    if (len > 0) req.fillRange(34, 35);  // Egg timer and colors
+                    if (len > 1) req.fillRange(36, Math.min(36 + len, 50)); // Colors
                 }
 
             });

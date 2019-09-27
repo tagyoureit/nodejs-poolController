@@ -252,6 +252,21 @@ export class EasyTouchBoard extends SystemBoard {
             [197, { name: 'magenta', desc: 'Magenta' }],
             [255, { name: 'none', desc: 'None' }]
         ]);
+        // RKS: TODO Ask Russ about these colors.  I believe that
+        // the light themes and the light colors are really two different sets.  One is
+        // for the circuit setting and the other is actually for ColorSet.  IntelliCenter has
+        // this exact set with different values.
+        this.valueMaps.lightColors = new byteValueMap([
+            [0, { name: 'white', desc: 'White' }],
+            [2, { name: 'lightgreen', desc: 'Light Green' }],
+            [4, { name: 'green', desc: 'Green' }],
+            [6, { name: 'cyan', desc: 'Cyan' }],
+            [8, { name: 'blue', desc: 'Blue' }],
+            [10, { name: 'lavender', desc: 'Lavender' }],
+            [12, { name: 'magenta', desc: 'Magenta' }],
+            [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
+        ]);
+
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],

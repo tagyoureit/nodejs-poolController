@@ -96,6 +96,7 @@ export class byteValueMaps {
         [2, { name: 'blue', desc: 'Blue' }],
         [3, { name: 'magenta', desc: 'Magenta' }],
         [4, { name: 'red', desc: 'Red' }],
+        [5, { name: 'sam', desc: 'SAm Mode' }],
         [6, { name: 'party', desc: 'Party' }],
         [7, { name: 'romance', desc: 'Romance' }],
         [8, { name: 'caribbean', desc: 'Caribbean' }],
@@ -103,6 +104,16 @@ export class byteValueMaps {
         [10, { name: 'sunset', desc: 'Sunset' }],
         [11, { name: 'royal', desc: 'Royal' }],
         [255, { name: 'none', desc: 'None' }]
+    ]);
+    public lightColors: byteValueMap = new byteValueMap([
+        [0, { name: 'white', desc: 'White' }],
+        [16, { name: 'lightgreen', desc: 'Light Green' }],
+        [32, { name: 'green', desc: 'Green' }],
+        [48, { name: 'cyan', desc: 'Cyan' }],
+        [64, { name: 'blue', desc: 'Blue'}],
+        [80, { name: 'lavender', desc: 'Lavender' }],
+        [96, { name: 'magenta', desc: 'Magenta' }],
+        [112, {name: 'lightmagenta', desc: 'Light Magenta'}]
     ]);
     public scheduleDays: byteValueMap = new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],

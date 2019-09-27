@@ -15,7 +15,13 @@ export class CircuitGroupMessage {
                 group.circuits.clear();
                 // Circuit #
                 for (let i = 2; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
-                    if (msg.extractPayloadByte(i) !== 255) group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) });
+                    if (msg.extractPayloadByte(i) !== 255) {
+                        if (group.type === 1 && msg.extractPayloadByte(i + 16) !== 0)
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i), delay: msg.extractPayloadByte(i + 16) });
+                        else
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) });
+                        
+                    }
                     circuitId++;
                 }
             }
@@ -39,8 +45,28 @@ export class CircuitGroupMessage {
                 CircuitGroupMessage.processGroupType(msg);
                 break;
             case 34:
+                CircuitGroupMessage.processEggTimer(msg);
+                break;                
             case 35:
                 CircuitGroupMessage.processEggTimer(msg);
+                CircuitGroupMessage.processColor(msg);
+                break;
+            case 36:
+            case 37:
+            case 38:
+            case 39:
+            case 40:
+            case 41:
+            case 42:
+            case 43:
+            case 44:
+            case 45:
+            case 46:
+            case 47:
+            case 48:
+            case 49:
+            case 50:
+                CircuitGroupMessage.processColor(msg);
                 break;
         }
 
@@ -72,11 +98,23 @@ export class CircuitGroupMessage {
             let group: LightGroup = arrlightGrps[i];
             let sgroup: LightGroupState = state.lightGroups.getItemById(group.id);
             group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
+            
             sgroup.lightingTheme = group.lightingTheme;
             sgroup.emitEquipmentChange();
         }
         for (let i = 0; i < arrCircuitGrps.length; i++) {
             state.circuitGroups.getItemById(arrCircuitGrps[i].id).emitEquipmentChange();
+        }
+    }
+    private static processColor(msg: Inbound) {
+        var groupId = ((msg.extractPayloadByte(1) - 35)) + 1;
+        var group: ICircuitGroup = sys.circuitGroups.getInterfaceById(groupId++);
+        if (group.isActive && group.type === 1) {
+            let lg = group as LightGroup;
+            for (let j = 1; j <= 16 && j < msg.payload.length && j <= lg.circuits.length; j++) {
+                let circuit = lg.circuits.getItemById(j);
+                circuit.color = msg.extractPayloadByte(j + 17);
+            }
         }
     }
     private static processEggTimer(msg: Inbound) {

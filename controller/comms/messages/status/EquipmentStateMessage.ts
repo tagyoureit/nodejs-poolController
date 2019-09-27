@@ -485,6 +485,9 @@ export class EquipmentStateMessage {
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
         // data[0] = color
+        // TODO: RKS This is incorrect.  The lighting theme is a different set
+        // than the color set values which are applied. I believe this to be the message that contains the
+        // color set values. (eg lightColors vs lightThemes)
         const color = msg.extractPayloadByte(0);
         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
             const ib = sys.intellibrite.circuits.getItemByIndex(i);
@@ -497,7 +500,7 @@ export class EquipmentStateMessage {
                 case 191: // recall
                     break;
                 case 160: // color set (pre-defined colors)
-                    cstate.lightingTheme = circuit.lightingTheme = ib.colorSet;
+                    cstate.lightingTheme = circuit.lightingTheme = ib.color;
                     break;
                 default:
                     // intellibrite themes

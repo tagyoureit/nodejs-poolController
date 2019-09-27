@@ -105,7 +105,7 @@ export class CircuitMessage {
                 if (intellibrite.isActive) {
                     intellibrite.circuit = circuit
                     intellibrite.position = (msg.extractPayloadByte(byte + 1) >> 4) + 1;
-                    intellibrite.colorSet = msg.extractPayloadByte(byte + 1) & 15;
+                    intellibrite.color = msg.extractPayloadByte(byte + 1) & 15;
                     intellibrite.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
                     intellibrite.isActive = true;
                 }
