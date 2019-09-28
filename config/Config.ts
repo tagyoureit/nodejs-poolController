@@ -63,7 +63,9 @@ class Config {
     private ensurePath(dir: string) {
         if (!fs.existsSync(dir)) {
             fs.mkdir(dir, (err) => {
-                if (err) logger.error(`Error creating directory: ${dir} - ${err.message}`);
+                // Logger will not be initialized by the time we reach here so we must
+                // simply log these to the console.
+                if (err) console.log(`Error creating directory: ${dir} - ${err.message}`);
             });
         }
     }
