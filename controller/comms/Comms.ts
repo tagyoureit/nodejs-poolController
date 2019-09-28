@@ -229,6 +229,7 @@ export class SendRecieveBuffer {
             if (msgOut.requiresResponse && resp.isResponse(msg)) {
                 conn.buffer._waitingPacket = null;
                 callback = resp.callback;
+                resp.message = msg;
                 if (resp.ack) conn.queueSendMessage(resp.ack);
             }
         }
@@ -238,6 +239,7 @@ export class SendRecieveBuffer {
             let out = conn.buffer._outBuffer[i];
             let resp: Response = out.response;
             if (out.requiresResponse && resp.isResponse(msg)) {
+                resp.message = msg;
                 if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                 conn.buffer._outBuffer.splice(i, 1);
             }

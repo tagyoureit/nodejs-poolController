@@ -420,6 +420,7 @@ export class Ack extends Outbound {
     }
 }
 export class Response extends Message {
+    public message: Inbound
     constructor(source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
         super();
         this.protocol = Protocol.Broadcast;
