@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, Schedule, EggTimer, CircuitOrFeatureFactory } from "../../../Equipment";
+import { sys, Schedule, EggTimer, CorF } from "../../../Equipment";
 import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
 export class ScheduleMessage {
@@ -27,7 +27,6 @@ export class ScheduleMessage {
                 case 4:
                     ScheduleMessage.processStartTimes(msg);
                     break;
-                case 4:
                 case 5:
                 case 6:
                     ScheduleMessage.processCircuit(msg);
@@ -94,16 +93,17 @@ export class ScheduleMessage {
 
         const circuitId = msg.extractPayloadByte(1);
         const time1 = msg.extractPayloadInt(2);
-        const CF = new CircuitOrFeatureFactory();
         if (time1 === 25) {
             // egg timer
+            // todo: still confused how we track deleted egg timers
             const eggTimer: EggTimer = sys.eggTimers.getItemById(schedId, true);
             eggTimer.circuit = circuitId;
             eggTimer.runTime =
                 msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
-            eggTimer.isActive = circuitId > 0 && !(eggTimer.runTime === 256);
-            const circuit = CF.getItemById(circuitId, true);
+            eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
+            const circuit = CorF.getItemById(circuitId, true);
             circuit.eggTimer = eggTimer.runTime;
+            //circuit.eggTimer = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
         } else if (circuitId > 0) {
             const schedule: Schedule = sys.schedules.getItemById(schedId, time1 > 0);
             schedule.circuit = circuitId;
@@ -111,13 +111,7 @@ export class ScheduleMessage {
             if (msg.extractPayloadByte(4) !== 26)
                 schedule.endTime = msg.extractPayloadInt(4);
             schedule.isActive = schedule.startTime !== 0;
-            // reverse the 7 LSB  to match IntelliCenter numbering
-            let origBits = (msg.extractPayloadByte(6) & 127).toString(2);
-            let revBits = 0;
-            let length = 7 - origBits.length;
-            while (length-- > 0) origBits = "0" + origBits; // pad to 8 bits
-            revBits = parseInt((msg.extractPayloadByte(6) >> 7) + origBits.split("").reverse().join(""), 2);
-            schedule.scheduleDays = revBits;
+            schedule.scheduleDays = msg.extractPayloadByte(6) & 127;
             if (schedule.isActive) {
                 const sstate = state.schedules.getItemById(schedule.id, true);
                 sstate.circuit = schedule.circuit;
@@ -132,7 +126,7 @@ export class ScheduleMessage {
             state.schedules.removeItemById(schedId);
         }
         if (sys.eggTimers.getItemById(schedId).isActive === false) {
-            const circuit = CF.getItemById(
+            const circuit = CorF.getItemById(
                 sys.eggTimers.getItemById(schedId).circuit
             );
             circuit.eggTimer = 0;

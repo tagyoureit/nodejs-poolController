@@ -1,6 +1,5 @@
 ﻿{
     "controller": {
-        "address": 36,
         "comms": {
             "rs485Port": "/dev/ttyUSB0",
             "portSettings": {
@@ -13,15 +12,10 @@
                 "lock": false
             },
             "mockPort": false,
-            "netConnect": true,
+            "netConnect": false,
             "netHost": "raspberrypi",
             "netPort": 9801,
             "inactivityRetry": 10
-        },
-        "type": {
-            "intellicenter": false,
-            "intellitouch": true,
-            "intellicom": false
         }
     },
     "web": {
@@ -53,10 +47,7 @@
                 "enabled": false
             }
         },
-        "services": {},
-        "dashboard": {
-            "startPage": "index.html"
-        }
+        "services": {}
     },
     "log": {
         "packet": {

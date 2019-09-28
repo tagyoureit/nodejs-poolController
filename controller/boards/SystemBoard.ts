@@ -5,7 +5,7 @@ import { state, ChlorinatorState, PumpState } from '../State';
 //import { ControllerType } from '../Constants';
 import { Outbound } from '../comms/messages/Messages';
 export class byteValueMap extends Map<number, any> {
-    public transform(byte:number, ext?:number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); };
+    public transform(byte:number, ext?:number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
     public toArray() : any[] {
         let arrKeys = Array.from(this.keys());
         let arr = [];
@@ -15,7 +15,7 @@ export class byteValueMap extends Map<number, any> {
     public transformByName(name: string) {
         let arr = this.toArray();
         for (let i = 0; i < arr.length; i++) {
-            if (typeof (arr[i].name && arr[i].name === name)) return arr[i];
+            if (typeof (arr[i].name) !== 'undefined' && arr[i].name === name) return arr[i];
         }
         return { name: name };
     }
@@ -61,15 +61,15 @@ export class byteValueMaps {
                 if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
             }
             return { val: b, days: days };
-        }
+        };
         this.virtualCircuits.transform = function (byte) { return extend(true, {}, { id: byte, name: 'Unknown ' + byte }, this.get(byte), { showInFeatures: false, showInCircuits: false }); };
         this.tempUnits.transform = function (byte) { return extend(true, {}, this.get(byte & 0x04)); };
-        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); }
+        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
         this.controllerStatus.transform = function (byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
-        }
+        };
         this.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
     public panelModes: byteValueMap = new byteValueMap([
@@ -141,7 +141,7 @@ export class byteValueMaps {
     public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'No Heater' }],
         [1, { name: 'heater', desc: 'Heater' }],
-        [2, { name: 'solar', desc: 'Solar Only' }],
+        [2, { name: 'solar', desc: 'Solar Only' }]
 
     ]);
     public pumpStatus: byteValueMap = new byteValueMap([
@@ -214,9 +214,9 @@ export class byteValueMaps {
 export class SystemBoard {
     constructor(system: PoolSystem) {}
     public valueMaps: byteValueMaps = new byteValueMaps();
-    public checkConfiguration() { };
-    public requestConfiguration(ver?: ConfigVersion) { };
-    public stopAsync() { };
+    public checkConfiguration() { }
+    public requestConfiguration(ver?: ConfigVersion) { }
+    public stopAsync() { }
     public system: SystemCommands = new SystemCommands(this);
     public bodies: BodyCommands = new BodyCommands(this);
     public pumps: PumpCommands = new PumpCommands(this);
@@ -320,6 +320,7 @@ export class PumpCommands extends BoardCommands {
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
+                // RG: should this be 'pump.hasOwnProperty'?  
                 if (this.hasOwnProperty(prop)) pump[prop] = obj[prop];
             }
         }
@@ -375,7 +376,7 @@ export class CircuitCommands extends BoardCommands {
         circ.level = level;
         circ.emitEquipmentChange();
     }
-    public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); };
+    public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getNameById(id: number) {
         if (id < 200)
             return sys.board.valueMaps.circuitNames.transform(id).desc;

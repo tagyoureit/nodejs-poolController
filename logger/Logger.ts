@@ -6,6 +6,7 @@ import { Message } from '../controller/comms/messages/Messages.js';
 import { config } from '../config/Config';
 class Logger {
     constructor() {
+        if (!fs.existsSync(path.join(process.cwd(), '/logs'))) fs.mkdirSync(path.join(process.cwd(), '/logs'));
         this.pktPath = path.join(process.cwd(), '/logs', this.getPacketPath());
         this.replayPath = path.join(process.cwd(), '/replay/packetCapture.json');
         this.cfg = config.getSection('log');
@@ -19,7 +20,8 @@ class Logger {
     private getPacketPath() : string {
         var ts = new Date();
         function pad(n) { return (n < 10 ? '0' : '') + n; }
-        return 'packetLog (' + ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + ' ' + pad(ts.getHours()) + '_' + pad(ts.getMinutes()) + '_' + pad(ts.getSeconds()) + ').log';
+        // changed this to remove spaces from the name
+        return 'packetLog(' + ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + ').log';
     }
     private _logger: winston.Logger;
     public init() {

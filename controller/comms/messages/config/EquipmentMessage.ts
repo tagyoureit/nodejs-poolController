@@ -79,6 +79,7 @@ export class EquipmentMessage {
                         body.isActive = bodyId <= sys.equipment.maxBodies;
                         break;
                 }
+                break;
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:

@@ -64,7 +64,7 @@ export class IntelliCenterBoard extends SystemBoard {
                 if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
             }
             return { val: b, days: days };
-        }
+        };
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
@@ -268,7 +268,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this.push(req);
         }
         logger.info(`Queued ${this.remainingItems} configuration items`);
-        if (this.remainingItems > 0) setTimeout(function () { self.processNext() }, 50);
+        if (this.remainingItems > 0) setTimeout(function () { self.processNext(); }, 50);
         else state.status = 1;
         state.emitControllerChange();
         //this._needsChanges = false;
@@ -421,6 +421,10 @@ class IntelliCenterPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
+        for (let i = 0; i <= msgs.length; i++){
+            conn.queueSendMessage(msgs[i]);
+        }
+        // RG: do we want to emit these here or wait for them to be set by the controller
         sys.emitEquipmentChange();
         sys.pumps.emitEquipmentChange();
     }
@@ -544,7 +548,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             , sched.heatSource
             , sched.heatSetpoint
             , sched.flags
-            ,],
+            ],
             0
         );
         conn.queueSendMessage(out); // Send it off in a letter to yourself.

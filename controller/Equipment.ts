@@ -31,6 +31,7 @@ interface IPoolSystem {
     covers: CoverCollection;
     circuitGroups: CircuitGroupCollection;
     remotes: RemoteCollection;
+    eggTimers: EggTimerCollection;
     security: Security;
     board: SystemBoard;
     updateControllerDateTime(
@@ -69,6 +70,7 @@ export class PoolSystem implements IPoolSystem {
         this.remotes = new RemoteCollection(this.data, 'remotes');
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
+        this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 });
@@ -130,7 +132,7 @@ export class PoolSystem implements IPoolSystem {
         this.board.stopAsync();
     }
     public board: SystemBoard = new SystemBoard(this);
-    public checkConfiguration() { this.board.checkConfiguration(); };
+    public checkConfiguration() { this.board.checkConfiguration(); }
     public cfgPath: string;
     public data: any;
     protected _lastUpdated: Date;
@@ -200,7 +202,7 @@ export class PoolSystem implements IPoolSystem {
             deleteProperty(target, property) {
                 if (property in target) delete target[property];
                 return true;
-            },
+            }
         };
         return new Proxy(obj, handler);
     };
@@ -237,7 +239,7 @@ export class PoolSystem implements IPoolSystem {
             remotes: self.data.remotes || [],
             intellibrite: self.data.intellibrite || [],
             heaters: self.data.heaters || [],
-            appVersion: self.data.appVersion || '0.0.0',
+            appVersion: self.data.appVersion || '0.0.0'
         };
     }
     public emitEquipmentChange() { this.emitData('config', this.equipmentState); }
@@ -607,7 +609,7 @@ export class ConfigVersion extends EqItem {
         if (isNaN(this._lastUpdated.getTime())) this._lastUpdated = new Date();
     }
     protected _lastUpdated: Date;
-    public get lastUpdated(): Date { return this._lastUpdated };
+    public get lastUpdated(): Date { return this._lastUpdated;}
     public set lastUpdated(val: Date) { this._lastUpdated = val; this.data.lastUpdated = Timestamp.toISOLocal(val); }
     public get options(): number { return this.data.options; }
     public set options(val: number) { this.data.options = val; }
@@ -904,10 +906,6 @@ export class Pump extends EqItem {
     public set turnovers(val: number) { this.data.turnovers = val; }
     public get manualFilterGPM() { return this.data.manualFilterGPM; }
     public set manualFilterGPM(val: number) { this.data.manualFilterGPM = val; }
-    public get maxPrimeFlow() { return this.data.maxPrimeFlow; }
-    public set maxPrimeFlow(val: number) { this.data.maxPrimeFlow = val; }
-    public get maxPrimeTime() { return this.data.maxPrimeTime; }
-    public set maxPrimeTime(val: number) { this.data.maxPrimeTime = val; }
     public get maxSystemTime() { return this.data.maxSystemTime; }
     public set maxSystemTime(val: number) { this.data.maxSystemTime = val; }
     public get maxPressureIncrease() { return this.data.maxPressureIncrease; }
@@ -922,6 +920,8 @@ export class Pump extends EqItem {
     public set vacuumFlow(val: number) { this.data.vacuumFlow = val; }
     public get vacuumTime() { return this.data.vacuumTime; }
     public set vacuumTime(val: number) { this.data.vacuumTime = val; }
+    public get backgroundCircuit() { return this.data.backgroundCircuit; }
+    public set backgroundCircuit(val: number) { this.data.backgroundCircuit = val; }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
     public setCircuitRate(circuitId: number, rate: number) {
@@ -930,7 +930,7 @@ export class Pump extends EqItem {
         else c.flow = rate;
         this.setPump();
     }
-    public setCircuitRateUnits(circuitId: number, units: number) { sys.board.pumps.setCircuitRateUnits(this, circuitId, units) }
+    public setCircuitRateUnits(circuitId: number, units: number) { sys.board.pumps.setCircuitRateUnits(this, circuitId, units); }
     public setCircuitId(pumpCircuitId: number, circuitId: number) { sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId); }
     public setType(pumpType: number) { sys.board.pumps.setType(this, pumpType); }
 }
@@ -1022,8 +1022,13 @@ export class Heater extends EqItem {
     public set isActive(val: boolean) { this.data.isActive = val; }
     public get cooling(): boolean { return this.data.cooling; }
     public set cooling(val: boolean) { this.data.cooling = val; }
+    public get heating(): boolean { return this.data.heating; }
+    public set heating(val: boolean) { this.data.heating = val; }
     public get setTemp(): number { return this.data.setTemp; }
     public set setTemp(val: number) { this.data.setTemp = val; }
+    public get freeze(): boolean { return this.data.freeze; }
+    public set freeze(val: boolean) { this.data.freeze = val; }
+
 }
 export class CoverCollection extends EqItemCollection<Cover> {
     constructor(data: any, name?: string) { super(data, name || "covers"); }

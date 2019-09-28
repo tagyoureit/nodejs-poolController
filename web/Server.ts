@@ -3,7 +3,7 @@ import express = require( 'express' )
 import { config } from "../config/Config";
 import { logger } from "../logger/Logger";
 import socketio = require( "socket.io" );
-import parcelBundler = require( 'parcel-bundler' );
+// import parcelBundler = require( 'parcel-bundler' );
 import { ConfigRoute } from "./services/config/Config";
 import { StateRoute } from "./services/state/State";
 import { UtilitiesRoute } from "./services/utilities/Utilities";
@@ -12,8 +12,8 @@ import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
 import { state } from "../controller/State";
-import { conn } from "../controller/comms/Comms"
-import { Inbound, Outbound } from "../controller/comms/messages/Messages"
+import { conn } from "../controller/comms/Comms";
+import { Inbound, Outbound } from "../controller/comms/messages/Messages";
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -77,7 +77,7 @@ export class HttpServer extends ProtoServer
     public app: express.Application;
     public server: http.Server;
     public sockServer: socketio.Server;
-    public parcel: parcelBundler;
+    //public parcel: parcelBundler;
     private _sockets: socketio.Socket[] = [];
     private _pendingMsg: Inbound;
     public emitToClients ( evt: string, ...data: any )
@@ -145,15 +145,15 @@ export class HttpServer extends ProtoServer
         } );
         sock.on( 'receivePacketRaw', function ( incomingPacket: any[] )
         {
-            var str = 'Add packet(s) to incoming buffer: '
+            var str = 'Add packet(s) to incoming buffer: ';
             logger.info( 'User request (replay.html) to RECEIVE packet: %s', JSON.stringify( incomingPacket ) );
             for ( var i = 0; i < incomingPacket.length; i++ )
             {
                 conn.buffer.pushIn( new Buffer( incomingPacket[ i ] ) );
-                str += JSON.stringify( incomingPacket[ i ] ) + ' '
+                str += JSON.stringify( incomingPacket[ i ] ) + ' ';
             }
-            logger.info( str )
-        } )
+            logger.info( str );
+        } );
         sock.on( 'replayPackets', function ( bytesToProcessArr: number[][] )
         {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed
@@ -166,9 +166,9 @@ export class HttpServer extends ProtoServer
                 let ndx: number = 0;
                 do
                 {
-                    if ( typeof ( msg ) == "undefined" || msg === null || msg.isComplete || !msg.isValid )
+                    if ( typeof ( msg ) === "undefined" || msg === null || msg.isComplete || !msg.isValid )
                     {
-                        msg = new Inbound()
+                        msg = new Inbound();
                         ndx = msg.readPacket( bytesToProcess );
                     }
                     else
@@ -177,13 +177,13 @@ export class HttpServer extends ProtoServer
                     }
                     if ( msg.isValid && msg.isComplete )
                     {
-                        let out = new Outbound( msg.protocol, msg.source, msg.dest, msg.action, msg.payload )
+                        let out = new Outbound( msg.protocol, msg.source, msg.dest, msg.action, msg.payload );
                         conn.queueSendMessage( out );
-                        logger.info( `Sending ${ out.toShortPacket() }` )
+                        logger.info( `Sending ${ out.toShortPacket() }` );
                     }
                     else self._pendingMsg = msg;
                 }
-                while ( ndx < bytesToProcess.length )
+                while ( ndx < bytesToProcess.length );
             }
             /*             for ( let i = 0; i < bytesToProcessArr.length; i++ )
             {
@@ -191,7 +191,7 @@ export class HttpServer extends ProtoServer
                 logger.info( `Sending ${bytesToProcess}` )
                 conn.emitter.emit( 'writePacket', Buffer.from(bytesToProcess) );
             } */
-        } )
+        } );
 
         sock.on( 'sendPackets', function ( bytesToProcessArr: number[][] )
         {
@@ -212,35 +212,35 @@ export class HttpServer extends ProtoServer
                 conn.queueSendMessage( out );
             } while ( bytesToProcessArr.length > 0 );
 
-        } )
+        } );
     }
-    private initParcel ()
-    {
-        if ( this._dev )
-        {
-            // Parcel: absolute path to entry point
-            const file = path.join( process.cwd(), '/web/dashboard/index.html' )
-            // original dashboard for IntelliCenter
-            // this.app.use( express.static( path.join( process.cwd(), 'web/dashboard.orig' ), { maxAge: '1d' } ) );
+    // private initParcel ()
+    // {
+    //     if ( this._dev )
+    //     {
+    //         // Parcel: absolute path to entry point
+    //         const file = path.join( process.cwd(), '/web/dashboard/index.html' )
+    //         // original dashboard for IntelliCenter
+    //         // this.app.use( express.static( path.join( process.cwd(), 'web/dashboard.orig' ), { maxAge: '1d' } ) );
 
-            logger.verbose( `Parcel serving files from: ${ file }` )
-            // Parcel: set options
-            const options: parcelBundler.ParcelOptions = {
-                outDir: path.join( process.cwd(), 'dist/dev' )
-            };
-            // Parcel: Initialize a new bundler
-            this.parcel = new parcelBundler( file, options )
-            this.app.use( this.parcel.middleware() )
-        }
-        else
-        {
-            // Single Page App: fallback to index.html
-            // https://github.com/parcel-bundler/parcel/issues/3117#issuecomment-498280051
-            this.app.get( "*", ( req, res ) =>
-                res.sendFile( path.join( __dirname + "/dist/web/index.html" ) )
-            );
-        }
-    }
+    //         logger.verbose( `Parcel serving files from: ${ file }` )
+    //         // Parcel: set options
+    //         const options: parcelBundler.ParcelOptions = {
+    //             outDir: path.join( process.cwd(), 'dist/dev' )
+    //         };
+    //         // Parcel: Initialize a new bundler
+    //         this.parcel = new parcelBundler( file, options )
+    //         this.app.use( this.parcel.middleware() )
+    //     }
+    //     else
+    //     {
+    //         // Single Page App: fallback to index.html
+    //         // https://github.com/parcel-bundler/parcel/issues/3117#issuecomment-498280051
+    //         this.app.get( "*", ( req, res ) =>
+    //             res.sendFile( path.join( __dirname + "/dist/web/index.html" ) )
+    //         );
+    //     }
+    // }
     public init ( cfg )
     {
         if ( cfg.enabled )
@@ -258,10 +258,6 @@ export class HttpServer extends ProtoServer
                     host = host.replace( /:\d+$/, ':' + cfgHttps.port );
                     return res.redirect( 'https://' + host + req.url );
                 } );
-            }
-            else
-            {
-
             }
             this.app.use( ( req, res, next ) =>
             {
@@ -283,7 +279,7 @@ export class HttpServer extends ProtoServer
             StateRoute.initRoutes( this.app );
             UtilitiesRoute.initRoutes( this.app );
             ClassicRoute.initRoutes( this.app );
-            this.initParcel();
+            //this.initParcel();
             // start our server on port
             this.server.listen( cfg.port, cfg.ip, function ()
             {

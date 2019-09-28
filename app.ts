@@ -8,8 +8,6 @@ import { sys } from "./controller/Equipment";
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
-import { ControllerType } from "./controller/Constants";
-
 
 export function initAsync ()
 {

@@ -6,7 +6,6 @@ export class CircuitMessage {
 
         switch (msg.action) {
             case 11: // IntelliTouch Circuits
-                console.log('Here i am');
                 CircuitMessage.processCircuitAttributes(msg);
                 break;
             case 30: // IntelliCenter
@@ -80,7 +79,9 @@ export class CircuitMessage {
                 Thus, we must keep track of all current items and delete/re-init them every time.
                 The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
 
-        let index = 1; // which intellibrite position are we updating?
+// come back to this.  not sure where to store it currently
+                return;
+       /*  let index = 1; // which intellibrite position are we updating?
         let byte = 0; // which byte are we starting with?
         if (msg.datalen === 25) {
             // increase intellibrite max if necessary
@@ -112,15 +113,14 @@ export class CircuitMessage {
             }
             index++;
         }
-        // Don't set this on the circuits.  It is an attribute of the grouping.
-        //for (let ib = 0; ib < sys.intellibrite.circuits.length; ib++) {
-        //    const intellibrite = sys.intellibrite.circuits.getItemByIndex(ib);
-        //    if (intellibrite.isActive === false) continue;
-        //    const circ = sys.circuits.getItemById(intellibrite.id);
-        //    circ.intellibrite.colorSet = intellibrite.colorSet;
-        //    circ.intellibrite.swimDelay = intellibrite.swimDelay;
-        //    circ.intellibrite.position = intellibrite.position;
-        //}
+        for (let ib = 0; ib < sys.intellibrite.length; ib++) {
+            const intellibrite = sys.intellibrite.getItemByIndex(ib);
+            if (intellibrite.isActive === false) continue;
+            const circ = sys.circuits.getItemById(intellibrite.id);
+            circ.intellibrite.colorSet = intellibrite.colorSet;
+            circ.intellibrite.swimDelay = intellibrite.swimDelay;
+            circ.intellibrite.position = intellibrite.position;
+        } */
     }
     private static processCircuitTypes(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxCircuits; i++) {
@@ -184,7 +184,7 @@ export class CircuitMessage {
         const CF = new CircuitOrFeatureFactory();
         const circuit = CF.getItemById(id, true);
         circuit.type = functionId & 63;
-        circuit.name = sys.board.circuits.getNameById(nameId)
+        circuit.name = sys.board.circuits.getNameById(nameId);
         circuit.freeze = (functionId & 64) === 64;
         circuit.macro = (functionId & 128) === 128;
         circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"

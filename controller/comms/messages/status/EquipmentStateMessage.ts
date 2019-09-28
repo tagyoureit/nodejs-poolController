@@ -1,8 +1,8 @@
-﻿import { Inbound, Message } from '../Messages';
-import { ControllerType } from '../../../Constants';
-import { state, BodyTempState } from '../../../State';
-import { sys, Body } from '../../../Equipment';
-import { logger } from 'logger/Logger';
+﻿import {Inbound, Message} from '../Messages';
+import {ControllerType} from '../../../Constants';
+import {state, BodyTempState} from '../../../State';
+import {sys, Body} from '../../../Equipment';
+import {logger} from 'logger/Logger';
 
 export class EquipmentStateMessage {
     private static initController(msg: Inbound) {
@@ -12,7 +12,7 @@ export class EquipmentStateMessage {
         // from another message.
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
-        switch (model2) {
+        switch(model2) {
             case 11: // SunTouch.  Eq to IntelliCom??
                 sys.controllerType = ControllerType.IntelliCom;
                 sys.equipment.maxBodies = 1;
@@ -25,7 +25,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 2;
                 break;
             case 0:
-                switch (model1) {
+                switch(model1) {
                     case 23: // IntelliCenter
                         sys.controllerType = ControllerType.IntelliCenter;
                         break;
@@ -94,11 +94,11 @@ export class EquipmentStateMessage {
                 break;
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;
-                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                // sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxChlorinators = 1;
-                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
-                switch (model1) {
+                sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
+                switch(model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.shared = true;
@@ -138,7 +138,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxChlorinators = 1;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
-                switch (model1) {
+                switch(model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch1 8';
                         sys.equipment.shared = true;
@@ -173,149 +173,151 @@ export class EquipmentStateMessage {
         setTimeout(() => sys.checkConfiguration(), 300);
     }
     public static process(msg: Inbound) {
-        if (!state.isInitialized) {
+        if(!state.isInitialized) {
             // RKS: This is a placeholder for now until we get the sys and state objects normalized.
-            if (msg.action !== 2) return;
+            if(msg.action !== 2) return;
             EquipmentStateMessage.initController(msg);
             return;
         }
         var ndx = 0;
-        switch (msg.action) {
+        switch(msg.action) {
             case 2:
-                // Shared
-                let dt = new Date();
-                state.time.hours = msg.extractPayloadByte(0);
-                state.time.minutes = msg.extractPayloadByte(1);
-                state.time.seconds = dt.getSeconds();
+                {
+                    // Shared
+                    let dt = new Date();
+                    state.time.hours = msg.extractPayloadByte(0);
+                    state.time.minutes = msg.extractPayloadByte(1);
+                    state.time.seconds = dt.getSeconds();
 
-                state.mode = msg.extractPayloadByte(9) & 0x81;
-                state.temps.units = msg.extractPayloadByte(9) & 0x04;
-                state.valve = msg.extractPayloadByte(10);
-                // EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
+                    state.mode = msg.extractPayloadByte(9) & 0x81;
+                    state.temps.units = msg.extractPayloadByte(9) & 0x04;
+                    state.valve = msg.extractPayloadByte(10);
+                    // EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
 
-                // state.heatMode = msg.extractPayloadByte(11);
-                state.delay = msg.extractPayloadByte(12);
+                    // state.heatMode = msg.extractPayloadByte(11);
+                    state.delay = msg.extractPayloadByte(12);
 
-                if (sys.controllerType === ControllerType.IntelliCenter) {
-                    state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
-                    if (sys.bodies.length > 2)
-                        state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.general.options.waterTempAdj2;
-                    // We are making an assumption here in that the circuits are always labeled the same.
-                    // 1=Spa
-                    // 6=Pool
-                    // 12=Body3
-                    // 22=Body4 -- Really not sure about this one.
-                    if (sys.bodies.length > 0) {
-                        // We will not go in here if this is not a shared body.
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                        const cbody: Body = sys.bodies.getItemById(1);
-                        tbody.heatMode = cbody.heatMode;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.name = cbody.name;
-                        tbody.circuit = 6;
-                        tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-                        if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-                            tbody.temp = state.temps.waterSensor1;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
+                    if(sys.controllerType === ControllerType.IntelliCenter) {
+                        state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
+                        if(sys.bodies.length > 2)
+                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.general.options.waterTempAdj2;
+                        // We are making an assumption here in that the circuits are always labeled the same.
+                        // 1=Spa
+                        // 6=Pool
+                        // 12=Body3
+                        // 22=Body4 -- Really not sure about this one.
+                        if(sys.bodies.length > 0) {
+                            // We will not go in here if this is not a shared body.
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                            const cbody: Body = sys.bodies.getItemById(1);
+                            tbody.heatMode = cbody.heatMode;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.name = cbody.name;
+                            tbody.circuit = 6;
+                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                            if((msg.extractPayloadByte(2) & 0x20) === 32) {
+                                tbody.temp = state.temps.waterSensor1;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                        }
+                        if(sys.bodies.length > 1) {
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                            const cbody: Body = sys.bodies.getItemById(2);
+                            tbody.heatMode = cbody.heatMode;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.name = cbody.name;
+                            tbody.circuit = 1;
+                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                            if((msg.extractPayloadByte(2) & 0x01) === 1) {
+                                tbody.temp = state.temps.waterSensor1;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                        }
+                        if(sys.bodies.length > 2) {
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
+                            const cbody: Body = sys.bodies.getItemById(3);
+                            tbody.name = cbody.name;
+                            tbody.heatMode = cbody.heatMode;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                            tbody.circuit = 12;
+                            if((msg.extractPayloadByte(3) & 0x08) === 8) {
+                                // This is the first circuit on the second body.
+                                tbody.temp = state.temps.waterSensor2;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                        }
+                        if(sys.bodies.length > 3) {
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
+                            const cbody: Body = sys.bodies.getItemById(4);
+                            tbody.name = cbody.name;
+                            tbody.heatMode = cbody.heatMode;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                            tbody.circuit = 22;
+                            if((msg.extractPayloadByte(5) & 0x20) === 32) {
+                                // This is the first circuit on the third body or the first circuit on the second expansion.
+                                tbody.temp = state.temps.waterSensor2;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                        }
+                        state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
+                        state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
+                        // todo: do not think this is correct - at least not for IntelliTouch
+                        state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
                     }
-                    if (sys.bodies.length > 1) {
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-                        const cbody: Body = sys.bodies.getItemById(2);
-                        tbody.heatMode = cbody.heatMode;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.name = cbody.name;
-                        tbody.circuit = 1;
-                        tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-                        if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-                            tbody.temp = state.temps.waterSensor1;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
+                    else if(sys.controllerType !== ControllerType.Unknown) {
+                        state.temps.waterSensor1 = msg.extractPayloadByte(14);
+                        if(sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
+                        if(sys.bodies.length > 0) {
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                            const cbody: Body = sys.bodies.getItemById(1);
+                            if((msg.extractPayloadByte(2) & 0x20) === 32) {
+                                tbody.temp = state.temps.waterSensor1;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.name = cbody.name;
+                            tbody.circuit = 6;
+                            const heatMode = msg.extractPayloadByte(22) & 0x03;
+                            tbody.heatMode = heatMode;
+                            cbody.heatMode = heatMode;
+                            if(tbody.isOn) {
+                                const byte = msg.extractPayloadByte(10);
+                                if((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
+                                else if((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
+                            } else
+                                tbody.heatStatus = 0; // Off
+                        }
+                        if(sys.bodies.length > 1) {
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                            const cbody: Body = sys.bodies.getItemById(2);
+                            if((msg.extractPayloadByte(2) & 0x01) === 1) {
+                                tbody.temp = state.temps.waterSensor2;
+                                tbody.isOn = true;
+                            } else tbody.isOn = false;
+                            const heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
+                            tbody.heatMode = heatMode;
+                            cbody.heatMode = heatMode;
+                            tbody.setPoint = cbody.setPoint;
+                            tbody.name = cbody.name;
+                            tbody.circuit = 1;
+                            if(tbody.isOn) {
+                                const byte = msg.extractPayloadByte(10);
+                                if((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
+                                else if((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
+                            } else
+                                tbody.heatStatus = 0; // Off
+                        }
                     }
-                    if (sys.bodies.length > 2) {
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
-                        const cbody: Body = sys.bodies.getItemById(3);
-                        tbody.name = cbody.name;
-                        tbody.heatMode = cbody.heatMode;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-                        tbody.circuit = 12;
-                        if ((msg.extractPayloadByte(3) & 0x08) === 8) {
-                            // This is the first circuit on the second body.
-                            tbody.temp = state.temps.waterSensor2;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
-                    }
-                    if (sys.bodies.length > 3) {
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
-                        const cbody: Body = sys.bodies.getItemById(4);
-                        tbody.name = cbody.name;
-                        tbody.heatMode = cbody.heatMode;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-                        tbody.circuit = 22;
-                        if ((msg.extractPayloadByte(5) & 0x20) === 32) {
-                            // This is the first circuit on the third body or the first circuit on the second expansion.
-                            tbody.temp = state.temps.waterSensor2;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
-                    }
-                    state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
-                    state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
-                    // todo: do not think this is correct - at least not for IntelliTouch
-                    state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
+                    EquipmentStateMessage.processCircuitState(msg);
+                    EquipmentStateMessage.processFeatureState(msg);
+                    //EquipmentStateMessage.processEquipmentState(msg);
+                    // This will toggle the group states depending on the state of the individual circuits.
+                    sys.board.features.syncGroupStates();
+                    state.emitControllerChange();
+                    break;
                 }
-                else if (sys.controllerType !== ControllerType.Unknown) {
-                    state.temps.waterSensor1 = msg.extractPayloadByte(14);
-                    if (sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
-                    if (sys.bodies.length > 0) {
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                        const cbody: Body = sys.bodies.getItemById(1);
-                        if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-                            tbody.temp = state.temps.waterSensor1;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.name = cbody.name;
-                        tbody.circuit = 6;
-                        const heatMode = msg.extractPayloadByte(22) & 0x03;
-                        tbody.heatMode = heatMode;
-                        cbody.heatMode = heatMode;
-                        if (tbody.isOn) {
-                            const byte = msg.extractPayloadByte(10);
-                            if ((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
-                            else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
-                        } else
-                            tbody.heatStatus = 0; // Off
-                    }
-                    if (sys.bodies.length > 1) {
-                        const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-                        const cbody: Body = sys.bodies.getItemById(2);
-                        if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-                            tbody.temp = state.temps.waterSensor2;
-                            tbody.isOn = true;
-                        } else tbody.isOn = false;
-                        const heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
-                        tbody.heatMode = heatMode;
-                        cbody.heatMode = heatMode;
-                        tbody.setPoint = cbody.setPoint;
-                        tbody.name = cbody.name;
-                        tbody.circuit = 1;
-                        if (tbody.isOn) {
-                            const byte = msg.extractPayloadByte(10);
-                            if ((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
-                            else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
-                        } else
-                            tbody.heatStatus = 0; // Off
-                    }
-                }
-                EquipmentStateMessage.processCircuitState(msg);
-                EquipmentStateMessage.processFeatureState(msg);
-                //EquipmentStateMessage.processEquipmentState(msg);
-                // This will toggle the group states depending on the state of the individual circuits.
-                sys.board.features.syncGroupStates();
-                state.emitControllerChange();
-                break;
             case 5: // Intellitouch only.  Date/Time packet
                 // [255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
                 state.time.date = msg.extractPayloadByte(3);
@@ -330,11 +332,11 @@ export class EquipmentStateMessage {
             case 8: // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
-                if (sys.bodies.length > 1)
+                if(sys.bodies.length > 1)
                     state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 state.temps.air = msg.extractPayloadByte(2);
                 state.temps.solar = msg.extractPayloadByte(8);
-                if (sys.bodies.length > 0) {
+                if(sys.bodies.length > 0) {
                     // pool
                     // We will not go in here is this is not a shared body.
                     const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -344,12 +346,12 @@ export class EquipmentStateMessage {
                     tbody.name = cbody.name;
                     tbody.circuit = 6;
                     tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-                    if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                    if((msg.extractPayloadByte(2) & 0x20) === 32) {
                         tbody.temp = state.temps.waterSensor1;
                         tbody.isOn = true;
                     } else tbody.isOn = false;
                 }
-                if (sys.bodies.length > 1) {
+                if(sys.bodies.length > 1) {
                     // spa
                     const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                     const cbody: Body = sys.bodies.getItemById(2);
@@ -359,7 +361,7 @@ export class EquipmentStateMessage {
                     tbody.name = cbody.name;
                     tbody.circuit = 1;
                     tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-                    if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                    if((msg.extractPayloadByte(2) & 0x01) === 1) {
                         tbody.temp = state.temps.waterSensor1;
                         tbody.isOn = true;
                     } else tbody.isOn = false;
@@ -374,7 +376,7 @@ export class EquipmentStateMessage {
                 state.time.date = msg.extractPayloadByte(6);
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.year = msg.extractPayloadByte(8);
-                if (msg.extractPayloadByte(37, 255) !== 255) {
+                if(msg.extractPayloadByte(37, 255) !== 255) {
                     const chlor = state.chlorinators.getItemById(1);
                     chlor.superChlorRemaining =
                         msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
@@ -397,15 +399,15 @@ export class EquipmentStateMessage {
         // unaccounted for when it comes to a total of 32 features.
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-        switch (sys.controllerType) {
+        switch(sys.controllerType) {
             case ControllerType.IntelliCenter:
-                for (let i = 1; i <= sys.features.length; i++)
+                for(let i = 1; i <= sys.features.length; i++)
                     // Use a case statement here since we don't know where to go after 4.
-                    switch (i) {
+                    switch(i) {
                         case 1:
                         case 2:
                         case 3:
-                        case 4:
+                        case 4:{
                             const byte = msg.extractPayloadByte(7);
                             const feature = sys.features.getItemById(i);
                             const fstate = state.features.getItemById(i, feature.isActive);
@@ -413,20 +415,22 @@ export class EquipmentStateMessage {
                             fstate.emitEquipmentChange();
                             fstate.name = feature.name;
                             break;
+                        }
                     }
 
                 break;
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
+                {
                 const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
                 let featureId = 9;
-                for (let i = 3; i < msg.payload.length && i <= count; i++) {
+                for(let i = 3; i < msg.payload.length && i <= count; i++) {
                     const byte = msg.extractPayloadByte(i);
                     // Shift each bit getting the circuit identified by each value.
-                    for (let j = 0; j < 8; j++) {
+                    for(let j = 0; j < 8; j++) {
                         const feature = sys.features.getItemById(featureId);
-                        if (feature.isActive) {
+                        if(feature.isActive) {
                             const fstate = state.features.getItemById(
                                 featureId,
                                 feature.isActive
@@ -439,6 +443,7 @@ export class EquipmentStateMessage {
                     }
                 }
                 break;
+            }
         }
     }
     private static processCircuitState(msg: Inbound) {
@@ -449,22 +454,22 @@ export class EquipmentStateMessage {
         const count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
         let circuitId = 1;
         let body = 0; // Off
-        for (let i = 2; i < msg.payload.length && i <= count; i++) {
+        for(let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
-            for (let j = 0; j < 8; j++) {
+            for(let j = 0; j < 8; j++) {
                 const circuit = sys.circuits.getItemById(circuitId);
-                if (circuit.isActive) {
+                if(circuit.isActive) {
                     const cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circuit.name;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-                    if (cstate.isOn && circuitId === 6) body = 6;
-                    if (cstate.isOn && circuitId === 1) body = 1;
-                    if (sys.controllerType === ControllerType.IntelliCenter)
+                    if(cstate.isOn && circuitId === 6) body = 6;
+                    if(cstate.isOn && circuitId === 1) body = 1;
+                    if(sys.controllerType === ControllerType.IntelliCenter)
                         // intellitouch sends a separate msg with themes
-                        switch (circuit.type) {
+                        switch(circuit.type) {
                             case 6: // Globrite
                             case 5: // Magicstream
                             case 8: // Intellibrite

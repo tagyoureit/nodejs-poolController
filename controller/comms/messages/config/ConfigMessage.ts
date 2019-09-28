@@ -74,6 +74,7 @@ export class ConfigMessage {
                         CoverMessage.process(msg);
                         break;
                 }
+                break;
             case ControllerType.EasyTouch:
             case ControllerType.IntelliCom:
             case ControllerType.IntelliTouch:
