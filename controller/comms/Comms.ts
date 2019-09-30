@@ -194,6 +194,7 @@ export class SendRecieveBuffer {
                 conn.buffer._waitingPacket = null;
                 logger.warn(`Aborting packet ${bytes}.`)
                 if (msg.requiresResponse && typeof (msg.response.callback) === 'function') setTimeout(msg.response.callback, 100, msg);
+                if (typeof msg.onError !== 'undefined') msg.onError.apply(msg, 'packet aborted');
                 return;
             }
             conn.buffer.counter.bytesSent += bytes.length;
@@ -206,12 +207,14 @@ export class SendRecieveBuffer {
                     if (msg.retries <= 0) {
                         msg.failed = true;
                         conn.buffer._waitingPacket = null;
+                        if (typeof msg.onError === 'function') msg.onError.apply(msg, err);
                         if (msg.requiresResponse && typeof (msg.response.callback) === 'function') 
                             setTimeout(msg.response.callback, 100, msg);
                     }
                     else conn.buffer._waitingPacket = msg;
                 }
                 else {
+                    if (typeof msg.onSuccess === 'function') msg.onSuccess.apply(msg);
                     if (msg.requiresResponse) conn.buffer._waitingPacket = msg;
                 }
             });

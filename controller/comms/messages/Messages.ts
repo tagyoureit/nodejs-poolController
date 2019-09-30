@@ -371,10 +371,12 @@ export class Outbound extends Message {
         return new Outbound(Protocol.Broadcast, source, dest, action, payload, retries);
     }
     // Fields
-    public retries: number=0;
-    public timeout: number=1000;
+    public retries: number = 0;
+    public timeout: number = 1000;
     public response: Response;
-    public failed: boolean=false;
+    public failed: boolean = false;
+    public onSuccess: (msg) => void;
+    public onError: (msg, error) => void;
     // Properties
     public get sub() {return super.sub;}
     public get dest() {return super.dest;}
@@ -390,7 +392,8 @@ export class Outbound extends Message {
     public set datalen(val: number) {if(this.protocol !== Protocol.Chlorinator) this.header[5] = val;}
     public set chkHi(val: number) {if(this.protocol !== Protocol.Chlorinator) this.term[0] = val;}
     public set chkLo(val: number) {if(this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val;}
-    public get requiresResponse(): boolean {return (typeof (this.response) !== "undefined" && this.response !== null);}
+    public get requiresResponse(): boolean { return (typeof (this.response) !== "undefined" && this.response !== null); }
+    
     // Methods
     public calcChecksum() {
         this.datalen = this.payload.length;
@@ -408,13 +411,22 @@ export class Outbound extends Message {
     }
     public appendPayloadString(s: string, len?: number) {
         for(var i = 0; i < s.length; i++) {
-            if(typeof (len) !== "undefined" && i >= len) break;
+            if(typeof (len) !== 'undefined' && i >= len) break;
             this.payload.push(s.charCodeAt(i));
         }
-        if(typeof (len) !== "undefined") {
+        if(typeof (len) !== 'undefined') {
             for(var j = i; j < len; j++) this.payload.push(0);
         }
         return this;
+    }
+    public insertPayloadString(start: number, s: string, len?: number) {
+        let l = typeof len === 'undefined' ? s.length : len;
+        let buf = [];
+        for (let i = 0; i < l; l++) {
+            if (i < l) buf.push(s.charCodeAt(i));
+            else buf.push(i);
+        }
+        this.payload.splice(start, 0, ...buf);
     }
     public toPacket(): number[] {
         var pkt = [];
