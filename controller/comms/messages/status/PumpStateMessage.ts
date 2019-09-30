@@ -4,7 +4,14 @@ import { sys, ControllerType } from"../../../Equipment";
 export class PumpStateMessage {
     public static process ( msg: Inbound )
     {
-        if ( sys.controllerType === ControllerType.Unknown ) return;
+        if (sys.controllerType === ControllerType.Unknown) return;
+
+        // We only want to process the messages that are coming from the pump not to the pump.  At some point
+        // this filter was removed.  Any messages that are coming from the panel are simply requests to the pump
+        // asking for the information we want. We are simply observers of the result information.  If this is standalone
+        // then this is still true since the pumps will respond with what we are looking for.
+        if (msg.source < 96) return;
+
         let pumpId = msg.source - 96 + 1;
         let pump = state.pumps.getItemById(pumpId, true);
         let pumpCfg = sys.pumps.getItemById(pumpId);

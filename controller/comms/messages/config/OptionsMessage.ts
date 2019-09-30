@@ -59,25 +59,22 @@ export class OptionsMessage
                 // sample packet
                 // [165,33,15,16,30,16],[4,9,16,0,1,72,0,0,16,205,0,0,0,2,0,0],[2,88]
                 // this is (I believe) to assign circuits that require high speed mode with a dual speed pump
+
+                // We don't want the dual speed pump to even exist unless there are no circuit controlling it.
+                // It should not be showing up in our pumps list or emitting state unless the user has defined
+                // circuits to it on *Touch interfaces.
+                let arrCircuits = [];
                 let pump = sys.pumps.getDualSpeed(true);
-                let hsCollection = pump.circuits;
                 for (let i = 0; i <= 3; i++) {
                     let val = msg.extractPayloadByte(i);
-                    if (val > 0) {
-                        let hs = hsCollection.getItemById(i, val > 0);
-                        //hs.isActive = val > 0;
-                        hs.circuit = val;
-                        // RKS: No need to set the name of the circuit here.  Besides this has no bearing.
-                        //if (hs.isActive) {
-                        //    hs.type = val;
-                        //    val < 64 ?
-                        //        hs.name = sys.circuits.getItemById(val).name
-                        //        : hs.name = sys.board.valueMaps.circuitFunctions.transform(val).desc
-                        //}
-                    }
-                    else
-                        pump.circuits.removeItemById(i);
+                    if (val > 0) arrCircuits.push(val); 
+                    else pump.circuits.removeItemById(i);
                 }
+                if (arrCircuits.length > 0) {
+                    let pump = sys.pumps.getDualSpeed(true);
+                    for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j];
+                }
+                else sys.pumps.removeItemById(0);
                 break;
             case 40:
                 // [165,33,16,34,168,10],[0,0,0,254,0,0,0,0,0,0],[2,168 = manual heat mode off
