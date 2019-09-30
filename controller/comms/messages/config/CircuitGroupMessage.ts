@@ -7,7 +7,8 @@ export class CircuitGroupMessage {
         let groupId;
         let group: ICircuitGroup;
         let sgroup: ICircuitGroupState;
-        if (msg.extractPayloadByte(1) <= 15) {
+        let msgId = msg.extractPayloadByte(1);
+        if (msgId <= 15) {
             var circuitId = 1;
             groupId = msg.extractPayloadByte(1) + 1;
             group = sys.circuitGroups.getInterfaceById(groupId);
@@ -26,8 +27,8 @@ export class CircuitGroupMessage {
                 }
             }
         }
-        else if (msg.extractPayloadByte(1) >= 16 && msg.extractPayloadByte(1) <= 31) {
-            groupId = msg.extractPayloadByte(1) - 16 + 1;
+        else if (msgId >= 16 && msgId <= 31) {
+            groupId = msgId - 16 + 1;
             if (groupId <= sys.circuitGroups.length + sys.lightGroups.length) {
                 group = sys.circuitGroups.getInterfaceById(groupId);
                 if (group.isActive) {
@@ -77,28 +78,32 @@ export class CircuitGroupMessage {
         let arrCircuitGrps = [];
         for (let i = 2; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups && i <= 17; i++) {
             let type = msg.extractPayloadByte(i);
-            let group: ICircuitGroup = type === 1 ? sys.lightGroups.getItemById(groupId++, true) : sys.circuitGroups.getItemById(groupId++ , type !== 0);
-            let sgroup: ICircuitGroupState = state.circuitGroups.getItemById(group.id, type !== 0);
+            let group: ICircuitGroup = type === 1 ? sys.lightGroups.getItemById(groupId++, true) : sys.circuitGroups.getItemById(groupId++, type !== 0);
+            let sgroup: ICircuitGroupState = type === 1 ? state.lightGroups.getItemById(group.id, true) : state.circuitGroups.getItemById(group.id, type !== 0);
             group.type = type;
-            if (group.isActive && group.type <= 0) {
-                sys.circuitGroups.removeItemById(group.id);
-                state.circuitGroups.removeItemById(group.id);
-            }
-            else {
+            group.isActive = group.type !== 0;
+            if (group.isActive) {
                 if (group.type === 1)
                     arrlightGrps.push(group);
                 else
                     arrCircuitGrps.push(group);
+                sgroup.type = group.type;
             }
-            group.isActive = group.type !== 0;
-            if (!group.isActive && state.circuitGroups.length > sys.circuitGroups.length) state.circuitGroups.removeItemById(group.id);
-            if (group.isActive) sgroup.type = group.type;
+            else {
+                if (group.type === 1) {
+                    state.lightGroups.removeItemById(group.id);
+                    sys.lightGroups.removeItemById(group.id);
+                }
+                else {
+                    state.circuitGroups.removeItemById(group.id);
+                    sys.circuitGroups.removeItemById(group.id);
+                }
+            }
         }
         for (let i = 0; i < arrlightGrps.length; i++) {
             let group: LightGroup = arrlightGrps[i];
             let sgroup: LightGroupState = state.lightGroups.getItemById(group.id);
             group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
-            
             sgroup.lightingTheme = group.lightingTheme;
             sgroup.emitEquipmentChange();
         }
