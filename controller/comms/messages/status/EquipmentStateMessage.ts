@@ -27,6 +27,8 @@ export class EquipmentStateMessage {
             case 0:
                 switch(model1) {
                     case 23: // IntelliCenter
+                        sys.equipment.maxSchedules = 100;
+                        sys.equipment.maxFeatures = 32;
                         sys.controllerType = ControllerType.IntelliCenter;
                         break;
                     default: // IntelliTouch i5+3
@@ -36,6 +38,7 @@ export class EquipmentStateMessage {
                         sys.equipment.model = 'IntelliTouch i5+3S';
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
+                        sys.equipment.maxFeatures = 10;
                         sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                         sys.equipment.maxSchedules = 99;
                         sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
@@ -51,6 +54,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxBodies = 2;
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
+                sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
                 break;
             case 2: // IntelliTouch i9+3
@@ -63,6 +67,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                sys.equipment.maxFeatures = 10;
                 break;
             case 3: // IntelliTouch i5+3S
                 sys.controllerType = ControllerType.IntelliTouch;
@@ -72,6 +77,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
+                sys.equipment.maxFeatures = 10;
                 break;
             case 4: // IntelliTouch i9+3S
                 sys.controllerType = ControllerType.IntelliTouch;
@@ -81,6 +87,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
+                sys.equipment.maxFeatures = 10;
                 break;
             case 5: // IntelliTouch i10+3D
                 sys.controllerType = ControllerType.IntelliTouch;
@@ -91,6 +98,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
+                sys.equipment.maxFeatures = 10;
                 break;
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;
@@ -104,14 +112,14 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        // max features??
+                        sys.equipment.maxFeatures = 2;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch2 8P';
                         sys.equipment.maxCircuits = 8;
                         sys.equipment.shared = false;
                         sys.equipment.maxBodies = 1; // All Ps are single body
-                        // max features??
+                        sys.equipment.maxFeatures = 2;
                         break;
                     case 2:
                         sys.equipment.maxChlorinators = 1;
@@ -119,7 +127,8 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 4;
-                        // max features??
+                        sys.equipment.maxFeatures = 2;
+                        sys.equipment.maxFeatures = 2;
                         break;
                     case 3:
                         sys.equipment.maxChlorinators = 1;
@@ -127,7 +136,7 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = false;
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.maxBodies = 1; // All Ps are single body
-                        // max features??
+                        sys.equipment.maxFeatures = 2;
                         break;
                 }
                 break;
@@ -144,32 +153,46 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        // max features??
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch1 8P';
                         sys.equipment.maxBodies = 1;
                         sys.equipment.maxCircuits = 8;
                         sys.equipment.shared = false;
-                        // max features??
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 2: // check...
                         sys.equipment.model = 'EasyTouch1 4';
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 4;
-                        // max features??
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 3: // check...
                         sys.equipment.model = 'EasyTouch1 4P';
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.shared = false;
-                        // max features??
+                        sys.equipment.maxFeatures = 8;
                         break;
                 }
                 break;
         }
         state.status = 1;
+        // Do this here for *Touch but wait for IntelliCenter.  We do not have a complete picture yet.
+        // This will not come until we request and receive the equipment configuration messages.
+        if (sys.controllerType !== ControllerType.IntelliCenter) {
+            state.equipment.shared = sys.equipment.shared;
+            state.equipment.model = sys.equipment.model;
+            state.equipment.controllerType = sys.controllerType;
+            state.equipment.maxBodies = sys.equipment.maxBodies;
+            state.equipment.maxCircuits = sys.equipment.maxCircuits;
+            state.equipment.maxValves = sys.equipment.maxValves;
+            state.equipment.maxSchedules = sys.equipment.maxSchedules;
+            
+            // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
+            state.emitControllerChange();
+        }
         setTimeout(() => sys.checkConfiguration(), 300);
     }
     public static process(msg: Inbound) {

@@ -1,5 +1,6 @@
 ﻿import { Inbound } from '../Messages';
 import { sys, Equipment, ExpansionPanel, Body } from '../../../Equipment';
+import { state } from '../../../State'
 import { ControllerType } from '../../../Constants';
 
 export class EquipmentMessage {
@@ -77,6 +78,15 @@ export class EquipmentMessage {
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
                         body.isActive = bodyId <= sys.equipment.maxBodies;
+
+                        state.equipment.shared = sys.equipment.shared;
+                        state.equipment.model = sys.equipment.model;
+                        state.equipment.controllerType = sys.controllerType;
+                        state.equipment.maxBodies = sys.equipment.maxBodies;
+                        state.equipment.maxCircuits = sys.equipment.maxCircuits;
+                        state.equipment.maxValves = sys.equipment.maxValves;
+                        state.equipment.maxSchedules = sys.equipment.maxSchedules;
+
                         break;
                 }
                 break;
