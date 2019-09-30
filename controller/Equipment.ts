@@ -442,18 +442,19 @@ class EqItemCollection<T> {
     }
     public createItem(data: any): T { return (new EqItem(data) as unknown) as T; }
     public clear() { this.data.length = 0; }
-    public get length(): number { return typeof this.data !== "undefined" ? this.data.length : 0; }
+    public get length(): number { return typeof this.data !== 'undefined' ? this.data.length : 0; }
+    public set length(val: number) { if (typeof this.data !== 'undefined') this.data.length = val; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
     public get(): any { return this.data; }
     public emitEquipmentChange() { webApp.emitToClients(this.name, this.data); }
 }
 export class General extends EqItem {
-    ctor(data): General { return new General(data, name || "pool"); }
+    ctor(data): General { return new General(data, name || 'pool'); }
     public get alias(): string { return this.data.alias; }
     public set alias(val: string) { this.data.alias = val; }
-    public get owner(): Owner { return new Owner(this.data, "owner"); }
-    public get options(): Options { return new Options(this.data, "options"); }
-    public get location(): Location { return new Location(this.data, "location"); }
+    public get owner(): Owner { return new Owner(this.data, 'owner'); }
+    public get options(): Options { return new Options(this.data, 'options'); }
+    public get location(): Location { return new Location(this.data, 'location'); }
 }
 // Custom Names are IntelliTouch Only
 export class CustomNameCollection extends EqItemCollection<CustomName> {
@@ -594,6 +595,7 @@ export class Equipment extends EqItem {
     //public get highSpeedCircuits(): HighSpeedCircuitCollection { return new HighSpeedCircuitCollection(this.data, "highSpeedCircuits"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.data.maxCustomNames = val; }
+    // Looking for IntelliCenter 1.029
     public set controllerFirmware(val: string) { this.data.softwareVersion = val; }
     public get controllerFirmware(): string { return this.data.softwareVersion; }
     public set bootloaderVersion(val: string) { this.data.bootloaderVersion = val; }
@@ -922,6 +924,10 @@ export class Pump extends EqItem {
     public set vacuumTime(val: number) { this.data.vacuumTime = val; }
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.data.backgroundCircuit = val; }
+    // This is relevant only for single speed pumps attached to IntelliCenter.  All other pumps are driven from the circuits.  You cannot
+    // identify a single speed pump in *Touch.
+    public get body() { return this.data.body; } 
+    public set body(val: number) { this.data.body = val; }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
     public setCircuitRate(circuitId: number, rate: number) {
@@ -1020,14 +1026,16 @@ export class Heater extends EqItem {
     public set efficiencyMode(val: number) { this.data.efficiencyMode = val; }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.data.isActive = val; }
-    public get cooling(): boolean { return this.data.cooling; }
-    public set cooling(val: boolean) { this.data.cooling = val; }
-    public get heating(): boolean { return this.data.heating; }
-    public set heating(val: boolean) { this.data.heating = val; }
-    public get setTemp(): number { return this.data.setTemp; }
-    public set setTemp(val: number) { this.data.setTemp = val; }
+    public get coolingEnabled(): boolean { return this.data.coolingEnabled; }
+    public set coolingEnabled(val: boolean) { this.data.coolingEnabled = val; }
+    public get heatingEnabled(): boolean { return this.data.heatingEnabled; }
+    public set heatingEnabled(val: boolean) { this.data.heatingEnabled = val; }
+    public get differentialTemp(): number { return this.data.differentialTemp; }
+    public set differentialTemp(val: number) { this.data.differentialTemp = val; }
     public get freeze(): boolean { return this.data.freeze; }
     public set freeze(val: boolean) { this.data.freeze = val; }
+    public get economyTime(): number { return this.data.economyTime; }
+    public set economyTime(val: number) { this.data.economyTime = val; }
 
 }
 export class CoverCollection extends EqItemCollection<Cover> {

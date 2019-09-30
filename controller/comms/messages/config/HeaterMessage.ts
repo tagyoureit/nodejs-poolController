@@ -19,7 +19,7 @@ export class HeaterMessage {
                         HeaterMessage.processCoolingSetTemp(msg);
                         break;
                     case 4:
-                        HeaterMessage.processAddrEffMode(msg);
+                        HeaterMessage.processAddress(msg);
                         break;
                     case 5:
                     case 6:
@@ -30,6 +30,9 @@ export class HeaterMessage {
                     case 11:
                     case 12:
                         HeaterMessage.processHeaterNames(msg);
+                        break;
+                    case 13:
+                        HeaterMessage.processEfficiencyMode(msg);
                         break;
                 }
                 break;
@@ -78,7 +81,7 @@ export class HeaterMessage {
                     solar.isActive = true;
                     solar.body = 32;
                     solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1; 
-                    solar.cooling = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
+                    solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
                     solar.startTempDelta = ((msg.extractPayloadByte(2) & 0xE) >> 1) + 3;
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
                     let heatPump = sys.heaters.getItemById(3, true);
@@ -88,8 +91,8 @@ export class HeaterMessage {
                     let heatPump: Heater = sys.heaters.getItemById(3, true);
                     heatPump.type = 3;
                     heatPump.isActive = true;
-                    heatPump.heating = (msg.extractPayloadByte(1) & 0x1) === 1;
-                    heatPump.cooling = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
+                    heatPump.heatingEnabled = (msg.extractPayloadByte(1) & 0x1) === 1;
+                    heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
                     let solar = sys.heaters.getItemById(2, true);
                     solar.isActive = false;
                 }
@@ -107,7 +110,7 @@ export class HeaterMessage {
         for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i, msg.extractPayloadByte(i + 1) > 0);
             heater.type = msg.extractPayloadByte(i + 1);
-            if(heater.isActive && heater.type !== 0) sys.heaters.removeItemById(i);
+            if(heater.type === 0) sys.heaters.removeItemById(i);
             heater.isActive = heater.type > 0;
             heater.body = msg.extractPayloadByte(i + 17);
         }
@@ -128,17 +131,23 @@ export class HeaterMessage {
     private static processCoolingSetTemp(msg: Inbound) {
         for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
-            heater.cooling = msg.extractPayloadByte(i + 1) > 0;
-            heater.setTemp = msg.extractPayloadByte(i + 18);
+            heater.coolingEnabled = msg.extractPayloadByte(i + 1) > 0;
+            heater.differentialTemp = msg.extractPayloadByte(i + 18);
         }
     }
-    private static processAddrEffMode(msg: Inbound) {
+    private static processAddress(msg: Inbound) {
         for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.address = msg.extractPayloadByte(i + 1);
-            heater.efficiencyMode = msg.extractPayloadByte(i + 18);
         }
     }
+    private static processEfficiencyMode(msg: Inbound) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+            var heater: Heater = sys.heaters.getItemById(i);
+            heater.efficiencyMode = msg.extractPayloadByte(i + 1);
+        }
+    }
+
     private static processHeaterNames(msg: Inbound) {
         var heaterId = ((msg.extractPayloadByte(1) - 5) * 2) + 1;
         if(heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(2, 16);

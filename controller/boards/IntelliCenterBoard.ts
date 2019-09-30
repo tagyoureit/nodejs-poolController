@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChemistryCommands, PumpCommands, BodyCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys } from '../Equipment';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChemistryCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands } from './SystemBoard';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -73,6 +73,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public bodies: IntelliCenterBodyCommands = new IntelliCenterBodyCommands(this);
     public pumps: IntelliCenterPumpCommands = new IntelliCenterPumpCommands(this);
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
+    public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public checkConfiguration() {
         this._needsChanges = true;
         // Send out a message to the outdoor panel that we need info about
@@ -246,7 +247,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr.heaters, ver.heaters)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.heaters, ver.heaters, [0, 1, 2, 3, 4],
                 function (req: IntelliCenterConfigRequest) {
-                    if (sys.heaters.length > 0) req.fillRange(5, Math.min(Math.ceil(sys.heaters.length / 2) + 4, 12)); // Heater names
+                    if (sys.heaters.length > 0) req.fillRange(5, Math.min(Math.ceil(sys.heaters.length / 2) + 5, 12)); // Heater names
+                    req.fillRange(13, 14);
                 });
             this.push(req);
         }
@@ -521,7 +523,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             } else sched.scheduleDays = obj.scheduleDays & 0x00ff;
 
         if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
-        const csched = state.schedules.getItemById(sched.id, true);
+        let csched = state.schedules.getItemById(sched.id, true);
         csched.startTime = sched.startTime;
         csched.endTime = sched.endTime;
         csched.circuit = sched.circuit;
@@ -553,6 +555,23 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
         );
         conn.queueSendMessage(out); // Send it off in a letter to yourself.
     }
+}
+class IntelliCenterHeaterCommands extends HeaterCommands {
+    private createHeaterConfigMessage(heater: Heater): Outbound {
+        let out = Outbound.createMessage(
+            168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0
+                , heater.address,
+                //, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // Name
+                , heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
+        out.insertPayloadString(11, heater.name, 16);
+        return out;
+    }
+    public setHeater(heater: Heater, obj?: any) {
+        super.setHeater(heater, obj);
+        let out = this.createHeaterConfigMessage(heater);
+        conn.queueSendMessage(out);
+    }
+
 }
 enum ConfigCategories {
     options = 0,

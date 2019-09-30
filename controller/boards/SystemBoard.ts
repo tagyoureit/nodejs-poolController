@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, sys } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys } from '../Equipment';
 import { state, ChlorinatorState, PumpState } from '../State';
 //import { ControllerType } from '../Constants';
 import { Outbound } from '../comms/messages/Messages';
@@ -436,4 +436,11 @@ export class ChemistryCommands extends BoardCommands {
 export class ScheduleCommands extends BoardCommands {
     public setSchedule(sched: Schedule, obj?: any) { }
 }
-
+export class HeaterCommands extends BoardCommands {
+    public setHeater(heater: Heater, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in obj)
+                heater[s] = obj[s];
+        }
+    }
+}

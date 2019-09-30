@@ -1,6 +1,7 @@
 ﻿import { Inbound } from "../Messages";
 import { sys, Feature, Body } from"../../../Equipment";
 import { state, BodyTempState } from "../../../State";
+import { setTimeout } from "timers";
 export class ExternalMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(0)) {
@@ -29,6 +30,7 @@ export class ExternalMessage {
             case 9: // Valves
                 break;
             case 10: // Heaters
+                ExternalMessage.processHeater(msg);
                 break;
             case 11: // Unknown
                 break;
@@ -45,6 +47,22 @@ export class ExternalMessage {
                 ExternalMessage.processScheduleState(msg);
                 break;
         }
+    }
+    private static processHeater(msg: Inbound) {
+        // So a user is changing the heater info.  Lets
+        // hijack it and get it ourselves.
+        let heater = sys.heaters.getItemById(msg.extractPayloadByte(2));
+        heater.efficiencyMode = msg.extractPayloadByte(27);
+        heater.type = msg.extractPayloadByte(3);
+        heater.address = msg.extractPayloadByte(10);
+        heater.name = msg.extractPayloadString(11, 16);
+        heater.body = msg.extractPayloadByte(4);
+        heater.differentialTemp = msg.extractPayloadByte(5);
+        heater.coolingEnabled = msg.extractPayloadByte(8) > 0;
+        heater.economyTime = msg.extractPayloadByte(29);
+        if (heater.type === 0) sys.heaters.removeItemById(heater.id);
+        // Check anyway to make sure we got it all.
+        setTimeout(() => sys.checkConfiguration(), 500);
     }
     private static processCircuitState(msg: Inbound) {
         if (msg.extractPayloadByte(34) === 0) {
