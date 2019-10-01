@@ -25,10 +25,10 @@ export class byteValueMaps {
     constructor() {
         this.pumpStatus.transform = function (byte) {
             if (byte === 0) return this.get(0);
-            for (let b = 16; b >= 0; b--) {
+            for (let b = 16; b > 0; b--) {
                 let bit = (1 << (b - 1));
                 if ((byte & bit) > 0) {
-                    let v = this.get(bit);
+                    let v = this.get(b);
                     if (typeof v !== 'undefined') {
                         return extend(true, {}, v, { val: byte });
                     }
@@ -39,11 +39,10 @@ export class byteValueMaps {
         this.chlorinatorStatus.transform = function (byte) {
             if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
             else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
-            for (let b = 8; b >= 0; b--) {
-                let bit = (1 << (b));
-                let ndx = (byte & bit);
+            for (let b = 8; b > 0; b--) {
+                let bit = (1 << (b - 1));
                 if ((byte & bit) > 0) {
-                    let v = this.get(bit);
+                    let v = this.get(b);
                     if (typeof v !== "undefined") {
                         return extend(true, {}, v, { val: byte & 0x00FF });
                     }
