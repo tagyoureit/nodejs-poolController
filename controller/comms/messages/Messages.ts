@@ -309,9 +309,6 @@ export class Inbound extends Message {
             case 137:
             case 144:
             case 162:
-            // case 201:
-            // case 226: get
-                //case 208: // just "get"
                 HeaterMessage.process(this);
                 break;
             default:
