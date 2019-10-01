@@ -582,6 +582,8 @@ export class Equipment extends EqItem {
     public set maxRemotes(val: number) { this.data.maxRemotes = val; }
     public get maxCircuitGroups(): number { return this.data.maxCircuitGroups || 32; }
     public set maxCircuitGroups(val: number) { this.data.maxCircuitGroups = val; }
+    public get maxLightGroups(): number { return this.data.maxLightGroups || 40; }
+    public set maxLightGroups(val: number) { this.data.maxCircuitGroups = val; }
     public get maxChlorinators(): number { return this.data.maxChlorinators || 1; }
     public set maxChlorinators(val: number) { this.data.maxChlorinators = val; }
     public get maxHeaters(): number { return this.data.maxHeaters || 16; }

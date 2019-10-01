@@ -414,6 +414,14 @@ export class EquipmentState extends EqState {
     public set maxBodies(val: number) { this.setDataVal('maxBodies', val); }
     public get maxSchedules(): number { return this.data.maxSchedules; }
     public set maxSchedules(val: number) { this.setDataVal('maxSchedules', val); }
+    public get maxPumps(): number { return this.data.maxPumps; }
+    public set maxPumps(val: number) { this.setDataVal('maxPumps', val); }
+    public get maxHeaters(): number { return this.data.maxHeaters; }
+    public set maxHeaters(val: number) { this.setDataVal('maxHeaters', val); }
+    public get maxCircuitGroups(): number { return this.data.maxCircuitGroups; }
+    public set maxCircuitGroups(val: number) { this.setDataVal('maxCircuitGroups', val); }
+    public get maxLightGroups(): number { return this.data.maxLightGroups; }
+    public set maxLightGroups(val: number) { this.setDataVal('maxLightGroups', val); }
     // This could be extended to include all the expansion panels but not sure why.
     public cancelDelay() { sys.board.system.cancelDelay(); }
 }
@@ -698,9 +706,6 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
         }
     }
 }
-
-
-
 export class BodyTempState extends EqState {
     public get id(): number { return this.data.id; };
     public set id(val: number) { this.setDataVal('circuit', val); }

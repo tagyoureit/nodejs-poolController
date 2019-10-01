@@ -86,7 +86,7 @@ export class EquipmentMessage {
                         state.equipment.maxCircuits = sys.equipment.maxCircuits;
                         state.equipment.maxValves = sys.equipment.maxValves;
                         state.equipment.maxSchedules = sys.equipment.maxSchedules;
-
+                        state.equipment.maxPumps = sys.equipment.maxPumps;
                         break;
                 }
                 break;
@@ -109,10 +109,13 @@ export class EquipmentMessage {
     }
     private static calcModel(eq: Equipment) {
         eq.shared = (eq.type & 8) === 8;
+        eq.maxPumps = 16;
+        eq.maxLightGroups = 40;
+        eq.maxCircuitGroups = 16;
         eq.maxValves = EquipmentMessage.calcMaxValves(eq);
         eq.maxCircuits = EquipmentMessage.calcMaxCircuits(eq);
         eq.maxBodies = EquipmentMessage.calcMaxBodies(eq);
-        eq.model = 'i' + (eq.maxCircuits + (eq.shared ? -1 : 0)).toString() + 'P' + (eq.shared ? 'S' : '');
+        eq.model = 'IntelliCenter i' + (eq.maxCircuits + (eq.shared ? -1 : 0)).toString() + 'P' + (eq.shared ? 'S' : '');
     }
     private static calcMaxBodies(eq: Equipment): number {
         let max: number = eq.shared ? 2 : 1;

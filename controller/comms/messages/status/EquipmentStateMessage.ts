@@ -23,6 +23,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxPumps = 2;
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxValves = 2;
+                sys.equipment.maxCircuitGroups = 0;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 8;
                 break;
             case 0:
@@ -43,6 +45,8 @@ export class EquipmentStateMessage {
                         sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                         sys.equipment.maxSchedules = 99;
                         sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
+                        sys.equipment.maxCircuitGroups = 3;
+                        sys.equipment.maxLightGroups = 1;
                         break;
                 }
                 break;
@@ -57,6 +61,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
+                sys.equipment.maxCircuitGroups = 3;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 2: // IntelliTouch i9+3
@@ -70,6 +76,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
+                sys.equipment.maxCircuitGroups = 3;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 3: // IntelliTouch i5+3S
@@ -81,6 +89,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
+                sys.equipment.maxCircuitGroups = 3;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 4: // IntelliTouch i9+3S
@@ -92,6 +102,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
+                sys.equipment.maxCircuitGroups = 3;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 5: // IntelliTouch i10+3D
@@ -104,6 +116,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
+                sys.equipment.maxCircuitGroups = 3;
+                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 13: // EasyTouch2 Models
@@ -112,7 +126,9 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxChlorinators = 1;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
-                switch (model1) {
+                sys.equipment.maxCircuitGroups = 0;
+                sys.equipment.maxLightGroups = 1;
+                switch(model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.shared = true;
@@ -153,7 +169,9 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxChlorinators = 1;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
-                switch (model1) {
+                sys.equipment.maxCircuitGroups = 0;
+                sys.equipment.maxLightGroups = 1;
+                switch(model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch1 8';
                         sys.equipment.shared = true;
@@ -195,6 +213,8 @@ export class EquipmentStateMessage {
             state.equipment.maxCircuits = sys.equipment.maxCircuits;
             state.equipment.maxValves = sys.equipment.maxValves;
             state.equipment.maxSchedules = sys.equipment.maxSchedules;
+            state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
+            state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
             
             // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
             state.emitControllerChange();

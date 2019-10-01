@@ -207,14 +207,14 @@ export class SendRecieveBuffer {
                     if (msg.retries <= 0) {
                         msg.failed = true;
                         conn.buffer._waitingPacket = null;
-                        if (typeof msg.onError === 'function') msg.onError.apply(msg, err);
+                        if (typeof msg.onError === 'function') msg.onError.apply(msg, [msg, err]);
                         if (msg.requiresResponse && typeof (msg.response.callback) === 'function') 
                             setTimeout(msg.response.callback, 100, msg);
                     }
                     else conn.buffer._waitingPacket = msg;
                 }
                 else {
-                    if (typeof msg.onSuccess === 'function') msg.onSuccess.apply(msg);
+                    if (typeof msg.onSuccess === 'function') msg.onSuccess.apply(msg, [msg]);
                     if (msg.requiresResponse) conn.buffer._waitingPacket = msg;
                 }
             });
@@ -239,14 +239,14 @@ export class SendRecieveBuffer {
         // Go through and remove all the packets that need to be removed from the queue.
         var i = conn.buffer._outBuffer.length - 1;
         while (i >= 0) {
-            let out = conn.buffer._outBuffer[i];
+            let out = conn.buffer._outBuffer[i--];
+            if (typeof out === 'undefined') continue;
             let resp: Response = out.response;
             if (out.requiresResponse && resp.isResponse(msg)) {
                 resp.message = msg;
                 if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                 conn.buffer._outBuffer.splice(i, 1);
             }
-            i--;
         }
         if (typeof (callback) === 'function') {
             setTimeout(callback, 100, msgOut);

@@ -5,8 +5,8 @@ import { state, ChlorinatorState, PumpState } from '../State';
 //import { ControllerType } from '../Constants';
 import { Outbound } from '../comms/messages/Messages';
 export class byteValueMap extends Map<number, any> {
-    public transform(byte:number, ext?:number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
-    public toArray() : any[] {
+    public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
+    public toArray(): any[] {
         let arrKeys = Array.from(this.keys());
         let arr = [];
         for (let i = 0; i < arrKeys.length; i++) arr.push(this.transform(arrKeys[i]));
@@ -89,7 +89,20 @@ export class byteValueMaps {
     // Feature functions are used as the available options to define a circuit.
     public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
     public heaterTypes: byteValueMap = new byteValueMap();
-    public virtualCircuits: byteValueMap = new byteValueMap();
+    public virtualCircuits: byteValueMap = new byteValueMap([
+        [237, { name: 'Heat Boost' }],
+        [238, { name: 'Heat Enable' }],
+        [239, { name: 'Pump Speed +' }],
+        [240, { name: 'Pump Speed -' }],
+        [244, { name: 'Pool Heater' }],
+        [245, { name: 'Spa Heater' }],
+        [246, { name: 'Freeze' }],
+        [247, { name: 'Pool/Spa' }],
+        [248, { name: 'Solar Heat' }],
+        [251, { name: 'Heater' }],
+        [252, { name: 'Solar' }],
+        [255, { name: 'Pool Heat Enable' }]
+    ]);
     public lightThemes: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [1, { name: 'green', desc: 'Green' }],
@@ -110,10 +123,10 @@ export class byteValueMaps {
         [16, { name: 'lightgreen', desc: 'Light Green' }],
         [32, { name: 'green', desc: 'Green' }],
         [48, { name: 'cyan', desc: 'Cyan' }],
-        [64, { name: 'blue', desc: 'Blue'}],
+        [64, { name: 'blue', desc: 'Blue' }],
         [80, { name: 'lavender', desc: 'Lavender' }],
         [96, { name: 'magenta', desc: 'Magenta' }],
-        [112, {name: 'lightmagenta', desc: 'Light Magenta'}]
+        [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
     ]);
     public scheduleDays: byteValueMap = new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
@@ -139,17 +152,18 @@ export class byteValueMaps {
         [32, { name: 'nochange', desc: 'No Change' }]
     ]);
     public heatStatus: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'No Heater' }],
+        [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
-        [2, { name: 'solar', desc: 'Solar Only' }]
+        [2, { name: 'solar', desc: 'Solar' }],
+        [3, { nane: 'cooling', desc: 'Cooling' }]
 
     ]);
     public pumpStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
-                                           // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
+        // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
         [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
-                                         // as is should be if this is a VS / VF pump.  However if it is wired to a relay most often filter, the pump will report status
-                                         // 0 if it is not running.  Essentially this is no error but it is not a status either.
+        // as is should be if this is a VS / VF pump.  However if it is wired to a relay most often filter, the pump will report status
+        // 0 if it is not running.  Essentially this is no error but it is not a status either.
         [2, { name: 'filter', desc: 'Filter warning' }],
         [3, { name: 'overcurrent', desc: 'Overcurrent condition' }],
         [4, { name: 'priming', desc: 'Priming alarm' }],
@@ -190,7 +204,7 @@ export class byteValueMaps {
     ]);
     public circuitNames: byteValueMap = new byteValueMap();
     public scheduleTypes: byteValueMap = new byteValueMap([
-        [0, {name: 'runonce', desc: 'Run Once' }],
+        [0, { name: 'runonce', desc: 'Run Once' }],
         [128, { val: 0, name: 'repeat', desc: 'Repeats' }]
     ]);
     public circuitGroupTypes: byteValueMap = new byteValueMap([
@@ -200,8 +214,8 @@ export class byteValueMaps {
         [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
     public tempUnits: byteValueMap = new byteValueMap([
-        [0, {name: 'F', desc: 'Fahrenheit' }],
-        [4, {name: 'C', desc: 'Celcius' }]
+        [0, { name: 'F', desc: 'Fahrenheit' }],
+        [4, { name: 'C', desc: 'Celcius' }]
     ]);
     public valveTypes: byteValueMap = new byteValueMap([
         [0, { name: 'standard', desc: 'Standard' }],
@@ -212,7 +226,7 @@ export class byteValueMaps {
 // managed by the personality board.  This also provides a way to override specific functions for
 // acquiring state and configuration data.
 export class SystemBoard {
-    constructor(system: PoolSystem) {}
+    constructor(system: PoolSystem) { }
     public valueMaps: byteValueMaps = new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
@@ -353,7 +367,7 @@ export class PumpCommands extends BoardCommands {
         pump.type = pumpType;
         this.setPump(pump);
     }
-    
+
 }
 export class CircuitCommands extends BoardCommands {
     public setCircuitState(id: number, val: boolean) {
@@ -363,8 +377,7 @@ export class CircuitCommands extends BoardCommands {
     }
     public toggleCircuitState(id: number) {
         let circ = state.circuits.getItemById(id);
-        circ.isOn = !circ.isOn;
-        circ.emitEquipmentChange();
+        this.setCircuitState(id, !circ.isOn);
     }
     public setLightTheme(id: number, theme: number) {
         let circ = state.circuits.getItemById(id);
@@ -418,7 +431,7 @@ export class FeatureCommands extends BoardCommands {
             sgrp.emitEquipmentChange();
         }
     }
-    
+
 }
 export class ChemistryCommands extends BoardCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {

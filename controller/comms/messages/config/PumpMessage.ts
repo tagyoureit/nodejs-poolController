@@ -69,7 +69,7 @@ export class PumpMessage {
             else {
                 for (let i = 34; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
                     let circuit = msg.extractPayloadByte(i);
-                    if (circuit !== 255) pump.circuits.getItemById(circuitId++, true).circuit = circuit;
+                    if (circuit !== 255) pump.circuits.getItemById(circuitId++, true).circuit = circuit + 1;
                     else pump.circuits.removeItemById(circuitId++);
                 }
             }
@@ -172,8 +172,10 @@ export class PumpMessage {
                 sys.pumps.removeItemById(pump.id); // Remove the pump if we don't need it.
                 state.pumps.removeItemById(pump.id);
             }
-            else
+            else {
                 state.pumps.getItemById(pump.id, true).type = type;
+                pump.isActive = true;
+            }
         }
     }
     private static processAddress(msg: Inbound) {

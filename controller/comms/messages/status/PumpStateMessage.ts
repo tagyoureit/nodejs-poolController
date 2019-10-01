@@ -34,6 +34,7 @@ export class PumpStateMessage {
                 pump.runTime = (msg.extractPayloadByte(13)) * 60 + msg.extractPayloadByte(14);
                 pump.type = pumpCfg.type;
                 pump.emitEquipmentChange();
+                
                 break;
         }
     }

@@ -271,7 +271,16 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         }
         logger.info(`Queued ${this.remainingItems} configuration items`);
         if (this.remainingItems > 0) setTimeout(function () { self.processNext(); }, 50);
-        else state.status = 1;
+        else {
+            state.status = 1;
+            state.equipment.shared = sys.equipment.shared;
+            state.equipment.model = sys.equipment.model;
+            state.equipment.controllerType = sys.controllerType;
+            state.equipment.maxBodies = sys.equipment.maxBodies;
+            state.equipment.maxCircuits = sys.equipment.maxCircuits;
+            state.equipment.maxValves = sys.equipment.maxValves;
+            state.equipment.maxSchedules = sys.equipment.maxSchedules;
+        }
         state.emitControllerChange();
         //this._needsChanges = false;
         //this.data.controllerType = this.controllerType;
@@ -293,19 +302,30 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public createCircuitStateMessage(): Outbound {
-        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
+    public setCircuitState(id: number, val: boolean) {
+        let circ = state.circuits.getItemById(id);
+        let out = this.createCircuitStateMessage(id, val);
+        out.onSuccess = (msg: Outbound) => {
+            if (!msg.failed) {
+                circ.isOn = val;
+                circ.emitEquipmentChange();
+            }
+        };
+        conn.queueSendMessage(out);
+    }
+    public createCircuitStateMessage(id?: number, isOn?: boolean): Outbound {
+        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3);
         for (let i = 1; i <= state.data.circuits.length; i++) {
             let circuit = state.circuits.getItemById(i);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 3];
             let bit = (i - 1) - (ndx * 8);
-            if (circuit.isOn) byte = byte | (1 << bit);
+            if (circuit.id === id) isOn ? byte = byte | (1 << bit) : byte;
+            else if (circuit.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
         for (let i = 1; i <= state.data.features.length; i++) {
-            let feature = state.data.features.getItemById(i);
+            let feature = state.features.getItemById(i);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 9];
             let bit = (i - 1) - (ndx * 8);
@@ -350,11 +370,11 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
 }
 class IntelliCenterChemistryCommands extends ChemistryCommands {
-    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours) {
-        super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
-        let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlorHours > 0 ? 1 : 0, superChlorHours, 0, 1], 3,
+    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+        let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlor ? 1 : 0, superChlorHours, 0, 1], 3,
             new Response(16, Message.pluginAddress, 1, [168]));
         conn.queueSendMessage(out);
+        super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
     }
 }
 class IntelliCenterPumpCommands extends PumpCommands {
@@ -381,8 +401,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                         break;
                     case 4: // VSF
                     case 5: // VF
-                        outName.payload[i * 2 + 3] =
-                            pump.minSpeed - Math.floor(pump.minFlow / 256) * 256;
+                        outName.payload[i * 2 + 3] = pump.minSpeed - Math.floor(pump.minFlow / 256) * 256;
                         outName.payload[i * 2 + 4] = Math.floor(pump.minFlow / 256);
                         break;
                     default:
@@ -423,7 +442,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
-        for (let i = 0; i <= msgs.length; i++){
+        for (let i = 0; i < msgs.length; i++){
             conn.queueSendMessage(msgs[i]);
         }
         // RG: do we want to emit these here or wait for them to be set by the controller
@@ -459,15 +478,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let out = Outbound.createMessage(168,
             [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
-                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0],
-            0,
-            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    body.heatMode = mode;
-                    state.temps.bodies.getItemById(body.id).heatMode = mode;
-                }
-            })
-        );
+                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0], 0);
+        out.onSuccess = (msg) => {
+            if (!msg.failed) {
+                body.heatMode = mode;
+                state.temps.bodies.getItemById(body.id).heatMode = mode;
+                state.temps.emitEquipmentChange();
+            }
+        }
         conn.queueSendMessage(out);
 
     }
@@ -497,15 +515,15 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let out = Outbound.createMessage(
             168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
-                , 0, 100, 0, 0, 0, 0, 0, 0], 0,
-            new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-                if (!msg.failed) {
-                    body.setPoint = setPoint;
-                    state.temps.bodies.getItemById(body.id).setPoint = setPoint;
-                    state.temps.emitEquipmentChange();
-                }
-            })
-        );
+                , 0, 100, 0, 0, 0, 0, 0, 0], 0);
+        out.onSuccess = (msg) => {
+            if (!msg.failed) {
+                body.setPoint = setPoint;
+                state.temps.bodies.getItemById(body.id).setPoint = setPoint;
+                state.temps.emitEquipmentChange();
+            }
+
+        };
         conn.queueSendMessage(out);
     }
 }

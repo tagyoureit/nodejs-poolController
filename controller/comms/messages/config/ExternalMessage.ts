@@ -332,41 +332,49 @@ export class ExternalMessage {
                 body = sys.bodies.getItemById(1, false);
                 body.setPoint = msg.extractPayloadByte(21);
                 state.temps.bodies.getItemById(1).setPoint = body.setPoint;
+                state.temps.emitEquipmentChange();
                 break;
             case 19: // Body 3 Setpoint
                 body = sys.bodies.getItemById(3, false);
                 body.setPoint = msg.extractPayloadByte(22);
                 state.temps.bodies.getItemById(3).setPoint = body.setPoint;
+                state.temps.emitEquipmentChange();
                 break;
             case 20: // Body 2 Setpoint
                 body = sys.bodies.getItemById(2, false);
                 body.setPoint = msg.extractPayloadByte(23);
                 state.temps.bodies.getItemById(2).setPoint = body.setPoint;
+                state.temps.emitEquipmentChange();
                 break;
             case 21: // Body 4 Setpoint
                 body = sys.bodies.getItemById(4, false);
                 body.setPoint = msg.extractPayloadByte(24);
                 state.temps.bodies.getItemById(4).setPoint = body.setPoint;
+                state.temps.emitEquipmentChange();
                 break;
             case 22: // Body 1 Heat Mode
                 body = sys.bodies.getItemById(1, false);
                 body.heatMode = msg.extractPayloadByte(25);
                 state.temps.bodies.getItemById(1).heatMode = body.heatMode;
+                state.temps.emitEquipmentChange();
                 break;
             case 23: // Body 2 Heat Mode
                 body = sys.bodies.getItemById(2, false);
                 body.heatMode = msg.extractPayloadByte(26);
                 state.temps.bodies.getItemById(2).heatMode = body.heatMode;
+                state.temps.emitEquipmentChange();
                 break;
             case 24: // Body 3 Heat Mode
                 body = sys.bodies.getItemById(3, false);
                 body.heatMode = msg.extractPayloadByte(27);
                 state.temps.bodies.getItemById(3).heatMode = body.heatMode;
+                state.temps.emitEquipmentChange();
                 break;
             case 25: // Body 4 Heat Mode
                 body = sys.bodies.getItemById(4, false);
                 body.heatMode = msg.extractPayloadByte(28);
                 state.temps.bodies.getItemById(4).heatMode = body.heatMode;
+                state.temps.emitEquipmentChange();
                 break;
         }
     }
