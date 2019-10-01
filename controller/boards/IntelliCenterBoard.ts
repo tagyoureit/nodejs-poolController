@@ -100,6 +100,8 @@ class IntelliCenterConfigRequest extends ConfigRequest {
 }
 
 class IntelliCenterConfigQueue extends ConfigQueue {
+    public _processing: boolean = false;
+    public _newRequest: boolean = false;
     public processNext(msg?: Outbound) {
         if (this.closed) return;
         let self = this;
@@ -165,6 +167,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // it will get picked up.
             state.status = 1;
             this.curr = null;
+            this._processing = false;
             setTimeout(function () { sys.checkConfiguration(); }, 100);
         }
         // Notify all the clients of our processing status.
@@ -172,8 +175,12 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     }
     public queueChanges(ver: ConfigVersion) {
         let curr: ConfigVersion = sys.configVersion;
+        if (this._processing) {
+            if (curr.hasChanges(ver)) this._newRequest = true;
+            return;
+        }
+        this._processing = true;
         let self = this;
-        //console.log(curr.hasChanges(ver));
         if (!curr.hasChanges(ver)) return;
         sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
@@ -272,6 +279,11 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         logger.info(`Queued ${this.remainingItems} configuration items`);
         if (this.remainingItems > 0) setTimeout(function () { self.processNext(); }, 50);
         else {
+            this._processing = false;
+            if (this._newRequest) {
+                this._newRequest = false;
+                setTimeout(() => { sys.board.checkConfiguration(); }, 250);
+            }
             state.status = 1;
             state.equipment.shared = sys.equipment.shared;
             state.equipment.model = sys.equipment.model;
@@ -309,6 +321,28 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (!msg.failed) {
                 circ.isOn = val;
                 circ.emitEquipmentChange();
+            }
+        };
+        conn.queueSendMessage(out);
+    }
+    public setLightTheme(id: number, theme: number) {
+        let circuit = sys.circuits.getItemById(id);
+        let cstate = state.circuits.getItemById(id);
+        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+            theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+            0);
+
+        //Intellicenter Sent
+        //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 149]
+        // We sent
+        //[255, 0, 255][165, 63, 16, 36, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 170]
+        out.appendPayloadString(circuit.name, 16);
+        out.onSuccess = (msg) => {
+            if (!msg.failed) {
+                circuit.lightingTheme = theme;
+                cstate.lightingTheme = theme;
+                if (!cstate.isOn) this.setCircuitState(id, true);
+                cstate.emitEquipmentChange();
             }
         };
         conn.queueSendMessage(out);
