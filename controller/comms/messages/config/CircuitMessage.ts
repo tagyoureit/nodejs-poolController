@@ -1,5 +1,5 @@
-﻿import { Inbound } from "../Messages";
-import { sys, Circuit, CircuitOrFeatureFactory } from "../../../Equipment";
+﻿import {Inbound} from "../Messages";
+import {sys, Circuit, CircuitOrFeatureFactory} from "../../../Equipment";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -79,20 +79,13 @@ export class CircuitMessage {
                 Thus, we must keep track of all current items and delete/re-init them every time.
                 The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
 
-// come back to this.  not sure where to store it currently
-                return;
-       /*  let index = 1; // which intellibrite position are we updating?
+        let index = 1; // which intellibrite position are we updating?
         let byte = 0; // which byte are we starting with?
         if (msg.datalen === 25) {
-            // increase intellibrite max if necessary
-            if (sys.equipment.maxIntelliBrites <= msg.extractPayloadByte(0) * 4) sys.equipment.maxIntelliBrites = msg.extractPayloadByte(0) * 4;
             index = msg.extractPayloadByte(0) * 4 - 3;
-            byte = 1; // start iterating after the byte that tells us which ib packet # this is
         }
-        else if (msg.datalen === 32)
-            if (sys.equipment.maxIntelliBrites !== 8) sys.equipment.maxIntelliBrites = 8;
 
-        if (index === 1 && msg.datalen === 25 || msg.datalen === 32)
+        if ((index === 1 && msg.datalen === 25) || msg.datalen === 32)
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
             for (let i = 0; i < sys.intellibrite.circuits.length; i++)
                 sys.intellibrite.circuits.getItemByIndex(i).isActive = false;
@@ -104,7 +97,7 @@ export class CircuitMessage {
                 const intellibrite = intellibriteCollection.circuits.getItemById(circuit, true);
                 intellibrite.isActive = circuit > 0 && msg.extractPayloadByte(byte + 1) > 0;
                 if (intellibrite.isActive) {
-                    intellibrite.circuit = circuit
+                    intellibrite.circuit = circuit;
                     intellibrite.position = (msg.extractPayloadByte(byte + 1) >> 4) + 1;
                     intellibrite.color = msg.extractPayloadByte(byte + 1) & 15;
                     intellibrite.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
@@ -113,14 +106,11 @@ export class CircuitMessage {
             }
             index++;
         }
-        for (let ib = 0; ib < sys.intellibrite.length; ib++) {
-            const intellibrite = sys.intellibrite.getItemByIndex(ib);
-            if (intellibrite.isActive === false) continue;
-            const circ = sys.circuits.getItemById(intellibrite.id);
-            circ.intellibrite.colorSet = intellibrite.colorSet;
-            circ.intellibrite.swimDelay = intellibrite.swimDelay;
-            circ.intellibrite.position = intellibrite.position;
-        } */
+        for (let ib = 0; ib < sys.intellibrite.circuits.length; ib++) {
+            const intellibrite = sys.intellibrite.circuits.getItemByIndex(ib);
+            if (intellibrite.isActive === true) continue;
+            sys.intellibrite.circuits.removeItemById(ib);
+        }
     }
     private static processCircuitTypes(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxCircuits; i++) {
