@@ -211,13 +211,8 @@ export class EquipmentStateMessage {
             state.equipment.maxCircuits = sys.equipment.maxCircuits;
             state.equipment.maxValves = sys.equipment.maxValves;
             state.equipment.maxSchedules = sys.equipment.maxSchedules;
-<<<<<<< HEAD
             state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
             state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
-            
-=======
-
->>>>>>> Intellibrite updates
             // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
             state.emitControllerChange();
         }
