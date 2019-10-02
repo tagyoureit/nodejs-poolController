@@ -87,8 +87,12 @@ export class CircuitMessage {
 
         if ((index === 1 && msg.datalen === 25) || msg.datalen === 32)
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
-            for (let i = 0; i < sys.intellibrite.circuits.length; i++)
-                sys.intellibrite.circuits.getItemByIndex(i).isActive = false;
+            for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                let ib = sys.intellibrite.circuits.getItemByIndex(i);
+                // only evaluate intellibrites here; skip others
+                if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
+                ib.isActive = false;
+            }
 
         const intellibriteCollection = sys.intellibrite;
         for (byte; byte <= msg.datalen; byte = byte + 4) {
@@ -178,35 +182,38 @@ export class CircuitMessage {
         circuit.freeze = (functionId & 64) === 64;
         circuit.macro = (functionId & 128) === 128;
         circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"
+        // if sam/sal/magicstream/intellibrite add to lightTheme; 
+        if ([9, 10, 16, 17].includes(circuit.type)) {
+            const ib = sys.intellibrite.circuits.getItemById(id, true);
+            ib.isActive = true;
+        }
+        else {
+            // if light was previously sam/sal/magicstream but now is not, remove from IB
+            sys.intellibrite.circuits.removeItemById(id);
+        }
+        // tode: better logic for physical circuits here
         if (id <= 8) // Circuits
         {
-            sys.equipment.maxCircuits = 8; // todo: move this to configuration
             if (circuit.type === 0) return; // do not process if type doesn't exist
             switch (msg.extractPayloadByte(0)) {
                 case 6: // pool
-                    var body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                    body.name = "Pool";
-                    functionId === 0 ? body.isActive = false : body.isActive = true;
-                    break;
+                    {
+                        const body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                        body.name = "Pool";
+                        functionId === 0 ? body.isActive = false : body.isActive = true;
+                        break;
+                    }
                 case 1: // spa
-                    body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                    body.name = "Spa";
-                    if (functionId === 0) {
+                    {
+                        const body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+                        body.name = "Spa";
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                        // hack to determine equipment by circuits (for now) because IntelliCenter will tell us but we need to determine it programatically for IT.
-                        sys.equipment.maxBodies = 1;
-                        body.isActive = false;
+                        functionId === 0 ? body.isActive = false : body.isActive = true;
+                        break;
                     }
-                    else {
-                        sys.equipment.maxBodies = 2;
-                        body.isActive = true;
-                    }
-                    break;
             }
         }
-        else // features
 
-            sys.equipment.maxFeatures = 12; // todo: move this to configuration
 
     }
 

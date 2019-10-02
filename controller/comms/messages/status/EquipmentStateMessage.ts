@@ -134,14 +134,14 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        sys.equipment.maxFeatures = 2;
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch2 8P';
                         sys.equipment.maxCircuits = 8;
                         sys.equipment.shared = false;
                         sys.equipment.maxBodies = 1; // All Ps are single body
-                        sys.equipment.maxFeatures = 2;
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 2:
                         sys.equipment.maxChlorinators = 1;
@@ -149,9 +149,7 @@ export class EquipmentStateMessage {
                         sys.equipment.shared = true;
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 4;
-                        sys.equipment.maxFeatures = 2;
-                        sys.equipment.maxFeatures = 2;
-                        break;
+                        sys.equipment.maxFeatures = 2; break;
                     case 3:
                         sys.equipment.maxChlorinators = 1;
                         sys.equipment.model = 'EasyTouch2 4P';
@@ -213,9 +211,13 @@ export class EquipmentStateMessage {
             state.equipment.maxCircuits = sys.equipment.maxCircuits;
             state.equipment.maxValves = sys.equipment.maxValves;
             state.equipment.maxSchedules = sys.equipment.maxSchedules;
+<<<<<<< HEAD
             state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
             state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
             
+=======
+
+>>>>>>> Intellibrite updates
             // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
             state.emitControllerChange();
         }
@@ -456,7 +458,7 @@ export class EquipmentStateMessage {
                         case 1:
                         case 2:
                         case 3:
-                        case 4:{
+                        case 4: {
                             const byte = msg.extractPayloadByte(7);
                             const feature = sys.features.getItemById(i);
                             const fstate = state.features.getItemById(i, feature.isActive);
@@ -472,27 +474,27 @@ export class EquipmentStateMessage {
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
                 {
-                const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
-                let featureId = 9;
-                for (let i = 3; i < msg.payload.length && i <= count; i++) {
-                    const byte = msg.extractPayloadByte(i);
-                    // Shift each bit getting the circuit identified by each value.
-                    for (let j = 0; j < 8; j++) {
-                        const feature = sys.features.getItemById(featureId);
-                        if (feature.isActive) {
-                            const fstate = state.features.getItemById(
-                                featureId,
-                                feature.isActive
-                            );
-                            fstate.isOn = (byte & 1 << j) >> j > 0;
-                            fstate.name = feature.name;
-                            fstate.emitEquipmentChange();
+                    const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
+                    let featureId = 9;
+                    for (let i = 3; i < msg.payload.length && i <= count; i++) {
+                        const byte = msg.extractPayloadByte(i);
+                        // Shift each bit getting the circuit identified by each value.
+                        for (let j = 0; j < 8; j++) {
+                            const feature = sys.features.getItemById(featureId);
+                            if (feature.isActive) {
+                                const fstate = state.features.getItemById(
+                                    featureId,
+                                    feature.isActive
+                                );
+                                fstate.isOn = (byte & 1 << j) >> j > 0;
+                                fstate.name = feature.name;
+                                fstate.emitEquipmentChange();
+                            }
+                            featureId++;
                         }
-                        featureId++;
                     }
+                    break;
                 }
-                break;
-            }
         }
     }
     private static processCircuitState(msg: Inbound) {
@@ -539,30 +541,25 @@ export class EquipmentStateMessage {
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
         // data[0] = color
-        // TODO: RKS This is incorrect.  The lighting theme is a different set
-        // than the color set values which are applied. I believe this to be the message that contains the
-        // color set values. (eg lightColors vs lightThemes)
-
-        // RG - No, this is actually the lightTheme.  colorSet is defined in the 167 packet (being processed in the CircuitMessage file.) 
         const color = msg.extractPayloadByte(0);
-        for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-            const ib = sys.intellibrite.circuits.getItemByIndex(i);
-            const cstate = state.circuits.getItemById(ib.circuit, true);
-            const circuit = sys.circuits.getItemById(ib.circuit, true);
+        // for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+        //     const ib = sys.intellibrite.circuits.getItemByIndex(i);
+        //     const cstate = state.circuits.getItemById(ib.circuit, true);
+        //     const circuit = sys.circuits.getItemById(ib.circuit, true);
             switch (color) {
                 case 0: // off
                 case 1: // on
                 case 190: // save
-                case 191: // recall
+                // case 191: // recall
+                    // do nothing as these don't actually change the state.
                     break;
-                case 160: // color set (pre-defined colors)
-                    cstate.lightingTheme = circuit.lightingTheme = ib.color;
-                    break;
+
                 default:
                     // intellibrite themes
-                    cstate.lightingTheme = circuit.lightingTheme = color;
+                    //cstate.lightingTheme = circuit.lightingTheme = color;
+                    sys.board.circuits.setLightGroupState(undefined, color);
                     break;
             }
-        }
+        // }
     }
 }

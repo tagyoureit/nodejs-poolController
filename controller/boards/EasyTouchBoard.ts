@@ -1,9 +1,8 @@
 ﻿import * as extend from 'extend';
-import {EventEmitter} from 'events';
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands} from './SystemBoard';
-import {PoolSystem, Body, Heater, Pump, sys} from '../Equipment';
+import {PoolSystem, Body, Pump, sys} from '../Equipment';
 import {Protocol, Outbound, Message, Response} from '../comms/messages/Messages';
-import {state, ChlorinatorState} from '../State';
+import {state, ChlorinatorState, CommsState} from '../State';
 import {logger} from '../../logger/Logger';
 import {conn} from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
@@ -114,112 +113,27 @@ export class EasyTouchBoard extends SystemBoard {
             [101, {name: 'feature8', desc: 'FEATURE 8'}]
         ]);
         this.valueMaps.circuitFunctions = new byteValueMap([
-            [0, {name: 'notused', desc: 'NOT USED'}],
-            [1, {name: 'aerator', desc: 'AERATOR'}],
-            [2, {name: 'airblower', desc: 'AIR BLOWER'}],
-            [3, {name: 'aux1', desc: 'AUX 1'}],
-            [4, {name: 'aux2', desc: 'AUX 2'}],
-            [5, {name: 'aux3', desc: 'AUX 3'}],
-            [6, {name: 'aux4', desc: 'AUX 4'}],
-            [7, {name: 'aux5', desc: 'AUX 5'}],
-            [8, {name: 'aux6', desc: 'AUX 6'}],
-            [9, {name: 'aux7', desc: 'AUX 7'}],
-            [10, {name: 'aux8', desc: 'AUX 8'}],
-            [11, {name: 'aux9', desc: 'AUX 9'}],
-            [12, {name: 'auk10', desc: 'AUX 10'}],
-            [13, {name: 'backwash', desc: 'BACKWASH'}],
-            [14, {name: 'backlight', desc: 'BACK LIGHT'}],
-            [15, {name: 'bbqlight', desc: 'BBQ LIGHT'}],
-            [16, {name: 'beachlight', desc: 'BEACH LIGHT'}],
-            [17, {name: 'boosterpump', desc: 'BOOSTER PUMP'}],
-            [18, {name: 'buglight', desc: 'BUG LIGHT'}],
-            [19, {name: 'cabanalts', desc: 'CABANA LTS'}],
-            [20, {name: 'chem.feeder', desc: 'CHEM. FEEDER'}],
-            [21, {name: 'chlorinator', desc: 'CHLORINATOR'}],
-            [22, {name: 'cleaner', desc: 'CLEANER'}],
-            [23, {name: 'colorwheel', desc: 'COLOR WHEEL'}],
-            [24, {name: 'decklight', desc: 'DECK LIGHT'}],
-            [25, {name: 'drainline', desc: 'DRAIN LINE'}],
-            [26, {name: 'drivelight', desc: 'DRIVE LIGHT'}],
-            [27, {name: 'edgepump', desc: 'EDGE PUMP'}],
-            [28, {name: 'entrylight', desc: 'ENTRY LIGHT'}],
-            [29, {name: 'fan', desc: 'FAN'}],
-            [30, {name: 'fiberoptic', desc: 'FIBER OPTIC'}],
-            [31, {name: 'fiberworks', desc: 'FIBER WORKS'}],
-            [32, {name: 'fillline', desc: 'FILL LINE'}],
-            [33, {name: 'floorclnr', desc: 'FLOOR CLNR'}],
-            [34, {name: 'fogger', desc: 'FOGGER'}],
-            [35, {name: 'fountain', desc: 'FOUNTAIN'}],
-            [36, {name: 'fountain1', desc: 'FOUNTAIN 1'}],
-            [37, {name: 'fountain2', desc: 'FOUNTAIN 2'}],
-            [38, {name: 'fountain3', desc: 'FOUNTAIN 3'}],
-            [39, {name: 'fountains', desc: 'FOUNTAINS'}],
-            [40, {name: 'frontlight', desc: 'FRONT LIGHT'}],
-            [41, {name: 'gardenlts', desc: 'GARDEN LTS'}],
-            [42, {name: 'gazebolts', desc: 'GAZEBO LTS'}],
-            [43, {name: 'highspeed', desc: 'HIGH SPEED'}],
-            [44, {name: 'hi-temp', desc: 'HI-TEMP'}],
-            [45, {name: 'houselight', desc: 'HOUSE LIGHT'}],
-            [46, {name: 'jets', desc: 'JETS'}],
-            [47, {name: 'lights', desc: 'LIGHTS'}],
-            [48, {name: 'lowspeed', desc: 'LOW SPEED'}],
-            [49, {name: 'lo-temp', desc: 'LO-TEMP'}],
-            [50, {name: 'malibults', desc: 'MALIBU LTS'}],
-            [51, {name: 'mist', desc: 'MIST'}],
-            [52, {name: 'music', desc: 'MUSIC'}],
-            [53, {name: 'notused', desc: 'NOT USED'}],
-            [54, {name: 'ozonator', desc: 'OZONATOR'}],
-            [55, {name: 'pathlightn', desc: 'PATH LIGHTS'}],
-            [56, {name: 'patiolts', desc: 'PATIO LTS'}],
-            [57, {name: 'perimeterl', desc: 'PERIMETER L'}],
-            [58, {name: 'pg2000', desc: 'PG2000'}],
-            [59, {name: 'pondlight', desc: 'POND LIGHT'}],
-            [60, {name: 'poolpump', desc: 'POOL PUMP'}],
-            [61, {name: 'pool', desc: 'POOL'}],
-            [62, {name: 'poolhigh', desc: 'POOL HIGH'}],
-            [63, {name: 'poollight', desc: 'POOL LIGHT'}],
-            [64, {name: 'poollow', desc: 'POOL LOW'}],
-            [65, {name: 'sam', desc: 'SAM'}],
-            [66, {name: 'poolsam1', desc: 'POOL SAM 1'}],
-            [67, {name: 'poolsam2', desc: 'POOL SAM 2'}],
-            [68, {name: 'poolsam3', desc: 'POOL SAM 3'}],
-            [69, {name: 'securitylt', desc: 'SECURITY LT'}],
-            [70, {name: 'slide', desc: 'SLIDE'}],
-            [71, {name: 'solar', desc: 'SOLAR'}],
-            [72, {name: 'spa', desc: 'SPA'}],
-            [73, {name: 'spahigh', desc: 'SPA HIGH'}],
-            [74, {name: 'spalight', desc: 'SPA LIGHT'}],
-            [75, {name: 'spalow', desc: 'SPA LOW'}],
-            [76, {name: 'spasal', desc: 'SPA SAL'}],
-            [77, {name: 'spasam', desc: 'SPA SAM'}],
-            [78, {name: 'spawtrfll', desc: 'SPA WTRFLL'}],
-            [79, {name: 'spillway', desc: 'SPILLWAY'}],
-            [80, {name: 'sprinklers', desc: 'SPRINKLERS'}],
-            [81, {name: 'stream', desc: 'STREAM'}],
-            [82, {name: 'statuelt', desc: 'STATUE LT'}],
-            [83, {name: 'swimjets', desc: 'SWIM JETS'}],
-            [84, {name: 'wtrfeature', desc: 'WTR FEATURE'}],
-            [85, {name: 'wtrfeatlt', desc: 'WTR FEAT LT'}],
-            [86, {name: 'waterfall', desc: 'WATERFALL'}],
-            [87, {name: 'waterfall1', desc: 'WATERFALL 1'}],
-            [88, {name: 'waterfall2', desc: 'WATERFALL 2'}],
-            [89, {name: 'waterfall3', desc: 'WATERFALL 3'}],
-            [90, {name: 'whirlpool', desc: 'WHIRLPOOL'}],
-            [91, {name: 'wtrflght', desc: 'WTRFL LGHT'}],
-            [92, {name: 'yardlight', desc: 'YARD LIGHT'}],
-            [93, {name: 'auxextra', desc: 'AUX EXTRA'}],
-            [94, {name: 'feature1', desc: 'FEATURE 1'}],
-            [95, {name: 'feature2', desc: 'FEATURE 2'}],
-            [96, {name: 'feature3', desc: 'FEATURE 3'}],
-            [97, {name: 'feature4', desc: 'FEATURE 4'}],
-            [98, {name: 'feature5', desc: 'FEATURE 5'}],
-            [99, {name: 'feature6', desc: 'FEATURE 6'}],
-            [100, {name: 'feature7', desc: 'FEATURE 7'}],
-            [101, {name: 'feature8', desc: 'FEATURE 8'}],
+            [0, {name: 'generic', desc: 'GENERIC'}],
+            [1, {name: 'spa', desc: 'SPA'}],
+            [2, {name: 'pool', desc: 'POOL'}],
+            [5, {name: 'mastercleaner', desc: 'MASTER CLEANER'}],
+            [7, {name: 'light', desc: 'LIGHT'}],
+            [9, {name: 'samlight', desc: 'SAM LIGHT'}],
+            [10, {name: 'sallight', desc: 'SAL LIGHT'}],
+            [11, {name: 'photongen', desc: 'PHOTON GEN'}],
+            [12, {name: 'colorwheel', desc: 'COLOR WHEEL'}],
+            [13, {name: 'valve', desc: 'VALVE'}],
+            [14, {name: 'spillway', desc: 'SPILLWAY'}],
+            [15, {name: 'floorcleaner', desc: 'FLOOR CLEANER'}],
+            [16, {name: 'intellibrite', desc: 'INTELLIBRITE'}],
+            [17, {name: 'magicstream', desc: 'MAGICSTREAM'}],
+            [19, {name: 'notused', desc: 'NOT USED'}],
+            //[64, {name: 'freezeprotectionon', desc: 'FREEZE PROTECTION ON'}],
             [128, {name: 'solar', desc: 'SOLAR'}],
             [129, {name: 'poolorspaheater', desc: 'POOL OR SPA HEATER'}],
             [130, {name: 'poolheater', desc: 'POOL HEATER'}],
             [131, {name: 'spaheater', desc: 'SPA HEATER'}],
+            [132, {name: 'freeze', desc: 'FREEZE'}],
             [255, {name: 'notused', desc: 'NOT USED'}]
 
         ]);
@@ -255,6 +169,7 @@ export class EasyTouchBoard extends SystemBoard {
             [195, {name: 'red', desc: 'Red'}],
             [196, {name: 'white', desc: 'White'}],
             [197, {name: 'magenta', desc: 'Magenta'}],
+            [254, {name: 'unknown', desc: 'unknown'}],
             [255, {name: 'none', desc: 'None'}]
         ]);
         // RKS: TODO Ask Russ about these colors.  I believe that
@@ -262,14 +177,14 @@ export class EasyTouchBoard extends SystemBoard {
         // for the circuit setting and the other is actually for ColorSet.  IntelliCenter has
         // this exact set with different values.
         this.valueMaps.lightColors = new byteValueMap([
-            [0, { name: 'white', desc: 'White' }],
-            [2, { name: 'lightgreen', desc: 'Light Green' }],
-            [4, { name: 'green', desc: 'Green' }],
-            [6, { name: 'cyan', desc: 'Cyan' }],
-            [8, { name: 'blue', desc: 'Blue' }],
-            [10, { name: 'lavender', desc: 'Lavender' }],
-            [12, { name: 'magenta', desc: 'Magenta' }],
-            [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
+            [0, {name: 'white', desc: 'White'}],
+            [2, {name: 'lightgreen', desc: 'Light Green'}],
+            [4, {name: 'green', desc: 'Green'}],
+            [6, {name: 'cyan', desc: 'Cyan'}],
+            [8, {name: 'blue', desc: 'Blue'}],
+            [10, {name: 'lavender', desc: 'Lavender'}],
+            [12, {name: 'magenta', desc: 'Magenta'}],
+            [14, {name: 'lightmagenta', desc: 'Light Magenta'}]
         ]);
 
         this.valueMaps.heatModes = new byteValueMap([
@@ -279,12 +194,12 @@ export class EasyTouchBoard extends SystemBoard {
             [3, {name: 'solarpref', desc: 'Solar Preferred'}]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No Heater' }],
-            [1, { name: 'gas', desc: 'Gas Heater' }],
-            [2, { name: 'solar', desc: 'Solar Heater' }],
-            [3, { name: 'heatpump', desc: 'Heat Pump' }],
-            [4, { name: 'ultratemp', desc: 'Ultratemp' }],
-            [5, { name: 'hybrid', desc: 'hybrid' }]
+            [0, {name: 'none', desc: 'No Heater'}],
+            [1, {name: 'gas', desc: 'Gas Heater'}],
+            [2, {name: 'solar', desc: 'Solar Heater'}],
+            [3, {name: 'heatpump', desc: 'Heat Pump'}],
+            [4, {name: 'ultratemp', desc: 'Ultratemp'}],
+            [5, {name: 'hybrid', desc: 'hybrid'}]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
             [1, {name: 'sat', desc: 'Saturday', dow: 6}],
@@ -298,8 +213,8 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.scheduleDays.transform = function(byte) {
             let days = [];
             let b = byte & 0x007F;
-            for(let bit = 7; bit >= 0; bit--) {
-                if((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get(bit)));
+            for (let bit = 7; bit >= 0; bit--) {
+                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get(bit)));
             }
             return {val: b, days: days};
         };
@@ -323,7 +238,7 @@ export class TouchConfigRequest extends ConfigRequest {
         setcat === GetTouchConfigCategories.version ?
             this.category = TouchConfigCategories.version :
             this.category = setcat & 63;
-        if(typeof items !== 'undefined') this.items.push(...items);
+        if (typeof items !== 'undefined') this.items.push(...items);
         this.oncomplete = oncomplete;
     }
     public category: TouchConfigCategories;
@@ -338,7 +253,7 @@ class TouchConfigQueue extends ConfigQueue {
     private queueItems(cat: number, items?: number[]) {this.push(new TouchConfigRequest(cat, items));}
     public queueChanges() {
         this.reset();
-        if(conn.mockPort) {
+        if (conn.mockPort) {
             logger.info(`Skipping Controller Init because MockPort enabled.`);
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
@@ -359,7 +274,7 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
         }
-        if(this.remainingItems > 0) {
+        if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => {self.processNext();}, 50);
         } else state.status = 1;
@@ -368,16 +283,16 @@ class TouchConfigQueue extends ConfigQueue {
     // TODO: RKS -- Investigate why this is needed.  Me thinks that there really is no difference once the whole thing is optimized.  With a little
     // bit of work I'll bet we can eliminate these extension objects altogether.
     public processNext(msg?: Outbound) {
-        if(this.closed) return;
+        if (this.closed) return;
         let self = this;
-        if(typeof msg !== "undefined" && msg !== null)
-            if(!msg.failed) {
+        if (typeof msg !== "undefined" && msg !== null)
+            if (!msg.failed) {
                 // Remove all references to future items. We got it so we don't need it again.
                 this.removeItem(msg.action, msg.payload[0]);
-                if(this.curr && this.curr.isComplete) {
-                    if(!this.curr.failed) {
+                if (this.curr && this.curr.isComplete) {
+                    if (!this.curr.failed) {
                         // Call the identified callback.  This may add additional items.
-                        if(typeof this.curr.oncomplete === 'function') {
+                        if (typeof this.curr.oncomplete === 'function') {
                             this.curr.oncomplete(this.curr);
                             this.curr.oncomplete = undefined;
                         }
@@ -385,8 +300,8 @@ class TouchConfigQueue extends ConfigQueue {
                 }
 
             } else this.curr.failed = true;
-        if(!this.curr && this.queue.length > 0) this.curr = this.queue.shift();
-        if(!this.curr) {
+        if (!this.curr && this.queue.length > 0) this.curr = this.queue.shift();
+        if (!this.curr) {
             // There never was anything for us to do. We will likely never get here.
             state.status = 1;
             state.emitControllerChange();
@@ -398,13 +313,13 @@ class TouchConfigQueue extends ConfigQueue {
         logger.silly(
             `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
         );
-        while(
+        while (
             this.queue.length > 0 && this.curr.isComplete
         ) {
             this.curr = this.queue.shift() || null;
         }
         let itm = 0;
-        if(this.curr && !this.curr.isComplete) {
+        if (this.curr && !this.curr.isComplete) {
             itm = this.curr.items.shift();
             const out: Outbound = new Outbound(
                 Protocol.Broadcast,
@@ -477,7 +392,7 @@ export enum GetTouchConfigCategories {
 class TouchSystemCommands extends SystemCommands {
     public cancelDelay() {
         let out = Outbound.createMessage(131, [0], 3, new Response(Message.pluginAddress, 16, 1, [131], null, function(msg) {
-            if(!msg.failed) {
+            if (!msg.failed) {
                 // todo: track delay status?
                 state.delay = 0;
             }
@@ -489,14 +404,14 @@ class TouchSystemCommands extends SystemCommands {
         // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
         // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
         // [165,33,34,16,1,1],[133],[1,127]
-        if(hour === null) hour = state.time.hours;
-        if(min === null) min = state.time.minutes;
-        if(date === null) date = state.time.date;
-        if(month === null) month = state.time.month;
-        if(year === null) year = state.time.year;
-        if(year > 2000) year = year - 2000;
-        if(dst === null) dst = sys.general.options.adjustDST ? 1 : 0;
-        if(dow === null) dow = state.time.dayOfWeek;
+        if (hour === null) hour = state.time.hours;
+        if (min === null) min = state.time.minutes;
+        if (date === null) date = state.time.date;
+        if (month === null) month = state.time.month;
+        if (year === null) year = state.time.year;
+        if (year > 2000) year = year - 2000;
+        if (dst === null) dst = sys.general.options.adjustDST ? 1 : 0;
+        if (dow === null) dow = state.time.dayOfWeek;
         const out = new Outbound(
             Protocol.Broadcast,
             Message.pluginAddress,
@@ -505,7 +420,7 @@ class TouchSystemCommands extends SystemCommands {
             [hour, min, dow, date, month, year, 0, 0],
             3,
             new Response(16, Message.pluginAddress, 1, [133], null, function(msg) {
-                if(!msg.failed) {
+                if (!msg.failed) {
                     state.time.hours = hour;
                     state.time.minutes = min;
                     state.time.date = date;
@@ -551,7 +466,7 @@ class TouchBodyCommands extends BodyCommands {
             [temp1, temp2, mode2 << 2 | mode1, 0],
             3,
             new Response(16, Message.pluginAddress, 1, [136], null, function(msg) {
-                if(!msg.failed) {
+                if (!msg.failed) {
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
                     state.temps.emitEquipmentChange();
@@ -566,15 +481,15 @@ class TouchBodyCommands extends BodyCommands {
         // 165,33,16,34,136,4,89,99,7,0,2,71  Request
         // 165,33,34,16,1,1,136,1,130  Controller Response
         const tempUnits = state.temps.units;
-        switch(tempUnits) {
+        switch (tempUnits) {
             case 0: // fahrenheit
-                if(setPoint < 40 || setPoint > 104) {
+                if (setPoint < 40 || setPoint > 104) {
                     logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
                     return;
                 }
                 break;
             case 1: // celcius
-                if(setPoint < 4 || setPoint > 40) {
+                if (setPoint < 4 || setPoint > 40) {
                     logger.warn(
                         `Setpoint of ${setPoint} is outside of acceptable range.`
                     );
@@ -597,7 +512,7 @@ class TouchBodyCommands extends BodyCommands {
             [temp1, temp2, mode2 << 2 | mode1, 0],
             3,
             new Response(16, Message.pluginAddress, 1, [136], null, function(msg) {
-                if(!msg.failed) {
+                if (!msg.failed) {
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.temps.emitEquipmentChange();
@@ -609,7 +524,7 @@ class TouchBodyCommands extends BodyCommands {
 }
 class TouchCircuitCommands extends CircuitCommands {
     public getLightThemes(type: number): any[] {
-        switch(type) {
+        switch (type) {
             case 16: // Intellibrite
             case 8: // Magicstream
                 return sys.board.valueMaps.lightThemes.toArray();
@@ -618,7 +533,7 @@ class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public setCircuitState(id: number, val: boolean) {
-        if(id > 9) this.board.features.setFeatureState(id, val);
+        if (id > 9) this.board.features.setFeatureState(id, val);
         else {
             // let cstate = state.circuits.getItemById(id);
             let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134]));
@@ -634,7 +549,7 @@ class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public toggleCircuitState(id: number) {
-        if(id > 9) this.board.features.toggleFeatureState(id);
+        if (id > 9) this.board.features.toggleFeatureState(id);
         else {
             let cstate = state.circuits.getItemById(id);
             this.setCircuitState(id, !cstate.isOn);
@@ -644,7 +559,7 @@ class TouchCircuitCommands extends CircuitCommands {
         let cstate = state.circuits.getItemById(id);
         let circuit = sys.circuits.getItemById(id);
         let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function(msg) {
-            if(!msg.failed) {
+            if (!msg.failed) {
                 circuit.lightingTheme = theme;
                 cstate.lightingTheme = theme;
                 cstate.isOn = true;
@@ -652,15 +567,25 @@ class TouchCircuitCommands extends CircuitCommands {
             }
         }));
         conn.queueSendMessage(out);
-        if(!cstate.isOn) {
+        if (!cstate.isOn) {
             // If the circuit is off we need to turn it on.
             this.setCircuitState(id, true);
         }
     }
+    public setLightGroupState(grp: number = 1, color: number) {
+        // EasyTouch will set all lights to the intellibrite theme no matter what.
+        for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+            const ib = sys.intellibrite.circuits.getItemByIndex(i);
+            const cstate = state.circuits.getItemById(ib.circuit, true);
+            const circuit = sys.circuits.getItemById(ib.circuit);
+            cstate.lightingTheme = circuit.lightingTheme = color;
+        }
+        sys.circuits.emitEquipmentChange();
+    }
 }
 class TouchFeatureCommands extends FeatureCommands {
     public setFeatureState(id: number, val: boolean) {
-        if(id <= 9) this.board.circuits.setCircuitState(id, val);
+        if (id <= 9) this.board.circuits.setCircuitState(id, val);
         else {
             // let fstate = state.features.getItemById(id);
             let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134]));
@@ -676,7 +601,7 @@ class TouchFeatureCommands extends FeatureCommands {
         }
     }
     public toggleFeatureState(id: number) {
-        if(id <= 9) this.board.circuits.toggleCircuitState(id);
+        if (id <= 9) this.board.circuits.toggleCircuitState(id);
         else {
             let cstate = state.circuits.getItemById(id);
             this.setFeatureState(id, !cstate.isOn);
@@ -688,7 +613,7 @@ class TouchChemistryCommands extends ChemistryCommands {
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function(msg) {
-            if(!msg.failed) {
+            if (!msg.failed) {
                 let chlor = sys.chlorinators.getItemById(cstate.id);
                 cstate.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
                 cstate.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
@@ -704,7 +629,7 @@ class TouchPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
-        for(let i = 0; i <= msgs.length; i++) {
+        for (let i = 0; i <= msgs.length; i++) {
             conn.queueSendMessage(msgs[i]);
         }
         // sys.emitEquipmentChange();
@@ -713,13 +638,13 @@ class TouchPumpCommands extends PumpCommands {
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
         const setPumpConfig = Outbound.createMessage(155, [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
-        if(pump.type === 128) {
+        if (pump.type === 128) {
             // vs
             setPumpConfig.payload[2] = pump.primingTime | 0;
             setPumpConfig.payload[21] = Math.floor(pump.primingSpeed / 256) | 3;
             setPumpConfig.payload[30] =
                 pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256 | 232;
-            for(let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 8; i++) {
                 const circ = pump.circuits.getItemById(i, true);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit | 0;
                 setPumpConfig.payload[i * 2 + 4] = Math.floor(circ.speed / 256) | 3;
@@ -727,12 +652,12 @@ class TouchPumpCommands extends PumpCommands {
                     circ.speed - Math.floor(circ.speed / 256) * 256 | 232;
             }
         }
-        else if(pump.type === 64)
+        else if (pump.type === 64)
             // vsf
-            for(let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 8; i++) {
                 const circ = pump.circuits.getItemById(i, true);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit | 0;
-                if(circ.units === 0)
+                if (circ.units === 0)
                     // gpm
                     setPumpConfig.payload[i * 2 + 4] = circ.flow | 30;
                 else {
@@ -760,7 +685,7 @@ class TouchPumpCommands extends PumpCommands {
             setPumpConfig.payload[27] = pump.rinseTime | 1;
             setPumpConfig.payload[28] = pump.vacuumFlow | 50;
             setPumpConfig.payload[30] = pump.vacuumTime | 10;
-            for(let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 8; i++) {
                 const circ = pump.circuits.getItemById(i);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit | 0;
                 setPumpConfig.payload[i * 2 + 4] = circ.flow;
