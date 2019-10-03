@@ -531,7 +531,7 @@ export class EquipmentStateMessage {
                                 cstate.lightingTheme = circuit.lightingTheme;
                                 break;
                             case 9:
-                                cstate.level = circuit.level;
+                                cstate.level = circuit.level || 0;
                                 break;
                         }
                     cstate.emitEquipmentChange();

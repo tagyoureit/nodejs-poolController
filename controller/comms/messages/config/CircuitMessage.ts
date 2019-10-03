@@ -145,7 +145,10 @@ export class CircuitMessage {
     private static processLightingTheme(msg: Inbound) {
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
             const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.lightingTheme = msg.extractPayloadByte(i + 1);
+            if (circuit.type === 9)
+                circuit.level = msg.extractPayloadByte(i + 1);
+            else
+                circuit.lightingTheme = msg.extractPayloadByte(i + 1);
         }
     }
     private static processEggTimerHours(msg: Inbound) {
