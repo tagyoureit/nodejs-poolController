@@ -162,14 +162,18 @@ export class ExternalMessage {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the group identified by each value.
             for (let j = 0; j < 8; j++) {
-                let group = sys.circuitGroups.getItemById(groupId);
-                let gstate = state.circuitGroups.getItemById(groupId, group.isActive);
+                let group = sys.circuitGroups.getInterfaceById(groupId);
+
+                let gstate = group.type == 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
                 if (group.isActive) {
                     gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                     gstate.name = group.name;
+                    gstate.type = group.type;
                 }
-                else
+                else {
                     state.circuitGroups.removeItemById(groupId);
+                    state.lightGroups.removeItemById(groupId);
+                }
                 gstate.emitEquipmentChange();
                 groupId++;
             }

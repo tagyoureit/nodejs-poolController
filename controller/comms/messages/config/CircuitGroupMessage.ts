@@ -79,36 +79,38 @@ export class CircuitGroupMessage {
         for (let i = 2; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups && i <= 17; i++) {
             let type = msg.extractPayloadByte(i);
             let group: ICircuitGroup = type === 1 ? sys.lightGroups.getItemById(groupId++, true) : sys.circuitGroups.getItemById(groupId++, type !== 0);
-            let sgroup: ICircuitGroupState = type === 1 ? state.lightGroups.getItemById(group.id, true) : state.circuitGroups.getItemById(group.id, type !== 0);
             group.type = type;
             group.isActive = group.type !== 0;
             if (group.isActive) {
-                if (group.type === 1)
+                if (group.type === 1) {
                     arrlightGrps.push(group);
-                else
+                    sys.circuitGroups.removeItemById(group.id);
+                    state.circuitGroups.removeItemById(group.id);
+                }
+                else if(group.type === 2) {
                     arrCircuitGrps.push(group);
-                sgroup.type = group.type;
+                    sys.lightGroups.removeItemById(group.id);
+                    state.lightGroups.removeItemById(group.id);
+                }
             }
             else {
-                if (group.type === 1) {
-                    state.lightGroups.removeItemById(group.id);
-                    sys.lightGroups.removeItemById(group.id);
-                }
-                else {
-                    state.circuitGroups.removeItemById(group.id);
-                    sys.circuitGroups.removeItemById(group.id);
-                }
+                state.lightGroups.removeItemById(group.id);
+                sys.lightGroups.removeItemById(group.id);
             }
         }
         for (let i = 0; i < arrlightGrps.length; i++) {
             let group: LightGroup = arrlightGrps[i];
-            let sgroup: LightGroupState = state.lightGroups.getItemById(group.id);
+            let sgroup: LightGroupState = state.lightGroups.getItemById(group.id, true);
+            sgroup.type = group.type;
             group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
             sgroup.lightingTheme = group.lightingTheme;
             sgroup.emitEquipmentChange();
         }
         for (let i = 0; i < arrCircuitGrps.length; i++) {
-            state.circuitGroups.getItemById(arrCircuitGrps[i].id).emitEquipmentChange();
+            let group: CircuitGroup = arrCircuitGrps[i];
+            let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
+            sgroup.type = group.type;
+            sgroup.emitEquipmentChange();
         }
     }
     private static processColor(msg: Inbound) {

@@ -558,9 +558,9 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
         }
     }
     public get eggTimer(): number { return this.data.eggTimer; }
-    public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
-    public set isOn(val: boolean) { this.data.isOn = val; }
+    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         let cgrp = sys.circuitGroups.getItemById(this.id);
@@ -597,7 +597,7 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState {
-    public dataName: string = 'circuitGroup';
+    public dataName: string = 'lightGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -617,9 +617,9 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
         }
     }
     public get eggTimer(): number { return this.data.eggTimer; }
-    public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
-    public set isOn(val: boolean) { this.data.isOn = val; }
+    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
