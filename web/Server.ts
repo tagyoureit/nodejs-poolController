@@ -152,12 +152,6 @@ export class HttpServer extends ProtoServer {
                 }
                 while (ndx < bytesToProcess.length);
             }
-            /*             for ( let i = 0; i < bytesToProcessArr.length; i++ )
-            {
-                let bytesToProcess: number[] = bytesToProcessArr.shift();
-                logger.info( `Sending ${bytesToProcess}` )
-                conn.emitter.emit( 'writePacket', Buffer.from(bytesToProcess) );
-            } */
         });
         sock.on('sendPackets', function (bytesToProcessArr: number[][]) {
             // takes an input of bytes (partial packet) and adds preamble/checksum and sends
@@ -178,33 +172,6 @@ export class HttpServer extends ProtoServer {
 
         });
     }
-    // private initParcel ()
-    // {
-    //     if ( this._dev )
-    //     {
-    //         // Parcel: absolute path to entry point
-    //         const file = path.join( process.cwd(), '/web/dashboard/index.html' )
-    //         // original dashboard for IntelliCenter
-    //         // this.app.use( express.static( path.join( process.cwd(), 'web/dashboard.orig' ), { maxAge: '1d' } ) );
-
-    //         logger.verbose( `Parcel serving files from: ${ file }` )
-    //         // Parcel: set options
-    //         const options: parcelBundler.ParcelOptions = {
-    //             outDir: path.join( process.cwd(), 'dist/dev' )
-    //         };
-    //         // Parcel: Initialize a new bundler
-    //         this.parcel = new parcelBundler( file, options )
-    //         this.app.use( this.parcel.middleware() )
-    //     }
-    //     else
-    //     {
-    //         // Single Page App: fallback to index.html
-    //         // https://github.com/parcel-bundler/parcel/issues/3117#issuecomment-498280051
-    //         this.app.get( "*", ( req, res ) =>
-    //             res.sendFile( path.join( __dirname + "/dist/web/index.html" ) )
-    //         );
-    //     }
-    // }
     public init(cfg) {
         if (cfg.enabled) {
             this.app = express();
