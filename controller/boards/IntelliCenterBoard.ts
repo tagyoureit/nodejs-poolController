@@ -66,18 +66,18 @@ export class IntelliCenterBoard extends SystemBoard {
             return { val: b, days: days };
         };
         this.valueMaps.virtualCircuits = new byteValueMap([
-            [237, { name: 'Heat Boost' }],
-            [238, { name: 'Heat Enable' }],
-            [239, { name: 'Pump Speed +' }],
-            [240, { name: 'Pump Speed -' }],
-            [244, { name: 'Pool Heater' }],
-            [245, { name: 'Spa Heater' }],
-            [246, { name: 'Freeze' }],
-            [247, { name: 'Pool/Spa' }],
-            [248, { name: 'Solar Heat' }],
-            [251, { name: 'Heater' }],
-            [252, { name: 'Solar' }],
-            [255, { name: 'Pool Heat Enable' }]
+            [237, { name: 'heatBoost', desc: 'Heat Boost' }],
+            [238, { name: 'heatEnable', desc: 'Heat Enable' }],
+            [239, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
+            [240, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
+            [244, { name: 'poolHeater', desc: 'Pool Heater' }],
+            [245, { name: 'spaHeater', desc: 'Spa Heater' }],
+            [246, { name: 'freeze', desc: 'Freeze' }],
+            [247, { name: 'poolSpa', desc: 'Pool/Spa' }],
+            [248, { name: 'solarHeat', desc: 'Solar Heat' }],
+            [251, { name: 'heater', desc: 'Heater' }],
+            [252, { name: 'solar', desc: 'Solar' }],
+            [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
         ]);
 
     }
@@ -134,7 +134,6 @@ class IntelliCenterConfigRequest extends ConfigRequest {
     }
     public category: ConfigCategories;
 }
-
 class IntelliCenterConfigQueue extends ConfigQueue {
     public _processing: boolean = false;
     public _newRequest: boolean = false;
@@ -431,6 +430,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             this.setCircuitState(id, true);
         }
     }
+
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;

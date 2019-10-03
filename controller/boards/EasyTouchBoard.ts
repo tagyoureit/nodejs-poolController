@@ -130,9 +130,9 @@ export class EasyTouchBoard extends SystemBoard {
             [19, {name: 'notused', desc: 'NOT USED'}],
             //[64, {name: 'freezeprotectionon', desc: 'FREEZE PROTECTION ON'}],
             [128, {name: 'solar', desc: 'SOLAR'}],
-            [129, {name: 'poolorspaheater', desc: 'POOL OR SPA HEATER'}],
-            [130, {name: 'poolheater', desc: 'POOL HEATER'}],
-            [131, {name: 'spaheater', desc: 'SPA HEATER'}],
+            [129, {name: 'heater', desc: 'POOL OR SPA HEATER'}],
+            [130, {name: 'poolHeater', desc: 'POOL HEATER'}],
+            [131, {name: 'spaHeater', desc: 'SPA HEATER'}],
             [132, {name: 'freeze', desc: 'FREEZE'}],
             [255, {name: 'notused', desc: 'NOT USED'}]
 

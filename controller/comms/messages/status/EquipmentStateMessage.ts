@@ -339,6 +339,7 @@ export class EquipmentStateMessage {
                                 else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
                             } else
                                 tbody.heatStatus = 0; // Off
+                            tbody.emitEquipmentChange();
                         }
                         if (sys.bodies.length > 1) {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
@@ -359,6 +360,7 @@ export class EquipmentStateMessage {
                                 else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
                             } else
                                 tbody.heatStatus = 0; // Off
+                            tbody.emitEquipmentChange();
                         }
                     }
                     EquipmentStateMessage.processCircuitState(msg);
@@ -366,6 +368,7 @@ export class EquipmentStateMessage {
                     //EquipmentStateMessage.processEquipmentState(msg);
                     // This will toggle the group states depending on the state of the individual circuits.
                     sys.board.features.syncGroupStates();
+                    sys.board.circuits.syncVirtualCircuitStates();
                     state.emitControllerChange();
                     break;
                 }

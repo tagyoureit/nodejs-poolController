@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import {EventEmitter} from 'events';
 import {PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroupCircuitCollection} from '../Equipment';
-import {state, ChlorinatorState, PumpState} from '../State';
+import {state, ChlorinatorState, PumpState, BodyTempState, VirtualCircuitState} from '../State';
 //import { ControllerType } from '../Constants';
 import {Outbound} from '../comms/messages/Messages';
 export class byteValueMap extends Map<number, any> {
@@ -19,7 +19,8 @@ export class byteValueMap extends Map<number, any> {
         }
         return {name: name};
     }
-    public getValue(name: string): number {return this.transformByName(name).value;}
+    public getValue(name: string): number { return this.transformByName(name).value; }
+    public getName(val: number): string { return this.get(val).name; }
 }
 export class byteValueMaps {
     constructor() {
@@ -89,18 +90,18 @@ export class byteValueMaps {
     public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
     public heaterTypes: byteValueMap = new byteValueMap();
     public virtualCircuits: byteValueMap = new byteValueMap([
-        [237, { name: 'Heat Boost' }],
-        [238, { name: 'Heat Enable' }],
-        [239, { name: 'Pump Speed +' }],
-        [240, { name: 'Pump Speed -' }],
-        [244, { name: 'Pool Heater' }],
-        [245, { name: 'Spa Heater' }],
-        [246, { name: 'Freeze' }],
-        [247, { name: 'Pool/Spa' }],
-        [248, { name: 'Solar Heat' }],
-        [251, { name: 'Heater' }],
-        [252, { name: 'Solar' }],
-        [255, { name: 'Pool Heat Enable' }]
+        [237, { name: 'heatBoost', desc: 'Heat Boost' }],
+        [238, { name: 'heatEnable', desc: 'Heat Enable' }],
+        [239, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
+        [240, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
+        [244, { name: 'poolHeater', desc: 'Pool Heater' }],
+        [245, { name: 'spaHeater', desc: 'Spa Heater' }],
+        [246, { name: 'freeze', desc: 'Freeze' }],
+        [247, { name: 'poolSpa', desc: 'Pool/Spa' }],
+        [248, { name: 'solarHeat', desc: 'Solar Heat' }],
+        [251, { name: 'heater', desc: 'Heater' }],
+        [252, { name: 'solar', desc: 'Solar' }],
+        [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
     ]);
     public lightThemes: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
@@ -328,6 +329,25 @@ export class BodyCommands extends BoardCommands {
         }
         return heatModes;
     }
+    public getPoolStates(): BodyTempState[] {
+        let arrPools = [];
+        for (let i = 0; i < state.temps.bodies.length; i++) {
+            let bstate = state.temps.bodies.getItemByIndex(i);
+            if (bstate.circuit === 6)
+                arrPools.push(bstate);
+        }
+        return arrPools;
+    }
+    public getSpaStates(): BodyTempState[] {
+        let arrSpas = [];
+        for (let i = 0; i < state.temps.bodies.length; i++) {
+            let bstate = state.temps.bodies.getItemByIndex(i);
+            if (bstate.circuit === 1) {
+                arrSpas.push(bstate);
+            }
+        }
+        return arrSpas;
+    }
 }
 export class PumpCommands extends BoardCommands {
     public setPump(pump: Pump, obj?: any) {
@@ -369,6 +389,82 @@ export class PumpCommands extends BoardCommands {
 
 }
 export class CircuitCommands extends BoardCommands {
+    public syncVirtualCircuitStates() {
+        let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
+        let poolStates = sys.board.bodies.getPoolStates();
+        let spaStates = sys.board.bodies.getSpaStates();
+        // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
+        // different as well as the descriptions but these should have common names since they are all derived from existing states.
+        for (let i = 0; i < arrCircuits.length; i++) {
+            let vc = arrCircuits[i];
+            let bState = false;
+            let cstate: VirtualCircuitState = null;
+            switch (vc.name) {
+                case 'poolHeater':
+                    // If any pool is heating up.
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    // Determine whether the pool heater is on.
+                    for (let j = 0; j < poolStates.length; j++) {
+                        if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
+                    }
+                    break;
+                case 'spaHeater':
+                    // If any spa is heating up.
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    // Determine whether the spa heater is on.
+                    for (let j = 0; j < spaStates.length; j++) {
+                        if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+                    }
+                    break;
+                case 'freeze':
+                    // If freeze protection has been turned on.
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    bState = state.freeze;
+                    break;
+                case 'poolSpa':
+                    // If any pool or spa is on
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    for (let j = 0; j < poolStates.length && !bState; j++) {
+                        if (poolStates[j].isOn) bState = true;
+                    }
+                    for (let j = 0; j < spaStates.length && !bState; j++) {
+                        if (spaStates[j].isOn) bState = true;
+                    }
+                    break;
+                case 'solarHeat':
+                case 'solar':
+                    // If solar is on for any body
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    for (let j = 0; j < poolStates.length && !bState; j++) {
+                        if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+                    }
+                    for (let j = 0; j < spaStates.length && !bState; j++) {
+                        if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                    }
+                    break;
+                case 'heater':
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    for (let j = 0; j < poolStates.length && !bState; j++) {
+                        let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                        if (heat === 'solar' || heat === 'heater') bState = true;
+                    }
+                    for (let j = 0; j < spaStates.length && !bState; j++) {
+                        let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                        if (heat === 'solar' || heat === 'heater') bState = true;
+                    }
+                    break;
+                default:
+                    state.virtualCircuits.removeItemById(vc.val);
+                    break;
+            }
+            if (cstate !== null) {
+                cstate.isOn = bState;
+                cstate.type = vc.val;
+                cstate.name = vc.desc;
+                cstate.emitEquipmentChange();
+            }
+        }
+    }
     public setCircuitState(id: number, val: boolean) {
         let circ = state.circuits.getItemById(id);
         circ.isOn = val;
