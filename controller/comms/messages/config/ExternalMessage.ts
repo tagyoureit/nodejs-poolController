@@ -42,11 +42,21 @@ export class ExternalMessage {
             case 14:
                 break;
             case 15: // Circuit, feature, group, and schedule States
-                ExternalMessage.processCircuitState(msg);
-                ExternalMessage.processFeatureState(msg);
-                ExternalMessage.processScheduleState(msg);
+                if (msg.extractPayloadByte(34) === 0) {
+                    ExternalMessage.processCircuitState(3, msg);
+                    ExternalMessage.processFeatureState(9, msg);
+                    ExternalMessage.processScheduleState(15, msg);
+                    ExternalMessage.processCircuitGroupState(13, msg);
+                }
                 break;
         }
+    }
+    public static processIntelliCenterState(msg) {
+        ExternalMessage.processCircuitState(2, msg);
+        ExternalMessage.processFeatureState(8, msg);
+        ExternalMessage.processScheduleState(14, msg);
+        ExternalMessage.processCircuitGroupState(12, msg);
+
     }
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
@@ -62,78 +72,106 @@ export class ExternalMessage {
         heater.economyTime = msg.extractPayloadByte(29);
         if (heater.type === 0) sys.heaters.removeItemById(heater.id);
         // Check anyway to make sure we got it all.
-        setTimeout(() => sys.checkConfiguration(), 500);
+        //setTimeout(() => sys.checkConfiguration(), 500);
     }
-    private static processCircuitState(msg: Inbound) {
-        if (msg.extractPayloadByte(34) === 0) {
-            let circuitId = 1;
-            let body = 0; // Off
-            for (let i = 3; i < msg.payload.length && circuitId <= state.circuits.length; i++) {
-                let byte = msg.extractPayloadByte(i);
-                // Shift each bit getting the circuit identified by each value.
-                for (let j = 0; j < 8; j++) {
-                    let circuit = sys.circuits.getItemById(circuitId);
-                    if (circuit.isActive) {
-                        var cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-                        cstate.isOn = ((byte & (1 << (j))) >> j) > 0;
-                        cstate.name = circuit.name;
-                        cstate.showInFeatures = circuit.showInFeatures;
-                        cstate.type = circuit.type;
-                        if (cstate.isOn && circuit.type === 12) body = 6;
-                        if (cstate.isOn && circuit.type === 13) body = 1;
-                        switch (circuit.type) {
-                            case 6: // Globrite
-                            case 5: // Magicstream
-                            case 8: // Intellibrite
-                            case 10: // Colorcascade
-                                cstate.lightingTheme = circuit.lightingTheme;
-                                break;
-                            case 9:
-                                cstate.level = circuit.level;
-                                break;
-                        }
+    
+    private static processCircuitState(start: number, msg: Inbound) {
+        let circuitId = 1;
+        let body = 0; // Off
+        for (let i = start; i < msg.payload.length && circuitId <= sys.equipment.maxCircuits; i++) {
+            let byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the circuit identified by each value.
+            for (let j = 0; j < 8; j++) {
+                let circuit = sys.circuits.getItemById(circuitId);
+                let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
+                if (circuit.isActive) {
+                    cstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    cstate.name = circuit.name;
+                    cstate.showInFeatures = circuit.showInFeatures;
+                    cstate.type = circuit.type;
+                    if (cstate.isOn && circuit.type === 12) body = 6;
+                    if (cstate.isOn && circuit.type === 13) body = 1;
+                    switch (circuit.type) {
+                        case 6: // Globrite
+                        case 5: // Magicstream
+                        case 8: // Intellibrite
+                        case 10: // Colorcascade
+                            cstate.lightingTheme = circuit.lightingTheme;
+                            break;
+                        case 9: // Dimmer
+                            cstate.level = circuit.level;
+                            break;
                     }
-                    cstate.emitEquipmentChange();
-                    circuitId++;
                 }
-            }
-            state.body = body;
-        }
-    }
-    private static processScheduleState(msg: Inbound) {
-        if (msg.extractPayloadByte(34) === 0) {
-            let scheduleId = 1;
-            for (let i = 15; i < msg.payload.length && scheduleId <= state.schedules.length; i++) {
-                let byte = msg.extractPayloadByte(i);
-                // Shift each bit getting the schedule identified by each value.
-                for (let j = 0; j < 8; j++) {
-                    let schedule = sys.schedules.getItemById(scheduleId);
-                    if (schedule.isActive) {
-                        var sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
-                        sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
-                    }
-                    sstate.emitEquipmentChange();
-                    scheduleId++;
-                }
+                else
+                    state.circuits.removeItemById(circuitId);
+                cstate.emitEquipmentChange();
+                circuitId++;
             }
         }
+        state.body = body;
     }
-    private static processFeatureState(msg: Inbound) {
-        if (msg.extractPayloadByte(34) === 0) {
-            let featureId = 1;
-            for (let i = 9; i < msg.payload.length && featureId <= state.features.length; i++) {
-                let byte = msg.extractPayloadByte(i);
-                // Shift each bit getting the feature identified by each value.
-                for (let j = 0; j < 8; j++) {
-                    let feature = sys.features.getItemById(featureId);
-                    if (feature.isActive) {
-                        var fstate = state.features.getItemById(featureId, feature.isActive);
-                        fstate.isOn = ((byte & (1 << (j))) >> j) > 0;
-                        fstate.name = feature.name;
-                    }
-                    fstate.emitEquipmentChange();
-                    featureId++;
+    private static processScheduleState(start: number, msg: Inbound) {
+        let scheduleId = 1;
+        for (let i = start; i < msg.payload.length && scheduleId <= sys.equipment.maxSchedules; i++) {
+            let byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the schedule identified by each value.
+            for (let j = 0; j < 8; j++) {
+                let schedule = sys.schedules.getItemById(scheduleId);
+                let sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
+                if (schedule.isActive) {
+                    sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    sstate.circuit = schedule.circuit;
+                    sstate.endTime = schedule.endTime;
+                    sstate.startDate = schedule.startDate;
+                    sstate.startTime = schedule.startTime;
+                    sstate.scheduleDays = schedule.scheduleDays;
+                    sstate.scheduleType = schedule.runOnce & 128 ? 128 : 0;
+                    sstate.heatSetpoint = schedule.heatSetpoint;
+                    sstate.heatSource = schedule.heatSource;
                 }
+                else
+                    state.schedules.removeItemById(scheduleId);
+                sstate.emitEquipmentChange();
+                scheduleId++;
+            }
+        }
+    }
+    private static processFeatureState(start: number, msg: Inbound) {
+        let featureId = 1;
+        for (let i = start; i < msg.payload.length && featureId <= sys.equipment.maxFeatures; i++) {
+            let byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the feature identified by each value.
+            for (let j = 0; j < 8; j++) {
+                let feature = sys.features.getItemById(featureId);
+                let fstate = state.features.getItemById(featureId, feature.isActive);
+                if (feature.isActive) {
+                    fstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    fstate.name = feature.name;
+                }
+                else
+                    state.features.removeItemById(featureId);
+                fstate.emitEquipmentChange();
+                featureId++;
+            }
+        }
+    }
+    private static processCircuitGroupState(start: number, msg: Inbound) {
+        let groupId = 1;
+        for (let i = start; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups; i++) {
+            let byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the group identified by each value.
+            for (let j = 0; j < 8; j++) {
+                let group = sys.circuitGroups.getItemById(groupId);
+                let gstate = state.circuitGroups.getItemById(groupId, group.isActive);
+                if (group.isActive) {
+                    gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    gstate.name = group.name;
+                }
+                else
+                    state.circuitGroups.removeItemById(groupId);
+                gstate.emitEquipmentChange();
+                groupId++;
             }
         }
     }

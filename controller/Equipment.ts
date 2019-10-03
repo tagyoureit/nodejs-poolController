@@ -631,8 +631,8 @@ export class ConfigVersion extends EqItem {
     public set chlorinators(val: number) { this.data.chlorinators = val; }
     public get intellichem(): number { return this.data.intellichem; }
     public set intellichem(val: number) { this.data.intellichem = val; }
-    public get extSchedules(): number { return this.data.extSchedules; }
-    public set extSchedules(val: number) { this.data.extSchedules = val; }
+    public get systemState(): number { return this.data.systemState; }
+    public set systemState(val: number) { this.data.systemState = val; }
     public get valves(): number { return this.data.valves; }
     public set valves(val: number) { this.data.valves = val; }
     public get heaters(): number { return this.data.heaters; }

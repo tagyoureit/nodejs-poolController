@@ -7,7 +7,7 @@ import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState } from '../State';
 export class IntelliCenterBoard extends SystemBoard {
-    private _needsChanges: boolean = false;
+    public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
         this.valueMaps.circuitFunctions = new byteValueMap([
@@ -65,6 +65,21 @@ export class IntelliCenterBoard extends SystemBoard {
             }
             return { val: b, days: days };
         };
+        this.valueMaps.virtualCircuits = new byteValueMap([
+            [237, { name: 'Heat Boost' }],
+            [238, { name: 'Heat Enable' }],
+            [239, { name: 'Pump Speed +' }],
+            [240, { name: 'Pump Speed -' }],
+            [244, { name: 'Pool Heater' }],
+            [245, { name: 'Spa Heater' }],
+            [246, { name: 'Freeze' }],
+            [247, { name: 'Pool/Spa' }],
+            [248, { name: 'Solar Heat' }],
+            [251, { name: 'Heater' }],
+            [252, { name: 'Solar' }],
+            [255, { name: 'Pool Heat Enable' }]
+        ]);
+
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
@@ -75,7 +90,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public checkConfiguration() {
-        this._needsChanges = true;
+        this.needsConfigChanges = true;
         // Send out a message to the outdoor panel that we need info about
         // our current configuration.
         console.log('Checking IntelliCenter configuration...');
@@ -83,8 +98,29 @@ export class IntelliCenterBoard extends SystemBoard {
         conn.queueSendMessage(out);
     }
     public requestConfiguration(ver: ConfigVersion) {
-        logger.info(`Requesting IntelliCenter configuration`);
-        this._configQueue.queueChanges(ver);
+        if (this.needsConfigChanges) {
+            logger.info(`Requesting IntelliCenter configuration`);
+            this._configQueue.queueChanges(ver);
+            this.needsConfigChanges = false;
+        }
+        else {
+            sys.configVersion.chlorinators = ver.chlorinators;
+            sys.configVersion.circuitGroups = ver.circuitGroups;
+            sys.configVersion.circuits = ver.circuits;
+            sys.configVersion.covers = ver.covers;
+            sys.configVersion.equipment = ver.equipment;
+            sys.configVersion.systemState = ver.systemState;
+            sys.configVersion.features = ver.features;
+            sys.configVersion.general = ver.general;
+            sys.configVersion.heaters = ver.heaters;
+            sys.configVersion.intellichem = ver.intellichem;
+            sys.configVersion.options = ver.options;
+            sys.configVersion.pumps = ver.pumps;
+            sys.configVersion.remotes = ver.remotes;
+            sys.configVersion.schedules = ver.schedules;
+            sys.configVersion.security = ver.security;
+            sys.configVersion.valves = ver.valves;
+        }
     }
     public stopAsync() { this._configQueue.close(); }
 }
@@ -102,6 +138,7 @@ class IntelliCenterConfigRequest extends ConfigRequest {
 class IntelliCenterConfigQueue extends ConfigQueue {
     public _processing: boolean = false;
     public _newRequest: boolean = false;
+    public _failed: boolean = false;
     public processNext(msg?: Outbound) {
         if (this.closed) return;
         let self = this;
@@ -128,6 +165,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                     }
                 }
             }
+            else this._failed = true;
         }
         if (!this.curr && this.queue.length > 0) this.curr = this.queue.shift();
         if (!this.curr) {
@@ -168,18 +206,20 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             state.status = 1;
             this.curr = null;
             this._processing = false;
-            setTimeout(function () { sys.checkConfiguration(); }, 100);
+            if (this._failed) setTimeout(function () { sys.checkConfiguration(); }, 100);
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
     }
     public queueChanges(ver: ConfigVersion) {
         let curr: ConfigVersion = sys.configVersion;
+        
         if (this._processing) {
             if (curr.hasChanges(ver)) this._newRequest = true;
             return;
         }
         this._processing = true;
+        this._failed = false;
         let self = this;
         if (!curr.hasChanges(ver)) return;
         sys.configVersion.lastUpdated = new Date();
@@ -276,6 +316,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             });
             this.push(req);
         }
+        this.maybeQueueItems(curr.systemState, ver.systemState, ConfigCategories.systemState, [0]);
         logger.info(`Queued ${this.remainingItems} configuration items`);
         if (this.remainingItems > 0) setTimeout(function () { self.processNext(); }, 50);
         else {
@@ -336,6 +377,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 149]
         // We sent
         //[255, 0, 255][165, 63, 16, 36, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 170]
+        //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 3, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 144]
         out.appendPayloadString(circuit.name, 16);
         out.onSuccess = (msg) => {
             if (!msg.failed) {
@@ -354,7 +396,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 3];
             let bit = (i - 1) - (ndx * 8);
-            if (circuit.id === id) isOn ? byte = byte | (1 << bit) : byte;
+            if (circuit.id === id)
+                byte = isOn ? byte = byte | (1 << bit) : byte;
             else if (circuit.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
@@ -640,6 +683,7 @@ enum ConfigCategories {
     security = 11,
     general = 12,
     equipment = 13,
-    covers = 14
+    covers = 14,
+    systemState = 15
 }
 

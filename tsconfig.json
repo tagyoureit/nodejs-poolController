@@ -2,7 +2,7 @@
     "compilerOptions": {
         "baseUrl": ".",
        // "paths": { "*": [ "@types/*" ] },
-        "target":"es6",
+        "target":"esnext",
         "module":"commonjs",
         "noImplicitAny": false,
         "removeComments": true,

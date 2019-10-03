@@ -360,7 +360,6 @@ class EqState implements IEqStateCreator<EqState> {
             else this.data[prop] = undefined;
         }
     }
-
 }
 class EqStateCollection<T> {
     protected data: any;
@@ -618,6 +617,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         let cgrp = sys.circuitGroups.getItemById(this.id);
+        sgrp.circuits = [];
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemById(i + 1);
             if (cgc.circuit > 237) {
@@ -640,7 +640,6 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
         return sgrp;
     }
     public emitEquipmentChange() {
-        // For schedules always emit the complete information
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
             this.hasChanged = false;
@@ -676,6 +675,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
     public set isOn(val: boolean) { this.data.isOn = val; }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
+        sgrp.circuits = [];
         let cgrp = sys.circuitGroups.getItemById(this.id);
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemById(i + 1);
@@ -699,7 +699,6 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
         return sgrp;
     }
     public emitEquipmentChange() {
-        // For schedules always emit the complete information
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
             this.hasChanged = false;
@@ -733,8 +732,7 @@ export class BodyTempState extends EqState {
     public set setPoint(val: number) { this.setDataVal('setPoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
-    public get hasChanged(): boolean { return this.hasChanged; }
-    public set hasChanged(val: boolean) { if (val) state.temps.hasChanged = true; }
+    public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
 }
 export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     public createItem(data: any): BodyTempState { return new BodyTempState(data); }

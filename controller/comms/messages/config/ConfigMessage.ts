@@ -16,6 +16,7 @@ import { CoverMessage } from "./CoverMessage";
 import { IntellichemMessage } from "./IntellichemMessage";
 import { ControllerType } from "../../../Constants";
 import { sys } from '../../../Equipment';
+import { ExternalMessage } from "./ExternalMessage";
 
 export class ConfigMessage {
     // Firing up the mobi after changing settings.
@@ -72,6 +73,12 @@ export class ConfigMessage {
                         break;
                     case 14:
                         CoverMessage.process(msg);
+                        break;
+                    case 15:
+                        // Send this off to the external message processor
+                        // since it knows all that it needs to know to process the config.  This
+                        // is a replica of the external 15 message.
+                        ExternalMessage.processIntelliCenterState(msg);
                         break;
                 }
                 break;

@@ -265,6 +265,7 @@ export class EquipmentStateMessage {
                                 tbody.temp = state.temps.waterSensor1;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
+                            tbody.emitEquipmentChange();
                         }
                         if (sys.bodies.length > 1) {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
@@ -278,6 +279,7 @@ export class EquipmentStateMessage {
                                 tbody.temp = state.temps.waterSensor1;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
+                            tbody.emitEquipmentChange();
                         }
                         if (sys.bodies.length > 2) {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
@@ -292,6 +294,7 @@ export class EquipmentStateMessage {
                                 tbody.temp = state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
+                            tbody.emitEquipmentChange();
                         }
                         if (sys.bodies.length > 3) {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
@@ -306,11 +309,13 @@ export class EquipmentStateMessage {
                                 tbody.temp = state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
+                            tbody.emitEquipmentChange();
                         }
                         state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
                         state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
                         // todo: do not think this is correct - at least not for IntelliTouch
                         state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
+                       
                     }
                     else if (sys.controllerType !== ControllerType.Unknown) {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);

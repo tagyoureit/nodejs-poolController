@@ -51,7 +51,7 @@ export class byteValueMaps {
             return {val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte};
         };
         this.scheduleTypes.transform = function(byte) {
-            return (byte & 128) > 0 ? extend(true, {}, this.get(128)) : extend(true, {}, this.get(0));
+            return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
         this.scheduleDays.transform = function(byte) {
             let days = [];
@@ -204,7 +204,7 @@ export class byteValueMaps {
     public circuitNames: byteValueMap = new byteValueMap();
     public scheduleTypes: byteValueMap = new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once' }],
-        [128, { val: 0, name: 'repeat', desc: 'Repeats' }]
+        [128, { name: 'repeat', desc: 'Repeats' }]
     ]);
     public circuitGroupTypes: byteValueMap=new byteValueMap([
         [0, {name: 'none', desc: 'Unspecified'}],
