@@ -202,6 +202,12 @@ export class byteValueMaps {
         [7, {name: 'lowtemp', dest: 'Water Temp Low'}],
         [8, {name: 'commlost', desc: 'Communication Lost'}]
     ]);
+    public chlorinatorType: byteValueMap=new byteValueMap([
+        [0, {name: 'pentair', desc: 'Pentair'}],
+        [1, {name: 'unknown', desc: 'unknown'}],
+        [2, {name: 'aquarite', desc: 'Aquarite'}],
+        [3, {name: 'unknown', desc: 'unknown'}]
+    ]);
     public circuitNames: byteValueMap = new byteValueMap();
     public scheduleTypes: byteValueMap = new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once' }],

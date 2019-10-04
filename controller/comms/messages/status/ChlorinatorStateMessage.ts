@@ -14,6 +14,10 @@ export class ChlorinatorStateMessage {
                 switch (msg.extractPayloadByte(1)) {
                     case 0:
                         break;
+                    case 1:
+                        // are we getting case 1?
+                        1 === 1;
+                        break;
                     case 17: {
                             let c = sys.chlorinators.getItemById(chlorId, true);
                             chlor.currentOutput = msg.extractPayloadByte(2);
@@ -38,7 +42,7 @@ export class ChlorinatorStateMessage {
                     }
                     case 20: {
                         let c = sys.chlorinators.getItemById(chlorId, true);
-                        c.type = msg.extractPayloadByte(2);
+                        chlor.type = c.type = msg.extractPayloadByte(2);
                         break;
                     }
                     case 21: {

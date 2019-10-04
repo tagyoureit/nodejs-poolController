@@ -59,15 +59,15 @@ export class RemoteMessage {
                     Not sure how packets will come through with 6 controllers on it.
 
                     Fixing ID's for lack of having better info.
-                    1-4 = is10
-                    5-6 = is4
-                    7 = QuickTouch
-                    8 = Spa Command (can multiple be present?  are these tied to is10?)
+                    0-3 = is10
+                    4-5 = is4
+                    6 = QuickTouch
+                    7 = Spa Command (can multiple be present?  are these tied to is10?)
                     */
         switch (msg.action) {
             case 33: // quicktouch
                 {
-                    const remoteId = 7; // what determines 2nd is4?
+                    const remoteId = 6; // what determines 2nd is4?
                     const remote: Remote = sys.remotes.getItemById(remoteId, true);
                     remote.type = remoteId;
                     remote.button1 = msg.extractPayloadByte(0);
@@ -88,12 +88,12 @@ export class RemoteMessage {
                     for (let i = 1; i <= msg.payload.length - 1; i++) {
                         remote["button" + i] = msg.extractPayloadByte(i);
                         bActive = bActive || remote["button" + i] > 0;
-                        if (i >= 4) {
+                        if (i >= 4 && !bIS10) {
                             bIS10 = bIS10 || remote["button" + i] > 0;
                         }
                     }
                     remote.isActive = bActive;
-                    if (bIS10) // is10
+                    if (bIS10) // is10  
                     {
                         remote.type = 2;
                         remote.name = "is10";
@@ -111,11 +111,10 @@ export class RemoteMessage {
                     // sample packet from EasyTouch
                     // [165,33,16,34,150,16],[0,1,7,8,0,2,250,10,1,144,13,122,15,130,0,0],[4,93]
                     // note: spa command may be tied to an already present is10.  Need to clarify.
-                    const remoteId = 8;
+                    const remoteId = 7;
                     const remote: Remote = sys.remotes.getItemById(remoteId, true);
                     remote.pumpId = msg.extractPayloadByte(5);
-                    if (remote.pumpId === 0) remote.stepSize = 0;
-                    else remote.stepSize = msg.extractPayloadByte(6);
+                    remote.stepSize = msg.extractPayloadByte(6);
                     break;
                 }
         }

@@ -120,7 +120,7 @@ export class HttpServer extends ProtoServer {
         sock.on('echo', (msg) => {sock.emit('echo', msg);});
         sock.on('receivePacketRaw', function(incomingPacket: any[]) {
             var str = 'Add packet(s) to incoming buffer: ';
-            logger.info('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
+            logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
                 conn.buffer.pushIn(new Buffer(incomingPacket[i]));
                 str += JSON.stringify(incomingPacket[i]) + ' ';
@@ -165,7 +165,7 @@ export class HttpServer extends ProtoServer {
         sock.on('sendPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of bytes (src/dest/action/payload) and adds preamble/checksum and sends
             if (!bytesToProcessArr.length) return;
-            logger.info('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
+            logger.silly('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
 
             do {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();

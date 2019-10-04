@@ -970,6 +970,13 @@ export class ChlorinatorState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.chlorinatorType.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
     public set body(val: number) {
         if (this.body !== val) {
