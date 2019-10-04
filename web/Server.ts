@@ -1,25 +1,25 @@
 ﻿import * as path from "path";
-import express = require('express')
-import { config } from "../config/Config";
-import { logger } from "../logger/Logger";
-import socketio = require("socket.io");
+import express=require('express')
+import {config} from "../config/Config";
+import {logger} from "../logger/Logger";
+import socketio=require("socket.io");
 // import parcelBundler = require( 'parcel-bundler' );
-import { ConfigRoute } from "./services/config/Config";
-import { StateRoute } from "./services/state/State";
-import { UtilitiesRoute } from "./services/utilities/Utilities";
-import { ClassicRoute } from "./services/classic/Classic";
+import {ConfigRoute} from "./services/config/Config";
+import {StateRoute} from "./services/state/State";
+import {UtilitiesRoute} from "./services/utilities/Utilities";
+import {ClassicRoute} from "./services/classic/Classic";
 import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
-import { state } from "../controller/State";
-import { conn } from "../controller/comms/Comms";
-import { Inbound, Outbound } from "../controller/comms/messages/Messages";
+import {state} from "../controller/State";
+import {conn} from "../controller/comms/Comms";
+import {Inbound, Outbound} from "../controller/comms/messages/Messages";
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
 export class WebServer {
-    private _servers: ProtoServer[] = [];
-    constructor() { }
+    private _servers: ProtoServer[]=[];
+    constructor() {}
     public init() {
         let cfg = config.getSection('web');
         let srv;
@@ -47,9 +47,9 @@ export class WebServer {
 }
 class ProtoServer {
     // base class for all servers.
-    public isRunning: boolean = false;
-    public emitToClients(evt: string, ...data: any) { }
-    protected _dev: boolean = process.env.NODE_ENV !== 'production'
+    public isRunning: boolean=false;
+    public emitToClients(evt: string, ...data: any) {}
+    protected _dev: boolean=process.env.NODE_ENV !== 'production'
 }
 export class Http2Server extends ProtoServer {
     public server: http2.Http2Server;
@@ -67,7 +67,7 @@ export class HttpServer extends ProtoServer {
     public server: http.Server;
     public sockServer: socketio.Server;
     //public parcel: parcelBundler;
-    private _sockets: socketio.Socket[] = [];
+    private _sockets: socketio.Socket[]=[];
     private _pendingMsg: Inbound;
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
@@ -95,10 +95,10 @@ export class HttpServer extends ProtoServer {
             //sock.conn.emit('controller', state.controllerState);
         });
 
-        this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
-        this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), { maxAge: '60d' }));
-        this.app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), { maxAge: '60d' }));
-        this.app.use('/font-awesome', express.static(path.join(process.cwd(), '/node_modules/@fortawesome/fontawesome-free/'), { maxAge: '60d' }));
+        this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), {maxAge: '60d'}));
+        this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), {maxAge: '60d'}));
+        this.app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), {maxAge: '60d'}));
+        this.app.use('/font-awesome', express.static(path.join(process.cwd(), '/node_modules/@fortawesome/fontawesome-free/'), {maxAge: '60d'}));
 
     }
     private socketHandler(sock: socketio.Socket) {
@@ -117,8 +117,8 @@ export class HttpServer extends ProtoServer {
                 }
             }
         });
-        sock.on('echo', (msg) => { sock.emit('echo', msg); });
-        sock.on('receivePacketRaw', function (incomingPacket: any[]) {
+        sock.on('echo', (msg) => {sock.emit('echo', msg);});
+        sock.on('receivePacketRaw', function(incomingPacket: any[]) {
             var str = 'Add packet(s) to incoming buffer: ';
             logger.info('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
@@ -127,7 +127,7 @@ export class HttpServer extends ProtoServer {
             }
             logger.info(str);
         });
-        sock.on('replayPackets', function (bytesToProcessArr: number[][]) {
+        sock.on('replayPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed
             // used for replay
             for (let i = 0; i < bytesToProcessArr.length; i++) {
@@ -143,18 +143,27 @@ export class HttpServer extends ProtoServer {
                     else {
                         ndx = msg.mergeBytes(bytesToProcess);
                     }
-                    if (msg.isValid && msg.isComplete) {
-                        let out = new Outbound(msg.protocol, msg.source, msg.dest, msg.action, msg.payload);
-                        conn.queueSendMessage(out);
-                        logger.info(`Sending ${out.toShortPacket()}`);
+                    if (msg.isComplete) {
+                        if (msg.isValid) {
+
+                            let out = new Outbound(msg.protocol, msg.source, msg.dest, msg.action, msg.payload);
+                            conn.queueSendMessage(out);
+                            logger.info(`Sending ${out.toShortPacket()}`);
+                        }
+                        else {
+                            logger.info(`replay: discarding packet ${msg.toShortPacket()}`);
+                        }
+                        ndx = 0;
+                        msg = new Inbound();
+                        bytesToProcess = [];
                     }
                     else self._pendingMsg = msg;
                 }
                 while (ndx < bytesToProcess.length);
             }
         });
-        sock.on('sendPackets', function (bytesToProcessArr: number[][]) {
-            // takes an input of bytes (partial packet) and adds preamble/checksum and sends
+        sock.on('sendPackets', function(bytesToProcessArr: number[][]) {
+            // takes an input of bytes (src/dest/action/payload) and adds preamble/checksum and sends
             if (!bytesToProcessArr.length) return;
             logger.info('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
 
@@ -190,9 +199,9 @@ export class HttpServer extends ProtoServer {
                 res.header('Access-Control-Allow-Origin', '*');
                 res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
-                if ('OPTIONS' === req.method) { res.sendStatus(200); }
+                if ('OPTIONS' === req.method) {res.sendStatus(200);}
                 else {
-                    console.log(`${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
+                    console.log(`${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '':JSON.stringify(req.body)}`);
                     next();
                 }
             });
@@ -209,7 +218,7 @@ export class HttpServer extends ProtoServer {
             this.initSockets();
 
             // start our server on port
-            this.server.listen(cfg.port, cfg.ip, function () {
+            this.server.listen(cfg.port, cfg.ip, function() {
                 logger.info('Server is now listening on %s:%s', cfg.ip, cfg.port);
             });
             this.isRunning = true;

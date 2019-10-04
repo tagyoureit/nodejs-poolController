@@ -2,7 +2,7 @@
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands} from './SystemBoard';
 import {PoolSystem, Body, Pump, sys} from '../Equipment';
 import {Protocol, Outbound, Message, Response} from '../comms/messages/Messages';
-import {state, ChlorinatorState, CommsState} from '../State';
+import {state, ChlorinatorState, CommsState, State} from '../State';
 import {logger} from '../../logger/Logger';
 import {conn} from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
@@ -399,19 +399,11 @@ class TouchSystemCommands extends SystemCommands {
         }));
         conn.queueSendMessage(out);
     }
-    public setDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {
+    public setDateTime(hour: number = state.time.hours, min: number = state.time.minutes, date: number = state.time.date, month: number = state.time.month, year: number = state.time.year, dst: number =  sys.general.options.adjustDST ? 1 : 0, dow: number = state.time.dayOfWeek) {
         // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
         // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
         // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
         // [165,33,34,16,1,1],[133],[1,127]
-        if (hour === null) hour = state.time.hours;
-        if (min === null) min = state.time.minutes;
-        if (date === null) date = state.time.date;
-        if (month === null) month = state.time.month;
-        if (year === null) year = state.time.year;
-        if (year > 2000) year = year - 2000;
-        if (dst === null) dst = sys.general.options.adjustDST ? 1 : 0;
-        if (dow === null) dow = state.time.dayOfWeek;
         const out = new Outbound(
             Protocol.Broadcast,
             Message.pluginAddress,

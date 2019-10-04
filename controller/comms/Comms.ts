@@ -1,6 +1,6 @@
 ﻿import { EventEmitter } from 'events';
 import * as SerialPort from 'serialport';
-import * as MockBinding from '@serialport/binding-mock'
+import * as MockBinding from '@serialport/binding-mock';
 import { config } from '../../config/Config';
 import { logger } from '../../logger/Logger';
 import * as net from 'net';
@@ -48,7 +48,7 @@ export class Connection {
                 SerialPort.Binding = MockBinding;
                 let portPath = 'FAKE_PORT';
                 MockBinding.createPort(portPath, { echo: false, record: true });
-                sp = new SerialPort(portPath, { autoOpen: false })
+                sp = new SerialPort(portPath, { autoOpen: false });
             }
             else {
                 this.mockPort = false;
@@ -83,8 +83,7 @@ export class Connection {
         if (typeof (conn.buffer) === 'undefined') {
             conn.buffer = new SendRecieveBuffer();
             conn.emitter.on('packetread', function (pkt) { conn.buffer.pushIn(pkt); });
-            conn.emitter.on('messagewrite', function (msg) { conn.buffer.pushOut(msg); })
-        }
+            conn.emitter.on('messagewrite', function (msg) { conn.buffer.pushOut(msg); }); }
         conn.resetConnTimer('retry_timeout');
         conn._port.on('error', function (err) {
             logger.error('Error opening port: %s. Retry in %s seconds', err, (conn._cfg.inactivityRetry));
@@ -133,12 +132,10 @@ export class Connection {
         });
         conn.open();
     }
-    public queueSendMessage(msg: Outbound) {
-        conn.emitter.emit('messagewrite', msg);
-    }
+    public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }
 
     public queueReceiveMessage(pkt: Inbound) {
-        logger.info(`Receiving ${pkt.action}`)
+        logger.info(`Receiving ${pkt.action}`);
         conn.buffer.pushIn(pkt);
     }
 }
@@ -156,8 +153,10 @@ export class SendRecieveBuffer {
     private _outBuffer: Outbound[] = [];
     private _waitingPacket: Outbound;
     private _msg: Inbound;
-    public pushIn(pkt) { conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data) }
-    public pushOut(msg) { conn.buffer._outBuffer.push(msg); }
+    public pushIn(pkt) { conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); }
+    public pushOut(msg) { 
+        conn.buffer._outBuffer.push(msg); 
+    }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
     public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); }
     private processPackets() {
@@ -192,14 +191,14 @@ export class SendRecieveBuffer {
             if (msg.retries < 0) {
                 msg.failed = true;
                 conn.buffer._waitingPacket = null;
-                logger.warn(`Aborting packet ${bytes}.`)
+                logger.warn(`Aborting packet ${bytes}.`);
                 if (msg.requiresResponse && typeof (msg.response.callback) === 'function') setTimeout(msg.response.callback, 100, msg);
                 if (typeof msg.onError !== 'undefined') msg.onError.apply(msg, 'packet aborted');
                 return;
             }
             conn.buffer.counter.bytesSent += bytes.length;
             msg.timestamp = new Date();
-            logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`)
+            logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`);
             logger.packet(msg);
             conn.write(Buffer.from(bytes), function (err) {
                 if (err) {
@@ -253,14 +252,14 @@ export class SendRecieveBuffer {
         }
     }
     protected processInbound() {
-        if (conn.buffer._inBuffer.length == 0) return;
+        if (conn.buffer._inBuffer.length === 0) return;
         conn.buffer._inBytes.push.apply(conn.buffer._inBytes, conn.buffer._inBuffer.splice(0, conn.buffer._inBuffer.length));
         if (conn.buffer._inBytes.length > 10) { // Wait until we get at least 10 bytes.
             conn.buffer.counter.bytesReceived += conn.buffer._inBytes.length;
             var ndx: number = 0;
             var msg: Inbound = conn.buffer._msg;
             do {
-                if (typeof (msg) == 'undefined' || msg === null || msg.isComplete || !msg.isValid) {
+                if (typeof (msg) === 'undefined' || msg === null || msg.isComplete || !msg.isValid) {
                     conn.buffer._msg = msg = new Inbound();
                     ndx = msg.readPacket(conn.buffer._inBytes);
                 }

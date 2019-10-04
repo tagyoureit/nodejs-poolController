@@ -128,7 +128,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
                 sys.equipment.maxLightGroups = 1;
-                switch(model1) {
+                switch (model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.shared = true;
@@ -169,7 +169,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
                 sys.equipment.maxLightGroups = 1;
-                switch(model1) {
+                switch (model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch1 8';
                         sys.equipment.shared = true;
@@ -200,6 +200,11 @@ export class EquipmentStateMessage {
                 }
                 break;
         }
+
+        // evaluate expansion boards
+        sys.equipment.expansions.getItemById(i)
+
+
         state.status = 1;
         // Do this here for *Touch but wait for IntelliCenter.  We do not have a complete picture yet.
         // This will not come until we request and receive the equipment configuration messages.

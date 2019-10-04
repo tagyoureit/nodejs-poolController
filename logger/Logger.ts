@@ -4,29 +4,40 @@ import * as winston from 'winston';
 import * as os from 'os';
 import { Message } from '../controller/comms/messages/Messages.js';
 import { config } from '../config/Config';
+import {fips} from 'crypto';
 class Logger {
     constructor() {
         if (!fs.existsSync(path.join(process.cwd(), '/logs'))) fs.mkdirSync(path.join(process.cwd(), '/logs'));
         this.pktPath = path.join(process.cwd(), '/logs', this.getPacketPath());
-        this.replayPath = path.join(process.cwd(), '/replay/packetCapture.json');
+        this.replayBaseDir = path.join(process.cwd(), '/replay', this.getLogTimestamp());
+        this.replayPath = path.join(this.replayBaseDir, '/packetCapture.json');
         this.cfg = config.getSection('log');
         this.pkts = [];
     }
     private cfg;
     private pkts: Message[];
     private pktPath: string;
+    private replayBaseDir: string;
     private replayPath: string;
     private pktTimer: NodeJS.Timeout;
     private getPacketPath() : string {
+        // changed this to remove spaces from the name
+        return 'packetLog(' + this.getLogTimestamp() + ').log';
+    }
+    private getLogTimestamp(): string {
         var ts = new Date();
         function pad(n) { return (n < 10 ? '0' : '') + n; }
-        // changed this to remove spaces from the name
-        return 'packetLog(' + ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + ').log';
+        return ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds());
     }
+
     private _logger: winston.Logger;
     public init() {
-        if (logger.cfg.packet.replay && fs.existsSync(this.replayPath)) {
-            fs.unlinkSync(this.replayPath);
+        if (logger.cfg.packet.replay && !fs.existsSync(this.replayPath)) {
+            // todo : RG would prefer to version the replay files.  
+            // todo: check if we are capturing logs/config.json with replay files
+            //fs.unlinkSync(this.replayPath);
+            fs.mkdirSync(this.replayPath, {recursive: true});
+
         }
         logger._logger = winston.createLogger({
             level: logger.cfg.app.level,
@@ -76,7 +87,7 @@ class Logger {
         }
         if (logger.cfg.packet.logToConsole) {
             if (msg.isValid && bLog) logger._logger.info(msg.toLog());
-            else if(!msg.isValid) logger._logger.warn(msg.toLog());
+            else if (!msg.isValid) logger._logger.warn(msg.toLog());
         }
     }
     public flushLogs() {
@@ -87,7 +98,7 @@ class Logger {
                 buf += (p[i].toLog() + os.EOL);
             }
             fs.appendFile(logger.pktPath, buf, function (err) {
-                if(err) logger.error('Error writing packet to %s: %s', logger.pktPath, err);
+                if (err) logger.error('Error writing packet to %s: %s', logger.pktPath, err);
             });
         }
         buf = '';
@@ -96,7 +107,7 @@ class Logger {
                 buf += (p[i].toReplay() + os.EOL);
             }
             fs.appendFile(logger.replayPath, buf, function (err) {
-                if(err) logger.error('Error writing replay to %s: %s', logger.replayPath, err);
+                if (err) logger.error('Error writing replay to %s: %s', logger.replayPath, err);
             });
         }
     }
