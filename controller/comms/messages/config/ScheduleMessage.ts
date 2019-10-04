@@ -177,21 +177,16 @@ export class ScheduleMessage {
     }
     private static processStartTimes(msg: Inbound) {
         let schedId = msg.extractPayloadByte(1) * 20 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length - 1 && i <= sys.equipment.maxSchedules;
-
-        ) {
-            const time = msg.extractPayloadInt(i + 1);
-            const schedule: Schedule = sys.schedules.getItemById(schedId++, time !== 0);
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxSchedules;) {
+            let time = msg.extractPayloadInt(i + 1);
+            let schedule: Schedule = sys.schedules.getItemById(schedId++, time !== 0);
             schedule.startTime = time;
             // If our start time is 0 and the schedule is active delete it.
             if (schedule.isActive && schedule.startTime === 0)
                 sys.schedules.removeItemById(schedule.id);
             schedule.isActive = schedule.startTime !== 0;
             if (schedule.isActive)
-                state.schedules.getItemById(schedule.id, true).startTime =
-                    schedule.startTime;
+                state.schedules.getItemById(schedule.id, true).startTime = schedule.startTime;
             else if (state.schedules.length >= schedule.id)
                 state.schedules.removeItemById(schedule.id);
             i += 2;
@@ -199,13 +194,7 @@ export class ScheduleMessage {
     }
     private static processEndTimes(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 23) * 20 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length - 1 &&
-            schedId <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-
-        ) {
+        for (let i = 1; i < msg.payload.length - 1 && schedId <= sys.equipment.maxSchedules && i <= sys.schedules.length; ) {
             const time = msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.endTime = time;

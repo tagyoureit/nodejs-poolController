@@ -431,6 +431,9 @@ class EqItemCollection<T> {
             }
         return rem;
     }
+    public removeItemByIndex(ndx: number) {
+        this.data.splice(ndx, 1);
+    }
     public toArray() {
         let arr = [];
         if (typeof this.data !== 'undefined') {

@@ -539,6 +539,7 @@ export interface ICircuitGroupState {
     name: string;
     eggTimer: number;
     isOn: boolean;
+    isActive: boolean;
     emitEquipmentChange();
 }
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
@@ -561,6 +562,9 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         let cgrp = sys.circuitGroups.getItemById(this.id);
@@ -620,6 +624,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
