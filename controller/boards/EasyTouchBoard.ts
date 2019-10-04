@@ -127,8 +127,10 @@ export class EasyTouchBoard extends SystemBoard {
             [15, {name: 'floorcleaner', desc: 'FLOOR CLEANER'}],
             [16, {name: 'intellibrite', desc: 'INTELLIBRITE'}],
             [17, {name: 'magicstream', desc: 'MAGICSTREAM'}],
-            [19, {name: 'notused', desc: 'NOT USED'}],
+            [19, {name: 'notused', desc: 'NOT USED'}]
             //[64, {name: 'freezeprotectionon', desc: 'FREEZE PROTECTION ON'}],
+        ]);
+        this.valueMaps.virtualCircuits = new byteValueMap([
             [128, {name: 'solar', desc: 'SOLAR'}],
             [129, {name: 'heater', desc: 'POOL OR SPA HEATER'}],
             [130, {name: 'poolHeater', desc: 'POOL HEATER'}],
@@ -142,7 +144,8 @@ export class EasyTouchBoard extends SystemBoard {
             [2, {name: 'ds', desc: 'Two-Speed'}],
             [1, {name: 'vf', desc: 'Intelliflo VF'}],
             [64, {name: 'vsf', desc: 'Intelliflo VSF'}],
-            [128, {name: 'vs', desc: 'Intelliflo VS'}]
+            [128, {name: 'vs', desc: 'Intelliflo VS'}],
+            [169, {name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS'}]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
             [0, {name: 'white', desc: 'White'}],
