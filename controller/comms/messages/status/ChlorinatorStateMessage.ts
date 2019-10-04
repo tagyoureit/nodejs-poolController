@@ -1,6 +1,6 @@
-﻿import { Inbound, Protocol } from "../Messages";
-import { state } from "../../../State";
-import { sys, ControllerType } from "../../../Equipment";
+﻿import {Inbound, Protocol} from "../Messages";
+import {state} from "../../../State";
+import {sys, ControllerType} from "../../../Equipment";
 
 export class ChlorinatorStateMessage {
     public static process(msg: Inbound) {
@@ -15,21 +15,23 @@ export class ChlorinatorStateMessage {
                     case 0:
                         break;
                     case 17:
-                        let c = sys.chlorinators.getItemById(chlorId);
-                        chlor.currentOutput = msg.extractPayloadByte(2);
-                        chlor.body = c.body;
-                        chlor.poolSetpoint = c.poolSetpoint;
-                        chlor.spaSetpoint = c.spaSetpoint;
-                        chlor.superChlorHours = c.superChlorHours;
-                        //chlor.superChlor = c.superChlor;
-                        if (state.body === 6) chlor.targetOutput = c.poolSetpoint;
-                        else if (state.body === 1) chlor.targetOutput = c.spaSetpoint;
-                        if (chlor.currentOutput === 0 && chlor.status !== 128 && (chlor.lastComm + (20 * 1000) < new Date().getTime())) {
-                            // We have not talked to the chlorinator in 20 seconds so we have lost communication.
-                            chlor.status = 128;
+                        {
+                            let c = sys.chlorinators.getItemById(chlorId);
+                            chlor.currentOutput = msg.extractPayloadByte(2);
+                            chlor.body = c.body;
+                            chlor.poolSetpoint = c.poolSetpoint;
+                            chlor.spaSetpoint = c.spaSetpoint;
+                            chlor.superChlorHours = c.superChlorHours;
+                            //chlor.superChlor = c.superChlor;
+                            if (state.body === 6) chlor.targetOutput = c.poolSetpoint;
+                            else if (state.body === 1) chlor.targetOutput = c.spaSetpoint;
+                            if (chlor.currentOutput === 0 && chlor.status !== 128 && (chlor.lastComm + (20 * 1000) < new Date().getTime())) {
+                                // We have not talked to the chlorinator in 20 seconds so we have lost communication.
+                                chlor.status = 128;
+                            }
+
+                            break;
                         }
-                        
-                        break;
                     case 20:
                         break;
                     case 21:
@@ -89,7 +91,7 @@ export class ChlorinatorStateMessage {
                 schlor.superChlorHours = chlor.superChlorHours;
                 schlor.name = chlor.name;
                 schlor.body = chlor.body;
-                if (state.body === 6) schlor.targetOutput = chlor.poolSetpoint
+                if (state.body === 6) schlor.targetOutput = chlor.poolSetpoint;
                 else if (state.body === 1) schlor.targetOutput = chlor.spaSetpoint;
             }
         }

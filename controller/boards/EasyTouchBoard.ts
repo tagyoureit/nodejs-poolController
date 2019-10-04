@@ -245,12 +245,12 @@ export class TouchConfigRequest extends ConfigRequest {
     public setcategory: GetTouchConfigCategories;
 }
 class TouchConfigQueue extends ConfigQueue {
-    private queueRange(cat: number, start: number, end: number) {
+    protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
         this.push(req);
     }
-    private queueItems(cat: number, items?: number[]) {this.push(new TouchConfigRequest(cat, items));}
+    protected queueItems(cat: number, items?: number[]) {this.push(new TouchConfigRequest(cat, items));}
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
@@ -261,7 +261,6 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
-            // todo: better formula for this that includes expansion boards
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits + sys.equipment.maxFeatures);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
             this.queueItems(GetTouchConfigCategories.delays, [0]);

@@ -20,7 +20,7 @@ export class byteValueMap extends Map<number, any> {
         return {name: name};
     }
     public getValue(name: string): number { return this.transformByName(name).value; }
-    public getName(val: number): string { return this.get(val).name; }
+    public getName(val: number): string { return val >= 0 ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
 }
 export class byteValueMaps {
     constructor() {
@@ -296,7 +296,10 @@ export class ConfigQueue {
         this.queue.push(req);
         this.totalItems += req.items.length;
     }
-    processNext(msg?: Outbound) {} // overridden in extended class
+    // following overridden in extended class
+    processNext(msg?: Outbound) {} 
+    protected queueItems(cat: number, items?: number[]) {} 
+    protected queueRange(cat: number, start: number, end: number) {} 
 }
 export class BoardCommands {
     protected board: SystemBoard=null;

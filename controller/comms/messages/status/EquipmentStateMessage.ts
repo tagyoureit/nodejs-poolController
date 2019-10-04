@@ -1,7 +1,7 @@
 ﻿import {Inbound, Message} from '../Messages';
 import {ControllerType} from '../../../Constants';
 import {state, BodyTempState} from '../../../State';
-import {sys, Body} from '../../../Equipment';
+import {sys, Body, ExpansionPanel} from '../../../Equipment';
 import {logger} from 'logger/Logger';
 
 export class EquipmentStateMessage {
@@ -201,14 +201,38 @@ export class EquipmentStateMessage {
                 break;
         }
 
-        // evaluate expansion boards
-        sys.equipment.expansions.getItemById(i)
-
-
         state.status = 1;
         // Do this here for *Touch but wait for IntelliCenter.  We do not have a complete picture yet.
         // This will not come until we request and receive the equipment configuration messages.
         if (sys.controllerType !== ControllerType.IntelliCenter) {
+            if (sys.controllerType === ControllerType.IntelliTouch) {
+                let pnl: ExpansionPanel;
+                pnl = sys.equipment.expansions.getItemById(1, true);
+                pnl.type = msg.extractPayloadByte(9) & 0x20;
+                pnl.name = pnl.type === 1 ? 'i10X' : 'none';
+                pnl.isActive = pnl.type !== 0;
+                // if type is i9 or i10 we can have up to 3 expansion boards
+                if (pnl.isActive) {
+                    sys.equipment.maxCircuits += 10;
+                    sys.equipment.maxValves += 3;
+                }
+                pnl = sys.equipment.expansions.getItemById(2, true);
+                pnl.type = 0; // msg.extractPayloadByte(9) & 0x20;
+                pnl.name = pnl.type === 1 ? 'i10X' : 'none';
+                pnl.isActive = pnl.type !== 0;
+                if (pnl.isActive) {
+                    sys.equipment.maxCircuits += 10;
+                    sys.equipment.maxValves += 3;
+                }
+                pnl = sys.equipment.expansions.getItemById(3, true);
+                pnl.type = 0; // msg.extractPayloadByte(9) & 0x20;
+                pnl.name = pnl.type === 1 ? 'i10X' : 'none';
+                pnl.isActive = pnl.type !== 0;
+                if (pnl.isActive) {
+                    sys.equipment.maxCircuits += 10;
+                    sys.equipment.maxValves += 3;
+                }
+            }
             state.equipment.shared = sys.equipment.shared;
             state.equipment.model = sys.equipment.model;
             state.equipment.controllerType = sys.controllerType;
@@ -320,7 +344,7 @@ export class EquipmentStateMessage {
                         state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
                         // todo: do not think this is correct - at least not for IntelliTouch
                         state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
-                       
+
                     }
                     else if (sys.controllerType !== ControllerType.Unknown) {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);
@@ -554,20 +578,20 @@ export class EquipmentStateMessage {
         //     const ib = sys.intellibrite.circuits.getItemByIndex(i);
         //     const cstate = state.circuits.getItemById(ib.circuit, true);
         //     const circuit = sys.circuits.getItemById(ib.circuit, true);
-            switch (color) {
-                case 0: // off
-                case 1: // on
-                case 190: // save
+        switch (color) {
+            case 0: // off
+            case 1: // on
+            case 190: // save
                 // case 191: // recall
-                    // do nothing as these don't actually change the state.
-                    break;
+                // do nothing as these don't actually change the state.
+                break;
 
-                default:
-                    // intellibrite themes
-                    //cstate.lightingTheme = circuit.lightingTheme = color;
-                    sys.board.circuits.setLightGroupState(undefined, color);
-                    break;
-            }
+            default:
+                // intellibrite themes
+                //cstate.lightingTheme = circuit.lightingTheme = color;
+                sys.board.circuits.setLightGroupState(undefined, color);
+                break;
+        }
         // }
     }
 }

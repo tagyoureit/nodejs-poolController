@@ -4,7 +4,7 @@ import {ControllerType} from "../../../Constants";
 export class RemoteMessage {
     private static maxCircuits: number=8;
     public static process(msg: Inbound): void {
-      if (sys.controllerType===ControllerType.IntelliCenter) {
+      if (sys.controllerType === ControllerType.IntelliCenter) {
 
         /* Types
                 0 = Not installed
@@ -53,101 +53,101 @@ export class RemoteMessage {
       switch (msg.action) {
         case 33: // quicktouch
         {
-          const remoteId=3;
-          const remote: Remote=sys.remotes.getItemById(remoteId, true);
-          remote.type=remoteId;
-          remote.button1=msg.extractPayloadByte(0);
-          remote.button2=msg.extractPayloadByte(1);
-          remote.button3=msg.extractPayloadByte(2);
-          remote.button4=msg.extractPayloadByte(3);
-          if (!remote.button1&&!remote.button2&&!remote.button3&&!remote.button4) remote.isActive=false;
-          else remote.isActive=true;
-          remote.name="QuickTouch";
+          const remoteId = 3;
+          const remote: Remote = sys.remotes.getItemById(remoteId, true);
+          remote.type = remoteId;
+          remote.button1 = msg.extractPayloadByte(0);
+          remote.button2 = msg.extractPayloadByte(1);
+          remote.button3 = msg.extractPayloadByte(2);
+          remote.button4 = msg.extractPayloadByte(3);
+          if (!remote.button1 && !remote.button2 && !remote.button3 && !remote.button4) remote.isActive = false;
+          else remote.isActive = true;
+          remote.name = "QuickTouch";
           break;
         }
         case 32: // is4/is10
         {
-          let numButtons=4;
-          let remoteId=1;
-          let remote: Remote=sys.remotes.getItemById(remoteId, true);
-          if (msg.extractPayloadByte(0)===0) // is4
+          let numButtons = 4;
+          let remoteId = 1;
+          let remote: Remote = sys.remotes.getItemById(remoteId, true);
+          if (msg.extractPayloadByte(0) === 0) // is4
           {
-            remote.type=remoteId;
-            remote.name="is4";
+            remote.type = remoteId;
+            remote.name = "is4";
           }
           else // is10
           {
-            remoteId=2;
-            remote=sys.remotes.getItemById(remoteId, true);
-            remote.type=remoteId;
-            remote.name="is10";
-            numButtons=10;
+            remoteId = 2;
+            remote = sys.remotes.getItemById(remoteId, true);
+            remote.type = remoteId;
+            remote.name = "is10";
+            numButtons = 10;
           }
-          let _active=false;
-          for (let i=0; i<=numButtons; i++) {
-            remote["button"+(i+1)]=msg.extractPayloadByte(i+1);
-            _active=_active||remote["button"+(i+1)]>0;
+          let _active = false;
+          for (let i = 0; i <= numButtons; i++) {
+            remote["button" + (i + 1)] = msg.extractPayloadByte(i + 1);
+            _active = _active || remote["button" + (i + 1)] > 0;
           }
-          remote.isActive=_active;
+          remote.isActive = _active;
           break;
         }
         case 22: // IS10 spa side remote additional config
         {
           // sample packet
           // [165,33,16,34,150,16],[0,1,7,8,0,2,250,10,1,144,13,122,15,130,0,0],[4,93]
-          const remoteId=2;
-          const remote: Remote=sys.remotes.getItemById(remoteId, true);
-          remote.pumpId=msg.extractPayloadByte(5);
-          if (remote.pumpId===0) remote.stepSize=0;
-          else remote.stepSize=msg.extractPayloadByte(6);
+          const remoteId = 2;
+          const remote: Remote = sys.remotes.getItemById(remoteId, true);
+          remote.pumpId = msg.extractPayloadByte(5);
+          if (remote.pumpId === 0) remote.stepSize = 0;
+          else remote.stepSize = msg.extractPayloadByte(6);
           break;
         }
       }
     }
     private static processRemoteType(msg: Inbound) {
-      let remoteId=1;
-      for (let i=28; i<msg.payload.length&&remoteId<=sys.equipment.maxRemotes; i++) {
-        const remote: Remote=sys.remotes.getItemById(remoteId++, msg.extractPayloadByte(i)!==0);
-        remote.type=msg.extractPayloadByte(i);
-        if (remote.isActive&&remote.type===0) sys.remotes.removeItemById(remote.id);
+      let remoteId = 1;
+      for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
+        const remote: Remote = sys.remotes.getItemById(remoteId++, msg.extractPayloadByte(i) !== 0);
+        remote.type = msg.extractPayloadByte(i);
+        if (remote.isActive && remote.type === 0) sys.remotes.removeItemById(remote.id);
       }
     }
     private static processIsActive(msg: Inbound) {
-      let remoteId=1;
-      for (let i=28; i<msg.payload.length&&remoteId<=sys.equipment.maxRemotes; i++) {
-        const remote: Remote=sys.remotes.getItemById(remoteId++);
-        remote.isActive=msg.extractPayloadByte(i)===1;
+      let remoteId = 1;
+      for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
+        const remote: Remote = sys.remotes.getItemById(remoteId++);
+        remote.isActive = msg.extractPayloadByte(i) === 1;
       }
     }
     private static processPumpId(msg: Inbound) {
-      let remoteId=1;
-      for (let i=28; i<msg.payload.length&&remoteId<=sys.equipment.maxRemotes; i++) {
-        const remote: Remote=sys.remotes.getItemById(remoteId++);
-        remote.pumpId=msg.extractPayloadByte(i);
+      let remoteId = 1;
+      for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
+        const remote: Remote = sys.remotes.getItemById(remoteId++);
+        remote.pumpId = msg.extractPayloadByte(i);
       }
     }
     private static processAddress(msg: Inbound) {
-      let remoteId=1;
-      for (let i=28; i<msg.payload.length&&remoteId<=sys.equipment.maxRemotes; i++) {
-        const remote: Remote=sys.remotes.getItemById(remoteId++);
-        remote.address=Math.max(msg.extractPayloadByte(i)-63, 0);
+      let remoteId = 1;
+      for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
+        const remote: Remote = sys.remotes.getItemById(remoteId++);
+        remote.address = Math.max(msg.extractPayloadByte(i) - 63, 0);
       }
     }
     private static processBody(msg: Inbound) {
-      let remoteId=1;
-      for (let i=28; i<msg.payload.length&&remoteId<=sys.equipment.maxRemotes; i++) {
-        const remote: Remote=sys.remotes.getItemById(remoteId++);
-        remote.body=msg.extractPayloadByte(i);
+      let remoteId = 1;
+      for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
+        const remote: Remote = sys.remotes.getItemById(remoteId++);
+        remote.body = msg.extractPayloadByte(i);
       }
     }
     private static processRemoteName(msg: Inbound) {
-      const remoteId=msg.extractPayloadByte(1)+1;
-      const remote: Remote=sys.remotes.getItemById(remoteId);
-      if (typeof remote==="undefined") return;
-      remote.name=msg.extractPayloadString(12, 16);
-      for (let i=0; i<msg.payload.length&&i<10; i++) {
-        if (i>3&&(remote.type===1||remote.type===3)) continue;
-        remote["button"+(i+1)]=msg.extractPayloadByte(i+2);
+      const remoteId = msg.extractPayloadByte(1) + 1;
+      const remote: Remote = sys.remotes.getItemById(remoteId);
+      if (typeof remote === "undefined") return;
+      remote.name = msg.extractPayloadString(12, 16);
+      for (let i = 0; i < msg.payload.length && i < 10; i++) {
+        if (i > 3 && (remote.type === 1 || remote.type === 3)) continue;
+        remote["button" + (i + 1)] = msg.extractPayloadByte(i + 2);
       }
     }
 }

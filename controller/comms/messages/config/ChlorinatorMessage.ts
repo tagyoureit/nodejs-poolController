@@ -1,4 +1,4 @@
-﻿import { sys, Chlorinator } from"../../../Equipment";
+﻿import { sys, Chlorinator } from "../../../Equipment";
 import { Inbound } from "../Messages";
 import { state } from "../../../State";
 export class ChlorinatorMessage {

@@ -1,9 +1,8 @@
 ﻿import {Inbound} from "../Messages";
-import {sys, Circuit, CircuitOrFeatureFactory} from "../../../Equipment";
+import {sys, Circuit, CircuitOrFeatureFactory, ControllerType} from "../../../Equipment";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
-
         switch (msg.action) {
             case 11: // IntelliTouch Circuits
                 CircuitMessage.processCircuitAttributes(msg);
@@ -194,9 +193,15 @@ export class CircuitMessage {
             // if light was previously sam/sal/magicstream but now is not, remove from IB
             sys.intellibrite.circuits.removeItemById(id);
         }
-        // tode: better logic for physical circuits here
-        if (id <= 8) // Circuits
-        {
+        // tode: move this to controller board logic
+        let _type: string = 'circuit';
+        if (sys.controllerType === ControllerType.EasyTouch) {
+            if (id > 8) _type = 'feature'; 
+        }
+        else if (sys.controllerType === ControllerType.IntelliTouch){
+            if (id > 40 ) _type = 'feature'; 
+        }
+        if (_type === 'circuit') {
             if (circuit.type === 0) return; // do not process if type doesn't exist
             switch (msg.extractPayloadByte(0)) {
                 case 6: // pool

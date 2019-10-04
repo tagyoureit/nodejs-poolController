@@ -3,9 +3,9 @@ import {sys, Heater} from "../../../Equipment";
 import {ControllerType} from "../../../Constants";
 export class HeaterMessage {
     public static process(msg: Inbound): void {
-        switch(sys.controllerType) {
+        switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
-                switch(msg.extractPayloadByte(1)) {
+                switch (msg.extractPayloadByte(1)) {
                     case 0: // Heater Type
                         HeaterMessage.processHeaterTypes(msg);
                         break;
@@ -46,7 +46,7 @@ export class HeaterMessage {
         let heater: Heater = sys.heaters.getItemById(1, true);
         heater.isActive = true;
         heater.type = 1;
-        switch(msg.action) {
+        switch (msg.action) {
             // 1 = gas heater, 2 = solar, 3 = heat pump
             case 34:
             case 162:
@@ -67,14 +67,14 @@ export class HeaterMessage {
                 //             on/off (16) = solar as a heat pump
                 // bits 7,8 = stop temp delta
 
-                if(msg.extractPayloadByte(0) === 21) {
+                if (msg.extractPayloadByte(0) === 21) {
                     let solar: Heater = sys.heaters.getItemById(2, true);
                     solar.isActive = false;
                     let heatPump: Heater = sys.heaters.getItemById(3, true);
                     heatPump.isActive = false;
                     return;
                 }
-                if((msg.extractPayloadByte(2) & 0x30) === 0) {
+                if ((msg.extractPayloadByte(2) & 0x30) === 0) {
                     // solar
                     let solar: Heater = sys.heaters.getItemById(2, true);
                     solar.type = 2;
@@ -87,7 +87,7 @@ export class HeaterMessage {
                     let heatPump = sys.heaters.getItemById(3, true);
                     heatPump.isActive = false;
                 }
-                else if((msg.extractPayloadByte(2) & 0x10) === 16) {
+                else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
                     let heatPump: Heater = sys.heaters.getItemById(3, true);
                     heatPump.type = 3;
                     heatPump.isActive = true;
@@ -107,36 +107,36 @@ export class HeaterMessage {
         }
     }
     private static processHeaterTypes(msg: Inbound) {
-        for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i, msg.extractPayloadByte(i + 1) > 0);
             heater.type = msg.extractPayloadByte(i + 1);
-            if(heater.type === 0) sys.heaters.removeItemById(i);
+            if (heater.type === 0) sys.heaters.removeItemById(i);
             heater.isActive = heater.type > 0;
             heater.body = msg.extractPayloadByte(i + 17);
         }
     }
     private static processMaxBoostTemp(msg: Inbound) {
-        for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.maxBoostTemp = msg.extractPayloadByte(i + 1);
         }
     }
     private static processStartStopDelta(msg: Inbound) {
-        for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.startTempDelta = msg.extractPayloadByte(i + 1);
             heater.stopTempDelta = msg.extractPayloadByte(i + 18);
         }
     }
     private static processCoolingSetTemp(msg: Inbound) {
-        for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.coolingEnabled = msg.extractPayloadByte(i + 1) > 0;
             heater.differentialTemp = msg.extractPayloadByte(i + 18);
         }
     }
     private static processAddress(msg: Inbound) {
-        for(let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
+        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.address = msg.extractPayloadByte(i + 1);
         }
@@ -150,7 +150,7 @@ export class HeaterMessage {
 
     private static processHeaterNames(msg: Inbound) {
         var heaterId = ((msg.extractPayloadByte(1) - 5) * 2) + 1;
-        if(heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(2, 16);
-        if(heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(18, 16);
+        if (heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(2, 16);
+        if (heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(18, 16);
     }
 }
