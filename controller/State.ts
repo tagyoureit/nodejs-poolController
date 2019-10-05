@@ -9,6 +9,7 @@ import { sys } from './Equipment';
 export class State implements IState {
     statePath: string;
     data: any;
+    _dirtyList: DirtyStateCollection = new DirtyStateCollection();
     protected _lastUpdated: Date;
     private _isDirty: boolean;
     private _timerDirty: NodeJS.Timeout;
@@ -93,17 +94,22 @@ export class State implements IState {
             adjustDST: self.data.adjustDST || false,
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
-            // heatMode: self.data.heatMode || 0,
             mode: self.data.mode || {},
-            freeze: self.data.freeze || false,
+            freeze: self.data.freeze || false
         };
+    }
+    public emitEquipmentChanges() {
+        if (typeof (webApp) !== 'undefined' && webApp) { this._dirtyList.emitChanges();  }
     }
     public emitControllerChange() {
         var self = this;
-        if (typeof (webApp) !== 'undefined' && webApp && self.hasChanged) {
-            self.hasChanged = false;
-            webApp.emitToClients('controller', self.controllerState);
+        if (typeof (webApp) !== 'undefined' && webApp) {
+            if (self.hasChanged) {
+                self.hasChanged = false;
+                webApp.emitToClients('controller', self.controllerState);
+            }
         }
+
     }
     public get time(): Timestamp { return this._dt; }
     public get mode(): number { return typeof (this.data.mode) !== 'undefined' ? this.data.mode.val : -1; }
@@ -249,7 +255,6 @@ export class State implements IState {
         }
         return state;
     }
-
 }
 interface IState {
     equipment: EquipmentState;
@@ -270,13 +275,11 @@ interface IState {
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
 class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
-    protected data: any;
+    public data: any;
     private _hasChanged: boolean = false;
     public get hasChanged(): boolean { return this._hasChanged; };
-    public set hasChanged(val: boolean) { this._hasChanged = val; }
-    ctor(data, name?: string): EqState {
-        return new EqState(data, name);
-    };
+    public set hasChanged(val: boolean) { this._hasChanged = val; };
+    ctor(data, name?: string): EqState { return new EqState(data, name); };
     constructor(data, name?: string) {
         if (typeof (name) !== 'undefined') {
             if (typeof (data[name]) === 'undefined') data[name] = {};
@@ -290,6 +293,7 @@ class EqState implements IEqStateCreator<EqState> {
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.data);
             this.hasChanged = false;
+            state._dirtyList.removeEqState(this);
         }
     }
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
@@ -297,6 +301,8 @@ class EqState implements IEqStateCreator<EqState> {
         if (this.data[name] !== val) {
             this.data[name] = val;
             this.hasChanged = typeof persist === 'undefined' || persist;
+            // If we are not already on the dirty list add us.
+            if (this.hasChanged) state._dirtyList.maybeAddEqState(this);
         }
     }
     public get(bCopy?: boolean): any {
@@ -307,6 +313,15 @@ class EqState implements IEqStateCreator<EqState> {
             if (Array.isArray(this.data[prop])) this.data[prop].length = 0;
             else this.data[prop] = undefined;
         }
+    }
+    public isEqual(eq: EqState) {
+        if (eq.dataName === this.dataName) {
+            if (eq.hasOwnProperty('id')) {
+                if (this.data.id === eq.data.id) return true;
+                else return true;
+            }
+        }
+        return false;
     }
 }
 class EqStateCollection<T> {
@@ -342,7 +357,41 @@ class EqStateCollection<T> {
     public clear() { this.data.length = 0; }
     public get length(): number { return typeof (this.data) !== 'undefined' ? this.data.length : 0; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
+    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1 }); }
+    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1 }); }
+    public sort(fn: (a, b) => number) { this.data.sort(fn); }
 }
+class DirtyStateCollection extends Array<EqState> {
+    public maybeAddEqState(eqItem: EqState) { if (!this.eqStateExists(eqItem)) this.push(eqItem); }
+    public eqStateExists(eqItem: EqState): boolean {
+        for (let i = this.length - 1; i >= 0; i--) {
+            if (eqItem.isEqual(this[i])) return true;
+        }
+        return false;
+    }
+    public findEqState(eqItem: EqState): EqState {
+        let itm = this.find((eq, ndx, eqList): boolean => {
+            return eq.isEqual(eqItem);
+        });
+        return itm;
+    }
+    public emitChanges() {
+        while (this.length > 0) {
+            let eqItem = this.shift();
+            eqItem.emitEquipmentChange();
+            eqItem.hasChanged = false;
+        }
+    }
+    public removeEqState(eqItem: EqState) {
+        // We need to go through all the items on the dirty list for now.  In the future we
+        // may not need to look at them all since the global emitter will clear the list for us.
+        for (let i = this.length - 1; i >= 0; i--) {
+            let itm = this[i];
+            if (itm.isEqual(eqItem)) this.splice(i, 1);
+        }
+    }
+}
+
 export class EquipmentState extends EqState {
     public dataName: string = 'equipment';
     public get controllerType(): string { return this.data.controllerType; }
@@ -530,6 +579,7 @@ export class ScheduleState extends EqState {
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
             this.hasChanged = false;
+            state._dirtyList.removeEqState(this);
         }
     }
 }
@@ -594,6 +644,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
             this.hasChanged = false;
+            state._dirtyList.removeEqState(this);
         }
     }
 }
@@ -655,6 +706,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
             this.hasChanged = false;
+            state._dirtyList.removeEqState(this);
         }
     }
 }

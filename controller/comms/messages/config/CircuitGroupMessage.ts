@@ -104,14 +104,13 @@ export class CircuitGroupMessage {
             sgroup.type = group.type;
             group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
             sgroup.lightingTheme = group.lightingTheme;
-            sgroup.emitEquipmentChange();
         }
         for (let i = 0; i < arrCircuitGrps.length; i++) {
             let group: CircuitGroup = arrCircuitGrps[i];
             let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
             sgroup.type = group.type;
-            sgroup.emitEquipmentChange();
         }
+        state.emitEquipmentChanges();
     }
     private static processColor(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 35)) + 1;

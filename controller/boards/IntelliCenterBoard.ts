@@ -360,7 +360,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         out.onSuccess = (msg: Outbound) => {
             if (!msg.failed) {
                 circ.isOn = val;
-                circ.emitEquipmentChange();
+                state.emitEquipmentChanges();
             }
         };
         conn.queueSendMessage(out);
@@ -370,7 +370,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let cstate = state.circuits.getItemById(id);
         let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
             theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-            0);
+            0, undefined,
+            (msg) => {
+                if (!msg.failed) {
+                    circuit.lightingTheme = theme;
+                    cstate.lightingTheme = theme;
+                    if (!cstate.isOn) this.setCircuitState(id, true);
+                    state.emitEquipmentChanges();
+                }
+            }
+        );
 
         //Intellicenter Sent
         //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 149]
@@ -378,14 +387,6 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         //[255, 0, 255][165, 63, 16, 36, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 170]
         //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 3, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 144]
         out.appendPayloadString(circuit.name, 16);
-        out.onSuccess = (msg) => {
-            if (!msg.failed) {
-                circuit.lightingTheme = theme;
-                cstate.lightingTheme = theme;
-                if (!cstate.isOn) this.setCircuitState(id, true);
-                cstate.emitEquipmentChange();
-            }
-        };
         conn.queueSendMessage(out);
     }
     public createCircuitStateMessage(id?: number, isOn?: boolean): Outbound {
@@ -420,7 +421,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     circuit.level = level;
                     cstate.level = level;
                     cstate.isOn = true;
-                    cstate.emitEquipmentChange();
+                    state.emitEquipmentChanges();
                 }
             }));
         out.appendPayloadString(circuit.name, 16);
@@ -523,8 +524,8 @@ class IntelliCenterPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
         // RG: do we want to emit these here or wait for them to be set by the controller
-        sys.emitEquipmentChange();
-        sys.pumps.emitEquipmentChange();
+        //sys.emitEquipmentChange();
+        //sys.pumps.emitEquipmentChange();
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {
@@ -555,14 +556,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let out = Outbound.createMessage(168,
             [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
-                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0], 0);
-        out.onSuccess = (msg) => {
-            if (!msg.failed) {
-                body.heatMode = mode;
-                state.temps.bodies.getItemById(body.id).heatMode = mode;
-                state.temps.emitEquipmentChange();
-            }
-        }
+                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined,
+            (msg) => {
+                if (!msg.failed) {
+                    body.heatMode = mode;
+                    state.temps.bodies.getItemById(body.id).heatMode = mode;
+                    state.emitEquipmentChanges();
+                }
+            });
         conn.queueSendMessage(out);
 
     }
@@ -592,15 +593,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let out = Outbound.createMessage(
             168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
-                , 0, 100, 0, 0, 0, 0, 0, 0], 0);
-        out.onSuccess = (msg) => {
-            if (!msg.failed) {
-                body.setPoint = setPoint;
-                state.temps.bodies.getItemById(body.id).setPoint = setPoint;
-                state.temps.emitEquipmentChange();
-            }
-
-        };
+                , 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined,
+            (msg) => {
+                if (!msg.failed) {
+                    body.setPoint = setPoint;
+                    state.temps.bodies.getItemById(body.id).setPoint = setPoint;
+                    state.emitEquipmentChanges();
+                }
+            });
         conn.queueSendMessage(out);
     }
 }
@@ -619,15 +619,6 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
 
         if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
         let csched = state.schedules.getItemById(sched.id, true);
-        csched.startTime = sched.startTime;
-        csched.endTime = sched.endTime;
-        csched.circuit = sched.circuit;
-        csched.heatSetpoint = sched.heatSetpoint;
-        csched.heatSource = sched.heatSource;
-        csched.scheduleDays =
-            (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
-        csched.scheduleType = sched.runOnce;
-        csched.emitEquipmentChange();
         let out = Outbound.createMessage(168, [
             3
             , 0
@@ -648,6 +639,16 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             ],
             0
         );
+        out.onSuccess = (msg) => {
+            csched.startTime = sched.startTime;
+            csched.endTime = sched.endTime;
+            csched.circuit = sched.circuit;
+            csched.heatSetpoint = sched.heatSetpoint;
+            csched.heatSource = sched.heatSource;
+            csched.scheduleDays = (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
+            csched.scheduleType = sched.runOnce;
+            state.emitEquipmentChanges();
+        };
         conn.queueSendMessage(out); // Send it off in a letter to yourself.
     }
 }

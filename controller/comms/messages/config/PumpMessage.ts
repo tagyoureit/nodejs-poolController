@@ -168,12 +168,12 @@ export class PumpMessage {
         for (let i = 2; i < msg.payload.length && pumpId <= sys.equipment.maxPumps; i++) {
             let type = msg.extractPayloadByte(i);
             let pump: Pump = sys.pumps.getItemById(pumpId++, type !== 0);
-            pump.type = type;
-            if (pump.type === 0) {
+            if (type === 0) {
                 sys.pumps.removeItemById(pump.id); // Remove the pump if we don't need it.
                 state.pumps.removeItemById(pump.id);
             }
             else {
+                console.log('Processing Pump Type:' + pump.id);
                 state.pumps.getItemById(pump.id, true).type = type;
                 pump.isActive = true;
             }
@@ -223,12 +223,14 @@ export class PumpMessage {
         if (pumpId <= sys.equipment.maxPumps) {
             let pump = sys.pumps.getItemById(pumpId);
             pump.name = msg.extractPayloadString(2, 16);
-            state.pumps.getItemById(pumpId++).name = pump.name;
+            if (pump.isActive) state.pumps.getItemById(pumpId).name = pump.name;
+            pumpId++;
         }
         if (pumpId <= sys.equipment.maxPumps) {
             let pump = sys.pumps.getItemById(pumpId);
             pump.name = msg.extractPayloadString(18, 16);
-            state.pumps.getItemById(pumpId++).name = pump.name;
+            if (pump.isActive) state.pumps.getItemById(pumpId).name = pump.name;
+            pumpId++;
         }
     }
     private static processVS_IT(msg: Inbound) {

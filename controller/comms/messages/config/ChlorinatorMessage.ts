@@ -17,8 +17,14 @@ export class ChlorinatorMessage {
                     chlor.superChlor = msg.extractPayloadByte(i + 18) === 1;
                     chlor.isActive = msg.extractPayloadByte(i + 22) === 1;
                     chlor.superChlorHours = msg.extractPayloadByte(i + 26);
-                    chlor.address = msg.extractPayloadByte(i + 30);
-                    state.chlorinators.getItemById(chlor.id).body = chlor.body;
+                    chlor.address = 80 + i;
+                    let schlor = state.chlorinators.getItemById(chlor.id, true);
+                    schlor.body = chlor.body;
+                    schlor.poolSetpoint = chlor.poolSetpoint;
+                    schlor.spaSetpoint = chlor.spaSetpoint;
+                    schlor.type = chlor.type;
+                    schlor.superChlorHours = chlor.superChlorHours;
+                    state.emitEquipmentChanges();
                 }
                 break;
         }

@@ -69,7 +69,7 @@ export class ExternalMessage {
                         state.lightGroups.removeItemById(groupId);
                         sys.circuitGroups.removeItemById(groupId);
                         sgroup.isActive = false;
-                        sgroup.emitEquipmentChange();
+                        state.emitEquipmentChanges();
                         break;
                     case 1:
                         group = sys.lightGroups.getItemById(groupId, true);
@@ -90,9 +90,7 @@ export class ExternalMessage {
                         let circuit = group.circuits.getItemByIndex(i, circuitId !== 255);
                         if (circuitId === 255) group.circuits.removeItemByIndex(i);
                         circuit.circuit = circuitId;
-
                     }
-                    sgroup.emitEquipmentChange();
                 }
                 group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
                 sgroup.eggTimer = group.eggTimer;
@@ -102,7 +100,7 @@ export class ExternalMessage {
                         g.circuits.getItemByIndex(i).swimDelay = msg.extractPayloadByte(22 + i);
                     }
                 }
-                if (sgroup.isActive) sgroup.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 1:
                 group = sys.circuitGroups.getInterfaceById(groupId);
@@ -117,7 +115,7 @@ export class ExternalMessage {
                         circuit.color = msg.extractPayloadByte(i + 3);
                     }
                 }
-                sgroup.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 2:
                 break;
@@ -177,7 +175,7 @@ export class ExternalMessage {
                 }
                 else
                     state.circuits.removeItemById(circuitId);
-                cstate.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 circuitId++;
             }
         }
@@ -204,10 +202,10 @@ export class ExternalMessage {
                 }
                 else
                     state.schedules.removeItemById(scheduleId);
-                sstate.emitEquipmentChange();
                 scheduleId++;
             }
         }
+        state.emitEquipmentChanges();
     }
     private static processFeatureState(start: number, msg: Inbound) {
         let featureId = 1;
@@ -223,10 +221,10 @@ export class ExternalMessage {
                 }
                 else
                     state.features.removeItemById(featureId);
-                fstate.emitEquipmentChange();
                 featureId++;
             }
         }
+        state.emitEquipmentChanges();
     }
     private static processCircuitGroupState(start: number, msg: Inbound) {
         let groupId = 1;
@@ -246,10 +244,10 @@ export class ExternalMessage {
                     state.circuitGroups.removeItemById(groupId);
                     state.lightGroups.removeItemById(groupId);
                 }
-                gstate.emitEquipmentChange();
                 groupId++;
             }
         }
+        state.emitEquipmentChanges();
     }
 
     private static processBodies(msg: Inbound) {
@@ -267,7 +265,6 @@ export class ExternalMessage {
                 cbody = sys.bodies.getItemById(bodyId);
                 cbody.name = msg.extractPayloadString(3, 16);
                 state.temps.bodies.getItemById(bodyId, false).name = cbody.name;
-                state.temps.emitEquipmentChange();
                 break;
             case 4:
             case 5:
@@ -287,7 +284,7 @@ export class ExternalMessage {
             case 15: // Chlorinator notifications
                 break;
         }
-
+        state.emitEquipmentChanges();
     }
     private static processSchedules(msg: Inbound) {
         let schedId = msg.extractPayloadByte(2) + 1;
@@ -318,7 +315,7 @@ export class ExternalMessage {
             sys.schedules.removeItemById(cfg.id);
             state.schedules.removeItemById(cfg.id);
         }
-        s.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
 
     private static processChlorinator(msg: Inbound) {
@@ -334,7 +331,7 @@ export class ExternalMessage {
         s.spaSetpoint = cfg.spaSetpoint;
         s.superChlorHours = cfg.superChlorHours;
         s.body = cfg.body;
-        s.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     private static processPump(msg: Inbound) {
         let pumpId = msg.extractPayloadByte(2) + 1;
@@ -418,7 +415,7 @@ export class ExternalMessage {
                 cstate.level = circuit.level;
                 break;
         }
-        cstate.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     private static processTempSettings(msg: Inbound) {
         // What the developers did is supply an offset index into the payload for the byte that is
@@ -446,51 +443,50 @@ export class ExternalMessage {
                 body = sys.bodies.getItemById(1, false);
                 body.setPoint = msg.extractPayloadByte(21);
                 state.temps.bodies.getItemById(1).setPoint = body.setPoint;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 19: // Body 3 Setpoint
                 body = sys.bodies.getItemById(3, false);
                 body.setPoint = msg.extractPayloadByte(22);
                 state.temps.bodies.getItemById(3).setPoint = body.setPoint;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 20: // Body 2 Setpoint
                 body = sys.bodies.getItemById(2, false);
                 body.setPoint = msg.extractPayloadByte(23);
                 state.temps.bodies.getItemById(2).setPoint = body.setPoint;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 21: // Body 4 Setpoint
                 body = sys.bodies.getItemById(4, false);
                 body.setPoint = msg.extractPayloadByte(24);
                 state.temps.bodies.getItemById(4).setPoint = body.setPoint;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 22: // Body 1 Heat Mode
                 body = sys.bodies.getItemById(1, false);
                 body.heatMode = msg.extractPayloadByte(25);
                 state.temps.bodies.getItemById(1).heatMode = body.heatMode;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 23: // Body 2 Heat Mode
                 body = sys.bodies.getItemById(2, false);
                 body.heatMode = msg.extractPayloadByte(26);
                 state.temps.bodies.getItemById(2).heatMode = body.heatMode;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 24: // Body 3 Heat Mode
                 body = sys.bodies.getItemById(3, false);
                 body.heatMode = msg.extractPayloadByte(27);
                 state.temps.bodies.getItemById(3).heatMode = body.heatMode;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
             case 25: // Body 4 Heat Mode
                 body = sys.bodies.getItemById(4, false);
                 body.heatMode = msg.extractPayloadByte(28);
                 state.temps.bodies.getItemById(4).heatMode = body.heatMode;
-                state.temps.emitEquipmentChange();
+                state.emitEquipmentChanges();
                 break;
         }
     }
-
 }

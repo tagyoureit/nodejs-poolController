@@ -52,7 +52,6 @@ export class ChlorinatorStateMessage {
                             break;
                         }
                 }
-                chlor.emitEquipmentChange();
             }
             else if (msg.datalen === 4) {
                 let chlor = state.chlorinators.getItemById(msg.extractPayloadByte(0) + 1, true);
@@ -63,7 +62,6 @@ export class ChlorinatorStateMessage {
                         chlor.lastComm = new Date().getTime();
                         break;
                 }
-                chlor.emitEquipmentChange();
             }
             else if (msg.datalen === 19) {
                 //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
@@ -72,8 +70,8 @@ export class ChlorinatorStateMessage {
                 let chlor = state.chlorinators.getItemById(msg.extractPayloadByte(0) + 1, true);
                 //chlor.saltLevel = msg.extractPayloadByte(2) * 50;
                 chlor.name = msg.extractPayloadString(3, 16);
-                chlor.emitEquipmentChange();
             }
+            state.emitEquipmentChanges();
         }
         // question: does IntelliCenter ever broadcast Chlorinator packet?  Answer: Never.  My guess is that this is actually 
         // a configuration message rather than a status message.  Also, IntelliCenter has a 204 extension status that contains

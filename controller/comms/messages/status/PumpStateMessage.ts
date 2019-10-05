@@ -33,9 +33,8 @@ export class PumpStateMessage {
                 // Byte 14 ticks up every minute while byte 13 ticks up every 59 minutes.
                 pump.runTime = (msg.extractPayloadByte(13)) * 60 + msg.extractPayloadByte(14);
                 pump.type = pumpCfg.type;
-                pump.emitEquipmentChange();
-                
                 break;
         }
+        state.emitEquipmentChanges();
     }
 }

@@ -470,14 +470,14 @@ export class CircuitCommands extends BoardCommands {
                 cstate.isOn = bState;
                 cstate.type = vc.val;
                 cstate.name = vc.desc;
-                cstate.emitEquipmentChange();
+                state.emitEquipmentChanges();
             }
         }
     }
     public setCircuitState(id: number, val: boolean) {
         let circ = state.circuits.getItemById(id);
         circ.isOn = val;
-        circ.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     public toggleCircuitState(id: number) {
         let circ = state.circuits.getItemById(id);
@@ -486,12 +486,12 @@ export class CircuitCommands extends BoardCommands {
     public setLightTheme(id: number, theme: number) {
         let circ = state.circuits.getItemById(id);
         circ.lightingTheme = theme;
-        circ.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     public setDimmerLevel(id: number, level: number) {
         let circ = state.circuits.getItemById(id);
         circ.level = level;
-        circ.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     public getLightThemes(type?: number) {return sys.board.valueMaps.lightThemes.toArray();}
     public getNameById(id: number) {
@@ -510,7 +510,7 @@ export class CircuitCommands extends BoardCommands {
                 cstate.lightingTheme = circuit.lightingTheme = color;
             }
         }
-        sys.circuits.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
 }
 export class FeatureCommands extends BoardCommands {
@@ -544,7 +544,7 @@ export class FeatureCommands extends BoardCommands {
             }
             let sgrp = state.circuitGroups.getItemById(grp.id);
             sgrp.isOn = bIsOn && grp.isActive;
-            sgrp.emitEquipmentChange();
+            state.emitEquipmentChanges();
         }
     }
 
@@ -555,7 +555,7 @@ export class ChemistryCommands extends BoardCommands {
         cstate.spaSetpoint = spaSetpoint;
         cstate.superChlor = superChlor;
         cstate.superChlorHours = superChlorHours;
-        cstate.emitEquipmentChange();
+        state.emitEquipmentChanges();
     }
     public setPoolSetpoint(cstate: ChlorinatorState, poolSetpoint: number) {this.setChlor(cstate, poolSetpoint);}
     public setSpaSetpoint(cstate: ChlorinatorState, spaSetpoint: number) {this.setChlor(cstate, cstate.poolSetpoint, spaSetpoint);}
