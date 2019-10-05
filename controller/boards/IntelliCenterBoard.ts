@@ -198,7 +198,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 new Response(16, 15, 30,
                     [this.curr.category, itm],
                     undefined,
-                    function (msgOut) { self.processNext(msgOut) })
+                    function (msgOut) { self.processNext(msgOut); })
             );
             setTimeout(conn.queueSendMessage, 50, out);
         } else {
@@ -660,7 +660,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0
                 , heater.address,
                 //, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // Name
-                , heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
+                heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
         out.insertPayloadString(11, heater.name, 16);
         return out;
     }

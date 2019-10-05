@@ -131,11 +131,15 @@ export class EasyTouchBoard extends SystemBoard {
             //[64, {name: 'freezeprotectionon', desc: 'FREEZE PROTECTION ON'}],
         ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
-            [128, {name: 'solar', desc: 'SOLAR'}],
-            [129, {name: 'heater', desc: 'POOL OR SPA HEATER'}],
-            [130, {name: 'poolHeater', desc: 'POOL HEATER'}],
-            [131, {name: 'spaHeater', desc: 'SPA HEATER'}],
-            [132, {name: 'freeze', desc: 'FREEZE'}],
+            [128, {name: 'solar', desc: 'Solar'}],
+            [129, {name: 'heater', desc: 'Either Heater'}],
+            [130, {name: 'poolHeater', desc: 'Pool Heater'}],
+            [131, {name: 'spaHeater', desc: 'Spa Heater'}],
+            [132, {name: 'freeze', desc: 'Freese'}],
+            [133, {name: 'heatBoost', desc: 'Heat Boost'}],
+            [134, {name: 'heatEnable', desc: 'Heat Enable'}],
+            [135, {name: 'pumpSpeedUp', desc: 'Pump Speed +'}],
+            [136, {name: 'pumpSpeedDown', desc: 'Pump Speed -'}],
             [255, {name: 'notused', desc: 'NOT USED'}]
 
         ]);
@@ -172,13 +176,13 @@ export class EasyTouchBoard extends SystemBoard {
             [195, {name: 'red', desc: 'Red'}],
             [196, {name: 'white', desc: 'White'}],
             [197, {name: 'magenta', desc: 'Magenta'}],
+            [208, {name: 'thumper', desc: 'Thumper'}],
+            [209, {name: 'hold', desc: 'Hold'}],
+            [210, {name: 'reset', desc: 'Reset'}],
+            [211, {name: 'mode', desc: 'Mode'}],
             [254, {name: 'unknown', desc: 'unknown'}],
             [255, {name: 'none', desc: 'None'}]
         ]);
-        // RKS: TODO Ask Russ about these colors.  I believe that
-        // the light themes and the light colors are really two different sets.  One is
-        // for the circuit setting and the other is actually for ColorSet.  IntelliCenter has
-        // this exact set with different values.
         this.valueMaps.lightColors = new byteValueMap([
             [0, {name: 'white', desc: 'White'}],
             [2, {name: 'lightgreen', desc: 'Light Green'}],
@@ -189,7 +193,6 @@ export class EasyTouchBoard extends SystemBoard {
             [12, {name: 'magenta', desc: 'Magenta'}],
             [14, {name: 'lightmagenta', desc: 'Light Magenta'}]
         ]);
-
         this.valueMaps.heatModes = new byteValueMap([
             [0, {name: 'off', desc: 'Off'}],
             [1, {name: 'heater', desc: 'Heater'}],

@@ -91,27 +91,33 @@ export class ScheduleMessage {
         sys.schedules.getItemById(schedId).isActive = false;
         sys.eggTimers.getItemById(schedId).isActive = false;
 
-        const circuitId = msg.extractPayloadByte(1);
-        const time1 = msg.extractPayloadInt(2);
-        if (time1 === 25) {
+        const circuitId = msg.extractPayloadByte(1) & 127;
+        const bEggTimer = msg.extractPayloadByte(2) === 25;
+        if (bEggTimer) {
             // egg timer
             // todo: still confused how we track deleted egg timers
             const eggTimer: EggTimer = sys.eggTimers.getItemById(schedId, true);
             eggTimer.circuit = circuitId;
-            eggTimer.runTime =
-                msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
+            eggTimer.runTime =msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
             eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
             const circuit = CorF.getItemById(circuitId, true);
             circuit.eggTimer = eggTimer.runTime;
-            //circuit.eggTimer = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
         } else if (circuitId > 0) {
-            const schedule: Schedule = sys.schedules.getItemById(schedId, time1 > 0);
+            const schedule: Schedule = sys.schedules.getItemById(schedId, msg.extractPayloadByte(2) > 0);
             schedule.circuit = circuitId;
-            schedule.startTime = time1;
-            if (msg.extractPayloadByte(4) !== 26)
-                schedule.endTime = msg.extractPayloadInt(4);
+            schedule.startTime = msg.extractPayloadByte(2) * 60 + msg.extractPayloadByte(3);
+            // 26 is 'let the eggTimer control end time'
+            if (msg.extractPayloadByte(4) !== 26) 
+                schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
+            else {
+                let _eggTimer = CorF.getItemById(circuitId).eggTimer || 720;
+                schedule.endTime = schedule.startTime + _eggTimer;
+            }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 127;
+            (msg.extractPayloadByte(6) & 128) === 0 ? schedule.runOnce = 1 : schedule.runOnce = 0;
+            // todo: add to base sched item
+            //  (msg.extractPayloadByte(1) & 128) === 1 ? schedule.smartStart = 1 : schedule.smartStart = 0;
             if (schedule.isActive) {
                 const sstate = state.schedules.getItemById(schedule.id, true);
                 sstate.circuit = schedule.circuit;
