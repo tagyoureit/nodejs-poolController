@@ -20,7 +20,7 @@ export class byteValueMap extends Map<number, any> {
         return {name: name};
     }
     public getValue(name: string): number { return this.transformByName(name).value; }
-    public getName(val: number): string { return val >= 0 ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
+    public getName(val: number): string { return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
 }
 export class byteValueMaps {
     constructor() {
