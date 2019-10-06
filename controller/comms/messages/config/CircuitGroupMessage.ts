@@ -10,7 +10,7 @@ export class CircuitGroupMessage {
         let msgId = msg.extractPayloadByte(1);
         if (msgId <= 15) {
             var circuitId = 1;
-            groupId = msg.extractPayloadByte(1) + 1;
+            groupId = msg.extractPayloadByte(1) + sys.board.equipmentIds.circuitGroups.start;
             group = sys.circuitGroups.getInterfaceById(groupId);
             if (group.isActive) {
                 group.circuits.clear();
@@ -28,8 +28,8 @@ export class CircuitGroupMessage {
             }
         }
         else if (msgId >= 16 && msgId <= 31) {
-            groupId = msgId - 16 + 1;
-            if (groupId <= sys.circuitGroups.length + sys.lightGroups.length) {
+            groupId = msgId - 16 + sys.board.equipmentIds.circuitGroups.start;
+            if (sys.board.equipmentIds.circuitGroups.isInRange) {
                 group = sys.circuitGroups.getInterfaceById(groupId);
                 if (group.isActive) {
                     sgroup = group.type === 1 ? state.lightGroups.getItemById(groupId) : state.circuitGroups.getItemById(groupId);
@@ -73,14 +73,14 @@ export class CircuitGroupMessage {
 
     }
     private static processGroupType(msg: Inbound) {
-        var groupId = 1 + ((msg.extractPayloadByte(1) - 32) * 16);
+        var groupId = ((msg.extractPayloadByte(1) - 32) * 16) + sys.board.equipmentIds.circuitGroups.start;
         let arrlightGrps = [];
         let arrCircuitGrps = [];
-        for (let i = 2; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups && i <= 17; i++) {
+        for (let i = 2; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId) && i <= 17; i++) {
             let type = msg.extractPayloadByte(i);
             let group: ICircuitGroup = type === 1 ? sys.lightGroups.getItemById(groupId++, true) : sys.circuitGroups.getItemById(groupId++, type !== 0);
             group.type = type;
-            group.isActive = group.type !== 0;
+            group.isActive = type !== 0;
             if (group.isActive) {
                 if (group.type === 1) {
                     arrlightGrps.push(group);
@@ -113,7 +113,7 @@ export class CircuitGroupMessage {
         state.emitEquipmentChanges();
     }
     private static processColor(msg: Inbound) {
-        var groupId = ((msg.extractPayloadByte(1) - 35)) + 1;
+        var groupId = ((msg.extractPayloadByte(1) - 35)) + sys.board.equipmentIds.circuitGroups.start;
         var group: ICircuitGroup = sys.circuitGroups.getInterfaceById(groupId++);
         if (group.isActive && group.type === 1) {
             let lg = group as LightGroup;
@@ -124,8 +124,8 @@ export class CircuitGroupMessage {
         }
     }
     private static processEggTimer(msg: Inbound) {
-        var groupId = ((msg.extractPayloadByte(1) - 34) * 16) + 1;
-        for (let i = 2; i < msg.payload.length && groupId <= sys.circuitGroups.length + sys.lightGroups.length && groupId <= sys.equipment.maxCircuitGroups; i++) {
+        var groupId = ((msg.extractPayloadByte(1) - 34) * 16) + sys.board.equipmentIds.circuitGroups.start;
+        for (let i = 2; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId); i++) {
             var group: ICircuitGroup = sys.circuitGroups.getInterfaceById(groupId++);
             if (group.isActive) {
                 let sgroup: ICircuitGroupState = group.type === 1 ? state.lightGroups.getItemById(group.id) : state.circuitGroups.getItemById(group.id);

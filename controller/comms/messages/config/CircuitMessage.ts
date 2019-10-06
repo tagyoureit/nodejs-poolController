@@ -116,56 +116,64 @@ export class CircuitMessage {
         }
     }
     private static processCircuitTypes(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, i <= sys.equipment.maxCircuits);
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            if (circuitId === 6) console.log('POOL: ' + msg.extractPayloadByte(i));
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
-            circuit.type = i !== 6 ? msg.extractPayloadByte(i + 1) : 12;
-            if (circuit.isActive && i > sys.equipment.maxCircuits) sys.circuits.removeItemById(circuit.id);
-            circuit.isActive = i <= sys.equipment.maxCircuits;
+            circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
+            circuit.isActive = true;
         }
     }
     private static processFreezeProtect(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.freeze = msg.extractPayloadByte(i + 1) > 0;
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+            circuit.freeze = msg.extractPayloadByte(i) > 0;
         }
     }
     private static processShowInFeatures(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.showInFeatures = msg.extractPayloadByte(i + 1) > 0;
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+            circuit.showInFeatures = msg.extractPayloadByte(i) > 0;
         }
     }
     private static processCircuitNames(msg: Inbound) {
-        let circuitId = (msg.extractPayloadByte(1) - 3) * 2 + 1;
-        if (circuitId <= sys.equipment.maxCircuits) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(2, 16);
-        if (circuitId <= sys.equipment.maxCircuits) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(18, 16);
+        let circuitId = ((msg.extractPayloadByte(1) - 3) * 2) + sys.board.equipmentIds.circuits.start;
+        console.log('Getting name for CircuitId: ' + circuitId + ' Start:' + sys.board.equipmentIds.circuits.start + ' End: ' + sys.board.equipmentIds.circuits.end);
+        if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(2, 16);
+        if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(18, 16);
     }
     private static processLightingTheme(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             if (circuit.type === 9)
-                circuit.level = msg.extractPayloadByte(i + 1);
+                circuit.level = msg.extractPayloadByte(i);
             else
-                circuit.lightingTheme = msg.extractPayloadByte(i + 1);
+                circuit.lightingTheme = msg.extractPayloadByte(i);
         }
     }
     private static processEggTimerHours(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.eggTimer = msg.extractPayloadByte(i + 1) * 60 + (circuit.eggTimer || 0) % 60;
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+            circuit.eggTimer = msg.extractPayloadByte(i) * 60 + (circuit.eggTimer || 0) % 60;
         }
     }
     private static processEggTimerMinutes(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.eggTimer = Math.floor(circuit.eggTimer / 60) * 60 + msg.extractPayloadByte(i + 1);
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            const circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+            circuit.eggTimer = Math.floor(circuit.eggTimer / 60) * 60 + msg.extractPayloadByte(i);
         }
     }
     private static processShowInCircuits(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxCircuits; i++) {
-            const circuit: Circuit = sys.circuits.getItemById(i, true);
-            circuit.showInCircuits = msg.extractPayloadByte(i + 1) > 0;
+        let circuitId = sys.board.equipmentIds.circuits.start;
+        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+            let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+            circuit.showInCircuits = msg.extractPayloadByte(i) > 0;
         }
     }
 

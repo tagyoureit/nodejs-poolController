@@ -80,7 +80,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
         ]);
         this.equipmentIds.features.start = 129;
-        this.equipmentIds.circuitGroups.start = 192;
+        this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
@@ -229,10 +229,12 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, [0, 1, 2, 3]);
         this.maybeQueueItems(curr.options, ver.options, ConfigCategories.options, [0, 1]);
         if (this.compareVersions(curr.circuits, ver.circuits)) {
-            let req = new IntelliCenterConfigRequest(ConfigCategories.circuits, ver.circuits, [0, 1, 2]);
-            // Only add in the items that we need.
-            req.fillRange(3, Math.min(Math.ceil(sys.equipment.maxCircuits / 2) + 3, 24));
-            req.fillRange(26, 29);
+            let req = new IntelliCenterConfigRequest(ConfigCategories.circuits, ver.circuits, [0, 1, 2],
+                function (req: IntelliCenterConfigRequest) {
+                    // Only add in the items that we need.
+                    req.fillRange(3, Math.min(Math.ceil(sys.equipment.maxCircuits / 2) + 3, 24));
+                    req.fillRange(26, 29);
+                });
             this.push(req);
         }
         if (this.compareVersions(curr.features, ver.features)) {
