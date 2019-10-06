@@ -272,6 +272,14 @@ interface IState {
     //createCircuitStateMessage(): Outbound;
     //cancelDelay(): void;
 }
+export interface ICircuitState {
+    id: number;
+    type: number;
+    name: string;
+    isOn: boolean;
+    emitEquipmentChange();
+}
+
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
 class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
@@ -330,16 +338,14 @@ class EqStateCollection<T> {
         if (typeof (data[name]) === 'undefined') data[name] = [];
         this.data = data[name];
     }
-    public getItemById(id: number, add?: boolean): T {
-        for (var i = 0; i < this.data.length; i++) {
-            if (typeof (this.data[i].id) !== 'undefined' && this.data[i].id === id) {
+    public getItemById(id: number, add?: boolean, data?: any): T {
+        for (let i = 0; i < this.data.length; i++)
+            if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 return this.createItem(this.data[i]);
             }
-        }
-        if (typeof (add) !== 'undefined' && add) {
-            return this.add({ id: id });
-        }
-        return this.createItem({ id: id });
+        if (typeof add !== 'undefined' && add)
+            return this.add(data || { id: id });
+        return this.createItem(data || { id: id });
     }
     public getItemByIndex(ndx: number, add?: boolean): T {
         return (this.data.length > ndx) ? this.createItem(this.data[ndx]) : (typeof (add) !== 'undefined' && add) ? this.add(this.createItem({ id: ndx + 1 })) : this.createItem({ id: ndx + 1 });
@@ -594,8 +600,13 @@ export interface ICircuitGroupState {
 }
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
     public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data); }
+    public getInterfaceById(id: number) {
+        let iGroup: ICircuitGroupState = this.getItemById(id, false, { id: id, isActive: false });
+        if (!iGroup.isActive) iGroup = state.lightGroups.getItemById(id, false, { id: id, isActive: false });
+        return iGroup;
+    }
 }
-export class CircuitGroupState extends EqState implements ICircuitGroupState {
+export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     public dataName: string = 'circuitGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -651,7 +662,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
 export class LightGroupStateCollection extends EqStateCollection<LightGroupState> {
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
 }
-export class LightGroupState extends EqState implements ICircuitGroupState {
+export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     public dataName: string = 'lightGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -777,7 +788,7 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public setFeatureState(id: number, val: boolean) { sys.board.features.setFeatureState(id, val); }
     public toggleFeatureState(id: number) { sys.board.features.toggleFeatureState(id); }
 }
-export class FeatureState extends EqState {
+export class FeatureState extends EqState implements ICircuitState {
     public dataName: string = 'feature';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -795,7 +806,7 @@ export class FeatureState extends EqState {
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
 }
-export class VirtualCircuitState extends EqState {
+export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -820,123 +831,20 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public toggleCircuitState(id: number) { sys.board.circuits.toggleCircuitState(id); }
     public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightTheme(id, theme); }
     public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
+    public getInterfaceById(id: number): ICircuitState {
+        let iCircuit: ICircuitState = null;
+        if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
+            iCircuit = state.virtualCircuits.getItemById(id);
+        else if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+            iCircuit = state.circuitGroups.getItemById(id);
+        else if (sys.board.equipmentIds.features.isInRange(id))
+            iCircuit = state.features.getItemById(id);
+        else
+            iCircuit = state.circuits.getItemById(id);
+        return iCircuit;
+    }
 }
-//export class IntelliTouchCircuitStateCollection extends CircuitStateCollection {
-//    public setCircuitState(id: number, val: boolean) {
-//        let cstate = SF.getCircuitOrFeatureStateById(id);
-//        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-//            if (!msg.failed) {
-//                cstate.isOn = true;
-//                cstate.emitEquipmentChange();
-//            }
-//        }));
-//        conn.queueSendMessage(out);
-//    }
-//    public toggleCircuitState(id: number) {
-//        let cstate = SF.getCircuitOrFeatureStateById(id);
-//        let out = Outbound.createMessage(134, [id, cstate.isOn === true ? 0 : 1], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-//            if (!msg.failed) {
-//                cstate.isOn = !cstate.isOn;
-//                cstate.emitEquipmentChange();
-//            }
-//        }));
-//        conn.queueSendMessage(out);
-//    }
-//    public setCircuitTheme(id: number, theme: number) {
-//        let cstate = state.circuits.getItemById(id);
-//        let circuit = sys.circuits.getItemById(id);
-//        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
-//            if (!msg.failed) {
-//                circuit.lightingTheme = theme;
-//                cstate.lightingTheme = theme;
-//                cstate.isOn = true;
-//                cstate.emitEquipmentChange();
-//            }
-//        }));
-//        conn.queueSendMessage(out);
-//        if (!cstate.isOn) {
-//            // If the circuit is off we need to turn it on.
-//            this.setCircuitState(id, true);
-//        }
-//    }
-//    public setDimmerLevel(id: number, level: number) {
-//        // todo: implement
-//    }
-//    TODO: Make these light groups.  There will only be one for IntelliTouch
-//    public setLightColor(id: number, color: number) {
-//        // todo: implement
-//        // this sets the light color for the "color set" mode
-//    }
-//    public setLightSwimDelay(id: number, delay: number) {
-//        // todo: implement
-//        // this sets the delay for the "color swim" mode
-//    }
-//    public setLightPosition(id: number, position: number) {
-//        // todo: implement
-//        // this sets the position for the "color swim" mode
-//    }
-//}
-//export class IntelliCenterCircuitStateCollection extends CircuitStateCollection {
-//    public setCircuitTheme(id: number, theme: number) {
-//        let circuit = sys.circuits.getItemById(id);
-//        let cstate = this.getItemById(id);
-//        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-//            theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-//            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-//                if (!msg.failed) {
-//                    circuit.lightingTheme = theme;
-//                    cstate.lightingTheme = theme;
-//                    cstate.isOn = true;
-//                    cstate.emitEquipmentChange();
-//                }
-//            }));
-//        out.appendPayloadString(circuit.name, 16);
-//        conn.queueSendMessage(out);
-//        if (!cstate.isOn) {
-//            // If the circuit is off we need to turn it on.
-//            this.setCircuitState(id, true);
-//        }
-//    }
-//    public setDimmerLevel(id: number, level: number) {
-//        let circuit = sys.circuits.getItemById(id);
-//        let cstate = this.getItemById(id);
-//        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-//            level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-//            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
-//                if (!msg.failed) {
-//                    circuit.level = level;
-//                    cstate.level = level;
-//                    cstate.isOn = true;
-//                    cstate.emitEquipmentChange();
-//                }
-//            }));
-//        out.appendPayloadString(circuit.name, 16);
-//        conn.queueSendMessage(out);
-//        if (!cstate.isOn) {
-//            // If the circuit is off we need to turn it on.
-//            this.setCircuitState(id, true);
-//        }
-//    }
-
-//    public setCircuitState(id: number, val: boolean) {
-//        let out = state.createCircuitStateMessage();
-//        let ndx = Math.floor((id - 1) / 8);
-//        let byte = out.payload[ndx + 3];
-//        let bit = (id - 1) - (ndx * 8);
-//        if (val) byte |= (1 << bit);
-//        else byte &= ~(1 << bit);
-//        // Toggle pool/spa.
-//        if (id === 6 && val) {
-//            byte = byte & 254; // Turn off spa
-//        }
-//        else if (id === 1 && val) {
-//            byte = byte & 223; // Turn off pool
-//        }
-//        out.payload[ndx + 3] = byte;
-//        conn.queueSendMessage(out);
-//    }
-//}
-export class CircuitState extends EqState {
+export class CircuitState extends EqState implements ICircuitState {
     public dataName: string = 'circuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }

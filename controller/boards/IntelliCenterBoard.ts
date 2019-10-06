@@ -359,7 +359,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
     }
     public setCircuitState(id: number, val: boolean) {
-        let circ = state.circuits.getItemById(id);
+        let circ = state.circuits.getInterfaceById(id);
         let out = this.createCircuitStateMessage(id, val);
         out.onSuccess = (msg: Outbound) => {
             if (!msg.failed) {
@@ -395,23 +395,35 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     }
     public createCircuitStateMessage(id?: number, isOn?: boolean): Outbound {
         let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3);
+        let circuitId = sys.board.equipmentIds.circuits.start;
         for (let i = 1; i <= state.data.circuits.length; i++) {
-            let circuit = state.circuits.getItemById(i);
+            let circuit = state.circuits.getItemById(circuitId++);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 3];
             let bit = (i - 1) - (ndx * 8);
-            if (circuit.id === id)
-                byte = isOn ? byte = byte | (1 << bit) : byte;
+            if (circuit.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
             else if (circuit.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
+        let featureId = sys.board.equipmentIds.features.start;
         for (let i = 1; i <= state.data.features.length; i++) {
-            let feature = state.features.getItemById(i + 128);
+            let feature = state.features.getItemById(featureId++);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 9];
             let bit = (i - 1) - (ndx * 8);
-            if (feature.isOn) byte = byte | (1 << bit);
+            if (feature.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (feature.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 9] = byte;
+        }
+        let groupId = sys.board.equipmentIds.circuitGroups.start;
+        for (let i = 1; i <= state.circuitGroups.length + state.lightGroups.length; i++) {
+            let grp = state.circuitGroups.getInterfaceById(groupId++);
+            let ndx = Math.floor((i - 1) / 8);
+            let byte = out.payload[ndx + 13];
+            let bit = (i - 1) - (ndx * 8);
+            if (grp.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (grp.isOn) byte = byte | (1 << bit);
+            out.payload[ndx + 13] = byte;
         }
         return out;
     }
@@ -439,16 +451,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
-    public setFeatureState(id, val) {
-        let out = this.board.circuits.createCircuitStateMessage();
-        let ndx = Math.floor((id - 1) / 8);
-        let byte = out.payload[ndx + 9];
-        let bit = (id - 1 - 128) - (ndx * 8);
-        if (val) byte |= (1 << bit);
-        else byte &= ~(1 << bit);
-        out.payload[ndx + 9] = byte;
-        conn.queueSendMessage(out);
-    }
+    public setFeatureState(id, val) { this.board.circuits.setCircuitState(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
 }
 class IntelliCenterChemistryCommands extends ChemistryCommands {

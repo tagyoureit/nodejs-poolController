@@ -495,12 +495,12 @@ export class CircuitCommands extends BoardCommands {
         }
     }
     public setCircuitState(id: number, val: boolean) {
-        let circ = state.circuits.getItemById(id);
+        let circ = state.circuits.getInterfaceById(id);
         circ.isOn = val;
         state.emitEquipmentChanges();
     }
     public toggleCircuitState(id: number) {
-        let circ = state.circuits.getItemById(id);
+        let circ = state.circuits.getInterfaceById(id);
         this.setCircuitState(id, !circ.isOn);
     }
     public setLightTheme(id: number, theme: number) {
