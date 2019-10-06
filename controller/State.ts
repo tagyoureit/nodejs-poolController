@@ -556,14 +556,14 @@ export class ScheduleState extends EqState {
     public set isOn(val: boolean) { this.data.isOn = val; }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
-        if (this.circuit > 237) {
+        if (sys.board.equipmentIds.virtualCircuits.isInRange(this.circuit)) {
             let circuit = sys.board.valueMaps.virtualCircuits.transform(this.circuit);
             circuit.equipmentType = 'virtual';
             sched.circuit = circuit;
         }
-        else if (this.circuit > 128) {
+        else if (sys.board.equipmentIds.features.isInRange(this.circuit)) {
             // This is a feature
-            let feature = state.features.getItemById(this.circuit - 128).get(true);
+            let feature = state.features.getItemById(this.circuit).get(true);
             feature.equipmentType = 'feature';
             sched.circuit = feature;
         }
@@ -621,14 +621,14 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState {
         sgrp.circuits = [];
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemById(i + 1);
-            if (cgc.circuit > 237) {
+            if (sys.board.equipmentIds.virtualCircuits.isInRange(cgc.circuit)) {
                 let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
                 circuit.equipmentType = 'virtual';
                 sgrp.circuits.push(circuit);
             }
-            else if (cgc.circuit > 128) {
+            else if (sys.board.equipmentIds.features.isInRange(cgc.circuit)) {
                 // This is a feature
-                let feature = state.features.getItemById(cgc.circuit - 128).get(true);
+                let feature = state.features.getItemById(cgc.circuit).get(true);
                 feature.equipmentType = 'feature';
                 sgrp.circuits.push(feature);
             }
@@ -683,12 +683,12 @@ export class LightGroupState extends EqState implements ICircuitGroupState {
         let cgrp = sys.circuitGroups.getItemById(this.id);
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemById(i + 1);
-            if (cgc.circuit > 237) {
+            if (sys.board.equipmentIds.virtualCircuits.isInRange(cgc.circuit)) {
                 let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
                 circuit.equipmentType = 'virtual';
                 sgrp.circuits.push(circuit);
             }
-            else if (cgc.circuit > 128) {
+            else if (sys.board.equipmentIds.features.isInRange(cgc.circuit)) {
                 // This is a feature
                 let feature = state.features.getItemById(cgc.circuit - 128).get(true);
                 feature.equipmentType = 'feature';
@@ -792,6 +792,8 @@ export class FeatureState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get showInFeatures(): boolean { return this.data.showInFeatures; }
+    public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
 }
 export class VirtualCircuitState extends EqState {
     public dataName: string = 'virtualCircuit';

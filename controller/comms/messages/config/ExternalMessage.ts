@@ -208,8 +208,8 @@ export class ExternalMessage {
         state.emitEquipmentChanges();
     }
     private static processFeatureState(start: number, msg: Inbound) {
-        let featureId = 1;
-        for (let i = start; i < msg.payload.length && featureId <= sys.equipment.maxFeatures; i++) {
+        let featureId = 129;
+        for (let i = start; i < msg.payload.length && featureId - 128 <= sys.equipment.maxFeatures; i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the feature identified by each value.
             for (let j = 0; j < 8; j++) {

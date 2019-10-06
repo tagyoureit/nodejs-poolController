@@ -9,6 +9,7 @@ import {conn} from '../comms/Comms';
 export class IntelliTouchBoard extends EasyTouchBoard {
     constructor (system: PoolSystem){
         super(system);
+        this.equipmentIds.features.start = 40;
     }
     public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
 

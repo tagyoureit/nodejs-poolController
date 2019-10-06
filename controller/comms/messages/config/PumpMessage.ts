@@ -173,8 +173,8 @@ export class PumpMessage {
                 state.pumps.removeItemById(pump.id);
             }
             else {
-                console.log('Processing Pump Type:' + pump.id);
-                state.pumps.getItemById(pump.id, true).type = type;
+                pump.type = type;
+                state.pumps.getItemById(pump.id, true).type = pump.type;
                 pump.isActive = true;
             }
         }

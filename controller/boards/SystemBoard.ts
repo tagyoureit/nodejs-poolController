@@ -22,6 +22,25 @@ export class byteValueMap extends Map<number, any> {
     public getValue(name: string): number { return this.transformByName(name).value; }
     public getName(val: number): string { return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
 }
+export class EquipmentIdRange {
+    constructor(start: number | Function, end: number | Function) {
+        this._start = start;
+        this._end = end;
+    }
+    private _start: any = 0;
+    private _end: any = 0;
+    public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; };
+    public set start(val: number) { this._start = val; };
+    public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; };
+    public set end(val: number) { this._end = val; };
+    public isInRange(id: number) { return id >= this.start && id <= this.end; };
+}
+export class EquipmentIds {
+    public circuits: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits });
+    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1 }, function () { return this.start + sys.equipment.maxFeatures; });
+    public circuitGroups: EquipmentIdRange = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups; });
+    public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(237, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups }); 
+}
 export class byteValueMaps {
     constructor() {
         this.pumpStatus.transform = function(byte) {
@@ -70,7 +89,7 @@ export class byteValueMaps {
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function(byte) {return extend(true, {val: byte}, this.get(byte) || this.get(255));};
+        this.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
     public panelModes: byteValueMap=new byteValueMap([
         [0, {val: 0, name: 'auto', desc: 'Auto'}],
@@ -84,7 +103,7 @@ export class byteValueMaps {
         [1, {val: 1, name: 'ready', desc: 'Ready', percent: 100}],
         [2, {val: 2, name: 'loading', desc: 'Loading', percent: 0}]
     ]);
-
+    
     public circuitFunctions: byteValueMap=new byteValueMap();
     // Feature functions are used as the available options to define a circuit.
     public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
@@ -244,6 +263,7 @@ export class SystemBoard {
     public features: FeatureCommands = new FeatureCommands(this);
     public chemistry: ChemistryCommands = new ChemistryCommands(this);
     public schedules: ScheduleCommands = new ScheduleCommands(this);
+    public equipmentIds: EquipmentIds = new EquipmentIds();
 }
 export class ConfigRequest {
     public failed: boolean=false;

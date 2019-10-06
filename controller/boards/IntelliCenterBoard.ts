@@ -79,7 +79,9 @@ export class IntelliCenterBoard extends SystemBoard {
             [252, { name: 'solar', desc: 'Solar' }],
             [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
         ]);
-
+        this.equipmentIds.features.start = 129;
+        this.equipmentIds.circuitGroups.start = 192;
+        this.equipmentIds.virtualCircuits.start = 237;
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
@@ -402,7 +404,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             out.payload[ndx + 3] = byte;
         }
         for (let i = 1; i <= state.data.features.length; i++) {
-            let feature = state.features.getItemById(i);
+            let feature = state.features.getItemById(i + 128);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 9];
             let bit = (i - 1) - (ndx * 8);
@@ -439,7 +441,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
         let out = this.board.circuits.createCircuitStateMessage();
         let ndx = Math.floor((id - 1) / 8);
         let byte = out.payload[ndx + 9];
-        let bit = (id - 1) - (ndx * 8);
+        let bit = (id - 1 - 128) - (ndx * 8);
         if (val) byte |= (1 << bit);
         else byte &= ~(1 << bit);
         out.payload[ndx + 9] = byte;

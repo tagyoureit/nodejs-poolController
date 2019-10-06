@@ -475,8 +475,8 @@ export class EquipmentStateMessage {
                         case 3:
                         case 4: {
                             const byte = msg.extractPayloadByte(7);
-                            const feature = sys.features.getItemById(i);
-                            const fstate = state.features.getItemById(i, feature.isActive);
+                            const feature = sys.features.getItemById(i + 128);
+                            const fstate = state.features.getItemById(i + 128, feature.isActive);
                             fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
                             fstate.name = feature.name;
                             break;
