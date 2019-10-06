@@ -1,5 +1,5 @@
 ﻿import {Inbound} from "../Messages";
-import {sys, Circuit, CircuitOrFeatureFactory, ControllerType} from "../../../Equipment";
+import {sys, Circuit, CorF, ControllerType} from "../../../Equipment";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -176,54 +176,52 @@ export class CircuitMessage {
         const id = msg.extractPayloadByte(0);
         const functionId = msg.extractPayloadByte(1);
         const nameId = msg.extractPayloadByte(2);
-        // need better logic here for units with expansions.
-        const CF = new CircuitOrFeatureFactory();
-        const circuit = CF.getItemById(id, true);
-        circuit.type = functionId & 63;
-        circuit.name = sys.board.circuits.getNameById(nameId);
-        circuit.freeze = (functionId & 64) === 64;
-        circuit.macro = (functionId & 128) === 128;
-        circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"
-        // if sam/sal/magicstream/intellibrite add to lightTheme; 
-        if ([9, 10, 16, 17].includes(circuit.type)) {
-            const ib = sys.intellibrite.circuits.getItemById(id, true);
-            ib.isActive = true;
-        }
-        else {
-            // if light was previously sam/sal/magicstream but now is not, remove from IB
-            sys.intellibrite.circuits.removeItemById(id);
-        }
-        // tode: move this to controller board logic
-        let _type: string = 'circuit';
-        if (sys.controllerType === ControllerType.EasyTouch) {
-            if (id > 8) _type = 'feature'; 
-        }
-        else if (sys.controllerType === ControllerType.IntelliTouch){
-            if (id > 40 ) _type = 'feature'; 
-        }
-        if (_type === 'circuit') {
-            if (circuit.type === 0) return; // do not process if type doesn't exist
-            switch (msg.extractPayloadByte(0)) {
-                case 6: // pool
-                    {
-                        const body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                        body.name = "Pool";
-                        functionId === 0 ? body.isActive = false : body.isActive = true;
-                        break;
-                    }
-                case 1: // spa
-                    {
-                        const body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                        body.name = "Spa";
-                        // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                        functionId === 0 ? body.isActive = false : body.isActive = true;
-                        break;
-                    }
+        const _isActive = functionId !== 19 && nameId !== 0;
+        if (_isActive) {
+            const circuit = CorF.getItemById(id, true);
+            circuit.type = functionId & 63;
+            circuit.name = sys.board.circuits.getNameById(nameId);
+            circuit.freeze = (functionId & 64) === 64;
+            circuit.macro = (functionId & 128) === 128;
+            circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"
+            // if sam/sal/magicstream/intellibrite add to lightTheme; 
+            if ([9, 10, 16, 17].includes(circuit.type)) {
+                const ib = sys.intellibrite.circuits.getItemById(id, true);
+                ib.isActive = true;
+            }
+            else {
+                // if light was previously sam/sal/magicstream but now is not, remove from IB
+                sys.intellibrite.circuits.removeItemById(id);
+            }
+            // tode: move this to controller board logic
+            if ((sys.controllerType === ControllerType.EasyTouch && id <= sys.equipment.maxCircuits) || (sys.controllerType === ControllerType.IntelliTouch && id <= 40)) {
+                if (circuit.type === 0) return; // do not process if type doesn't exist
+                switch (msg.extractPayloadByte(0)) {
+                    case 6: // pool
+                        {
+                            const body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                            body.name = "Pool";
+                            functionId === 0 ? body.isActive = false : body.isActive = true;
+                            break;
+                        }
+                    case 1: // spa
+                        {
+                            const body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+                            body.name = "Spa";
+                            // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
+                            functionId === 0 ? body.isActive = false : body.isActive = true;
+                            break;
+                        }
+                }
             }
         }
-
-
+        else {
+            // remove if not active
+            if ((sys.controllerType === ControllerType.EasyTouch && id <= sys.equipment.maxCircuits) || (sys.controllerType === ControllerType.IntelliTouch && id <= 40)) {
+                sys.circuits.removeItemById(id);
+            }
+            else
+                sys.features.removeItemById(id);
+        }
     }
-
-
 }

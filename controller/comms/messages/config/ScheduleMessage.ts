@@ -98,7 +98,7 @@ export class ScheduleMessage {
             // todo: still confused how we track deleted egg timers
             const eggTimer: EggTimer = sys.eggTimers.getItemById(schedId, true);
             eggTimer.circuit = circuitId;
-            eggTimer.runTime =msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
+            eggTimer.runTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
             eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
             const circuit = CorF.getItemById(circuitId, true);
             circuit.eggTimer = eggTimer.runTime;
