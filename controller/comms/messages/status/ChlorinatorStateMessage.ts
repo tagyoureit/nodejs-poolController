@@ -84,7 +84,8 @@ export class ChlorinatorStateMessage {
             // installed = (aaaaaaa)1 so 1 = installed
             chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
             if (chlor.isActive) {
-                chlor.body = 32; // any body
+                // RSG : making the assumption here that the chlorinator will be tied to the spa in any system that is not a shared body
+                sys.equipment.maxBodies === 1 || sys.equipment.shared === true ? chlor.body = 32 : chlor.body = 1;
                 // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
                 // eg. a value of 41 is 00101001
                 // spa percent = 0010100(b) so 10100 = 20

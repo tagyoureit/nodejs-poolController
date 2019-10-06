@@ -182,7 +182,6 @@ export class CircuitMessage {
             circuit.type = functionId & 63;
             circuit.name = sys.board.circuits.getNameById(nameId);
             circuit.freeze = (functionId & 64) === 64;
-            circuit.macro = (functionId & 128) === 128;
             circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"
             // if sam/sal/magicstream/intellibrite add to lightTheme; 
             if ([9, 10, 16, 17].includes(circuit.type)) {
@@ -194,6 +193,7 @@ export class CircuitMessage {
                 sys.intellibrite.circuits.removeItemById(id);
             }
             // tode: move this to controller board logic
+            // circuit specific logic
             if ((sys.controllerType === ControllerType.EasyTouch && id <= sys.equipment.maxCircuits) || (sys.controllerType === ControllerType.IntelliTouch && id <= 40)) {
                 if (circuit.type === 0) return; // do not process if type doesn't exist
                 switch (msg.extractPayloadByte(0)) {
@@ -213,6 +213,10 @@ export class CircuitMessage {
                             break;
                         }
                 }
+            }
+            else {
+                // feature specific logic
+                circuit.macro = (functionId & 128) === 128;
             }
         }
         else {

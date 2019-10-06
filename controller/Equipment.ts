@@ -248,139 +248,6 @@ export class PoolSystem implements IPoolSystem {
     }
 
 }
-//export class IntelliTouchSystem extends PoolSystem {
-//    // IntelliTouch Only
-//    public customNames: CustomNameCollection;
-
-//    // public processVersionChanges ( ver: ConfigVersion ) { }
-//    public checkConfiguration() { this.requestConfiguration(); }
-//    public stopAsync() {
-//        if (this._timerChanges) clearTimeout(this._timerChanges);
-//        if (this._timerDirty) clearTimeout(this._timerDirty);
-//        this.board.stopAsync();
-//    }
-//    public init() {
-//        super.init();
-//        //this.general = new General(this.data, 'pool');
-//        //this.bodies = new IntelliTouchBodyCollection(this.data, 'bodies');
-//        //this.schedules = new IntelliTouchScheduleCollection(this.data, 'schedules');
-//        //this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
-//        //this.customNames = new CustomNameCollection(this.data, 'customNames');
-//        //this.equipment = new IntelliTouchEquipment(this.data, 'equipment');
-//        //this.valves = new IntelliTouchValveCollection(this.data, 'valves');
-//        //this.circuits = new IntelliTouchCircuitCollection(this.data, 'circuits');
-//        //this.features = new FeatureCollection(this.data, 'features');
-//        //this.pumps = new IntelliTouchPumpCollection(this.data, 'pumps');
-//        //this.chlorinators = new IntelliTouchChlorinatorCollection(this.data, 'chlorinators');
-//        //this.remotes = new IntelliTouchRemoteCollection(this.data, 'remotes');
-//        //this.intellibrite = new IntelliBriteCollection(this.data, 'intellibrite');
-//        //this.heaters = new IntelliTouchHeaterCollection(this.data, 'heaters');
-//        //this.general = new General(this.data, 'pool');
-//        //this.data.appVersion = JSON.parse(
-//        //    fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')
-//        //).version;
-//        //this.requestConfiguration();
-//    }
-//    public requestConfiguration() {
-//        this.board.requestConfiguration();
-//        //this._configQueue.reset();
-//        //if (conn.mockPort) {
-//        //    logger.info(`Skipping Controller Init because MockPort enabled.`);
-//        //} else {
-//        //    logger.info(`Requesting ${this.controllerType} configuration`);
-//        //    const reqDateTime = new IntelliTouchConfigRequest(197, [0]);
-//        //    this._configQueue.push(reqDateTime);
-//        //    this._configQueue.push(this.heaters.queueConfig());
-//        //    this._configQueue.push(this.heaters.queueConfigHeatPump());
-//        //    this._configQueue.push(this.customNames.queueConfig());
-//        //    this._configQueue.push(this.circuits.queueConfig());
-//        //    this._configQueue.push(this.schedules.queueConfig());
-//        //    const reqDelays = new IntelliTouchConfigRequest(227, [0]);
-//        //    this._configQueue.push(reqDelays);
-//        //    const reqSettings = new IntelliTouchConfigRequest(232, [0]);
-//        //    this._configQueue.push(reqSettings);
-//        //    this._configQueue.push(this.remotes.queueConfig());
-//        //    this._configQueue.push(this.remotes.queueConfigIs4Is10());
-//        //    this._configQueue.push(this.remotes.queueConfigSpaSide());
-//        //    this._configQueue.push(this.valves.queueConfig());
-//        //    this._configQueue.push(this.intellibrite.queueConfig());
-//        //    const hsCircs = new IntelliTouchConfigRequest(222, [0]);
-//        //    this._configQueue.push(hsCircs);
-//        //    this._configQueue.push(this.pumps.queueConfig());
-//        //}
-
-//        if (sys._configQueue.remainingItems > 0) {
-//            // var self = this
-//            setTimeout(() => sys._configQueue.processNext(), 50);
-//        } else state.status = 1;
-//        state.emitControllerChange();
-//        super._needsChanges = false;
-//    }
-//    public updateControllerDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {
-//        this.board.setDateTime(hour, min, date, month, year, dst, dow);
-//        //// dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
-//        //// [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
-//        //// [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
-//        //// [165,33,34,16,1,1],[133],[1,127]
-//        //if (hour === null) hour = state.time.hours;
-//        //if (min === null) min = state.time.minutes;
-//        //if (date === null) date = state.time.date;
-//        //if (month === null) month = state.time.month;
-//        //if (year === null) year = state.time.year;
-//        //if (year > 2000) year = year - 2000;
-//        //if (dst === null) dst = sys.general.options.adjustDST ? 1 : 0;
-//        //if (dow === null) dow = state.time.dayOfWeek;
-//        //const out = new Outbound(
-//        //    Protocol.Broadcast,
-//        //    Message.pluginAddress,
-//        //    16,
-//        //    133,
-//        //    [hour, min, dow, date, month, year, 0, 0],
-//        //    3,
-//        //    new Response(16, Message.pluginAddress, 1, [133], null, function (msg) {
-//        //        if (!msg.failed) {
-//        //            state.time.hours = hour;
-//        //            state.time.minutes = min;
-//        //            state.time.date = date;
-//        //            state.time.year = year;
-//        //            sys.general.options.adjustDST = dst === 1 ? true : false;
-//        //            state.emitControllerChange();
-//        //        }
-//        //    })
-//        //);
-//        //conn.queueSendMessage(out);
-//    }
-//}
-//export class UnknownSystem extends PoolSystem implements PoolSystem {
-//    _configQueue = new IntelliTouchConfigQueue();
-//    public init() {
-//        super.init();
-//        // todo: init a better "generic" unknown type
-//        this.general = new General(this.data, "pool");
-//        this.equipment = new Equipment(this.data, "equipment");
-//        this.configVersion = new ConfigVersion(this.data, "configVersion");
-//        this.bodies = new BodyCollection(this.data, "bodies");
-//        this.schedules = new ScheduleCollection(this.data, "schedules");
-//        this.circuits = new IntelliTouchCircuitCollection(this.data, "circuits");
-//        this.features = new FeatureCollection(this.data, "features");
-//        this.pumps = new PumpCollection(this.data, "pumps");
-//        this.chlorinators = new ChlorinatorCollection(this.data, "chlorinators");
-//        this.valves = new IntelliTouchValveCollection(this.data, "valves");
-//        this.heaters = new HeaterCollection(this.data, "heaters");
-//        this.covers = new CoverCollection(this.data, "covers");
-//        this.circuitGroups = new CircuitGroupCollection(this.data, "circuitGroups");
-//        this.remotes = new RemoteCollection(this.data, "remotes");
-//        this.security = new Security(this.data, "security");
-//        this.customNames = new CustomNameCollection(this.data, "customNames");
-//        this.intellibrite = new IntelliBriteCollection(this.data, "intellibrite");
-//        // setTimeout( function () { sys.checkConfiguration(); }, 3000 );
-//        this.data.appVersion = JSON.parse(
-//            fs.readFileSync(path.posix.join(process.cwd(), "/package.json"), "utf8")
-//        ).version;
-//    }
-//    public checkConfiguration() { }
-//}
-
 interface IEqItemCreator<T> {ctor(data: any, name: string): T;}
 class EqItem implements IEqItemCreator<EqItem> {
     protected data: any;
@@ -550,18 +417,6 @@ export class ExpansionPanel extends EqItem {
     public get isActive(): boolean {return this.data.isActive;}
     public set isActive(val: boolean) {this.data.isActive = val;}
 }
-//export class HighSpeedCircuitCollection extends EqItemCollection<HighSpeedCircuit> {
-//    constructor(data: any, name?: string) { super(data, name || "highSpeedCircuits"); }
-//    public createItem(data: any): HighSpeedCircuit { return new HighSpeedCircuit(data); }
-//}
-//export class HighSpeedCircuit extends EqItem {
-//    public get name(): string { return this.data.name; }
-//    public set name(val: string) { this.data.name = val; }
-//    public get type(): number { return this.data.type; }
-//    public set type(val: number) { this.data.type = val; }
-//    public get isActive(): boolean { return this.data.isActive; }
-//    public set isActive(val: boolean) { this.data.isActive = val; }
-//}
 export class Equipment extends EqItem {
     public get name(): string {return this.data.name;}
     public set name(val: string) {this.data.name = val;}
@@ -596,8 +451,6 @@ export class Equipment extends EqItem {
     public get maxIntelliBrites(): number {return this.data.maxIntelliBrites;}
     public set maxIntelliBrites(val: number) {this.data.maxIntelliBrites = val;}
     public get expansions(): ExpansionPanelCollection {return new ExpansionPanelCollection(this.data, "expansions");}
-    // TODO: Get rid of this as these are simply circuits on a 2 speed pump.
-    //public get highSpeedCircuits(): HighSpeedCircuitCollection { return new HighSpeedCircuitCollection(this.data, "highSpeedCircuits"); }
     public get maxCustomNames(): number {return this.data.maxCustomNames || 10;}
     public set maxCustomNames(val: number) {this.data.maxCustomNames = val;}
     // Looking for IntelliCenter 1.029
@@ -798,13 +651,6 @@ export class Circuit extends EqItem {
     // TODO: These belong in the circuit groups.
     public get macro(): boolean {return this.data.macro;}
     public set macro(val: boolean) {this.data.macro = val;}
-    // TODO: This belongs in the circuit groups light category.
-    //public get intellibrite(): IntelliBrite {
-    //    if (typeof this.data.intellibrite === "undefined")
-    //        return new IntelliBrite(this.data, 'intellibrite');
-    //    else return this.data.intellibrite;
-    //}
-    //public removeIntelliBrite(): void { delete this.data.intellibrite; }
     public getLightThemes() {return sys.board.circuits.getLightThemes(this.type);}
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
@@ -815,28 +661,6 @@ export class Circuit extends EqItem {
         return defName;
     }
 }
-// TODO: Get rid of this.
-//export class IntelliBriteCollection extends EqItemCollection<IntelliBrite> {
-//    constructor(data: any, name?: string) { super(data, name || "intellibrite"); }
-//    public createItem(data: any): IntelliBrite { return new IntelliBrite(data); }
-//}
-// TODO: Get rid of this... these should be attributes of the ligh group circuits.
-//export class IntelliBrite extends EqItem {
-//    public get id(): number { return this.data.id; }
-//    public set id(val: number) { this.data.id = val; }
-//    public get position(): number { return this.data.position; }
-//    public set position(val: number) { this.data.position = val; }
-//    public get color(): number { return this.data.color; }
-//    public set color(val: number) { this.data.color = val; }
-//    public get colorSet(): number { return this.data.colorSet; }
-//    public set colorSet(val: number) { this.data.colorSet = val; }
-//    public get swimDelay(): number { return this.data.swimDelay; }
-//    public set swimDelay(val: number) { this.data.swimDelay = val; }
-//    public get mode(): number { return this.data.mode; }
-//    public set mode(val: number) { this.data.mode = val; }
-//    public get isActive(): boolean { return this.data.isActive; }
-//    public set isActive(val: boolean) { this.data.isActive = val; }
-//}
 export class FeatureCollection extends EqItemCollection<Feature> {
     constructor(data: any, name?: string) {super(data, name || "features");}
     public createItem(data: any): Feature {return new Feature(data);}

@@ -81,7 +81,7 @@ export class RemoteMessage {
                 }
             case 32: // is4/is10
                 {
-                    const remoteId = msg.extractPayloadByte(0);
+                    const remoteId = msg.extractPayloadByte(0) + 1;
                     let remote: Remote = sys.remotes.getItemById(remoteId, true);
                     let bActive = false;
                     let bIS10 = false;
