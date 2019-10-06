@@ -454,29 +454,30 @@ export class EquipmentStateMessage {
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
         switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
-                for (let i = 1; i <= sys.features.length; i++)
+                let featureId = sys.board.equipmentIds.features.start;
+                for (let i = 1; i <= sys.features.length; i++) {
                     // Use a case statement here since we don't know where to go after 4.
                     switch (i) {
                         case 1:
                         case 2:
                         case 3:
-                        case 4: {
+                        case 4:
                             const byte = msg.extractPayloadByte(7);
-                            const feature = sys.features.getItemById(i + 128);
-                            const fstate = state.features.getItemById(i + 128, feature.isActive);
+                            const feature = sys.features.getItemById(featureId);
+                            const fstate = state.features.getItemById(featureId, feature.isActive);
                             fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
                             fstate.name = feature.name;
                             break;
-                        }
                     }
-
+                    featureId++;
+                }
                 break;
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
                 {
                     const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
-                    let featureId = 9;
+                    let featureId = sys.board.equipmentIds.features.start;
                     for (let i = 3; i < msg.payload.length && i <= count; i++) {
                         const byte = msg.extractPayloadByte(i);
                         // Shift each bit getting the circuit identified by each value.
@@ -504,7 +505,7 @@ export class EquipmentStateMessage {
         // and any installed expansion panel models.  Only the number of available circuits will appear in this
         // array.
         const count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
-        let circuitId = 1;
+        let circuitId = sys.board.equipmentIds.circuits.start;
         let body = 0; // Off
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);

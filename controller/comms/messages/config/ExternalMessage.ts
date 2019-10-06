@@ -53,7 +53,7 @@ export class ExternalMessage {
     }
     public static processGroupSettings(msg: Inbound) {
         // We have 3 potential messages.
-        let groupId = msg.extractPayloadByte(2) + 1;
+        let groupId = msg.extractPayloadByte(2) + sys.board.equipmentIds.circuitGroups.start;
         let group: ICircuitGroup = null;
         let sgroup: ICircuitGroupState = null;
         switch (msg.extractPayloadByte(1)) {
@@ -146,9 +146,9 @@ export class ExternalMessage {
     }
     
     private static processCircuitState(start: number, msg: Inbound) {
-        let circuitId = 1;
+        let circuitId = sys.board.equipmentIds.circuits.start;
         let body = 0; // Off
-        for (let i = start; i < msg.payload.length && circuitId <= sys.equipment.maxCircuits; i++) {
+        for (let i = start; i < msg.payload.length && sys.board.equipmentIds.circuits.isInRange(circuitId); i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
@@ -208,8 +208,8 @@ export class ExternalMessage {
         state.emitEquipmentChanges();
     }
     private static processFeatureState(start: number, msg: Inbound) {
-        let featureId = 129;
-        for (let i = start; i < msg.payload.length && featureId - 128 <= sys.equipment.maxFeatures; i++) {
+        let featureId = sys.board.equipmentIds.features.start;
+        for (let i = start; i < msg.payload.length && sys.board.equipmentIds.features.isInRange(featureId); i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the feature identified by each value.
             for (let j = 0; j < 8; j++) {
@@ -227,8 +227,8 @@ export class ExternalMessage {
         state.emitEquipmentChanges();
     }
     private static processCircuitGroupState(start: number, msg: Inbound) {
-        let groupId = 1;
-        for (let i = start; i < msg.payload.length && groupId <= sys.equipment.maxCircuitGroups; i++) {
+        let groupId = sys.board.equipmentIds.circuitGroups.start;
+        for (let i = start; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId); i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the group identified by each value.
             for (let j = 0; j < 8; j++) {
