@@ -147,7 +147,7 @@ module.exports = function (container) {
             if (typeof(data.poolHeatMode) === 'number') {
                 var temp_fields
                 // if pump is off
-                if (container.pump.getPower(1) === 4 || container.pump.getPower(1) === "powernotset") {
+                if (!container.circuit.poolOrSpaIsOn()) {
                     temp_fields = {
                         'poolSetPoint': data.poolSetPoint,
                         'spaSetPoint': data.spaSetPoint,
