@@ -195,6 +195,24 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits += 10;
                 sys.equipment.maxValves += 3;
             }
+            ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
+            state.equipment.model = sys.equipment.model;
+            state.equipment.controllerType = sys.controllerType;
+            state.equipment.maxBodies = sys.equipment.maxBodies;
+            state.equipment.maxCircuits = sys.equipment.maxCircuits;
+            state.equipment.maxValves = sys.equipment.maxValves;
+            state.equipment.maxSchedules = sys.equipment.maxSchedules;
+            state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
+            state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
+            // setup gas heater #1 that is on a fireman's switch and can't be disabled
+            let heater = sys.heaters.getItemById(1, true);
+            heater.isActive = true;
+            heater.type = 1;
+            heater.name = "Gas Heater";
+            sys.equipment.shared === true ? heater.body = 32 : heater.body = 6;
+
+            // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
+            state.emitControllerChange();
         }
         ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
         state.equipment.model = sys.equipment.model;
@@ -385,13 +403,14 @@ export class EquipmentStateMessage {
             case 8: // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
-                if (sys.bodies.length > 1)
+                if (sys.equipment.maxBodies > 1)
                     state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 state.temps.air = msg.extractPayloadByte(2);
                 state.temps.solar = msg.extractPayloadByte(8);
-                if (sys.bodies.length > 0) {
+                // switched to sys.equip.maxBodies as this may not change but bodies.length may not yet be filled in if this packet comes early in the process
+                if (sys.equipment.maxBodies > 0) {
                     // pool
-                    // We will not go in here is this is not a shared body.
+                    // We will not go in here if this is not a shared body.
                     const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                     const cbody: Body = sys.bodies.getItemById(1);
                     tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
@@ -399,12 +418,13 @@ export class EquipmentStateMessage {
                     tbody.name = cbody.name;
                     tbody.circuit = 6;
                     tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                    // todo: check this logic on my pool; don't think it's correct
                     if ((msg.extractPayloadByte(2) & 0x20) === 32) {
                         tbody.temp = state.temps.waterSensor1;
                         tbody.isOn = true;
                     } else tbody.isOn = false;
                 }
-                if (sys.bodies.length > 1) {
+                if (sys.equipment.maxBodies > 1) {
                     // spa
                     const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                     const cbody: Body = sys.bodies.getItemById(2);
@@ -414,6 +434,7 @@ export class EquipmentStateMessage {
                     tbody.name = cbody.name;
                     tbody.circuit = 1;
                     tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                    // todo: check this logic on my pool; don't think it's correct
                     if ((msg.extractPayloadByte(2) & 0x01) === 1) {
                         tbody.temp = state.temps.waterSensor1;
                         tbody.isOn = true;

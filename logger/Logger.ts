@@ -46,6 +46,7 @@ class Logger {
         });
     }
     public info(...args: any[]) { logger._logger.info.apply(logger._logger, arguments); }
+    public debug(...args: any[]) { logger._logger.debug.apply(logger._logger, arguments); }
     public warn(...args: any[]) { logger._logger.warn.apply(logger._logger, arguments); }
     public verbose(...args: any[]) { logger._logger.verbose.apply(logger._logger, arguments); }
     public error(...args: any[]) { logger._logger.error.apply(logger._logger, arguments); }

@@ -119,13 +119,13 @@ export class HttpServer extends ProtoServer {
         });
         sock.on('echo', (msg) => {sock.emit('echo', msg);});
         sock.on('receivePacketRaw', function(incomingPacket: any[]) {
-            var str = 'Add packet(s) to incoming buffer: ';
+            //var str = 'Add packet(s) to incoming buffer: ';
             logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
                 conn.buffer.pushIn(new Buffer(incomingPacket[i]));
-                str += JSON.stringify(incomingPacket[i]) + ' ';
+                // str += JSON.stringify(incomingPacket[i]) + ' ';
             }
-            logger.info(str);
+            //logger.info(str);
         });
         sock.on('replayPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed

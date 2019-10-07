@@ -662,8 +662,8 @@ export class Circuit extends EqItem implements ICircuit {
     public get isActive(): boolean {return this.data.isActive;}
     public set isActive(val: boolean) {this.data.isActive = val;}
     // TODO: These belong in the circuit groups.
-    public get macro(): boolean {return this.data.macro;}
-    public set macro(val: boolean) {this.data.macro = val;}
+    // public get macro(): boolean {return this.data.macro;}
+    // public set macro(val: boolean) {this.data.macro = val;}
     public getLightThemes() {return sys.board.circuits.getLightThemes(this.type);}
     public static getIdName(id: number) {
         // todo: adjust for intellitouch

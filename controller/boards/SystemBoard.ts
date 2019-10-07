@@ -31,16 +31,16 @@ export class EquipmentIdRange {
     private _start: any = 0;
     private _end: any = 0;
     public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; };
-    public set start(val: number) { this._start = val; };
+    public set start(val: number) { this._start = val; }
     public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; };
-    public set end(val: number) { this._end = val; };
-    public isInRange(id: number) { return id >= this.start && id <= this.end; };
+    public set end(val: number) { this._end = val; }
+    public isInRange(id: number) { return id >= this.start && id <= this.end; }
 }
 export class EquipmentIds {
-    public circuits: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1 });
-    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1 }, function () { return this.start + sys.equipment.maxFeatures - 1; });
+    public circuits: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
+    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
     public circuitGroups: EquipmentIdRange = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-    public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(237, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1 }); 
+    public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(237, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; }); 
 }
 export class byteValueMaps {
     constructor() {
