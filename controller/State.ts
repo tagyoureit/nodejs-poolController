@@ -278,6 +278,7 @@ export interface ICircuitState {
     name: string;
     isOn: boolean;
     emitEquipmentChange();
+    get(bCopy?: boolean);
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
@@ -480,31 +481,11 @@ export class PumpState extends EqState {
         pump.circuits = [];
         for (let i = 0; i < cpump.circuits.length; i++) {
             let c = cpump.circuits.getItemByIndex(i);
-            if (c.circuit > 237) {
-                // These are virtual circuits.
-                let circuit = state.virtualCircuits.getItemById(c.circuit).get(true);
-                if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
-                if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
-                circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
-                circuit.equipmentType = 'virtual';
-                pump.circuits.push(circuit);
-            }
-            else if (c.circuit > 128) {
-                let feature = state.features.getItemById(c.circuit - 128).get(true);
-                if (typeof (c.flow) !== 'undefined') feature.flow = c.flow;
-                if (typeof (c.speed) !== 'undefined') feature.speed = c.speed;
-                feature.units = sys.board.valueMaps.pumpUnits.transform(c.units);
-                feature.equipmentType = 'feature';
-                pump.circuits.push(feature);
-            }
-            else {
-                let circuit = state.circuits.getItemById(c.circuit).get(true);
-                if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
-                if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
-                circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
-                circuit.equipmentType = 'circuit';
-                pump.circuits.push(circuit);
-            }
+            let circuit = state.circuits.getInterfaceById(c.circuit).get(true);
+            if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
+            if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
+            circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
+            pump.circuits.push(circuit);
         }
         return pump;
     }
