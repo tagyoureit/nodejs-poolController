@@ -626,8 +626,15 @@ export class CircuitCollection extends EqItemCollection<Circuit> {
             circuit.name = Circuit.getIdName(circuit.id);
         return circuit;
     }
+    public getInterfaceById(id: number, add?: boolean, data?: any): ICircuit {
+        if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+            return sys.circuitGroups.getInterfaceById(id);
+        else if (sys.board.equipmentIds.features.isInRange(id))
+            return sys.features.getItemById(id, add, data);
+        return sys.circuits.getItemById(id, add, data);
+    }
 }
-export class Circuit extends EqItem {
+export class Circuit extends EqItem implements ICircuit {
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = val;}
     public get name(): string {return this.data.name;}
@@ -665,7 +672,7 @@ export class FeatureCollection extends EqItemCollection<Feature> {
     constructor(data: any, name?: string) {super(data, name || "features");}
     public createItem(data: any): Feature {return new Feature(data);}
 }
-export class Feature extends EqItem {
+export class Feature extends EqItem implements ICircuit {
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = val;}
     public get name(): string {return this.data.name;}
@@ -682,6 +689,18 @@ export class Feature extends EqItem {
     public set eggTimer(val: number) {this.data.eggTimer = val;}
     public get macro(): boolean {return this.data.macro;}
     public set macro(val: boolean) {this.data.macro = val;}
+}
+export interface ICircuitCollection {
+    getItemById(id: number, add?: boolean, data?: any);
+}
+export interface ICircuit {
+    id: number;
+    name: string;
+    type: number;
+    eggTimer: number;
+    freeze?: boolean;
+    isActive: boolean;
+
 }
 // TODO: Check with Russ regarding this use.  I think that the circuit id determines whether a return is a circuit or feature.
 export interface AbstractCircuitOrFeatureFactory {
@@ -926,7 +945,7 @@ export class LightGroupCircuit extends EqItem {
     public set swimDelay(val: number) {this.data.swimDelay = val;}
 
 }
-export class LightGroup extends EqItem implements ICircuitGroup {
+export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = val;}
     public get name(): string {return this.data.name;}
@@ -954,16 +973,25 @@ export class CircuitGroupCircuit extends EqItem {
     public set lightingTheme(val: number) {this.data.lightingTheme = val;}
 }
 export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
-    constructor(data: any, name?: string) {super(data, name || "circuitGroups");}
-    public createItem(data: any): CircuitGroup {return new CircuitGroup(data);}
+    constructor(data: any, name?: string) { super(data, name || "circuitGroups"); }
+    public createItem(data: any): CircuitGroup { return new CircuitGroup(data); }
     public getInterfaceById(id: number): ICircuitGroup {
-        let iGroup: ICircuitGroup = this.getItemById(id, false, {id: id, isActive: false});
-        if (!iGroup.isActive) iGroup = sys.lightGroups.getItemById(id, false, {id: id, isActive: false});
+        let iGroup: ICircuitGroup = this.getItemById(id, false, { id: id, isActive: false });
+        if (!iGroup.isActive) iGroup = sys.lightGroups.getItemById(id, false, { id: id, isActive: false });
         return iGroup;
     }
+    public getItemById(id: number, add?: boolean, data?: any): CircuitGroup | LightGroup {
+        for (let i = 0; i < this.data.length; i++) {
+            if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
+                return this.createItem(this.data[i]);
+            }
+        }
+        return sys.lightGroups.getItemById(id, add, data);
+    }
+
 }
 
-export class CircuitGroup extends EqItem implements ICircuitGroup {
+export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = val;}
     public get name(): string {return this.data.name;}
