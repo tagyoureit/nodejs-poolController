@@ -352,7 +352,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     public getLightThemes(type: number): any[] {
         switch (type) {
             case 5: // Intellibrite
+            case 6: // Globrite
             case 8: // Magicstream
+            case 10: // ColorCascade
                 return sys.board.valueMaps.lightThemes.toArray();
             default:
                 return [];
@@ -370,8 +372,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         conn.queueSendMessage(out);
     }
     public setLightTheme(id: number, theme: number) {
-        let circuit = sys.circuits.getItemById(id);
-        let cstate = state.circuits.getItemById(id);
+        let circuit = sys.circuits.getInterfaceById(id);
+        let cstate = state.circuits.getInterfaceById(id);
         let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
             theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
             0, undefined,

@@ -258,7 +258,9 @@ class EqItem implements IEqItemCreator<EqItem> {
             this.data = data[name];
         } else this.data = data;
     }
-    public get(): any {return this.data;}
+    public get(bCopy?: boolean): any {
+        return bCopy ? extend(true, {}, this.data) : this.data;
+    }
     public clear() {
         for (let prop in this.data) {
             if (Array.isArray(this.data[prop])) this.data[prop].length = 0;
@@ -700,6 +702,9 @@ export interface ICircuit {
     eggTimer: number;
     freeze?: boolean;
     isActive: boolean;
+    lightingTheme?: number;
+    showInFeatures?: boolean;
+    getLightThemes?: () => {}
 
 }
 // TODO: Check with Russ regarding this use.  I think that the circuit id determines whether a return is a circuit or feature.
@@ -928,7 +933,7 @@ export class LightGroupCollection extends EqItemCollection<LightGroup> {
 }
 export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCircuit> {
     constructor(data: any, name?: string) {super(data, name || 'circuits');}
-    public createItem(data: any): LightGroupCircuit {return new LightGroupCircuit(data);}
+    public createItem(data: any): LightGroupCircuit { return new LightGroupCircuit(data); }
 }
 export class LightGroupCircuit extends EqItem {
     public get circuit(): number {return this.data.circuit;}
@@ -943,23 +948,41 @@ export class LightGroupCircuit extends EqItem {
     public set color(val: number) {this.data.color = val;}
     public get swimDelay(): number {return this.data.swimDelay;}
     public set swimDelay(val: number) {this.data.swimDelay = val;}
-
+    public getExtended() {
+        let circ = state.circuits.getInterfaceById(this.circuit).get(true);
+        circ.lightingTheme = undefined;
+        circ.swimDelay = this.swimDelay;
+        circ.position = this.position;
+        circ.color = sys.board.valueMaps.lightColors.transform(this.color);
+        return circ;
+    }
 }
 export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
-    public get id(): number {return this.data.id;}
-    public set id(val: number) {this.data.id = val;}
-    public get name(): string {return this.data.name;}
-    public set name(val: string) {this.data.name = val;}
-    public get type(): number {return this.data.type;}
-    public set type(val: number) {this.data.type = val;}
-    public get isActive(): boolean {return this.data.isActive;}
-    public set isActive(val: boolean) {this.data.isActive = val;}
-    public get eggTimer(): number {return this.data.eggTimer;}
-    public set eggTimer(val: number) {this.data.eggTimer = val;}
-    public get lightingTheme(): number {return this.data.lightingTheme;}
-    public set lightingTheme(val: number) {this.data.lightingTheme = val;}
-    public get circuits(): LightGroupCircuitCollection {return new LightGroupCircuitCollection(this.data, "circuits");}
-    public setGroupState(val: boolean) {sys.board.features.setGroupState(this, val);}
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = val; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.data.name = val; }
+    public get type(): number { return this.data.type; }
+    public set type(val: number) { this.data.type = val; }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.data.isActive = val; }
+    public get eggTimer(): number { return this.data.eggTimer; }
+    public set eggTimer(val: number) { this.data.eggTimer = val; }
+    public get lightingTheme(): number { return this.data.lightingTheme; }
+    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
+    public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
+    public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
+    public getLightThemes() { return sys.board.valueMaps.lightThemes.toArray(); }
+    public getExtended() {
+        let group = this.get(true);
+        group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
+        group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme);
+        group.circuits = [];
+        for (let i = 0; i < this.circuits.length; i++) {
+            group.circuits.push(this.circuits.getItemByIndex(i).getExtended());
+        }
+        return group;
+    }
 }
 
 export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroupCircuit> {
@@ -970,7 +993,12 @@ export class CircuitGroupCircuit extends EqItem {
     public get circuit(): number {return this.data.circuit;}
     public set circuit(val: number) {this.data.circuit = val;}
     public get lightingTheme(): number {return this.data.lightingTheme;}
-    public set lightingTheme(val: number) {this.data.lightingTheme = val;}
+    public set lightingTheme(val: number) { this.data.lightingTheme = val; }
+    public getExtended() {
+        let circ = this.get(true);
+        circ.circuit = state.circuits.getInterfaceById(circ.circuit);
+        return circ;
+    }
 }
 export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
     constructor(data: any, name?: string) { super(data, name || "circuitGroups"); }

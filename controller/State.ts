@@ -277,6 +277,7 @@ export interface ICircuitState {
     type: number;
     name: string;
     isOn: boolean;
+    lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
 }

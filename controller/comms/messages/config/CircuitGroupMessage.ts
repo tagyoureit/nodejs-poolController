@@ -17,10 +17,10 @@ export class CircuitGroupMessage {
                 // Circuit #
                 for (let i = 2; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
                     if (msg.extractPayloadByte(i) !== 255) {
-                        if (group.type === 1 && msg.extractPayloadByte(i + 16) !== 0)
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i), delay: msg.extractPayloadByte(i + 16) });
+                        if (group.type === 1 && msg.extractPayloadByte(i + 1) !== 0)
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1, swimDelay: msg.extractPayloadByte(i + 16) });
                         else
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) });
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1 });
                         
                     }
                     circuitId++;

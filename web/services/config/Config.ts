@@ -15,8 +15,9 @@ export class ConfigRoute {
         });
         app.get( '/config/circuit/:id/lightThemes', ( req, res ) =>
         {
-            return res.status(200).send(sys.circuits.getItemById(parseInt(req.params.id, 10))
-            .getLightThemes());
+            let circuit = sys.circuits.getInterfaceById(parseInt(req.params.id, 10));
+            let themes = typeof circuit !== 'undefined' && typeof circuit.getLightThemes === 'function' ? circuit.getLightThemes() : [];
+            return res.status(200).send(themes);
         });
         app.get('/config/chlorinator/:id', (req, res) => {
             return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
@@ -49,12 +50,32 @@ export class ConfigRoute {
             let sched = sys.schedules.getItemById(schedId < 1 ? sys.schedules.length + 1 : schedId, true);
             //sched.set(JSON.parse(req.body));
             return res.status(200).send('OK');
-        } );
-        app.put( '/config/dateTime', ( req, res ) =>
-        {
-            sys.updateControllerDateTime( parseInt( req.body.hour, 10 ), parseInt( req.body.min, 10 ), parseInt( req.body.date, 10 ), parseInt( req.body.month, 10 ), parseInt( req.body.year, 10 ), parseInt( req.body.dst, 10 ), parseInt( req.body.dow, 10 ) );
-            return res.status( 200 ).send( 'OK' );
-        })
-        
+        });
+
+        app.put('/config/dateTime', (req, res) => {
+            sys.updateControllerDateTime(parseInt(req.body.hour, 10), parseInt(req.body.min, 10), parseInt(req.body.date, 10), parseInt(req.body.month, 10), parseInt(req.body.year, 10), parseInt(req.body.dst, 10), parseInt(req.body.dow, 10));
+            return res.status(200).send('OK');
+        });
+        app.get('/config/lightGroups/themes', (req, res) => {
+            let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
+            return res.status(200).send(grp.getLightThemes());
+        });
+        app.get('/config/lightGroup/:id', (req, res) => {
+            let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
+            return res.status(200).send(grp.getExtended());
+        });
+        app.get('/config/lightGroup/colors', (req, res) => {
+            return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
+        });
+        app.get('/config/intellibrite/themes', (req, res) => {
+            return res.status(200).send(sys.intellibrite.getLightThemes());
+        });
+        app.get('/config/intellibrite', (req, res) => {
+            return res.status(200).send(sys.intellibrite.getExtended());
+        });
+        app.get('/config/Intellibrite/colors', (req, res) => {
+            return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
+        });
+
     }
 }
