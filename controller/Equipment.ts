@@ -73,8 +73,7 @@ export class PoolSystem implements IPoolSystem {
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
-        this.intellibrite = this.lightGroups.getItemById(0, true, {id: 0, isActive: true, name: 'IntelliBrite', type: 3});
-
+        //this.intellibrite = this.lightGroups.getItemById(0, true, {id: 0, isActive: true, name: 'IntelliBrite', type: 3});
         // TODO: We should do this only after we get our first action 2.
 
     }
@@ -159,7 +158,7 @@ export class PoolSystem implements IPoolSystem {
     public remotes: RemoteCollection;
     public security: Security;
     public customNames: CustomNameCollection;
-    public intellibrite: LightGroup;
+    public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
     protected appVersion: string;
     public get dirty(): boolean {return this._isDirty;}
     public set dirty(val) {
@@ -925,6 +924,7 @@ export interface ICircuitGroup {
     name: string;
     eggTimer: number;
     isActive: boolean;
+    lightingTheme?: number;
     circuits: LightGroupCircuitCollection|CircuitGroupCircuitCollection;
 }
 export class LightGroupCollection extends EqItemCollection<LightGroup> {

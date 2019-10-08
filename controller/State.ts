@@ -205,8 +205,11 @@ export class State implements IState {
         this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
+        this.intellibrite = new LightGroupState(this.data, 'intellibrite');
+        console.log(this.intellibrite);
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
+
     };
     public resetData() {
         this.circuitGroups.clear();
@@ -238,6 +241,7 @@ export class State implements IState {
     public circuitGroups: CircuitGroupStateCollection;
     public lightGroups: LightGroupStateCollection;
     public virtualCircuits: VirtualCircuitStateCollection;
+    public intellibrite: LightGroupState;
     public covers: CoverStateCollection;
     public comms: CommsState;
 
@@ -288,7 +292,13 @@ class EqState implements IEqStateCreator<EqState> {
     public data: any;
     private _hasChanged: boolean = false;
     public get hasChanged(): boolean { return this._hasChanged; };
-    public set hasChanged(val: boolean) { this._hasChanged = val; };
+    public set hasChanged(val: boolean) {
+        // If we are not already on the dirty list add us.
+        if (!this._hasChanged && val) {
+            state._dirtyList.maybeAddEqState(this);
+        }
+        this._hasChanged = val;
+    };
     ctor(data, name?: string): EqState { return new EqState(data, name); };
     constructor(data, name?: string) {
         if (typeof (name) !== 'undefined') {
@@ -311,8 +321,6 @@ class EqState implements IEqStateCreator<EqState> {
         if (this.data[name] !== val) {
             this.data[name] = val;
             this.hasChanged = typeof persist === 'undefined' || persist;
-            // If we are not already on the dirty list add us.
-            if (this.hasChanged) state._dirtyList.maybeAddEqState(this);
         }
     }
     public get(bCopy?: boolean): any {
@@ -549,6 +557,12 @@ export class ScheduleState extends EqState {
             circuit.equipmentType = 'virtual';
             sched.circuit = circuit;
         }
+        else if (sys.board.equipmentIds.circuitGroups.isInRange(this.circuit)) {
+            let sgroup = state.circuitGroups.getInterfaceById(this.circuit);
+            let grp = sgroup.get(true);
+            grp.equipmentType = grp.dataName;
+            sched.circuit = grp;
+        }
         else if (sys.board.equipmentIds.features.isInRange(this.circuit)) {
             // This is a feature
             let feature = state.features.getItemById(this.circuit).get(true);
@@ -578,6 +592,9 @@ export interface ICircuitGroupState {
     eggTimer: number;
     isOn: boolean;
     isActive: boolean;
+    dataName: string;
+    lightingTheme?: number;
+    get(bCopy?: boolean);
     emitEquipmentChange();
 }
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
@@ -645,7 +662,10 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName: string = 'lightGroup';
+    constructor(data, name?: string) {
+        super(data, name);
+        if (typeof name == 'undefined') this.dataName = 'lightGroup';
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -697,7 +717,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     }
     public emitEquipmentChange() {
         if (typeof (webApp) !== 'undefined' && webApp) {
-            if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
+            if (this.hasChanged) this.emitData(typeof this.dataName !== 'undefined' ? this.dataName : 'lightGroup', this.getExtended());
             this.hasChanged = false;
             state._dirtyList.removeEqState(this);
         }
@@ -818,7 +838,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
         if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
             iCircuit = state.virtualCircuits.getItemById(id);
         else if (sys.board.equipmentIds.circuitGroups.isInRange(id))
-            iCircuit = state.circuitGroups.getItemById(id);
+            iCircuit = state.circuitGroups.getInterfaceById(id);
         else if (sys.board.equipmentIds.features.isInRange(id))
             iCircuit = state.features.getItemById(id);
         else

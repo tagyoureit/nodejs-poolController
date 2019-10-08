@@ -530,6 +530,7 @@ export class CircuitCommands extends BoardCommands {
                 cstate.lightingTheme = circuit.lightingTheme = color;
             }
         }
+        state.intellibrite.lightingTheme = color;
         state.emitEquipmentChanges();
     }
 }

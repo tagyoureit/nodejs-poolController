@@ -118,7 +118,6 @@ export class CircuitMessage {
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
         for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
-            if (circuitId === 6) console.log('POOL: ' + msg.extractPayloadByte(i));
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
@@ -141,7 +140,6 @@ export class CircuitMessage {
     }
     private static processCircuitNames(msg: Inbound) {
         let circuitId = ((msg.extractPayloadByte(1) - 3) * 2) + sys.board.equipmentIds.circuits.start;
-        console.log('Getting name for CircuitId: ' + circuitId + ' Start:' + sys.board.equipmentIds.circuits.start + ' End: ' + sys.board.equipmentIds.circuits.end);
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(2, 16);
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(18, 16);
     }

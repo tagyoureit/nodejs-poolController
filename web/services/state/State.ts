@@ -28,6 +28,13 @@ export class StateRoute {
             state.circuits.setLightTheme(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
         });
+        app.put('/state/intellibrite/setTheme', (req, res) => {
+            
+            state.circuits.setLightTheme(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
+            return res.status(200).send('OK');
+        });
+
+
         app.put('/state/circuit/setDimmerLevel', (req, res) => {
             state.circuits.setDimmerLevel(parseInt(req.body.id, 10), parseInt(req.body.level, 10));
             return res.status(200).send('OK');

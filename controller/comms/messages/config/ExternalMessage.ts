@@ -74,6 +74,7 @@ export class ExternalMessage {
                     case 1:
                         group = sys.lightGroups.getItemById(groupId, true);
                         sgroup = state.lightGroups.getItemById(groupId, true);
+                        sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
                         sgroup.type = group.type = type;
                         sgroup.isActive = group.isActive = true;
                         break;
@@ -108,8 +109,6 @@ export class ExternalMessage {
                 sgroup.name = group.name = msg.extractPayloadString(19, 16);
                 if (group.type === 1) {
                     let g = group as LightGroup;
-                    let s = sgroup as LightGroupState;
-                    s.lightingTheme = g.lightingTheme = msg.extractPayloadByte(4);
                     for (let i = 0; i < 16; i++) {
                         let circuit = g.circuits.getItemByIndex(i);
                         circuit.color = msg.extractPayloadByte(i + 3);

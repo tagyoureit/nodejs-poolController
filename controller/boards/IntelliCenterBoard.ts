@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChemistryCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater } from '../Equipment';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, CircuitGroupCircuit, LightGroup } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -371,29 +371,85 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         };
         conn.queueSendMessage(out);
     }
-    public setLightTheme(id: number, theme: number) {
-        let circuit = sys.circuits.getInterfaceById(id);
-        let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-            theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-            0, undefined,
-            (msg) => {
-                if (!msg.failed) {
-                    circuit.lightingTheme = theme;
-                    cstate.lightingTheme = theme;
-                    if (!cstate.isOn) this.setCircuitState(id, true);
-                    state.emitEquipmentChanges();
-                }
+    private setLightGroupTheme(id: number, theme: number) {
+        let group = sys.lightGroups.getItemById(id);
+        let sgroup = state.lightGroups.getItemById(id);
+        let arrOut = this.createLightGroupMessages(group);
+        arrOut[0].payload[4] = (theme << 2) + 1;
+        arrOut[arrOut.length - 1].onSuccess = (msg) => {
+            if (!msg.failed) {
+                group.lightingTheme = theme;
+                sgroup.lightingTheme = theme;
+                state.emitEquipmentChanges();
             }
-        );
-
-        //Intellicenter Sent
-        //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 149]
-        // We sent
-        //[255, 0, 255][165, 63, 16, 36, 168, 26][1, 0, 4, 5, 0, 0, 8, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 170]
-        //[255, 0, 255][165, 63, 15, 16, 168, 26][1, 0, 4, 5, 0, 0, 3, 12, 0, 0, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 0, 0, 0, 0, 0, 0][5, 144]
-        out.appendPayloadString(circuit.name, 16);
-        conn.queueSendMessage(out);
+        };
+        for (let i = 0; i < arrOut.length; i++)
+            conn.queueSendMessage(arrOut[i]);
+    }
+    public setLightTheme(id: number, theme: number) {
+        if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+            // Redirect here for now as we will need to do some work
+            // on the default.
+            this.setLightGroupTheme(id, theme);
+        else {
+            let circuit = sys.circuits.getInterfaceById(id);
+            let cstate = state.circuits.getInterfaceById(id);
+            let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+                theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+                0, undefined,
+                (msg) => {
+                    if (!msg.failed) {
+                        circuit.lightingTheme = theme;
+                        cstate.lightingTheme = theme;
+                        if (!cstate.isOn) this.setCircuitState(id, true);
+                        state.emitEquipmentChanges();
+                    }
+                }
+            );
+            out.appendPayloadString(circuit.name, 16);
+            conn.queueSendMessage(out);
+        }
+    }
+    public createLightGroupMessages(group: ICircuitGroup): Outbound[] {
+        let arr: Outbound[] = [];
+        // Create the first message.
+        //[255, 0, 255][165, 63, 15, 16, 168, 40][6, 0, 0, 1, 41, 0, 4, 6, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0][16, 20]
+        let out = Outbound.createMessage(168, [6, 0, group.id - sys.board.equipmentIds.circuitGroups.start, group.type,
+            typeof group.lightingTheme !== 'undefined' && group.lightingTheme ? (group.lightingTheme << 2) + 1 : 0, 0,
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,  // Circuits
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // Swim Delay
+            Math.floor(group.eggTimer / 60), group.eggTimer - ((Math.floor(group.eggTimer) / 60) * 60)]);
+        arr.push(out);
+        for (let i = 0; i < group.circuits.length; i++) {
+            // Set all the circuit info.
+            let circuit = group.circuits.getItemByIndex(i);
+            out.payload[i + 6] = circuit.circuit - 1;
+            if(group.type === 1) out.payload[i + 22] = (circuit as LightGroupCircuit).swimDelay ;
+        }
+        // Create the second message
+        //[255, 0, 255][165, 63, 15, 16, 168, 35][6, 1, 0, 10, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 115, 0, 0, 0, 0, 0][20, 0]
+        out = Outbound.createMessage(168, [6, 1, group.id - sys.board.equipmentIds.circuitGroups.start,
+            255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 // Colors
+        ]);
+        out.appendPayloadString(group.name, 16);
+        arr.push(out);
+        if (group.type === 1) {
+            let lg = group as LightGroup;
+            for (let i = 0; i < group.circuits.length; i++)
+                out.payload[i + 3] = 10; // Really don't know what this is.  Perhaps it is some indicator for color/swim/sync.
+        }
+        // Create the third message
+        //[255, 0, 255][165, 63, 15, 16, 168, 19][6, 2, 0, 16, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][2, 6]
+        out = Outbound.createMessage(168, [6, 2, group.id - sys.board.equipmentIds.circuitGroups.start,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // Colors
+        ]);
+        if (group.type === 1) {
+            let lg = group as LightGroup;
+            for (let i = 0; i < group.circuits.length; i++)
+                out.payload[i + 3] = lg.circuits.getItemByIndex(i).color;
+        }
+        arr.push(out);
+        return arr;
     }
     public createCircuitStateMessage(id?: number, isOn?: boolean): Outbound {
         let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3);

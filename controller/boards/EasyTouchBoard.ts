@@ -578,6 +578,8 @@ class TouchCircuitCommands extends CircuitCommands {
             cstate.lightingTheme = circuit.lightingTheme = color;
         }
         sys.circuits.emitEquipmentChange();
+        state.intellibrite.lightingTheme = color;
+        state.emitEquipmentChanges();
     }
 }
 class TouchFeatureCommands extends FeatureCommands {

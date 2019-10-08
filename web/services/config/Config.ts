@@ -70,6 +70,7 @@ export class ConfigRoute {
         app.get('/config/intellibrite/themes', (req, res) => {
             return res.status(200).send(sys.intellibrite.getLightThemes());
         });
+       
         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });
