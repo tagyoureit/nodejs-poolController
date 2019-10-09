@@ -114,8 +114,11 @@ export class ScheduleMessage {
                 schedule.endTime = schedule.startTime + _eggTimer;
             }
             schedule.isActive = schedule.startTime !== 0;
-            schedule.scheduleDays = msg.extractPayloadByte(6) & 127;
-            (msg.extractPayloadByte(6) & 128) === 0 ? schedule.runOnce = 1 : schedule.runOnce = 0;
+            schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
+            // todo: double check if this is opposity of IntelliCenter; if so add to easytouch board 
+            // this should be scheduleType
+            schedule.runOnce = (msg.extractPayloadByte(6) & 0x80); // 128; 
+
             // todo: add to base sched item
             //  (msg.extractPayloadByte(1) & 128) === 1 ? schedule.smartStart = 1 : schedule.smartStart = 0;
             if (schedule.isActive) {

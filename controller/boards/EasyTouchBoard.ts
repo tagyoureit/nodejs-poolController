@@ -135,7 +135,7 @@ export class EasyTouchBoard extends SystemBoard {
             [129, {name: 'heater', desc: 'Either Heater'}],
             [130, {name: 'poolHeater', desc: 'Pool Heater'}],
             [131, {name: 'spaHeater', desc: 'Spa Heater'}],
-            [132, {name: 'freeze', desc: 'Freese'}],
+            [132, {name: 'freeze', desc: 'Freeze'}],
             [133, {name: 'heatBoost', desc: 'Heat Boost'}],
             [134, {name: 'heatEnable', desc: 'Heat Enable'}],
             [135, {name: 'pumpSpeedUp', desc: 'Pump Speed +'}],
@@ -216,6 +216,10 @@ export class EasyTouchBoard extends SystemBoard {
             [6, {name: 'mon', desc: 'Monday', dow: 1}],
             [7, {val: 7, name: 'sun', desc: 'Sunday', dow: 0}]
         ]);
+        this.valueMaps.scheduleTypes = new byteValueMap([
+            [0, { name: 'repeat', desc: 'Repeats' }],
+            [128, { name: 'runonce', desc: 'Run Once' }]
+        ]);
         this.valueMaps.scheduleDays.transform = function(byte) {
             let days = [];
             let b = byte & 0x007F;
@@ -251,6 +255,7 @@ export class TouchConfigRequest extends ConfigRequest {
     public setcategory: GetTouchConfigCategories;
 }
 class TouchConfigQueue extends ConfigQueue {
+    private _configQueueTimer: NodeJS.Timeout;
     protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
@@ -348,7 +353,8 @@ class TouchConfigQueue extends ConfigQueue {
             state.status = 1;
             this.curr = null;
             sys.configVersion.lastUpdated = new Date();
-            // setTimeout( sys.checkConfiguration, 100 );
+            // set a timer for 15 mins; if we don't get the config request it again.
+            this._configQueueTimer = setTimeout(() => this.queueChanges(), 15 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
         }
         // Notify all the clients of our processing status.

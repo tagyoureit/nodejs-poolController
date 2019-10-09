@@ -47,7 +47,7 @@ export class State implements IState {
                 clearTimeout(this._timerDirty);
                 this._timerDirty = null;
             }
-            if (this._isDirty) this._timerDirty = setTimeout(function () { self.persist() }, 3000);
+            if (this._isDirty) this._timerDirty = setTimeout(function () { self.persist(); }, 3000);
         }
     }
     public persist() {
@@ -247,8 +247,7 @@ export class State implements IState {
         this.intellibrite = new LightGroupState(this.data, 'intellibrite');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
-
-    };
+    }
     public resetData() {
         this.circuitGroups.clear();
         this.lightGroups.clear();
@@ -412,12 +411,12 @@ class EqStateCollection<T> {
         }
         return rem;
     }
-    public createItem(data: any): T { return new EqState(data) as unknown as T; };
+    public createItem(data: any): T { return new EqState(data) as unknown as T; }
     public clear() { this.data.length = 0; }
     public get length(): number { return typeof (this.data) !== 'undefined' ? this.data.length : 0; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
-    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1 }); }
-    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1 }); }
+    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1; }); }
+    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; }); }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : extend(true, {}, this.data); }
     public getExtended(): any {
@@ -737,18 +736,18 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     }
 }
 export class BodyTempState extends EqState {
-    public get id(): number { return this.data.id; };
+    public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('circuit', val); }
-    public get circuit(): number { return this.data.circuit; };
+    public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get temp(): number { return this.data.id; };
+    public get temp(): number { return this.data.id; }
     public set temp(val: number) { this.setDataVal('temp', val); }
     public get heatMode(): number { return typeof (this.data.heatMode) !== 'undefined' ? this.data.heatMode.val : -1; }
     public set heatMode(val: number) {
         if (this.heatMode !== val) {
-            this.data.heatMode = sys.board.valueMaps.heatModes.transform(val)
+            this.data.heatMode = sys.board.valueMaps.heatModes.transform(val);
             this.hasChanged = true;
         }
     }
@@ -895,7 +894,7 @@ export class ValveState extends EqState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type : -1 }
+    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type : -1; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.valveTypes.transform(val);
@@ -912,14 +911,14 @@ export class CoverState extends EqState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get isOpen(): boolean { return this.data.isOpen }
+    public get isOpen(): boolean { return this.data.isOpen; }
     public set isOpen(val: boolean) { this.setDataVal('isOpen', val); }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
     public superChlorReference: number = 0;
     public lastDispatchSuperChlor: number = 0;
-    public setChlor(id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number) { this.getItemById(id).setChlor(poolSetpoint, spaSetpoint, superChlorHours); };
+    public setChlor(id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number) { this.getItemById(id).setChlor(poolSetpoint, spaSetpoint, superChlorHours); }
     public setPoolSetpoint(id: number, setpoint: number) { this.getItemById(id).setPoolSetpoint(setpoint); }
     public setSpaSetpoint(id: number, setpoint: number) { this.getItemById(id).setSpaSetpoint(setpoint); }
     public setSuperChlorHours(id: number, hours: number) { this.getItemById(id).setSuperChlorHours(hours); }

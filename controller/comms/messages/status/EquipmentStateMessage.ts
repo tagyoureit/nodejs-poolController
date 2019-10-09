@@ -474,7 +474,7 @@ export class EquipmentStateMessage {
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
         switch (sys.controllerType) {
-            case ControllerType.IntelliCenter:
+            case ControllerType.IntelliCenter:{
                 let featureId = sys.board.equipmentIds.features.start;
                 for (let i = 1; i <= sys.features.length; i++) {
                     // Use a case statement here since we don't know where to go after 4.
@@ -482,17 +482,19 @@ export class EquipmentStateMessage {
                         case 1:
                         case 2:
                         case 3:
-                        case 4:
+                        case 4:{
                             const byte = msg.extractPayloadByte(7);
                             const feature = sys.features.getItemById(featureId);
                             const fstate = state.features.getItemById(featureId, feature.isActive);
                             fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
                             fstate.name = feature.name;
                             break;
+                        }
                     }
                     featureId++;
                 }
                 break;
+            }
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:

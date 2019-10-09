@@ -29,6 +29,7 @@
         "no-irregular-whitespace": 0,
         "no-undef": 0,
         "no-unused-vars": 0,
+        "no-case-declaration": 0,
         "semi": 1,
         "semi-spacing": 1,
         "valid-jsdoc": [

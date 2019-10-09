@@ -18,7 +18,6 @@ export class Connection {
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
-        // if ( !conn._cfg.mockPort ) conn.connTimer = setTimeout( conn.open, conn._cfg.inactivityRetry * 1000, ...args );
         if (!conn._cfg.mockPort) conn.connTimer = setTimeout(() => conn.open(...args), conn._cfg.inactivityRetry * 1000);
     }
     public emitter: EventEmitter;
