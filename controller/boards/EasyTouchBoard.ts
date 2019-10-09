@@ -530,81 +530,56 @@ class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public setCircuitState(id: number, val: boolean) {
-        if (id > 9) this.board.features.setFeatureState(id, val);
-        else {
-            // let cstate = state.circuits.getItemById(id);
-            let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134]));
-            // let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-            //     if (!msg.failed) {
-            //         // RKS: This should really be in transition until the action 2 comes in.  When it does it will automatically emit the equipment change. Either toggle
-            //         // on the UI and let the 2 reset it or set the cursor to no-drop, dim the control, or set the entire display to wait until the next status.
-            //         cstate.isOn = true;
-            //         cstate.emitEquipmentChange();
-            //     }
-            // }));
-            conn.queueSendMessage(out);
-        }
-    }
-    public toggleCircuitState(id: number) {
-        if (id > 9) this.board.features.toggleFeatureState(id);
-        else {
-            let cstate = state.circuits.getItemById(id);
-            this.setCircuitState(id, !cstate.isOn);
-        }
-    }
-    public setLightTheme(id: number, theme: number) {
-        let cstate = state.circuits.getItemById(id);
-        let circuit = sys.circuits.getItemById(id);
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function(msg) {
+        let cstate = state.circuits.getInterfaceById(id);
+        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
             if (!msg.failed) {
-                circuit.lightingTheme = theme;
-                cstate.lightingTheme = theme;
                 cstate.isOn = true;
-                cstate.emitEquipmentChange();
+                state.emitEquipmentChanges();
             }
         }));
         conn.queueSendMessage(out);
-        if (!cstate.isOn) {
-            // If the circuit is off we need to turn it on.
-            this.setCircuitState(id, true);
-        }
     }
-    public setLightGroupState(grp: number = 1, color: number) {
-        // EasyTouch will set all lights to the intellibrite theme no matter what.
-        for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-            const ib = sys.intellibrite.circuits.getItemByIndex(i);
-            const cstate = state.circuits.getItemById(ib.circuit, true);
-            const circuit = sys.circuits.getItemById(ib.circuit);
-            cstate.lightingTheme = circuit.lightingTheme = color;
+    public toggleCircuitState(id: number) {
+        let cstate = state.circuits.getInterfaceById(id);
+        this.setCircuitState(id, !cstate.isOn);
+    }
+    public setLightTheme(id: number, theme: number) {
+        // Re-route this as we cannot set individual circuit themes in *Touch.
+        this.setIntelliBriteTheme(theme);
+    }
+    public setIntelliBriteTheme(theme: number) {
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+            if (!msg.failed) {
+                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                    let c = sys.intellibrite.circuits.getItemByIndex(i);
+                    let cstate = state.circuits.getItemById(c.circuit);
+                    let circuit = sys.circuits.getItemById(c.circuit);
+                    cstate.lightingTheme = circuit.lightingTheme = theme;
+                }
+                state.emitEquipmentChanges();
+            }
+        }));
+        // Turn on the circuit if it is not on.
+        for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+            let c = sys.intellibrite.circuits.getItemByIndex(i);
+            let cstate = state.circuits.getItemById(c.circuit);
+            if (!cstate.isOn) sys.board.circuits.setCircuitState(c.circuit, true);
         }
-        sys.circuits.emitEquipmentChange();
-        state.intellibrite.lightingTheme = color;
+        // Let everyone know we turned these on.  The theme messages will come later.
         state.emitEquipmentChanges();
     }
 }
 class TouchFeatureCommands extends FeatureCommands {
     public setFeatureState(id: number, val: boolean) {
-        if (id <= 9) this.board.circuits.setCircuitState(id, val);
-        else {
-            // let fstate = state.features.getItemById(id);
-            let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134]));
-            // let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
-            //     if (!msg.failed) {
-            //         // RKS: This should really be in transition until the action 2 comes in.  When it does it will automatically emit the equipment change. Either toggle
-            //         // on the UI and let the 2 reset it or set the cursor to no-drop, dim the control, or set the entire display to wait until the next status.
-            //         fstate.isOn = true;
-            //         fstate.emitEquipmentChange();
-            //     }
-            // }));
-            conn.queueSendMessage(out);
-        }
+        // Route this to the circuit state since this is the same call
+        // and the interface takes care of it all.
+        this.board.circuits.setCircuitState(id, val);
     }
     public toggleFeatureState(id: number) {
-        if (id <= 9) this.board.circuits.toggleCircuitState(id);
-        else {
-            let cstate = state.circuits.getItemById(id);
-            this.setFeatureState(id, !cstate.isOn);
-        }
+        // Route this to the circuit state since this is the same call
+        // and the interface takes care of it all.
+        this.board.circuits.toggleCircuitState(id);
     }
 }
 class TouchChemistryCommands extends ChemistryCommands {
@@ -618,7 +593,7 @@ class TouchChemistryCommands extends ChemistryCommands {
                 cstate.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
                 cstate.superChlorHours = chlor.superChlorHours = superChlorHours;
                 cstate.superChlor = chlor.superChlor = superChlor;
-                cstate.emitEquipmentChange();
+                state.emitEquipmentChanges();
             }
         }));
         conn.queueSendMessage(out);

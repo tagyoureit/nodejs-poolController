@@ -73,6 +73,7 @@ export class PoolSystem implements IPoolSystem {
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
+        this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: true, type: 3 });
         //this.intellibrite = this.lightGroups.getItemById(0, true, {id: 0, isActive: true, name: 'IntelliBrite', type: 3});
         // TODO: We should do this only after we get our first action 2.
 
@@ -158,7 +159,8 @@ export class PoolSystem implements IPoolSystem {
     public remotes: RemoteCollection;
     public security: Security;
     public customNames: CustomNameCollection;
-    public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
+    public intellibrite: LightGroup;
+    //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
     protected appVersion: string;
     public get dirty(): boolean {return this._isDirty;}
     public set dirty(val) {
@@ -317,7 +319,10 @@ class EqItemCollection<T> {
     public set length(val: number) {if (typeof this.data !== 'undefined') this.data.length = val;}
     public add(obj: any): T {this.data.push(obj); return this.createItem(obj);}
     public get(): any {return this.data;}
-    public emitEquipmentChange() {webApp.emitToClients(this.name, this.data);}
+    public emitEquipmentChange() { webApp.emitToClients(this.name, this.data); }
+    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1 }); }
+    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1 }); }
+    public sort(fn: (a, b) => number) { this.data.sort(fn); }
 }
 export class General extends EqItem {
     ctor(data): General {return new General(data, name || 'pool');}
@@ -932,8 +937,26 @@ export class LightGroupCollection extends EqItemCollection<LightGroup> {
     public createItem(data: any): LightGroup {return new LightGroup(data);}
 }
 export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCircuit> {
-    constructor(data: any, name?: string) {super(data, name || 'circuits');}
+    constructor(data: any, name?: string) { super(data, name || 'circuits'); }
     public createItem(data: any): LightGroupCircuit { return new LightGroupCircuit(data); }
+    public getItemByCircuitId(circuitId: number, add?: boolean, data?: any) {
+        for (let i = 0; i < this.data.length; i++)
+            if (typeof this.data[i].circuit !== 'undefined' && this.data[i].circuit === circuitId) {
+                return this.createItem(this.data[i]);
+            }
+        if (typeof add !== 'undefined' && add)
+            return this.add(data || { id: this.data.length + 1, circuit: circuitId, position: this.data.length, color: 0, swimDelay: 1 });
+        return this.createItem(data || { id: this.data.length + 1, circuit: circuitId, position: this.data.length, color: 0, swimDelay: 1 });
+    }
+    public removeItemByCircuitId(id: number): LightGroupCircuit {
+        let rem: LightGroupCircuit = null;
+        for (let i = 0; i < this.data.length; i++)
+            if (typeof this.data[i].circuit !== 'undefined' && this.data[i].circuit === id) {
+                rem = this.data.splice(i, 1);
+            }
+        return rem;
+    }
+    public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1 }) };
 }
 export class LightGroupCircuit extends EqItem {
     public get circuit(): number {return this.data.circuit;}
@@ -958,6 +981,10 @@ export class LightGroupCircuit extends EqItem {
     }
 }
 export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
+    constructor(data, name?: string, obj?: any) {
+        super(data, name);
+        if (typeof obj !== 'undefined') extend(true, this.data, obj);
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -968,7 +995,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set isActive(val: boolean) { this.data.isActive = val; }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.data.eggTimer = val; }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
+    public get lightingTheme(): number { return this.data.lightingTheme }
     public set lightingTheme(val: number) { this.data.lightingTheme = val; }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
     public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
@@ -976,7 +1003,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
-        group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme);
+        group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
         group.circuits = [];
         for (let i = 0; i < this.circuits.length; i++) {
             group.circuits.push(this.circuits.getItemByIndex(i).getExtended());

@@ -1,5 +1,5 @@
-﻿import {Inbound} from "../Messages";
-import {sys, Circuit, CorF, ControllerType} from "../../../Equipment";
+﻿import { Inbound } from "../Messages";
+import { sys, Body, Circuit, CorF, ControllerType, ICircuit } from "../../../Equipment";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -84,7 +84,7 @@ export class CircuitMessage {
             index = msg.extractPayloadByte(0) * 4 - 3;
         }
 
-        if ((index === 1 && msg.datalen === 25) || msg.datalen === 32)
+        if ((index === 1 && msg.datalen === 25) || msg.datalen === 32) {
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                 let ib = sys.intellibrite.circuits.getItemByIndex(i);
@@ -92,19 +92,18 @@ export class CircuitMessage {
                 if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
                 ib.isActive = false;
             }
-
-        const intellibriteCollection = sys.intellibrite;
+        }
         for (byte; byte <= msg.datalen; byte = byte + 4) {
-            const circuit = msg.extractPayloadByte(byte);
-            if (circuit > 0) {
-                const intellibrite = intellibriteCollection.circuits.getItemById(circuit, true);
-                intellibrite.isActive = circuit > 0 && msg.extractPayloadByte(byte + 1) > 0;
-                if (intellibrite.isActive) {
-                    intellibrite.circuit = circuit;
-                    intellibrite.position = (msg.extractPayloadByte(byte + 1) >> 4) + 1;
-                    intellibrite.color = msg.extractPayloadByte(byte + 1) & 15;
-                    intellibrite.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
-                    intellibrite.isActive = true;
+            let circuitId = msg.extractPayloadByte(byte);
+            if (circuitId > 0) {
+                let pair = msg.extractPayloadByte(byte + 1);
+                const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, pair > 0);
+                ibCircuit.isActive = circuitId > 0 && pair > 0;
+                if (ibCircuit.isActive) {
+                    ibCircuit.circuit = circuitId;
+                    ibCircuit.position = (pair >> 4) + 1;
+                    ibCircuit.color = pair & 15;
+                    ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
                 }
             }
             index++;
@@ -114,6 +113,8 @@ export class CircuitMessage {
             if (intellibrite.isActive === true) continue;
             sys.intellibrite.circuits.removeItemById(ib);
         }
+        // Now that we are done.  Lets sort the array by position.
+        sys.intellibrite.circuits.sortByPosition();
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -122,7 +123,19 @@ export class CircuitMessage {
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
+            switch (circuit.type) {
+                case 5:
+                case 6:
+                case 8:
+                case 10:
+                    sys.intellibrite.circuits.getItemByCircuitId(circuit.id, true);
+                    break;
+                default:
+                    sys.intellibrite.circuits.removeItemByCircuitId(circuit.id);
+                    break;
+            }
         }
+        sys.intellibrite.circuits.sortByPosition();
     }
     private static processFreezeProtect(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -183,55 +196,47 @@ export class CircuitMessage {
         const functionId = msg.extractPayloadByte(1);
         const nameId = msg.extractPayloadByte(2);
         const _isActive = functionId !== 19 && nameId !== 0;
-        if (_isActive) {
-            const circuit = CorF.getItemById(id, true);
-            circuit.type = functionId & 63;
-            circuit.name = sys.board.circuits.getNameById(nameId);
-            circuit.freeze = (functionId & 64) === 64;
-            circuit.isActive = functionId !== 19 && nameId !== 0; // "not used"
-            // if sam/sal/magicstream/intellibrite add to lightTheme; 
-            if ([9, 10, 16, 17].includes(circuit.type)) {
-                const ib = sys.intellibrite.circuits.getItemById(id, true);
-                ib.isActive = true;
-            }
-            else {
-                // if light was previously sam/sal/magicstream but now is not, remove from IB
-                sys.intellibrite.circuits.removeItemById(id);
-            }
-            // tode: move this to controller board logic
-            // circuit specific logic
-            if ((sys.controllerType === ControllerType.EasyTouch && id <= sys.equipment.maxCircuits) || (sys.controllerType === ControllerType.IntelliTouch && id <= 40)) {
+        let circuit: ICircuit = sys.circuits.getInterfaceById(id, _isActive);
+        circuit.type = functionId & 63;
+        circuit.name = sys.board.circuits.getNameById(nameId);
+        circuit.freeze = (functionId & 64) === 64;
+        if ([9, 10, 16, 17].includes(circuit.type)) {
+            const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
+            ib.isActive = true;
+        }
+        else
+            sys.intellibrite.circuits.removeItemByCircuitId(id);
+        circuit.showInFeatures = true;
+        if (!circuit.isActive) {
+            sys.features.removeItemById(id);
+            sys.circuits.removeItemById(id);
+            sys.circuitGroups.removeItemById(id);
+        }
+        else {
+            if (sys.board.equipmentIds.circuits.isInRange(id)) {
+                // Circiuts will be the only type that are referenced here.
                 if (circuit.type === 0) return; // do not process if type doesn't exist
+                let body: Body;
                 switch (msg.extractPayloadByte(0)) {
                     case 6: // pool
-                        {
-                            const body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                            body.name = "Pool";
-                            functionId === 0 ? body.isActive = false : body.isActive = true;
-                            break;
-                        }
+                        body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                        body.name = "Pool";
+                        functionId === 0 ? body.isActive = false : body.isActive = true;
+                        break;
                     case 1: // spa
-                        {
-                            const body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                            body.name = "Spa";
-                            // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                            functionId === 0 ? body.isActive = false : body.isActive = true;
-                            break;
-                        }
+                        body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+                        body.name = "Spa";
+                        // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
+                        functionId === 0 ? body.isActive = false : body.isActive = true;
+                        break;
                 }
             }
             else {
+                // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
+
                 // feature specific logic
-                circuit.macro = (functionId & 128) === 128;
+                //circuit.macro = (functionId & 128) === 128;
             }
-        }
-        else {
-            // remove if not active
-            if ((sys.controllerType === ControllerType.EasyTouch && id <= sys.equipment.maxCircuits) || (sys.controllerType === ControllerType.IntelliTouch && id <= 40)) {
-                sys.circuits.removeItemById(id);
-            }
-            else
-                sys.features.removeItemById(id);
         }
     }
 }

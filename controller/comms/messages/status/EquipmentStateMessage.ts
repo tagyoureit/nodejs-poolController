@@ -544,25 +544,32 @@ export class EquipmentStateMessage {
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
         // data[0] = color
-        const color = msg.extractPayloadByte(0);
-        // for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-        //     const ib = sys.intellibrite.circuits.getItemByIndex(i);
-        //     const cstate = state.circuits.getItemById(ib.circuit, true);
-        //     const circuit = sys.circuits.getItemById(ib.circuit, true);
-        switch (color) {
+        const theme = msg.extractPayloadByte(0);
+        switch (theme) {
             case 0: // off
             case 1: // on
             case 190: // save
                 // case 191: // recall
+                // RKS: TODO hold may be in this list since I see the all on and all off command here.  Sync is probably in the colorset message that includes the timings.
                 // do nothing as these don't actually change the state.
                 break;
 
             default:
                 // intellibrite themes
-                //cstate.lightingTheme = circuit.lightingTheme = color;
-                sys.board.circuits.setLightGroupState(undefined, color);
+                // This is an observed message in that no-one asked for it.  *Touch does not report the theme and in fact, it is not even
+                // stored.  Once the message is sent then it throws away the data.  When you turn the light
+                // on again it will be on at whatever theme happened to be set at the time it went off.  We keep this
+                // as a best guess so when the user turns on the light it will likely be the last theme observed.
+                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+                    let ib = sys.intellibrite.circuits.getItemByIndex(i);
+                    let circuit = sys.circuits.getItemById(ib.circuit);
+                    let cstate = state.circuits.getItemById(ib.circuit, true);
+                    if (cstate.isOn || sys.controllerType !== ControllerType.IntelliTouch) cstate.lightingTheme = circuit.lightingTheme = theme;
+                }
                 break;
         }
+        state.emitEquipmentChanges();
         // }
     }
 }

@@ -4,7 +4,9 @@ import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, Pum
 import {logger} from '../../logger/Logger';
 import { EasyTouchBoard, GetTouchConfigCategories } from './EasyTouchBoard';
 import {state, ChlorinatorState} from '../State';
-import {PoolSystem, Body, Pump, sys} from '../Equipment';
+import { PoolSystem, Body, Pump, sys } from '../Equipment';
+import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
+
 import {conn} from '../comms/Comms';
 export class IntelliTouchBoard extends EasyTouchBoard {
     constructor (system: PoolSystem){
@@ -47,19 +49,18 @@ class TouchConfigQueue extends ConfigQueue {
 
 }
 class TouchCircuitCommands extends CircuitCommands {
-    public setLightGroupState(grp:number = 1, color: number){
-        // IntelliTouch apparently overrides EasyTouch functionality and only circuits that are on adopt the current theme.
-        // we are un-overriding as this is the IntelliCenter behavior as well
-         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-            const ib = sys.intellibrite.circuits.getItemByIndex(i);
-            const cstate = state.circuits.getItemById(ib.circuit, true);
-            if (cstate.isOn){
-                const circuit = sys.circuits.getItemById(ib.circuit);
-                cstate.lightingTheme = circuit.lightingTheme = color;
+    public setIntelliBriteTheme(theme: number) {
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+            if (!msg.failed) {
+                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                    let c = sys.intellibrite.circuits.getItemByIndex(i);
+                    let cstate = state.circuits.getItemById(c.circuit);
+                    let circuit = sys.circuits.getItemById(c.circuit);
+                    cstate.lightingTheme = circuit.lightingTheme = theme;
+                }
+                state.emitEquipmentChanges();
             }
-         }
-        sys.circuits.emitEquipmentChange();
-        state.intellibrite.lightingTheme = color;
-        state.emitEquipmentChanges();
+        }));
     }
 }

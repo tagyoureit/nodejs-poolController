@@ -690,6 +690,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public setTheme(val: number) { sys.board.circuits.setLightTheme }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];

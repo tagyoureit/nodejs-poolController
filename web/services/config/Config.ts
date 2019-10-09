@@ -3,9 +3,6 @@ import { sys } from "../../../controller/Equipment";
 import { read } from "fs";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
-        app.get('/config/:section', (req, res) => {
-            return res.status(200).send(sys.getSection(req.params.section));
-        });
         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
@@ -76,6 +73,9 @@ export class ConfigRoute {
         });
         app.get('/config/Intellibrite/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
+        });
+        app.get('/config/:section', (req, res) => {
+            return res.status(200).send(sys.getSection(req.params.section));
         });
 
     }

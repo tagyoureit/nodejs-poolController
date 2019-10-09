@@ -1,9 +1,10 @@
 ﻿import * as extend from 'extend';
-import {EventEmitter} from 'events';
-import {PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroupCircuitCollection} from '../Equipment';
+import { EventEmitter } from 'events';
+import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, LightGroupCircuitCollection } from '../Equipment';
 import {state, ChlorinatorState, PumpState, BodyTempState, VirtualCircuitState} from '../State';
 //import { ControllerType } from '../Constants';
 import {Outbound} from '../comms/messages/Messages';
+import { ControllerType } from 'controller/Constants';
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
     public toArray(): any[] {
@@ -89,7 +90,7 @@ export class byteValueMaps {
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
     public panelModes: byteValueMap=new byteValueMap([
         [0, {val: 0, name: 'auto', desc: 'Auto'}],
@@ -520,19 +521,29 @@ export class CircuitCommands extends BoardCommands {
         else
             return sys.customNames.getItemById(id - 200).name;
     }
-    public setLightGroupState(grp: number = 1, color: number) {
-        // todo: RKS - I think you need to pass in a circuit group id here and make the logic work for multiple lightGroups; *Touch will default to 1.
+    public setIntelliBriteTheme(theme: number) {
+        state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-            const ib = sys.intellibrite.circuits.getItemByIndex(i);
-            const cstate = state.circuits.getItemById(ib.circuit, true);
-            if (cstate.isOn) {
-                const circuit = sys.circuits.getItemById(ib.circuit);
-                cstate.lightingTheme = circuit.lightingTheme = color;
-            }
+            let ib = sys.intellibrite.circuits.getItemByIndex(i);
+            let circuit = sys.circuits.getItemById(ib.circuit);
+            let cstate = state.circuits.getItemById(ib.circuit, true);
+            if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
         }
-        state.intellibrite.lightingTheme = color;
         state.emitEquipmentChanges();
     }
+    //public setLightGroupState(grp: number = 1, color: number) {
+    //    // todo: RKS - I think you need to pass in a circuit group id here and make the logic work for multiple lightGroups; *Touch will default to 1.
+    //    for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+    //        const ib = sys.intellibrite.circuits.getItemByIndex(i);
+    //        const cstate = state.circuits.getItemById(ib.circuit, true);
+    //        if (cstate.isOn) {
+    //            const circuit = sys.circuits.getItemById(ib.circuit);
+    //            cstate.lightingTheme = circuit.lightingTheme = color;
+    //        }
+    //    }
+    //    state.intellibrite.lightingTheme = color;
+    //    state.emitEquipmentChanges();
+    //}
 }
 export class FeatureCommands extends BoardCommands {
     public setFeatureState(id: number, val: boolean) {
