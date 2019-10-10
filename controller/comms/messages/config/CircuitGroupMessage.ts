@@ -85,6 +85,7 @@ export class CircuitGroupMessage {
                     arrlightGrps.push(group);
                     sys.circuitGroups.removeItemById(group.id);
                     state.circuitGroups.removeItemById(group.id);
+                    group.lightingTheme = msg.extractPayloadByte(16 + i) >> 2;
                 }
                 else if(group.type === 2) {
                     arrCircuitGrps.push(group);
@@ -101,7 +102,6 @@ export class CircuitGroupMessage {
             let group: LightGroup = arrlightGrps[i];
             let sgroup: LightGroupState = state.lightGroups.getItemById(group.id, true);
             sgroup.type = group.type;
-            group.lightingTheme = msg.extractPayloadByte(18 + i) >> 2;
             sgroup.lightingTheme = group.lightingTheme;
         }
         for (let i = 0; i < arrCircuitGrps.length; i++) {
