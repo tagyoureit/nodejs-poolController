@@ -141,44 +141,44 @@ export class ScheduleMessage {
     }
     private static processStartMonth(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 14) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startMonth = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).startDate = schedule.startDate;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.startDate = schedule.startDate;
+            }
         }
     }
     private static processStartDay(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 17) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startDay = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).startDate = schedule.startDate;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.startDate = schedule.startDate;
+            }
         }
     }
     private static processStartYear(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 20) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startYear = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).startDate = schedule.startDate;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.startDate = schedule.startDate;
+            }
         }
     }
     private static processStartTimes(msg: Inbound) {
@@ -191,10 +191,16 @@ export class ScheduleMessage {
             if (schedule.isActive && schedule.startTime === 0)
                 sys.schedules.removeItemById(schedule.id);
             schedule.isActive = schedule.startTime !== 0;
-            if (schedule.isActive)
-                state.schedules.getItemById(schedule.id, true).startTime = schedule.startTime;
-            else if (state.schedules.length >= schedule.id)
+            if (state.schedules.length >= schedule.id)
                 state.schedules.removeItemById(schedule.id);
+            else {
+                if (schedule.circuit > 0) {
+                    let csched = state.schedules.getItemById(schedule.id);
+                    csched.circuit = schedule.circuit;
+                    csched.startTime = schedule.startTime;
+                    csched.endTime = schedule.endTime;
+                }
+            }
             i += 2;
         }
     }
@@ -204,91 +210,90 @@ export class ScheduleMessage {
             const time = msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.endTime = time;
-            state.schedules.getItemById(schedule.id).endTime = schedule.endTime;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id);
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+            }
             i += 2;
         }
     }
     private static processCircuit(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 5) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
-            const schedule: Schedule = sys.schedules.getItemById(schedId++);
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
+            let schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.circuit = msg.extractPayloadByte(i + 1) + 1;
-            state.schedules.getItemById(schedule.id).circuit = schedule.circuit;
+            let csched = state.schedules.getItemById(schedule.id)
+            csched.circuit = schedule.circuit;
+            csched.startTime = schedule.startTime;
+            csched.endTime = schedule.endTime;
+            csched.heatSetpoint = schedule.heatSetpoint;
+            csched.heatSource = schedule.heatSource;
+            csched.scheduleDays = schedule.scheduleDays;
+            csched.scheduleType = schedule.runOnce;
+            csched.startDate = schedule.startDate;
         }
     }
     private static processRunOnce(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 8) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.runOnce = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).scheduleType = schedule.runOnce;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.scheduleType = schedule.runOnce;
+            }
         }
     }
     private static processDays(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 11) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.scheduleDays = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).scheduleDays =
-                (schedule.runOnce & 128) > 0 ? schedule.scheduleDays : schedule.runOnce;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.scheduleDays = (schedule.runOnce & 128) > 0 ? schedule.scheduleDays : schedule.runOnce;
+            }
         }
     }
     private static processHeatSource(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 28) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSource = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).heatSource = schedule.heatSource;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.heatSource = schedule.heatSource;
+            }
         }
     }
     private static processHeatSetpoint(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 31) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSetpoint = msg.extractPayloadByte(i + 1);
-            state.schedules.getItemById(schedule.id).heatSetpoint =
-                schedule.heatSetpoint;
+            if (schedule.circuit > 0) {
+                let csched = state.schedules.getItemById(schedule.id)
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
+                csched.heatSetpoint = schedule.heatSetpoint;
+            }
         }
     }
     private static processFlags(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 34) * 40 + 1;
-        for (
-            let i = 1;
-            i < msg.payload.length &&
-            i <= sys.equipment.maxSchedules &&
-            i <= sys.schedules.length;
-            i++
-        ) {
+        for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.flags = msg.extractPayloadByte(i + 1);
         }

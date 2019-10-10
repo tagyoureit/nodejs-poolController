@@ -273,10 +273,10 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr.circuitGroups, ver.circuitGroups)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.circuitGroups, ver.circuitGroups, [32,33], function (req: IntelliCenterConfigRequest) {
                 // Only get group attributes for the ones we have defined.  The total number of message for all potential groups exceeds 50.
-                if (sys.circuitGroups.length > 0) {
+                if (sys.circuitGroups.length + sys.lightGroups.length > 0) {
                     let len = sys.circuitGroups.length + sys.lightGroups.length;
-                    req.fillRange(0, len - 1); // Circuits
-                    req.fillRange(16, len + 15); // Group names and delay
+                    req.fillRange(0, len); // Circuits
+                    req.fillRange(16, len + 16); // Group names and delay
                     if (len > 0) req.fillRange(34, 35);  // Egg timer and colors
                     if (len > 1) req.fillRange(36, Math.min(36 + len, 50)); // Colors
                 }

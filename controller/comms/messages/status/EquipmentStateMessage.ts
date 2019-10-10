@@ -504,16 +504,16 @@ export class EquipmentStateMessage {
         // configuration already determined how many available circuits we have by querying the model of the panel
         // and any installed expansion panel models.  Only the number of available circuits will appear in this
         // array.
-        const count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
+        let count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
         let circuitId = sys.board.equipmentIds.circuits.start;
         let body = 0; // Off
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
-                const circuit = sys.circuits.getItemById(circuitId);
+                let circuit = sys.circuits.getItemById(circuitId);
                 if (circuit.isActive) {
-                    const cstate = state.circuits.getItemById(circuitId, circuit.isActive);
+                    let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circuit.name;
                     cstate.showInFeatures = circuit.showInFeatures;
@@ -564,7 +564,7 @@ export class EquipmentStateMessage {
                 for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
                     let ib = sys.intellibrite.circuits.getItemByIndex(i);
                     let circuit = sys.circuits.getItemById(ib.circuit);
-                    let cstate = state.circuits.getItemById(ib.circuit, true);
+                    let cstate = state.circuits.getItemById(ib.circuit);
                     if (cstate.isOn || sys.controllerType !== ControllerType.IntelliTouch) cstate.lightingTheme = circuit.lightingTheme = theme;
                 }
                 break;

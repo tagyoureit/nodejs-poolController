@@ -1045,6 +1045,8 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
                 return this.createItem(this.data[i]);
             }
         }
+        if (typeof add !== 'undefined' && add)
+            return this.add(data || { id: id });
         return sys.lightGroups.getItemById(id, add, data);
     }
 

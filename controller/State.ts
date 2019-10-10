@@ -318,6 +318,7 @@ class EqState implements IEqStateCreator<EqState> {
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
+            //console.log({ msg: 'State Change', name: name, old: this.data[name], new: val });
             this.data[name] = val;
             this.hasChanged = typeof persist === 'undefined' || persist;
         }
@@ -552,7 +553,9 @@ export class ScheduleState extends EqState {
     public set isOn(val: boolean) { this.data.isOn = val; }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
-        sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
+        //if (typeof this.circuit !== 'undefined')
+            sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
+        //else sched.circuit = {};
         return sched;
     }
     public emitEquipmentChange() {
@@ -666,6 +669,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
         if (typeof sgrp.lightingTheme === 'undefined') sgrp.lightingTheme = sys.board.valueMaps.lightThemes.transformByName('white');
+        if (typeof sgrp.action === 'undefined') sgrp.action = sys.board.valueMaps.intellibriteActions.transform(0);
         let cgrp = sys.circuitGroups.getItemById(this.id);
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let lgc = cgrp.circuits.getItemByIndex(i).get(true);

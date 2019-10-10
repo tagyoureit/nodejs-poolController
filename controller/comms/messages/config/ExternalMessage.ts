@@ -187,17 +187,19 @@ export class ExternalMessage {
             // Shift each bit getting the schedule identified by each value.
             for (let j = 0; j < 8; j++) {
                 let schedule = sys.schedules.getItemById(scheduleId);
-                let sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
                 if (schedule.isActive) {
-                    sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
-                    sstate.circuit = schedule.circuit;
-                    sstate.endTime = schedule.endTime;
-                    sstate.startDate = schedule.startDate;
-                    sstate.startTime = schedule.startTime;
-                    sstate.scheduleDays = schedule.scheduleDays;
-                    sstate.scheduleType = schedule.runOnce & 128 ? 128 : 0;
-                    sstate.heatSetpoint = schedule.heatSetpoint;
-                    sstate.heatSource = schedule.heatSource;
+                    if (schedule.circuit > 0) { // Don't get the schedule state if we haven't determined the entire config for it yet.
+                        let sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
+                        sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                        sstate.circuit = schedule.circuit;
+                        sstate.endTime = schedule.endTime;
+                        sstate.startDate = schedule.startDate;
+                        sstate.startTime = schedule.startTime;
+                        sstate.scheduleDays = schedule.scheduleDays;
+                        sstate.scheduleType = schedule.runOnce & 128 ? 128 : 0;
+                        sstate.heatSetpoint = schedule.heatSetpoint;
+                        sstate.heatSource = schedule.heatSource;
+                    }
                 }
                 else
                     state.schedules.removeItemById(scheduleId);
@@ -313,7 +315,6 @@ export class ExternalMessage {
     private static processSchedules(msg: Inbound) {
         let schedId = msg.extractPayloadByte(2) + 1;
         let cfg = sys.schedules.getItemById(schedId);
-        let s = state.schedules.getItemById(schedId);
         cfg.startTime = msg.extractPayloadInt(3);
         cfg.endTime = msg.extractPayloadInt(5);
         cfg.circuit = msg.extractPayloadByte(7) + 1;
@@ -325,17 +326,18 @@ export class ExternalMessage {
         cfg.heatSource = msg.extractPayloadByte(13);
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
-        s.startTime = cfg.startTime;
-        s.endTime = cfg.endTime;
-        s.circuit = cfg.circuit;
-        s.scheduleType = cfg.runOnce;
-        s.scheduleDays = ((cfg.runOnce & 128) > 0) ? cfg.scheduleDays : cfg.runOnce;
-        s.heatSetpoint = cfg.heatSetpoint;
-        s.heatSource = cfg.heatSource;
-        s.startDate = cfg.startDate;
-        // If we are setting the startTime to 0 then we need to remove the schedule from
-        // the config and state.
-        if (cfg.startTime === 0) {
+        if (cfg.circuit > 0 && cfg.isActive && cfg.startTime > 0) {
+            let s = state.schedules.getItemById(schedId);
+            s.startTime = cfg.startTime;
+            s.endTime = cfg.endTime;
+            s.circuit = cfg.circuit;
+            s.scheduleType = cfg.runOnce;
+            s.scheduleDays = ((cfg.runOnce & 128) > 0) ? cfg.scheduleDays : cfg.runOnce;
+            s.heatSetpoint = cfg.heatSetpoint;
+            s.heatSource = cfg.heatSource;
+            s.startDate = cfg.startDate;
+        }
+        else {
             sys.schedules.removeItemById(cfg.id);
             state.schedules.removeItemById(cfg.id);
         }

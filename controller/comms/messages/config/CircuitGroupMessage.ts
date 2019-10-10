@@ -8,37 +8,7 @@ export class CircuitGroupMessage {
         let group: ICircuitGroup;
         let sgroup: ICircuitGroupState;
         let msgId = msg.extractPayloadByte(1);
-        if (msgId <= 15) {
-            var circuitId = 1;
-            groupId = msg.extractPayloadByte(1) + sys.board.equipmentIds.circuitGroups.start;
-            group = sys.circuitGroups.getInterfaceById(groupId);
-            if (group.isActive) {
-                group.circuits.clear();
-                // Circuit #
-                for (let i = 2; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
-                    if (msg.extractPayloadByte(i) !== 255) {
-                        if (group.type === 1 && msg.extractPayloadByte(i + 1) !== 0)
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1, swimDelay: msg.extractPayloadByte(i + 16) });
-                        else
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1 });
-                        
-                    }
-                    circuitId++;
-                }
-            }
-        }
-        else if (msgId >= 16 && msgId <= 31) {
-            groupId = msgId - 16 + sys.board.equipmentIds.circuitGroups.start;
-            if (sys.board.equipmentIds.circuitGroups.isInRange) {
-                group = sys.circuitGroups.getInterfaceById(groupId);
-                if (group.isActive) {
-                    sgroup = group.type === 1 ? state.lightGroups.getItemById(groupId) : state.circuitGroups.getItemById(groupId);
-                    group.name = msg.extractPayloadString(2, 16);
-                    sgroup.name = group.name;
-                }
-            }
-        }
-        switch (msg.extractPayloadByte(1)) {
+        switch (msgId) {
             case 32: // Group type for the first 16.
                 CircuitGroupMessage.processGroupType(msg);
                 break;
@@ -47,7 +17,7 @@ export class CircuitGroupMessage {
                 break;
             case 34:
                 CircuitGroupMessage.processEggTimer(msg);
-                break;                
+                break;
             case 35:
                 CircuitGroupMessage.processEggTimer(msg);
                 CircuitGroupMessage.processColor(msg);
@@ -70,13 +40,42 @@ export class CircuitGroupMessage {
                 CircuitGroupMessage.processColor(msg);
                 break;
         }
+        if (msgId <= 15) {
+            var circuitId = 1;
+            groupId = msg.extractPayloadByte(1) + sys.board.equipmentIds.circuitGroups.start;
+            group = sys.circuitGroups.getInterfaceById(groupId);
+            if (group.isActive) {
+                group.circuits.clear();
+                // Circuit #
+                for (let i = 2; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
+                    if (msg.extractPayloadByte(i) !== 255) {
+                        if (group.type === 1 && msg.extractPayloadByte(i + 1) !== 0)
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1, swimDelay: msg.extractPayloadByte(i + 16) });
+                        else
+                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1 });
 
+                    }
+                    circuitId++;
+                }
+            }
+        }
+        else if (msgId >= 16 && msgId <= 31) {
+            groupId = msgId - 16 + sys.board.equipmentIds.circuitGroups.start;
+            if (sys.board.equipmentIds.circuitGroups.isInRange) {
+                group = sys.circuitGroups.getInterfaceById(groupId);
+                if (group.isActive) {
+                    sgroup = group.type === 1 ? state.lightGroups.getItemById(groupId) : state.circuitGroups.getItemById(groupId);
+                    group.name = msg.extractPayloadString(2, 16);
+                    sgroup.name = group.name;
+                }
+            }
+        }
     }
     private static processGroupType(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 32) * 16) + sys.board.equipmentIds.circuitGroups.start;
         let arrlightGrps = [];
         let arrCircuitGrps = [];
-        for (let i = 2; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId) && i <= 17; i++) {
+        for (let i = 2; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId) && i <= 18; i++) {
             let type = msg.extractPayloadByte(i);
             let group: ICircuitGroup = type === 1 ? sys.lightGroups.getItemById(groupId++, true) : sys.circuitGroups.getItemById(groupId++, type !== 0);
             group.type = type;
