@@ -114,7 +114,7 @@ export class EquipmentStateMessage {
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        sys.equipment.maxFeatures = 8;
+                        sys.equipment.maxFeatures = 12;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch2 8P';

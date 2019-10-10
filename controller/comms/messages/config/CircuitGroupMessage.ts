@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, CircuitGroup, LightGroup, CircuitGroupCircuit, LightGroupCircuit, ICircuitGroup } from"../../../Equipment";
+import { sys, CircuitGroup, LightGroup, CircuitGroupCircuit, LightGroupCircuit, ICircuitGroup } from "../../../Equipment";
 import { state, CircuitGroupState, LightGroupState, ICircuitGroupState } from '../../../State';
 export class CircuitGroupMessage {
     private static maxCircuits: number = 16;
@@ -87,7 +87,7 @@ export class CircuitGroupMessage {
                     state.circuitGroups.removeItemById(group.id);
                     group.lightingTheme = msg.extractPayloadByte(16 + i) >> 2;
                 }
-                else if(group.type === 2) {
+                else if (group.type === 2) {
                     arrCircuitGrps.push(group);
                     sys.lightGroups.removeItemById(group.id);
                     state.lightGroups.removeItemById(group.id);

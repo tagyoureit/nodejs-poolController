@@ -8,6 +8,7 @@ import {conn} from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
     constructor(system: PoolSystem) {
         super(system);
+        this.equipmentIds.features.start = sys.equipment.maxCircuits + 1;
         this.valueMaps.circuitNames = new byteValueMap([
             [0, {name: 'notused', desc: 'NOT USED'}],
             [1, {name: 'aerator', desc: 'AERATOR'}],
@@ -283,6 +284,7 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.lightGroupPositions);
             this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+            // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
         }
         if (this.remainingItems > 0) {
             var self = this;

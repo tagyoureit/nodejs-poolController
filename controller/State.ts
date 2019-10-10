@@ -328,15 +328,15 @@ class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
     public data: any;
     private _hasChanged: boolean = false;
-    public get hasChanged(): boolean { return this._hasChanged; };
+    public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
         // If we are not already on the dirty list add us.
         if (!this._hasChanged && val) {
             state._dirtyList.maybeAddEqState(this);
         }
         this._hasChanged = val;
-    };
-    ctor(data, name?: string): EqState { return new EqState(data, name); };
+    }
+    ctor(data, name?: string): EqState { return new EqState(data, name); }
     constructor(data, name?: string) {
         if (typeof (name) !== 'undefined') {
             if (typeof (data[name]) === 'undefined') data[name] = {};
@@ -680,7 +680,7 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     constructor(data, name?: string) {
         super(data, name);
-        if (typeof name == 'undefined') this.dataName = 'lightGroup';
+        if (typeof name === 'undefined') this.dataName = 'lightGroup';
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -713,7 +713,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public setTheme(val: number) { sys.board.circuits.setLightTheme }
+    public setTheme(val: number) { sys.board.circuits.setLightTheme; }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];

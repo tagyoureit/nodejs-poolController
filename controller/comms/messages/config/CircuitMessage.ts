@@ -201,44 +201,42 @@ export class CircuitMessage {
             circuit.type = functionId & 63;
             circuit.name = sys.board.circuits.getNameById(nameId);
             circuit.freeze = (functionId & 64) === 64;
+            circuit.showInFeatures = true;
             if ([9, 10, 16, 17].includes(circuit.type)) {
                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
                 ib.isActive = true;
             }
             else
                 sys.intellibrite.circuits.removeItemByCircuitId(id);
-            circuit.showInFeatures = true;
-            if (!circuit.isActive) {
-                sys.features.removeItemById(id);
-                sys.circuits.removeItemById(id);
-                sys.circuitGroups.removeItemById(id);
+            if (sys.board.equipmentIds.circuits.isInRange(id)) {
+                // Circiuts will be the only type that are referenced here.
+                if (circuit.type === 0) return; // do not process if type doesn't exist
+                let body: Body;
+                switch (msg.extractPayloadByte(0)) {
+                    case 6: // pool
+                        body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                        body.name = "Pool";
+                        functionId === 6 ? body.isActive = true : body.isActive = false;
+                        break;
+                    case 1: // spa
+                        body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+                        body.name = "Spa";
+                        // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
+                        functionId === 1 ? body.isActive = true : body.isActive = false;
+                        break;
+                }
             }
             else {
-                if (sys.board.equipmentIds.circuits.isInRange(id)) {
-                    // Circiuts will be the only type that are referenced here.
-                    if (circuit.type === 0) return; // do not process if type doesn't exist
-                    let body: Body;
-                    switch (msg.extractPayloadByte(0)) {
-                        case 6: // pool
-                            body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                            body.name = "Pool";
-                            functionId === 0 ? body.isActive = false : body.isActive = true;
-                            break;
-                        case 1: // spa
-                            body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                            body.name = "Spa";
-                            // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                            functionId === 0 ? body.isActive = false : body.isActive = true;
-                            break;
-                    }
-                }
-                else {
-                    // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
+                // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
 
-                    // feature specific logic
-                    //circuit.macro = (functionId & 128) === 128;
-                }
+                // feature specific logic
+                //circuit.macro = (functionId & 128) === 128;
             }
+        }
+        else {
+            sys.features.removeItemById(id);
+            sys.circuits.removeItemById(id);
+            sys.circuitGroups.removeItemById(id);
         }
     }
 }

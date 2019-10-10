@@ -30,9 +30,9 @@ export class EquipmentIdRange {
     }
     private _start: any = 0;
     private _end: any = 0;
-    public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; };
+    public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; }
     public set start(val: number) { this._start = val; }
-    public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; };
+    public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; }
     public set end(val: number) { this._end = val; }
     public isInRange(id: number) { return id >= this.start && id <= this.end; }
 }
