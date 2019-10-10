@@ -1,5 +1,6 @@
 ﻿import * as express from "express";
-import { sys } from "../../../controller/Equipment";
+import * as extend from 'extend';
+import { sys, LightGroup } from "../../../controller/Equipment";
 import { read } from "fs";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
@@ -64,6 +65,11 @@ export class ConfigRoute {
         app.get('/config/lightGroup/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
+        app.put('/config/lightGroup/:id/setColors', (req, res) => {
+            let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
+            sys.board.circuits.setLightGroupColors(new LightGroup(grp));
+            return res.status(200).send('OK');
+        });
         app.get('/config/intellibrite/themes', (req, res) => {
             return res.status(200).send(sys.intellibrite.getLightThemes());
         });
@@ -71,8 +77,13 @@ export class ConfigRoute {
         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });
-        app.get('/config/Intellibrite/colors', (req, res) => {
+        app.get('/config/intellibrite/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
+        });
+        app.put('/config/intellibrite/setColors', (req, res) => {
+            let grp = extend(true, { id: 0 }, req.body);
+            sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
+            return res.status(200).send('OK');
         });
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));

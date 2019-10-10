@@ -972,7 +972,8 @@ export class LightGroupCircuit extends EqItem {
     public get swimDelay(): number {return this.data.swimDelay;}
     public set swimDelay(val: number) {this.data.swimDelay = val;}
     public getExtended() {
-        let circ = state.circuits.getInterfaceById(this.circuit).get(true);
+        let circ = this.get(true);
+        circ.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
         circ.lightingTheme = undefined;
         circ.swimDelay = this.swimDelay;
         circ.position = this.position;
@@ -1004,6 +1005,9 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
         group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
+        let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
+        group.action = gstate.action;
+        group.isOn = gstate.isOn;
         group.circuits = [];
         for (let i = 0; i < this.circuits.length; i++) {
             group.circuits.push(this.circuits.getItemByIndex(i).getExtended());

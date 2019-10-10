@@ -5,7 +5,7 @@ import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitG
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState } from '../State';
+import { state, ChlorinatorState, LightGroupState } from '../State';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -349,6 +349,63 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
+    public setLightGroupColors(group: LightGroup) {
+        let grp = sys.lightGroups.getItemById(group.id);
+        let arrOut = this.createLightGroupMessages(grp);
+        // Set all the info in the messages.
+        for (let i = 0; i <= 16; i++) {
+            let circuit = i < group.circuits.length ? group.circuits.getItemByIndex(i) : null;
+            arrOut[0].payload[i + 6] = circuit ? circuit.circuit - 1 : 255;
+            arrOut[0].payload[i + 22] = circuit ? circuit.swimDelay : 0;
+            arrOut[2].payload[i + 3] = circuit ? circuit.color : 0;
+        }
+        arrOut[arrOut.length - 1].onSuccess = (msg) => {
+            if (!msg.failed) {
+                grp.circuits.clear();
+                for (let i = 0; i < group.circuits.length; i++) {
+                    let circuit = group.circuits.getItemByIndex(i);
+                    grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+                }
+                let sgrp = state.lightGroups.getItemById(group.id);
+                sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                state.emitEquipmentChanges();
+            }
+        };
+        for (let i = 0; i < arrOut.length; i++)
+            conn.queueSendMessage(arrOut[i]);
+    }
+    public sequenceLightGroup(id: number, operation: string) {
+        let sgroup = state.lightGroups.getItemById(id);
+        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        if (nop > 0) {
+            let out = this.createCircuitStateMessage(id, true);
+            // There are two bits on each byte that deterime the operation.  These start on byte 28
+            let ndx = id - sys.board.equipmentIds.circuitGroups.start;
+            let byteNdx = Math.ceil(ndx / 4);
+            let bitNdx = ((ndx - (byteNdx * 4)) * 2);
+            let byte = out.payload[28 + byteNdx];
+            switch (nop) {
+                case 1: // Sync
+                    byte &= ~(3 << bitNdx);
+                    break;
+                case 2: // Color Set
+                    byte &= ~(1 << bitNdx);
+                    break;
+                case 3: // Color Swim
+                    byte &= ~(1 << bitNdx);
+                    break;
+            }
+            out.payload[28 + byteNdx] = byte;
+            out.onSuccess = (msg) => {
+                if (!msg.failed) {
+                    sgroup.action = nop;
+                    state.emitEquipmentChanges();
+                }
+            };
+            conn.queueSendMessage(out);
+        }
+        state.emitEquipmentChanges();
+    }
     public getLightThemes(type: number): any[] {
         switch (type) {
             case 5: // Intellibrite
@@ -482,6 +539,29 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (grp.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
             else if (grp.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 13] = byte;
+
+            // Now calculate out the sync/set/swim operations.
+            if (grp.dataName === 'lightGroup') {
+                let lg = grp as LightGroupState;
+                if (lg.action !== 0) {
+                    let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
+                    let byteNdx = Math.ceil(ndx / 4);
+                    let bitNdx = ((ndx - (byteNdx * 4)) * 2);
+                    let byte = out.payload[28 + byteNdx];
+                    switch (lg.action) {
+                        case 1: // Sync
+                            byte &= ~(3 << bitNdx);
+                            break;
+                        case 2: // Color Set
+                            byte &= ~(2 << bitNdx);
+                            break;
+                        case 3: // Color Swim
+                            byte &= ~(1 << bitNdx);
+                            break;
+                    }
+                    out.payload[28 + byteNdx] = byte;
+                }
+            }
         }
         return out;
     }

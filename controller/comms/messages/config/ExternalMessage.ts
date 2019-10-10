@@ -238,6 +238,31 @@ export class ExternalMessage {
                     gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                     gstate.name = group.name;
                     gstate.type = group.type;
+                    // Now calculate out the sync/set/swim operations.
+                    if (gstate.dataName === 'lightGroup') {
+                        let lg = gstate as LightGroupState;
+                        let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
+                        let byteNdx = Math.ceil(ndx / 4);
+                        let bitNdx = (((byteNdx * 4) - ndx) * 2);
+                        let byte = msg.extractPayloadByte(start + 15 + byteNdx, 255);
+                        byte = ((byte >> bitNdx) & 0x0003);
+                        //byte = (~((byte >> bitNdx) & 3) & 3);
+                        //console.log({ byte: byte, raw: msg.extractPayloadByte(start + 15 + byteNdx, 255), ndx: ndx, byteNdx: byteNdx, bitNdx: bitNdx });
+                        switch (byte) {
+                            case 0: // Sync
+                                lg.action = 1;
+                                break;
+                            case 1: // Color swim
+                                lg.action = 3
+                                break;
+                            case 2: // Color set
+                                lg.action = 2;
+                                break;
+                            default:
+                                lg.action = 0;
+                                break;
+                        }
+                    }
                 }
                 else {
                     state.circuitGroups.removeItemById(groupId);

@@ -20,7 +20,7 @@ export class byteValueMap extends Map<number, any> {
         }
         return {name: name};
     }
-    public getValue(name: string): number { return this.transformByName(name).value; }
+    public getValue(name: string): number { return this.transformByName(name).val; }
     public getName(val: number): string { return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
 }
 export class EquipmentIdRange {
@@ -243,9 +243,15 @@ export class byteValueMaps {
         [0, { name: 'F', desc: 'Fahrenheit' }],
         [4, { name: 'C', desc: 'Celcius' }]
     ]);
-    public valveTypes: byteValueMap=new byteValueMap([
-        [0, {name: 'standard', desc: 'Standard'}],
-        [1, {name: 'intellivalve', desc: 'IntelliValve'}]
+    public valveTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'standard', desc: 'Standard' }],
+        [1, { name: 'intellivalve', desc: 'IntelliValve' }]
+    ]);
+    public intellibriteActions: byteValueMap = new byteValueMap([
+        [0, { name: 'ready', desc: 'Ready' }],
+        [1, { name: 'sync', desc: 'Synchronizing' }],
+        [2, { name: 'set', desc: 'Sequencing Set Operation' }],
+        [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
@@ -531,6 +537,46 @@ export class CircuitCommands extends BoardCommands {
         }
         state.emitEquipmentChanges();
     }
+    public setIntelliBriteColors(group: LightGroup) {
+        sys.intellibrite.circuits.clear();
+        for (let i = 0; i < group.circuits.length; i++) {
+            let circuit = group.circuits.getItemByIndex(i);
+            sys.intellibrite.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+        }
+        state.intellibrite.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+        state.emitEquipmentChanges();
+    }
+    public setLightGroupColors(group: LightGroup) {
+        let grp = sys.lightGroups.getItemById(group.id);
+        grp.circuits.clear();
+        for (let i = 0; i < group.circuits.length; i++) {
+            let circuit = group.circuits.getItemByIndex(i);
+            grp.circuits.add({ id: i, circuit:circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+        }
+        let sgrp = state.lightGroups.getItemById(group.id);
+        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+        state.emitEquipmentChanges();
+    }
+    public sequenceLightGroup(id: number, operation:string) {
+        let sgroup = state.lightGroups.getItemById(id);
+        sgroup.hasChanged = true;
+        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        if (nop > 0) {
+            sgroup.action = nop;
+            setTimeout(function () { sgroup.action = 0; state.emitEquipmentChanges }, 20000); // It takes 20 seconds to sequence.
+        }
+        state.emitEquipmentChanges();
+    }
+    public sequenceIntelliBrite(operation: string) {
+        state.intellibrite.hasChanged = true;
+        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        if (nop > 0) {
+            state.intellibrite.action = nop;
+            setTimeout(function () { state.intellibrite.action = 0; state.emitEquipmentChanges }, 20000); // It takes 20 seconds to sequence.
+        }
+        state.emitEquipmentChanges();
+    }
+
     //public setLightGroupState(grp: number = 1, color: number) {
     //    // todo: RKS - I think you need to pass in a circuit group id here and make the logic work for multiple lightGroups; *Touch will default to 1.
     //    for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {

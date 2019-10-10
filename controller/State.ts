@@ -206,7 +206,6 @@ export class State implements IState {
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
         this.intellibrite = new LightGroupState(this.data, 'intellibrite');
-        console.log(this.intellibrite);
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
 
@@ -324,7 +323,10 @@ class EqState implements IEqStateCreator<EqState> {
         }
     }
     public get(bCopy?: boolean): any {
-        return (typeof (bCopy) === 'undefined' || !bCopy) ? this.data : extend(true, {}, this.data);
+        if (typeof (bCopy) === 'undefined' || !bCopy) return this.data;
+        let copy = extend(true, {}, this.data);
+        if (typeof this.dataName !== 'undefined') copy.equipmentType = this.dataName;
+        return copy;
     }
     public clear() {
         for (let prop in this.data) {
@@ -489,12 +491,10 @@ export class PumpState extends EqState {
         pump.flowStepSize = cpump.flowStepSize;
         pump.circuits = [];
         for (let i = 0; i < cpump.circuits.length; i++) {
-            let c = cpump.circuits.getItemByIndex(i);
-            let circuit = state.circuits.getInterfaceById(c.circuit).get(true);
-            if (typeof (c.flow) !== 'undefined') circuit.flow = c.flow;
-            if (typeof (c.speed) !== 'undefined') circuit.speed = c.speed;
-            circuit.units = sys.board.valueMaps.pumpUnits.transform(c.units);
-            pump.circuits.push(circuit);
+            let c = cpump.circuits.getItemByIndex(i).get(true);
+            c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
+            c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
+            pump.circuits.push(c);
         }
         return pump;
     }
@@ -552,28 +552,7 @@ export class ScheduleState extends EqState {
     public set isOn(val: boolean) { this.data.isOn = val; }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
-        if (sys.board.equipmentIds.virtualCircuits.isInRange(this.circuit)) {
-            let circuit = sys.board.valueMaps.virtualCircuits.transform(this.circuit);
-            circuit.equipmentType = 'virtual';
-            sched.circuit = circuit;
-        }
-        else if (sys.board.equipmentIds.circuitGroups.isInRange(this.circuit)) {
-            let sgroup = state.circuitGroups.getInterfaceById(this.circuit);
-            let grp = sgroup.get(true);
-            grp.equipmentType = grp.dataName;
-            sched.circuit = grp;
-        }
-        else if (sys.board.equipmentIds.features.isInRange(this.circuit)) {
-            // This is a feature
-            let feature = state.features.getItemById(this.circuit).get(true);
-            feature.equipmentType = 'feature';
-            sched.circuit = feature;
-        }
-        else {
-            let circuit = state.circuits.getItemById(this.circuit).get(true);
-            circuit.equipmentType = 'circuit';
-            sched.circuit = circuit;
-        }
+        sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
         return sched;
     }
     public emitEquipmentChange() {
@@ -624,29 +603,14 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         let cgrp = sys.circuitGroups.getItemById(this.id);
         sgrp.circuits = [];
         for (let i = 0; i < cgrp.circuits.length; i++) {
-            let cgc = cgrp.circuits.getItemById(i + 1);
-            if (sys.board.equipmentIds.virtualCircuits.isInRange(cgc.circuit)) {
-                let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
-                circuit.equipmentType = 'virtual';
-                sgrp.circuits.push(circuit);
-            }
-            else if (sys.board.equipmentIds.features.isInRange(cgc.circuit)) {
-                // This is a feature
-                let feature = state.features.getItemById(cgc.circuit).get(true);
-                feature.equipmentType = 'feature';
-                sgrp.circuits.push(feature);
-            }
-            else {
-                let circuit = state.circuits.getItemById(cgc.circuit).get(true);
-                circuit.equipmentType = 'circuit';
-                sgrp.circuits.push(circuit);
-            }
+            let cgc = cgrp.circuits.getItemByIndex(i).get(true);
+            cgc.circuit = state.circuits.getInterfaceById(cgc.circuit).get(true);
+            sgrp.circuits.push(cgc);
         }
         return sgrp;
     }
@@ -670,7 +634,14 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : 0; }
+    public get action(): number { return typeof this.data.action !== 'undefined' ? this.data.action.val : 0 }
+    public set action(val: number) {
+        if (this.action !== val || typeof this.data.action === 'undefined') {
+            this.data.action = sys.board.valueMaps.intellibriteActions.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type.val : 0; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.circuitGroupTypes.transform(val);
@@ -694,25 +665,12 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
+        if (typeof sgrp.lightingTheme === 'undefined') sgrp.lightingTheme = sys.board.valueMaps.lightThemes.transformByName('white');
         let cgrp = sys.circuitGroups.getItemById(this.id);
         for (let i = 0; i < cgrp.circuits.length; i++) {
-            let cgc = cgrp.circuits.getItemById(i + 1);
-            if (sys.board.equipmentIds.virtualCircuits.isInRange(cgc.circuit)) {
-                let circuit = sys.board.valueMaps.virtualCircuits.transform(cgc.circuit);
-                circuit.equipmentType = 'virtual';
-                sgrp.circuits.push(circuit);
-            }
-            else if (sys.board.equipmentIds.features.isInRange(cgc.circuit)) {
-                // This is a feature
-                let feature = state.features.getItemById(cgc.circuit - 128).get(true);
-                feature.equipmentType = 'feature';
-                sgrp.circuits.push(feature);
-            }
-            else {
-                let circuit = state.circuits.getItemById(cgc.circuit).get(true);
-                circuit.equipmentType = 'circuit';
-                sgrp.circuits.push(circuit);
-            }
+            let lgc = cgrp.circuits.getItemByIndex(i).get(true);
+            lgc.circuit = state.circuits.getInterfaceById(lgc.circuit).get(true);
+            sgrp.circuits.push(lgc);
         }
         return sgrp;
     }
