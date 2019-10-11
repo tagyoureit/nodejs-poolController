@@ -90,7 +90,7 @@ export class ExternalMessage {
                         let circuitId = msg.extractPayloadByte(i + 6);
                         let circuit = group.circuits.getItemByIndex(i, circuitId !== 255);
                         if (circuitId === 255) group.circuits.removeItemByIndex(i);
-                        circuit.circuit = circuitId;
+                        circuit.circuit = circuitId + 1;
                     }
                 }
                 group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);

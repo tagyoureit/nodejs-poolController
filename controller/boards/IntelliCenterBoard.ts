@@ -353,11 +353,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let grp = sys.lightGroups.getItemById(group.id);
         let arrOut = this.createLightGroupMessages(grp);
         // Set all the info in the messages.
-        for (let i = 0; i <= 16; i++) {
+        for (let i = 0; i < 16; i++) {
             let circuit = i < group.circuits.length ? group.circuits.getItemByIndex(i) : null;
             arrOut[0].payload[i + 6] = circuit ? circuit.circuit - 1 : 255;
-            arrOut[0].payload[i + 22] = circuit ? circuit.swimDelay : 0;
-            arrOut[2].payload[i + 3] = circuit ? circuit.color : 0;
+            arrOut[0].payload[i + 22] = circuit ? circuit.swimDelay || 0 : 0;
+            arrOut[1].payload[i + 3] = circuit ? circuit.color || 0 : 255;
+            arrOut[2].payload[i + 3] = circuit ? circuit.color || 0 : 0;
         }
         arrOut[arrOut.length - 1].onSuccess = (msg) => {
             if (!msg.failed) {
