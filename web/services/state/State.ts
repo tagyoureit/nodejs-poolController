@@ -110,7 +110,7 @@ export class StateRoute {
             return res.status(404).send('NOT IMPLEMENTED')
         });
         app.get('/state/:section', (req, res) => {
-            res.status(200).send(state.getSection(req.params.section));
+            res.status(200).send(state.getState(req.params.section));
         });
 
     }

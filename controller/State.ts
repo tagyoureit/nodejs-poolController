@@ -59,8 +59,47 @@ export class State implements IState {
             })
             .catch(function (err) { if (err) logger.error('Error writing pool state %s %s', err, self.statePath); });
     }
+    public getState(section?: string) : any {
+
+        let state:any = {};
+        let obj: any = this;
+        if (typeof section === 'undefined' || section === 'all') {
+            state = this.controllerState;
+            state.circuits = this.circuits.getExtended();
+            state.temps = this.temps.getExtended();
+            state.equipment = this.equipment.getExtended();
+            state.pumps = this.pumps.getExtended();
+            state.valves = this.valves.getExtended();
+            state.heaters = this.heaters.getExtended();
+            state.chlorinators = this.chlorinators.getExtended();
+            state.circuits = this.circuits.getExtended();
+            state.features = this.features.getExtended();
+            state.circuitGroups = this.circuitGroups.getExtended();
+            state.lightGroups = this.lightGroups.getExtended();
+            state.virtualCircuits = this.virtualCircuits.getExtended();
+            state.intellibrite = this.intellibrite.getExtended();
+            state.covers = this.covers.getExtended();
+            state.schedules = this.schedules.getExtended();
+        }
+        else {
+
+            if (section.indexOf('.') !== -1) {
+                let arr = section.split('.');
+                for (let i = 0; i < arr.length; i++) {
+                    if (typeof obj[arr[i]] === 'undefined') {
+                        obj = null;
+                        break;
+                    }
+                    else
+                        obj = obj[arr[i]];
+                }
+            }
+            state = obj.getState();
+        }
+        return state;
+    }
     public getSection(section?: string, opts?: any): any {
-        if (typeof (section) === 'undefined' || section === 'all') return this.data;
+        if (typeof section === 'undefined' || section === 'all') return this.data;
         var c: any = this.data;
         if (section.indexOf('.') !== -1) {
             var arr = section.split('.');
@@ -324,7 +363,7 @@ class EqState implements IEqStateCreator<EqState> {
         }
     }
     public get(bCopy?: boolean): any {
-        if (typeof (bCopy) === 'undefined' || !bCopy) return this.data;
+        if (typeof bCopy === 'undefined' || !bCopy) return this.data;
         let copy = extend(true, {}, this.data);
         if (typeof this.dataName !== 'undefined') copy.equipmentType = this.dataName;
         return copy;
@@ -344,6 +383,7 @@ class EqState implements IEqStateCreator<EqState> {
         }
         return false;
     }
+    public getExtended(): any { return this.get(true); }
 }
 class EqStateCollection<T> {
     protected data: any;
@@ -379,6 +419,16 @@ class EqStateCollection<T> {
     public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1 }); }
     public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1 }); }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
+    public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : extend(true, {}, this.data); }
+    public getExtended(): any {
+        let arr = [];
+        for (let i = 0; i < this.length; i++) {
+            let itm = (this.createItem(this.data[i]) as unknown) as EqState;
+            if (typeof itm.getExtended === 'function') arr.push(itm.getExtended());
+            else arr.push(this.data[i]);
+        }
+        return arr;
+    }
 }
 class DirtyStateCollection extends Array<EqState> {
     public maybeAddEqState(eqItem: EqState) { if (!this.eqStateExists(eqItem)) this.push(eqItem); }
