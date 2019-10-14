@@ -206,7 +206,7 @@ export class ScheduleMessage {
     }
     private static processEndTimes(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 23) * 20 + 1;
-        for (let i = 1; i < msg.payload.length - 1 && schedId <= sys.equipment.maxSchedules && i <= sys.schedules.length; ) {
+        for (let i = 1; i < msg.payload.length - 1 && schedId <= sys.equipment.maxSchedules && schedId <= sys.schedules.length; ) {
             const time = msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.endTime = time;

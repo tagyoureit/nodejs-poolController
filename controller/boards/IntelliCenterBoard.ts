@@ -49,19 +49,19 @@ export class IntelliCenterBoard extends SystemBoard {
             [12, { name: 'solarpref', desc: 'Solar Preferred' }]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
-            [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
-            [2, { name: 'fri', desc: 'Friday', dow: 5 }],
-            [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
-            [4, { name: 'wed', desc: 'Wednesday', dow: 3 }],
-            [5, { name: 'tue', desc: 'Tuesday', dow: 2 }],
-            [6, { name: 'mon', desc: 'Monday', dow: 1 }],
+            [1, { name: 'mon', desc: 'Monday', dow: 1 }],
+            [2, { name: 'tue', desc: 'Tuesday', dow: 2 }],
+            [3, { name: 'wed', desc: 'Wednesday', dow: 3 }],
+            [4, { name: 'thu', desc: 'Thursday', dow: 4 }],
+            [5, { name: 'fri', desc: 'Friday', dow: 5 }],
+            [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
             [7, { val: 7, name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
         this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
-            for (let bit = 7; bit >= 0; bit--) {
-                if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
+            for (let bit = 6; bit >= 0; bit--) {
+                if ((byte & (1 << bit)) > 0) days.push(extend(true, {}, this.get(bit + 1)));
             }
             return { val: b, days: days };
         };
