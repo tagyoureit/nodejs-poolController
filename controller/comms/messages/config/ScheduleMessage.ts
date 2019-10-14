@@ -191,15 +191,13 @@ export class ScheduleMessage {
             if (schedule.isActive && schedule.startTime === 0)
                 sys.schedules.removeItemById(schedule.id);
             schedule.isActive = schedule.startTime !== 0;
-            if (state.schedules.length >= schedule.id)
+            if (!schedule.isActive)
                 state.schedules.removeItemById(schedule.id);
             else {
-                if (schedule.circuit > 0) {
-                    let csched = state.schedules.getItemById(schedule.id);
-                    csched.circuit = schedule.circuit;
-                    csched.startTime = schedule.startTime;
-                    csched.endTime = schedule.endTime;
-                }
+                let csched = state.schedules.getItemById(schedule.id, true);
+                csched.circuit = schedule.circuit;
+                csched.startTime = schedule.startTime;
+                csched.endTime = schedule.endTime;
             }
             i += 2;
         }
