@@ -38,7 +38,7 @@ export class EquipmentIdRange {
 }
 export class EquipmentIds {
     public circuits: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
-    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
+    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures + 3; });
     public circuitGroups: EquipmentIdRange = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
     public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(237, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; }); 
 }
@@ -563,7 +563,7 @@ export class CircuitCommands extends BoardCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             sgroup.action = nop;
-            setTimeout(function () { sgroup.action = 0; state.emitEquipmentChanges }, 20000); // It takes 20 seconds to sequence.
+            setTimeout(function () { sgroup.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
         }
         state.emitEquipmentChanges();
     }
@@ -572,7 +572,7 @@ export class CircuitCommands extends BoardCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             state.intellibrite.action = nop;
-            setTimeout(function () { state.intellibrite.action = 0; state.emitEquipmentChanges }, 20000); // It takes 20 seconds to sequence.
+            setTimeout(function () { state.intellibrite.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
         }
         state.emitEquipmentChanges();
     }

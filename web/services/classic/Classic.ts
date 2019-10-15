@@ -1,5 +1,5 @@
 import * as express from "express";
-import { sys, CorF } from "../../../controller/Equipment";
+import { sys } from "../../../controller/Equipment";
 import { state } from "../../../controller/State";
 import * as extend from 'extend';
 export class ClassicRoute
@@ -26,17 +26,13 @@ export class ClassicRoute
                     setBool = false;
                     break;
             }
-            if ( CorF.circuitTest( parseInt( req.params.circuit, 10 ) ) )
+            if ( sys.circuits.getInterfaceById( parseInt( req.params.circuit, 10 ) ) )
             {
+                // todo: make sure setCircut adheres to both circuit/features interface
                 state.circuits.setCircuitState( parseInt( req.params.circuit, 10 ), setBool );
                 return res.status( 200 ).send( 'OK - Circuit set.  Use /state/circuit/setState moving forward.' );
             }
-            else
-            {
-                
-                state.features.setFeatureState( parseInt( req.params.circuit, 10 ), setBool );
-                return res.status( 202 ).send( 'OK - Feature set.  Use /state/feature/setState moving forward.' );    
-            }
+        
         } );
         app.put( '/spaheat/setpoint/:setpoint', ( req, res ) =>
         {

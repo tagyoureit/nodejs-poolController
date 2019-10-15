@@ -474,6 +474,8 @@ export class EquipmentState extends EqState {
     public set maxValves(val: number) { this.setDataVal('maxValves', val); }
     public get maxCircuits(): number { return this.data.maxCircuits; }
     public set maxCircuits(val: number) { this.setDataVal('maxCircuits', val); }
+    public get maxFeatures(): number { return this.data.maxFeatures; }
+    public set maxFeatures(val: number) { this.setDataVal('maxFeatures', val); }
     public get maxBodies(): number { return this.data.maxBodies; }
     public set maxBodies(val: number) { this.setDataVal('maxBodies', val); }
     public get maxSchedules(): number { return this.data.maxSchedules; }
@@ -686,7 +688,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get action(): number { return typeof this.data.action !== 'undefined' ? this.data.action.val : 0 }
+    public get action(): number { return typeof this.data.action !== 'undefined' ? this.data.action.val : 0; }
     public set action(val: number) {
         if (this.action !== val || typeof this.data.action === 'undefined') {
             this.data.action = sys.board.valueMaps.intellibriteActions.transform(val);

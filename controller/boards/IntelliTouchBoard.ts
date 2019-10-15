@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands} from './SystemBoard';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIdRange} from './SystemBoard';
 import {logger} from '../../logger/Logger';
 import { EasyTouchBoard, GetTouchConfigCategories } from './EasyTouchBoard';
 import {state, ChlorinatorState} from '../State';
@@ -12,6 +12,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
     constructor (system: PoolSystem){
         super(system);
         this.equipmentIds.features.start = 40;
+        this.equipmentIds.features.end = 50;
     }
     public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
 
@@ -57,7 +58,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                     let c = sys.intellibrite.circuits.getItemByIndex(i);
                     let cstate = state.circuits.getItemById(c.circuit);
-                    let circuit = sys.circuits.getItemById(c.circuit);
+                    let circuit = sys.circuits.getInterfaceById(c.circuit);
                     cstate.lightingTheme = circuit.lightingTheme = theme;
                 }
                 state.emitEquipmentChanges();

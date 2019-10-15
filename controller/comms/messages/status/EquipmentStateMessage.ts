@@ -1,17 +1,16 @@
 ﻿import {Inbound, Message} from '../Messages';
 import {ControllerType} from '../../../Constants';
 import {state, BodyTempState} from '../../../State';
-import {sys, Body, ExpansionPanel, Heater} from '../../../Equipment';
+import {sys, Body, ExpansionPanel, Heater, ConfigVersion} from '../../../Equipment';
 import {logger} from 'logger/Logger';
 
 export class EquipmentStateMessage {
-
     private static initIntelliCenter(msg: Inbound) {
+        sys.controllerType = ControllerType.IntelliCenter;
         sys.equipment.maxSchedules = 100;
         sys.equipment.maxFeatures = 32;
-        sys.controllerType = ControllerType.IntelliCenter;
     }
-    private static initTouch(msg: Inbound, model1: number, model2: number) {
+    public static initDefaults() {
         // defaults; set to lowest possible values if not IntelliCenter.  By the time we get here we know that this is only *Touch.
         sys.equipment.maxBodies = 1;
         sys.equipment.maxCircuits = 4;
@@ -22,7 +21,9 @@ export class EquipmentStateMessage {
         sys.equipment.maxCircuitGroups = 0;
         sys.equipment.maxLightGroups = 1;
         sys.equipment.maxIntelliBrites = 8;
-        sys.equipment.maxChlorinators = 1; // not sure any system can handle 1+; maybe not necessary
+        sys.equipment.maxChlorinators = 1;
+    }
+    private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {
             case 11: // SunTouch.  Eq to IntelliCom??
                 sys.controllerType = ControllerType.IntelliCom;
@@ -37,7 +38,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 break;
             case 1: // IntelliTouch i7+3
                 sys.controllerType = ControllerType.IntelliTouch;
@@ -49,7 +49,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 2: // IntelliTouch i9+3
@@ -62,7 +61,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 3: // IntelliTouch i5+3S
@@ -74,7 +72,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 4: // IntelliTouch i9+3S
@@ -86,7 +83,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 5: // IntelliTouch i10+3D
@@ -99,7 +95,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuitGroups = 3;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxIntelliBrites = 10;
                 break;
             case 13: // EasyTouch2 Models
@@ -108,13 +103,12 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
-                sys.equipment.maxLightGroups = 1;
                 switch (model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        sys.equipment.maxFeatures = 12;
+                        sys.equipment.maxFeatures = 8;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch2 8P';
@@ -143,7 +137,6 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
-                sys.equipment.maxLightGroups = 1;
                 sys.equipment.maxFeatures = 8;
                 switch (model1) {
                     case 0:
@@ -195,34 +188,18 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuits += 10;
                 sys.equipment.maxValves += 3;
             }
-            ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
-            state.equipment.model = sys.equipment.model;
-            state.equipment.controllerType = sys.controllerType;
-            state.equipment.maxBodies = sys.equipment.maxBodies;
-            state.equipment.maxCircuits = sys.equipment.maxCircuits;
-            state.equipment.maxValves = sys.equipment.maxValves;
-            state.equipment.maxSchedules = sys.equipment.maxSchedules;
-            state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
-            state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
-            // setup gas heater #1 that is on a fireman's switch and can't be disabled
-            let heater = sys.heaters.getItemById(1, true);
-            heater.isActive = true;
-            heater.type = 1;
-            heater.name = "Gas Heater";
-            sys.equipment.shared === true ? heater.body = 32 : heater.body = 6;
-
-            // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
-            state.emitControllerChange();
         }
-        ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
         state.equipment.model = sys.equipment.model;
         state.equipment.controllerType = sys.controllerType;
+        ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
+        // shared equipment frees up one physical circuit
+        sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
         state.equipment.maxBodies = sys.equipment.maxBodies;
-        state.equipment.maxCircuits = sys.equipment.maxCircuits;
-        state.equipment.maxValves = sys.equipment.maxValves;
-        state.equipment.maxSchedules = sys.equipment.maxSchedules;
-        state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
-        state.equipment.maxLightGroups = sys.equipment.maxCircuitGroups;
+        let heater = sys.heaters.getItemById(1, true);
+        heater.isActive = true;
+        heater.type = 1;
+        heater.name = "Gas Heater";
+        sys.equipment.shared ? heater.body = 32 : heater.body = 6;
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
     }
@@ -379,7 +356,11 @@ export class EquipmentStateMessage {
                     }
                     EquipmentStateMessage.processCircuitState(msg);
                     EquipmentStateMessage.processFeatureState(msg);
-                    //EquipmentStateMessage.processEquipmentState(msg);
+                    if (sys.controllerType !== ControllerType.IntelliCenter){
+                        let ver: ConfigVersion = new ConfigVersion({});
+                        ver.equipment = msg.extractPayloadInt(25);
+                        sys.processVersionChanges( ver );
+                    }
                     // This will toggle the group states depending on the state of the individual circuits.
                     sys.board.features.syncGroupStates();
                     sys.board.circuits.syncVirtualCircuitStates();
@@ -474,7 +455,7 @@ export class EquipmentStateMessage {
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
         switch (sys.controllerType) {
-            case ControllerType.IntelliCenter:{
+            case ControllerType.IntelliCenter: {
                 let featureId = sys.board.equipmentIds.features.start;
                 for (let i = 1; i <= sys.features.length; i++) {
                     // Use a case statement here since we don't know where to go after 4.
@@ -482,7 +463,7 @@ export class EquipmentStateMessage {
                         case 1:
                         case 2:
                         case 3:
-                        case 4:{
+                        case 4: {
                             const byte = msg.extractPayloadByte(7);
                             const feature = sys.features.getItemById(featureId);
                             const fstate = state.features.getItemById(featureId, feature.isActive);
@@ -513,6 +494,7 @@ export class EquipmentStateMessage {
                                 );
                                 fstate.isOn = (byte & 1 << j) >> j > 0;
                                 fstate.name = feature.name;
+                                fstate.type = feature.type;
                             }
                             featureId++;
                         }

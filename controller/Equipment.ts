@@ -11,6 +11,7 @@ export {ControllerType};
 import {webApp} from "../web/Server";
 import {SystemBoard} from "./boards/SystemBoard";
 import {BoardFactory} from "./boards/BoardFactory";
+import {EquipmentStateMessage} from "./comms/messages/status/EquipmentStateMessage";
 
 interface IPoolSystem {
     cfgPath: string;
@@ -74,9 +75,6 @@ export class PoolSystem implements IPoolSystem {
         this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: true, type: 3 });
-        //this.intellibrite = this.lightGroups.getItemById(0, true, {id: 0, isActive: true, name: 'IntelliBrite', type: 3});
-        // TODO: We should do this only after we get our first action 2.
-
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -101,6 +99,7 @@ export class PoolSystem implements IPoolSystem {
             this.resetData(); // Clear the configuration data.
             state.resetData(); // Clear the state data.
             this.data.controllerType = val;
+            EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
         }
@@ -320,8 +319,8 @@ class EqItemCollection<T> {
     public add(obj: any): T {this.data.push(obj); return this.createItem(obj);}
     public get(): any {return this.data;}
     public emitEquipmentChange() { webApp.emitToClients(this.name, this.data); }
-    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1 }); }
-    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1 }); }
+    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1; }); }
+    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; }); }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
 }
 export class General extends EqItem {
@@ -440,7 +439,7 @@ export class Equipment extends EqItem {
     public get maxSchedules(): number {return this.data.maxSchedules || 12;}
     public get maxCircuits(): number {return this.data.maxCircuits || 3;}
     public set maxCircuits(val: number) {this.data.maxCircuits = val;}
-    public get maxFeatures(): number {return this.data.maxFeatures || 32;}
+    public get maxFeatures(): number {return this.data.maxFeatures || 10;}
     public set maxFeatures(val: number) {this.data.maxFeatures = val;}
     public get maxRemotes(): number {return this.data.maxRemotes || 9;}
     public set maxRemotes(val: number) {this.data.maxRemotes = val;}
@@ -647,6 +646,10 @@ export class Circuit extends EqItem implements ICircuit {
     public set name(val: string) {this.data.name = val;}
     public get type(): number {return this.data.type;}
     public set type(val: number) {this.data.type = val;}
+    // RG - remove this after I figure out what a macro means
+    public get macro(): boolean {return this.data.macro;}
+    public set macro(val: boolean) {this.data.macro = val;}
+    // end remove
     public get freeze(): boolean {return this.data.freeze;}
     public set freeze(val: boolean) {this.data.freeze = val;}
     public get showInFeatures(): boolean {return this.data.showInFeatures;}
@@ -661,9 +664,6 @@ export class Circuit extends EqItem implements ICircuit {
     public set level(val: number) {this.data.level = val;}
     public get isActive(): boolean {return this.data.isActive;}
     public set isActive(val: boolean) {this.data.isActive = val;}
-    // TODO: These belong in the circuit groups.
-    // public get macro(): boolean {return this.data.macro;}
-    // public set macro(val: boolean) {this.data.macro = val;}
     public getLightThemes() {return sys.board.circuits.getLightThemes(this.type);}
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
@@ -708,31 +708,10 @@ export interface ICircuit {
     isActive: boolean;
     lightingTheme?: number;
     showInFeatures?: boolean;
+    // RG - remove this after I figure out what macros are
+    macro?: boolean;
     getLightThemes?: () => {}
 
-}
-// TODO: Check with Russ regarding this use.  I think that the circuit id determines whether a return is a circuit or feature.
-export interface AbstractCircuitOrFeatureFactory {
-    getItemById(circuitId: number, add?: boolean): Circuit|Feature;
-    circuitTest(circuitId: number): boolean;
-}
-export class CircuitOrFeatureFactory
-    implements AbstractCircuitOrFeatureFactory {
-    public getItemById(circuitId: number, add?: boolean): Circuit|Feature {
-        if (sys.controllerType === ControllerType.IntelliTouch) {
-            if (circuitId <= 40)
-                return sys.circuits.getItemById(circuitId, add);
-            else return sys.features.getItemById(circuitId, add);
-        }
-        else if (sys.controllerType === ControllerType.EasyTouch) {
-            if (circuitId <= sys.equipment.maxCircuits)
-                return sys.circuits.getItemById(circuitId, add);
-            else return sys.features.getItemById(circuitId, add);
-        }
-    }
-    public circuitTest(circuitId: number) {
-        return circuitId <= 9;
-    }
 }
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) {super(data, name || "pumps");}
@@ -956,7 +935,7 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
             }
         return rem;
     }
-    public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1 }) };
+    public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1; }); }
 }
 export class LightGroupCircuit extends EqItem {
     public get circuit(): number {return this.data.circuit;}
@@ -996,7 +975,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set isActive(val: boolean) { this.data.isActive = val; }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.data.eggTimer = val; }
-    public get lightingTheme(): number { return this.data.lightingTheme }
+    public get lightingTheme(): number { return this.data.lightingTheme; }
     public set lightingTheme(val: number) { this.data.lightingTheme = val; }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
     public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
@@ -1133,7 +1112,4 @@ export class Security extends EqItem {
     public set enabled(val: boolean) {this.data.enabled = val;}
     public get roles(): SecurityRoleCollection {return new SecurityRoleCollection(this.data, "roles");}
 }
-
-///export const PF = new PoolFactory();
 export let sys = new PoolSystem();
-export const CorF = new CircuitOrFeatureFactory();

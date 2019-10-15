@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, Schedule, EggTimer, CorF } from "../../../Equipment";
+import { sys, Schedule, EggTimer } from "../../../Equipment";
 import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
 export class ScheduleMessage {
@@ -95,12 +95,11 @@ export class ScheduleMessage {
         const bEggTimer = msg.extractPayloadByte(2) === 25;
         if (bEggTimer) {
             // egg timer
-            // todo: still confused how we track deleted egg timers
             const eggTimer: EggTimer = sys.eggTimers.getItemById(schedId, true);
             eggTimer.circuit = circuitId;
             eggTimer.runTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
             eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
-            const circuit = CorF.getItemById(circuitId, true);
+            const circuit = sys.circuits.getInterfaceById(circuitId, true);
             circuit.eggTimer = eggTimer.runTime;
         } else if (circuitId > 0) {
             const schedule: Schedule = sys.schedules.getItemById(schedId, msg.extractPayloadByte(2) > 0);
@@ -110,8 +109,8 @@ export class ScheduleMessage {
             if (msg.extractPayloadByte(4) !== 26) 
                 schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
             else {
-                let _eggTimer = CorF.getItemById(circuitId).eggTimer || 720;
-                schedule.endTime = schedule.startTime + _eggTimer;
+                let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer;
+                schedule.endTime = schedule.startTime === 0?720:schedule.startTime + _eggTimer;
             }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
@@ -126,7 +125,7 @@ export class ScheduleMessage {
                 sstate.circuit = schedule.circuit;
                 sstate.startTime = schedule.startTime;
                 sstate.endTime = schedule.endTime;
-                sstate.scheduleType = schedule.scheduleDays;
+                sstate.scheduleType = schedule.runOnce;
                 sstate.scheduleDays = schedule.scheduleDays;
             }
         }
@@ -135,7 +134,7 @@ export class ScheduleMessage {
             state.schedules.removeItemById(schedId);
         }
         if (sys.eggTimers.getItemById(schedId).isActive === false) {
-            const circuit = CorF.getItemById(
+            const circuit = sys.circuits.getInterfaceById(
                 sys.eggTimers.getItemById(schedId).circuit
             );
             circuit.eggTimer = 0;

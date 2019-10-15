@@ -77,6 +77,7 @@ export class HeaterMessage {
                 if ((msg.extractPayloadByte(2) & 0x30) === 0) {
                     // solar
                     let solar: Heater = sys.heaters.getItemById(2, true);
+                    solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
                     solar.body = 32;

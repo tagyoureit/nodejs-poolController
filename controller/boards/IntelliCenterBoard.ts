@@ -482,7 +482,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // Set all the circuit info.
             let circuit = group.circuits.getItemByIndex(i);
             out.payload[i + 6] = circuit.circuit - 1;
-            if(group.type === 1) out.payload[i + 22] = (circuit as LightGroupCircuit).swimDelay ;
+            if (group.type === 1) out.payload[i + 22] = (circuit as LightGroupCircuit).swimDelay;
         }
         // Create the second message
         //[255, 0, 255][165, 63, 15, 16, 168, 35][6, 1, 0, 10, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 80, 111, 111, 108, 32, 76, 105, 103, 104, 116, 115, 0, 0, 0, 0, 0][20, 0]

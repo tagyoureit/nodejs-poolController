@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, ConfigVersion } from"../../../Equipment";
+import { sys, ConfigVersion } from "../../../Equipment";
 export class VersionMessage {
     public static process(msg: Inbound): void {
         var ver: ConfigVersion = new ConfigVersion({});

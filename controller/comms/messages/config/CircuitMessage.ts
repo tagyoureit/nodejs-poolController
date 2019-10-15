@@ -202,6 +202,8 @@ export class CircuitMessage {
             circuit.name = sys.board.circuits.getNameById(nameId);
             circuit.freeze = (functionId & 64) === 64;
             circuit.showInFeatures = true;
+            circuit.isActive = _isActive;
+            if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
             if ([9, 10, 16, 17].includes(circuit.type)) {
                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
                 ib.isActive = true;
@@ -230,7 +232,7 @@ export class CircuitMessage {
                 // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
 
                 // feature specific logic
-                //circuit.macro = (functionId & 128) === 128;
+                circuit.macro = (functionId & 128) === 128;
             }
         }
         else {
@@ -238,5 +240,6 @@ export class CircuitMessage {
             sys.circuits.removeItemById(id);
             sys.circuitGroups.removeItemById(id);
         }
+        sys.emitEquipmentChange();
     }
 }

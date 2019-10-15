@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands} from './SystemBoard';
-import {PoolSystem, Body, Pump, sys} from '../Equipment';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange} from './SystemBoard';
+import {PoolSystem, Body, Pump, sys, ConfigVersion} from '../Equipment';
 import {Protocol, Outbound, Message, Response} from '../comms/messages/Messages';
 import {state, ChlorinatorState, CommsState, State} from '../State';
 import {logger} from '../../logger/Logger';
@@ -8,7 +8,7 @@ import {conn} from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.features.start = sys.equipment.maxCircuits + 1;
+        this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1;}, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3;});
         this.valueMaps.circuitNames = new byteValueMap([
             [0, {name: 'notused', desc: 'NOT USED'}],
             [1, {name: 'aerator', desc: 'AERATOR'}],
@@ -197,8 +197,8 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.heatModes = new byteValueMap([
             [0, {name: 'off', desc: 'Off'}],
             [1, {name: 'heater', desc: 'Heater'}],
-            [2, {name: 'solar', desc: 'Solar Only'}],
-            [3, {name: 'solarpref', desc: 'Solar Preferred'}]
+            [2, {name: 'solarpref', desc: 'Solar Preferred'}],
+            [3, {name: 'solar', desc: 'Solar Only'}]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, {name: 'none', desc: 'No Heater'}],
@@ -231,15 +231,25 @@ export class EasyTouchBoard extends SystemBoard {
         };
         this.valueMaps.lightThemes.transform = function(byte) {return extend(true, {val: byte}, this.get(byte) || this.get(255));};
     }
-    private _configQueue: TouchConfigQueue=new TouchConfigQueue();
     public bodies: TouchBodyCommands=new TouchBodyCommands(this);
     public system: TouchSystemCommands=new TouchSystemCommands(this);
     public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
     public chemistry: TouchChemistryCommands=new TouchChemistryCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
-    public requestConfiguration() {this._configQueue.queueChanges();}
-    public checkConfiguration() {this.requestConfiguration();} // Probably could put at least some time restrictions based upon the last time it was acquired.  This is in the ConfigVersion object
+    private _configQueue: TouchConfigQueue=new TouchConfigQueue();
+
+    public requestConfiguration(ver?: ConfigVersion) {
+        if (typeof ver !== 'undefined' && sys.configVersion.equipment !== ver.equipment) {
+            if (typeof ver !== 'undefined') sys.configVersion.equipment = ver.equipment;
+            this._configQueue.queueChanges();
+        }
+    }
+    public checkConfiguration() {
+        if (typeof sys.configVersion.equipment === 'undefined' || (Date.now().valueOf() - sys.configVersion.lastUpdated.valueOf()) / 1000 / 60 > 5 ){
+            this.requestConfiguration();
+        }
+    }
     public stopAsync() {this._configQueue.close();}
 }
 export class TouchConfigRequest extends ConfigRequest {
@@ -273,7 +283,7 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits + sys.equipment.maxFeatures);
+            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
             this.queueItems(GetTouchConfigCategories.delays, [0]);
             this.queueItems(GetTouchConfigCategories.settings, [0]);
@@ -356,7 +366,7 @@ class TouchConfigQueue extends ConfigQueue {
             this.curr = null;
             sys.configVersion.lastUpdated = new Date();
             // set a timer for 15 mins; if we don't get the config request it again.
-            this._configQueueTimer = setTimeout(() => this.queueChanges(), 15 * 60 * 1000);
+            this._configQueueTimer = setTimeout(() => sys.board.checkConfiguration(), 15 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
         }
         // Notify all the clients of our processing status.
@@ -562,7 +572,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                     let c = sys.intellibrite.circuits.getItemByIndex(i);
                     let cstate = state.circuits.getItemById(c.circuit);
-                    let circuit = sys.circuits.getItemById(c.circuit);
+                    let circuit = sys.circuits.getInterfaceById(c.circuit);
                     cstate.lightingTheme = circuit.lightingTheme = theme;
                 }
                 state.emitEquipmentChanges();

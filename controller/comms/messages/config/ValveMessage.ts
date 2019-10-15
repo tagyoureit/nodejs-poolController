@@ -1,11 +1,11 @@
 ﻿import {Inbound} from "../Messages";
-import {sys, Valve, CorF} from "../../../Equipment";
+import {sys, Valve} from "../../../Equipment";
 import {ControllerType} from "../../../Constants";
 export class ValveMessage {
     public static process(msg: Inbound): void {
-        switch(sys.controllerType) {
+        switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
-                switch(msg.extractPayloadByte(1)) {
+                switch (msg.extractPayloadByte(1)) {
                     case 0: // Circuit Data
                         ValveMessage.processCircuit(msg);
                         break;
@@ -33,7 +33,7 @@ export class ValveMessage {
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
-                switch(msg.action) {
+                switch (msg.action) {
                     case 29:
                         ValveMessage.process_ValveAssignment_IT(msg);
                         break;
@@ -55,7 +55,7 @@ export class ValveMessage {
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
         // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
 
-        for(let i = 1; i <= sys.equipment.maxValves; i++) {
+        for (let i = 1; i <= sys.equipment.maxValves; i++) {
             let valve = sys.valves.getItemById(i, true);
             valve.circuit = msg.extractPayloadByte(i + 3);
             valve.isActive = valve.circuit > 0 && valve.circuit < 255;
@@ -64,12 +64,10 @@ export class ValveMessage {
 
         // todo: if circuit===128 (solar) do we set the heater here?  or is there another packet defining solar heat on the system?
     }
-    // todo: move this function to sys.boards
     private static getName(cir: number) {
-        if(cir < 64)
+        if (cir < 64)
         {
-            return CorF.getItemById(cir).name;
-            // return sys.circuits.getItemById(cir).name;
+            return sys.circuits.getInterfaceById(cir).name;
         }
         else
             return sys.board.valueMaps.circuitFunctions.transform(cir).desc;
@@ -80,17 +78,17 @@ export class ValveMessage {
         // going on.  This is due to the fact that the position 5 & 6 are for a secondary pool control.  This will make
         // the id of any valve > 5 skip 2 numbers in between.
         let ndx: number = 2;
-        for(let i = 1; ndx < msg.payload.length - 1 && i <= sys.equipment.maxValves; i++) {
+        for (let i = 1; ndx < msg.payload.length - 1 && i <= sys.equipment.maxValves; i++) {
             let valve: Valve = sys.valves.getItemById(i, i <= sys.equipment.maxValves);
             valve.circuit = msg.extractPayloadByte(ndx);
-            if(ndx === 5) ndx += 2;
+            if (ndx === 5) ndx += 2;
             valve.isActive = i <= sys.equipment.maxValves;
             ndx++;
         }
     }
     private static processValveNames(msg: Inbound) {
-        let valveId = msg.extractPayloadByte(1) <= 2 ? (msg.extractPayloadByte(1) - 1) * 2 + 1:(msg.extractPayloadByte(1) - 4) * 2 + 5;
-        if(valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
-        if(valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
+        let valveId = msg.extractPayloadByte(1) <= 2 ? (msg.extractPayloadByte(1) - 1) * 2 + 1 : (msg.extractPayloadByte(1) - 4) * 2 + 5;
+        if (valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
+        if (valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
     }
 }
