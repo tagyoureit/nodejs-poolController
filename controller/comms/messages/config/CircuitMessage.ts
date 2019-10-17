@@ -70,51 +70,47 @@ export class CircuitMessage {
         // [165,16,16,34,167,32],[9,32,0,0,7,32, 0, 0, 18, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 254]
         // [165,16,15,16, 39,32],[8, 0,0,0,9, 0, 0, 0,  0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],[1,44]
 
-
         // [255,255,255,255,255,255,255,0,255,165,1,15,16,39,25,2,255,129,45,127,215,235,250,203,251,249,128]
 
-
-        /* IntelliTouch does NOT notify the controllers when something is deleted.
+            /* IntelliTouch does NOT notify the controllers when something is deleted.
                 Thus, we must keep track of all current items and delete/re-init them every time.
                 The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
+                let byte: number; // which byte are we starting with?
+                msg.datalen === 25 ? byte = 1 : byte = 0;
 
-        let index = 1; // which intellibrite position are we updating?
-        let byte = 0; // which byte are we starting with?
-        if (msg.datalen === 25) {
-            index = msg.extractPayloadByte(0) * 4 - 3;
-        }
-
-        if ((index === 1 && msg.datalen === 25) || msg.datalen === 32) {
-            // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
-            for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                let ib = sys.intellibrite.circuits.getItemByIndex(i);
-                // only evaluate intellibrites here; skip others
-                if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
-                ib.isActive = false;
-            }
-        }
-        for (byte; byte <= msg.datalen; byte = byte + 4) {
-            let circuitId = msg.extractPayloadByte(byte);
-            if (circuitId > 0) {
-                let pair = msg.extractPayloadByte(byte + 1);
-                const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, pair > 0);
-                ibCircuit.isActive = circuitId > 0 && pair > 0;
-                if (ibCircuit.isActive) {
-                    ibCircuit.circuit = circuitId;
-                    ibCircuit.position = (pair >> 4) + 1;
-                    ibCircuit.color = pair & 15;
-                    ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
+                if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
+                    // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
+                    for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                        let ibCircuit = sys.intellibrite.circuits.getItemByIndex(i);
+                        // only evaluate intellibrites here; skip others
+                        // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
+                        ibCircuit.isActive = false;
+                    }
                 }
-            }
-            index++;
-        }
-        for (let ib = 0; ib < sys.intellibrite.circuits.length; ib++) {
-            const intellibrite = sys.intellibrite.circuits.getItemByIndex(ib);
-            if (intellibrite.isActive === true) continue;
-            sys.intellibrite.circuits.removeItemById(ib);
-        }
-        // Now that we are done.  Lets sort the array by position.
-        sys.intellibrite.circuits.sortByPosition();
+                for (byte; byte <= msg.datalen; byte = byte + 4) {
+                    let circuitId = msg.extractPayloadByte(byte);
+                    if (circuitId > 0) {
+                        let pair = msg.extractPayloadByte(byte + 1);
+                        let _isActive = circuitId > 0 && pair > 0;
+                        if (_isActive){
+                            const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, _isActive);
+                            ibCircuit.isActive = _isActive;
+                            ibCircuit.circuit = circuitId;
+                            ibCircuit.position = (pair >> 4) + 1;
+                            ibCircuit.color = pair & 15;
+                            ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
+                        }
+                    }
+                }
+                // go through and clean up what is not active only if this is the last (or only) packet
+                if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 1) || msg.datalen === 32)
+                for (let idx = 0; idx < sys.intellibrite.circuits.length; idx++) {
+                    const ibCircuit = sys.intellibrite.circuits.getItemByIndex(idx);
+                    if (ibCircuit.isActive === true) continue;
+                    sys.intellibrite.circuits.removeItemById(ibCircuit.circuit);
+                }
+                // Now that we are done.  Lets sort the array by position.
+                sys.intellibrite.circuits.sortByPosition();
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;

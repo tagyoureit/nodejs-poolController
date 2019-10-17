@@ -237,7 +237,7 @@ export class EasyTouchBoard extends SystemBoard {
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
     public chemistry: TouchChemistryCommands=new TouchChemistryCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
-    private _configQueue: TouchConfigQueue=new TouchConfigQueue();
+    protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
 
     public requestConfiguration(ver?: ConfigVersion) {
         if (typeof ver !== 'undefined' && sys.configVersion.equipment !== ver.equipment) {
@@ -265,8 +265,8 @@ export class TouchConfigRequest extends ConfigRequest {
     public category: TouchConfigCategories;
     public setcategory: GetTouchConfigCategories;
 }
-class TouchConfigQueue extends ConfigQueue {
-    private _configQueueTimer: NodeJS.Timeout;
+export class TouchConfigQueue extends ConfigQueue {
+    protected _configQueueTimer: NodeJS.Timeout;
     protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
@@ -389,6 +389,7 @@ export enum TouchConfigCategories {
     solarHeatPump=34,
     delays=35,
     lightGroupPositions=39,
+    circuitGroups=41,
     settings=40,
     version=252
 }
@@ -410,6 +411,7 @@ export enum GetTouchConfigCategories {
     delays=227,
     lightGroupPositions=231,
     settings=232,
+    circuitGroups=233,
     version=253
 }
 class TouchSystemCommands extends SystemCommands {

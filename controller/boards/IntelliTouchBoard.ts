@@ -2,9 +2,9 @@
 import { EventEmitter } from 'events';
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIdRange} from './SystemBoard';
 import {logger} from '../../logger/Logger';
-import { EasyTouchBoard, GetTouchConfigCategories } from './EasyTouchBoard';
+import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories } from './EasyTouchBoard';
 import {state, ChlorinatorState} from '../State';
-import { PoolSystem, Body, Pump, sys } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, CircuitGroupCircuit, CircuitGroup } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 
 import {conn} from '../comms/Comms';
@@ -13,11 +13,12 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         super(system);
         this.equipmentIds.features.start = 40;
         this.equipmentIds.features.end = 50;
+        this._configQueue = new ITTouchConfigQueue();
     }
     public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
-
+    public features: TouchFeatureCommands=new TouchFeatureCommands(this);
 }
-class TouchConfigQueue extends ConfigQueue {
+class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
@@ -29,7 +30,7 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits); // circuits
-            this.queueRange(GetTouchConfigCategories.circuits, 40, sys.equipment.maxCircuits); // features/macros
+            this.queueRange(GetTouchConfigCategories.circuits, 41, 41 + sys.equipment.maxFeatures); // features
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
             this.queueItems(GetTouchConfigCategories.delays, [0]);
             this.queueItems(GetTouchConfigCategories.settings, [0]);
@@ -40,7 +41,9 @@ class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.lightGroupPositions);
             this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
-            // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
+            this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);
+            // items not required by ScreenLogic
+            this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
         }
         if (this.remainingItems > 0) {
             var self = this;
@@ -48,7 +51,6 @@ class TouchConfigQueue extends ConfigQueue {
         } else state.status = 1;
         state.emitControllerChange();
     }
-
 }
 class TouchCircuitCommands extends CircuitCommands {
     public setIntelliBriteTheme(theme: number) {
@@ -65,4 +67,25 @@ class TouchCircuitCommands extends CircuitCommands {
             }
         }));
     }
+}
+class TouchFeatureCommands extends FeatureCommands {
+    public syncGroupStates() {
+        let arr = sys.circuitGroups.toArray();
+        for (let i = 0; i < arr.length; i++) {
+            let grp: CircuitGroup = arr[i];
+            let circuits = grp.circuits.toArray();
+            let bIsOn = true;
+            if (grp.isActive) {
+                for (let j = 0; j < circuits.length; j++) {
+                    let circuit: CircuitGroupCircuit = circuits[j];
+                    let cstate = state.circuits.getInterfaceById(circuit.circuit);
+                    if (cstate.isOn !== circuit.desiredStateOn ) bIsOn = false;
+                }
+            }
+            let sgrp = state.circuitGroups.getItemById(grp.id);
+            sgrp.isOn = bIsOn && grp.isActive;
+            state.emitEquipmentChanges();
+        }
+    }
+
 }

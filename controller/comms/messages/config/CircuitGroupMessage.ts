@@ -1,9 +1,13 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, CircuitGroup, LightGroup, CircuitGroupCircuit, LightGroupCircuit, ICircuitGroup } from "../../../Equipment";
+import { sys, CircuitGroup, LightGroup, CircuitGroupCircuit, LightGroupCircuit, ICircuitGroup, CircuitGroupCircuitCollection, ControllerType } from "../../../Equipment";
 import { state, CircuitGroupState, LightGroupState, ICircuitGroupState } from '../../../State';
 export class CircuitGroupMessage {
     private static maxCircuits: number = 16;
     public static process(msg: Inbound): void {
+        if (sys.controllerType === ControllerType.IntelliTouch) {
+            CircuitGroupMessage.processITCircuitGroups(msg);
+            return;
+        }
         let groupId;
         let group: ICircuitGroup;
         let sgroup: ICircuitGroupState;
@@ -70,6 +74,51 @@ export class CircuitGroupMessage {
                 }
             }
         }
+    }
+    private static processITCircuitGroups (msg: Inbound){
+        // [41,15],[4,0,0,0,0,0,0,0,0,192,15,0,0,0,0],[1,208]
+        // bytes 1-7 = off circuits
+        // bytes 8-14 = on circuits
+        
+        // start circuitGroup range at 192; same as IntelliCenter
+        let groupId = msg.extractPayloadByte(0) + 192;
+        let _isActive = msg.payload.slice(1).reduce((accumulator, currentValue) => accumulator + currentValue) > 0;
+        if (_isActive){
+            let group = sys.circuitGroups.getItemById(groupId, _isActive);
+            let feature = sys.circuits.getInterfaceById(groupId);
+            group.name = feature.name;
+            group.type = 2; 
+            group.isActive = _isActive;
+            let circuits: CircuitGroupCircuitCollection = group.circuits;
+            for (let byte = 1; byte <= 7; byte++){
+                let offByte = msg.extractPayloadByte(byte);
+                let onByte = msg.extractPayloadByte(byte + 7);
+                for (let bit = 1; bit < 8; bit++) {
+                    let ndx = (byte - 1) * 8 + bit;
+                    if (offByte & 1) {
+                        let circuit = circuits.getItemById(ndx, true);
+                        circuit.circuit = ndx;
+                        circuit.desiredStateOn = false;
+                    }
+                    else if (onByte & 1) {
+                        let circuit = circuits.getItemById(ndx, true);
+                        circuit.circuit = ndx;
+                        circuit.desiredStateOn = true;
+                    }
+                    else circuits.removeItemById(ndx); 
+                    offByte = offByte >> 1;
+                    onByte = onByte >> 1;
+                }
+            }
+            let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
+            sgroup.type = group.type;
+            sgroup.name = group.name;
+        }
+        else {
+            sys.circuitGroups.removeItemById(groupId);
+            state.circuitGroups.removeItemById(groupId);
+        }
+
     }
     private static processGroupType(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 32) * 16) + sys.board.equipmentIds.circuitGroups.start;

@@ -18,6 +18,7 @@ import {EquipmentMessage} from "./config/EquipmentMessage";
 import {ValveMessage} from "./config/ValveMessage";
 import {state} from "../../State";
 import {HeaterMessage} from "./config/HeaterMessage";
+import {CircuitGroupMessage} from "./config/CircuitGroupMessage";
 export enum Direction {
     In='in',
     Out='out'
@@ -281,6 +282,9 @@ export class Inbound extends Message {
                 break;
             case 40:
                 OptionsMessage.process(this);
+                break;
+            case 41:
+                CircuitGroupMessage.process(this);
                 break;
             case 164:  //IntelliCenter
                 VersionMessage.process(this);

@@ -389,7 +389,7 @@ export class PumpCommands extends BoardCommands {
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
-                // RG: should this be 'pump.hasOwnProperty'?  
+                // RG: should this be 'pump.hasOwnProperty'?  TS is not happy here.
                 if (this.hasOwnProperty(prop)) pump[prop] = obj[prop];
             }
         }
@@ -616,7 +616,7 @@ export class FeatureCommands extends BoardCommands {
             if (grp.isActive) {
                 for (let j = 0; j < circuits.length; j++) {
                     let circuit: CircuitGroupCircuit = circuits[j];
-                    let cstate = state.circuits.getItemById(circuit.circuit);
+                    let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     if (!cstate.isOn) bIsOn = false;
                 }
             }

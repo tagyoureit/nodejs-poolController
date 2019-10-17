@@ -1,18 +1,16 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup } from "../../../controller/Equipment";
-import { read } from "fs";
+import {sys, LightGroup} from "../../../controller/Equipment";
+import {read} from "fs";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
-        app.get( '/config/circuit/:id', ( req, res ) =>
-        {
-            return res.status(200).send(sys.circuits.getItemById( parseInt( req.params.id, 10 ) ).get());
+        app.get('/config/circuit/:id', (req, res) => {
+            return res.status(200).send(sys.circuits.getItemById(parseInt(req.params.id, 10)).get());
         });
-        app.get( '/config/circuit/:id/lightThemes', ( req, res ) =>
-        {
+        app.get('/config/circuit/:id/lightThemes', (req, res) => {
             let circuit = sys.circuits.getInterfaceById(parseInt(req.params.id, 10));
             let themes = typeof circuit !== 'undefined' && typeof circuit.getLightThemes === 'function' ? circuit.getLightThemes() : [];
             return res.status(200).send(themes);
@@ -66,14 +64,18 @@ export class ConfigRoute {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
         app.put('/config/lightGroup/:id/setColors', (req, res) => {
-            let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
+            let grp = extend(true, {id: parseInt(req.params.id, 10)}, req.body);
             sys.board.circuits.setLightGroupColors(new LightGroup(grp));
             return res.status(200).send('OK');
         });
         app.get('/config/intellibrite/themes', (req, res) => {
             return res.status(200).send(sys.intellibrite.getLightThemes());
         });
-       
+        app.get('/config/circuitGroup/:id', (req, res) => {
+            let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
+            return res.status(200).send(grp.getExtended());
+        });
+
         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });
@@ -81,7 +83,7 @@ export class ConfigRoute {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
         app.put('/config/intellibrite/setColors', (req, res) => {
-            let grp = extend(true, { id: 0 }, req.body);
+            let grp = extend(true, {id: 0}, req.body);
             sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
             return res.status(200).send('OK');
         });

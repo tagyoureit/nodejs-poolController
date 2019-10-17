@@ -130,6 +130,7 @@ export class HttpServer extends ProtoServer {
         sock.on('replayPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed
             // used for replay
+            logger.debug(`Received ${bytesToProcessArr}`);
             for (let i = 0; i < bytesToProcessArr.length; i++) {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();
 
@@ -158,6 +159,7 @@ export class HttpServer extends ProtoServer {
                         bytesToProcess = [];
                     }
                     else self._pendingMsg = msg;
+                    bytesToProcess = bytesToProcess.slice(ndx);
                 }
                 while (ndx < bytesToProcess.length);
             }
@@ -201,7 +203,7 @@ export class HttpServer extends ProtoServer {
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                 if ('OPTIONS' === req.method) {res.sendStatus(200);}
                 else {
-                    console.log(`${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '':JSON.stringify(req.body)}`);
+                    console.log(`${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
                     next();
                 }
             });

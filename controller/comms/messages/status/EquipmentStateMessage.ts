@@ -11,7 +11,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxFeatures = 32;
     }
     public static initDefaults() {
-        // defaults; set to lowest possible values if not IntelliCenter.  By the time we get here we know that this is only *Touch.
+        // defaults; set to lowest possible values.  Each *Touch will extend this once we know the model.
         sys.equipment.maxBodies = 1;
         sys.equipment.maxCircuits = 4;
         sys.equipment.maxSchedules = 12;
@@ -22,6 +22,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxLightGroups = 1;
         sys.equipment.maxIntelliBrites = 8;
         sys.equipment.maxChlorinators = 1;
+        sys.equipment.maxCustomNames = 10;
     }
     private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {
@@ -162,6 +163,8 @@ export class EquipmentStateMessage {
                 break;
         }
         if (sys.controllerType === ControllerType.IntelliTouch) {
+            sys.equipment.maxCustomNames = 20;
+            sys.equipment.maxCircuitGroups = 10;
             let pnl: ExpansionPanel;
             pnl = sys.equipment.expansions.getItemById(1, true);
             pnl.type = msg.extractPayloadByte(9) & 0x20;
@@ -200,6 +203,7 @@ export class EquipmentStateMessage {
         heater.type = 1;
         heater.name = "Gas Heater";
         sys.equipment.shared ? heater.body = 32 : heater.body = 6;
+        sys.equipment.setEquipmentIds();
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
     }
