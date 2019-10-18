@@ -15,9 +15,7 @@ coverage/
 # ignore dist, it is for production files created by npm scripts
 dist/
 # ignore any replay files
-./replay/config.json
-./replay/packetCapture.json
-./replay/packetCapture.log
+replay/
 # ignore the config.json; it will get recreated
 config.json
 # data files

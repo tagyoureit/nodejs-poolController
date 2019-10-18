@@ -425,7 +425,7 @@ export class EquipmentStateMessage {
                         tbody.isOn = true;
                     } else tbody.isOn = false;
                 }
-                state.emitEquipmentChanges();
+                //state.emitEquipmentChanges();
                 break;
             case 96:
                 EquipmentStateMessage.processIntelliBriteMode(msg);
@@ -445,8 +445,8 @@ export class EquipmentStateMessage {
                     chlor.superChlorRemaining = 0;
                     chlor.superChlor = false;
                 }
-                state.emitControllerChange();
-                state.emitEquipmentChanges();
+                //state.emitControllerChange();
+                //state.emitEquipmentChanges();
                 break;
         }
     }
@@ -506,7 +506,7 @@ export class EquipmentStateMessage {
                     break;
                 }
         }
-        state.emitEquipmentChanges();
+        //state.emitEquipmentChanges();
     }
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
