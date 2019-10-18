@@ -36,7 +36,7 @@ class Logger {
             // todo : RG would prefer to version the replay files.  
             // todo: check if we are capturing logs/config.json with replay files
             //fs.unlinkSync(this.replayPath);
-            fs.mkdirSync(this.replayPath, {recursive: true});
+            fs.mkdirSync(this.replayBaseDir, {recursive: true});
 
         }
         logger._logger = winston.createLogger({
