@@ -535,7 +535,7 @@ export class PumpState extends EqState {
         }
     }
     public get runTime(): number { return this.data.runTime; }
-    public set runTime(val: number) { this.data.runTime = val; }
+    public set runTime(val: number) { this.setDataVal('runTime', val, false); }
     public getExtended() {
         let pump = this.get(true);
         let cpump = sys.pumps.getItemById(pump.id);
