@@ -834,8 +834,8 @@ export class Chlorinator extends EqItem {
     public set isActive(val: boolean) {this.data.isActive = val;}
     public get address(): number {return this.data.address;}
     public set address(val: number) {this.data.address = val;}
-    public get superChlor(): boolean {return this.data.suplerChlor;}
-    public set superChlor(val: boolean) {this.data.suplerChlor = val;}
+    public get superChlor(): boolean {return this.data.superChlor;}
+    public set superChlor(val: boolean) {this.data.superChlor = val;}
     public set name(val: string) {this.data.name = val;}
     public get name(): string {return this.data.name;}
 }

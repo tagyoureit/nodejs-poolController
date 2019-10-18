@@ -38,6 +38,7 @@ export class ChlorinatorStateMessage {
                         chlor.currentOutput = msg.extractPayloadByte(2);
                         chlor.saltLevel = msg.extractPayloadByte(2) * 50;
                         chlor.status = (msg.extractPayloadByte(3) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
+                        chlor.lastComm = new Date().getTime();
                         break;
                     }
                     case 20: {

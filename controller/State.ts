@@ -356,10 +356,12 @@ class EqState implements IEqStateCreator<EqState> {
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
-            //console.log({ msg: 'State Change', name: name, old: this.data[name], new: val });
+            //if(name !== 'lastComm')
+            //console.log('Changing ' + name + ': ' + this.data[name] + ' --> ' + val);
             this.data[name] = val;
-            this.hasChanged = typeof persist === 'undefined' || persist;
+            if (typeof persist === 'undefined' || persist) this.hasChanged = true;
         }
+        else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
     }
     public get(bCopy?: boolean): any {
         if (typeof bCopy === 'undefined' || !bCopy) return this.data;
@@ -375,9 +377,11 @@ class EqState implements IEqStateCreator<EqState> {
     }
     public isEqual(eq: EqState) {
         if (eq.dataName === this.dataName) {
-            if (eq.hasOwnProperty('id')) {
-                if (this.data.id === eq.data.id) return true;
-                else return true;
+            if (eq.hasOwnProperty('id'))
+                return this.data.id === eq.data.id;
+            else {
+                console.log('Data Name = ' + eq.dataName);
+                return true;
             }
         }
         return false;
@@ -601,7 +605,7 @@ export class ScheduleState extends EqState {
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
-    public set isOn(val: boolean) { this.data.isOn = val; }
+    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         //if (typeof this.circuit !== 'undefined')
@@ -1017,11 +1021,8 @@ export class ChlorinatorState extends EqState {
             this.setDataVal('superChlor', true);
         else
             this.setDataVal('superChlor', false);
-        //else this.data.superChlor = false;
     }
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) {
-        sys.board.chemistry.setChlor(this, poolSetpoint, spaSetpoint, superChlorHours);
-    }
+    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chemistry.setChlor(this, poolSetpoint, spaSetpoint, superChlorHours); }
     public setPoolSetpoint(setpoint: number) { sys.board.chemistry.setPoolSetpoint(this, setpoint); }
     public setSpaSetpoint(setpoint: number) { sys.board.chemistry.setSpaSetpoint(this, setpoint); }
     public setSuperChlorHours(hours: number) { sys.board.chemistry.setSuperChlorHours(this, hours); }
