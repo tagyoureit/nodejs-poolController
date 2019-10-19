@@ -82,7 +82,6 @@ export class State implements IState {
             state.schedules = this.schedules.getExtended();
         }
         else {
-
             if (section.indexOf('.') !== -1) {
                 let arr = section.split('.');
                 for (let i = 0; i < arr.length; i++) {
@@ -94,7 +93,9 @@ export class State implements IState {
                         obj = obj[arr[i]];
                 }
             }
-            state = obj.getState();
+            else
+                obj = obj[section];
+            state = typeof obj !== 'undefined' && typeof obj.getExtended === 'function' ? state = obj.getExtended() : this.getSection(section);
         }
         return state;
     }
