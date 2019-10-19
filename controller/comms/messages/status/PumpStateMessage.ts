@@ -35,6 +35,6 @@ export class PumpStateMessage {
                 pump.type = pumpCfg.type;
                 break;
         }
-        //state.emitEquipmentChanges();
+        state.emitEquipmentChanges();
     }
 }

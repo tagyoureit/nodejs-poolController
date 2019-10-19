@@ -45,7 +45,8 @@ export class EquipmentIds {
 export class byteValueMaps {
     constructor() {
         this.pumpStatus.transform = function(byte) {
-            if (byte === 0) return this.get(0);
+            // if (byte === 0) return this.get(0);
+            if (byte === 0) return extend(true, {}, this.get(0), {val: byte});
             for (let b = 16; b > 0; b--) {
                 let bit = (1 << (b - 1));
                 if ((byte & bit) > 0) {
