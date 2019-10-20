@@ -2,6 +2,7 @@
 import * as extend from 'extend';
 import {sys, LightGroup} from "../../../controller/Equipment";
 import {read} from "fs";
+import { config } from "../../../config/Config";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -89,6 +90,9 @@ export class ConfigRoute {
         });
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));
+        });
+        app.get('/app/config/:section', (req, res) => {
+            return res.status(200).send(config.getSection(req.params.section));
         });
 
     }
