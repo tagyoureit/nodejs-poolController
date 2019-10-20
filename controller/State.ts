@@ -120,7 +120,7 @@ export class State implements IState {
     public stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
-    }
+    }q
 
 
     protected hasChanged = false;
@@ -535,8 +535,8 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get runTime(): number { return this.data.runTime; }
-    public set runTime(val: number) { this.setDataVal('runTime', val, false); }
+    public get time(): number { return this.data.runTime; }
+    public set time(val: number) { this.setDataVal('runTime', val, false); }
     public getExtended() {
         let pump = this.get(true);
         let cpump = sys.pumps.getItemById(pump.id);

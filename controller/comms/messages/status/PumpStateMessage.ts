@@ -1,6 +1,6 @@
 ﻿import { Inbound } from "../Messages";
 import { state } from "../../../State";
-import { sys, ControllerType } from"../../../Equipment";
+import { sys, ControllerType } from "../../../Equipment";
 export class PumpStateMessage {
     public static process ( msg: Inbound )
     {
@@ -31,7 +31,7 @@ export class PumpStateMessage {
                 pump.status = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12); // 16-bits of error codes.
                 pump.name = pumpCfg.name;
                 // Byte 14 ticks up every minute while byte 13 ticks up every 59 minutes.
-                pump.runTime = (msg.extractPayloadByte(13)) * 60 + msg.extractPayloadByte(14);
+                pump.time = (msg.extractPayloadByte(13)) * 60 + msg.extractPayloadByte(14);
                 pump.type = pumpCfg.type;
                 break;
         }
