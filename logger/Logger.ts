@@ -112,5 +112,19 @@ class Logger {
             });
         }
     }
+    public setOptions(opts, c?: any) {
+        c = typeof c === 'undefined' ? this.cfg : c;
+        for (let prop in opts) {
+            let o = opts[prop];
+            if (typeof o == 'object') {
+                if (typeof c[prop] === 'undefined') c[prop] = {};
+                c = c[prop];
+                this.setOptions(o, c); // Use recursion here.  Harder to follow but much less code.
+            }
+            else
+                c[prop] = opts[prop];
+        }
+        config.setSection('log', this.cfg);
+    }
 }
 export var logger = new Logger();

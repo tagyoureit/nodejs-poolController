@@ -22,6 +22,11 @@ export class byteValueMap extends Map<number, any> {
     }
     public getValue(name: string): number { return this.transformByName(name).val; }
     public getName(val: number): string { return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
+    public merge(vals) {
+        for (let val of vals) {
+            this.set(val[0], val[1]);
+        }                
+    }
 }
 export class EquipmentIdRange {
     constructor(start: number | Function, end: number | Function) {
@@ -253,6 +258,9 @@ export class byteValueMaps {
         [1, { name: 'sync', desc: 'Synchronizing' }],
         [2, { name: 'set', desc: 'Sequencing Set Operation' }],
         [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
+    ]);
+    public msgBroadcastActions: byteValueMap = new byteValueMap([
+        [2, { name: 'status', desc: 'Equipment Status' }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality

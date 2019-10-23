@@ -79,6 +79,14 @@ export class IntelliCenterBoard extends SystemBoard {
             [252, { name: 'solar', desc: 'Solar' }],
             [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
         ]);
+        this.valueMaps.msgBroadcastActions.merge([
+            [30, { name: 'config', desc: 'Configuration' }],
+            [164, {name: 'getconfig', desc: 'Get Configuration'}],
+            [168, { name: 'setdata', desc: 'Set Data' }],
+            [204, { name: 'stateext', desc: 'State Extension' }],
+            [222, { name: 'getdata', desc: 'Get Data' }],
+            [228, {name: 'getversions', desc: 'Get Versions'}]
+        ]);
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;

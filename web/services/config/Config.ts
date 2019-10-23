@@ -3,6 +3,7 @@ import * as extend from 'extend';
 import {sys, LightGroup} from "../../../controller/Equipment";
 import {read} from "fs";
 import { config } from "../../../config/Config";
+import { logger } from "../../../logger/Logger";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -91,8 +92,16 @@ export class ConfigRoute {
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));
         });
+
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
+        });
+        app.put('/app/logger/setOptions', (req, res) => {
+            logger.setOptions(req.body);
+            return res.status(200).send('OK');
+        });
+        app.get('/app/messages/broadcast/actions', (req, res) => {
+            return res.status(200).send(sys.board.valueMaps.msgBroadcastActions.toArray());
         });
 
     }
