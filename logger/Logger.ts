@@ -116,10 +116,13 @@ class Logger {
         c = typeof c === 'undefined' ? this.cfg : c;
         for (let prop in opts) {
             let o = opts[prop];
-            if (typeof o == 'object') {
+            if (o instanceof Array) {
+                //console.log({ o: o, c: c, prop: prop });
+                c[prop] = o; // Stop here we are replacing the array.
+            }
+            else if (typeof o == 'object') {
                 if (typeof c[prop] === 'undefined') c[prop] = {};
-                c = c[prop];
-                this.setOptions(o, c); // Use recursion here.  Harder to follow but much less code.
+                this.setOptions(o, c[prop]); // Use recursion here.  Harder to follow but much less code.
             }
             else
                 c[prop] = opts[prop];
