@@ -161,7 +161,7 @@ export class byteValueMaps {
         [4, {name: 'wed', desc: 'Wednesday', dow: 3}],
         [5, {name: 'tue', desc: 'Tuesday', dow: 2}],
         [6, {name: 'mon', desc: 'Monday', dow: 1}],
-        [7, {val: 7, name: 'sun', desc: 'Sunday', dow: 0}]
+        [7, {name: 'sun', desc: 'Sunday', dow: 0}]
     ]);
     public pumpTypes: byteValueMap=new byteValueMap();
     public heatModes: byteValueMap=new byteValueMap([
@@ -350,6 +350,7 @@ export class BoardCommands {
 export class SystemCommands extends BoardCommands {
     public cancelDelay() {state.delay = 0;}
     public setDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {}
+    public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
 }
 export class BodyCommands extends BoardCommands {
     public setHeatMode(body: Body, mode: number) {}
@@ -395,6 +396,8 @@ export class BodyCommands extends BoardCommands {
     }
 }
 export class PumpCommands extends BoardCommands {
+    public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
+    public getCircuitUnits(){ return this.board.valueMaps.pumpUnits.toArray(); }
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -556,6 +559,7 @@ export class CircuitCommands extends BoardCommands {
         state.emitEquipmentChanges();
     }
     public setLightGroupColors(group: LightGroup) {
+        // RSG - shouldn't this be named something more generic than "colors" since it is setting multiple attributes?
         let grp = sys.lightGroups.getItemById(group.id);
         grp.circuits.clear();
         for (let i = 0; i < group.circuits.length; i++) {
@@ -659,4 +663,5 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
+    public updateHeaterServices(heater: Heater){}
 }

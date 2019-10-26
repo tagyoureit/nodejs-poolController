@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange} from './SystemBoard';
-import {PoolSystem, Body, Pump, sys, ConfigVersion} from '../Equipment';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange, HeaterCommands} from './SystemBoard';
+import {PoolSystem, Body, Pump, sys, ConfigVersion, Heater} from '../Equipment';
 import {Protocol, Outbound, Message, Response} from '../comms/messages/Messages';
 import {state, ChlorinatorState, CommsState, State} from '../State';
 import {logger} from '../../logger/Logger';
@@ -8,7 +8,7 @@ import {conn} from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1;}, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3;});
+        this.equipmentIds.features = new EquipmentIdRange(() => {return sys.equipment.maxCircuits + 1;}, () => {return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3;});
         this.valueMaps.circuitNames = new byteValueMap([
             [0, {name: 'notused', desc: 'NOT USED'}],
             [1, {name: 'aerator', desc: 'AERATOR'}],
@@ -209,26 +209,27 @@ export class EasyTouchBoard extends SystemBoard {
             [5, {name: 'hybrid', desc: 'hybrid'}]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
-            [1, {name: 'sat', desc: 'Saturday', dow: 6}],
-            [2, {name: 'fri', desc: 'Friday', dow: 5}],
-            [3, {name: 'thu', desc: 'Thursday', dow: 4}],
-            [4, {name: 'wed', desc: 'Wednesday', dow: 3}],
-            [5, {name: 'tue', desc: 'Tuesday', dow: 2}],
-            [6, {name: 'mon', desc: 'Monday', dow: 1}],
-            [7, {val: 7, name: 'sun', desc: 'Sunday', dow: 0}]
+            [1, {name: 'sun', desc: 'Sunday', dow: 1}],
+            [2, {name: 'mon', desc: 'Monday', dow: 2}],
+            [4, {name: 'tue', desc: 'Tuesday', dow: 4}],
+            [8, {name: 'wed', desc: 'Wednesday', dow: 8}],
+            [16, {name: 'thu', desc: 'Thursday', dow: 16}],
+            [32, {name: 'fri', desc: 'Friday', dow: 32}],
+            [64, {name: 'sat', desc: 'Saturday', dow: 64}]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'repeat', desc: 'Repeats' }],
-            [128, { name: 'runonce', desc: 'Run Once' }]
+            [0, {name: 'repeat', desc: 'Repeats'}],
+            [128, {name: 'runonce', desc: 'Run Once'}]
         ]);
-        this.valueMaps.scheduleDays.transform = function(byte) {
-            let days = [];
-            let b = byte & 0x007F;
-            for (let bit = 7; bit >= 0; bit--) {
-                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get(bit)));
-            }
-            return {val: b, days: days};
-        };
+        // RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
+        // this.valueMaps.scheduleDays.transform = function(byte) {
+        //     let days = [];
+        //     let b = byte & 0x007F;
+        //     for (let bit = 7; bit >= 0; bit--) {
+        //         if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get(bit)));
+        //     }
+        //     return {val: b, days: days};
+        // };
         this.valueMaps.lightThemes.transform = function(byte) {return extend(true, {val: byte}, this.get(byte) || this.get(255));};
     }
     public bodies: TouchBodyCommands=new TouchBodyCommands(this);
@@ -237,6 +238,8 @@ export class EasyTouchBoard extends SystemBoard {
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
     public chemistry: TouchChemistryCommands=new TouchChemistryCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
+    public heaters: TouchHeaterCommands=new TouchHeaterCommands(this);
+    public
     protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
 
     public requestConfiguration(ver?: ConfigVersion) {
@@ -246,7 +249,7 @@ export class EasyTouchBoard extends SystemBoard {
         }
     }
     public checkConfiguration() {
-        if (typeof sys.configVersion.equipment === 'undefined' || (Date.now().valueOf() - sys.configVersion.lastUpdated.valueOf()) / 1000 / 60 > 5 ){
+        if (typeof sys.configVersion.equipment === 'undefined' || (Date.now().valueOf() - sys.configVersion.lastUpdated.valueOf()) / 1000 / 60 > 5) {
             this.requestConfiguration();
         }
     }
@@ -373,6 +376,7 @@ export class TouchConfigQueue extends ConfigQueue {
         state.emitControllerChange();
     }
 }
+// todo: this can be implemented as a bytevaluemap
 export enum TouchConfigCategories {
     dateTime=5,
     heatTemperature=8,
@@ -424,7 +428,7 @@ class TouchSystemCommands extends SystemCommands {
         }));
         conn.queueSendMessage(out);
     }
-    public setDateTime(hour: number = state.time.hours, min: number = state.time.minutes, date: number = state.time.date, month: number = state.time.month, year: number = state.time.year, dst: number =  sys.general.options.adjustDST ? 1 : 0, dow: number = state.time.dayOfWeek) {
+    public setDateTime(hour: number = state.time.hours, min: number = state.time.minutes, date: number = state.time.date, month: number = state.time.month, year: number = state.time.year, dst: number = sys.general.options.adjustDST ? 1 : 0, dow: number = state.time.dayOfWeek) {
         // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
         // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
         // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
@@ -551,7 +555,7 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function (msg) {
+        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function(msg) {
             if (!msg.failed) {
                 cstate.isOn = true;
                 state.emitEquipmentChanges();
@@ -568,7 +572,7 @@ class TouchCircuitCommands extends CircuitCommands {
         this.setIntelliBriteTheme(theme);
     }
     public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function(msg) {
             if (!msg.failed) {
                 state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -591,6 +595,7 @@ class TouchCircuitCommands extends CircuitCommands {
     }
 }
 class TouchFeatureCommands extends FeatureCommands {
+    // todo: remove this in favor of setCircuitState only?
     public setFeatureState(id: number, val: boolean) {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
@@ -717,12 +722,6 @@ class TouchPumpCommands extends PumpCommands {
         //         break;
         // }
         pump.type = pumpType;
-        // pump.circuits.clear();
-        // for (let i = 1; i <= 8; i++) {
-        //     let pumpCircuit = pump.circuits.getItemById(i);
-        //     pumpCircuit.circuit = 0;
-        //     pumpCircuit.units = 0;
-        // }
         let spump = state.pumps.getItemById(pump.id, true);
         spump.type = pump.type;
         spump.status = 0;
@@ -732,4 +731,53 @@ class TouchPumpCommands extends PumpCommands {
         // sys.checkConfiguration();
     }
 
+}
+class TouchHeaterCommands extends HeaterCommands {
+    public updateHeaterServices(heater: Heater) {
+        if (heater.isActive || heater.type !== 1) {
+            if (heater.type === 3) {
+                this.board.valueMaps.heatModes = new byteValueMap([
+                    [0, {name: 'off', desc: 'Off'}],
+                    [1, {name: 'heater', desc: 'Heater'}],
+                    [2, {name: 'heatpump', desc: 'Heat Pump Only'}],
+                    [3, {name: 'heatpumppref', desc: 'Heat Pump Preferred'}]
+                ]);
+                this.board.valueMaps.heatSources = new byteValueMap([
+                    [0, {name: 'off', desc: 'No Heater'}],
+                    [3, {name: 'heater', desc: 'Heater'}],
+                    [5, {name: 'heatpump', desc: 'Heat Pump Only'}],
+                    [21, {name: 'heatpumppref', desc: 'Heat Pump Preferred'}],
+                    [32, {name: 'nochange', desc: 'No Change'}]
+                ]);
+            }
+            else if (heater.type === 2) {
+                this.board.valueMaps.heatModes = new byteValueMap([
+                    [0, {name: 'off', desc: 'Off'}],
+                    [1, {name: 'heater', desc: 'Heater'}],
+                    [2, {name: 'solar', desc: 'Solar Only'}],
+                    [3, {name: 'solarpref', desc: 'Solar Preferred'}]
+                ]);
+                // todo = verify these; don't think they are correct.
+                this.board.valueMaps.heatSources = new byteValueMap([
+                    [0, {name: 'off', desc: 'No Heater'}],
+                    [3, {name: 'heater', desc: 'Heater'}],
+                    [5, {name: 'solar', desc: 'Solar Only'}],
+                    [21, {name: 'solarpref', desc: 'Solar Preferred'}],
+                    [32, {name: 'nochange', desc: 'No Change'}]
+                ]);
+            }
+        }
+        else {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, {name: 'off', desc: 'Off'}],
+                [1, {name: 'heater', desc: 'Heater'}]
+            ]);
+            // todo = verify these; don't think they are correct.
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, {name: 'off', desc: 'No Heater'}],
+                [3, {name: 'heater', desc: 'Heater'}],
+                [32, {name: 'nochange', desc: 'No Change'}]
+            ]);
+        }
+    }
 }

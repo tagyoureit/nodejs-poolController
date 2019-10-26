@@ -7,7 +7,6 @@ import socketio=require("socket.io");
 import {ConfigRoute} from "./services/config/Config";
 import {StateRoute} from "./services/state/State";
 import {UtilitiesRoute} from "./services/utilities/Utilities";
-//import {ClassicRoute} from "./services/classic/Classic";
 import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
@@ -212,7 +211,6 @@ export class HttpServer extends ProtoServer {
             ConfigRoute.initRoutes(this.app);
             StateRoute.initRoutes(this.app);
             UtilitiesRoute.initRoutes(this.app);
-            //ClassicRoute.initRoutes(this.app);
             //this.initParcel();
 
             // The socket initialization needs to occur before we start listening.  If we don't then

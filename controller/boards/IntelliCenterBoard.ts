@@ -42,6 +42,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [4, { name: 'vsf', desc: 'Intelliflo VSF' }],
             [5, { name: 'vf', desc: 'Intelliflo VF' }]
         ]);
+        // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [3, { name: 'heater', desc: 'Heater' }],
@@ -822,6 +823,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         conn.queueSendMessage(out);
     }
 
+    // RG implement updateHeaterServices here
 }
 enum ConfigCategories {
     options = 0,

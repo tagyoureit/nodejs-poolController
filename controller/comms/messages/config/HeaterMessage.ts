@@ -1,6 +1,7 @@
 ﻿import {Inbound} from "../Messages";
 import {sys, Heater} from "../../../Equipment";
 import {ControllerType} from "../../../Constants";
+import {BoardCommands} from "controller/boards/SystemBoard";
 export class HeaterMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -42,10 +43,8 @@ export class HeaterMessage {
         }
     }
     private static processIntelliTouch(msg: Inbound) {
-        // RG - can't find any way to determine if the heater is installed or not.  It's got to be in the packet somewhere but a gas heater is nowhere in the menu system.
-        let heater: Heater = sys.heaters.getItemById(1, true);
-        heater.isActive = true;
-        heater.type = 1;
+        // *Touch assumes gas heater assumed on Pool (or shared) body
+        // Gas heater setup in EquipmentStateMessage upon *Touch discovery
         switch (msg.action) {
             // 1 = gas heater, 2 = solar, 3 = heat pump
             case 34:
@@ -98,8 +97,8 @@ export class HeaterMessage {
                     solar.isActive = false;
                 }
                 break;
-
             case 114:
+                // something to do with heat pumps... need equipment or other packets to decipher
                 // [ 255, 0, 255], [165, 0, 112, 16, 114, 10], [144, 2, 0, 0, 0, 0, 0, 0, 0, 0], [2, 51 ]heat + cool
                 // [165,0,112,16,114,10][144,0,0,0,0,0,0,0,0,0][2,49] == no Heater, no cool
                 // [165,0,112,16,114,10][144,2,0,0,0,0,0,0,0,0][2,51] == no heat, cooling

@@ -43,7 +43,8 @@ class ITTouchConfigQueue extends TouchConfigQueue {
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
             this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);
             // items not required by ScreenLogic
-            this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
+            if (sys.chlorinators.getItemById(1).isActive)
+                this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
         }
         if (this.remainingItems > 0) {
             var self = this;
