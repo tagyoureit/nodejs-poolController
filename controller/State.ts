@@ -120,9 +120,7 @@ export class State implements IState {
     public stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
-    }q
-
-
+    }
     protected hasChanged = false;
     public get controllerState() {
         var self = this;
@@ -380,10 +378,8 @@ class EqState implements IEqStateCreator<EqState> {
         if (eq.dataName === this.dataName) {
             if (eq.hasOwnProperty('id'))
                 return this.data.id === eq.data.id;
-            else {
-                console.log('Data Name = ' + eq.dataName);
+            else 
                 return true;
-            }
         }
         return false;
     }
