@@ -8,11 +8,14 @@
         "name2": "Robert Strouse"
     },
     "scripts": {
-        "build": "tsc && parcel build web/dashboard/index.html -d dist/web --target=node"
+        "start": "npm run build && node dist/app.js",
+        "build": "tsc"
     },
     "dependencies": {
         "express": "^4.17.1",
         "extend": "^3.0.2",
+        "multicast-dns": "^7.2.0",
+        "node-ssdp": "^4.0.0",
         "serialport": "^7.1.5",
         "socket.io": "^2.2.0",
         "source-map-support": "^0.5.13",

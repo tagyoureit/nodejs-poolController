@@ -43,7 +43,7 @@
             "mdns": {
                 "enabled": false
             },
-            "sspd": {
+            "ssdp": {
                 "enabled": false
             }
         },

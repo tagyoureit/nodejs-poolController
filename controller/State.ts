@@ -60,7 +60,7 @@ export class State implements IState {
             .catch(function (err) { if (err) logger.error('Error writing pool state %s %s', err, self.statePath); });
     }
     public getState(section?: string) : any {
-
+        // todo: getState('time') returns an array of chars.  Needs no be fixed.
         let state:any = {};
         let obj: any = this;
         if (typeof section === 'undefined' || section === 'all') {

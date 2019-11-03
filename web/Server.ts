@@ -2,8 +2,7 @@
 import express=require('express')
 import {config} from "../config/Config";
 import {logger} from "../logger/Logger";
-import socketio=require("socket.io");
-// import parcelBundler = require( 'parcel-bundler' );
+import socketio = require("socket.io");
 import {ConfigRoute} from "./services/config/Config";
 import {StateRoute} from "./services/state/State";
 import {UtilitiesRoute} from "./services/utilities/Utilities";
@@ -13,6 +12,11 @@ import * as https from "https";
 import {state} from "../controller/State";
 import {conn} from "../controller/comms/Comms";
 import {Inbound, Outbound} from "../controller/comms/messages/Messages";
+import {EventEmitter} from 'events';
+import { sys } from '../controller/Equipment';
+import * as multicastdns from 'multicast-dns';
+import * as ssdp from 'node-ssdp';
+import * as os from 'os';
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -27,14 +31,21 @@ export class WebServer {
             switch (s) {
                 case 'http':
                     srv = new HttpServer();
-                    this._servers.push(srv);
-                    srv.init(c);
                     break;
                 case 'https':
                     srv = new Http2Server();
-                    this._servers.push(srv);
-                    srv.init(c);
                     break;
+                case 'mdns':
+                    srv = new MdnsServer();
+                    break;
+                case 'ssdp':
+                    srv = new SsdpServer();
+                    break;
+            }
+            if (typeof srv !== 'undefined') {
+                this._servers.push(srv);
+                srv.init(c);
+                srv = undefined;
             }
         }
     }
@@ -43,12 +54,30 @@ export class WebServer {
             this._servers[i].emitToClients(evt, ...data);
         }
     }
+    public deviceXML(){} // override in SSDP
 }
 class ProtoServer {
     // base class for all servers.
     public isRunning: boolean=false;
     public emitToClients(evt: string, ...data: any) {}
     protected _dev: boolean=process.env.NODE_ENV !== 'production'
+    // todo: how do we know if the client is using IPv4/IPv6?
+    private family = 'IPv4';
+    private getInterface(){
+        const networkInterfaces = os.networkInterfaces( );
+        return networkInterfaces['en0'].find(
+            (val, index, arr) =>{
+                if (val.family === this.family)
+                return arr[index];
+            }
+          );
+    }
+    protected ip(){
+        return this.getInterface().address;
+    }
+    protected mac(){
+        return this.getInterface().mac;
+    }
 }
 export class Http2Server extends ProtoServer {
     public server: http2.Http2Server;
@@ -89,15 +118,13 @@ export class HttpServer extends ProtoServer {
         this.sockServer.on('connection', (sock: socketio.Socket) => {
             logger.info('New socket client connected %s -- %s', sock.id, sock.client.conn.remoteAddress);
             this.socketHandler(sock);
-
             this.sockServer.emit('controller', state.controllerState);
             //sock.conn.emit('controller', state.controllerState);
         });
-
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), {maxAge: '60d'}));
-        this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), {maxAge: '60d'}));
-        this.app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), {maxAge: '60d'}));
-        this.app.use('/font-awesome', express.static(path.join(process.cwd(), '/node_modules/@fortawesome/fontawesome-free/'), {maxAge: '60d'}));
+        // this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), {maxAge: '60d'}));
+        // this.app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), {maxAge: '60d'}));
+        // this.app.use('/font-awesome', express.static(path.join(process.cwd(), '/node_modules/@fortawesome/fontawesome-free/'), {maxAge: '60d'}));
 
     }
     private socketHandler(sock: socketio.Socket) {
@@ -206,12 +233,10 @@ export class HttpServer extends ProtoServer {
                     next();
                 }
             });
-            //  this.app.use(  express.static( path.join( process.cwd(), 'web/dashboard.orig' ), { maxAge: '1d' } ) );
             this.app.use(express.json());
             ConfigRoute.initRoutes(this.app);
             StateRoute.initRoutes(this.app);
             UtilitiesRoute.initRoutes(this.app);
-            //this.initParcel();
 
             // The socket initialization needs to occur before we start listening.  If we don't then
             // the headers from the server will not be picked up.
@@ -225,13 +250,121 @@ export class HttpServer extends ProtoServer {
         }
     }
 }
-export class SspdServer extends ProtoServer {
+export class SsdpServer extends ProtoServer {
     // Simple service discovery protocol
-    public server: any;
+    public server: any; //node-ssdp;
+    public init(cfg) {
+        if (cfg.enabled) {
+            let self = this;
+
+            logger.info('Starting up SSDP server');
+            var udn = 'uuid:806f52f4-1f35-4e33-9299-' + this.mac();
+            // todo: should probably check if http/https is enabled at this point
+            var port = config.getSection('web').servers.http.port || 4200;
+            console.log(port);
+            let location = 'http://' + this.ip() + ':' + port + '/device';
+            var SSDP = ssdp.Server;
+            this.server = new SSDP({
+                logLevel: 'INFO',
+                udn: udn,
+                location: location,
+                sourcePort: 1900
+            });
+            this.server.addUSN('urn:schemas-upnp-org:device:PoolController:1');
+
+            // start the server
+            this.server.start()
+                .then(function() {
+                    logger.silly('SSDP/UPnP Server started.');
+                    self.isRunning = true;
+                });
+
+            this.server.on('error', function(e) {
+                logger.error('error from SSDP:', e);
+            });
+        }
+    }
+    public deviceXML() {
+        let ver = sys.appVersion;
+        let XML = `<?xml version="1.0"?>
+                        <root xmlns="urn:schemas-upnp-org:PoolController-1-0">
+                            <specVersion>
+                                <major>${ver.split('.')[0]}</major>
+                                <minor>${ver.split('.')[1]}</minor>
+                                <patch>${ver.split('.')[2]}</patch>
+                            </specVersion>
+                            <device>
+                                <deviceType>urn:echo:device:PoolController:1</deviceType>
+                                <friendlyName>NodeJS Pool Controller</friendlyName> <manufacturer>tagyoureit</manufacturer>
+                                <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
+                                <modelDescription>An application to control pool equipment.</modelDescription>
+                                <serialNumber>0</serialNumber>				<UDN>uuid:806f52f4-1f35-4e33-9299-"${this.mac()}</UDN>
+                                <serviceList></serviceList>
+                            </device>
+                        </root>`;
+        return XML;
+    }
 }
+
 export class MdnsServer extends ProtoServer {
     // Multi-cast DNS server
-    public server: any;
+    public server;
+    public mdnsEmitter=new EventEmitter();
+    private queries=[];
+    public init(cfg) {
+        if (cfg.enabled) {
+            logger.info('Starting up MDNS server');
+            this.server = multicastdns({loopback: true});
+            var self = this;
+
+            // look for responses to queries we send
+            // todo: need timeout on queries to remove them in case a bad query is sent
+            this.server.on('response', function(responses) {
+                self.queries.forEach(function(query) {
+                    logger.silly(`looking to match on ${query.name}`);
+                    responses.answers.forEach(answer => {
+                        if (answer.name === query.name) {
+                            logger.info(`MDNS: found response: ${answer.name} at ${answer.data}`);
+                            // need to send response back to client here
+                            self.mdnsEmitter.emit('mdnsResponse', answer);
+                            // remove query from list
+                            self.queries = self.queries.filter((value, index, arr) => {
+                                if (value.name !== query.name) return arr;
+                            });
+                        }
+                    });
+
+                });
+            });
+
+            // respond to incoming MDNS queries
+            this.server.on('query', function(query) {
+                query.questions.forEach(question => {
+                    if (question.name === '_poolcontroller._tcp.local') {
+                        logger.info(`received mdns query for nodejs_poolController`);
+                        self.server.respond({
+                            answers: [{
+                                name: '_poolcontroller._tcp.local',
+                                type: 'A',
+                                ttl: 300,
+                                data: this.ip()
+                            }]
+                        });
+                    }
+                });
+            });
+
+            this.isRunning = true;
+        }
+    }
+    public queryMdns(query) {
+        // sample query
+        // queryMdns({name: '_poolcontroller._tcp.local', type: 'A'});
+        if (this.queries.indexOf(query) === -1) {
+            this.queries.push(query);
+        }
+        this.server.query({questions: [query]});
+    }
 }
 
 export const webApp = new WebServer();

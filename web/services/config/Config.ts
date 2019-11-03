@@ -54,6 +54,7 @@ export class ConfigRoute {
             return res.status(200).send('OK');
         });
         app.put('/config/schedule', (req, res) => {
+            // question: why do we have /lightgroup/:id but not /schedule/:id?
             // todo: need to implement this
             let schedId = parseInt(req.body.id || '0', 10);
             let sched = sys.schedules.getItemById(schedId < 1 ? sys.schedules.length + 1 : schedId, true);

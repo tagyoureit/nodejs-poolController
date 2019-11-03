@@ -72,7 +72,7 @@ export class PoolSystem implements IPoolSystem {
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
-        this.data.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
+        this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', {id: 0, isActive: true, type: 3});
     }
@@ -160,7 +160,7 @@ export class PoolSystem implements IPoolSystem {
     public customNames: CustomNameCollection;
     public intellibrite: LightGroup;
     //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
-    protected appVersion: string;
+    public appVersion: string;
     public get dirty(): boolean {return this._isDirty;}
     public set dirty(val) {
         this._isDirty = val;
