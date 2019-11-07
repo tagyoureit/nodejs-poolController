@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import {sys, LightGroup, ControllerType} from "../../../controller/Equipment";
+import {sys, LightGroup, ControllerType, Pump} from "../../../controller/Equipment";
 import {read} from "fs";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
@@ -25,21 +25,57 @@ export class ConfigRoute {
         app.get('/config/pump/:id/circuits', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
         });
-        app.put('/config/pump/circuitRate', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.body.id, 10));
-            pump.setCircuitRate(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.rate, 10));
+        app.get('/config/pump/:id/circuit/:circuitid', (req, res) => {
+            return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits[parseInt(req.params.circuitid, 10)]);
+        });
+        app.get('/config/pump/:id/nextAvailablePumpCircuit', (req, res) => {
+            // if no pumpCircuitId is available, 0 will be returned
+            let _id = sys.pumps.getItemById(parseInt(req.params.id, 10)).nextAvailablePumpCircuit();
+            return res.status(200).send(_id.toString());
+        });
+        app.put('/config/pump/:id/pumpCircuit', (req, res) => {
+            // if no pumpCircuitId is specified, set it as 0 and take the next available one
+            req.url = `${req.url}/0`;
+            req.next();
+        });
+        app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+            // RSG - do we want a /config/pump/:id/pumpCircuit/ that will just assume the next circuit?
+            let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
+            let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);
+            let _circuitId = parseInt(req.body.circuitId, 10);
+            let _rate = parseInt(req.body.rate, 10);
+            let _units = parseInt(req.body.units, 10); 
+            let pumpCircuit = {
+                pump: parseInt(req.params.id, 10),
+                pumpCircuitId: isNaN(_pumpCircuitId) ? undefined : _pumpCircuitId,
+                circuitId: isNaN(_circuitId) ? undefined : _circuitId,
+                rate: isNaN(_rate) ? undefined : _rate,
+                units: isNaN(_units) ? undefined : _units
+            };
+            let { result, reason } = pump.setPumpCircuit(pumpCircuit);
+            if (result === 'OK') 
+                return res.status(200).send(result);
+            else 
+                return res.status(500).send(reason);
+            
+            // circuit rate
+            // pump.setCircuitRate(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.rate, 10));
+            // return res.status(200).send('OK');
+
+            // circuit
+            // pump.setCircuitId(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.circuitId, 10));
+            // return res.status(200).send('OK');
+            
+            // circuit rate units
+            // pump.setCircuitRateUnits(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.units, 10));
+            // return res.status(200).send('OK');
+        });
+        app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+            let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
+            pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
             return res.status(200).send('OK');
         });
-        app.put('/config/pump/circuitRateUnits', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.body.id, 10));
-            pump.setCircuitRateUnits(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.units, 10));
-            return res.status(200).send('OK');
-        });
-        app.put('/config/pump/circuit', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.body.id, 10));
-            pump.setCircuitId(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.circuitId, 10));
-            return res.status(200).send('OK');
-        });
+
         app.get('/config/pump/types', (req, res) => {
             let pumpTypes = sys.board.pumps.getPumpTypes();
             return res.status(200).send(pumpTypes);
@@ -113,6 +149,9 @@ export class ConfigRoute {
             let grp = extend(true, {id: 0}, req.body);
             sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
             return res.status(200).send('OK');
+        });
+        app.get('/config', (req, res) => {
+            return res.status(200).send(sys.getSection('all'));
         });
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));

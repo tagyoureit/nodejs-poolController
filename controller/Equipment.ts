@@ -784,15 +784,43 @@ export class Pump extends EqItem {
     public set body(val: number) {this.data.body = val;}
     public get circuits(): PumpCircuitCollection {return new PumpCircuitCollection(this.data, "circuits");}
     public setPump(obj?: any) {sys.board.pumps.setPump(this, obj);}
-    public setCircuitRate(circuitId: number, rate: number) {
+    public setPumpCircuit(pumpCircuit: any ){
+        return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
+    }
+/*     public setCircuitRate(circuitId: number, rate: number) {
+        // below should check with the board to see if units is 0 or 1
         let c = this.circuits.getItemById(circuitId);
         if (c.units === 0) c.speed = rate;
         else c.flow = rate;
         this.setPump();
     }
     public setCircuitRateUnits(circuitId: number, units: number) {sys.board.pumps.setCircuitRateUnits(this, circuitId, units);}
-    public setCircuitId(pumpCircuitId: number, circuitId: number) {sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId);}
+    public setCircuitId(pumpCircuitId: number, circuitId: number) {sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId);} */
     public setType(pumpType: number) {sys.board.pumps.setType(this, pumpType);}
+    public nextAvailablePumpCircuit(): number {
+        let pumpCircuits = this.circuits;
+        for (let i = 1; i <= 8; i++){
+            let _circ = pumpCircuits.getItemById(i);
+            if (typeof _circ.circuit === 'undefined')
+                return i;
+        }
+        return 0;
+    }
+    public checkOrMakeValidRPM(rpm?: number){
+        if (!rpm || rpm <= this.minSpeed || rpm >= this.maxSpeed) 
+            return 1000;
+        else return rpm;
+    }
+    public checkOrMakeValidGPM(gpm?: number){
+        if (!gpm || gpm <= this.minFlow || gpm >= this.maxFlow) 
+            return 15;
+        else return gpm;
+    }
+    public isRPMorGPM(rate: number): 'rpm' | 'gpm' | 'none' {
+        if (rate >= this.minFlow || rate <= this.maxFlow) return 'gpm';
+        if (rate >= this.minSpeed || rate <= this.maxSpeed) return 'rpm';
+        return 'none';
+    }
 }
 export class PumpCircuitCollection extends EqItemCollection<PumpCircuit> {
     constructor(data: any, name?: string) {super(data, name || "circuits");}

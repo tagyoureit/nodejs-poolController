@@ -1,12 +1,12 @@
 ﻿import * as extend from 'extend';
-import { EventEmitter } from 'events';
-import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, LightGroupCircuitCollection } from '../Equipment';
+import {EventEmitter} from 'events';
+import {PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, LightGroupCircuitCollection, PumpCircuit} from '../Equipment';
 import {state, ChlorinatorState, PumpState, BodyTempState, VirtualCircuitState} from '../State';
 //import { ControllerType } from '../Constants';
 import {Outbound} from '../comms/messages/Messages';
-import { ControllerType } from 'controller/Constants';
+import {ControllerType} from 'controller/Constants';
 export class byteValueMap extends Map<number, any> {
-    public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
+    public transform(byte: number, ext?: number) {return extend(true, {val: byte}, this.get(byte) || this.get(0));}
     public toArray(): any[] {
         let arrKeys = Array.from(this.keys());
         let arr = [];
@@ -20,32 +20,32 @@ export class byteValueMap extends Map<number, any> {
         }
         return {name: name};
     }
-    public getValue(name: string): number { return this.transformByName(name).val; }
-    public getName(val: number): string { return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : ''; } // added default return as this was erroring out by not finding a name
+    public getValue(name: string): number {return this.transformByName(name).val;}
+    public getName(val: number): string {return val >= 0 && typeof this.get(val) !== 'undefined' ? this.get(val).name : '';} // added default return as this was erroring out by not finding a name
     public merge(vals) {
         for (let val of vals) {
             this.set(val[0], val[1]);
-        }                
+        }
     }
 }
 export class EquipmentIdRange {
-    constructor(start: number | Function, end: number | Function) {
+    constructor(start: number|Function, end: number|Function) {
         this._start = start;
         this._end = end;
     }
-    private _start: any = 0;
-    private _end: any = 0;
-    public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; }
-    public set start(val: number) { this._start = val; }
-    public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; }
-    public set end(val: number) { this._end = val; }
-    public isInRange(id: number) { return id >= this.start && id <= this.end; }
+    private _start: any=0;
+    private _end: any=0;
+    public get start(): number {return typeof this._start === 'function' ? this._start() : this._start;}
+    public set start(val: number) {this._start = val;}
+    public get end(): number {return typeof this._end === 'function' ? this._end() : this._end;}
+    public set end(val: number) {this._end = val;}
+    public isInRange(id: number) {return id >= this.start && id <= this.end;}
 }
 export class EquipmentIds {
-    public circuits: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
-    public features: EquipmentIdRange = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures + 3; });
-    public circuitGroups: EquipmentIdRange = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-    public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(237, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; }); 
+    public circuits: EquipmentIdRange=new EquipmentIdRange(1, function() {return this.start + sys.equipment.maxCircuits - 1;});
+    public features: EquipmentIdRange=new EquipmentIdRange(function() {return sys.equipment.maxCircuits + 1;}, function() {return this.start + sys.equipment.maxFeatures + 3;});
+    public circuitGroups: EquipmentIdRange=new EquipmentIdRange(192, function() {return this.start + sys.equipment.maxCircuitGroups - 1;});
+    public virtualCircuits: EquipmentIdRange=new EquipmentIdRange(237, function() {return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1;});
 }
 export class byteValueMaps {
     constructor() {
@@ -63,9 +63,9 @@ export class byteValueMaps {
             }
             return {val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte};
         };
-        this.chlorinatorStatus.transform = function (byte) {
-            if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
-            else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
+        this.chlorinatorStatus.transform = function(byte) {
+            if (byte === 128) return {val: 128, name: 'commlost', desc: 'Communication Lost'};
+            else if (byte === 0) return {val: 0, name: 'ok', desc: 'Ok'};
             for (let b = 8; b > 0; b--) {
                 let bit = (1 << (b - 1));
                 if ((byte & bit) > 0) {
@@ -78,7 +78,7 @@ export class byteValueMaps {
             return {val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte};
         };
         this.scheduleTypes.transform = function(byte) {
-            return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
+            return (byte & 128) > 0 ? extend(true, {val: 128}, this.get(128)) : extend(true, {val: 0}, this.get(0));
         };
         this.scheduleDays.transform = function(byte) {
             let days = [];
@@ -96,7 +96,7 @@ export class byteValueMaps {
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function(byte) {return typeof byte === 'undefined' ? this.get(255) : extend(true, {val: byte}, this.get(byte) || this.get(255));};
     }
     public panelModes: byteValueMap=new byteValueMap([
         [0, {val: 0, name: 'auto', desc: 'Auto'}],
@@ -110,49 +110,49 @@ export class byteValueMaps {
         [1, {val: 1, name: 'ready', desc: 'Ready', percent: 100}],
         [2, {val: 2, name: 'loading', desc: 'Loading', percent: 0}]
     ]);
-    
+
     public circuitFunctions: byteValueMap=new byteValueMap();
     // Feature functions are used as the available options to define a circuit.
-    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-    public heaterTypes: byteValueMap = new byteValueMap();
-    public virtualCircuits: byteValueMap = new byteValueMap([
-        [237, { name: 'heatBoost', desc: 'Heat Boost' }],
-        [238, { name: 'heatEnable', desc: 'Heat Enable' }],
-        [239, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
-        [240, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
-        [244, { name: 'poolHeater', desc: 'Pool Heater' }],
-        [245, { name: 'spaHeater', desc: 'Spa Heater' }],
-        [246, { name: 'freeze', desc: 'Freeze' }],
-        [247, { name: 'poolSpa', desc: 'Pool/Spa' }],
-        [248, { name: 'solarHeat', desc: 'Solar Heat' }],
-        [251, { name: 'heater', desc: 'Heater' }],
-        [252, { name: 'solar', desc: 'Solar' }],
-        [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
+    public featureFunctions: byteValueMap=new byteValueMap([[0, {name: 'generic', desc: 'Generic'}], [1, {name: 'spillway', desc: 'Spillway'}]]);
+    public heaterTypes: byteValueMap=new byteValueMap();
+    public virtualCircuits: byteValueMap=new byteValueMap([
+        [237, {name: 'heatBoost', desc: 'Heat Boost'}],
+        [238, {name: 'heatEnable', desc: 'Heat Enable'}],
+        [239, {name: 'pumpSpeedUp', desc: 'Pump Speed +'}],
+        [240, {name: 'pumpSpeedDown', desc: 'Pump Speed -'}],
+        [244, {name: 'poolHeater', desc: 'Pool Heater'}],
+        [245, {name: 'spaHeater', desc: 'Spa Heater'}],
+        [246, {name: 'freeze', desc: 'Freeze'}],
+        [247, {name: 'poolSpa', desc: 'Pool/Spa'}],
+        [248, {name: 'solarHeat', desc: 'Solar Heat'}],
+        [251, {name: 'heater', desc: 'Heater'}],
+        [252, {name: 'solar', desc: 'Solar'}],
+        [255, {name: 'poolHeatEnable', desc: 'Pool Heat Enable'}]
     ]);
-    public lightThemes: byteValueMap = new byteValueMap([
-        [0, { name: 'white', desc: 'White' }],
-        [1, { name: 'green', desc: 'Green' }],
-        [2, { name: 'blue', desc: 'Blue' }],
-        [3, { name: 'magenta', desc: 'Magenta' }],
-        [4, { name: 'red', desc: 'Red' }],
-        [5, { name: 'sam', desc: 'SAm Mode' }],
-        [6, { name: 'party', desc: 'Party' }],
-        [7, { name: 'romance', desc: 'Romance' }],
-        [8, { name: 'caribbean', desc: 'Caribbean' }],
-        [9, { name: 'american', desc: 'American' }],
-        [10, { name: 'sunset', desc: 'Sunset' }],
-        [11, { name: 'royal', desc: 'Royal' }],
-        [255, { name: 'none', desc: 'None' }]
+    public lightThemes: byteValueMap=new byteValueMap([
+        [0, {name: 'white', desc: 'White'}],
+        [1, {name: 'green', desc: 'Green'}],
+        [2, {name: 'blue', desc: 'Blue'}],
+        [3, {name: 'magenta', desc: 'Magenta'}],
+        [4, {name: 'red', desc: 'Red'}],
+        [5, {name: 'sam', desc: 'SAm Mode'}],
+        [6, {name: 'party', desc: 'Party'}],
+        [7, {name: 'romance', desc: 'Romance'}],
+        [8, {name: 'caribbean', desc: 'Caribbean'}],
+        [9, {name: 'american', desc: 'American'}],
+        [10, {name: 'sunset', desc: 'Sunset'}],
+        [11, {name: 'royal', desc: 'Royal'}],
+        [255, {name: 'none', desc: 'None'}]
     ]);
-    public lightColors: byteValueMap = new byteValueMap([
-        [0, { name: 'white', desc: 'White' }],
-        [16, { name: 'lightgreen', desc: 'Light Green' }],
-        [32, { name: 'green', desc: 'Green' }],
-        [48, { name: 'cyan', desc: 'Cyan' }],
-        [64, { name: 'blue', desc: 'Blue' }],
-        [80, { name: 'lavender', desc: 'Lavender' }],
-        [96, { name: 'magenta', desc: 'Magenta' }],
-        [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
+    public lightColors: byteValueMap=new byteValueMap([
+        [0, {name: 'white', desc: 'White'}],
+        [16, {name: 'lightgreen', desc: 'Light Green'}],
+        [32, {name: 'green', desc: 'Green'}],
+        [48, {name: 'cyan', desc: 'Cyan'}],
+        [64, {name: 'blue', desc: 'Blue'}],
+        [80, {name: 'lavender', desc: 'Lavender'}],
+        [96, {name: 'magenta', desc: 'Magenta'}],
+        [112, {name: 'lightmagenta', desc: 'Light Magenta'}]
     ]);
     public scheduleDays: byteValueMap=new byteValueMap([
         [1, {name: 'sat', desc: 'Saturday', dow: 6}],
@@ -177,34 +177,34 @@ export class byteValueMaps {
         [21, {name: 'solarpref', desc: 'Solar Preferred'}],
         [32, {name: 'nochange', desc: 'No Change'}]
     ]);
-    public heatStatus: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'Off' }],
-        [1, { name: 'heater', desc: 'Heater' }],
-        [2, { name: 'solar', desc: 'Solar' }],
-        [3, { nane: 'cooling', desc: 'Cooling' }]
+    public heatStatus: byteValueMap=new byteValueMap([
+        [0, {name: 'off', desc: 'Off'}],
+        [1, {name: 'heater', desc: 'Heater'}],
+        [2, {name: 'solar', desc: 'Solar'}],
+        [3, {nane: 'cooling', desc: 'Cooling'}]
 
     ]);
-    public pumpStatus: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
+    public pumpStatus: byteValueMap=new byteValueMap([
+        [0, {name: 'off', desc: 'Off'}], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
         // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
-        [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
+        [1, {name: 'ok', desc: 'Ok'}], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
         // as is should be if this is a VS / VF pump.  However if it is wired to a relay most often filter, the pump will report status
         // 0 if it is not running.  Essentially this is no error but it is not a status either.
-        [2, { name: 'filter', desc: 'Filter warning' }],
-        [3, { name: 'overcurrent', desc: 'Overcurrent condition' }],
-        [4, { name: 'priming', desc: 'Priming alarm' }],
-        [5, { name: 'blocked', desc: 'System blocked' }],
-        [6, { name: 'general', desc: 'General alarm' }],
-        [7, { name: 'overtemp', desc: 'Overtemp condition' }],
-        [8, { name: 'power', dec: 'Power outage' }],
-        [9, { name: 'overcurrent2', desc: 'Overcurrent condition 2' }],
-        [10, { name: 'overvoltage', desc: 'Overvoltage condition' }],
-        [11, { name: 'error11', desc: 'Unspecified Error 11' }],
-        [12, { name: 'error12', desc: 'Unspecified Error 12' }],
-        [13, { name: 'error13', desc: 'Unspecified Error 13' }],
-        [14, { name: 'error14', desc: 'Unspecified Error 14' }],
-        [15, { name: 'error15', desc: 'Unspecified Error 15' }],
-        [16, { name: 'commfailure', desc: 'Communication failure' }]
+        [2, {name: 'filter', desc: 'Filter warning'}],
+        [3, {name: 'overcurrent', desc: 'Overcurrent condition'}],
+        [4, {name: 'priming', desc: 'Priming alarm'}],
+        [5, {name: 'blocked', desc: 'System blocked'}],
+        [6, {name: 'general', desc: 'General alarm'}],
+        [7, {name: 'overtemp', desc: 'Overtemp condition'}],
+        [8, {name: 'power', dec: 'Power outage'}],
+        [9, {name: 'overcurrent2', desc: 'Overcurrent condition 2'}],
+        [10, {name: 'overvoltage', desc: 'Overvoltage condition'}],
+        [11, {name: 'error11', desc: 'Unspecified Error 11'}],
+        [12, {name: 'error12', desc: 'Unspecified Error 12'}],
+        [13, {name: 'error13', desc: 'Unspecified Error 13'}],
+        [14, {name: 'error14', desc: 'Unspecified Error 14'}],
+        [15, {name: 'error15', desc: 'Unspecified Error 15'}],
+        [16, {name: 'commfailure', desc: 'Communication failure'}]
     ]);
     public pumpUnits: byteValueMap=new byteValueMap([
         [0, {name: 'rpm', desc: 'RPM'}],
@@ -234,10 +234,10 @@ export class byteValueMaps {
         [2, {name: 'aquarite', desc: 'Aquarite'}],
         [3, {name: 'unknown', desc: 'unknown'}]
     ]);
-    public circuitNames: byteValueMap = new byteValueMap();
-    public scheduleTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'runonce', desc: 'Run Once' }],
-        [128, { name: 'repeat', desc: 'Repeats' }]
+    public circuitNames: byteValueMap=new byteValueMap();
+    public scheduleTypes: byteValueMap=new byteValueMap([
+        [0, {name: 'runonce', desc: 'Run Once'}],
+        [128, {name: 'repeat', desc: 'Repeats'}]
     ]);
     public circuitGroupTypes: byteValueMap=new byteValueMap([
         [0, {name: 'none', desc: 'Unspecified'}],
@@ -245,41 +245,41 @@ export class byteValueMaps {
         [2, {name: 'circuit', desc: 'Circuit'}],
         [3, {name: 'intellibrite', desc: 'IntelliBrite'}]
     ]);
-    public tempUnits: byteValueMap = new byteValueMap([
-        [0, { name: 'F', desc: 'Fahrenheit' }],
-        [4, { name: 'C', desc: 'Celcius' }]
+    public tempUnits: byteValueMap=new byteValueMap([
+        [0, {name: 'F', desc: 'Fahrenheit'}],
+        [4, {name: 'C', desc: 'Celcius'}]
     ]);
-    public valveTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'standard', desc: 'Standard' }],
-        [1, { name: 'intellivalve', desc: 'IntelliValve' }]
+    public valveTypes: byteValueMap=new byteValueMap([
+        [0, {name: 'standard', desc: 'Standard'}],
+        [1, {name: 'intellivalve', desc: 'IntelliValve'}]
     ]);
-    public intellibriteActions: byteValueMap = new byteValueMap([
-        [0, { name: 'ready', desc: 'Ready' }],
-        [1, { name: 'sync', desc: 'Synchronizing' }],
-        [2, { name: 'set', desc: 'Sequencing Set Operation' }],
-        [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
+    public intellibriteActions: byteValueMap=new byteValueMap([
+        [0, {name: 'ready', desc: 'Ready'}],
+        [1, {name: 'sync', desc: 'Synchronizing'}],
+        [2, {name: 'set', desc: 'Sequencing Set Operation'}],
+        [3, {name: 'swim', desc: 'Sequencing Swim Operation'}]
     ]);
-    public msgBroadcastActions: byteValueMap = new byteValueMap([
-        [2, { name: 'status', desc: 'Equipment Status' }]
+    public msgBroadcastActions: byteValueMap=new byteValueMap([
+        [2, {name: 'status', desc: 'Equipment Status'}]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
 // managed by the personality board.  This also provides a way to override specific functions for
 // acquiring state and configuration data.
 export class SystemBoard {
-    constructor(system: PoolSystem) { }
-    public valueMaps: byteValueMaps = new byteValueMaps();
-    public checkConfiguration() { }
-    public requestConfiguration(ver?: ConfigVersion) { }
-    public stopAsync() { }
-    public system: SystemCommands = new SystemCommands(this);
-    public bodies: BodyCommands = new BodyCommands(this);
-    public pumps: PumpCommands = new PumpCommands(this);
-    public circuits: CircuitCommands = new CircuitCommands(this);
-    public features: FeatureCommands = new FeatureCommands(this);
-    public chemistry: ChemistryCommands = new ChemistryCommands(this);
-    public schedules: ScheduleCommands = new ScheduleCommands(this);
-    public equipmentIds: EquipmentIds = new EquipmentIds();
+    constructor(system: PoolSystem) {}
+    public valueMaps: byteValueMaps=new byteValueMaps();
+    public checkConfiguration() {}
+    public requestConfiguration(ver?: ConfigVersion) {}
+    public stopAsync() {}
+    public system: SystemCommands=new SystemCommands(this);
+    public bodies: BodyCommands=new BodyCommands(this);
+    public pumps: PumpCommands=new PumpCommands(this);
+    public circuits: CircuitCommands=new CircuitCommands(this);
+    public features: FeatureCommands=new FeatureCommands(this);
+    public chemistry: ChemistryCommands=new ChemistryCommands(this);
+    public schedules: ScheduleCommands=new ScheduleCommands(this);
+    public equipmentIds: EquipmentIds=new EquipmentIds();
 }
 export class ConfigRequest {
     public failed: boolean=false;
@@ -339,9 +339,9 @@ export class ConfigQueue {
         this.totalItems += req.items.length;
     }
     // following overridden in extended class
-    processNext(msg?: Outbound) {} 
-    protected queueItems(cat: number, items?: number[]) {} 
-    protected queueRange(cat: number, start: number, end: number) {} 
+    processNext(msg?: Outbound) {}
+    protected queueItems(cat: number, items?: number[]) {}
+    protected queueRange(cat: number, start: number, end: number) {}
 }
 export class BoardCommands {
     protected board: SystemBoard=null;
@@ -350,7 +350,7 @@ export class BoardCommands {
 export class SystemCommands extends BoardCommands {
     public cancelDelay() {state.delay = 0;}
     public setDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {}
-    public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
+    public getDOW() {return this.board.valueMaps.scheduleDays.toArray();}
 }
 export class BodyCommands extends BoardCommands {
     public setHeatMode(body: Body, mode: number) {}
@@ -396,8 +396,8 @@ export class BodyCommands extends BoardCommands {
     }
 }
 export class PumpCommands extends BoardCommands {
-    public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
-    public getCircuitUnits(){ return this.board.valueMaps.pumpUnits.toArray(); }
+    public getPumpTypes() {return this.board.valueMaps.pumpTypes.toArray();}
+    public getCircuitUnits() {return this.board.valueMaps.pumpUnits.toArray();}
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -406,30 +406,140 @@ export class PumpCommands extends BoardCommands {
             }
         }
     }
-    public setCircuitRate(pump: Pump, circuitId: number, rate: number) {
-        let c = pump.circuits.getItemById(circuitId);
-        let val = sys.board.valueMaps.pumpUnits.transform(c.units);
-        if (val.name === 'rpm') c.speed = rate;
-        else c.flow = rate;
-        this.setPump(pump);
-    }
-    public setCircuitRateUnits(pump: Pump, circuitId: number, units: number) {
-        let c = pump.circuits.getItemById(circuitId);
-        let val = sys.board.valueMaps.pumpUnits.transform(units);
-        c.units = units;
-        if (val.name === 'rpm') c.speed = 1000;
-        else c.flow = 30;
-        this.setPump(pump);
-    }
-    public setCircuitId(pump: Pump, pumpCircuitId: number, circuitId: number) {
-        let c = pump.circuits.getItemById(pumpCircuitId, true);
-        c.circuit = circuitId;
-        if (typeof c.units === 'undefined') {
-            c.units = 0;
-            c.speed = 1000;
+
+    public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
+        const origValues = extend(true, {}, pumpCircuitDeltas);
+        let {pumpCircuitId, circuitId, rate, units} = pumpCircuitDeltas;
+        let failed = false;
+        let succeeded = false;
+       // STEP 1 - Make a copy of the existing circuit
+       let shadowPumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId);
+
+        // if pumpCircuitId === 0, do we have an available circuit
+        if (pumpCircuitId === 0 || typeof pumpCircuitId === 'undefined') {
+            pumpCircuitId = pump.nextAvailablePumpCircuit();
+            // no circuits available
+            if (pumpCircuitId === 0) failed = true;
+            succeeded = true;
         }
-        pump.setPump();
+        // if we get a bad pumpCircuitId then fail.  Only idiots will get here.
+        else if (pumpCircuitId < 1 || pumpCircuitId > 8) failed = true;
+        if (failed) return {result: 'FAILED', reason: {pumpCircuitId: pumpCircuitId}};
+
+        // STEP 1A: Validate Circuit
+        // first check if we are missing both a new circuitId or existing circuitId
+        if (typeof circuitId !== 'undefined'){
+            let _circuit = sys.circuits.getInterfaceById(circuitId);
+            if (_circuit.isActive === false || typeof _circuit.type === 'undefined'){
+                // not a good circuit, fail
+                return {result: 'FAILED', reason: {circuitId: circuitId}};
+            }
+            shadowPumpCircuit.circuit = circuitId;
+            succeeded = true;
+        } 
+        // if we don't have a circuit, fail
+        if (typeof shadowPumpCircuit.circuit === 'undefined') return {result: 'FAILED', reason: {circuitId: 0}};
+
+        // STEP 1B: Validate Rate/Units
+        let type = sys.board.valueMaps.pumpTypes.transform(pump.type).name;
+        switch (type) {
+            case 'vs':
+                // if VS, need rate only
+                // in fact, ignoring units
+                if (typeof rate === 'undefined') break;
+                shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
+                shadowPumpCircuit.flow = undefined;
+                succeeded = true;
+                break;
+            case 'vf':
+                // if VF, need rate only
+                // in fact, ignoring units
+                if (typeof rate === 'undefined') break;
+                shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
+                shadowPumpCircuit.speed = undefined;
+                succeeded = true;
+                break;
+            case 'vsf':
+                // if VSF, we can take either rate or units or both and make a valid pumpCircuit
+                if ((typeof rate !== 'undefined') && (typeof units !== 'undefined')){
+                    // do we have a valid combo of units and rate? -- do we need to check that or assume it will be passed in correctly?
+                    if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
+                        shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
+                        shadowPumpCircuit.flow = undefined;
+                        succeeded = true;
+                    }
+                        else    {
+                            shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
+                            shadowPumpCircuit.speed = undefined;
+                            succeeded = true;
+                        }
+                }
+                else if (typeof rate === 'undefined'){
+                    // only have units; set default rate or use existing rate
+                    if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
+                        shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(shadowPumpCircuit.speed);
+                        shadowPumpCircuit.flow = undefined;
+                        succeeded = true;
+                    }
+                    else {
+                        shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(shadowPumpCircuit.flow);
+                        shadowPumpCircuit.speed = undefined;
+                        succeeded = true;
+                    }   
+                }
+                else if (typeof units === 'undefined'){
+                    let rateType = pump.isRPMorGPM(rate);
+                    if (rateType !== 'gpm') {
+                        // default to speed if None
+                        shadowPumpCircuit.flow = rate;
+                        shadowPumpCircuit.speed = undefined;
+                    }
+                    else  {
+                        shadowPumpCircuit.speed = rate || 1000;
+                        shadowPumpCircuit.flow = undefined;
+                    }
+                    shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue(rateType);
+                    succeeded = true;
+                }
+                break;
+        }
+
+        if (!succeeded) return {result: 'FAILED', reason: origValues};
+        // STEP 2: Copy values to real circuit -- if we get this far, we have a real circuit
+        let pumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId, true);
+        pumpCircuit.circuit = shadowPumpCircuit.circuit;
+        pumpCircuit.units = shadowPumpCircuit.units;
+        pumpCircuit.speed = shadowPumpCircuit.speed;
+        pumpCircuit.flow = shadowPumpCircuit.flow;
+        return {result: 'OK'};
     }
+
+    /*     public setCircuitRate(pump: Pump, circuitId: number, rate: number) {
+            let c = pump.circuits.getItemById(circuitId);
+            let val = sys.board.valueMaps.pumpUnits.transform(c.units);
+            if (val.name === 'rpm') c.speed = rate;
+            else c.flow = rate;
+            this.setPump(pump);
+        }
+        public setCircuitRateUnits(pump: Pump, circuitId: number, units: number) {
+            let c = pump.circuits.getItemById(circuitId);
+            let val = sys.board.valueMaps.pumpUnits.transform(units);
+            c.units = units;
+            if (val.name === 'rpm') c.speed = 1000;
+            else c.flow = 30;
+            this.setPump(pump);
+        }
+        public setCircuitId(pump: Pump, pumpCircuitId: number, circuitId: number) {
+            let c = pump.circuits.getItemById(pumpCircuitId, true);
+            c.circuit = circuitId;
+            if (typeof c.units === 'undefined') {
+                c.units = 0;
+                c.speed = 1000;
+            }
+            pump.setPump();
+        } */
     public setType(pump: Pump, pumpType: number) {
         pump.type = pumpType;
         this.setPump(pump);
@@ -553,7 +663,7 @@ export class CircuitCommands extends BoardCommands {
         sys.intellibrite.circuits.clear();
         for (let i = 0; i < group.circuits.length; i++) {
             let circuit = group.circuits.getItemByIndex(i);
-            sys.intellibrite.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+            sys.intellibrite.circuits.add({id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay});
         }
         state.intellibrite.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
         state.emitEquipmentChanges();
@@ -564,19 +674,19 @@ export class CircuitCommands extends BoardCommands {
         grp.circuits.clear();
         for (let i = 0; i < group.circuits.length; i++) {
             let circuit = group.circuits.getItemByIndex(i);
-            grp.circuits.add({ id: i, circuit:circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+            grp.circuits.add({id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay});
         }
         let sgrp = state.lightGroups.getItemById(group.id);
         sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
         state.emitEquipmentChanges();
     }
-    public sequenceLightGroup(id: number, operation:string) {
+    public sequenceLightGroup(id: number, operation: string) {
         let sgroup = state.lightGroups.getItemById(id);
         sgroup.hasChanged = true;
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             sgroup.action = nop;
-            setTimeout(function () { sgroup.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
+            setTimeout(function() {sgroup.action = 0; state.emitEquipmentChanges;}, 20000); // It takes 20 seconds to sequence.
         }
         state.emitEquipmentChanges();
     }
@@ -585,7 +695,7 @@ export class CircuitCommands extends BoardCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             state.intellibrite.action = nop;
-            setTimeout(function () { state.intellibrite.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
+            setTimeout(function() {state.intellibrite.action = 0; state.emitEquipmentChanges;}, 20000); // It takes 20 seconds to sequence.
         }
         state.emitEquipmentChanges();
     }
@@ -663,5 +773,5 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
-    public updateHeaterServices(heater: Heater){}
+    public updateHeaterServices(heater: Heater) {}
 }
