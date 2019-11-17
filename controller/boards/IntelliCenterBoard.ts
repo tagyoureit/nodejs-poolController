@@ -676,7 +676,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
         let { result, reason } = super.setPumpCircuit(pump, pumpCircuitDeltas);
         if (result === 'OK') this.setPump(pump);
-        return { result, reason };
+        return { result: result, reason: reason };
     }
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
