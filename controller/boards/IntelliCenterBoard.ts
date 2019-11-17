@@ -673,6 +673,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outName.appendPayloadString(pump.name, 16);
         return [outSettings, outName];
     }
+    public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
+        let { result, reason } = super.setPumpCircuit(pump, pumpCircuitDeltas);
+        if (result === 'OK') this.setPump(pump);
+        return { result, reason };
+    }
     public setPump(pump: Pump, obj?: any) {
         super.setPump(pump, obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
