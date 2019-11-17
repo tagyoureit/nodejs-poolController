@@ -87,7 +87,7 @@ export class ScheduleMessage {
         // [165,16,15,16,17,7],[1,6,9,25,15,55,255],[2, 90]
         const schedId = msg.extractPayloadByte(0);
 
-        // set sched/eggtimer to inactive; will set active belowe if still true.
+        // set sched/eggtimer to inactive; will set active below if still true.
         sys.schedules.getItemById(schedId).isActive = false;
         sys.eggTimers.getItemById(schedId).isActive = false;
 
@@ -110,7 +110,7 @@ export class ScheduleMessage {
                 schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
             else {
                 let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer;
-                schedule.endTime = schedule.startTime === 0?720:schedule.startTime + _eggTimer;
+                schedule.endTime = schedule.startTime === 0 ? 720 : schedule.startTime + _eggTimer;
             }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
@@ -147,7 +147,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startMonth = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -161,7 +161,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startDay = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -175,7 +175,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.startYear = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -224,7 +224,7 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             let schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.circuit = msg.extractPayloadByte(i + 1) + 1;
-            let csched = state.schedules.getItemById(schedule.id)
+            let csched = state.schedules.getItemById(schedule.id);
             csched.circuit = schedule.circuit;
             csched.startTime = schedule.startTime;
             csched.endTime = schedule.endTime;
@@ -241,7 +241,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.runOnce = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -255,7 +255,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.scheduleDays = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -269,7 +269,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSource = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;
@@ -283,7 +283,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSetpoint = msg.extractPayloadByte(i + 1);
             if (schedule.circuit > 0) {
-                let csched = state.schedules.getItemById(schedule.id)
+                let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
                 csched.endTime = schedule.endTime;

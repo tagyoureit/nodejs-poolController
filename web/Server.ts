@@ -107,7 +107,7 @@ export class HttpServer extends ProtoServer {
     private _pendingMsg: Inbound;
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
-            //console.log({evt:evt, msg: 'Emitting...', data: data });
+            // console.log(JSON.stringify({evt:evt, msg: 'Emitting...', data: data },null,2));
             this.sockServer.emit(evt, ...data);
         }
     }
@@ -224,7 +224,7 @@ export class HttpServer extends ProtoServer {
             //this.app.use();
             this.server = http.createServer(this.app);
             if (cfg.httpsRedirect) {
-                var cfgHttps = config.getSection('web.server.https');
+                var cfgHttps = config.getSection('web').server.https;
                 this.app.get('*', (res: express.Response, req: express.Request) => {
                     let host = res.get('host');
                     host = host.replace(/:\d+$/, ':' + cfgHttps.port);
@@ -357,7 +357,17 @@ export class MdnsServer extends ProtoServer {
                                 name: '_poolcontroller._tcp.local',
                                 type: 'A',
                                 ttl: 300,
-                                data: this.ip()
+                                data: self.ip()
+                            },
+                            {
+                                name: 'api._poolcontroller._tcp.local',
+                                type: 'SRV',
+                                data: {
+                                    port:  '4200',
+                                    target: '_poolcontroller._tcp.local',
+                                    weight: 0,
+                                    priority: 10
+                                }
                             }]
                         });
                     }

@@ -12,6 +12,7 @@ import {webApp} from "../web/Server";
 import {SystemBoard} from "./boards/SystemBoard";
 import {BoardFactory} from "./boards/BoardFactory";
 import {EquipmentStateMessage} from "./comms/messages/status/EquipmentStateMessage";
+import {isArray} from "util";
 
 interface IPoolSystem {
     cfgPath: string;
@@ -34,6 +35,7 @@ interface IPoolSystem {
     remotes: RemoteCollection;
     eggTimers: EggTimerCollection;
     security: Security;
+    intellichem: IntelliChem;
     board: SystemBoard;
     updateControllerDateTime(
         hour: number,
@@ -72,13 +74,14 @@ export class PoolSystem implements IPoolSystem {
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
+        this.intellichem = new IntelliChem(this.data, 'intellichem');
         this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', {id: 0, isActive: true, type: 3});
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
-    public updateControllerDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow?: number) {}
+    public updateControllerDateTime(obj: any){ sys.board.system.setDateTime(obj);}
     private loadConfigFile(path: string, def: any) {
         let cfg = def;
         if (fs.existsSync(path)) {
@@ -123,6 +126,7 @@ export class PoolSystem implements IPoolSystem {
         this.security.clear();
         this.valves.clear();
         this.covers.clear();
+        this.intellichem.clear();
 
     }
     public stopAsync() {
@@ -159,6 +163,7 @@ export class PoolSystem implements IPoolSystem {
     public security: Security;
     public customNames: CustomNameCollection;
     public intellibrite: LightGroup;
+    public intellichem: IntelliChem;
     //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
     public appVersion: string;
     public get dirty(): boolean {return this._isDirty;}
@@ -209,7 +214,7 @@ export class PoolSystem implements IPoolSystem {
     public getSection(section?: string, opts?: any): any {
         if (typeof section === 'undefined' || section === 'all') return this.data;
         let c: any = this.data;
-        if (section.indexOf('.') !== -1) {
+/*         if (section.indexOf('.') !== -1) {
             const arr = section.split('.');
             for (let i = 0; i < arr.length; i++) {
                 if (typeof c[arr[i]] === 'undefined') {
@@ -217,8 +222,15 @@ export class PoolSystem implements IPoolSystem {
                     break;
                 } else c = c[arr[i]];
             }
-        } else c = c[section];
-        return extend(true, {}, opts || {}, c || {});
+        } else c = c[section]; */
+        c = c[section];
+        if (typeof c !== 'object')
+            // return single values as objects so browsers don't complain
+            return {[section]: c};
+        else if (isArray(c))
+            return extend(true, [], opts || [], c || []);    
+        else
+            return extend(true, {}, opts || {}, c || {});
     }
     public get equipmentState() {
         const self = this;
@@ -480,13 +492,16 @@ export class IntelliTouchEquipment extends Equipment {}
 export class ConfigVersion extends EqItem {
     constructor(data: any, name?: string) {
         super(data, name);
+        /*
+        RG - Changed lastUpdated to be a permanent attribute to the data.
+        *Touch doesn't keep versions of individual types so date is needed to periodically check the config.
         if (typeof data.lastUpdated === 'undefined') this._lastUpdated = new Date();
         else this._lastUpdated = new Date(data.lastUpdated);
-        if (isNaN(this._lastUpdated.getTime())) this._lastUpdated = new Date();
+        if (isNaN(this._lastUpdated.getTime())) this._lastUpdated = new Date(); */
     }
-    protected _lastUpdated: Date;
-    public get lastUpdated(): Date {return this._lastUpdated;}
-    public set lastUpdated(val: Date) {this._lastUpdated = val; this.data.lastUpdated = Timestamp.toISOLocal(val);}
+    //protected _lastUpdated: Date;
+    public get lastUpdated(): Date {return new Date(this.data.lastUpdated);}
+    public set lastUpdated(val: Date) {this.data.lastUpdated = val; this.data.lastUpdated = Timestamp.toISOLocal(val);}
     public get options(): number {return this.data.options;}
     public set options(val: number) {this.data.options = val;}
     public get circuits(): number {return this.data.circuits;}
@@ -577,6 +592,7 @@ export class Schedule extends EqItem {
         else this._startDate = new Date(data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
     }
+    // todo: investigate schedules having startDate and _startDate
     private _startDate: Date=new Date();
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = val;}
@@ -608,6 +624,10 @@ export class Schedule extends EqItem {
     public get flags(): number {return this.data.flags;}
     public set flags(val: number) {this.data.flags = val;}
     public set(obj: any) {sys.board.schedules.setSchedule(this, obj);}
+    public delete(){
+        this.circuit = 0;
+        sys.board.schedules.setSchedule(this);
+    }
 }
 // TODO: Get rid of this
 export class EggTimerCollection extends EqItemCollection<EggTimer> {
@@ -631,6 +651,14 @@ export class EggTimer extends EqItem {
     public set circuit(val: number) {this.data.circuit = val;}
     public get isActive(): boolean {return this.data.isActive;}
     public set isActive(val: boolean) {this.data.isActive = val;}
+    public set(obj?:any) {sys.board.schedules.setSchedule(this, obj);}
+    public delete(){
+        const circuit = sys.circuits.getInterfaceById(this.circuit);
+        circuit.eggTimer = 720;
+        this.circuit = 0;
+        sys.board.schedules.setSchedule(this);
+    }
+
 }
 export class CircuitCollection extends EqItemCollection<Circuit> {
     constructor(data: any, name?: string) {super(data, name || "circuits");}
@@ -796,7 +824,9 @@ export class Pump extends EqItem {
     }
     public setCircuitRateUnits(circuitId: number, units: number) {sys.board.pumps.setCircuitRateUnits(this, circuitId, units);}
     public setCircuitId(pumpCircuitId: number, circuitId: number) {sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId);} */
-    public setType(pumpType: number) {sys.board.pumps.setType(this, pumpType);}
+    public setType(pumpType: number) {
+        sys.board.pumps.setType(this, pumpType);
+    }
     public nextAvailablePumpCircuit(): number {
         let pumpCircuits = this.circuits;
         for (let i = 1; i <= 8; i++){
@@ -1199,5 +1229,24 @@ export class Security extends EqItem {
     public get enabled(): boolean {return this.data.enabled;}
     public set enabled(val: boolean) {this.data.enabled = val;}
     public get roles(): SecurityRoleCollection {return new SecurityRoleCollection(this.data, "roles");}
+}
+export class IntelliChem extends EqItem {
+    public get isActive(): boolean {return this.data.isActive;}
+    public set isActive(val: boolean) {this.data.isActive = val;}
+    public get pH(): number {return this.data.pH;}
+    public set pH(val: number) {this.data.pH = val;}
+    public get ORP(): number {return this.data.ORP;}
+    public set ORP(val: number) {this.data.ORP = val;}
+    public get CH(): number {return this.data.CH;}
+    public set CH(val: number) {this.data.CH = val;}
+    public get CYA(): number {return this.data.CYA;}
+    public set CYA(val: number) {this.data.CYA = val;}
+    public get TA(): number {return this.data.TA;}
+    public set TA(val: number) {this.data.TA = val;}
+    public getExtended() {
+        let circ = this.get(true);
+        circ.circuit = state.circuits.getInterfaceById(circ.circuit);
+        return circ;
+    }
 }
 export let sys = new PoolSystem();

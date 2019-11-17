@@ -1,19 +1,19 @@
-﻿import { EventEmitter } from 'events';
+﻿import {EventEmitter} from 'events';
 import * as SerialPort from 'serialport';
 import * as MockBinding from '@serialport/binding-mock';
-import { config } from '../../config/Config';
-import { logger } from '../../logger/Logger';
+import {config} from '../../config/Config';
+import {logger} from '../../logger/Logger';
 import * as net from 'net';
-import { setTimeout, setInterval } from 'timers';
-import { Outbound, Inbound, Response } from './messages/Messages';
+import {setTimeout, setInterval} from 'timers';
+import {Outbound, Inbound, Response} from './messages/Messages';
 export class Connection {
     constructor() {
         this.emitter = new EventEmitter();
     }
-    public isOpen: boolean = false;
+    public isOpen: boolean=false;
     private _cfg: any;
     private _port: any;
-    public mockPort: boolean = false;
+    public mockPort: boolean=false;
     public buffer: SendRecieveBuffer;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
@@ -26,11 +26,11 @@ export class Connection {
             let nc: net.Socket;
             nc = new net.Socket();
             conn._port = nc;
-            nc.connect(conn._cfg.netPort, conn._cfg.netHost, function () {
+            nc.connect(conn._cfg.netPort, conn._cfg.netHost, function() {
                 if (timeOut === 'retry_timeout' || timeOut === 'timeout')
                     logger.warn('Net connect (socat) trying to recover from lost connection.');
             });
-            nc.on('data', function (data) {
+            nc.on('data', function(data) {
                 conn.isOpen = true;
                 if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
                     logger.info(`Net connect (socat) connected to: ${conn._cfg.netHost}:${conn._cfg.netPort}`);
@@ -46,8 +46,8 @@ export class Connection {
                 this.mockPort = true;
                 SerialPort.Binding = MockBinding;
                 let portPath = 'FAKE_PORT';
-                MockBinding.createPort(portPath, { echo: false, record: true });
-                sp = new SerialPort(portPath, { autoOpen: false });
+                MockBinding.createPort(portPath, {echo: false, record: true});
+                sp = new SerialPort(portPath, {autoOpen: false});
             }
             else {
                 this.mockPort = false;
@@ -55,7 +55,7 @@ export class Connection {
             }
 
             conn._port = sp;
-            sp.open(function (err) {
+            sp.open(function(err) {
                 if (err) {
                     conn.resetConnTimer();
                     conn.isOpen = false;
@@ -64,14 +64,14 @@ export class Connection {
                 else
                     logger.info(`Serial port: ${this.path} request to open succeeded without error`);
             });
-            sp.on('open', function () {
+            sp.on('open', function() {
                 if (timeOut === 'retry_timeout' || timeOut === 'timeout')
                     logger.error('Serial port %s recovering from lost connection', conn._cfg.rs485Port);
                 else
                     logger.info(`Serial port: ${this.path} opened`);
                 conn.isOpen = true;
             });
-            sp.on('readable', function () {
+            sp.on('readable', function() {
                 if (!this.mockPort) {
                     conn.emitter.emit('packetread', sp.read());
                     conn.resetConnTimer();
@@ -81,10 +81,11 @@ export class Connection {
         }
         if (typeof (conn.buffer) === 'undefined') {
             conn.buffer = new SendRecieveBuffer();
-            conn.emitter.on('packetread', function (pkt) { conn.buffer.pushIn(pkt); });
-            conn.emitter.on('messagewrite', function (msg) { conn.buffer.pushOut(msg); }); }
+            conn.emitter.on('packetread', function(pkt) {conn.buffer.pushIn(pkt);});
+            conn.emitter.on('messagewrite', function(msg) {conn.buffer.pushOut(msg);});
+        }
         conn.resetConnTimer('retry_timeout');
-        conn._port.on('error', function (err) {
+        conn._port.on('error', function(err) {
             logger.error('Error opening port: %s. Retry in %s seconds', err, (conn._cfg.inactivityRetry));
             conn.resetConnTimer();
             conn.isOpen = false;
@@ -94,7 +95,7 @@ export class Connection {
         if (conn.connTimer) clearTimeout(conn.connTimer);
         if (typeof (conn._port) !== 'undefined' && conn._cfg.netConnect) {
             if (typeof (conn._port.destroy) !== 'function')
-                conn._port.close(function (err) {
+                conn._port.close(function(err) {
                     if (err) logger.error('Error closing %s:%s', conn._cfg.netHost, conn._cfg.netPort);
                 });
             else
@@ -116,13 +117,13 @@ export class Connection {
     }
     public stopAsync() {
         Promise.resolve()
-            .then(function () { conn.close(); })
-            .then(function () { console.log('closed connection'); });
+            .then(function() {conn.close();})
+            .then(function() {console.log('closed connection');});
     }
     public init() {
         conn._cfg = config.getSection('controller.comms', {
             rs485Port: "/dev/ttyUSB0",
-            portSettings: { "baudRate": 9600, "dataBits": 8, "parity": "none", "stopBits": 1, "flowControl": false, "autoOpen": false, "lock": false },
+            portSettings: {"baudRate": 9600, "dataBits": 8, "parity": "none", "stopBits": 1, "flowControl": false, "autoOpen": false, "lock": false},
             mockPort: false,
             netConnect: false,
             netHost: "raspberrypi",
@@ -131,7 +132,7 @@ export class Connection {
         });
         conn.open();
     }
-    public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }
+    public queueSendMessage(msg: Outbound) {conn.emitter.emit('messagewrite', msg);}
 
     public queueReceiveMessage(pkt: Inbound) {
         logger.info(`Receiving ${pkt.action}`);
@@ -144,20 +145,20 @@ export class SendRecieveBuffer {
         this._outBuffer = [];
         this.procTimer = setInterval(this.processPackets, 300);
     }
-    public counter: Counter = new Counter();
+    public counter: Counter=new Counter();
     private procTimer: NodeJS.Timeout;
-    private _processing: boolean = false;
-    private _inBytes: number[] = [];
-    private _inBuffer: number[] = [];
-    private _outBuffer: Outbound[] = [];
+    private _processing: boolean=false;
+    private _inBytes: number[]=[];
+    private _inBuffer: number[]=[];
+    private _outBuffer: Outbound[]=[];
     private _waitingPacket: Outbound;
     private _msg: Inbound;
-    public pushIn(pkt) { conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); }
-    public pushOut(msg) { 
-        conn.buffer._outBuffer.push(msg); 
+    public pushIn(pkt) {conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data);}
+    public pushOut(msg) {
+        conn.buffer._outBuffer.push(msg);
     }
-    public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
-    public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); }
+    public clear() {conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0;}
+    public close() {clearTimeout(conn.buffer.procTimer); conn.buffer.clear();}
     private processPackets() {
         if (conn.buffer._processing) return;
         conn.buffer._processing = true;
@@ -199,17 +200,16 @@ export class SendRecieveBuffer {
             msg.timestamp = new Date();
             logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`);
             logger.packet(msg);
-            conn.write(Buffer.from(bytes), function (err) {
-                if (err) {
-                    logger.error('Error writing packet %s', err);
-                    if (msg.retries <= 0) {
-                        msg.failed = true;
-                        conn.buffer._waitingPacket = null;
-                        if (typeof msg.onError === 'function') msg.onError.apply(msg, [msg, err]);
-                        if (msg.requiresResponse && typeof (msg.response.callback) === 'function') 
-                            setTimeout(msg.response.callback, 100, msg);
-                    }
-                    else conn.buffer._waitingPacket = msg;
+            conn.write(Buffer.from(bytes), function(err) {
+                // TODO: RG made changes to this code.  Please check if it is correct.
+                if (err) logger.error('Error writing packet %s', err);
+                if (msg.retries <= 0) {
+                    msg.failed = true;
+                    conn.buffer._waitingPacket = null;
+                    if (typeof msg.onError === 'function') msg.onError.apply(msg, [msg, err]);
+                    if (msg.requiresResponse && typeof (msg.response.callback) === 'function')
+                        setTimeout(msg.response.callback, 100, msg);
+                    //     else conn.buffer._waitingPacket = msg;
                 }
                 else {
                     if (typeof msg.onSuccess === 'function') msg.onSuccess.apply(msg, [msg]);

@@ -1,7 +1,7 @@
-﻿import { Inbound } from "../Messages";
-import { sys, Feature, Body, ICircuitGroup, LightGroup } from"../../../Equipment";
-import { state, BodyTempState, ICircuitGroupState, LightGroupState } from "../../../State";
-import { setTimeout } from "timers";
+﻿import {Inbound} from "../Messages";
+import {sys, Feature, Body, ICircuitGroup, LightGroup} from "../../../Equipment";
+import {state, BodyTempState, ICircuitGroupState, LightGroupState} from "../../../State";
+import {setTimeout} from "timers";
 export class ExternalMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(0)) {
@@ -58,51 +58,53 @@ export class ExternalMessage {
         let sgroup: ICircuitGroupState = null;
         switch (msg.extractPayloadByte(1)) {
             case 0:
-                // Get the type.
-                let type = msg.extractPayloadByte(3);
-                switch (msg.extractPayloadByte(3)) {
-                    case 0:
-                        group = sys.circuitGroups.getInterfaceById(groupId);
-                        sgroup = group.type === 2 ? state.circuitGroups.getItemById(groupId) : state.lightGroups.getItemById(groupId);
-                        sys.lightGroups.removeItemById(groupId);
-                        sys.circuitGroups.removeItemById(groupId);
-                        state.lightGroups.removeItemById(groupId);
-                        sys.circuitGroups.removeItemById(groupId);
-                        sgroup.isActive = false;
-                        state.emitEquipmentChanges();
-                        break;
-                    case 1:
-                        group = sys.lightGroups.getItemById(groupId, true);
-                        sgroup = state.lightGroups.getItemById(groupId, true);
-                        sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
-                        sgroup.type = group.type = type;
-                        sgroup.isActive = group.isActive = true;
-                        break;
-                    case 2:
-                        group = sys.circuitGroups.getItemById(groupId, true);
-                        sgroup = state.circuitGroups.getItemById(groupId, true);
-                        sgroup.type = group.type = type;
-                        sgroup.isActive = group.isActive = true;
-                        break;
-                }
-                if (group.isActive) {
-                    for (let i = 0; i < 16; i++) {
-                        let circuitId = msg.extractPayloadByte(i + 6);
-                        let circuit = group.circuits.getItemByIndex(i, circuitId !== 255);
-                        if (circuitId === 255) group.circuits.removeItemByIndex(i);
-                        circuit.circuit = circuitId + 1;
+                {
+                    // Get the type.
+                    let type = msg.extractPayloadByte(3);
+                    switch (msg.extractPayloadByte(3)) {
+                        case 0:
+                            group = sys.circuitGroups.getInterfaceById(groupId);
+                            sgroup = group.type === 2 ? state.circuitGroups.getItemById(groupId) : state.lightGroups.getItemById(groupId);
+                            sys.lightGroups.removeItemById(groupId);
+                            sys.circuitGroups.removeItemById(groupId);
+                            state.lightGroups.removeItemById(groupId);
+                            sys.circuitGroups.removeItemById(groupId);
+                            sgroup.isActive = false;
+                            state.emitEquipmentChanges();
+                            break;
+                        case 1:
+                            group = sys.lightGroups.getItemById(groupId, true);
+                            sgroup = state.lightGroups.getItemById(groupId, true);
+                            sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
+                            sgroup.type = group.type = type;
+                            sgroup.isActive = group.isActive = true;
+                            break;
+                        case 2:
+                            group = sys.circuitGroups.getItemById(groupId, true);
+                            sgroup = state.circuitGroups.getItemById(groupId, true);
+                            sgroup.type = group.type = type;
+                            sgroup.isActive = group.isActive = true;
+                            break;
                     }
-                }
-                group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
-                sgroup.eggTimer = group.eggTimer;
-                if (type === 1) {
-                    let g = group as LightGroup;
-                    for (let i = 0; i < 16; i++) {
-                        g.circuits.getItemByIndex(i).swimDelay = msg.extractPayloadByte(22 + i);
+                    if (group.isActive) {
+                        for (let i = 0; i < 16; i++) {
+                            let circuitId = msg.extractPayloadByte(i + 6);
+                            let circuit = group.circuits.getItemByIndex(i, circuitId !== 255);
+                            if (circuitId === 255) group.circuits.removeItemByIndex(i);
+                            circuit.circuit = circuitId + 1;
+                        }
                     }
+                    group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
+                    sgroup.eggTimer = group.eggTimer;
+                    if (type === 1) {
+                        let g = group as LightGroup;
+                        for (let i = 0; i < 16; i++) {
+                            g.circuits.getItemByIndex(i).swimDelay = msg.extractPayloadByte(22 + i);
+                        }
+                    }
+                    state.emitEquipmentChanges();
+                    break;
                 }
-                state.emitEquipmentChanges();
-                break;
             case 1:
                 group = sys.circuitGroups.getInterfaceById(groupId);
                 sgroup = group.type === 1 ? state.lightGroups.getItemById(groupId) : state.circuitGroups.getItemById(groupId);
@@ -143,7 +145,7 @@ export class ExternalMessage {
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);
     }
-    
+
     private static processCircuitState(start: number, msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
         let body = 0; // Off
@@ -235,7 +237,7 @@ export class ExternalMessage {
             for (let j = 0; j < 8; j++) {
                 let group = sys.circuitGroups.getInterfaceById(groupId);
 
-                let gstate = group.type == 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
+                let gstate = group.type === 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
                 if (group.isActive) {
                     gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                     gstate.name = group.name;
@@ -255,7 +257,7 @@ export class ExternalMessage {
                                 lg.action = 1;
                                 break;
                             case 1: // Color swim
-                                lg.action = 3
+                                lg.action = 3;
                                 break;
                             case 2: // Color set
                                 lg.action = 2;
@@ -371,15 +373,14 @@ export class ExternalMessage {
                 cpump.address = msg.extractPayloadByte(5);
                 cpump.minSpeed = msg.extractPayloadInt(6);
                 cpump.maxSpeed = msg.extractPayloadInt(8);
-                cpump.minFlow = msg.extractPayloadByte(10)
+                cpump.minFlow = msg.extractPayloadByte(10);
                 cpump.maxFlow = msg.extractPayloadByte(11);
                 cpump.flowStepSize = msg.extractPayloadByte(12);
                 cpump.primingSpeed = msg.extractPayloadInt(13);
                 cpump.speedStepSize = msg.extractPayloadByte(15) * 10;
                 cpump.primingTime = msg.extractPayloadByte(16);
-                cpump.circuits.clear()
-                for (let i = 18; i < msg.payload.length && i <= 25; i++)
-                {
+                cpump.circuits.clear();
+                for (let i = 18; i < msg.payload.length && i <= 25; i++) {
                     let circuitId = msg.extractPayloadByte(i);
                     if (circuitId !== 255) {
                         let circuit = cpump.circuits.getItemById(i - 17, true);
@@ -390,7 +391,7 @@ export class ExternalMessage {
             }
             else if (cpump.type === 1) {
                 cpump.circuits.clear();
-                cpump.circuits.add({ id: 1, body: msg.extractPayloadByte(18) });
+                cpump.circuits.add({id: 1, body: msg.extractPayloadByte(18)});
             }
             if (cpump.type === 0) {
                 sys.pumps.removeItemById(cpump.id);

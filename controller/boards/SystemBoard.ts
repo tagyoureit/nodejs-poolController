@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import {EventEmitter} from 'events';
-import {PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, LightGroupCircuitCollection, PumpCircuit} from '../Equipment';
+import {PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, LightGroupCircuitCollection, PumpCircuit, EggTimer} from '../Equipment';
 import {state, ChlorinatorState, PumpState, BodyTempState, VirtualCircuitState} from '../State';
 //import { ControllerType } from '../Constants';
 import {Outbound} from '../comms/messages/Messages';
@@ -262,6 +262,22 @@ export class byteValueMaps {
     public msgBroadcastActions: byteValueMap=new byteValueMap([
         [2, {name: 'status', desc: 'Equipment Status'}]
     ]);
+    public intelliChemWaterFlow: byteValueMap=new byteValueMap([
+        [0, {name: 'ok', desc: 'Ok'}],
+        [1, {name: 'alarm', desc: 'Alarm - No Water Flow'}]
+    ]);
+    public intelliChemStatus1: byteValueMap=new byteValueMap([
+        // need to be verified - and combined with below?
+        [37, {name: 'dosingAuto', desc: 'Dosing - Auto'}],
+        [69, {name: 'dosingManual', desc: 'Dosing Acid - Manual'}],
+        [85, {name: 'mixing', desc: 'Mixing'}],
+        [101, {name: 'monitoring', desc: 'Monitoring'}]
+    ]);
+    public intelliChemStatus2: byteValueMap=new byteValueMap([
+        // need to be verified
+        [20, {name: 'ok', desc: 'Ok'}],
+        [22, {name: 'dosingManual', desc: 'Dosing Chlorine - Manual'}]
+    ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
 // managed by the personality board.  This also provides a way to override specific functions for
@@ -349,7 +365,7 @@ export class BoardCommands {
 }
 export class SystemCommands extends BoardCommands {
     public cancelDelay() {state.delay = 0;}
-    public setDateTime(hour: number, min: number, date: number, month: number, year: number, dst: number, dow: number) {}
+    public setDateTime(obj: any) {}
     public getDOW() {return this.board.valueMaps.scheduleDays.toArray();}
 }
 export class BodyCommands extends BoardCommands {
@@ -397,7 +413,19 @@ export class BodyCommands extends BoardCommands {
 }
 export class PumpCommands extends BoardCommands {
     public getPumpTypes() {return this.board.valueMaps.pumpTypes.toArray();}
-    public getCircuitUnits() {return this.board.valueMaps.pumpUnits.toArray();}
+    public getCircuitUnits(pump?: Pump) {
+        if (typeof pump === 'undefined')
+            return this.board.valueMaps.pumpUnits.toArray();
+        else {
+            let pumpType = sys.board.valueMaps.pumpTypes.getName(pump.type);
+            let val;
+            if (pumpType.includes('vsf'))  val = this.board.valueMaps.pumpUnits.toArray();
+            else if (pumpType.includes('vs')) val = this.board.valueMaps.pumpUnits.getValue('rpm');
+            else if (pumpType.includes('vf')) val =  this.board.valueMaps.pumpUnits.getValue('gpm');
+            else return {};
+            return this.board.valueMaps.pumpUnits.transform(val);
+        }
+    }
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -408,11 +436,11 @@ export class PumpCommands extends BoardCommands {
 
     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
         const origValues = extend(true, {}, pumpCircuitDeltas);
-        let {pumpCircuitId, circuitId, rate, units} = pumpCircuitDeltas;
+        let {pumpCircuitId, circuit, rate, units} = pumpCircuitDeltas;
         let failed = false;
         let succeeded = false;
-       // STEP 1 - Make a copy of the existing circuit
-       let shadowPumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId);
+        // STEP 1 - Make a copy of the existing circuit
+        let shadowPumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId);
 
         // if pumpCircuitId === 0, do we have an available circuit
         if (pumpCircuitId === 0 || typeof pumpCircuitId === 'undefined') {
@@ -427,17 +455,17 @@ export class PumpCommands extends BoardCommands {
 
         // STEP 1A: Validate Circuit
         // first check if we are missing both a new circuitId or existing circuitId
-        if (typeof circuitId !== 'undefined'){
-            let _circuit = sys.circuits.getInterfaceById(circuitId);
-            if (_circuit.isActive === false || typeof _circuit.type === 'undefined'){
+        if (typeof circuit !== 'undefined') {
+            let _circuit = sys.circuits.getInterfaceById(circuit);
+            if (_circuit.isActive === false || typeof _circuit.type === 'undefined') {
                 // not a good circuit, fail
-                return {result: 'FAILED', reason: {circuitId: circuitId}};
+                return {result: 'FAILED', reason: {circuit: circuit}};
             }
-            shadowPumpCircuit.circuit = circuitId;
+            shadowPumpCircuit.circuit = circuit;
             succeeded = true;
-        } 
+        }
         // if we don't have a circuit, fail
-        if (typeof shadowPumpCircuit.circuit === 'undefined') return {result: 'FAILED', reason: {circuitId: 0}};
+        if (typeof shadowPumpCircuit.circuit === 'undefined') return {result: 'FAILED', reason: {circuit: 0}};
 
         // STEP 1B: Validate Rate/Units
         let type = sys.board.valueMaps.pumpTypes.transform(pump.type).name;
@@ -445,7 +473,7 @@ export class PumpCommands extends BoardCommands {
             case 'vs':
                 // if VS, need rate only
                 // in fact, ignoring units
-                if (typeof rate === 'undefined') break;
+                // if (typeof rate === 'undefined') break;
                 shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
                 shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
                 shadowPumpCircuit.flow = undefined;
@@ -454,7 +482,7 @@ export class PumpCommands extends BoardCommands {
             case 'vf':
                 // if VF, need rate only
                 // in fact, ignoring units
-                if (typeof rate === 'undefined') break;
+                //if (typeof rate === 'undefined') break;
                 shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
                 shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
                 shadowPumpCircuit.speed = undefined;
@@ -462,20 +490,20 @@ export class PumpCommands extends BoardCommands {
                 break;
             case 'vsf':
                 // if VSF, we can take either rate or units or both and make a valid pumpCircuit
-                if ((typeof rate !== 'undefined') && (typeof units !== 'undefined')){
+                if ((typeof rate !== 'undefined') && (typeof units !== 'undefined')) {
                     // do we have a valid combo of units and rate? -- do we need to check that or assume it will be passed in correctly?
                     if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
                         shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
                         shadowPumpCircuit.flow = undefined;
                         succeeded = true;
                     }
-                        else    {
-                            shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
-                            shadowPumpCircuit.speed = undefined;
-                            succeeded = true;
-                        }
+                    else {
+                        shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
+                        shadowPumpCircuit.speed = undefined;
+                        succeeded = true;
+                    }
                 }
-                else if (typeof rate === 'undefined'){
+                else if (typeof rate === 'undefined') {
                     // only have units; set default rate or use existing rate
                     if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
                         shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(shadowPumpCircuit.speed);
@@ -486,16 +514,16 @@ export class PumpCommands extends BoardCommands {
                         shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(shadowPumpCircuit.flow);
                         shadowPumpCircuit.speed = undefined;
                         succeeded = true;
-                    }   
+                    }
                 }
-                else if (typeof units === 'undefined'){
+                else if (typeof units === 'undefined') {
                     let rateType = pump.isRPMorGPM(rate);
                     if (rateType !== 'gpm') {
                         // default to speed if None
                         shadowPumpCircuit.flow = rate;
                         shadowPumpCircuit.speed = undefined;
                     }
-                    else  {
+                    else {
                         shadowPumpCircuit.speed = rate || 1000;
                         shadowPumpCircuit.flow = undefined;
                     }
@@ -512,7 +540,14 @@ export class PumpCommands extends BoardCommands {
         pumpCircuit.units = shadowPumpCircuit.units;
         pumpCircuit.speed = shadowPumpCircuit.speed;
         pumpCircuit.flow = shadowPumpCircuit.flow;
+        
+        // todo: emit pumpCircuit changes here somehow
+        // can't use this becasue it doesn't emit "extended" info
+        // sys.pumps.emitEquipmentChange();
+    
+        this.setPump(pump);
         return {result: 'OK'};
+
     }
 
     /*     public setCircuitRate(pump: Pump, circuitId: number, rate: number) {
@@ -540,8 +575,19 @@ export class PumpCommands extends BoardCommands {
             pump.setPump();
         } */
     public setType(pump: Pump, pumpType: number) {
-        pump.type = pumpType;
-        this.setPump(pump);
+        // if we are changing pump types, need to clear out circuits 
+        // and props that aren't for this pump type
+        let _id = pump.id;
+        if (pump.type !== pumpType || pumpType === 0) {
+            sys.pumps.removeItemById(_id);
+            let pump = sys.pumps.getItemById(_id, true);
+            pump.type = pumpType;
+            this.setPump(pump);
+            state.pumps.removeItemById(pump.id);
+            let spump = state.pumps.getItemById(pump.id, true);
+            spump.type = pump.type;
+            spump.status = 0;
+        }
     }
 
 }
@@ -763,7 +809,12 @@ export class ChemistryCommands extends BoardCommands {
     public superChlorinate(cstate: ChlorinatorState, bSet: boolean, hours: number) {this.setChlor(cstate, cstate.poolSetpoint, cstate.spaSetpoint, typeof hours !== 'undefined' ? hours : cstate.superChlorHours, bSet);}
 }
 export class ScheduleCommands extends BoardCommands {
-    public setSchedule(sched: Schedule, obj?: any) {}
+    public setSchedule(sched: Schedule|EggTimer, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in obj)
+                sched[s] = obj[s];
+        }
+    }
 }
 export class HeaterCommands extends BoardCommands {
     public setHeater(heater: Heater, obj?: any) {

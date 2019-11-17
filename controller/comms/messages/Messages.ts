@@ -19,6 +19,7 @@ import {ValveMessage} from "./config/ValveMessage";
 import {state} from "../../State";
 import {HeaterMessage} from "./config/HeaterMessage";
 import {CircuitGroupMessage} from "./config/CircuitGroupMessage";
+import {IntellichemMessage} from "./config/IntellichemMessage";
 export enum Direction {
     In='in',
     Out='out'
@@ -244,6 +245,9 @@ export class Inbound extends Message {
                 break;
             case 17:
                 ScheduleMessage.process(this);
+                break;
+            case 18:
+                IntellichemMessage.process(this);
                 break;
             case 24:
             case 27:

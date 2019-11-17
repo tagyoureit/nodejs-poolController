@@ -6,6 +6,7 @@ import { logger } from '../logger/Logger';
 import { Timestamp, ControllerType } from './Constants';
 import { webApp } from '../web/Server';
 import { sys } from './Equipment';
+import {isArray} from 'util';
 export class State implements IState {
     statePath: string;
     data: any;
@@ -61,28 +62,33 @@ export class State implements IState {
     }
     public getState(section?: string) : any {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
-        let state:any = {};
+        //let state:any = {};
         let obj: any = this;
         if (typeof section === 'undefined' || section === 'all') {
-            state = this.controllerState;
-            state.circuits = this.circuits.getExtended();
-            state.temps = this.temps.getExtended();
-            state.equipment = this.equipment.getExtended();
-            state.pumps = this.pumps.getExtended();
-            state.valves = this.valves.getExtended();
-            state.heaters = this.heaters.getExtended();
-            state.chlorinators = this.chlorinators.getExtended();
-            state.circuits = this.circuits.getExtended();
-            state.features = this.features.getExtended();
-            state.circuitGroups = this.circuitGroups.getExtended();
-            state.lightGroups = this.lightGroups.getExtended();
-            state.virtualCircuits = this.virtualCircuits.getExtended();
-            state.intellibrite = this.intellibrite.getExtended();
-            state.covers = this.covers.getExtended();
-            state.schedules = this.schedules.getExtended();
+            var _state: any = this.controllerState;
+            _state.circuits = this.circuits.getExtended();
+            _state.temps = this.temps.getExtended();
+            _state.equipment = this.equipment.getExtended();
+            _state.pumps = this.pumps.getExtended();
+            _state.valves = this.valves.getExtended();
+            _state.heaters = this.heaters.getExtended();
+            _state.chlorinators = this.chlorinators.getExtended();
+            _state.circuits = this.circuits.getExtended();
+            _state.features = this.features.getExtended();
+            _state.circuitGroups = this.circuitGroups.getExtended();
+            _state.lightGroups = this.lightGroups.getExtended();
+            _state.virtualCircuits = this.virtualCircuits.getExtended();
+            _state.intellibrite = this.intellibrite.getExtended();
+            _state.covers = this.covers.getExtended();
+            _state.schedules = this.schedules.getExtended();
+            _state.intellichem = this.intellichem.getExtended();
+            return _state;
         }
         else {
-            if (section.indexOf('.') !== -1) {
+            if (typeof this[section] !== 'undefined' && typeof this[section].getExtended === 'function')
+                return this[section].getExtended();
+            else
+/*             if (section.indexOf('.') !== -1) {
                 let arr = section.split('.');
                 for (let i = 0; i < arr.length; i++) {
                     if (typeof obj[arr[i]] === 'undefined') {
@@ -94,12 +100,19 @@ export class State implements IState {
                 }
             }
             else
-                obj = obj[section];
-            state = typeof obj !== 'undefined' && typeof obj.getExtended === 'function' ? state = obj.getExtended() : this.getSection(section);
+                obj = obj[section]; */
+            if (typeof this.data[section] !== 'object') 
+                // return object so browsers don't complain
+                return {[section]: this.data[section]};
+            else if (isArray(this.data[section]))
+                return extend(true, [], this.data[section] || []);    
+            else
+                return extend(true, {}, this.data[section] || {});
+       
         }
-        return state;
+        //return state;
     }
-    public getSection(section?: string, opts?: any): any {
+/*     public getSection(section?: string, opts?: any): any {
         if (typeof section === 'undefined' || section === 'all') return this.data;
         var c: any = this.data;
         if (section.indexOf('.') !== -1) {
@@ -116,7 +129,7 @@ export class State implements IState {
         else
             c = c[section];
         return extend(true, {}, opts || {}, c || {});
-    }
+    } */
     public stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
@@ -244,6 +257,7 @@ export class State implements IState {
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
         this.intellibrite = new LightGroupState(this.data, 'intellibrite');
+        this.intellichem = new IntelliChemState(this.data, 'intellichem');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
     }
@@ -263,6 +277,7 @@ export class State implements IState {
         this.valves.clear();
         this.virtualCircuits.clear();
         this.covers.clear();
+        this.intellichem.clear();
     }
 
     public equipment: EquipmentState;
@@ -279,6 +294,7 @@ export class State implements IState {
     public virtualCircuits: VirtualCircuitStateCollection;
     public intellibrite: LightGroupState;
     public covers: CoverStateCollection;
+    public intellichem: IntelliChemState;
     public comms: CommsState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
@@ -308,6 +324,7 @@ interface IState {
     schedules: ScheduleStateCollection;
     circuitGroups: CircuitGroupStateCollection;
     virtualCircuits: VirtualCircuitStateCollection;
+    intellichem: IntelliChemState;
     comms: CommsState;
     //createCircuitStateMessage(): Outbound;
     //cancelDelay(): void;
@@ -1025,12 +1042,119 @@ export class ChlorinatorState extends EqState {
     public setSuperChlorHours(hours: number) { sys.board.chemistry.setSuperChlorHours(this, hours); }
     public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chemistry.superChlorinate(this, bSet, hours); }
 }
+
+export class IntelliChemState extends EqState {
+    public get pH(): number {return this.data.pH;}
+    // this.setDataVal('name', val);
+    public set pH(val: number) {this.setDataVal('pH', val);}
+    public get ORP(): number {return this.data.ORP;}
+    public set ORP(val: number) {this.setDataVal('ORP', val);}
+    public get salt(): number {return this.data.salt;}
+    public set salt(val: number) {this.setDataVal('salt', val);}
+    public get waterFlow(): number {return this.data.waterFlow;}
+    public set waterFlow(val: number) {
+        if (this.waterFlow !== val) {
+            this.data.waterFlow = sys.board.valueMaps.intelliChemWaterFlow.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get tank1Level(): number {return this.data.tank1;}
+    public set tank1Level(val: number) {this.setDataVal('tank1', val);}
+    public get tank2Level(): number {return this.data.tank2;}
+    public set tank2Level(val: number) {this.setDataVal('tank2', val);}
+    public get status1(): number {return this.data.mode1;}
+    public set status1(val: number) {
+        if (this.status1 !== val) {
+            this.data.mode1 = sys.board.valueMaps.intelliChemStatus1.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get status2(): number {return this.data.mode2;}
+    public set status2(val: number) {
+        if (this.status2 !== val) {
+            this.data.mode2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get SI(): number {
+        // Saturation Index = SI = pH + CHF + AF + TF - TDSF
+        return Math.round(
+        (sys.intellichem.pH + 
+        this.calculateCalciumHardnessFactor() +
+        this.calculateTotalCarbonateAlkalinity() +
+        this.calculateTemperatureFactor() -
+        this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+    }
+    private calculateCalciumHardnessFactor():number {
+        let CH = sys.intellichem.CH;
+        if (CH <= 25) return 1.0;
+        else if (CH <= 50) return 1.3;
+        else if (CH <= 75) return 1.5;
+        else if (CH <= 100) return 1.6;
+        else if (CH <= 125) return 1.7;
+        else if (CH <= 150) return 1.8;
+        else if (CH <= 200) return 1.9;
+        else if (CH <= 250) return 2.0;
+        else if (CH <= 300) return 2.1;
+        else if (CH <= 400) return 2.2;
+        else if (CH <= 800) return 2.5;
+    }
+    private calculateTotalCarbonateAlkalinity():number {
+        var ppm = this.correctedAlkalinity();
+        if (ppm <= 25) return 1.4;
+        else if (ppm <= 50) return 1.7;
+        else if (ppm <= 75) return 1.9;
+        else if (ppm <= 100) return 2.0;
+        else if (ppm <= 125) return 2.1;
+        else if (ppm <= 150) return 2.2;
+        else if (ppm <= 200) return 2.3;
+        else if (ppm <= 250) return 2.4;
+        else if (ppm <= 300) return 2.5;
+        else if (ppm <= 400) return 2.6;
+        else if (ppm <= 800) return 2.9;
+    }
+    private correctedAlkalinity():number {
+        return sys.intellichem.TA - (sys.intellichem.CYA / 3);
+    }
+    private calculateTemperatureFactor():number {
+        const temp = state.temps.waterSensor1;
+        const UOM = sys.board.valueMaps.tempUnits.getName( state.temps.units);
+        if (UOM === 'F') {
+            if (temp <= 32) return 0.0;
+            else if (temp <= 37) return 0.1;
+            else if (temp <= 46) return 0.2;
+            else if (temp <= 53) return 0.3;
+            else if (temp <= 60) return 0.4;
+            else if (temp <= 66) return 0.5;
+            else if (temp <= 76) return 0.6;
+            else if (temp <= 84) return 0.7;
+            else if (temp <= 94) return 0.8;
+            else if (temp <= 105) return 0.9;
+        } else {
+            if (temp <= 0) return 0.0;
+            else if (temp <= 2.8) return 0.1;
+            else if (temp <= 7.8) return 0.2;
+            else if (temp <= 11.7) return 0.3;
+            else if (temp <= 15.6) return 0.4;
+            else if (temp <= 18.9) return 0.5;
+            else if (temp <= 24.4) return 0.6;
+            else if (temp <= 28.9) return 0.7;
+            else if (temp <= 34.4) return 0.8;
+            else if (temp <= 40.6) return 0.9;
+        }
+    }
+    private calculateTotalDisolvedSolidsFactor():number {
+        // 12.1 for non-salt pools; 12.2 for salt pools
+        let chlorInstalled = false;
+        if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
+        return chlorInstalled ? 12.2 : 12.1;
+    }
+    public getExtended(): any { return this.get(true); }
+}
 export class CommsState {
     public keepAlives: number;
 }
 
-//export var SF = new PoolStateFactory();
-// export var state = {} as State;
+
 export var state = new State();
-// export var state: State = new State();
 
