@@ -401,9 +401,7 @@ export class PumpCommands extends BoardCommands {
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
-                // RG: should this be 'pump.hasOwnProperty'?  TS is not happy here.
-                // RKS: Yes this should be pump.hasOwnProperty
-                if (pump.hasOwnProperty(prop)) pump[prop] = obj[prop];
+                if (prop in pump) pump[prop] = obj[prop];
             }
         }
     }

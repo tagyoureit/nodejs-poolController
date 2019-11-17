@@ -376,7 +376,7 @@ class EqState implements IEqStateCreator<EqState> {
     }
     public isEqual(eq: EqState) {
         if (eq.dataName === this.dataName) {
-            if (eq.hasOwnProperty('id'))
+            if ('id' in eq === true)
                 return this.data.id === eq.data.id;
             else 
                 return true;
