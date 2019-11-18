@@ -54,9 +54,9 @@ export class ConfigRoute {
             };
             let { result, reason } = pump.setPumpCircuit(pumpCircuit);
             if (result === 'OK') 
-                return res.status(200).send(result);
+                return res.status(200).send({result: result, reason: reason});
             else 
-                return res.status(500).send(reason);
+                return res.status(500).send({result: result, reason: reason});
             
             // circuit rate
             // pump.setCircuitRate(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.rate, 10));
