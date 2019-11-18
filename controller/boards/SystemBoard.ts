@@ -473,7 +473,7 @@ export class PumpCommands extends BoardCommands {
             case 'vs':
                 // if VS, need rate only
                 // in fact, ignoring units
-                // if (typeof rate === 'undefined') break;
+                if (typeof rate === 'undefined') rate = shadowPumpCircuit.speed;
                 shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
                 shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
                 shadowPumpCircuit.flow = undefined;
@@ -482,7 +482,7 @@ export class PumpCommands extends BoardCommands {
             case 'vf':
                 // if VF, need rate only
                 // in fact, ignoring units
-                //if (typeof rate === 'undefined') break;
+                if (typeof rate === 'undefined') rate = shadowPumpCircuit.flow;
                 shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
                 shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
                 shadowPumpCircuit.speed = undefined;
@@ -546,6 +546,8 @@ export class PumpCommands extends BoardCommands {
         // sys.pumps.emitEquipmentChange();
     
         this.setPump(pump);
+        let spump = state.pumps.getItemById(pump.id);
+        spump.emitData('pumpExt', spump.getExtended()); 
         return {result: 'OK'};
 
     }
@@ -587,6 +589,7 @@ export class PumpCommands extends BoardCommands {
             let spump = state.pumps.getItemById(pump.id, true);
             spump.type = pump.type;
             spump.status = 0;
+            spump.emitData('pumpExt', spump.getExtended()); 
         }
     }
 
