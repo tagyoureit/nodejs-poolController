@@ -684,9 +684,6 @@ class IntelliCenterPumpCommands extends PumpCommands {
         for (let i = 0; i < msgs.length; i++){
             conn.queueSendMessage(msgs[i]);
         }
-        // RG: do we want to emit these here or wait for them to be set by the controller
-        //sys.emitEquipmentChange();
-        //sys.pumps.emitEquipmentChange();
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {

@@ -551,8 +551,10 @@ export class PumpState extends EqState {
     public get time(): number { return this.data.runTime; }
     public set time(val: number) { this.setDataVal('runTime', val, false); }
     public getExtended() {
+        sys.pumps.sortById();
         let pump = this.get(true);
         let cpump = sys.pumps.getItemById(pump.id);
+        cpump.circuits.sortById();
         if (typeof (cpump.minSpeed) !== 'undefined') pump.minSpeed = cpump.minSpeed;
         if (typeof (cpump.maxSpeed) !== 'undefined') pump.maxSpeed = cpump.maxSpeed;
         if (typeof (cpump.minFlow) !== 'undefined') pump.minFlow = cpump.minFlow;
@@ -560,12 +562,31 @@ export class PumpState extends EqState {
         pump.speedStepSize = cpump.speedStepSize;
         pump.flowStepSize = cpump.flowStepSize;
         pump.circuits = [];
-        for (let i = 0; i < cpump.circuits.length; i++) {
+        for (let i = 1; i <= 8; i++) {
+            let c = cpump.circuits.getItemById(i).get(true);
+            c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
+            if (typeof c.circuit.id === 'undefined') {
+                // return "blank" circuit if none defined
+                c.circuit.id = 0;
+                c.circuit.name = 'Not Used';
+                if (sys.board.valueMaps.pumpTypes.getName(cpump.type) === 'vf'){
+                    c.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                    c.circuit.flow = 0;
+                } 
+                else {
+                    c.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    c.circuit.speed = 0;
+                }
+            }
+            c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
+            pump.circuits.push(c);
+        }
+/*         for (let i = 0; i < cpump.circuits.length; i++) {
             let c = cpump.circuits.getItemByIndex(i).get(true);
             c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
             c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
             pump.circuits.push(c);
-        }
+        } */
         return pump;
     }
 }

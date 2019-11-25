@@ -331,8 +331,16 @@ class EqItemCollection<T> {
     public add(obj: any): T {this.data.push(obj); return this.createItem(obj);}
     public get(): any {return this.data;}
     public emitEquipmentChange() {webApp.emitToClients(this.name, this.data);}
-    public sortByName() {this.sort((a, b) => {return a.data.name > b.data.name ? 1 : -1;});}
-    public sortById() {this.sort((a, b) => {return a.data.id > b.data.id ? 1 : -1;});}
+    public sortByName() {this.sort((a, b) => {
+        // RSG - I believe this should just be a.name not a.data.name
+        return a.name > b.name ? 1 : -1;});}
+        // return a.data.name > b.data.name ? 1 : -1;});}
+    public sortById() {this.sort((a, b) => {
+        // RSG - I believe this should just be a.id not a.data.id
+            // return a.data.id > b.data.id ? 1 : -1;
+            return a.id > b.id ? 1 : -1;
+       
+    });}
     public sort(fn: (a, b) => number) {this.data.sort(fn);}
 }
 export class General extends EqItem {
@@ -814,6 +822,9 @@ export class Pump extends EqItem {
     public setPump(obj?: any) {sys.board.pumps.setPump(this, obj);}
     public setPumpCircuit(pumpCircuit: any ){
         return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
+    }
+    public deletePumpCircuit(pumpCircuitId: number){ 
+        return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }
 /*     public setCircuitRate(circuitId: number, rate: number) {
         // below should check with the board to see if units is 0 or 1

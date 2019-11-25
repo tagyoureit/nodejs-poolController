@@ -434,9 +434,16 @@ export class PumpCommands extends BoardCommands {
         }
     }
 
+    public deletePumpCircuit(pump: Pump, pumpCircuitId: number){
+        pump.circuits.removeItemById(pumpCircuitId);
+        this.setPump(pump);
+        let spump = state.pumps.getItemById(pump.id);
+        spump.emitData('pumpExt', spump.getExtended());
+    }
     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
         const origValues = extend(true, {}, pumpCircuitDeltas);
         let {pumpCircuitId, circuit, rate, units} = pumpCircuitDeltas;
+
         let failed = false;
         let succeeded = false;
         // STEP 1 - Make a copy of the existing circuit
@@ -592,7 +599,34 @@ export class PumpCommands extends BoardCommands {
             spump.emitData('pumpExt', spump.getExtended()); 
         }
     }
-
+    public availableCircuits(){
+        let _availCircuits = [];
+        for (let i = 0; i < sys.circuits.length; i++){
+            let circ = sys.circuits.getItemByIndex(i);
+            if (circ.isActive) _availCircuits.push({type: 'circuit', id: circ.id, name: circ.name});
+        }
+        for (let i = 0; i < sys.features.length; i++){
+            let circ = sys.features.getItemByIndex(i);
+            if (circ.isActive) _availCircuits.push({type: 'feature', id: circ.id, name: circ.name});
+        }
+        let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
+        for (let i = 0; i < arrCircuits.length; i++){
+            let vc = arrCircuits[i];
+            switch (vc.name){
+                case 'poolHeater':
+                case 'spaHeater':
+                case 'freeze':
+                case 'poolSpa':
+                case 'solarHeat':
+                case 'solar':
+                case 'heater':
+                    _availCircuits.push({type: 'virtual', id: vc.val, name: vc.desc});
+            }
+        }
+        // what is "not used" on Intellicenter?  Hardcoded for *Touch for now.
+        _availCircuits.push({type: 'none', id: 255, name: 'Remove'});
+        return _availCircuits;
+    }
 }
 export class CircuitCommands extends BoardCommands {
     public syncVirtualCircuitStates() {

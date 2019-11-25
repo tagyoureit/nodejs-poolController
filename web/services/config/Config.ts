@@ -25,6 +25,9 @@ export class ConfigRoute {
         app.get('/config/pump/:id/circuits', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
         });
+        app.get('/config/pump/availableCircuits', (req, res) => {
+            return res.status(200).send( sys.board.pumps.availableCircuits());
+        });
         app.get('/config/pump/:id/circuit/:circuitid', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits[parseInt(req.params.circuitid, 10)]);
         });
@@ -57,22 +60,11 @@ export class ConfigRoute {
                 return res.status(200).send({result: result, reason: reason});
             else 
                 return res.status(500).send({result: result, reason: reason});
-            
-            // circuit rate
-            // pump.setCircuitRate(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.rate, 10));
-            // return res.status(200).send('OK');
-
-            // circuit
-            // pump.setCircuitId(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.circuitId, 10));
-            // return res.status(200).send('OK');
-            
-            // circuit rate units
-            // pump.setCircuitRateUnits(parseInt(req.body.pumpCircuitId, 10), parseInt(req.body.units, 10));
-            // return res.status(200).send('OK');
         });
         app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
-            pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
+            // pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
+            pump.deletePumpCircuit(parseInt(req.params.pumpCircuitId, 10));
             return res.status(200).send('OK');
         });
 

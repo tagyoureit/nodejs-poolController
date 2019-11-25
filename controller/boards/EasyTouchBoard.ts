@@ -693,7 +693,7 @@ class TouchPumpCommands extends PumpCommands {
             setPumpConfig.payload[30] =
                 pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256 || 232;
             for (let i = 1; i <= 8; i++) {
-                const circ = pump.circuits.getItemById(i);
+                let circ = pump.circuits.getItemById(i);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
                 setPumpConfig.payload[i * 2 + 4] = Math.floor(circ.speed / 256) || 3;
                 setPumpConfig.payload[i + 21] =
@@ -703,7 +703,7 @@ class TouchPumpCommands extends PumpCommands {
         else if (pump.type === 64)
             // vsf
             for (let i = 1; i <= 8; i++) {
-                const circ = pump.circuits.getItemById(i);
+                let circ = pump.circuits.getItemById(i);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
                 if (circ.units === 0)
                     // gpm
@@ -734,7 +734,7 @@ class TouchPumpCommands extends PumpCommands {
             setPumpConfig.payload[28] = pump.vacuumFlow || 50;
             setPumpConfig.payload[30] = pump.vacuumTime || 10;
             for (let i = 1; i <= 8; i++) {
-                const circ = pump.circuits.getItemById(i);
+                let circ = pump.circuits.getItemById(i);
                 setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
                 setPumpConfig.payload[i * 2 + 4] = circ.flow || 15;
             }
