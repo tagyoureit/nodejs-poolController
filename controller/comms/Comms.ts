@@ -200,23 +200,33 @@ export class SendRecieveBuffer {
             msg.timestamp = new Date();
             logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`);
             logger.packet(msg);
-            conn.write(Buffer.from(bytes), function(err) {
+            conn.write(Buffer.from(bytes), function (err) {
                 // TODO: RG made changes to this code.  Please check if it is correct.
-                if (err) logger.error('Error writing packet %s', err);
-                if (msg.retries <= 0) {
-                    msg.failed = true;
-                    conn.buffer._waitingPacket = null;
-                    if (typeof msg.onError === 'function') msg.onError.apply(msg, [msg, err]);
-                    if (msg.requiresResponse && typeof (msg.response.callback) === 'function')
-                        setTimeout(msg.response.callback, 100, msg);
-                    //     else conn.buffer._waitingPacket = msg;
+                // RKS: Your change was not correct.  The err object is not null if there is an error.  This code should stop all further writes until it has exhausted
+                // the retries and should only retry if it was unsuccessful.  Your code was causing a retry regardless of whether there was an error.  Our port does
+                // an echo so that determines whether it collided or not.
+                if (err) {
+                    logger.error('Error writing packet %s', err);
+                    if (msg.retries <= 0) {
+                        msg.failed = true;
+                        conn.buffer._waitingPacket = null;
+                        if (typeof msg.onError === 'function') msg.onError.apply(msg, [msg, err]);
+                        if (msg.requiresResponse && typeof (msg.response.callback) === 'function')
+                            setTimeout(msg.response.callback, 100, msg);
+                    }
+                    else {
+                        // Keep this message on the queue until we have exhausted our retries.  A retry is not
+                        // an error yet so keep on trying until we need to give up.  Normal operations include retries.
+                        conn.buffer._waitingPacket = msg;
+                        msg.retries--; // An error occurred so reduce the number of retries we have left.
+                    }
                 }
                 else {
+                    // We have succeeded so clear the wait on the writes.
+                    conn.buffer._waitingPacket = null;
                     if (typeof msg.onSuccess === 'function') msg.onSuccess.apply(msg, [msg]);
-                    if (msg.requiresResponse) conn.buffer._waitingPacket = msg;
                 }
             });
-            msg.retries--;
 
         }
     }
