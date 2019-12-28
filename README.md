@@ -1,4 +1,5 @@
 
+### Important note-downgrade from the latest version of node to use dependencies in this project. A new version of this app is currently under development. 
 
 # nodejs-poolController - Version 5.3.3
 
