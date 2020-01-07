@@ -252,6 +252,11 @@ module.exports = function (container) {
             container.circuit.toggleCircuit(equipment)
         });
 
+        socket.on('setCircuit', function (circuit, set) {
+            container.circuit.setCircuit(circuit, set)
+        });
+
+
         // when the client emits 'cancelDelay', this listens and executes
         socket.on('cancelDelay', function () {
             container.circuit.setDelayCancel()
