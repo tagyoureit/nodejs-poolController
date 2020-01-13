@@ -23,21 +23,29 @@ module.exports = function(container) {
     //var ISYTimer = new container.nanotimer
     var fs = container.fs
 
-    var socket = io.connect('https://localhost:3000', {
-        secure: true,
-        reconnect: true,
-        rejectUnauthorized: false
-    });
-
     pump = {}
     chlorinator = {}
     circuit = {}
     temperatures = {}
-    var configFile = JSON.parse(fs.readFileSync(container.settings.configurationFile));
+    var configFile = container.settings.getConfig();
     var enabled = configFile.integrations.socketISY
     var ISYConfig = configFile.socketISY
     var ISYVars = configFile.socketISY.Variables
-
+    var socket;
+    if (container.settings.get('httpsEnabled')){
+        socket = io.connect('https://localhost:3000', {
+            secure: true,
+            reconnect: true,
+            rejectUnauthorized: false
+        });
+    }
+    else {
+        socket = io.connect('http://localhost:3000', {
+            secure: false,
+            reconnect: true,
+            rejectUnauthorized: false
+        });
+    }
     function send(name, connectionString) {
 
         request(connectionString, function(error, response, body) {
