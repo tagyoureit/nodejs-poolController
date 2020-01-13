@@ -23,6 +23,7 @@ module.exports = function(container) {
     //var ISYTimer = new container.nanotimer
     var fs = container.fs
 
+    
     pump = {}
     chlorinator = {}
     circuit = {}
@@ -46,6 +47,7 @@ module.exports = function(container) {
             rejectUnauthorized: false
         });
     }
+    
     function send(name, connectionString) {
 
         request(connectionString, function(error, response, body) {
@@ -82,7 +84,8 @@ module.exports = function(container) {
 
     }
 
-    socket.on('chlorinator', function(data) {
+    socket.on('chlorinator', function(dataChlor) {
+        var data = dataChlor.data
         //console.log('FROM SOCKET CLIENT: ' + JSON.stringify(data))
         for (var prop in data) {
             for (var ISYVar in ISYVars.chlorinator) {
@@ -106,7 +109,8 @@ module.exports = function(container) {
 
 
 
-    socket.on('pump', function(data) {
+    socket.on('pump', function(dataPump) {
+        var data = dataPump.pump
         for (var v in Object.keys(ISYVars.pump)) {  //Retrieve number of pumps to retrieve from configFile.socketISY.Variables
             var currPump = parseInt(Object.keys(ISYVars.pump)[v]) //fancy way of converting JSON key "pump"."1" to int (1)
             for (var prop in data[currPump]) {  //retrieve values in pump[1]
@@ -134,7 +138,8 @@ module.exports = function(container) {
         }
     })
 
-    socket.on('circuit', function(data) {
+    socket.on('circuit', function(dataCirc) {
+        var data = dataCirc.circuit
         for (var v in Object.keys(ISYVars.circuit)) {
             var currCircuit = parseInt(Object.keys(ISYVars.circuit)[v])
             for (var prop in data[currCircuit]) {
