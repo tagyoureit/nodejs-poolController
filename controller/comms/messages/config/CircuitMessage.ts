@@ -207,20 +207,21 @@ export class CircuitMessage {
             else
                 sys.intellibrite.circuits.removeItemByCircuitId(id);
             if (sys.board.equipmentIds.circuits.isInRange(id)) {
-                // Circiuts will be the only type that are referenced here.
+                // Circuits will be the only type that are referenced here.
                 if (circuit.type === 0) return; // do not process if type doesn't exist
                 let body: Body;
                 switch (msg.extractPayloadByte(0)) {
                     case 6: // pool
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                         body.name = "Pool";
-                        functionId === 6 ? body.isActive = true : body.isActive = false;
+                        circuit.type === 2 ? body.isActive = true : body.isActive = false;
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                         body.name = "Spa";
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                        functionId === 1 ? body.isActive = true : body.isActive = false;
+                        // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.
+                        circuit.type === 1 ? body.isActive = true : body.isActive = false;
                         break;
                 }
             }

@@ -373,7 +373,7 @@ class EqState implements IEqStateCreator<EqState> {
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             //if(name !== 'lastComm')
-            //console.log('Changing ' + name + ': ' + this.data[name] + ' --> ' + val);
+            console.log(`Changing  ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
             this.data[name] = val;
             if (typeof persist === 'undefined' || persist) this.hasChanged = true;
         }
@@ -777,6 +777,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     }
 }
 export class BodyTempState extends EqState {
+    public dataName: string = 'bodyTempState';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('circuit', val); }
     public get circuit(): number { return this.data.circuit; }

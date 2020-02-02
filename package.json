@@ -1,7 +1,7 @@
 {
-    "name": "nodejs-intellicenter",
+    "name": "nodejs-poolController",
     "version": "6.0.0",
-    "description": "nodejs-Intellicenter",
+    "description": "nodejs-poolController",
     "main": "app.js",
     "author": {
         "name": "Russell Goldin",

@@ -1,25 +1,25 @@
-import {ConfigMessage} from "./config/ConfigMessage";
-import {PumpMessage} from "./config/PumpMessage";
-import {VersionMessage} from "./status/VersionMessage";
-import {PumpStateMessage} from "./status/PumpStateMessage";
-import {EquipmentStateMessage} from "./status/EquipmentStateMessage";
-import {ChlorinatorStateMessage} from "./status/ChlorinatorStateMessage";
-import {ExternalMessage} from "./config/ExternalMessage";
-import {Timestamp, ControllerType} from "../../Constants";
-import {CircuitMessage} from "./config/CircuitMessage";
-import {config} from '../../../config/Config';
-import {sys} from '../../Equipment';
-import {logger} from "../../../logger/Logger";
-import {CustomNameMessage} from "./config/CustomNameMessage";
-import {ScheduleMessage} from "./config/ScheduleMessage";
-import {RemoteMessage} from "./config/RemoteMessage";
-import {OptionsMessage} from "./config/OptionsMessage";
-import {EquipmentMessage} from "./config/EquipmentMessage";
-import {ValveMessage} from "./config/ValveMessage";
-import {state} from "../../State";
-import {HeaterMessage} from "./config/HeaterMessage";
-import {CircuitGroupMessage} from "./config/CircuitGroupMessage";
-import {IntellichemMessage} from "./config/IntellichemMessage";
+import { ConfigMessage } from "./config/ConfigMessage";
+import { PumpMessage } from "./config/PumpMessage";
+import { VersionMessage } from "./status/VersionMessage";
+import { PumpStateMessage } from "./status/PumpStateMessage";
+import { EquipmentStateMessage } from "./status/EquipmentStateMessage";
+import { ChlorinatorStateMessage } from "./status/ChlorinatorStateMessage";
+import { ExternalMessage } from "./config/ExternalMessage";
+import { Timestamp, ControllerType } from "../../Constants";
+import { CircuitMessage } from "./config/CircuitMessage";
+import { config } from '../../../config/Config';
+import { sys } from '../../Equipment';
+import { logger } from "../../../logger/Logger";
+import { CustomNameMessage } from "./config/CustomNameMessage";
+import { ScheduleMessage } from "./config/ScheduleMessage";
+import { RemoteMessage } from "./config/RemoteMessage";
+import { OptionsMessage } from "./config/OptionsMessage";
+import { EquipmentMessage } from "./config/EquipmentMessage";
+import { ValveMessage } from "./config/ValveMessage";
+import { state } from "../../State";
+import { HeaterMessage } from "./config/HeaterMessage";
+import { CircuitGroupMessage } from "./config/CircuitGroupMessage";
+import { IntellichemMessage } from "./config/IntellichemMessage";
 export enum Direction {
     In='in',
     Out='out'
@@ -31,12 +31,12 @@ export enum Protocol {
     Chlorinator='chlorinator'
 }
 export class Message {
-    constructor() {}
+    constructor() { }
 
     // Internal Storage
     protected _complete: boolean=false;
     public static headerSubByte: number=33;
-    public static pluginAddress: number=config.getSection('controller', {address: 33}).address;
+    public static pluginAddress: number=config.getSection('controller', { address: 33 }).address;
     //public static _controllerType: ControllerType = ControllerType.IntelliCenter;
 
 
@@ -53,14 +53,30 @@ export class Message {
 
     public isValid: boolean=true;
     // Properties
-    public get isComplete(): boolean {return this._complete;}
-    public get sub(): number {return this.header.length > 1 ? this.header[1] : -1;}
-    public get dest(): number {return this.protocol === Protocol.Chlorinator ? 2 : this.header.length > 2 ? this.header[2] : -1;}
-    public get source(): number {return this.protocol === Protocol.Chlorinator ? 2 : this.header.length > 3 ? this.header[3] : -1;}
-    public get action(): number {return this.protocol === Protocol.Chlorinator ? 0 : this.header.length > 5 ? this.header[4] : -1;}
-    public get datalen(): number {return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1;}
-    public get chkHi(): number {return this.protocol === Protocol.Chlorinator ? 0 : this.term.length > 0 ? this.term[0] : -1;}
-    public get chkLo(): number {return this.protocol === Protocol.Chlorinator ? this.term[0] : this.term[1];}
+    public get isComplete(): boolean { return this._complete; }
+    public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
+    public get dest(): number {
+        if (this.protocol === Protocol.Chlorinator) {
+            return this.header[2] === 80 ? this.header[2] - 79 : 0;
+        }
+        if (this.header.length > 2) return this.header[2];
+        else return -1;
+    }
+    public get source(): number {
+        if (this.protocol === Protocol.Chlorinator) {
+            return this.header[2] === 80 ? 0 : this.header[2] - 79;
+        }
+        if (this.header.length > 3) return this.header[3];
+        else return -1;
+    }
+    public get action(): number {
+        if (this.protocol === Protocol.Chlorinator) return this.header[2];
+        if (this.header.length > 5) return this.header[4];
+        else return -1;
+    }
+    public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
+    public get chkHi(): number { return this.protocol === Protocol.Chlorinator ? 0 : this.term.length > 0 ? this.term[0] : -1; }
+    public get chkLo(): number { return this.protocol === Protocol.Chlorinator ? this.term[0] : this.term[1]; }
     //public get controllerType(): ControllerType { return Message._controllerType; }
     public get checksum(): number {
         var sum = 0;
@@ -97,6 +113,7 @@ export class Message {
         return '{"type":"packet","packet":[' + this.toPacket().join(',') + '],"direction":"' + (this.direction === Direction.In ? 'inbound' : 'outbound') + '","level":"info","timestamp":"'
             + this.timestamp.toISOString() + '"}';
     }
+    // RG - seems like the function name is missing here.  :)
     private(val: number) {
         if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
     }
@@ -113,9 +130,9 @@ export class Inbound extends Message {
         if (this.protocol === Protocol.Chlorinator && this.payload.length === 19 && this.chkLo === 188) return true;
         return (this.chkHi * 256) + this.chkLo === this.checksum;
     }
-    private testChlorHeader(bytes: number[], ndx: number): boolean {return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2);}
-    private testBroadcastHeader(bytes: number[], ndx: number): boolean {return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165;}
-    private testChlorTerm(bytes: number[], ndx: number): boolean {return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3;}
+    private testChlorHeader(bytes: number[], ndx: number): boolean { return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2); }
+    private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
+    private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
     private pushBytes(target: number[], bytes: number[], ndx: number, length: number): number {
         let end = ndx + length;
         while (ndx < bytes.length && ndx < end)
@@ -158,7 +175,7 @@ export class Inbound extends Message {
                 if (this.datalen > 50) this.isValid = false;
                 break;
             case Protocol.Chlorinator:
-                ndx = this.pushBytes(this.header, bytes, ndx, 2);
+                ndx = this.pushBytes(this.header, bytes, ndx, 3);
                 break;
             default:
                 break;
@@ -307,6 +324,9 @@ export class Inbound extends Message {
                 // all configuration changes will be picked up.
                 ExternalMessage.process(this);
                 break;
+            case 197:
+                EquipmentStateMessage.process(this);    // Date/Time request
+            break;
             case 252:
                 EquipmentMessage.process(this);
                 break;
@@ -325,7 +345,7 @@ export class Inbound extends Message {
                 if (this.action === 109 && this.payload[1] === 3) break;
                 if (this.source === 17 && this.payload[0] === 109) break;
                 if (sys.controllerType === ControllerType.IntelliCenter && (this.action === 222 || this.action === 228)) break; // These are config requests from another controller (100s of them).
-                logger.info(`Unknown packet seen: ${this.toPacket()}`);
+                logger.info(`Unknown packet seen: ${ this.toPacket() }`);
                 break;
         }
     }
@@ -335,7 +355,7 @@ export class Inbound extends Message {
                 this.processBroadcast();
                 break;
             case Protocol.Pump:
-                if ((this.source >= 96 && this.source <= 111) || (this.dest >= 96 && this.dest <= 111 ))
+                if ((this.source >= 96 && this.source <= 111) || (this.dest >= 96 && this.dest <= 111))
                     PumpStateMessage.process(this);
                 else
                     this.processBroadcast();
@@ -383,29 +403,30 @@ export class Outbound extends Message {
         return new Outbound(Protocol.Broadcast, source, dest, action, payload, retries);
     }
     // Fields
-    public retries: number = 0;
-    public timeout: number = 1000;
+    public retries: number=0;
+    public timeout: number=1000;
     public response: Response;
-    public failed: boolean = false;
+    public failed: boolean=false;
     public onSuccess: (msg) => void;
     public onError: (msg, error) => void;
     // Properties
-    public get sub() {return super.sub;}
-    public get dest() {return super.dest;}
-    public get source() {return super.source;}
-    public get action() {return super.action;}
-    public get datalen() {return super.datalen;}
-    public get chkHi() {return super.chkHi;}
-    public get chkLo() {return super.chkLo;}
-    public set sub(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[1] = val;}
-    public set dest(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;}
-    public set source(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;}
-    public set action(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[4] = val;}
-    public set datalen(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[5] = val;}
-    public set chkHi(val: number) {if (this.protocol !== Protocol.Chlorinator) this.term[0] = val;}
-    public set chkLo(val: number) {if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val;}
+    public get sub() { return super.sub; }
+    public get dest() { return super.dest; }
+    public get source() { return super.source; }
+    public get action() { return super.action; }
+    public get datalen() { return super.datalen; }
+    public get chkHi() { return super.chkHi; }
+    public get chkLo() { return super.chkLo; }
+    // todo: Add outbound Chlor message building
+    public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[1] = val; }
+    public set dest(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[2] = val; }
+    public set source(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[3] = val; }
+    public set action(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[4] = val; }
+    public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
+    public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
+    public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
     public get requiresResponse(): boolean { return (typeof (this.response) !== "undefined" && this.response !== null); }
-    
+
     // Methods
     public calcChecksum() {
         this.datalen = this.payload.length;
@@ -457,7 +478,7 @@ export class Ack extends Outbound {
     }
 }
 export class Response extends Message {
-    public message: Inbound
+    public message: Inbound;
     constructor(source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
         super();
         this.protocol = Protocol.Broadcast;
@@ -481,24 +502,74 @@ export class Response extends Message {
     public callback: () => void;
 
     // Properties
-    public get sub() {return super.sub;}
-    public get dest() {return super.dest;}
-    public get source() {return super.source;}
-    public get action() {return super.action;}
-    public get datalen() {return super.datalen;}
-    public set sub(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[1] = val;}
-    public set dest(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;}
-    public set source(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;}
-    public set action(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[4] = val;}
-    public set datalen(val: number) {if (this.protocol !== Protocol.Chlorinator) this.header[5] = val;}
-    public set chkHi(val: number) {if (this.protocol !== Protocol.Chlorinator) this.term[0] = val;}
-    public set chkLo(val: number) {if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val;}
+    public get sub() { return super.sub; }
+    public get dest() { return super.dest; }
+    public get source() { return super.source; }
+    public get action() { return super.action; }
+    public get datalen() { return super.datalen; }
+    // todo: Set outbound Chlor values
+    public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[1] = val; }
+    public set dest(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[2] = val; }
+    public set source(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[3] = val; }
+    public set action(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[4] = val; }
+    public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
+    public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
+    public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
 
     // Methods
     public isResponse(msg: Message): boolean {
         if (typeof this.action !== 'undefined' && this.action !== null && msg.action !== this.action)
             return false;
-        if (sys.controllerType !== ControllerType.IntelliCenter) {
+        if (msg.protocol === Protocol.Pump) {
+            // pump response logic -- same across all controllers
+            if (msg.header[4] === this.header[4]) {
+                // Scenario 1.  Request for pump status.
+                //                                                    0 1  2  3   4  5  6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22
+                // Msg written:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
+                // Ack in           [165,0,96, 16, 7, 0],[1,28]
+                return true;
+            }
+            if (msg.dest === this.source && msg.source === this.dest && msg.payload === this.payload) {
+                //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
+                return true;
+            }
+            //Any commands with <01> are 4 bytes.  The responses are 2 bytes.  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
+            if (msg.header[5] === 1 && this.header[5] === 1 && msg.payload[2] === this.payload[0] && msg.payload[3] === this.payload[1]
+            ) {
+                // Scenario 3
+                // For pump response to set program 1 to 800 RPM
+                //                                                0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
+                // Msg Writter: [165,0,16,96, 1, 2], [3,32],[1,59]
+                // Ack In:      [165,0,96,16, 1, 4] ,[3,39, 3,32], [1,103]
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        else if (msg.protocol === Protocol.Chlorinator) {
+            /*  chlorinator logic -- same across all controllers
+                Reponses
+                0=>1
+                17=>18
+                21=>18
+                20=>3 */
+            switch (msg.header[2]) {
+                case 0:
+                    if (this.header[2] !== 1) return false;
+                    break;
+                case 17:
+                    if (this.header[2] !== 18) return false;
+                    break;
+                case 21:
+                    if (this.header[2] !== 21) return false;
+                    break;
+                case 20:
+                    if (this.header[2] !== 3) return false;
+                    break;
+            }
+        }
+        else if (sys.controllerType !== ControllerType.IntelliCenter) {
             if (this.action === 252 && msg.action === 253) return true;
             switch (this.action) {
                 // these responses have multiple items so match the 1st payload byte

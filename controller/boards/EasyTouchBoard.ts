@@ -1,224 +1,226 @@
 ﻿import * as extend from 'extend';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange, HeaterCommands, ScheduleCommands} from './SystemBoard';
-import {PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer} from '../Equipment';
-import {Protocol, Outbound, Message, Response} from '../comms/messages/Messages';
-import {state, ChlorinatorState, CommsState, State} from '../State';
-import {logger} from '../../logger/Logger';
-import {conn} from '../comms/Comms';
+import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer } from '../Equipment';
+import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
+import { state, ChlorinatorState, CommsState, State } from '../State';
+import { logger } from '../../logger/Logger';
+import { conn } from '../comms/Comms';
 export class EasyTouchBoard extends SystemBoard {
+    public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.features = new EquipmentIdRange(() => {return sys.equipment.maxCircuits + 1;}, () => {return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3;});
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(() => { return 128;}, () => {return 136;});
+        this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(() => { return 128; }, () => { return 136; });
+        if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.circuitNames = new byteValueMap([
-            [0, {name: 'notused', desc: 'Not Used'}],
-            [1, {name: 'aerator', desc: 'Aerator'}],
-            [2, {name: 'airblower', desc: 'Air Blower'}],
-            [3, {name: 'aux1', desc: 'AUX 1'}],
-            [4, {name: 'aux2', desc: 'AUX 2'}],
-            [5, {name: 'aux3', desc: 'AUX 3'}],
-            [6, {name: 'aux4', desc: 'AUX 4'}],
-            [7, {name: 'aux5', desc: 'AUX 5'}],
-            [8, {name: 'aux6', desc: 'AUX 6'}],
-            [9, {name: 'aux7', desc: 'AUX 7'}],
-            [10, {name: 'aux8', desc: 'AUX 8'}],
-            [11, {name: 'aux9', desc: 'AUX 9'}],
-            [12, {name: 'auk10', desc: 'AUX 10'}],
-            [13, {name: 'backwash', desc: 'Backwash'}],
-            [14, {name: 'backlight', desc: 'Back Light'}],
-            [15, {name: 'bbqlight', desc: 'BBQ Light'}],
-            [16, {name: 'beachlight', desc: 'Beach Light'}],
-            [17, {name: 'boosterpump', desc: 'Booster Pump'}],
-            [18, {name: 'buglight', desc: 'But Light'}],
-            [19, {name: 'cabanalts', desc: 'Cabana Lights'}],
-            [20, {name: 'chem.feeder', desc: 'Chemical Feeder'}],
-            [21, {name: 'chlorinator', desc: 'Chlorinator'}],
-            [22, {name: 'cleaner', desc: 'Cleaner'}],
-            [23, {name: 'colorwheel', desc: 'Color Wheel'}],
-            [24, {name: 'decklight', desc: 'Deck Light'}],
-            [25, {name: 'drainline', desc: 'Drain Line'}],
-            [26, {name: 'drivelight', desc: 'Drive Light'}],
-            [27, {name: 'edgepump', desc: 'Edge Pump'}],
-            [28, {name: 'entrylight', desc: 'Entry Light'}],
-            [29, {name: 'fan', desc: 'Fan'}],
-            [30, {name: 'fiberoptic', desc: 'Fiber Optic'}],
-            [31, {name: 'fiberworks', desc: 'Fiber Works'}],
-            [32, {name: 'fillline', desc: 'Fill Line'}],
-            [33, {name: 'floorclnr', desc: 'Floor CLeaner'}],
-            [34, {name: 'fogger', desc: 'Fogger'}],
-            [35, {name: 'fountain', desc: 'Fountain'}],
-            [36, {name: 'fountain1', desc: 'Fountain 1'}],
-            [37, {name: 'fountain2', desc: 'Fountain 2'}],
-            [38, {name: 'fountain3', desc: 'Fountain 3'}],
-            [39, {name: 'fountains', desc: 'Fountains'}],
-            [40, {name: 'frontlight', desc: 'DFront Light'}],
-            [41, {name: 'gardenlts', desc: 'Garden Lights'}],
-            [42, {name: 'gazebolts', desc: 'Gazebo Lights'}],
-            [43, {name: 'highspeed', desc: 'High Speed'}],
-            [44, {name: 'hi-temp', desc: 'Hi-Temp'}],
-            [45, {name: 'houselight', desc: 'House Light'}],
-            [46, {name: 'jets', desc: 'Jets'}],
-            [47, {name: 'lights', desc: 'Lights'}],
-            [48, {name: 'lowspeed', desc: 'Low Speed'}],
-            [49, {name: 'lo-temp', desc: 'Lo-Temp'}],
-            [50, {name: 'malibults', desc: 'Malibu Lights'}],
-            [51, {name: 'mist', desc: 'Mist'}],
-            [52, {name: 'music', desc: 'Music'}],
-            [53, {name: 'notused', desc: 'Not Used'}],
-            [54, {name: 'ozonator', desc: 'Ozonator'}],
-            [55, {name: 'pathlightn', desc: 'Path Lights'}],
-            [56, {name: 'patiolts', desc: 'Patio Lights'}],
-            [57, {name: 'perimeterl', desc: 'Permiter Light'}],
-            [58, {name: 'pg2000', desc: 'PG2000'}],
-            [59, {name: 'pondlight', desc: 'Pond Light'}],
-            [60, {name: 'poolpump', desc: 'Pool Pump'}],
-            [61, {name: 'pool', desc: 'Pool'}],
-            [62, {name: 'poolhigh', desc: 'Pool High'}],
-            [63, {name: 'poollight', desc: 'Pool Light'}],
-            [64, {name: 'poollow', desc: 'Pool Low'}],
-            [65, {name: 'sam', desc: 'SAM'}],
-            [66, {name: 'poolsam1', desc: 'Pool SAM 1'}],
-            [67, {name: 'poolsam2', desc: 'Pool SAM 2'}],
-            [68, {name: 'poolsam3', desc: 'Pool SAM 3'}],
-            [69, {name: 'securitylt', desc: 'Security Light'}],
-            [70, {name: 'slide', desc: 'Slide'}],
-            [71, {name: 'solar', desc: 'Solar'}],
-            [72, {name: 'spa', desc: 'Spa'}],
-            [73, {name: 'spahigh', desc: 'Spa High'}],
-            [74, {name: 'spalight', desc: 'Spa Light'}],
-            [75, {name: 'spalow', desc: 'Spa Low'}],
-            [76, {name: 'spasal', desc: 'Spa SAL'}],
-            [77, {name: 'spasam', desc: 'Spa SAM'}],
-            [78, {name: 'spawtrfll', desc: 'Spa Waterfall'}],
-            [79, {name: 'spillway', desc: 'Spillway'}],
-            [80, {name: 'sprinklers', desc: 'Sprinklers'}],
-            [81, {name: 'stream', desc: 'Stream'}],
-            [82, {name: 'statuelt', desc: 'Statue Light'}],
-            [83, {name: 'swimjets', desc: 'Swim Jets'}],
-            [84, {name: 'wtrfeature', desc: 'Water Feature'}],
-            [85, {name: 'wtrfeatlt', desc: 'Water Feature Light'}],
-            [86, {name: 'waterfall', desc: 'Waterfall'}],
-            [87, {name: 'waterfall1', desc: 'Waterfall 1'}],
-            [88, {name: 'waterfall2', desc: 'Waterfall 2'}],
-            [89, {name: 'waterfall3', desc: 'Waterfall 3'}],
-            [90, {name: 'whirlpool', desc: 'Whirlpool'}],
-            [91, {name: 'wtrflght', desc: 'Waterfall Light'}],
-            [92, {name: 'yardlight', desc: 'Yard Light'}],
-            [93, {name: 'auxextra', desc: 'AUX EXTRA'}],
-            [94, {name: 'feature1', desc: 'Feature 1'}],
-            [95, {name: 'feature2', desc: 'Feature 2'}],
-            [96, {name: 'feature3', desc: 'Feature 3'}],
-            [97, {name: 'feature4', desc: 'Feature 4'}],
-            [98, {name: 'feature5', desc: 'Feature 5'}],
-            [99, {name: 'feature6', desc: 'Feature 6'}],
-            [100, {name: 'feature7', desc: 'Feature 7'}],
-            [101, {name: 'feature8', desc: 'Feature 8'}]
+            [0, { name: 'notused', desc: 'Not Used' }],
+            [1, { name: 'aerator', desc: 'Aerator' }],
+            [2, { name: 'airblower', desc: 'Air Blower' }],
+            [3, { name: 'aux1', desc: 'AUX 1' }],
+            [4, { name: 'aux2', desc: 'AUX 2' }],
+            [5, { name: 'aux3', desc: 'AUX 3' }],
+            [6, { name: 'aux4', desc: 'AUX 4' }],
+            [7, { name: 'aux5', desc: 'AUX 5' }],
+            [8, { name: 'aux6', desc: 'AUX 6' }],
+            [9, { name: 'aux7', desc: 'AUX 7' }],
+            [10, { name: 'aux8', desc: 'AUX 8' }],
+            [11, { name: 'aux9', desc: 'AUX 9' }],
+            [12, { name: 'auk10', desc: 'AUX 10' }],
+            [13, { name: 'backwash', desc: 'Backwash' }],
+            [14, { name: 'backlight', desc: 'Back Light' }],
+            [15, { name: 'bbqlight', desc: 'BBQ Light' }],
+            [16, { name: 'beachlight', desc: 'Beach Light' }],
+            [17, { name: 'boosterpump', desc: 'Booster Pump' }],
+            [18, { name: 'buglight', desc: 'But Light' }],
+            [19, { name: 'cabanalts', desc: 'Cabana Lights' }],
+            [20, { name: 'chem.feeder', desc: 'Chemical Feeder' }],
+            [21, { name: 'chlorinator', desc: 'Chlorinator' }],
+            [22, { name: 'cleaner', desc: 'Cleaner' }],
+            [23, { name: 'colorwheel', desc: 'Color Wheel' }],
+            [24, { name: 'decklight', desc: 'Deck Light' }],
+            [25, { name: 'drainline', desc: 'Drain Line' }],
+            [26, { name: 'drivelight', desc: 'Drive Light' }],
+            [27, { name: 'edgepump', desc: 'Edge Pump' }],
+            [28, { name: 'entrylight', desc: 'Entry Light' }],
+            [29, { name: 'fan', desc: 'Fan' }],
+            [30, { name: 'fiberoptic', desc: 'Fiber Optic' }],
+            [31, { name: 'fiberworks', desc: 'Fiber Works' }],
+            [32, { name: 'fillline', desc: 'Fill Line' }],
+            [33, { name: 'floorclnr', desc: 'Floor CLeaner' }],
+            [34, { name: 'fogger', desc: 'Fogger' }],
+            [35, { name: 'fountain', desc: 'Fountain' }],
+            [36, { name: 'fountain1', desc: 'Fountain 1' }],
+            [37, { name: 'fountain2', desc: 'Fountain 2' }],
+            [38, { name: 'fountain3', desc: 'Fountain 3' }],
+            [39, { name: 'fountains', desc: 'Fountains' }],
+            [40, { name: 'frontlight', desc: 'DFront Light' }],
+            [41, { name: 'gardenlts', desc: 'Garden Lights' }],
+            [42, { name: 'gazebolts', desc: 'Gazebo Lights' }],
+            [43, { name: 'highspeed', desc: 'High Speed' }],
+            [44, { name: 'hi-temp', desc: 'Hi-Temp' }],
+            [45, { name: 'houselight', desc: 'House Light' }],
+            [46, { name: 'jets', desc: 'Jets' }],
+            [47, { name: 'lights', desc: 'Lights' }],
+            [48, { name: 'lowspeed', desc: 'Low Speed' }],
+            [49, { name: 'lo-temp', desc: 'Lo-Temp' }],
+            [50, { name: 'malibults', desc: 'Malibu Lights' }],
+            [51, { name: 'mist', desc: 'Mist' }],
+            [52, { name: 'music', desc: 'Music' }],
+            [53, { name: 'notused', desc: 'Not Used' }],
+            [54, { name: 'ozonator', desc: 'Ozonator' }],
+            [55, { name: 'pathlightn', desc: 'Path Lights' }],
+            [56, { name: 'patiolts', desc: 'Patio Lights' }],
+            [57, { name: 'perimeterl', desc: 'Permiter Light' }],
+            [58, { name: 'pg2000', desc: 'PG2000' }],
+            [59, { name: 'pondlight', desc: 'Pond Light' }],
+            [60, { name: 'poolpump', desc: 'Pool Pump' }],
+            [61, { name: 'pool', desc: 'Pool' }],
+            [62, { name: 'poolhigh', desc: 'Pool High' }],
+            [63, { name: 'poollight', desc: 'Pool Light' }],
+            [64, { name: 'poollow', desc: 'Pool Low' }],
+            [65, { name: 'sam', desc: 'SAM' }],
+            [66, { name: 'poolsam1', desc: 'Pool SAM 1' }],
+            [67, { name: 'poolsam2', desc: 'Pool SAM 2' }],
+            [68, { name: 'poolsam3', desc: 'Pool SAM 3' }],
+            [69, { name: 'securitylt', desc: 'Security Light' }],
+            [70, { name: 'slide', desc: 'Slide' }],
+            [71, { name: 'solar', desc: 'Solar' }],
+            [72, { name: 'spa', desc: 'Spa' }],
+            [73, { name: 'spahigh', desc: 'Spa High' }],
+            [74, { name: 'spalight', desc: 'Spa Light' }],
+            [75, { name: 'spalow', desc: 'Spa Low' }],
+            [76, { name: 'spasal', desc: 'Spa SAL' }],
+            [77, { name: 'spasam', desc: 'Spa SAM' }],
+            [78, { name: 'spawtrfll', desc: 'Spa Waterfall' }],
+            [79, { name: 'spillway', desc: 'Spillway' }],
+            [80, { name: 'sprinklers', desc: 'Sprinklers' }],
+            [81, { name: 'stream', desc: 'Stream' }],
+            [82, { name: 'statuelt', desc: 'Statue Light' }],
+            [83, { name: 'swimjets', desc: 'Swim Jets' }],
+            [84, { name: 'wtrfeature', desc: 'Water Feature' }],
+            [85, { name: 'wtrfeatlt', desc: 'Water Feature Light' }],
+            [86, { name: 'waterfall', desc: 'Waterfall' }],
+            [87, { name: 'waterfall1', desc: 'Waterfall 1' }],
+            [88, { name: 'waterfall2', desc: 'Waterfall 2' }],
+            [89, { name: 'waterfall3', desc: 'Waterfall 3' }],
+            [90, { name: 'whirlpool', desc: 'Whirlpool' }],
+            [91, { name: 'wtrflght', desc: 'Waterfall Light' }],
+            [92, { name: 'yardlight', desc: 'Yard Light' }],
+            [93, { name: 'auxextra', desc: 'AUX EXTRA' }],
+            [94, { name: 'feature1', desc: 'Feature 1' }],
+            [95, { name: 'feature2', desc: 'Feature 2' }],
+            [96, { name: 'feature3', desc: 'Feature 3' }],
+            [97, { name: 'feature4', desc: 'Feature 4' }],
+            [98, { name: 'feature5', desc: 'Feature 5' }],
+            [99, { name: 'feature6', desc: 'Feature 6' }],
+            [100, { name: 'feature7', desc: 'Feature 7' }],
+            [101, { name: 'feature8', desc: 'Feature 8' }]
         ]);
         this.valueMaps.circuitFunctions = new byteValueMap([
-            [0, {name: 'generic', desc: 'Generic'}],
-            [1, {name: 'spa', desc: 'Spa'}],
-            [2, {name: 'pool', desc: 'Pool'}],
-            [5, {name: 'mastercleaner', desc: 'Master Cleaner'}],
-            [7, {name: 'light', desc: 'Light'}],
-            [9, {name: 'samlight', desc: 'SAM Light'}],
-            [10, {name: 'sallight', desc: 'SAL Light'}],
-            [11, {name: 'photongen', desc: 'Photon Gen'}],
-            [12, {name: 'colorwheel', desc: 'Color Wheer'}],
-            [13, {name: 'valve', desc: 'Valve'}],
-            [14, {name: 'spillway', desc: 'Spillway'}],
-            [15, {name: 'floorcleaner', desc: 'Floor Cleaner'}],
-            [16, {name: 'intellibrite', desc: 'Intellibrite'}],
-            [17, {name: 'magicstream', desc: 'Magicstream'}],
-            [19, {name: 'notused', desc: 'Not Used'}]
+            [0, { name: 'generic', desc: 'Generic' }],
+            [1, { name: 'spa', desc: 'Spa' }],
+            [2, { name: 'pool', desc: 'Pool' }],
+            [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
+            [7, { name: 'light', desc: 'Light' }],
+            [9, { name: 'samlight', desc: 'SAM Light' }],
+            [10, { name: 'sallight', desc: 'SAL Light' }],
+            [11, { name: 'photongen', desc: 'Photon Gen' }],
+            [12, { name: 'colorwheel', desc: 'Color Wheer' }],
+            [13, { name: 'valve', desc: 'Valve' }],
+            [14, { name: 'spillway', desc: 'Spillway' }],
+            [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
+            [16, { name: 'intellibrite', desc: 'Intellibrite' }],
+            [17, { name: 'magicstream', desc: 'Magicstream' }],
+            [19, { name: 'notused', desc: 'Not Used' }]
         ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
-            [128, {name: 'solar', desc: 'Solar'}],
-            [129, {name: 'heater', desc: 'Either Heater'}],
-            [130, {name: 'poolHeater', desc: 'Pool Heater'}],
-            [131, {name: 'spaHeater', desc: 'Spa Heater'}],
-            [132, {name: 'freeze', desc: 'Freeze'}],
-            [133, {name: 'heatBoost', desc: 'Heat Boost'}],
-            [134, {name: 'heatEnable', desc: 'Heat Enable'}],
-            [135, {name: 'pumpSpeedUp', desc: 'Pump Speed +'}],
-            [136, {name: 'pumpSpeedDown', desc: 'Pump Speed -'}],
-            [255, {name: 'notused', desc: 'NOT USED'}]
+            [128, { name: 'solar', desc: 'Solar' }],
+            [129, { name: 'heater', desc: 'Either Heater' }],
+            [130, { name: 'poolHeater', desc: 'Pool Heater' }],
+            [131, { name: 'spaHeater', desc: 'Spa Heater' }],
+            [132, { name: 'freeze', desc: 'Freeze' }],
+            [133, { name: 'heatBoost', desc: 'Heat Boost' }],
+            [134, { name: 'heatEnable', desc: 'Heat Enable' }],
+            [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
+            [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
+            [255, { name: 'notused', desc: 'NOT USED' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, {name: 'none', desc: 'No pump'}],
-            [1, {name: 'vf', desc: 'Intelliflo VF'}],
-            [2, {name: 'ds', desc: 'Two-Speed'}],
-            [64, {name: 'vsf', desc: 'Intelliflo VSF'}],
-            [128, {name: 'vs', desc: 'Intelliflo VS'}],
-            [169, {name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS'}]
+            [0, { name: 'none', desc: 'No pump' }],
+            [1, { name: 'vf', desc: 'Intelliflo VF' }],
+            [2, { name: 'ds', desc: 'Two-Speed' }],
+            [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
+            [128, { name: 'vs', desc: 'Intelliflo VS' }],
+            [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, {name: 'white', desc: 'White'}],
-            [2, {name: 'lightgreen', desc: 'Light Green'}],
-            [4, {name: 'green', desc: 'Green'}],
-            [6, {name: 'cyan', desc: 'Cyan'}],
-            [8, {name: 'blue', desc: 'Blue'}],
-            [10, {name: 'lavender', desc: 'Lavender'}],
-            [12, {name: 'magenta', desc: 'Magenta'}],
-            [14, {name: 'lightmagenta', desc: 'Light Magenta'}],
-            [128, {name: 'colorsync', desc: 'Color Sync'}],
-            [144, {name: 'colorswim', desc: 'Color Swim'}],
-            [160, {name: 'colorset', desc: 'Color Set'}],
-            [177, {name: 'party', desc: 'Party'}],
-            [178, {name: 'romance', desc: 'Romance'}],
-            [179, {name: 'caribbean', desc: 'Caribbean'}],
-            [180, {name: 'american', desc: 'American'}],
-            [181, {name: 'sunset', desc: 'Sunset'}],
-            [182, {name: 'royal', desc: 'Royal'}],
-            [190, {name: 'save', desc: 'Save'}],
-            [191, {name: 'recall', desc: 'Recall'}],
-            [193, {name: 'blue', desc: 'Blue'}],
-            [194, {name: 'green', desc: 'Green'}],
-            [195, {name: 'red', desc: 'Red'}],
-            [196, {name: 'white', desc: 'White'}],
-            [197, {name: 'magenta', desc: 'Magenta'}],
-            [208, {name: 'thumper', desc: 'Thumper'}],
-            [209, {name: 'hold', desc: 'Hold'}],
-            [210, {name: 'reset', desc: 'Reset'}],
-            [211, {name: 'mode', desc: 'Mode'}],
-            [254, {name: 'unknown', desc: 'unknown'}],
-            [255, {name: 'none', desc: 'None'}]
+            [0, { name: 'white', desc: 'White' }],
+            [2, { name: 'lightgreen', desc: 'Light Green' }],
+            [4, { name: 'green', desc: 'Green' }],
+            [6, { name: 'cyan', desc: 'Cyan' }],
+            [8, { name: 'blue', desc: 'Blue' }],
+            [10, { name: 'lavender', desc: 'Lavender' }],
+            [12, { name: 'magenta', desc: 'Magenta' }],
+            [14, { name: 'lightmagenta', desc: 'Light Magenta' }],
+            [128, { name: 'colorsync', desc: 'Color Sync' }],
+            [144, { name: 'colorswim', desc: 'Color Swim' }],
+            [160, { name: 'colorset', desc: 'Color Set' }],
+            [177, { name: 'party', desc: 'Party' }],
+            [178, { name: 'romance', desc: 'Romance' }],
+            [179, { name: 'caribbean', desc: 'Caribbean' }],
+            [180, { name: 'american', desc: 'American' }],
+            [181, { name: 'sunset', desc: 'Sunset' }],
+            [182, { name: 'royal', desc: 'Royal' }],
+            [190, { name: 'save', desc: 'Save' }],
+            [191, { name: 'recall', desc: 'Recall' }],
+            [193, { name: 'blue', desc: 'Blue' }],
+            [194, { name: 'green', desc: 'Green' }],
+            [195, { name: 'red', desc: 'Red' }],
+            [196, { name: 'white', desc: 'White' }],
+            [197, { name: 'magenta', desc: 'Magenta' }],
+            [208, { name: 'thumper', desc: 'Thumper' }],
+            [209, { name: 'hold', desc: 'Hold' }],
+            [210, { name: 'reset', desc: 'Reset' }],
+            [211, { name: 'mode', desc: 'Mode' }],
+            [254, { name: 'unknown', desc: 'unknown' }],
+            [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
-            [0, {name: 'white', desc: 'White'}],
-            [2, {name: 'lightgreen', desc: 'Light Green'}],
-            [4, {name: 'green', desc: 'Green'}],
-            [6, {name: 'cyan', desc: 'Cyan'}],
-            [8, {name: 'blue', desc: 'Blue'}],
-            [10, {name: 'lavender', desc: 'Lavender'}],
-            [12, {name: 'magenta', desc: 'Magenta'}],
-            [14, {name: 'lightmagenta', desc: 'Light Magenta'}]
+            [0, { name: 'white', desc: 'White' }],
+            [2, { name: 'lightgreen', desc: 'Light Green' }],
+            [4, { name: 'green', desc: 'Green' }],
+            [6, { name: 'cyan', desc: 'Cyan' }],
+            [8, { name: 'blue', desc: 'Blue' }],
+            [10, { name: 'lavender', desc: 'Lavender' }],
+            [12, { name: 'magenta', desc: 'Magenta' }],
+            [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
         this.valueMaps.heatModes = new byteValueMap([
-            [0, {name: 'off', desc: 'Off'}],
-            [1, {name: 'heater', desc: 'Heater'}],
-            [2, {name: 'solarpref', desc: 'Solar Preferred'}],
-            [3, {name: 'solar', desc: 'Solar Only'}]
+            [0, { name: 'off', desc: 'Off' }],
+            [1, { name: 'heater', desc: 'Heater' }],
+            [2, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [3, { name: 'solar', desc: 'Solar Only' }]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
-            [0, {name: 'none', desc: 'No Heater'}],
-            [1, {name: 'gas', desc: 'Gas Heater'}],
-            [2, {name: 'solar', desc: 'Solar Heater'}],
-            [3, {name: 'heatpump', desc: 'Heat Pump'}],
-            [4, {name: 'ultratemp', desc: 'Ultratemp'}],
-            [5, {name: 'hybrid', desc: 'hybrid'}]
+            [0, { name: 'none', desc: 'No Heater' }],
+            [1, { name: 'gas', desc: 'Gas Heater' }],
+            [2, { name: 'solar', desc: 'Solar Heater' }],
+            [3, { name: 'heatpump', desc: 'Heat Pump' }],
+            [4, { name: 'ultratemp', desc: 'Ultratemp' }],
+            [5, { name: 'hybrid', desc: 'hybrid' }]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
-            [1, {name: 'sun', desc: 'Sunday', dow: 1}],
-            [2, {name: 'mon', desc: 'Monday', dow: 2}],
-            [4, {name: 'tue', desc: 'Tuesday', dow: 4}],
-            [8, {name: 'wed', desc: 'Wednesday', dow: 8}],
-            [16, {name: 'thu', desc: 'Thursday', dow: 16}],
-            [32, {name: 'fri', desc: 'Friday', dow: 32}],
-            [64, {name: 'sat', desc: 'Saturday', dow: 64}]
+            [1, { name: 'sun', desc: 'Sunday', dow: 1 }],
+            [2, { name: 'mon', desc: 'Monday', dow: 2 }],
+            [4, { name: 'tue', desc: 'Tuesday', dow: 4 }],
+            [8, { name: 'wed', desc: 'Wednesday', dow: 8 }],
+            [16, { name: 'thu', desc: 'Thursday', dow: 16 }],
+            [32, { name: 'fri', desc: 'Friday', dow: 32 }],
+            [64, { name: 'sat', desc: 'Saturday', dow: 64 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, {name: 'repeat', desc: 'Repeats'}],
-            [128, {name: 'runonce', desc: 'Run Once'}]
+            [0, { name: 'repeat', desc: 'Repeats' }],
+            [128, { name: 'runonce', desc: 'Run Once' }]
         ]);
         // RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
         this.valueMaps.scheduleDays.transform = function(byte) {
@@ -227,9 +229,9 @@ export class EasyTouchBoard extends SystemBoard {
             for (let bit = 7; bit >= 0; bit--) {
                 if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get((byte & 1 << (bit - 1)))));
             }
-            return {val: b, days: days};
+            return { val: b, days: days };
         };
-        this.valueMaps.lightThemes.transform = function(byte) {return extend(true, {val: byte}, this.get(byte) || this.get(255));};
+        this.valueMaps.lightThemes.transform = function(byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
     public bodies: TouchBodyCommands=new TouchBodyCommands(this);
     public system: TouchSystemCommands=new TouchSystemCommands(this);
@@ -238,27 +240,28 @@ export class EasyTouchBoard extends SystemBoard {
     public chemistry: TouchChemistryCommands=new TouchChemistryCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
     public heaters: TouchHeaterCommands=new TouchHeaterCommands(this);
-    public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
+    public schedules: TouchScheduleCommands=new TouchScheduleCommands(this);
     protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
 
+    /* AKA processVersionChanges */
     public requestConfiguration(ver?: ConfigVersion) {
-        if (typeof ver !== 'undefined') {
-            if (sys.configVersion.equipment !== ver.equipment) {
-                sys.configVersion.equipment = ver.equipment;
-                this._configQueue.queueChanges();
-            }
+        if (ver && ver.lastUpdated && sys.configVersion.lastUpdated !== ver.lastUpdated) {
+            sys.configVersion.lastUpdated = new Date(ver.lastUpdated);
         }
-        else {
+       if (ver && ver.equipment && sys.configVersion.equipment !== ver.equipment) sys.configVersion.equipment = ver.equipment;
+            
+        //this.needsConfigChanges = true;
+        this.checkConfiguration();
+    }
+    public checkConfiguration() {
+        if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 15)) {
+            this._configQueue.clearTimer();
+            sys.configVersion.lastUpdated = new Date();
+            this.needsConfigChanges = false;
             this._configQueue.queueChanges();
         }
     }
-    public checkConfiguration() {
-        // app updates lastUpdated upon startup -- how to get it to request config since this will be <5 mins.
-        if (typeof sys.configVersion.equipment === 'undefined' || (new Date().valueOf() - sys.configVersion.lastUpdated.valueOf()) / 1000 / 60 > 5) {
-            this.requestConfiguration();
-        }
-    }
-    public stopAsync() {this._configQueue.close();}
+    public stopAsync() { this._configQueue.close(); }
 }
 export class TouchConfigRequest extends ConfigRequest {
     constructor(setcat: number, items?: number[], oncomplete?: Function) {
@@ -275,18 +278,19 @@ export class TouchConfigRequest extends ConfigRequest {
 }
 export class TouchConfigQueue extends ConfigQueue {
     protected _configQueueTimer: NodeJS.Timeout;
+    public clearTimer():void{clearTimeout(this._configQueueTimer);}
     protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
         this.push(req);
     }
-    protected queueItems(cat: number, items?: number[]) {this.push(new TouchConfigRequest(cat, items));}
+    protected queueItems(cat: number, items?: number[]) { this.push(new TouchConfigRequest(cat, items)); }
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
             logger.info(`Skipping Controller Init because MockPort enabled.`);
         } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
+            logger.info(`Requesting ${ sys.controllerType } configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime, [0]);
             this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
@@ -306,7 +310,7 @@ export class TouchConfigQueue extends ConfigQueue {
         }
         if (this.remainingItems > 0) {
             var self = this;
-            setTimeout(() => {self.processNext();}, 50);
+            setTimeout(() => { self.processNext(); }, 50);
         } else state.status = 1;
         state.emitControllerChange();
     }
@@ -341,7 +345,7 @@ export class TouchConfigQueue extends ConfigQueue {
         }
         // Shift to the next config queue item.
         logger.silly(
-            `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
+            `Config Queue Completed... ${ this.percent }% (${ this.remainingItems } remaining)`
         );
         while (
             this.queue.length > 0 && this.curr.isComplete
@@ -364,7 +368,7 @@ export class TouchConfigQueue extends ConfigQueue {
                     this.curr.category,
                     [itm],
                     undefined,
-                    function(msgOut) {self.processNext(msgOut);})
+                    function(msgOut) { self.processNext(msgOut); })
             );
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
@@ -373,16 +377,16 @@ export class TouchConfigQueue extends ConfigQueue {
             state.status = 1;
             this.curr = null;
             sys.configVersion.lastUpdated = new Date();
-            // set a timer for 15 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
-            this._configQueueTimer = setTimeout(() => sys.board.checkConfiguration(), 15 * 60 * 1000);
+            // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
+            this._configQueueTimer = setTimeout(() => sys.board.checkConfiguration(), 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
     }
 }
-export class TouchScheduleCommands extends ScheduleCommands{
-    public setSchedule(sched: Schedule | EggTimer, obj?: any){
+export class TouchScheduleCommands extends ScheduleCommands {
+    public setSchedule(sched: Schedule|EggTimer, obj?: any) {
         super.setSchedule(sched, obj);
         let msgs: Outbound[] = this.createSchedConfigMessages(sched);
         for (let i = 0; i <= msgs.length; i++) {
@@ -390,33 +394,33 @@ export class TouchScheduleCommands extends ScheduleCommands{
         }
     }
 
-    public createSchedConfigMessages(sched: Schedule | EggTimer): Outbound[]{
+    public createSchedConfigMessages(sched: Schedule|EggTimer): Outbound[] {
         // delete sched 1
         // [ 255, 0, 255], [165, 33, 16, 33, 145, 7], [1, 0, 0, 0, 0, 0, 0], [1, 144]
 
         const setSchedConfig = Outbound.createMessage(145, [sched.id, 0, 0, 0, 0, 0, 0], 2, new Response(16, Message.pluginAddress, 1, [145]));
-        if (sched.circuit === 0){
+        if (sched.circuit === 0) {
             // delete - take defaults
         }
         else {
-            if (sched instanceof EggTimer){
+            if (sched instanceof EggTimer) {
                 setSchedConfig.payload[1] = sched.circuit;
                 setSchedConfig.payload[2] = 25;
                 setSchedConfig.payload[4] = Math.floor(sched.runTime);
                 setSchedConfig.payload[5] = sched.runTime - (setSchedConfig.payload[4] * 60);
-            } 
-            else if (sched instanceof Schedule){
+            }
+            else if (sched instanceof Schedule) {
                 setSchedConfig.payload[1] = sched.circuit;
                 setSchedConfig.payload[2] = Math.floor(sched.startTime / 60);
                 setSchedConfig.payload[3] = sched.startTime - (setSchedConfig.payload[2] * 60);
                 setSchedConfig.payload[4] = Math.floor(sched.endTime / 60);
                 setSchedConfig.payload[5] = sched.endTime - (setSchedConfig.payload[4] * 60);
                 setSchedConfig.payload[6] = sched.scheduleDays;
-                if (sched.runOnce) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80; 
+                if (sched.runOnce) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
             }
         }
         const schedConfigRequest = Outbound.createMessage(209, [sched.id], 2, new Response(16, Message.pluginAddress, 17, [sched.id]));
-        
+
         return [setSchedConfig, schedConfigRequest];
     }
 }
@@ -472,13 +476,13 @@ class TouchSystemCommands extends SystemCommands {
         }));
         conn.queueSendMessage(out);
     }
-    public setDateTime(obj: any){
-        let {hour = state.time.hours, 
-            min = state.time.minutes, 
-            date = state.time.date, 
-            month = state.time.month, 
-            year = state.time.year, 
-            dst = sys.general.options.adjustDST ? 1 : 0, 
+    public setDateTime(obj: any) {
+        let { hour = state.time.hours,
+            min = state.time.minutes,
+            date = state.time.date,
+            month = state.time.month,
+            year = state.time.year,
+            dst = sys.general.options.adjustDST ? 1 : 0,
             dow = state.time.dayOfWeek } = obj;
         // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
         // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
@@ -556,14 +560,14 @@ class TouchBodyCommands extends BodyCommands {
         switch (tempUnits) {
             case 0: // fahrenheit
                 if (setPoint < 40 || setPoint > 104) {
-                    logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                    logger.warn(`Setpoint of ${ setPoint } is outside acceptable range.`);
                     return;
                 }
                 break;
             case 1: // celcius
                 if (setPoint < 4 || setPoint > 40) {
                     logger.warn(
-                        `Setpoint of ${setPoint} is outside of acceptable range.`
+                        `Setpoint of ${ setPoint } is outside of acceptable range.`
                     );
                     return;
                 }
@@ -608,7 +612,7 @@ class TouchCircuitCommands extends CircuitCommands {
         let cstate = state.circuits.getInterfaceById(id);
         let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function(msg) {
             if (!msg.failed) {
-                cstate.isOn = true;
+                cstate.isOn = val ? true : false;
                 state.emitEquipmentChanges();
             }
         }));
@@ -714,7 +718,7 @@ class TouchPumpCommands extends PumpCommands {
                         setPumpConfig.payload[4] << i - 1; // set rpm/gpm flag
                     setPumpConfig.payload[i * 2 + 4] = Math.floor(circ.speed / 256) || 3;
                     setPumpConfig.payload[i + 21] =
-                    circ.speed - ((setPumpConfig.payload[i * 2 + 4] * 256)) || 232;
+                        circ.speed - ((setPumpConfig.payload[i * 2 + 4] * 256)) || 232;
                 }
             }
         else if (pump.type >= 1 && pump.type < 64) {
@@ -742,60 +746,60 @@ class TouchPumpCommands extends PumpCommands {
         const pumpConfigRequest = Outbound.createMessage(216, [pump.id], 2, new Response(16, Message.pluginAddress, 24, [pump.id]));
         return [setPumpConfig, pumpConfigRequest];
     }
-/*     public setType(pump: Pump, pumpType: number) {
-        pump.type = pumpType;
-        // pump.circuits.clear(); // reset circuits
-        this.setPump(pump);
-        let spump = state.pumps.getItemById(pump.id, true);
-        spump.type = pump.type;
-        spump.status = 0;
-    } */
+    /*     public setType(pump: Pump, pumpType: number) {
+            pump.type = pumpType;
+            // pump.circuits.clear(); // reset circuits
+            this.setPump(pump);
+            let spump = state.pumps.getItemById(pump.id, true);
+            spump.type = pump.type;
+            spump.status = 0;
+        } */
 }
 class TouchHeaterCommands extends HeaterCommands {
     public updateHeaterServices(heater: Heater) {
         if (heater.isActive || heater.type !== 1) {
             if (heater.type === 3) {
                 this.board.valueMaps.heatModes = new byteValueMap([
-                    [0, {name: 'off', desc: 'Off'}],
-                    [1, {name: 'heater', desc: 'Heater'}],
-                    [2, {name: 'heatpump', desc: 'Heat Pump Only'}],
-                    [3, {name: 'heatpumppref', desc: 'Heat Pump Preferred'}]
+                    [0, { name: 'off', desc: 'Off' }],
+                    [1, { name: 'heater', desc: 'Heater' }],
+                    [2, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                    [3, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]
                 ]);
                 this.board.valueMaps.heatSources = new byteValueMap([
-                    [0, {name: 'off', desc: 'No Heater'}],
-                    [3, {name: 'heater', desc: 'Heater'}],
-                    [5, {name: 'heatpump', desc: 'Heat Pump Only'}],
-                    [21, {name: 'heatpumppref', desc: 'Heat Pump Preferred'}],
-                    [32, {name: 'nochange', desc: 'No Change'}]
+                    [0, { name: 'off', desc: 'No Heater' }],
+                    [3, { name: 'heater', desc: 'Heater' }],
+                    [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                    [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
+                    [32, { name: 'nochange', desc: 'No Change' }]
                 ]);
             }
             else if (heater.type === 2) {
                 this.board.valueMaps.heatModes = new byteValueMap([
-                    [0, {name: 'off', desc: 'Off'}],
-                    [1, {name: 'heater', desc: 'Heater'}],
-                    [2, {name: 'solar', desc: 'Solar Only'}],
-                    [3, {name: 'solarpref', desc: 'Solar Preferred'}]
+                    [0, { name: 'off', desc: 'Off' }],
+                    [1, { name: 'heater', desc: 'Heater' }],
+                    [2, { name: 'solar', desc: 'Solar Only' }],
+                    [3, { name: 'solarpref', desc: 'Solar Preferred' }]
                 ]);
                 // todo = verify these; don't think they are correct.
                 this.board.valueMaps.heatSources = new byteValueMap([
-                    [0, {name: 'off', desc: 'No Heater'}],
-                    [3, {name: 'heater', desc: 'Heater'}],
-                    [5, {name: 'solar', desc: 'Solar Only'}],
-                    [21, {name: 'solarpref', desc: 'Solar Preferred'}],
-                    [32, {name: 'nochange', desc: 'No Change'}]
+                    [0, { name: 'off', desc: 'No Heater' }],
+                    [3, { name: 'heater', desc: 'Heater' }],
+                    [5, { name: 'solar', desc: 'Solar Only' }],
+                    [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+                    [32, { name: 'nochange', desc: 'No Change' }]
                 ]);
             }
         }
         else {
             this.board.valueMaps.heatModes = new byteValueMap([
-                [0, {name: 'off', desc: 'Off'}],
-                [1, {name: 'heater', desc: 'Heater'}]
+                [0, { name: 'off', desc: 'Off' }],
+                [1, { name: 'heater', desc: 'Heater' }]
             ]);
             // todo = verify these; don't think they are correct.
             this.board.valueMaps.heatSources = new byteValueMap([
-                [0, {name: 'off', desc: 'No Heater'}],
-                [3, {name: 'heater', desc: 'Heater'}],
-                [32, {name: 'nochange', desc: 'No Change'}]
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
             ]);
         }
     }

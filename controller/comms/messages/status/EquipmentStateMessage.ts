@@ -208,12 +208,13 @@ export class EquipmentStateMessage {
         state.emitControllerChange();
     }
     private static initController(msg: Inbound) {
+        state.status = 1;
         Message.headerSubByte = msg.header[1];
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
         if (model2 === 0 && model1 === 23) EquipmentStateMessage.initIntelliCenter(msg);
         else EquipmentStateMessage.initTouch(msg, model1, model2);
-        state.status = 1;
+        console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
         setTimeout(() => sys.checkConfiguration(), 300);
     }
     public static process(msg: Inbound) {
@@ -250,11 +251,12 @@ export class EquipmentStateMessage {
                         if (sys.bodies.length > 0) {
                             // We will not go in here if this is not a shared body.
                             const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(6, true);
                             const cbody: Body = sys.bodies.getItemById(1);
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
-                            tbody.circuit = 6;
+                            tbody.circuit = cbody.circuit = 6;
                             tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
                             if ((msg.extractPayloadByte(2) & 0x20) === 32) {
                                 tbody.temp = state.temps.waterSensor1;
@@ -262,12 +264,13 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 1) {
-                            const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                             const cbody: Body = sys.bodies.getItemById(2);
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
-                            tbody.circuit = 1;
+                            tbody.circuit = cbody.circuit = 1;
                             tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
                             if ((msg.extractPayloadByte(2) & 0x01) === 1) {
                                 tbody.temp = state.temps.waterSensor1;
@@ -275,13 +278,14 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 2) {
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(10, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
                             const cbody: Body = sys.bodies.getItemById(3);
                             tbody.name = cbody.name;
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
                             tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-                            tbody.circuit = 12;
+                            tbody.circuit = cbody.circuit = 12;
                             if ((msg.extractPayloadByte(3) & 0x08) === 8) {
                                 // This is the first circuit on the second body.
                                 tbody.temp = state.temps.waterSensor2;
@@ -289,13 +293,14 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 3) {
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(19, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
                             const cbody: Body = sys.bodies.getItemById(4);
                             tbody.name = cbody.name;
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
                             tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-                            tbody.circuit = 22;
+                            tbody.circuit = cbody.circuit = 22;
                             if ((msg.extractPayloadByte(5) & 0x20) === 32) {
                                 // This is the first circuit on the third body or the first circuit on the second expansion.
                                 tbody.temp = state.temps.waterSensor2;
@@ -312,6 +317,7 @@ export class EquipmentStateMessage {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);
                         if (sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
                         if (sys.bodies.length > 0) {
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(6, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                             const cbody: Body = sys.bodies.getItemById(1);
                             if ((msg.extractPayloadByte(2) & 0x20) === 32) {
@@ -320,24 +326,27 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
-                            tbody.circuit = 6;
+                            tbody.circuit = cbody.circuit = 6;
                             const heatMode = msg.extractPayloadByte(22) & 0x03;
-                            tbody.heatMode = heatMode;
-                            cbody.heatMode = heatMode;
-                            if (tbody.isOn) {
-                                const byte = msg.extractPayloadByte(10);
-                                if ((byte & 0x0c) >> 2 === 3) {
-                                    tbody.heatStatus = 1; // Heater
-                                    // adding this here because if there is not solar or another pump we don't get gas heater config info
-                                    let heater: Heater = sys.heaters.getItemById(1, true);
-                                    heater.isActive = true;
-                                    heater.type = 1;
+                            tbody.heatMode = cbody.heatMode = heatMode;
+                            const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                            const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                            if (tbody.isOn && (heaterActive || solarActive)) {
+                                switch (heatMode){
+                                    // todo: add cooling in here if it ever shows up
+                                    case 1: // heater
+                                    case 3: // solar
+                                        tbody.heatStatus = heatMode;
+                                        break;
+                                    case 2: // solarpref
+                                        if (heaterActive) tbody.heatStatus = 1;    else if (solarActive) tbody.heatStatus = 3;
+                                        break;  
                                 }
-                                else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
                             } else
                                 tbody.heatStatus = 0; // Off
                         }
                         if (sys.bodies.length > 1) {
+                            // const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                             const cbody: Body = sys.bodies.getItemById(2);
                             if ((msg.extractPayloadByte(2) & 0x01) === 1) {
@@ -345,15 +354,23 @@ export class EquipmentStateMessage {
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                             const heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
-                            tbody.heatMode = heatMode;
-                            cbody.heatMode = heatMode;
+                            tbody.heatMode = cbody.heatMode = heatMode;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
-                            tbody.circuit = 1;
-                            if (tbody.isOn) {
-                                const byte = msg.extractPayloadByte(10);
-                                if ((byte & 0x0c) >> 2 === 3) tbody.heatStatus = 1; // Heater
-                                else if ((byte & 0x30) >> 4 === 3) tbody.heatStatus = 2; // Solar
+                            tbody.circuit = cbody.circuit = 1;
+                            const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                            const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                            if (tbody.isOn && (heaterActive || solarActive)) {
+                                switch (heatMode){
+                                    // todo: add cooling in here if it ever shows up
+                                    case 1: // heater
+                                    case 3: // solar
+                                        tbody.heatStatus = heatMode;
+                                        break;
+                                    case 2: // solarpref
+                                        if (heaterActive) tbody.heatStatus = 1; else if (solarActive) tbody.heatStatus = 3;
+                                        break;  
+                                }
                             } else
                                 tbody.heatStatus = 0; // Off
                         }
@@ -361,7 +378,8 @@ export class EquipmentStateMessage {
                     EquipmentStateMessage.processCircuitState(msg);
                     EquipmentStateMessage.processFeatureState(msg);
                     if (sys.controllerType !== ControllerType.IntelliCenter){
-                        let ver: ConfigVersion = new ConfigVersion({});
+                        let ver: ConfigVersion = 
+                        typeof(sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
                         ver.equipment = msg.extractPayloadInt(25);
                         sys.processVersionChanges( ver );
                     }
@@ -385,51 +403,49 @@ export class EquipmentStateMessage {
                 state.emitControllerChange();
                 state.emitEquipmentChanges();
                 break;
-            case 8: // IntelliTouch only.  Heat status
+            case 8: {
+                // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
-                if (sys.equipment.maxBodies > 1)
-                    state.temps.waterSensor2 = msg.extractPayloadByte(1);
+               
                 state.temps.air = msg.extractPayloadByte(2);
-                state.temps.solar = msg.extractPayloadByte(8);
-                // switched to sys.equip.maxBodies as this may not change but bodies.length may not yet be filled in if this packet comes early in the process
-                if (sys.equipment.maxBodies > 0) {
-                    // pool
-                    // We will not go in here if this is not a shared body.
-                    const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                    const cbody: Body = sys.bodies.getItemById(1);
-                    tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
-                    tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
-                    tbody.name = cbody.name;
-                    tbody.circuit = 6;
-                    tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
-                    // todo: check this logic on my pool; don't think it's correct
-                    if ((msg.extractPayloadByte(2) & 0x20) === 32) {
-                        tbody.temp = state.temps.waterSensor1;
-                        tbody.isOn = true;
-                    } else tbody.isOn = false;
-                }
-                if (sys.equipment.maxBodies > 1) {
+                let solar: Heater = sys.heaters.getItemById(2);
+                if (solar.isActive) state.temps.solar = msg.extractPayloadByte(8);
+                // pool
+                let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                let cbody: Body = sys.bodies.getItemById(1);
+                tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
+                tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
+                tbody.temp = state.temps.waterSensor1;
+              
+                cbody = sys.bodies.getItemById(2);
+                if (cbody.isActive) {
                     // spa
-                    const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-                    const cbody: Body = sys.bodies.getItemById(2);
+                    tbody = state.temps.bodies.getItemById(2, true);
                     tbody.heatMode = cbody.heatMode =
                         (msg.extractPayloadByte(5) & 12) >> 2;
                     tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
-                    tbody.name = cbody.name;
-                    tbody.circuit = 1;
-                    tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
-                    // todo: check this logic on my pool; don't think it's correct
-                    if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-                        tbody.temp = state.temps.waterSensor1;
-                        tbody.isOn = true;
-                    } else tbody.isOn = false;
+                    tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }
                 state.emitEquipmentChanges();
                 break;
+            }
             case 96:
                 EquipmentStateMessage.processIntelliBriteMode(msg);
                 break;
+            case 197:{
+                // request for date/time on *Touch.  Use this as an indicator
+                // that SL has requested config and update lastUpdated date/time
+                if (msg.dest === 16){
+                    if (sys.controllerType !== ControllerType.IntelliCenter){
+                        let ver: ConfigVersion = 
+                        typeof(sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                        ver.lastUpdated = new Date();
+                        sys.processVersionChanges( ver );
+                    }
+                }
+                break;
+            }
             case 204: // IntelliCenter only.
                 state.batteryVoltage = msg.extractPayloadByte(2) / 50;
                 state.comms.keepAlives = msg.extractPayloadInt(4);

@@ -707,7 +707,12 @@ export class CircuitCommands extends BoardCommands {
     }
     public setCircuitState(id: number, val: boolean) {
         let circ = state.circuits.getInterfaceById(id);
-        circ.isOn = val;
+        // RG: removed this because it would immediately set the state.  
+        // However, if the packet had a collision or two or even if a 
+        // status 2 packet came at the wrong time it would flip 
+        // this value back/forth before landing on the final true value
+        // which should come from the controller anyway.
+        // circ.isOn = val;
         state.emitEquipmentChanges();
     }
     public toggleCircuitState(id: number) {

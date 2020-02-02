@@ -94,7 +94,7 @@ export class PoolSystem implements IPoolSystem {
         }
         return cfg;
     }
-    public processVersionChanges(ver: ConfigVersion) {this.board.requestConfiguration(ver);}
+
     public get controllerType(): ControllerType {return this.data.controllerType as ControllerType;}
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val) {
@@ -135,6 +135,7 @@ export class PoolSystem implements IPoolSystem {
         this.board.stopAsync();
     }
     public board: SystemBoard=new SystemBoard(this);
+    public processVersionChanges(ver: ConfigVersion) {this.board.requestConfiguration(ver);}
     public checkConfiguration() {this.board.checkConfiguration();}
     public cfgPath: string;
     public data: any;
@@ -508,8 +509,12 @@ export class ConfigVersion extends EqItem {
         if (isNaN(this._lastUpdated.getTime())) this._lastUpdated = new Date(); */
     }
     //protected _lastUpdated: Date;
-    public get lastUpdated(): Date {return new Date(this.data.lastUpdated);}
-    public set lastUpdated(val: Date) {this.data.lastUpdated = val; this.data.lastUpdated = Timestamp.toISOLocal(val);}
+    public get lastUpdated(): Date {
+        if (typeof this.data.lastUpdated === 'undefined') {this.data.lastUpdated = new Date().setHours((new Date).getHours() - 1);}
+        return this.data.lastUpdated;
+    }
+    public set lastUpdated(val: Date) {//this.data.lastUpdated = val; 
+        this.data.lastUpdated = Timestamp.toISOLocal(val);}
     public get options(): number {return this.data.options;}
     public set options(val: number) {this.data.options = val;}
     public get circuits(): number {return this.data.circuits;}
@@ -575,6 +580,8 @@ export class Body extends EqItem {
     public set alias(val: string) {this.data.alias = val;}
     public get type(): number {return this.data.type;}
     public set type(val: number) {this.data.type = val;}
+    public get circuit(): number {return this.data.circuit;}
+    public set circuit(val: number) {this.data.circuit = val;}
     public get capacity(): number {return this.data.capacity;}
     public set capacity(val: number) {this.data.capacity = val;}
     public get isActive(): boolean {return this.data.isActive;}

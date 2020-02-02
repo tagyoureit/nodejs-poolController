@@ -96,6 +96,11 @@ export class HeaterMessage {
                     let solar = sys.heaters.getItemById(2, true);
                     solar.isActive = false;
                 }
+                for (var i = 0; i <= sys.heaters.length; i++){
+                    let heater = sys.heaters.getItemByIndex(i);
+                    if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
+                }
+
                 break;
             case 114:
                 // something to do with heat pumps... need equipment or other packets to decipher
