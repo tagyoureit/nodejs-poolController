@@ -90,6 +90,7 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 Ready for 6.0;
 * None.
+* Alpha - SmartThings integration script.  Run [this](https://github.com/tagyoureit/nodejs-poolController-webClient/tree/master/scripts) file directly from the command line.  Check the IP inside the script.
 
 Need to be updated:
 * [outputSocketToConsoleExample](src/integrations/outputSocketToConsoleExample.js) A sample included with the code to demonstrate correct usage.
