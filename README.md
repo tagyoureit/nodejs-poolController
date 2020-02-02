@@ -82,7 +82,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 To do anything with this app, you need a client to connect to it.  A client can be a web application or Home Automation system.
 
 ### Web Clients
-1. nodejs-poolControl.dashPanel [URL HERE](url).  This is built primarily around the IntelliCenter but will work with *Touch.
+1. [nodejs-poolControl.dashPanel](https://github.com/rstrouse/nodejs-poolControl.dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
 1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolContreller-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
 
 ### Home Automation Integrations
