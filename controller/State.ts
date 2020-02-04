@@ -373,7 +373,7 @@ class EqState implements IEqStateCreator<EqState> {
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             //if(name !== 'lastComm')
-            console.log(`Changing  ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
+            console.log(`Changing state: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
             this.data[name] = val;
             if (typeof persist === 'undefined' || persist) this.hasChanged = true;
         }
@@ -433,8 +433,10 @@ class EqStateCollection<T> {
     public clear() { this.data.length = 0; }
     public get length(): number { return typeof (this.data) !== 'undefined' ? this.data.length : 0; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
-    public sortByName() { this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1; }); }
-    public sortById() { this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; }); }
+    public sortByName() { 
+        this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1; }); }
+    public sortById() { 
+        this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; }); }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : extend(true, {}, this.data); }
     public getExtended(): any {
@@ -479,7 +481,6 @@ class DirtyStateCollection extends Array<EqState> {
 }
 
 export class EquipmentState extends EqState {
-    public dataName: string = 'equipment';
     public get controllerType(): string { return this.data.controllerType; }
     public set controllerType(val: string) { this.setDataVal('controllerType', val); }
     public get name(): string { return this.data.name; }
@@ -510,10 +511,9 @@ export class EquipmentState extends EqState {
     public cancelDelay() { sys.board.system.cancelDelay(); }
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
-    public createItem(data: any): PumpState { return new PumpState(data); }
+    public createItem(data: any): PumpState { return new PumpState(data, 'pump'); }
 }
 export class PumpState extends EqState {
-    public dataName: string = 'pump';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -548,8 +548,8 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get time(): number { return this.data.runTime; }
-    public set time(val: number) { this.setDataVal('runTime', val, false); }
+    public get time(): number { return this.data.time; }
+    public set time(val: number) { this.setDataVal('time', val, false); }
     public getExtended() {
         sys.pumps.sortById();
         let pump = this.get(true);
@@ -591,11 +591,11 @@ export class PumpState extends EqState {
     }
 }
 export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
-    public createItem(data: any): ScheduleState { return new ScheduleState(data); }
+    public createItem(data: any): ScheduleState { return new ScheduleState(data, 'schedule'); }
 }
 export class ScheduleState extends EqState {
-    constructor(data: any) {
-        super(data);
+    constructor(data: any, dataName?: string) {
+        super(data, dataName);
         if (typeof (data.startDate) === 'undefined') this._startDate = new Date();
         else this._startDate = new Date(data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
@@ -607,7 +607,7 @@ export class ScheduleState extends EqState {
         this.startDate.setHours(0, 0, 0, 0);
         this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate));
     }
-    public dataName: string = 'schedule';
+    // public dataName: string = 'schedule';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get startTime(): number { return this.data.startTime; }
@@ -670,7 +670,7 @@ export interface ICircuitGroupState {
     emitEquipmentChange();
 }
 export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupState> {
-    public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data); }
+    public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data, 'circuitGroup'); }
     public getInterfaceById(id: number) {
         let iGroup: ICircuitGroupState = this.getItemById(id, false, { id: id, isActive: false });
         if (!iGroup.isActive) iGroup = state.lightGroups.getItemById(id, false, { id: id, isActive: false });
@@ -678,7 +678,7 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
     }
 }
 export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName: string = 'circuitGroup';
+    // public dataName: string = 'circuitGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -716,12 +716,12 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     }
 }
 export class LightGroupStateCollection extends EqStateCollection<LightGroupState> {
-    public createItem(data: any): LightGroupState { return new LightGroupState(data); }
+    public createItem(data: any): LightGroupState { return new LightGroupState(data, 'lightGroup'); }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     constructor(data, name?: string) {
         super(data, name);
-        if (typeof name === 'undefined') this.dataName = 'lightGroup';
+        // if (typeof name === 'undefined') this.dataName = 'lightGroup';
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -776,8 +776,10 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
         }
     }
 }
+export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
+    public createItem(data: any): BodyTempState { return new BodyTempState(data, 'bodyTempState'); }
+}
 export class BodyTempState extends EqState {
-    public dataName: string = 'bodyTempState';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('circuit', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -806,9 +808,6 @@ export class BodyTempState extends EqState {
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
 }
-export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
-    public createItem(data: any): BodyTempState { return new BodyTempState(data); }
-}
 export class TemperatureState extends EqState {
     public get waterSensor1(): number { return this.data.waterSensor1; }
     public set waterSensor1(val: number) { this.setDataVal('waterSensor1', val); }
@@ -828,10 +827,10 @@ export class TemperatureState extends EqState {
     }
 }
 export class HeaterStateCollection extends EqStateCollection<HeaterState> {
-    public createItem(data: any): HeaterState { return new HeaterState(data); }
+    public createItem(data: any): HeaterState { return new HeaterState(data, 'heater'); }
 }
 export class HeaterState extends EqState {
-    public dataName: string = 'heater';
+    // public dataName: string = 'heater';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -840,12 +839,12 @@ export class HeaterState extends EqState {
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
-    public createItem(data: any): FeatureState { return new FeatureState(data); }
+    public createItem(data: any): FeatureState { return new FeatureState(data, 'feature'); }
     public setFeatureState(id: number, val: boolean) { sys.board.features.setFeatureState(id, val); }
     public toggleFeatureState(id: number) { sys.board.features.toggleFeatureState(id); }
 }
 export class FeatureState extends EqState implements ICircuitState {
-    public dataName: string = 'feature';
+    // public dataName: string = 'feature';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -863,7 +862,7 @@ export class FeatureState extends EqState implements ICircuitState {
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
-    public dataName: string = 'virtualCircuit';
+    // public dataName: string = 'virtualCircuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -879,10 +878,10 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
     }
 }
 export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCircuitState> {
-    public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data); }
+    public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data, 'virtualCircuit'); }
 }
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
-    public createItem(data: any): CircuitState { return new CircuitState(data); }
+    public createItem(data: any): CircuitState { return new CircuitState(data, 'circuit'); }
     public setCircuitState(id: number, val: boolean) { sys.board.circuits.setCircuitState(id, val); }
     public toggleCircuitState(id: number) { sys.board.circuits.toggleCircuitState(id); }
     public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightTheme(id, theme); }
@@ -901,7 +900,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     }
 }
 export class CircuitState extends EqState implements ICircuitState {
-    public dataName: string = 'circuit';
+    // public dataName: string = 'circuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -928,10 +927,10 @@ export class CircuitState extends EqState implements ICircuitState {
     public set level(val: number) { this.setDataVal('level', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
-    public createItem(data: any): ValveState { return new ValveState(data); }
+    public createItem(data: any): ValveState { return new ValveState(data, 'valve'); }
 }
 export class ValveState extends EqState {
-    public dataName: string = 'valve';
+    // public dataName: string = 'valve';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -945,10 +944,10 @@ export class ValveState extends EqState {
     }
 }
 export class CoverStateCollection extends EqStateCollection<CoverState> {
-    public createItem(data: any): CoverState { return new CoverState(data); }
+    public createItem(data: any): CoverState { return new CoverState(data, 'cover'); }
 }
 export class CoverState extends EqState {
-    public dataName: string = 'valve';
+    // public dataName: string = 'cover';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -957,7 +956,7 @@ export class CoverState extends EqState {
     public set isOpen(val: boolean) { this.setDataVal('isOpen', val); }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
-    public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
+    public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data, 'chlorinator'); }
     public superChlorReference: number = 0;
     public lastDispatchSuperChlor: number = 0;
     public setChlor(id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number) { this.getItemById(id).setChlor(poolSetpoint, spaSetpoint, superChlorHours); }
@@ -967,7 +966,7 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public superChlorinate(id: number, bSet: boolean) { this.getItemById(id).superChlorinate(bSet); }
 }
 export class ChlorinatorState extends EqState {
-    public dataName: string = 'chlorinator';
+    // public dataName: string = 'chlorinator';
     // The lastComm property has a fundamental flaw.  Although, the structure is
     // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
     // triggered by this. We need to find a way that the property change does not trigger persistence.
@@ -1176,7 +1175,6 @@ export class IntelliChemState extends EqState {
 export class CommsState {
     public keepAlives: number;
 }
-
 
 export var state = new State();
 
