@@ -99,7 +99,7 @@ export class ScheduleMessage {
             eggTimer.circuit = circuitId;
             eggTimer.runTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
             eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
-            const circuit = sys.circuits.getInterfaceById(circuitId, true);
+            const circuit = sys.circuits.getInterfaceById(circuitId);
             circuit.eggTimer = eggTimer.runTime;
         } else if (circuitId > 0) {
             const schedule: Schedule = sys.schedules.getItemById(schedId, msg.extractPayloadByte(2) > 0);

@@ -193,6 +193,12 @@ export class PoolSystem implements IPoolSystem {
     protected onchange=(obj, fn) => {
         const handler = {
             get(target, property, receiver) {
+                if (property === 'sort') {
+                    const origMethod = target[property];
+                    return function (...args){
+                        origMethod.apply(target, args);
+                    };
+                }
                 const val = Reflect.get(target, property, receiver);
                 if (typeof val === 'object' && val !== null) return new Proxy(val, handler);
                 return val;
@@ -201,7 +207,6 @@ export class PoolSystem implements IPoolSystem {
                 if (property !== 'lastUpdated' && Reflect.get(target, property, receiver) !== value) {
                     fn();
                 }
-                console.log(`setting ${target}, ${property}, ${value}, ${receiver}`);
                 return Reflect.set(target, property, value, receiver);
             },
             deleteProperty(target, property) {
@@ -214,15 +219,6 @@ export class PoolSystem implements IPoolSystem {
     public getSection(section?: string, opts?: any): any {
         if (typeof section === 'undefined' || section === 'all') return this.data;
         let c: any = this.data;
-/*         if (section.indexOf('.') !== -1) {
-            const arr = section.split('.');
-            for (let i = 0; i < arr.length; i++) {
-                if (typeof c[arr[i]] === 'undefined') {
-                    c = null;
-                    break;
-                } else c = c[arr[i]];
-            }
-        } else c = c[section]; */
         c = c[section];
         if (typeof c !== 'object')
             // return single values as objects so browsers don't complain
@@ -329,8 +325,9 @@ class EqItemCollection<T> {
     public removeItemById(id: number): T {
         let rem: T = null;
         for (let i = 0; i < this.data.length; i++)
-            if (typeof this.data.getItemById(i).id !== 'undefined' && this.data.getItemById(i).id === id) {
+            if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 rem = this.data.splice(i, 1);
+                return rem;
             }
         return rem;
     }
@@ -354,14 +351,9 @@ class EqItemCollection<T> {
     public get(): any {return this.data;}
     public emitEquipmentChange() {webApp.emitToClients(this.name, this.data);}
     public sortByName() {this.sort((a, b) => {
-        // RSG - I believe this should just be a.name not a.data.name
         return a.name > b.name ? 1 : -1;});}
-        // return a.data.name > b.data.name ? 1 : -1;});}
     public sortById() {this.sort((a, b) => {
-        // RSG - I believe this should just be a.id not a.data.id
-            // return a.data.id > b.data.id ? 1 : -1;
             return a.id > b.id ? 1 : -1;
-       
     });}
     public sort(fn: (a, b) => number) {this.data.sort(fn);}
 }
@@ -791,7 +783,7 @@ export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) {super(data, name || "pumps");}
     public createItem(data: any): Pump {return new Pump(data);}
     public getDualSpeed(add?: boolean): Pump {
-        return this.getItemByIndex(0, add, {id: 0, type: 2, name: 'Two Speed'});
+        return this.getItemById(0, add, {id: 0, type: 2, name: 'Two Speed'});
     }
 }
 export class Pump extends EqItem {

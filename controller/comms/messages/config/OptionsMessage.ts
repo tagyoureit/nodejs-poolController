@@ -55,7 +55,7 @@ export class OptionsMessage
     }
     private static processIntelliTouch(msg: Inbound) {
         switch (msg.action) {
-            case 30: 
+            case 30: {
                 // sample packet
                 // [165,33,15,16,30,16],[4,9,16,0,1,72,0,0,16,205,0,0,0,2,0,0],[2,88]
                 // this is (I believe) to assign circuits that require high speed mode with a dual speed pump
@@ -76,6 +76,7 @@ export class OptionsMessage
                 }
                 else sys.pumps.removeItemById(0);
                 break;
+            }
             case 40:
                 // [165,33,16,34,168,10],[0,0,0,254,0,0,0,0,0,0],[2,168 = manual heat mode off
                 // [165,33,16,34,168,10],[0,0,0,254,1,0,0,0,0,0],[2,169] = manual heat mode on
