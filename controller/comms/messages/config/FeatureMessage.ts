@@ -1,5 +1,5 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, Feature } from"../../../Equipment";
+import { sys, Feature } from "../../../Equipment";
 import { state } from "../../../State";
 export class FeatureMessage {
     public static process(msg: Inbound): void {

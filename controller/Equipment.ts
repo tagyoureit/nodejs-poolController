@@ -1,11 +1,9 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as extend from "extend";
-import {Protocol, Outbound, Response, Message} from "./comms/messages/Messages";
 import {setTimeout} from "timers";
-import {conn} from "./comms/Comms";
 import {logger} from "../logger/Logger";
-import {state, CircuitStateCollection, CommsState} from "./State";
+import {state} from "./State";
 import {Timestamp, ControllerType} from "./Constants";
 export {ControllerType};
 import {webApp} from "../web/Server";
@@ -192,12 +190,9 @@ export class PoolSystem implements IPoolSystem {
     }
     protected onchange=(obj, fn) => {
         const handler = {
-            get(target, property, receiver) {
-                if (property === 'sort') {
-                    const origMethod = target[property];
-                    return function (...args){
-                        origMethod.apply(target, args);
-                    };
+            get(target, property, receiver) { 
+                if (typeof target[property] === 'function'){
+                    return Reflect.get(target, property, receiver);
                 }
                 const val = Reflect.get(target, property, receiver);
                 if (typeof val === 'object' && val !== null) return new Proxy(val, handler);
@@ -267,7 +262,7 @@ class EqItem implements IEqItemCreator<EqItem> {
     protected data: any;
     public get hasChanged(): boolean { return sys._hasChanged; }
     public set hasChanged(val: boolean) {
-        if (!sys._hasChanged && val && !(this.dataName === 'lastUpdated' && this.data.lastUpdated)) {
+        if (!sys._hasChanged && val) {
             sys._hasChanged = true;
         }
     }
@@ -290,8 +285,7 @@ class EqItem implements IEqItemCreator<EqItem> {
     }
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
-            //if(name !== 'lastComm')
-            console.log(`Changing equipment: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
+            // console.log(`Changing equipment: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
             this.data[name] = val;
             if (typeof persist === 'undefined' || persist) this.hasChanged = true;
         }
@@ -371,6 +365,7 @@ export class CustomNameCollection extends EqItemCollection<CustomName> {
     public createItem(data: any): CustomName {return new CustomName(data);}
 }
 export class CustomName extends EqItem {
+    public dataName = 'customNameConfig';
     public get name(): string {return this.data.name;}
     public set name(val: string) {this.setDataVal('name', val);}
     public get isActive(): boolean {return this.data.isActive;}
@@ -378,6 +373,7 @@ export class CustomName extends EqItem {
 }
 
 export class Owner extends EqItem {
+    public dataName = 'ownerConfig';
     public get name(): string {return this.data.name;}
     public set name(val: string) {this.setDataVal('name', val);}
     public get phone(): string {return this.data.phone;}
@@ -394,10 +390,12 @@ export class SensorCollection extends EqItemCollection<Sensor> {
     public createItem(data: any): Sensor {return new Sensor(data);}
 }
 export class Sensor extends EqItem {
+    public dataName = 'sensorConfig';
     public get calibration(): number {return this.data.calibration;}
     public set calibration(val: number) {this.setDataVal('calibration', val);}
 }
 export class Options extends EqItem {
+    public dataName = 'optionsConfig';
     public get clockMode(): number {return this.data.clockMode;}
     public set clockMode(val: number) {this.setDataVal('clockMode', val);}
     public get units(): string {return this.data.units;}
@@ -429,6 +427,7 @@ export class Options extends EqItem {
     public set solarTempAdj2(val: number) {this.setDataVal('solarTempAd2', val);}
 }
 export class Location extends EqItem {
+    public dataName = 'locationConfig';
     public get address(): string {return this.data.address;}
     public set address(val: string) {this.setDataVal('address', val);}
     public get city(): string {return this.data.city;}
@@ -449,6 +448,7 @@ export class ExpansionPanelCollection extends EqItemCollection<ExpansionPanel> {
     public createItem(data: any): ExpansionPanel {return new ExpansionPanel(data);}
 }
 export class ExpansionPanel extends EqItem {
+    public dataName = 'expansionPanelConfig';
     public get name(): string {return this.data.name;}
     public set name(val: string) {this.setDataVal('name', val);}
     public get type(): number {return this.data.type;}
@@ -457,6 +457,7 @@ export class ExpansionPanel extends EqItem {
     public set isActive(val: boolean) {this.setDataVal('isActive', val);}
 }
 export class Equipment extends EqItem {
+    public dataName = 'equipmentConfig';
     public get name(): string {return this.data.name;}
     public set name(val: string) {this.setDataVal('name', val);}
     public get type(): number {return this.data.type;}
@@ -526,7 +527,7 @@ export class ConfigVersion extends EqItem {
         if (typeof this.data.lastUpdated === 'undefined') {this.data.lastUpdated = new Date().setHours((new Date).getHours() - 1);}
         return this.data.lastUpdated;
     }
-    public set lastUpdated(val: Date) {this.setDataVal('lastUpdated', Timestamp.toISOLocal(val));}
+    public set lastUpdated(val: Date) {this.setDataVal('lastUpdated', Timestamp.toISOLocal(val), false);}
     public get options(): number {return this.data.options;}
     public set options(val: number) {this.setDataVal('options', val);}
     public get circuits(): number {return this.data.circuits;}
@@ -554,7 +555,7 @@ export class ConfigVersion extends EqItem {
     public get general(): number {return this.data.general;}
     public set general(val: number) {this.setDataVal('general', val);}
     public get equipment(): number {return this.data.equipment;}
-    public set equipment(val: number) {this.setDataVal('equipment', val);}
+    public set equipment(val: number) {this.setDataVal('equipment', val, false);}
     public get covers(): number {return this.data.covers;}
     public set covers(val: number) {this.setDataVal('covers', val);}
     public get schedules(): number {return this.data.schedules;}
@@ -584,6 +585,7 @@ export class BodyCollection extends EqItemCollection<Body> {
     }
 }
 export class Body extends EqItem {
+    public dataName = 'bodyConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.data.id = this.data.id;}
     public get name(): string {return this.data.name;}
@@ -621,6 +623,7 @@ export class Schedule extends EqItem {
     }
     // todo: investigate schedules having startDate and _startDate
     private _startDate: Date=new Date();
+    public dataName = 'scheduleConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get startTime(): number {return this.data.startTime;}
@@ -669,6 +672,7 @@ export class EggTimer extends EqItem {
         else this._startDate = new Date(data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
     }
+    public dataName = 'eggTimerConfig'
     private _startDate: Date=new Date();
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
@@ -706,6 +710,7 @@ export class CircuitCollection extends EqItemCollection<Circuit> {
     }
 }
 export class Circuit extends EqItem implements ICircuit {
+    public dataName = 'circuitConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -745,6 +750,7 @@ export class FeatureCollection extends EqItemCollection<Feature> {
     public createItem(data: any): Feature {return new Feature(data);}
 }
 export class Feature extends EqItem implements ICircuit {
+    public dataName = 'featureConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -787,6 +793,7 @@ export class PumpCollection extends EqItemCollection<Pump> {
     }
 }
 export class Pump extends EqItem {
+    public dataName = 'pumpConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -887,6 +894,7 @@ export class PumpCircuitCollection extends EqItemCollection<PumpCircuit> {
     public createItem(data: any): PumpCircuit {return new PumpCircuit(data);}
 }
 export class PumpCircuit extends EqItem {
+    public dataName = 'pumpCircuitConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get circuit(): number {return this.data.circuit;}
@@ -906,6 +914,7 @@ export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     public createItem(data: any): Chlorinator {return new Chlorinator(data);}
 }
 export class Chlorinator extends EqItem {
+    public dataName = 'chlorinatorConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get type(): number {return this.data.type;}
@@ -932,6 +941,7 @@ export class ValveCollection extends EqItemCollection<Valve> {
     public createItem(data: any): Valve {return new Valve(data);}
 }
 export class Valve extends EqItem {
+    public dataName = 'valveConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get type(): number {return this.data.type;}
@@ -948,6 +958,7 @@ export class HeaterCollection extends EqItemCollection<Heater> {
     public createItem(data: any): Heater {return new Heater(data);}
 }
 export class Heater extends EqItem {
+    public dataName = 'heaterConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get type(): number {return this.data.type;}
@@ -988,6 +999,7 @@ export class CoverCollection extends EqItemCollection<Cover> {
     }
 }
 export class Cover extends EqItem {
+    public dataName = 'coverConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -1032,18 +1044,20 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
             if (typeof this.data[i].circuit !== 'undefined' && this.data[i].circuit === id) {
                 rem = this.data.splice(i, 1);
             }
+        sys._hasChanged = true;
         return rem;
     }
     public sortByPosition() {sys.intellibrite.circuits.sort((a, b) => {return a.position > b.position ? 1 : -1;});}
 }
 export class LightGroupCircuit extends EqItem {
+    public dataName = 'lightGroupCircuitConfig';
     public get circuit(): number {return this.data.circuit;}
     public set circuit(val: number) {this.setDataVal('circuit', val);}
     // RG - these shouldn't be here; only need them for CircuitGroupCircuit but if I remove it getItemById returns an error... to be fixed.
     public get desiredStateOn(): boolean {return this.data.desiredStateOn;}
     public set desiredStateOn(val: boolean) {this.setDataVal('desiredStateOn', val);}
     public get isActive(): boolean {return this.data.isActive;}
-    public set isActive(val: boolean) {this.setDataVal('isActive', val);}
+    public set isActive(val: boolean) {this.setDataVal('isActive', val, false);}
     public get lightingTheme(): number {return this.data.lightingTheme;}
     public set lightingTheme(val: number) {this.setDataVal('lightingTheme', val);}
     public get position(): number {return this.data.position;}
@@ -1067,6 +1081,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         super(data, name);
         if (typeof obj !== 'undefined') extend(true, this.data, obj);
     }
+    public dataName = 'lightGroupConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -1102,6 +1117,7 @@ export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroup
     public createItem(data: any): CircuitGroupCircuit {return new CircuitGroupCircuit(data);}
 }
 export class CircuitGroupCircuit extends EqItem {
+    public dataName = 'circuitGroupCircuitConfig';
     public get circuit(): number {return this.data.circuit;}
     public set circuit(val: number) {this.setDataVal('circuit', val);}
     public get desiredStateOn(): boolean {return this.data.desiredStateOn;}
@@ -1136,6 +1152,7 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
 }
 
 export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
+    public dataName = 'circuitGroupConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -1198,6 +1215,7 @@ export class RemoteCollection extends EqItemCollection<Remote> {
     public createItem(data: any): Remote {return new Remote(data);}
 }
 export class Remote extends EqItem {
+    public dataName = 'remoteConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -1242,6 +1260,7 @@ export class SecurityRoleCollection extends EqItemCollection<SecurityRole> {
     public createItem(data: any): SecurityRole {return new SecurityRole(data);}
 }
 export class SecurityRole extends EqItem {
+    public dataName = 'roleConfig';
     public get id(): number {return this.data.id;}
     public set id(val: number) {this.setDataVal('id', val);}
     public get name(): string {return this.data.name;}
@@ -1256,11 +1275,13 @@ export class SecurityRole extends EqItem {
     public set pin(val: string) {this.setDataVal('pin', val);}
 }
 export class Security extends EqItem {
+    public dataName = 'securityConfig';
     public get enabled(): boolean {return this.data.enabled;}
     public set enabled(val: boolean) {this.setDataVal('enabled', val);}
     public get roles(): SecurityRoleCollection {return new SecurityRoleCollection(this.data, "roles");}
 }
 export class IntelliChem extends EqItem {
+    public dataName = 'intellichemConfig';
     public get isActive(): boolean {return this.data.isActive;}
     public set isActive(val: boolean) {this.setDataVal('isActive', val);}
     public get pH(): number {return this.data.pH;}

@@ -513,20 +513,6 @@ class TouchSystemCommands extends SystemCommands {
 class TouchBodyCommands extends BodyCommands {
     public setHeatMode(body: Body, mode: number) {
         //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-        // The mapping below is no longer required.
-        //switch (mode) {
-        //    case 3:
-        //        mode = 1;
-        //        break;
-        //    case 21:
-        //        mode = 2;
-        //        break;
-        //    case 5:
-        //        mode = 3;
-        //        break;
-        //    case 0:
-        //        break;
-        //}
         const body1 = sys.bodies.getItemById(1);
         const body2 = sys.bodies.getItemById(2);
         const temp1 = body1.setPoint || 100;

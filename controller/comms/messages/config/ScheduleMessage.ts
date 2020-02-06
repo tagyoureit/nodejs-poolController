@@ -84,32 +84,30 @@ export class ScheduleMessage {
     }
     public static processScheduleDetails(msg: Inbound) {
         // Sample packet
-        // [165,16,15,16,17,7],[1,6,9,25,15,55,255],[2, 90]
+        // [165,33,15,16,17,7][6,12,25,0,6,30,0][1,76]
         const schedId = msg.extractPayloadByte(0);
 
-        // set sched/eggtimer to inactive; will set active below if still true.
-        sys.schedules.getItemById(schedId).isActive = false;
-        sys.eggTimers.getItemById(schedId).isActive = false;
-
         const circuitId = msg.extractPayloadByte(1) & 127;
-        const bEggTimer = msg.extractPayloadByte(2) === 25;
-        if (bEggTimer) {
+        const eggTimerRunTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
+        const eggTimerActive = msg.extractPayloadByte(2) === 25 && circuitId > 0 && eggTimerRunTime !== 256;
+        const scheduleActive = !eggTimerActive && circuitId > 0;
+        if (eggTimerActive) {
             // egg timer
             const eggTimer: EggTimer = sys.eggTimers.getItemById(schedId, true);
             eggTimer.circuit = circuitId;
-            eggTimer.runTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
-            eggTimer.isActive = circuitId > 0 && eggTimer.runTime !== 256;
+            eggTimer.runTime = eggTimerRunTime;
+            eggTimer.isActive = eggTimerActive;
             const circuit = sys.circuits.getInterfaceById(circuitId);
             circuit.eggTimer = eggTimer.runTime;
         } else if (circuitId > 0) {
-            const schedule: Schedule = sys.schedules.getItemById(schedId, msg.extractPayloadByte(2) > 0);
+            const schedule: Schedule = sys.schedules.getItemById(schedId, true);
             schedule.circuit = circuitId;
             schedule.startTime = msg.extractPayloadByte(2) * 60 + msg.extractPayloadByte(3);
             // 26 is 'let the eggTimer control end time'
-            if (msg.extractPayloadByte(4) !== 26) 
+            if (msg.extractPayloadByte(4) !== 26)
                 schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
             else {
-                let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer;
+                let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer || 0;
                 schedule.endTime = schedule.startTime === 0 ? 720 : schedule.startTime + _eggTimer;
             }
             schedule.isActive = schedule.startTime !== 0;
@@ -129,15 +127,18 @@ export class ScheduleMessage {
                 sstate.scheduleDays = schedule.scheduleDays;
             }
         }
-        if (sys.schedules.getItemById(schedId).isActive === false) {
+        if (!scheduleActive) {
             sys.schedules.removeItemById(schedId);
             state.schedules.removeItemById(schedId);
         }
-        if (sys.eggTimers.getItemById(schedId).isActive === false) {
-            const circuit = sys.circuits.getInterfaceById(
-                sys.eggTimers.getItemById(schedId).circuit
-            );
-            circuit.eggTimer = 0;
+
+        if (!eggTimerActive) {
+            const circId = sys.eggTimers.getItemById(schedId).circuit;
+            if (circId)
+            {
+                const circuit = sys.circuits.getInterfaceById(circId);
+                circuit.eggTimer = 0;
+            }
             sys.eggTimers.removeItemById(schedId);
         }
     }
@@ -206,7 +207,7 @@ export class ScheduleMessage {
     }
     private static processEndTimes(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 23) * 20 + 1;
-        for (let i = 1; i < msg.payload.length - 1 && schedId <= sys.equipment.maxSchedules && schedId <= sys.schedules.length; ) {
+        for (let i = 1; i < msg.payload.length - 1 && schedId <= sys.equipment.maxSchedules && schedId <= sys.schedules.length;) {
             const time = msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.endTime = time;

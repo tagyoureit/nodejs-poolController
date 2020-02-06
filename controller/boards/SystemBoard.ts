@@ -89,7 +89,7 @@ export class byteValueMaps {
             return {val: b, days: days};
         };
         this.virtualCircuits.transform = function(byte) {return extend(true, {}, {id: byte, name: 'Unknown ' + byte}, this.get(byte), {showInFeatures: false, showInCircuits: false});};
-        this.tempUnits.transform = function(byte) {return extend(true, {}, this.get(byte & 0x04));};
+        this.tempUnits.transform = function(byte) {return extend(true, {}, {val: byte & 0x04}, this.get(byte & 0x04));};
         this.panelModes.transform = function(byte) {return extend(true, {val: byte & 0x83}, this.get(byte & 0x83));};
         this.controllerStatus.transform = function(byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));

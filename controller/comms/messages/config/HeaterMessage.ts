@@ -67,9 +67,9 @@ export class HeaterMessage {
                 // bits 7,8 = stop temp delta
 
                 if (msg.extractPayloadByte(0) === 21) {
-                    let solar: Heater = sys.heaters.getItemById(2, true);
+                    let solar: Heater = sys.heaters.getItemById(2);
                     solar.isActive = false;
-                    let heatPump: Heater = sys.heaters.getItemById(3, true);
+                    let heatPump: Heater = sys.heaters.getItemById(3);
                     heatPump.isActive = false;
                     return;
                 }
@@ -84,7 +84,7 @@ export class HeaterMessage {
                     solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
                     solar.startTempDelta = ((msg.extractPayloadByte(2) & 0xE) >> 1) + 3;
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
-                    let heatPump = sys.heaters.getItemById(3, true);
+                    let heatPump = sys.heaters.getItemById(3);
                     heatPump.isActive = false;
                 }
                 else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
@@ -93,7 +93,7 @@ export class HeaterMessage {
                     heatPump.isActive = true;
                     heatPump.heatingEnabled = (msg.extractPayloadByte(1) & 0x1) === 1;
                     heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
-                    let solar = sys.heaters.getItemById(2, true);
+                    let solar = sys.heaters.getItemById(2);
                     solar.isActive = false;
                 }
                 for (var i = 0; i <= sys.heaters.length; i++){
