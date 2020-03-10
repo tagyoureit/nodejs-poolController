@@ -303,6 +303,7 @@ export interface ICircuitState {
     lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
+    showInFeatures?: boolean
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
@@ -523,10 +524,10 @@ export class PumpState extends EqState {
     public get time(): number { return this.data.time; }
     public set time(val: number) { this.setDataVal('time', val, false); }
     public getExtended() {
-        sys.pumps.sortById();
+        // sys.pumps.sortById();
         let pump = this.get(true);
         let cpump = sys.pumps.getItemById(pump.id);
-        cpump.circuits.sortById();
+        // cpump.circuits.sortById();
         if (typeof (cpump.minSpeed) !== 'undefined') pump.minSpeed = cpump.minSpeed;
         if (typeof (cpump.maxSpeed) !== 'undefined') pump.maxSpeed = cpump.maxSpeed;
         if (typeof (cpump.minFlow) !== 'undefined') pump.minFlow = cpump.minFlow;
@@ -856,16 +857,16 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public toggleCircuitState(id: number) { sys.board.circuits.toggleCircuitState(id); }
     public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightTheme(id, theme); }
     public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
-    public getInterfaceById(id: number): ICircuitState {
+    public getInterfaceById(id: number, add?: true): ICircuitState {
         let iCircuit: ICircuitState = null;
         if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
-            iCircuit = state.virtualCircuits.getItemById(id);
+            iCircuit = state.virtualCircuits.getItemById(id, add);
         else if (sys.board.equipmentIds.circuitGroups.isInRange(id))
             iCircuit = state.circuitGroups.getInterfaceById(id);
         else if (sys.board.equipmentIds.features.isInRange(id))
-            iCircuit = state.features.getItemById(id);
+            iCircuit = state.features.getItemById(id, add);
         else
-            iCircuit = state.circuits.getItemById(id);
+            iCircuit = state.circuits.getItemById(id, add);
         return iCircuit;
     }
 }
@@ -940,6 +941,7 @@ export class ChlorinatorState extends EqState {
     // The lastComm property has a fundamental flaw.  Although, the structure is
     // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
     // triggered by this. We need to find a way that the property change does not trigger persistence.
+    // RG - Fixed with "false" persistence flag. 2/10/2020
     public get lastComm(): number { return this.data.lastComm; }
     public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get id(): number { return this.data.id; }
@@ -948,9 +950,15 @@ export class ChlorinatorState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get currentOutput(): number { return this.data.currentOutput; }
     public set currentOutput(val: number) { this.setDataVal('currentOutput', val); }
+    public get setPointForCurrentBody() {
+        if (state.body === 1) return this.data.spaSetpoint;
+        return this.data.poolSetpoint || 0;
+        // can add 3rd/4th body for IntelliCenter when known
+    }
     public get targetOutput(): number { return this.data.targetOutput; }
     public set targetOutput(val: number) { this.setDataVal('targetOutput', val); }
-    public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
+    public get status(): number { 
+        return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
         if (this.status !== val) {
             this.data.status = sys.board.valueMaps.chlorinatorStatus.transform(val);
@@ -1027,11 +1035,11 @@ export class ChlorinatorState extends EqState {
         else
             this.setDataVal('superChlor', false);
     }
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chemistry.setChlor(this, poolSetpoint, spaSetpoint, superChlorHours); }
-    public setPoolSetpoint(setpoint: number) { sys.board.chemistry.setPoolSetpoint(this, setpoint); }
-    public setSpaSetpoint(setpoint: number) { sys.board.chemistry.setSpaSetpoint(this, setpoint); }
-    public setSuperChlorHours(hours: number) { sys.board.chemistry.setSuperChlorHours(this, hours); }
-    public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chemistry.superChlorinate(this, bSet, hours); }
+    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlor(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
+    public setPoolSetpoint(setpoint: number) { sys.board.chlorinator.setPoolSetpoint(this, setpoint); }
+    public setSpaSetpoint(setpoint: number) { sys.board.chlorinator.setSpaSetpoint(this, setpoint); }
+    public setSuperChlorHours(hours: number) { sys.board.chlorinator.setSuperChlorHours(this, hours); }
+    public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chlorinator.superChlorinate(this, bSet, hours); }
 }
 
 export class IntelliChemState extends EqState {

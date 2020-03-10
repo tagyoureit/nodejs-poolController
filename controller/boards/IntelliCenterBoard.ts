@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChemistryCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, CircuitGroupCircuit, LightGroup } from '../Equipment';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange } from './SystemBoard';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -10,6 +10,14 @@ export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
+        this.equipmentIds.circuits = new EquipmentIdRange(1, function() {return this.start + sys.equipment.maxCircuits - 1;});
+        this.equipmentIds.features = new EquipmentIdRange(function() {return sys.equipment.maxCircuits + 1;}, function() {return this.start + sys.equipment.maxFeatures + 3;});
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(function() {return this.start;}, function() {return this.start + sys.equipment.maxCircuitGroups - 1;});
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function() {return this.start;}, function() {return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1;});
+        this.equipmentIds.features.start = 129;
+        this.equipmentIds.circuitGroups.start = 193;
+        this.equipmentIds.virtualCircuits.start = 237;
+        // todo: val can probably be removed; RS to check
         this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { val: 0, name: 'generic', desc: 'Generic' }],
             [1, { val: 1, name: 'spillway', desc: 'Spillway' }],
@@ -89,14 +97,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [222, { name: 'getdata', desc: 'Get Data' }],
             [228, {name: 'getversions', desc: 'Get Versions'}]
         ]);
-        this.equipmentIds.features.start = 129;
-        this.equipmentIds.circuitGroups.start = 193;
-        this.equipmentIds.virtualCircuits.start = 237;
+
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
     public features: IntelliCenterFeatureCommands = new IntelliCenterFeatureCommands(this);
-    public chemistry: IntelliCenterChemistryCommands = new IntelliCenterChemistryCommands(this);
+    public chlorinator: IntelliCenterChlorinatorCommands = new IntelliCenterChlorinatorCommands(this);
     public bodies: IntelliCenterBodyCommands = new IntelliCenterBodyCommands(this);
     public pumps: IntelliCenterPumpCommands = new IntelliCenterPumpCommands(this);
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
@@ -106,7 +112,7 @@ export class IntelliCenterBoard extends SystemBoard {
         // Send out a message to the outdoor panel that we need info about
         // our current configuration.
         console.log('Checking IntelliCenter configuration...');
-        const out: Outbound = Outbound.createMessage(228, [0], 5, new Response(15, 16, 164, [], 164));
+        const out: Outbound = Outbound.createMessage(228, [0], 5, new Response(Protocol.Broadcast, 15, 16, 164, [], 164));
         conn.queueSendMessage(out);
     }
     public requestConfiguration(ver: ConfigVersion) {
@@ -205,7 +211,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 Message.pluginAddress,
                 15, 222,
                 [this.curr.category, itm], 5,
-                new Response(16, 15, 30,
+                new Response(Protocol.Broadcast, 16, 15, 30,
                     [this.curr.category, itm],
                     undefined,
                     function (msgOut) { self.processNext(msgOut); })
@@ -581,7 +587,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let cstate = state.circuits.getItemById(id);
         let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
             level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-            3, new Response(16, Message.pluginAddress, 1, [168], null, function (msg) {
+            3, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [168], null, function (msg) {
                 if (!msg.failed) {
                     circuit.level = level;
                     cstate.level = level;
@@ -603,10 +609,10 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public setFeatureState(id, val) { this.board.circuits.setCircuitState(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
 }
-class IntelliCenterChemistryCommands extends ChemistryCommands {
+class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlor ? 1 : 0, superChlorHours, 0, 1], 3,
-            new Response(16, Message.pluginAddress, 1, [168]));
+            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [168]));
         conn.queueSendMessage(out);
         super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
     }

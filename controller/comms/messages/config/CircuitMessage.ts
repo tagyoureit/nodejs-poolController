@@ -77,7 +77,7 @@ export class CircuitMessage {
             The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
         let byte: number; // which byte are we starting with?
         msg.datalen === 25 ? byte = 1 : byte = 0;
-
+        sys.intellibrite.isActive = true;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -110,7 +110,7 @@ export class CircuitMessage {
                 sys.intellibrite.circuits.removeItemById(ibCircuit.circuit);
             }
         // Now that we are done.  Lets sort the array by position.
-        sys.intellibrite.circuits.sortByPosition();
+        //  sys.intellibrite.circuits.sortByPosition();
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -131,7 +131,7 @@ export class CircuitMessage {
                     break;
             }
         }
-        sys.intellibrite.circuits.sortByPosition();
+        // sys.intellibrite.circuits.sortByPosition();
     }
     private static processFreezeProtect(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -219,6 +219,7 @@ export class CircuitMessage {
                             body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                             body.name = "Pool";
                             circuit.type === 2 ? body.isActive = true : body.isActive = false;
+                            sys.board.virtualChlorinatorController.checkTimer();
                             break;
                         case 1: // spa
                             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);

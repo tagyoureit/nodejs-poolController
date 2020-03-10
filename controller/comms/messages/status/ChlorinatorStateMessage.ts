@@ -1,76 +1,70 @@
-﻿import {Inbound, Protocol} from "../Messages";
-import {state} from "../../../State";
-import {sys, ControllerType} from "../../../Equipment";
+﻿import { Inbound, Protocol } from "../Messages";
+import { state } from "../../../State";
+import { sys, ControllerType } from "../../../Equipment";
 
 export class ChlorinatorStateMessage {
     public static process(msg: Inbound) {
-        if (!state.isInitialized) return;
+
         if (msg.protocol === Protocol.Chlorinator) {
-            if (msg.datalen === 3) {
-                let chlorId = msg.extractPayloadByte(0) - 79;
-                let chlor = state.chlorinators.getItemById(chlorId, true);
-                if (typeof chlor.lastComm === 'undefined') chlor.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
-                // The address of the chlorinator will be 81 for the second one 82 for the 3rd ...etc.
-                switch (msg.extractPayloadByte(1)) {
-                    case 0:
-                        break;
-                    case 1:
-                        // are we getting case 1?
-                        1 === 1;
-                        break;
-                    case 17: {
-                            let c = sys.chlorinators.getItemById(chlorId, true);
-                            chlor.currentOutput = msg.extractPayloadByte(2);
-                            // chlor.body = c.body;
-                            // chlor.poolSetpoint = c.poolSetpoint;
-                            // chlor.spaSetpoint = c.spaSetpoint;
-                            // chlor.superChlorHours = c.superChlorHours;
-                            // chlor.superChlor = c.superChlor;
-                            if (state.body === 6) chlor.targetOutput = c.poolSetpoint = msg.extractPayloadByte(2);
-                            else if (state.body === 1) chlor.targetOutput = c.spaSetpoint = msg.extractPayloadByte(2);
-                            if (chlor.currentOutput === 0 && chlor.status !== 128 && (chlor.lastComm + (20 * 1000) < new Date().getTime())) {
-                                // We have not talked to the chlorinator in 20 seconds so we have lost communication.
-                                chlor.status = 128;
-                            }
-                            break;
-                        }
-                    case 18: {
-                        chlor.currentOutput = msg.extractPayloadByte(2);
-                        chlor.saltLevel = msg.extractPayloadByte(2) * 50;
-                        chlor.status = (msg.extractPayloadByte(3) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
-                        chlor.lastComm = new Date().getTime();
+            if (msg.dest >= 1) {
+                let cstate = state.chlorinators.getItemById(msg.dest, true);
+                if (typeof cstate.lastComm === 'undefined') cstate.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
+                // RG: I was getting some time deltas of 25-30s and bumped this up
+                else if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
+                    // We have not talked to the chlorinator in 20 seconds so we have lost communication.
+                    cstate.status = 128;
+                }
+                let chlor = sys.chlorinators.getItemById(msg.dest, true)
+                chlor.address = msg.dest + 79;
+                chlor.isActive = true;
+            }
+            else {
+                // message to controller
+                let cstate = state.chlorinators.getItemById(1, true);
+                cstate.lastComm = new Date().getTime();
+            }
+            // switch (msg.extractPayloadByte(1)) {
+            switch (msg.action) {
+                case 0: // request status (0): [16,2,80,0][0][98,16,3]
+                    break;
+                case 1: // response to request status: [16,2,0,1][0,0][19,16,3]
+                    {
+                        // let chlor = sys.chlorinators.getItemById(1, true);
+                        // chlor.isActive = true;
                         break;
                     }
-                    case 20: {
-                        let c = sys.chlorinators.getItemById(chlorId, true);
-                        chlor.type = c.type = msg.extractPayloadByte(2);
-                        break;
-                    }
-                    case 21: {
-                            let c = sys.chlorinators.getItemById(chlorId, true);
-                            if (state.body === 6) chlor.targetOutput = c.poolSetpoint = msg.extractPayloadByte(2) / 10;
-                            else if (state.body === 1) chlor.targetOutput = c.spaSetpoint = msg.extractPayloadByte(2) / 10;
-                            break;
-                        }
+                case 3: {
+                    // Response to Get Version (20)
+                    //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
+                    //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
+                    // This is the model number of the chlorinator and the address is actually the second byte.
+                    let cstate = state.chlorinators.getItemById(1, true);
+                    let chlor = sys.chlorinators.getItemById(1, true);
+                    cstate.name = chlor.name = msg.extractPayloadString(1, 16);
+                    break;
                 }
-            }
-            else if (msg.datalen === 4) {
-                let chlor = state.chlorinators.getItemById(msg.extractPayloadByte(0) + 1, true);
-                switch (msg.extractPayloadByte(1)) {
-                    case 18:
-                        chlor.saltLevel = msg.extractPayloadByte(2) * 50;
-                        chlor.status = (msg.extractPayloadByte(3) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this.
-                        chlor.lastComm = new Date().getTime();
-                        break;
+                case 17:
+                case 21: {
+                    // Set Salt Output
+                    let cstate = state.chlorinators.getItemById(1, true);
+                    cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
+                    cstate.targetOutput = cstate.setPointForCurrentBody;
+                    break;
                 }
-            }
-            else if (msg.datalen === 19) {
-                //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
-                //[16, 2][0, 3, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
-                // This is the model number of the chlorinator and the address is actually the second byte.
-                let chlor = state.chlorinators.getItemById(msg.extractPayloadByte(0) + 1, true);
-                //chlor.saltLevel = msg.extractPayloadByte(2) * 50;
-                chlor.name = msg.extractPayloadString(3, 16);
+                case 18: {
+                    // Response to Set Salt Output (17 & 20)
+                    let cstate = state.chlorinators.getItemById(1, true);
+                    cstate.saltLevel = msg.extractPayloadByte(0) * 50;
+                    cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
+                    break;
+                }
+                case 20: {
+                    // Get version
+                    let c = sys.chlorinators.getItemById(1, true);
+                    let chlor = state.chlorinators.getItemById(1, true);
+                    chlor.type = c.type = msg.extractPayloadByte(0);
+                    break;
+                }
             }
             state.emitEquipmentChanges();
         }
@@ -78,6 +72,7 @@ export class ChlorinatorStateMessage {
         // a configuration message rather than a status message.  Also, IntelliCenter has a 204 extension status that contains
         // the current countdown timer for the superChlor in the last 2 bytes.  Perhaps this is the equivalent.
         else if (msg.protocol === Protocol.Broadcast) {
+            if (!state.isInitialized) return;
             // sample packet
             // [165,33,15,16,25,22],[1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48],[7,231]
             let chlorId = 1;
@@ -85,13 +80,14 @@ export class ChlorinatorStateMessage {
             // installed = (aaaaaaa)1 so 1 = installed
             chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
             if (chlor.isActive) {
-                // RSG : making the assumption here that the chlorinator will be tied to the spa in any system that is not a shared body
-                sys.equipment.maxBodies === 1 || sys.equipment.shared === true ? chlor.body = 32 : chlor.body = 1;
+                // RSG : making the assumption here that the chlorinator will be tied to the pool in any system that is not a shared body
+                sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? chlor.body = 32 : chlor.body = 6;
                 // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
                 // eg. a value of 41 is 00101001
                 // spa percent = 0010100(b) so 10100 = 20
                 chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
                 chlor.poolSetpoint = msg.extractPayloadByte(1);
+                chlor.address = chlor.id + 79;
                 chlor.superChlor = msg.extractPayloadByte(5) > 0;
                 chlor.superChlorHours = msg.extractPayloadByte(5);
                 chlor.name = msg.extractPayloadString(6, 16);
@@ -107,6 +103,10 @@ export class ChlorinatorStateMessage {
                 schlor.body = chlor.body;
                 if (state.body === 6) schlor.targetOutput = chlor.poolSetpoint;
                 else if (state.body === 1) schlor.targetOutput = chlor.spaSetpoint;
+            }
+            else {
+                sys.chlorinators.removeItemById(chlorId);
+                state.chlorinators.removeItemById(chlorId);
             }
         }
     }

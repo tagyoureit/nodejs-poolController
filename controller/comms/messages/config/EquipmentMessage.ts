@@ -1,6 +1,6 @@
 ﻿import { Inbound } from '../Messages';
 import { sys, Equipment, ExpansionPanel, Body } from '../../../Equipment';
-import { state } from '../../../State'
+import { state } from '../../../State';
 import { ControllerType } from '../../../Constants';
 
 export class EquipmentMessage {

@@ -78,7 +78,12 @@ export enum ControllerType {
     IntelliTouch = 'intellitouch',
     IntelliCom = 'intellicom',
     EasyTouch = 'easytouch',
-    Unknown = 'unknown'
+    Unknown = 'unknown',
+    Virtual = 'virtual'
+}
+export enum VirtualDeviceType {
+    Pump = 'pump',
+    Chlorinator = 'chlorinator'
 }
 //export class Enums {
 //    public static Addresses = {

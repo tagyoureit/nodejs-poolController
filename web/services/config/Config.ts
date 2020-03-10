@@ -9,6 +9,22 @@ export class ConfigRoute {
         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
+        app.get('/config/circuit/names', (req, res)=>{
+            let circuitNames = sys.board.circuits.getCircuitNames();
+            return res.status(200).send(circuitNames);
+        });
+        app.get('/config/features/names', (req, res)=>{
+            let circuitNames = sys.board.circuits.getCircuitNames();
+            return res.status(200).send(circuitNames);
+        });
+        app.get('/config/circuit/functions', (req, res)=>{
+            let circuitFunctions = sys.board.circuits.getCircuitFunctions();
+            return res.status(200).send(circuitFunctions);
+        });
+        app.get('/config/features/functions', (req, res)=>{
+            let circuitFunctions = sys.board.circuits.getCircuitFunctions();
+            return res.status(200).send(circuitFunctions);
+        });
         app.get('/config/circuit/:id', (req, res) => {
             // todo: need getInterfaceById.get() in case features are requested here
             // todo: it seems to make sense to combine with /state/circuit/:id as they both have similiar/overlapping info

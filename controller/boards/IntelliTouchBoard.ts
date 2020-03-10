@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIdRange} from './SystemBoard';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange} from './SystemBoard';
 import {logger} from '../../logger/Logger';
 import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories } from './EasyTouchBoard';
 import {state, ChlorinatorState} from '../State';
@@ -55,7 +55,7 @@ class ITTouchConfigQueue extends TouchConfigQueue {
 }
 class TouchCircuitCommands extends CircuitCommands {
     public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function (msg) {
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function (msg) {
             if (!msg.failed) {
                 state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -67,6 +67,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 state.emitEquipmentChanges();
             }
         }));
+        conn.queueSendMessage(out);
     }
 }
 class TouchFeatureCommands extends FeatureCommands {

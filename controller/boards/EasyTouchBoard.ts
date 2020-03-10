@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChemistryCommands, EquipmentIds, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
+import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State } from '../State';
@@ -9,8 +9,10 @@ export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
         super(system);
+        this.equipmentIds.circuits = new EquipmentIdRange(1, function() {return this.start + sys.equipment.maxCircuits - 1;});
         this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(() => { return 128; }, () => { return 136; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() {return this.start + sys.equipment.maxCircuitGroups - 1;});
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.circuitNames = new byteValueMap([
             [0, { name: 'notused', desc: 'Not Used' }],
@@ -115,8 +117,8 @@ export class EasyTouchBoard extends SystemBoard {
             [99, { name: 'feature6', desc: 'Feature 6' }],
             [100, { name: 'feature7', desc: 'Feature 7' }],
             [101, { name: 'feature8', desc: 'Feature 8' }]
-        ]);
-        this.valueMaps.circuitFunctions = new byteValueMap([
+        ]); 
+        /* this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spa', desc: 'Spa' }],
             [2, { name: 'pool', desc: 'Pool' }],
@@ -132,8 +134,8 @@ export class EasyTouchBoard extends SystemBoard {
             [16, { name: 'intellibrite', desc: 'Intellibrite' }],
             [17, { name: 'magicstream', desc: 'Magicstream' }],
             [19, { name: 'notused', desc: 'Not Used' }]
-        ]);
-        this.valueMaps.virtualCircuits = new byteValueMap([
+        ]); */
+/*         this.valueMaps.virtualCircuits = new byteValueMap([
             [128, { name: 'solar', desc: 'Solar' }],
             [129, { name: 'heater', desc: 'Either Heater' }],
             [130, { name: 'poolHeater', desc: 'Pool Heater' }],
@@ -144,15 +146,15 @@ export class EasyTouchBoard extends SystemBoard {
             [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
             [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
             [255, { name: 'notused', desc: 'NOT USED' }]
-        ]);
-        this.valueMaps.pumpTypes = new byteValueMap([
+        ]); */
+/*         this.valueMaps.pumpTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No pump' }],
             [1, { name: 'vf', desc: 'Intelliflo VF' }],
             [2, { name: 'ds', desc: 'Two-Speed' }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
             [128, { name: 'vs', desc: 'Intelliflo VS' }],
             [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
-        ]);
+        ]); */
         this.valueMaps.lightThemes = new byteValueMap([
             [0, { name: 'white', desc: 'White' }],
             [2, { name: 'lightgreen', desc: 'Light Green' }],
@@ -237,7 +239,7 @@ export class EasyTouchBoard extends SystemBoard {
     public system: TouchSystemCommands=new TouchSystemCommands(this);
     public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
-    public chemistry: TouchChemistryCommands=new TouchChemistryCommands(this);
+    public chlorinator: TouchChlorinatorCommands=new TouchChlorinatorCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
     public heaters: TouchHeaterCommands=new TouchHeaterCommands(this);
     public schedules: TouchScheduleCommands=new TouchScheduleCommands(this);
@@ -363,6 +365,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 [itm],
                 3,
                 new Response(
+                    Protocol.Broadcast,
                     16,
                     15,
                     this.curr.category,
@@ -380,6 +383,7 @@ export class TouchConfigQueue extends ConfigQueue {
             // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
             this._configQueueTimer = setTimeout(() => sys.board.checkConfiguration(), 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
+            sys.board.virtualChlorinatorController.search();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
@@ -398,7 +402,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
         // delete sched 1
         // [ 255, 0, 255], [165, 33, 16, 33, 145, 7], [1, 0, 0, 0, 0, 0, 0], [1, 144]
 
-        const setSchedConfig = Outbound.createMessage(145, [sched.id, 0, 0, 0, 0, 0, 0], 2, new Response(16, Message.pluginAddress, 1, [145]));
+        const setSchedConfig = Outbound.createMessage(145, [sched.id, 0, 0, 0, 0, 0, 0], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [145]));
         if (sched.circuit === 0) {
             // delete - take defaults
         }
@@ -419,7 +423,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 if (sched.runOnce) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
             }
         }
-        const schedConfigRequest = Outbound.createMessage(209, [sched.id], 2, new Response(16, Message.pluginAddress, 17, [sched.id]));
+        const schedConfigRequest = Outbound.createMessage(209, [sched.id], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 17, [sched.id]));
 
         return [setSchedConfig, schedConfigRequest];
     }
@@ -468,7 +472,7 @@ export enum GetTouchConfigCategories {
 }
 class TouchSystemCommands extends SystemCommands {
     public cancelDelay() {
-        let out = Outbound.createMessage(131, [0], 3, new Response(Message.pluginAddress, 16, 1, [131], null, function(msg) {
+        let out = Outbound.createMessage(131, [0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [131], null, function(msg) {
             if (!msg.failed) {
                 // todo: track delay status?
                 state.delay = 0;
@@ -495,7 +499,7 @@ class TouchSystemCommands extends SystemCommands {
             133,
             [hour, min, dow, date, month, year, 0, dst],
             3,
-            new Response(16, Message.pluginAddress, 1, [133], null, function(msg) {
+            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [133], null, function(msg) {
                 if (!msg.failed) {
                     state.time.hours = hour;
                     state.time.minutes = min;
@@ -527,7 +531,7 @@ class TouchBodyCommands extends BodyCommands {
             136,
             [temp1, temp2, mode2 << 2 | mode1, 0],
             3,
-            new Response(16, Message.pluginAddress, 1, [136], null, function(msg) {
+            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
                 if (!msg.failed) {
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
@@ -573,8 +577,8 @@ class TouchBodyCommands extends BodyCommands {
             136,
             [temp1, temp2, mode2 << 2 | mode1, 0],
             3,
-            new Response(16, Message.pluginAddress, 1, [136], null, function(msg) {
-                if (!msg.failed) {
+            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
+                if (msg && !msg.failed) {
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.temps.emitEquipmentChange();
@@ -596,11 +600,13 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Message.pluginAddress, 16, 1, [134], null, function(msg) {
-            if (!msg.failed) {
+        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
+            if (msg && !msg.failed) {
                 cstate.isOn = val ? true : false;
                 state.emitEquipmentChanges();
             }
+            // TODO: look into msg being null
+            else if (!msg){ console.log (`why are we getting no msg?`)}
         }));
         conn.queueSendMessage(out);
     }
@@ -613,7 +619,7 @@ class TouchCircuitCommands extends CircuitCommands {
         this.setIntelliBriteTheme(theme);
     }
     public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Message.pluginAddress, 16, 1, [96], null, function(msg) {
+        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function(msg) {
             if (!msg.failed) {
                 state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -648,20 +654,22 @@ class TouchFeatureCommands extends FeatureCommands {
         this.board.circuits.toggleCircuitState(id);
     }
 }
-class TouchChemistryCommands extends ChemistryCommands {
+class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+        // if chlorinator is controlled by thas app; call super();
+        let vc = sys.virtualChlorinatorControllers.getItemById(1);
+        if (vc.isActive) return super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(16, Message.pluginAddress, 1, [153], null, function(msg) {
+        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (msg) => {
+            // TODO: RG : should this call super.setChlor()?
+            // or will the response take care of setting this anyway and CB is unnecessary?
             if (!msg.failed) {
-                let chlor = sys.chlorinators.getItemById(cstate.id);
-                cstate.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
-                cstate.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
-                cstate.superChlorHours = chlor.superChlorHours = superChlorHours;
-                cstate.superChlor = chlor.superChlor = superChlor;
-                state.emitEquipmentChanges();
+                super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
+                // state.emitEquipmentChanges(); // will be taken care of by super.
             }
         }));
+
         conn.queueSendMessage(out);
     }
 }
@@ -675,7 +683,7 @@ class TouchPumpCommands extends PumpCommands {
     }
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
-        const setPumpConfig = Outbound.createMessage(155, [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 2, new Response(16, Message.pluginAddress, 1, [155]));
+        const setPumpConfig = Outbound.createMessage(155, [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [155]));
         if (pump.type === 128) {
             // vs
             setPumpConfig.payload[2] = pump.primingTime || 0;
@@ -729,7 +737,7 @@ class TouchPumpCommands extends PumpCommands {
                 setPumpConfig.payload[i * 2 + 4] = circ.flow || 15;
             }
         }
-        const pumpConfigRequest = Outbound.createMessage(216, [pump.id], 2, new Response(16, Message.pluginAddress, 24, [pump.id]));
+        const pumpConfigRequest = Outbound.createMessage(216, [pump.id], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 24, [pump.id]));
         return [setPumpConfig, pumpConfigRequest];
     }
     /*     public setType(pump: Pump, pumpType: number) {

@@ -37,8 +37,6 @@ export class Message {
     protected _complete: boolean=false;
     public static headerSubByte: number=33;
     public static pluginAddress: number=config.getSection('controller', { address: 33 }).address;
-    //public static _controllerType: ControllerType = ControllerType.IntelliCenter;
-
 
     // Fields
     public timestamp: Date=new Date();
@@ -57,27 +55,31 @@ export class Message {
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
     public get dest(): number {
         if (this.protocol === Protocol.Chlorinator) {
-            return this.header[2] === 80 ? this.header[2] - 79 : 0;
+            return this.header[2] >= 80 ? this.header[2] - 79 : 0;
         }
         if (this.header.length > 2) return this.header[2];
         else return -1;
     }
     public get source(): number {
         if (this.protocol === Protocol.Chlorinator) {
-            return this.header[2] === 80 ? 0 : this.header[2] - 79;
-        }
+            return this.header[2] >= 80 ? 0 : 1; 
+            // have to assume incoming packets with header[2] >= 80 (sent to a chlorinator)
+            // are from controller (0);
+            // likewise, if the destination is 0 (controller) we
+            // have to assume it was sent from the 1st chlorinator (1)
+            // until we learn otherwise.  
+        } 
         if (this.header.length > 3) return this.header[3];
         else return -1;
     }
     public get action(): number {
-        if (this.protocol === Protocol.Chlorinator) return this.header[2];
+        if (this.protocol === Protocol.Chlorinator) return this.header[3];
         if (this.header.length > 5) return this.header[4];
         else return -1;
     }
     public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
     public get chkHi(): number { return this.protocol === Protocol.Chlorinator ? 0 : this.term.length > 0 ? this.term[0] : -1; }
     public get chkLo(): number { return this.protocol === Protocol.Chlorinator ? this.term[0] : this.term[1]; }
-    //public get controllerType(): ControllerType { return Message._controllerType; }
     public get checksum(): number {
         var sum = 0;
         for (let i = 0; i < this.header.length; i++) sum += this.header[i];
@@ -126,8 +128,7 @@ export class Inbound extends Message {
     }
     // Private methods
     private isValidChecksum(): boolean {
-        // Check for the crazy intellichlor -- 40 packet.
-        if (this.protocol === Protocol.Chlorinator && this.payload.length === 19 && this.chkLo === 188) return true;
+        if (this.protocol === Protocol.Chlorinator) return this.checksum % 256 === this.chkLo;
         return (this.chkHi * 256) + this.chkLo === this.checksum;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean { return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2); }
@@ -175,7 +176,7 @@ export class Inbound extends Message {
                 if (this.datalen > 50) this.isValid = false;
                 break;
             case Protocol.Chlorinator:
-                ndx = this.pushBytes(this.header, bytes, ndx, 3);
+                ndx = this.pushBytes(this.header, bytes, ndx, 4);
                 break;
             default:
                 break;
@@ -192,7 +193,7 @@ export class Inbound extends Message {
             case Protocol.Chlorinator:
                 while (ndx < bytes.length && !this.testChlorTerm(bytes, ndx)) {
                     this.payload.push(bytes[ndx++]);
-                    if (this.payload.length > 20) {
+                    if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
                         break;
                     }
@@ -380,7 +381,7 @@ export class Outbound extends Message {
         this.term.length = 0;
         this.payload.length = 0;
         if (proto === Protocol.Chlorinator) {
-            this.header.push.apply(this.header, [16, 2]);
+            this.header.push.apply(this.header, [16, 2, 0, 0]);
             this.term.push.apply(this.term, [0, 16, 3]);
         }
         else {
@@ -402,6 +403,12 @@ export class Outbound extends Message {
     public static createBroadcastRaw(dest: number, source: number, action: number, payload: number[], retries?: number, response?: Response): Outbound {
         return new Outbound(Protocol.Broadcast, source, dest, action, payload, retries);
     }
+    public static createChlorinatorMessage(dest: number, action: number, payload: number[], retries?: number, response?: Response): Outbound {
+        return new Outbound(Protocol.Chlorinator, 0, dest, action, payload, retries, response);
+    }
+    public static createPumpMessage(dest: number, action: number, payload: number[], retries?: number, response?: Response): Outbound {
+        return new Outbound(Protocol.Pump, Message.pluginAddress, dest, action, payload, retries, response);
+    }
     // Fields
     public retries: number=0;
     public timeout: number=1000;
@@ -417,11 +424,10 @@ export class Outbound extends Message {
     public get datalen() { return super.datalen; }
     public get chkHi() { return super.chkHi; }
     public get chkLo() { return super.chkLo; }
-    // todo: Add outbound Chlor message building
     public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[1] = val; }
-    public set dest(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[2] = val; }
+    public set dest(val: number) { this.protocol !== Protocol.Chlorinator ? this.header[2] = val : this.header[2] = val + 79; }
     public set source(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[3] = val; }
-    public set action(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[4] = val; }
+    public set action(val: number) { (this.protocol !== Protocol.Chlorinator) ? this.header[4] = val : this.header[3] = val; }
     public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
@@ -479,13 +485,19 @@ export class Ack extends Outbound {
 }
 export class Response extends Message {
     public message: Inbound;
-    constructor(source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
+    constructor(proto: Protocol, source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
         super();
-        this.protocol = Protocol.Broadcast;
+        this.protocol = proto;
         this.direction = Direction.In;
-        this.preamble.push.apply(this.preamble, [255, 0, 255]);
-        this.header.push.apply(this.header, [165, Message.headerSubByte, 0, 0, 0, 0]);
-        this.term.push.apply(this.term, [0, 0]);
+        if (proto === Protocol.Chlorinator) {
+            this.header.push.apply(this.header, [16, 2, 0, 0]);
+            this.term.push.apply(this.term, [0, 16, 3]);
+        }
+        else {
+            this.preamble.push.apply(this.preamble, [255, 0, 255]);
+            this.header.push.apply(this.header, [165, Message.headerSubByte, 0, 0, 0, 0]);
+            this.term.push.apply(this.term, [0, 0]);
+        }
         this.source = source;
         this.dest = dest;
         this.action = action;
@@ -495,7 +507,11 @@ export class Response extends Message {
     }
     // Factory
     public static createResponse(action: number, payload: number[]): Response {
-        return new Response(15, Message.pluginAddress, action, payload);
+        return new Response(Protocol.Broadcast, 15, Message.pluginAddress, action, payload);
+    }
+    public static createChlorinatorResponse(action: number, callback?: () => void){
+        // source, payload, ack are` not used
+        return new Response(Protocol.Chlorinator, 80, 0, action, undefined, undefined, callback);
     }
     // Fields
     public ack: Ack;
@@ -509,9 +525,9 @@ export class Response extends Message {
     public get datalen() { return super.datalen; }
     // todo: Set outbound Chlor values
     public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[1] = val; }
-    public set dest(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[2] = val; }
+    public set dest(val: number) { this.protocol !== Protocol.Chlorinator ? this.header[2] = val : this.header[2] = val; }
     public set source(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[3] = val; }
-    public set action(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[4] = val; }
+    public set action(val: number) { (this.protocol !== Protocol.Chlorinator) ? this.header[4] = val : this.header[3] = val; }
     public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
@@ -550,24 +566,17 @@ export class Response extends Message {
         else if (msg.protocol === Protocol.Chlorinator) {
             /*  chlorinator logic -- same across all controllers
                 Reponses
+                msg(inbound)=>resp(this)
                 0=>1
                 17=>18
                 21=>18
-                20=>3 */
-            switch (msg.header[2]) {
-                case 0:
-                    if (this.header[2] !== 1) return false;
-                    break;
-                case 17:
-                    if (this.header[2] !== 18) return false;
-                    break;
-                case 21:
-                    if (this.header[2] !== 21) return false;
-                    break;
-                case 20:
-                    if (this.header[2] !== 3) return false;
-                    break;
-            }
+                20=>3 
+                
+                here the "this" is the response we are expecting and "msg"
+                is the inbound.
+                */
+                
+                if (this.action !== msg.action) return false;
         }
         else if (sys.controllerType !== ControllerType.IntelliCenter) {
             if (this.action === 252 && msg.action === 253) return true;

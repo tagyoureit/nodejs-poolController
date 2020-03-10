@@ -1,8 +1,8 @@
 ﻿import * as path from "path";
-import express = require('express')
+import express=require('express');
 import { config } from "../config/Config";
 import { logger } from "../logger/Logger";
-import socketio = require("socket.io");
+import socketio=require("socket.io");
 import { ConfigRoute } from "./services/config/Config";
 import { StateRoute } from "./services/state/State";
 import { UtilitiesRoute } from "./services/utilities/Utilities";
@@ -21,7 +21,7 @@ import * as os from 'os';
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
 export class WebServer {
-    private _servers: ProtoServer[] = [];
+    private _servers: ProtoServer[]=[];
     constructor() { }
     public init() {
         let cfg = config.getSection('web');
@@ -55,14 +55,20 @@ export class WebServer {
         }
     }
     public deviceXML() { } // override in SSDP
+    public stop() {
+        for (let s in this._servers) {
+            if (typeof this._servers[s].stop() === 'function') this._servers[s].stop();
+        }
+    }
 }
 class ProtoServer {
     // base class for all servers.
-    public isRunning: boolean = false;
+    public isRunning: boolean=false;
     public emitToClients(evt: string, ...data: any) { }
-    protected _dev: boolean = process.env.NODE_ENV !== 'production'
+    public stop() { }
+    protected _dev: boolean=process.env.NODE_ENV !== 'production';
     // todo: how do we know if the client is using IPv4/IPv6?
-    private family = 'IPv4';
+    private family='IPv4';
     private getInterface() {
         const networkInterfaces = os.networkInterfaces();
         // RKS: We need to get the scope-local nic. This has nothing to do with IP4/6 and is not necessarily named en0 or specific to a particular nic.  We are
@@ -103,7 +109,7 @@ export class HttpServer extends ProtoServer {
     public server: http.Server;
     public sockServer: socketio.Server;
     //public parcel: parcelBundler;
-    private _sockets: socketio.Socket[] = [];
+    private _sockets: socketio.Socket[]=[];
     private _pendingMsg: Inbound;
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
@@ -112,7 +118,7 @@ export class HttpServer extends ProtoServer {
         }
     }
     private initSockets() {
-        this.sockServer = socketio(this.server);
+        this.sockServer = socketio(this.server, { cookie: false });
         //this.sockServer.origins('*:*');
         this.sockServer.on('error', (err) => {
             logger.error('Socket server error %s', err.message);
@@ -127,7 +133,7 @@ export class HttpServer extends ProtoServer {
             logger.info('New socket client connected %s -- %s', sock.id, sock.client.conn.remoteAddress);
             this.socketHandler(sock);
             this.sockServer.emit('controller', state.controllerState);
-            //sock.conn.emit('controller', state.controllerState);
+            sock.conn.emit('controller', state.controllerState);
         });
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
         // this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), {maxAge: '60d'}));
@@ -152,7 +158,7 @@ export class HttpServer extends ProtoServer {
             }
         });
         sock.on('echo', (msg) => { sock.emit('echo', msg); });
-        sock.on('receivePacketRaw', function (incomingPacket: any[]) {
+        sock.on('receivePacketRaw', function(incomingPacket: any[]) {
             //var str = 'Add packet(s) to incoming buffer: ';
             logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
@@ -161,10 +167,10 @@ export class HttpServer extends ProtoServer {
             }
             //logger.info(str);
         });
-        sock.on('replayPackets', function (bytesToProcessArr: number[][]) {
+        sock.on('replayPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed
             // used for replay
-            logger.debug(`Received ${bytesToProcessArr}`);
+            logger.debug(`Received ${ bytesToProcessArr }`);
             for (let i = 0; i < bytesToProcessArr.length; i++) {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();
 
@@ -183,10 +189,10 @@ export class HttpServer extends ProtoServer {
 
                             let out = new Outbound(msg.protocol, msg.source, msg.dest, msg.action, msg.payload);
                             conn.queueSendMessage(out);
-                            logger.info(`Sending ${out.toShortPacket()}`);
+                            logger.info(`Sending ${ out.toShortPacket() }`);
                         }
                         else {
-                            logger.info(`replay: discarding packet ${msg.toShortPacket()}`);
+                            logger.info(`replay: discarding packet ${ msg.toShortPacket() }`);
                         }
                         ndx = 0;
                         msg = new Inbound();
@@ -198,7 +204,7 @@ export class HttpServer extends ProtoServer {
                 while (ndx < bytesToProcess.length);
             }
         });
-        sock.on('sendPackets', function (bytesToProcessArr: number[][]) {
+        sock.on('sendPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of bytes (src/dest/action/payload) and adds preamble/checksum and sends
             if (!bytesToProcessArr.length) return;
             logger.silly('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
@@ -237,7 +243,7 @@ export class HttpServer extends ProtoServer {
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                 if ('OPTIONS' === req.method) { res.sendStatus(200); }
                 else {
-                    console.log(`${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
+                    console.log(`${ req.ip } ${ req.method } ${ req.url } ${ typeof req.body === 'undefined' ? '' : JSON.stringify(req.body) }`);
                     next();
                 }
             });
@@ -251,7 +257,7 @@ export class HttpServer extends ProtoServer {
             this.initSockets();
 
             // start our server on port
-            this.server.listen(cfg.port, cfg.ip, function () {
+            this.server.listen(cfg.port, cfg.ip, function() {
                 logger.info('Server is now listening on %s:%s', cfg.ip, cfg.port);
             });
             this.isRunning = true;
@@ -282,12 +288,12 @@ export class SsdpServer extends ProtoServer {
 
             // start the server
             this.server.start()
-                .then(function () {
+                .then(function() {
                     logger.silly('SSDP/UPnP Server started.');
                     self.isRunning = true;
                 });
 
-            this.server.on('error', function (e) {
+            this.server.on('error', function(e) {
                 logger.error('error from SSDP:', e);
             });
         }
@@ -297,9 +303,9 @@ export class SsdpServer extends ProtoServer {
         let XML = `<?xml version="1.0"?>
                         <root xmlns="urn:schemas-upnp-org:PoolController-1-0">
                             <specVersion>
-                                <major>${ver.split('.')[0]}</major>
-                                <minor>${ver.split('.')[1]}</minor>
-                                <patch>${ver.split('.')[2]}</patch>
+                                <major>${ver.split('.')[0] }</major>
+                                <minor>${ver.split('.')[1] }</minor>
+                                <patch>${ver.split('.')[2] }</patch>
                             </specVersion>
                             <device>
                                 <deviceType>urn:echo:device:PoolController:1</deviceType>
@@ -308,19 +314,22 @@ export class SsdpServer extends ProtoServer {
                                 <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
                                 <modelDescription>An application to control pool equipment.</modelDescription>
                                 <serialNumber>0</serialNumber>
-                    			<UDN>uuid:806f52f4-1f35-4e33-9299-${this.mac()}</UDN>
+                    			<UDN>uuid:806f52f4-1f35-4e33-9299-${this.mac() }</UDN>
                                 <serviceList></serviceList>
                             </device>
                         </root>`;
         return XML;
+    }
+    public stop(){
+        this.server.stop();
     }
 }
 
 export class MdnsServer extends ProtoServer {
     // Multi-cast DNS server
     public server;
-    public mdnsEmitter = new EventEmitter();
-    private queries = [];
+    public mdnsEmitter=new EventEmitter();
+    private queries=[];
     public init(cfg) {
         if (cfg.enabled) {
             logger.info('Starting up MDNS server');
@@ -329,12 +338,12 @@ export class MdnsServer extends ProtoServer {
 
             // look for responses to queries we send
             // todo: need timeout on queries to remove them in case a bad query is sent
-            this.server.on('response', function (responses) {
-                self.queries.forEach(function (query) {
-                    logger.silly(`looking to match on ${query.name}`);
+            this.server.on('response', function(responses) {
+                self.queries.forEach(function(query) {
+                    logger.silly(`looking to match on ${ query.name }`);
                     responses.answers.forEach(answer => {
                         if (answer.name === query.name) {
-                            logger.info(`MDNS: found response: ${answer.name} at ${answer.data}`);
+                            logger.info(`MDNS: found response: ${ answer.name } at ${ answer.data }`);
                             // need to send response back to client here
                             self.mdnsEmitter.emit('mdnsResponse', answer);
                             // remove query from list
@@ -348,7 +357,7 @@ export class MdnsServer extends ProtoServer {
             });
 
             // respond to incoming MDNS queries
-            this.server.on('query', function (query) {
+            this.server.on('query', function(query) {
                 query.questions.forEach(question => {
                     if (question.name === '_poolcontroller._tcp.local') {
                         logger.info(`received mdns query for nodejs_poolController`);
@@ -363,7 +372,7 @@ export class MdnsServer extends ProtoServer {
                                 name: 'api._poolcontroller._tcp.local',
                                 type: 'SRV',
                                 data: {
-                                    port:  '4200',
+                                    port: '4200',
                                     target: '_poolcontroller._tcp.local',
                                     weight: 0,
                                     priority: 10

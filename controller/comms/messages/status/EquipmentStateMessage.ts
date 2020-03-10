@@ -1,8 +1,8 @@
-﻿import {Inbound, Message} from '../Messages';
-import {ControllerType} from '../../../Constants';
-import {state, BodyTempState} from '../../../State';
-import {sys, Body, ExpansionPanel, Heater, ConfigVersion} from '../../../Equipment';
-import {logger} from 'logger/Logger';
+﻿import { Inbound, Message } from '../Messages';
+import { ControllerType } from '../../../Constants';
+import { state, BodyTempState } from '../../../State';
+import { sys, Body, ExpansionPanel, Heater, ConfigVersion } from '../../../Equipment';
+import { logger } from 'logger/Logger';
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -207,6 +207,31 @@ export class EquipmentStateMessage {
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
     }
+    public static initVirtual() {
+        state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
+        state.equipment.model = sys.equipment.model = 'Virtual Controller';
+        sys.equipment.maxFeatures = 10;
+        sys.equipment.maxCircuits = 0;
+        sys.equipment.maxSchedules = 0;
+        sys.equipment.maxValves = 0;
+        sys.equipment.maxIntelliBrites = 0;
+        sys.equipment.maxLightGroups = 0;
+        sys.equipment.maxCustomNames = 10;
+        sys.customNames.getItemById(1, true, { id: 1, name: "Generic", isActive: true });
+        // if 2nd pump found, enable this(?)
+        // sys.circuits.getItemById(1, true, {id: 1, type: "1", name: "SPA", isActive: false});
+        // sys.bodies.getItemById(2, true, {id: 2, isActive: true, name: "Spa"});
+        sys.circuits.getItemById(1, true, { id: 6, type: "6", name: "POOL", isActive: true });
+        sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
+        sys.general.options.clockMode = 12;
+        sys.general.options.clockSource = "manual";
+        state.equipment.maxBodies = sys.equipment.maxBodies;
+        state.mode = 0;
+        state.status = 1;
+        sys.equipment.setEquipmentIds();
+        state.emitControllerChange();
+
+    }
     private static initController(msg: Inbound) {
         state.status = 1;
         Message.headerSubByte = msg.header[1];
@@ -332,15 +357,15 @@ export class EquipmentStateMessage {
                             const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                             const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                             if (tbody.isOn && (heaterActive || solarActive)) {
-                                switch (heatMode){
+                                switch (heatMode) {
                                     // todo: add cooling in here if it ever shows up
                                     case 1: // heater
                                     case 3: // solar
                                         tbody.heatStatus = heatMode;
                                         break;
                                     case 2: // solarpref
-                                        if (heaterActive) tbody.heatStatus = 1;    else if (solarActive) tbody.heatStatus = 3;
-                                        break;  
+                                        if (heaterActive) tbody.heatStatus = 1; else if (solarActive) tbody.heatStatus = 3;
+                                        break;
                                 }
                             } else
                                 tbody.heatStatus = 0; // Off
@@ -361,7 +386,7 @@ export class EquipmentStateMessage {
                             const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                             const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                             if (tbody.isOn && (heaterActive || solarActive)) {
-                                switch (heatMode){
+                                switch (heatMode) {
                                     // todo: add cooling in here if it ever shows up
                                     case 1: // heater
                                     case 3: // solar
@@ -369,27 +394,38 @@ export class EquipmentStateMessage {
                                         break;
                                     case 2: // solarpref
                                         if (heaterActive) tbody.heatStatus = 1; else if (solarActive) tbody.heatStatus = 3;
-                                        break;  
+                                        break;
                                 }
                             } else
                                 tbody.heatStatus = 0; // Off
                         }
                     }
-                    EquipmentStateMessage.processCircuitState(msg);
-                    EquipmentStateMessage.processFeatureState(msg);
-                    if (sys.controllerType !== ControllerType.IntelliCenter){
-                        let ver: ConfigVersion = 
-                        typeof(sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
-                        ver.equipment = msg.extractPayloadInt(25);
-                        sys.processVersionChanges( ver );
+                    switch (sys.controllerType) {
+                        case ControllerType.IntelliCenter:
+                            {
+                                EquipmentStateMessage.processCircuitState(msg);
+                                EquipmentStateMessage.processFeatureState(msg);
+                                let ver: ConfigVersion =
+                                typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                                ver.equipment = msg.extractPayloadInt(25);
+                                sys.processVersionChanges(ver);
+                                break;
+                            }
+                        case ControllerType.IntelliCom:
+                        case ControllerType.EasyTouch:
+                        case ControllerType.IntelliTouch:
+                            {
+                                this.processTouchCircuits(msg);
+                            }
+                            // This will toggle the group states depending on the state of the individual circuits.
+                            sys.board.features.syncGroupStates();
+                            sys.board.circuits.syncVirtualCircuitStates();
+                            // state.emitControllerChange();
+                            // state.emitEquipmentChanges();
+                            break;
+                        }
                     }
-                    // This will toggle the group states depending on the state of the individual circuits.
-                    sys.board.features.syncGroupStates();
-                    sys.board.circuits.syncVirtualCircuitStates();
-                    state.emitControllerChange();
-                    state.emitEquipmentChanges();
-                    break;
-                }
+                break;
             case 5: // Intellitouch only.  Date/Time packet
                 // [255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
                 state.time.date = msg.extractPayloadByte(3);
@@ -400,14 +436,14 @@ export class EquipmentStateMessage {
                 // defaults
                 sys.general.options.clockMode = 12;
                 sys.general.options.clockSource = 'manual';
-                state.emitControllerChange();
-                state.emitEquipmentChanges();
+                // state.emitControllerChange();
+                // state.emitEquipmentChanges();
                 break;
             case 8: {
                 // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
-               
+
                 state.temps.air = msg.extractPayloadByte(2);
                 let solar: Heater = sys.heaters.getItemById(2);
                 if (solar.isActive) state.temps.solar = msg.extractPayloadByte(8);
@@ -417,7 +453,7 @@ export class EquipmentStateMessage {
                 tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
                 tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
                 tbody.temp = state.temps.waterSensor1;
-              
+
                 cbody = sys.bodies.getItemById(2);
                 if (cbody.isActive) {
                     // spa
@@ -427,21 +463,21 @@ export class EquipmentStateMessage {
                     tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
                     tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }
-                state.emitEquipmentChanges();
+                // state.emitEquipmentChanges();
                 break;
             }
             case 96:
                 EquipmentStateMessage.processIntelliBriteMode(msg);
                 break;
-            case 197:{
+            case 197: {
                 // request for date/time on *Touch.  Use this as an indicator
                 // that SL has requested config and update lastUpdated date/time
-                if (msg.dest === 16){
-                    if (sys.controllerType !== ControllerType.IntelliCenter){
-                        let ver: ConfigVersion = 
-                        typeof(sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                if (msg.dest === 16) {
+                    if (sys.controllerType !== ControllerType.IntelliCenter) {
+                        let ver: ConfigVersion =
+                            typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
                         ver.lastUpdated = new Date();
-                        sys.processVersionChanges( ver );
+                        sys.processVersionChanges(ver);
                     }
                 }
                 break;
@@ -461,8 +497,8 @@ export class EquipmentStateMessage {
                     chlor.superChlorRemaining = 0;
                     chlor.superChlor = false;
                 }
-                state.emitControllerChange();
-                state.emitEquipmentChanges();
+                // state.emitControllerChange();
+                // state.emitEquipmentChanges();
                 break;
         }
     }
@@ -474,55 +510,28 @@ export class EquipmentStateMessage {
         // unaccounted for when it comes to a total of 32 features.
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-        switch (sys.controllerType) {
-            case ControllerType.IntelliCenter: {
-                let featureId = sys.board.equipmentIds.features.start;
-                for (let i = 1; i <= sys.features.length; i++) {
-                    // Use a case statement here since we don't know where to go after 4.
-                    switch (i) {
-                        case 1:
-                        case 2:
-                        case 3:
-                        case 4: {
-                            const byte = msg.extractPayloadByte(7);
-                            const feature = sys.features.getItemById(featureId);
-                            const fstate = state.features.getItemById(featureId, feature.isActive);
-                            fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
-                            fstate.name = feature.name;
-                            break;
-                        }
-                    }
-                    featureId++;
-                }
-                break;
-            }
-            case ControllerType.IntelliCom:
-            case ControllerType.EasyTouch:
-            case ControllerType.IntelliTouch:
-                {
-                    const count = Math.min(Math.floor(sys.features.length / 8), 5) + 12;
-                    let featureId = sys.board.equipmentIds.features.start;
-                    for (let i = 3; i < msg.payload.length && i <= count; i++) {
-                        const byte = msg.extractPayloadByte(i);
-                        // Shift each bit getting the circuit identified by each value.
-                        for (let j = 0; j < 8; j++) {
-                            const feature = sys.features.getItemById(featureId);
-                            if (feature.isActive) {
-                                const fstate = state.features.getItemById(
-                                    featureId,
-                                    feature.isActive
-                                );
-                                fstate.isOn = (byte & 1 << j) >> j > 0;
-                                fstate.name = feature.name;
-                                fstate.type = feature.type;
-                            }
-                            featureId++;
-                        }
-                    }
+
+        // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
+        // Not exactly sure why we are hardcoding byte 7 here.
+        // I combined the *touch circuits and features in processTouchCircuits below.
+        let featureId = sys.board.equipmentIds.features.start;
+        for (let i = 1; i <= sys.features.length; i++) {
+            // Use a case statement here since we don't know where to go after 4.
+            switch (i) {
+                case 1:
+                case 2:
+                case 3:
+                case 4: {
+                    const byte = msg.extractPayloadByte(7);
+                    const feature = sys.features.getItemById(featureId);
+                    const fstate = state.features.getItemById(featureId, feature.isActive);
+                    fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
+                    fstate.name = feature.name;
                     break;
                 }
+            }
+            featureId++;
         }
-        state.emitEquipmentChanges();
     }
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
@@ -563,8 +572,36 @@ export class EquipmentStateMessage {
             }
         }
         state.body = body;
-        state.emitControllerChange();
-        state.emitEquipmentChanges();
+        // state.emitControllerChange();
+        // state.emitEquipmentChanges();
+    }
+    private static processTouchCircuits(msg: Inbound) {
+        const count = sys.board.equipmentIds.features.end;
+        let circId = 1;
+        let body = 0;
+        for (let i = 2; i < msg.payload.length && i <= count; i++) {
+            const byte = msg.extractPayloadByte(i);
+            // Shift each bit getting the circuit identified by each value.
+            for (let j = 0; j < 8; j++) {
+                // const feature = sys.features.getItemById(circId);
+                const circ = sys.circuits.getInterfaceById(circId);
+                if (circ.isActive) {
+                    const cstate = state.circuits.getInterfaceById(
+                        circId,
+                        circ.isActive
+                    );
+                    if (cstate.isOn && circId === 6) body = 6;
+                    if (cstate.isOn && circId === 1) body = 1;
+                    cstate.showInFeatures = circ.showInFeatures;
+                    cstate.isOn = (byte & 1 << j) >> j > 0;
+                    cstate.name = circ.name;
+                    cstate.type = circ.type;
+                }
+                circId++;
+            }
+        }
+        state.body = body;
+        // state.emitControllerChange();
     }
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
@@ -594,7 +631,5 @@ export class EquipmentStateMessage {
                 }
                 break;
         }
-        state.emitEquipmentChanges();
-        // }
     }
 }

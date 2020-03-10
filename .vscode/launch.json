@@ -17,6 +17,18 @@
         },
         {
             "type": "node",
+            "request": "launch",
+            "name": "Launch Program -- INSPECT",
+            "program": "${workspaceFolder}/dist/app.js",
+            "console": "integratedTerminal",
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*"
+            ],
+            "sourceMaps": true,
+            "args": ["--inspect"]
+        },
+        {
+            "type": "node",
             "request": "attach",
             "name": "Attach to remote",
             "address": "11.11.11.170",
