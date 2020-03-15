@@ -98,3 +98,30 @@ export enum VirtualDeviceType {
 //        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
 //    }
 //}
+
+export class Utils {
+    public makeBool(val) {
+        if (typeof (val) === 'boolean') return val;
+        if (typeof (val) === 'undefined') return false;
+        if (typeof (val) === 'number') return val >= 1;
+        if (typeof (val) === 'string') {
+            if (val === '') return false;
+            switch (val.toLowerCase().trim()) {
+                case 'on':
+                case 'true':
+                case 'yes':
+                case 'y':
+                    return true;
+                case 'off':
+                case 'false':
+                case 'no':
+                case 'n':
+                    return false;
+            }
+            if (!isNaN(parseInt(val, 10))) return parseInt(val, 10) >= 1;
+        }
+        return false;
+    }
+}
+
+export const utils = new Utils();

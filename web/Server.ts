@@ -87,10 +87,10 @@ class ProtoServer {
         }
     }
     protected ip() {
-        return this.getInterface().address;
+        return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address;
     }
     protected mac() {
-        return this.getInterface().mac;
+        return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac;
     }
 }
 export class Http2Server extends ProtoServer {
@@ -162,7 +162,7 @@ export class HttpServer extends ProtoServer {
             //var str = 'Add packet(s) to incoming buffer: ';
             logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
-                conn.buffer.pushIn(new Buffer(incomingPacket[i]));
+                conn.buffer.pushIn(Buffer.from(incomingPacket[i]));
                 // str += JSON.stringify(incomingPacket[i]) + ' ';
             }
             //logger.info(str);

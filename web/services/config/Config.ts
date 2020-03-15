@@ -13,6 +13,22 @@ export class ConfigRoute {
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });
+        app.put('/config/circuit', (req, res)=>{
+            // add/update a circuit
+            sys.board.circuits.setCircuit(req.body);
+            if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
+                return res.status(200).send();
+            else
+                return res.status(500).send({result: 'Error', reason: 'Unknown'});
+        });
+        app.delete('/config/circuit', (req, res)=>{
+            // add/update a circuit
+            sys.board.circuits.deleteCircuit(req.body);
+            if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
+            return res.status(500).send({result: 'Error', reason: 'Unknown'});
+            else
+            return res.status(200).send('OK');
+        });
         app.get('/config/features/names', (req, res)=>{
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
@@ -62,8 +78,8 @@ export class ConfigRoute {
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);
             let _circuit = parseInt(req.body.circuit, 10);
-            let _rate = parseInt(req.body.rate, 10);
-            let _units = parseInt(req.body.units, 10); 
+            let _rate = parseInt(req.body.rate, 10) || 1000;
+            let _units = parseInt(req.body.units, 10) || pump.defaultUnits; 
             let pumpCircuit = {
                 pump: parseInt(req.params.id, 10),
                 pumpCircuitId: isNaN(_pumpCircuitId) ? undefined : _pumpCircuitId,
@@ -107,7 +123,6 @@ export class ConfigRoute {
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
             let _type = parseInt(req.body.pumpType, 10);
             if (_type !== pump.type) {
-                //pump.clear();
                 pump.setType(_type);
             }
             return res.status(200).send('OK');
@@ -117,10 +132,14 @@ export class ConfigRoute {
             return res.status(200).send(pump);
         });
         app.put('/config/pump/:pumpId', (req, res) => {
-            // this is for all pump properties EXCEPT changing type
+            // this will change the pump type
+            let _type = parseInt(req.body.pumpType, 10);
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
-            // If other properties, now set them.
-            if (Object.keys(req.body).length) pump.setPump(req.body);
+            if (_type !== pump.type  && typeof _type !== 'undefined') {
+                pump.setType(_type);
+            }
+            // get a new instance of the pump here because setType will remove/add a new instance
+            if (Object.keys(req.body).length) sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).setPump(req.body);
             return res.status(200).send('OK');
         });
         app.delete('/config/pump/:pumpId', (req, res) => {

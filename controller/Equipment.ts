@@ -3,13 +3,14 @@ import * as fs from "fs";
 import * as extend from "extend";
 import { setTimeout } from "timers";
 import { logger } from "../logger/Logger";
-import { state } from "./State";
+import { state, CommsState } from "./State";
 import { Timestamp, ControllerType } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
 import { SystemBoard } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
+import { conn } from './comms/Comms';
 
 interface IPoolSystem {
     cfgPath: string;
@@ -51,7 +52,6 @@ export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean=false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
-        // TODO: add check to see if we have open comms port
         setTimeout(()=>{this.searchForAdditionalDevices();}, 5000);
     }
     public init() {
@@ -140,7 +140,7 @@ export class PoolSystem implements IPoolSystem {
         this.board.stopAsync();
     }
     public searchForAdditionalDevices() {
-        if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined'){
+        if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
             logger.debug("Searching for chlorinators and pumps");
             EquipmentStateMessage.initVirtual();
             sys.board.virtualChlorinatorController.search();
@@ -824,6 +824,9 @@ export class VirtualPumpController extends EqItem {
     public set id(val: number) { this.setDataVal('id', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public control(){
+        sys.board.pumps.run(sys.pumps.getItemById(this.id));
+    }
 }
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
@@ -880,6 +883,12 @@ export class Pump extends EqItem {
     public set vacuumTime(val: number) { this.setDataVal('vacuumTime', val); }
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
+    public get defaultUnits() { 
+        if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vf')
+            return sys.board.valueMaps.pumpUnits.getValue('gpm');
+        else
+            return sys.board.valueMaps.pumpUnits.getValue('rpm');
+        }
     // This is relevant only for single speed pumps attached to IntelliCenter.  All other pumps are driven from the circuits.  You cannot
     // identify a single speed pump in *Touch.
     public get body() { return this.data.body; }

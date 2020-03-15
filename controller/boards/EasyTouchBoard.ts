@@ -598,6 +598,9 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
+    public setCircuit(data: any){
+        // overwrite systemboard method here
+    }
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
         let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {

@@ -108,12 +108,14 @@ export class IntelliCenterBoard extends SystemBoard {
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public checkConfiguration() {
-        this.needsConfigChanges = true;
-        // Send out a message to the outdoor panel that we need info about
-        // our current configuration.
-        console.log('Checking IntelliCenter configuration...');
-        const out: Outbound = Outbound.createMessage(228, [0], 5, new Response(Protocol.Broadcast, 15, 16, 164, [], 164));
-        conn.queueSendMessage(out);
+        if (!conn.mockPort){
+            this.needsConfigChanges = true;
+            // Send out a message to the outdoor panel that we need info about
+            // our current configuration.
+            console.log('Checking IntelliCenter configuration...');
+            const out: Outbound = Outbound.createMessage(228, [0], 5, new Response(Protocol.Broadcast, 15, 16, 164, [], 164));
+            conn.queueSendMessage(out);
+        }
     }
     public requestConfiguration(ver: ConfigVersion) {
         if (this.needsConfigChanges) {
@@ -365,6 +367,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
+    public setCircuit(data: any){
+        // overwrite systemboard method here
+    }
     public setLightGroupColors(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         let arrOut = this.createLightGroupMessages(grp);

@@ -221,7 +221,12 @@ export class EquipmentStateMessage {
         // if 2nd pump found, enable this(?)
         // sys.circuits.getItemById(1, true, {id: 1, type: "1", name: "SPA", isActive: false});
         // sys.bodies.getItemById(2, true, {id: 2, isActive: true, name: "Spa"});
-        sys.circuits.getItemById(1, true, { id: 6, type: "6", name: "POOL", isActive: true });
+        let pool = sys.circuits.getItemById(6, true);
+        let spool = state.circuits.getItemById(6, true);
+        pool.name = spool.name = "POOL";
+        pool.type = spool.type = 6;
+        pool.isActive = true;
+        spool.isOn = false;
         sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
         sys.general.options.clockMode = 12;
         sys.general.options.clockSource = "manual";
@@ -237,7 +242,7 @@ export class EquipmentStateMessage {
         Message.headerSubByte = msg.header[1];
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
-        if (model2 === 0 && model1 === 23) EquipmentStateMessage.initIntelliCenter(msg);
+        if (model2 === 0 && (model1 === 23 || model1 === 40)) EquipmentStateMessage.initIntelliCenter(msg);
         else EquipmentStateMessage.initTouch(msg, model1, model2);
         console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
         setTimeout(() => sys.checkConfiguration(), 300);
