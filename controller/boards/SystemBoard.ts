@@ -1162,8 +1162,7 @@ export class ChlorinatorCommands extends BoardCommands {
         chlor.superChlor = cstate.superChlor = superChlor;
 
         // scenario 2; chlorinator is being controlled by this app and not a board
-        let vc = sys.virtualChlorinatorControllers.getItemById(cstate.id);
-        if (vc && vc.isActive) {
+        if (chlor && chlor.isActive && chlor.isVirtual) {
             if (cstate.setPointForCurrentBody) {
                 this.setDesiredOutput(cstate);
             }
@@ -1252,8 +1251,8 @@ export class ChlorinatorController extends BoardCommands {
     // this method will check to see if we have any virtual chlors we are responsible for
     // if we have any, we will see if the timer is already running or if it needs to be started
     public checkTimer() {
-        let vc = sys.virtualChlorinatorControllers.getItemById(1);
-        if (vc.isActive) {
+        let chlor = sys.chlorinators.getItemById(1);
+        if (chlor.isActive && chlor.isVirtual) {
 
             // If we have a controller but it isn't controlling the chlorinator
             if (sys.bodies.getItemById(1).isActive) {
@@ -1296,11 +1295,10 @@ export class ChlorinatorController extends BoardCommands {
     }
 
     public chlorinatorHeartbeat() {
-        let vcs = sys.virtualChlorinatorControllers;
         for (let i = 1; i <= 8; i++) {
-            let vc = vcs.getItemById(i);
-            if (vc.isActive) {
-                let cstate = state.chlorinators.getItemById(vc.id);
+            let chlor = sys.chlorinators.getItemById(i);
+            if (chlor.isActive && chlor.isVirtual) {
+                let cstate = state.chlorinators.getItemById(chlor.id);
                 if (typeof cstate.name === 'undefined') sys.board.chlorinator.requestName(cstate);
                 cstate.body = 32;
                 sys.board.chlorinator.setChlor(cstate);
@@ -1310,20 +1308,21 @@ export class ChlorinatorController extends BoardCommands {
 
     public search() {
         let chlor = sys.chlorinators.getItemById(1);
-        let vc = sys.virtualChlorinatorControllers.getItemById(1);
-        if (chlor.isActive && !vc.isActive) return; // don't run if we already see chlorinator comms 
-        if (vc.isActive) return this.checkTimer(); // we already have an active virtual chlorinator controller
+        if (chlor.isActive && (typeof chlor.isVirtual === 'undefined' || !chlor.isVirtual)) return; // don't run if we already see chlorinator comms 
+        if (chlor.isVirtual) return this.checkTimer(); // we already have an active virtual chlorinator controller
         let cstate = state.chlorinators.getItemById(1);
         sys.board.chlorinator.ping(cstate, () => {
-            let vc = sys.virtualChlorinatorControllers.getItemById(1, true);
-            vc.isActive = true;
+            let chlor = sys.chlorinators.getItemById(1, true);
+            chlor.isActive = true;
+            chlor.isVirtual = true;
             sys.board.virtualChlorinatorController.checkTimer();
         });
     }
 }
 export class VirtualPumpControllerCollection extends BoardCommands {
-    private _pumpControllers: PumpController[]=[];
-    public add(obj: any): PumpController { this._pumpControllers.push(obj); return this.createItem(obj); }
+    private _timers: NodeJS.Timeout[];
+    // private _pumpControllers: PumpController[]=[];
+    /* public add(obj: any): PumpController { this._pumpControllers.push(obj); return this.createItem(obj); }
     public createItem(data: any): PumpController { return new PumpController(data); }
     public getItemById(id: number, add?: boolean, data?: any): PumpController {
         for (let i = 0; i < this._pumpControllers.length; i++)
@@ -1335,67 +1334,68 @@ export class VirtualPumpControllerCollection extends BoardCommands {
         return this.createItem(data || { id: id });
     }
     public get length() { return this._pumpControllers.length;}
+    public removeItemById(id: number){
+        for (let i = 0; i < this._pumpControllers.length; i++)
+            if (typeof this._pumpControllers[i].id !== 'undefined' && this._pumpControllers[i].id === id) {
+                this._pumpControllers.splice(i,1);
+            }
+    } */
 
     public search() {
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {
-            let veqpump = sys.virtualPumpControllers.getItemById(i);
+            // let veqpump = sys.virtualPumpControllers.getItemById(i);
             let pump = sys.pumps.getItemById(i);
-            if ((pump.isActive && !veqpump.isActive) || veqpump.isActive) continue;
+            if (pump.isActive) continue;
             pump.type = 128; // vs
             sys.board.pumps.initPump(pump, () => {
-                let veqpump = sys.virtualPumpControllers.getItemById(i, true);
-                veqpump.isActive = true;
                 let pump = sys.pumps.getItemById(i, true);
                 pump.isActive = true;
+                pump.isVirtual = true;
                 pump.type = 128;
-                this._pumpControllers[i] = this.getItemById(i, true);
+                // this._pumpControllers[i] = this.getItemById(i, true);
             });
 
             pump.type = 1; // vf
             sys.board.pumps.initPump(pump, () => {
-                let veqpump = sys.virtualPumpControllers.getItemById(i, true);
-                veqpump.isActive = true;
                 let pump = sys.pumps.getItemById(i, true);
                 pump.isActive = true;
+                pump.isVirtual = true;
                 pump.type = 1;
-                this._pumpControllers[i] = this.getItemById(i, true);
+                // this._pumpControllers[i] = this.getItemById(i, true);
             });
 
             pump.type = 64; // vsf
             sys.board.pumps.initPump(pump, () => {
-                let veqpump = sys.virtualPumpControllers.getItemById(i, true);
-                if (veqpump.isActive) return;
-                veqpump.isActive = true;
-                let pump = sys.pumps.getItemById(i, true);
+                let pump = sys.pumps.getItemById(i, true);                
+                if (pump.isActive) return;
                 pump.isActive = true;
+                pump.isVirtual = true;
                 pump.type = 64;
-                this._pumpControllers[i] = this.getItemById(i, true);
+                // this._pumpControllers[i] = this.getItemById(i, true);
             });
-
-
-            // let vpump = this.getItemById(i);
-            // vpump.search();
-
-
 
             // send vs, vf, vsf init packets; callback has setup
             console.log(`pump search... ${ i }`);
         }
     }
     public stop() {
-        for (let i = 1; i <= this.length; i++){
-            this.getItemById(i).stop();
+        for (let i = 1; i <= this._timers.length; i++){
+            clearTimeout(this._timers[i]);
         }
     }
-
+    
     public start(){
-        console.log(`NEED TO LOOK AT CHANGES FOR PUMP`);
-        for (let i = 1; i <= this.length; i++){
-            this.getItemById(i).control();
+        for (let i = 1; i <= sys.pumps.length; i++){
+            // sys.pumps.getItemById(i).control();
+            let pump = sys.pumps.getItemById(i);
+            if (pump.isVirtual){
+                clearTimeout(this._timers[i]);
+                this._timers[i] = setInterval(function(){sys.board.pumps.run(pump);}, 8000);
+            }
         }
     }
 }
-export class PumpController {
+/* export class PumpController {
     public id: number;
     private _timer: NodeJS.Timeout;
     constructor(id: number) { this.id = id; }
@@ -1413,4 +1413,4 @@ export class PumpController {
     public stop(){
         clearTimeout(this._timer);
     }
-}
+} */

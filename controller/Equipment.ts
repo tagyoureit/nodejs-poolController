@@ -35,8 +35,8 @@ interface IPoolSystem {
     security: Security;
     intellichem: IntelliChem;
     board: SystemBoard;
-    virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
-    virtualPumpControllers: VirtualPumpControllerCollection;
+    // virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
+    // virtualPumpControllers: VirtualPumpControllerCollection;
     updateControllerDateTime(
         hour: number,
         min: number,
@@ -81,8 +81,8 @@ export class PoolSystem implements IPoolSystem {
         this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
-        this.virtualChlorinatorControllers = new VirtualChlorinatorControllerCollection(this.data, 'virtualChlorinatorController');
-        this.virtualPumpControllers = new VirtualPumpControllerCollection(this.data, 'virtualPumpControllerCollection');
+/*         this.virtualChlorinatorControllers = new VirtualChlorinatorControllerCollection(this.data, 'virtualChlorinatorController');
+        this.virtualPumpControllers = new VirtualPumpControllerCollection(this.data, 'virtualPumpControllerCollection'); */
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -180,9 +180,9 @@ export class PoolSystem implements IPoolSystem {
     public customNames: CustomNameCollection;
     public intellibrite: LightGroup;
     public intellichem: IntelliChem;
-    public virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
+/*     public virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
     public virtualPumpControllers: VirtualPumpControllerCollection;
-    //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
+ */    //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
@@ -844,7 +844,7 @@ export interface ICircuit {
     getLightThemes?: () => {};
 
 }
-export class VirtualPumpControllerCollection extends EqItemCollection<VirtualPumpController> {
+/* export class VirtualPumpControllerCollection extends EqItemCollection<VirtualPumpController> {
     constructor(data: any, name?: string) { super(data, name || "virtualPumpController"); }
     public createItem(data: any): VirtualPumpController { return new VirtualPumpController(data); }
     public clear(){
@@ -861,7 +861,7 @@ export class VirtualPumpController extends EqItem {
     public control(){
         sys.board.pumps.run(sys.pumps.getItemById(this.id));
     }
-}
+} */
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
@@ -917,6 +917,8 @@ export class Pump extends EqItem {
     public set vacuumTime(val: number) { this.setDataVal('vacuumTime', val); }
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
+    public get isVirtual() { return this.data.virtual; }
+    public set isVirtual(val: boolean){ this.setDataVal('virtual', val); }
     public get defaultUnits() { 
         if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vf')
             return sys.board.valueMaps.pumpUnits.getValue('gpm');
@@ -992,7 +994,7 @@ export class PumpCircuit extends EqItem {
     public get body(): number { return this.data.body; }
     public set body(val: number) { this.setDataVal('body', val); }
 }
-export class VirtualChlorinatorControllerCollection extends EqItemCollection<VirtualChlorinatorController> {
+/* export class VirtualChlorinatorControllerCollection extends EqItemCollection<VirtualChlorinatorController> {
     constructor(data: any, name?: string) { super(data, name || "virtualChlorinatorController"); }
     public createItem(data: any): VirtualChlorinatorController { return new VirtualChlorinatorController(data); }
     public clear(){
@@ -1006,7 +1008,7 @@ export class VirtualChlorinatorController extends EqItem {
     public set id(val: number) { this.setDataVal('id', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-}
+} */
 export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     constructor(data: any, name?: string) { super(data, name || "chlorinators"); }
     public createItem(data: any): Chlorinator { return new Chlorinator(data); }
@@ -1031,8 +1033,10 @@ export class Chlorinator extends EqItem {
     public set address(val: number) { this.setDataVal('address', val); }
     public get superChlor(): boolean { return this.data.superChlor; }
     public set superChlor(val: boolean) { this.setDataVal('superChlor', val); }
-    public set name(val: string) { this.setDataVal('name', val); }
     public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get isVirtual() { return this.data.virtual; }
+    public set isVirtual(val: boolean){ this.setDataVal('virtual', val); }
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }

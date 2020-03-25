@@ -964,6 +964,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // overwrite systemboard method here
 
     }
+    public deleteCircuit(data: any){
+        // overwrite systemboard method here
+    }
     public setLightGroupColors(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         let arrOut = this.createLightGroupMessages(grp);

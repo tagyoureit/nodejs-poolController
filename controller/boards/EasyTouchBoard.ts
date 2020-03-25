@@ -601,6 +601,9 @@ class TouchCircuitCommands extends CircuitCommands {
     public setCircuit(data: any){
         // overwrite systemboard method here
     }
+    public deleteCircuit(data: any){
+        // overwrite systemboard method here
+    }
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
         let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
@@ -609,7 +612,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 state.emitEquipmentChanges();
             }
             // TODO: look into msg being null
-            else if (!msg){ console.log (`why are we getting no msg?`)}
+            else if (!msg){ console.log (`why are we getting no msg?`);}
         }));
         conn.queueSendMessage(out);
     }
@@ -660,8 +663,8 @@ class TouchFeatureCommands extends FeatureCommands {
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         // if chlorinator is controlled by thas app; call super();
-        let vc = sys.virtualChlorinatorControllers.getItemById(1);
-        if (vc.isActive) return super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
+        let vc = sys.chlorinators.getItemById(1);
+        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (msg) => {

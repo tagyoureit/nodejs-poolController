@@ -237,9 +237,13 @@ export class ConfigRoute {
             return res.status(200).send(pumpTypes);
         });
         app.put('/config/pump/:pumpId/type', (req, res) => {
+            const _type = parseInt(req.body.pumpType, 10);
+            const _pumpId = parseInt(req.params.pumpId, 10);
             // RG - this was left as it's own end point because trying to combine changing the pump type (which requires resetting the pump values) while simultaneously setting new pump values was tricky. 
-            let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
-            let _type = parseInt(req.body.pumpType, 10);
+            let pump = sys.pumps.getItemById(_pumpId);
+            if (sys.controllerType === ControllerType.Virtual){
+                pump.isVirtual = true;
+            }
             if (_type !== pump.type) {
                 pump.setType(_type);
             }
@@ -253,6 +257,11 @@ export class ConfigRoute {
             // this will change the pump type
             let _type = parseInt(req.body.pumpType, 10);
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
+            if (sys.controllerType === ControllerType.Virtual){
+                // if virtualController, add the virtual pump
+                pump.isVirtual = true;
+            }
+
             if (_type !== pump.type  && typeof _type !== 'undefined') {
                 pump.setType(_type);
             }
