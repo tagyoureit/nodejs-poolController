@@ -66,7 +66,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [5, { name: 'fri', desc: 'Friday', dow: 5 }],
             [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
             // RSG: is val supposed to be here?  
-            [7, { val: 7, name: 'sun', desc: 'Sunday', dow: 0 }]
+            [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
         this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];

@@ -524,8 +524,11 @@ export class PumpState extends EqState {
     public get time(): number { return this.data.time; }
     public set time(val: number) { this.setDataVal('time', val, false); }
     public getExtended() {
+        //let pumps = sys.pumps.get();
+        //pumps.sortById();
         // sys.pumps.sortById();
         let pump = this.get(true);
+
         let cpump = sys.pumps.getItemById(pump.id);
         // cpump.circuits.sortById();
         if (typeof (cpump.minSpeed) !== 'undefined') pump.minSpeed = cpump.minSpeed;
@@ -554,6 +557,8 @@ export class PumpState extends EqState {
             c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
             pump.circuits.push(c);
         }
+        pump.circuits.sort((a, b) => { return a.id > b.id ? 1 : -1; });
+
         /*         for (let i = 0; i < cpump.circuits.length; i++) {
                     let c = cpump.circuits.getItemByIndex(i).get(true);
                     c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
