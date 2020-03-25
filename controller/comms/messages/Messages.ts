@@ -393,7 +393,6 @@ export class Outbound extends Message {
         this.dest = dest;
         this.action = action;
         this.payload.push.apply(this.payload, payload);
-        // RG - is there a reason we don't calculate the checksum on packet creation?
         this.calcChecksum();
     }
     // Factory
