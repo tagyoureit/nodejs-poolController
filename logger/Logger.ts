@@ -128,6 +128,7 @@ class Logger {
                 c[prop] = opts[prop];
         }
         config.setSection('log', this.cfg);
+        logger._logger.level = this.cfg.app.level;
     }
 }
 export var logger = new Logger();

@@ -20,6 +20,7 @@ export class Connection {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort) conn.connTimer = setTimeout(() => conn.open(...args), conn._cfg.inactivityRetry * 1000);
     }
+    public isRTS: boolean = true;
     public emitter: EventEmitter;
     public open(timeOut?: string) {
         if (conn._cfg.netConnect && !conn._cfg.mockPort) {
@@ -177,7 +178,7 @@ export class SendRecieveBuffer {
         return false;
     }
     protected processOutbound() {
-        if (conn.isOpen) {
+        if (conn.isOpen && conn.isRTS) {
             if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
                 var msg: Outbound = conn.buffer._outBuffer.shift();
                 if (typeof (msg) === 'undefined' || !msg) return;
@@ -185,26 +186,58 @@ export class SendRecieveBuffer {
             }
         }
     }
+    /*
+     * Writing messages on the queue is tricky to harden.  The async nature of the serial port in node doesn't appropriately drain the port after each message
+     * so even though the callback is called for the .write method it doesn't guarantee that it has been written.  Not such an issue when we are dealing with full-duplex
+     * but in this half-duplex environment we don't have an RTS.  This is further complicated by the fact that no event is raised when the port finally gets around to
+     * dumping it's buffer on the wire.  The only time we are notified is when there is a failure.  Even then it does not point to a particular message since the
+     * port is unaware of our protocol.
+     * 
+     * To that end we need to create a semaphore so that we don't place two messages back to back while we are waiting on the callback to return.
+     */
+
     private writeMessage(msg: Outbound) {
+        // Make sure we are not re-entrant while the the port.write is going on.
+        // This ends in goofiness as it can send more than one message at a time while it
+        // waits for the command buffer to be flushed.  NOTE: There is no success message and the callback to
+        // write only verifies that the buffer got ahold of it.
+        if (!conn.isRTS) return;
+        conn.isRTS = false;
         var bytes = msg.toPacket();
         if (conn.isOpen) {
-            if (msg.retries === 0) {
+            if (msg.retries < 0) {
                 msg.failed = true;
                 conn.buffer._waitingPacket = null;
-                logger.warn(`Aborting packet ${ bytes }.`);
-                if (msg.requiresResponse && typeof (msg.response.callback) === 'function') setTimeout(msg.response.callback, 100, msg);
+                logger.warn(`Aborting packet ${bytes}.`);
+                if (msg.requiresResponse && typeof (msg.response.callback) === 'function') {
+                    setTimeout(msg.response.callback, 100, msg);
+                }
                 if (typeof msg.onError !== 'undefined') msg.onError.apply(msg, 'packet aborted');
+                conn.isRTS = true;
                 return;
             }
             conn.buffer.counter.bytesSent += bytes.length;
             msg.timestamp = new Date();
-            logger.verbose(`Wrote packet [${ bytes }].  Retries remaining: ${ msg.retries }`);
             logger.packet(msg);
-            conn.write(Buffer.from(bytes), function(err) {
-                if (err) logger.error('Error writing packet %s', err);
-                if (msg.retries > 0) {
-                    msg.retries--;
-                    conn.buffer._waitingPacket = msg;
+            conn.write(Buffer.from(bytes), function (err) {
+                conn.isRTS = true;
+                if (err) {
+                    logger.error('Error writing packet %s', err);
+                    // We had an error so we need to set the waiting packet if there are retries
+                    if (msg.retries >= 0) {
+                        msg.retries--;
+                        conn.buffer._waitingPacket = msg;
+                    }
+                }
+                else {
+                    logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`);
+                    // We have all the success we are going to get so if the call succeeded then
+                    // don't set the waiting packet when we aren't actually waiting for a response.
+                    if (!msg.requiresResponse) conn.buffer._waitingPacket = null;
+                    else if (msg.retries >= 0) {
+                        msg.retries--;
+                        conn.buffer._waitingPacket = msg;
+                    }
                 }
             });
         }
@@ -226,6 +259,7 @@ export class SendRecieveBuffer {
         }
         // Go through and remove all the packets that need to be removed from the queue.
         // RG - when would there be additional packets besides the first in the outbuffer that needs to be removed from a single incoming packet?
+        // RKS: When there is a queue full of configuration requests.
         var i = conn.buffer._outBuffer.length - 1;
         while (i >= 0) {
             let out = conn.buffer._outBuffer[i--];

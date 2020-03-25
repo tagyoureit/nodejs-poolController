@@ -6,6 +6,7 @@ import { Protocol, Outbound, Message, Response } from '../comms/messages/Message
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState } from '../State';
+import { REPLServer } from 'repl';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -585,6 +586,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 }
             }
         }
+        //out.response = new Response(Protocol.Broadcast, 16, Message.pluginAddress, 204);
         return out;
     }
     public setDimmerLevel(id: number, level: number) {

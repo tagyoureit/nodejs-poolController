@@ -431,7 +431,7 @@ export class Outbound extends Message {
     public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
-    public get requiresResponse(): boolean { return (typeof (this.response) !== "undefined" && this.response !== null); }
+    public get requiresResponse(): boolean { return (typeof (this.response) !== 'undefined' && this.response !== null && this.response.needsResponse); }
 
     // Methods
     public calcChecksum() {
@@ -531,6 +531,7 @@ export class Response extends Message {
     public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
+    public get needsResponse() { return (this.protocol !== Protocol.Unknown || typeof this.ack !== 'undefined'); }
 
     // Methods
     public isResponse(msg: Message): boolean {

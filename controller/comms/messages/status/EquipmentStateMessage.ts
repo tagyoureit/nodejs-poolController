@@ -269,6 +269,7 @@ export class EquipmentStateMessage {
                     // EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
                     // state.heatMode = msg.extractPayloadByte(11);
                     state.delay = msg.extractPayloadByte(12);
+                    state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
                         if (sys.bodies.length > 2)
@@ -295,7 +296,7 @@ export class EquipmentStateMessage {
                         }
                         if (sys.bodies.length > 1) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
-                            const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                            const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                             const cbody: Body = sys.bodies.getItemById(2);
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
@@ -414,6 +415,8 @@ export class EquipmentStateMessage {
                                 typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
                                 ver.equipment = msg.extractPayloadInt(25);
                                 sys.processVersionChanges(ver);
+                                state.emitControllerChange();
+                                state.emitEquipmentChanges();
                                 break;
                             }
                         case ControllerType.IntelliCom:
@@ -425,8 +428,8 @@ export class EquipmentStateMessage {
                             // This will toggle the group states depending on the state of the individual circuits.
                             sys.board.features.syncGroupStates();
                             sys.board.circuits.syncVirtualCircuitStates();
-                            // state.emitControllerChange();
-                            // state.emitEquipmentChanges();
+                            //state.emitControllerChange();
+                            //state.emitEquipmentChanges();
                             break;
                         }
                     }
@@ -493,6 +496,8 @@ export class EquipmentStateMessage {
                 state.time.date = msg.extractPayloadByte(6);
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.year = msg.extractPayloadByte(8);
+                sys.equipment.controllerFirmware = (msg.extractPayloadByte(42)
+                    + (msg.extractPayloadByte(43) / 1000)).toString();
                 if (msg.extractPayloadByte(37, 255) !== 255) {
                     const chlor = state.chlorinators.getItemById(1);
                     chlor.superChlorRemaining =
