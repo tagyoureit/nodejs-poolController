@@ -124,7 +124,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 
 ## Useful URL's included with the boring, basic, functional interface
 
-  *  Control standalone pumps: `http://_your_machine_name_:3000/pump.html`
+  *  ~~Control standalone pumps: `http://_your_machine_name_:3000/pump.html`~~ See #150.
   *  Listen for specific messages: `http://_your_machine_name_:3000/debug.html`
   *  Send a message on the serial bus: `http://<server>:3000/public/send_packet.html`
 
@@ -822,7 +822,7 @@ In the <code>["network"](#module_nodejs-poolController--config)</code> section, 
 ## Standalone mode
 
 ### Pump controller (as of 4.0 alpha 8)
-Start the app and navigate to http://localhost:3000/public/pump.html.  Addition of the pump control to `/bootstrap` is in progress
+~~Start the app and navigate to http://localhost:3000/public/pump.html.  Addition of the pump control to `/bootstrap` is in progress~~. See #150.
 
 
 ***
