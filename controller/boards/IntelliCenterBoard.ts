@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup } from '../Equipment';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands } from './SystemBoard';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -11,10 +11,11 @@ export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.circuits = new EquipmentIdRange(1, function() {return this.start + sys.equipment.maxCircuits - 1;});
-        this.equipmentIds.features = new EquipmentIdRange(function() {return sys.equipment.maxCircuits + 1;}, function() {return this.start + sys.equipment.maxFeatures + 3;});
-        this.equipmentIds.circuitGroups = new EquipmentIdRange(function() {return this.start;}, function() {return this.start + sys.equipment.maxCircuitGroups - 1;});
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function() {return this.start;}, function() {return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1;});
+        this._modulesAcquired = false; // Set us up so that we can wait for a 2 and a 204.
+        this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
+        this.equipmentIds.features = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures + 3; });
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; });
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
@@ -65,7 +66,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [4, { name: 'thu', desc: 'Thursday', dow: 4 }],
             [5, { name: 'fri', desc: 'Friday', dow: 5 }],
             [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
-            // RSG: is val supposed to be here?  
             [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
         this.valueMaps.scheduleDays.transform = function (byte) {
@@ -76,6 +76,21 @@ export class IntelliCenterBoard extends SystemBoard {
             }
             return { val: b, days: days };
         };
+        this.valueMaps.expansionBoards = new byteValueMap([
+            // There are just enough slots for accommodate all the supported hardware for the expansion modules.  However, there are several that
+            // we do not have in the wild and cannot verify as of (03-25-2020) as to whether their id values are correct.  I feel more confident
+            // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
+            // MUX and A/D modules don't seem to fit the pattern.
+            [0, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies:2, valves: 4, circuits: 6, shared: true }],
+            [1, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 4, circuits: 10, shared: false }], // This is a guess
+            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false }], // This is a guess
+            [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true }],
+            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies:1, valves: 4, circuits: 10, shared: false }], // This is a guess
+            [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies:2, valves: 4, circuits: 11, shared: true }],
+            [6, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
+            [7, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // This is a guess
+            [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
+        ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
             [237, { name: 'heatBoost', desc: 'Heat Boost' }],
             [238, { name: 'heatEnable', desc: 'Heat Enable' }],
@@ -98,7 +113,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [222, { name: 'getdata', desc: 'Get Data' }],
             [228, {name: 'getversions', desc: 'Get Versions'}]
         ]);
-
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
@@ -108,6 +122,12 @@ export class IntelliCenterBoard extends SystemBoard {
     public pumps: IntelliCenterPumpCommands = new IntelliCenterPumpCommands(this);
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
+    public reloadConfig() {
+        sys.configVersion.clear();
+        state.status = 0;
+        console.log('RESETTING THE CONFIGURATION');
+        this.modulesAcquired = false;
+    }
     public checkConfiguration() {
         if (!conn.mockPort){
             this.needsConfigChanges = true;
@@ -144,6 +164,139 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public stopAsync() { this._configQueue.close(); }
+    public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp2A: number, ocp3A: number) {
+        let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 1 };
+        this.processExpansionModules(sys.equipment.modules, ocp0A, ocp0B, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0, inv);
+        if (inv.bodies !== sys.equipment.maxBodies ||
+            inv.circuits !== sys.equipment.maxCircuits ||
+            inv.chlorinators !== sys.equipment.maxChlorinators ||
+            inv.valves !== sys.equipment.maxValves) {
+            sys.resetData();
+            this.processExpansionModules(sys.equipment.modules, ocp0A, ocp0B);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0);
+        }
+        sys.equipment.maxBodies = inv.bodies;
+        sys.equipment.maxValves = inv.valves;
+        sys.equipment.maxCircuits = inv.circuits;
+        sys.equipment.maxChlorinators = inv.chlorinators;
+        sys.equipment.shared = inv.shared;
+        sys.equipment.maxPumps = 16;
+        sys.equipment.maxLightGroups = 40;
+        sys.equipment.maxCircuitGroups = 16;
+        sys.equipment.maxSchedules = 100;
+        sys.equipment.maxFeatures = 32;
+        state.equipment.maxBodies = sys.equipment.maxBodies;
+        state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
+        state.equipment.maxCircuits = sys.equipment.maxCircuits;
+        state.equipment.maxFeatures = sys.equipment.maxFeatures;
+        state.equipment.maxHeaters = sys.equipment.maxHeaters;
+        state.equipment.maxLightGroups = sys.equipment.maxLightGroups;
+        state.equipment.maxPumps = sys.equipment.maxPumps;
+        state.equipment.maxSchedules = sys.equipment.maxSchedules;
+        state.equipment.maxValves = sys.equipment.maxValves;
+        state.equipment.shared = sys.equipment.shared;
+        let pb = sys.equipment.modules.getItemById(0);
+        if (pb.type === 0 || pb.type > 5)
+            sys.equipment.model = 'IntelliCenter i5PS';
+        else
+            sys.equipment.model = 'IntelliCenter ' + pb.name;
+        state.equipment.model = sys.equipment.model;
+        state.equipment.controllerType = 'intellicenter';
+        this.modulesAcquired = true;
+        this.checkConfiguration();
+    }
+    public processExpansionModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
+        // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
+        // we need to determine if anything needs to be removed or added before actually doing it.
+        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0 };
+        let slot0 = ocpA & 0x0F;
+        let slot1 = (ocpA & 0xF0) >> 4;
+        let slot2 = (ocpB & 0xF0) >> 4;
+        let slot3 = ocpB & 0xF;
+        // Slot 0 always has to have a personality card.
+        if (slot0 === 0) modules.removeItemById(0);
+        else {
+            let mod = modules.getItemById(0, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot0);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot0;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
+        }
+        if (slot1 === 0) modules.removeItemById(1);
+        else {
+            let mod = modules.getItemById(1, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot1);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot1;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+        if (slot2 === 0) modules.removeItemById(2);
+        else {
+            let mod = modules.getItemById(2, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot2);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot2;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+        if (slot3 === 0) modules.removeItemById(3);
+        else {
+            let mod = modules.getItemById(3, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot3);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot3;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+    }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
     constructor(cat: number, ver: number, items?: number[], oncomplete?: Function) {
@@ -236,6 +389,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         
         if (this._processing) {
             if (curr.hasChanges(ver)) this._newRequest = true;
+            console.log('WE ARE ALREADY PROCESSING CHANGES...')
             return;
         }
         this._processing = true;
@@ -402,22 +556,30 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             let out = this.createCircuitStateMessage(id, true);
-            // There are two bits on each byte that deterime the operation.  These start on byte 28
             let ndx = id - sys.board.equipmentIds.circuitGroups.start;
-            let byteNdx = Math.ceil(ndx / 4);
-            let bitNdx = ((ndx - (byteNdx * 4)) * 2);
+            let byteNdx = Math.floor(ndx / 4);
+            let bitNdx = (ndx * 2);
             let byte = out.payload[28 + byteNdx];
+            // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+            // does acutally send 4 so all are represented there.
+            // [10] = Set
+            // [01] = Swim
+            // [00] = Sync
+            // [11] = No sequencing underway.
+            // In the end we are only trying to impact the specific bits in the middle of the byte that represent
+            // the light group we are dealing with.            
             switch (nop) {
                 case 1: // Sync
-                    byte &= ~(3 << bitNdx);
+                    byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
                 case 2: // Color Set
-                    byte &= ~(1 << bitNdx);
+                    byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
                 case 3: // Color Swim
-                    byte &= ~(1 << bitNdx);
+                    byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
             }
+            console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
             out.payload[28 + byteNdx] = byte;
             out.onSuccess = (msg) => {
                 if (!msg.failed) {
@@ -532,7 +694,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         return arr;
     }
     public createCircuitStateMessage(id?: number, isOn?: boolean): Outbound {
-        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1], 3);
+
+        let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-9
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10-19
+            0, 0, 0, 0, 0, 0, 0, 0, 255, 255, // 20-29
+            255, 255, 0, 0, 0, 0], // 30-35
+            3);
         let circuitId = sys.board.equipmentIds.circuits.start;
         for (let i = 1; i <= state.data.circuits.length; i++) {
             let circuit = state.circuits.getItemById(circuitId++);
@@ -568,18 +735,25 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 let lg = grp as LightGroupState;
                 if (lg.action !== 0) {
                     let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
-                    let byteNdx = Math.ceil(ndx / 4);
-                    let bitNdx = ((ndx - (byteNdx * 4)) * 2);
+                    let byteNdx = Math.floor(ndx / 4);
+                    let bitNdx = (ndx * 2);
                     let byte = out.payload[28 + byteNdx];
+                    // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+                    // does acutally send 4 so all are represented there.
+                    // [10] = Set
+                    // [01] = Swim
+                    // [00] = Sync
+                    // [11] = No sequencing underway.
+                    // Only affect the 2 bits related to the light group.
                     switch (lg.action) {
                         case 1: // Sync
-                            byte &= ~(3 << bitNdx);
+                            byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
                             break;
                         case 2: // Color Set
-                            byte &= ~(2 << bitNdx);
+                            byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
                             break;
                         case 3: // Color Swim
-                            byte &= ~(1 << bitNdx);
+                            byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
                             break;
                     }
                     out.payload[28 + byteNdx] = byte;
@@ -840,6 +1014,17 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     }
 
     // RG implement updateHeaterServices here
+}
+class IntelliCenterValveCommands extends ValveCommands {
+    public setValve(valve: Valve, obj?: any) {
+        super.setValve(valve, obj);
+        // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
+        let out = Outbound.createMessage(
+            168, [9, 0, valve.id, valve.circuit]);
+        out.insertPayloadString(4, valve.name, 16);
+        conn.queueSendMessage(out);
+        sys.board.checkConfiguration();
+    }
 }
 enum ConfigCategories {
     options = 0,

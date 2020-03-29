@@ -236,7 +236,6 @@ export class ExternalMessage {
             // Shift each bit getting the group identified by each value.
             for (let j = 0; j < 8; j++) {
                 let group = sys.circuitGroups.getInterfaceById(groupId);
-
                 let gstate = group.type === 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
                 if (group.isActive) {
                     gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
@@ -246,12 +245,16 @@ export class ExternalMessage {
                     if (gstate.dataName === 'lightGroup') {
                         let lg = gstate as LightGroupState;
                         let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
-                        let byteNdx = Math.ceil(ndx / 4);
-                        let bitNdx = (((byteNdx * 4) - ndx) * 2);
+                        let byteNdx = Math.floor(ndx / 4);
+                        let bitNdx = (ndx * 2);
                         let byte = msg.extractPayloadByte(start + 15 + byteNdx, 255);
                         byte = ((byte >> bitNdx) & 0x0003);
-                        //byte = (~((byte >> bitNdx) & 3) & 3);
-                        //console.log({ byte: byte, raw: msg.extractPayloadByte(start + 15 + byteNdx, 255), ndx: ndx, byteNdx: byteNdx, bitNdx: bitNdx });
+                        // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+                        // does acutall send 4 so all are represented there.
+                        // [10] = Set
+                        // [01] = Swim
+                        // [00] = Sync
+                        // [11] = No sequencing underway.
                         switch (byte) {
                             case 0: // Sync
                                 lg.action = 1;

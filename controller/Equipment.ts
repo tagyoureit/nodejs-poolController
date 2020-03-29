@@ -103,6 +103,7 @@ export class PoolSystem implements IPoolSystem {
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val) {
+            console.log('RESETTING DATA');
             // Only go in here if there is a change to the controller type.
             this.resetData(); // Clear the configuration data.
             state.resetData(); // Clear the state data.
@@ -132,7 +133,8 @@ export class PoolSystem implements IPoolSystem {
         this.valves.clear();
         this.covers.clear();
         this.intellichem.clear();
-
+        console.log(this.configVersion);
+       
     }
     public stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
@@ -366,12 +368,12 @@ class EqItemCollection<T> {
     public emitEquipmentChange() { webApp.emitToClients(this.name, this.data); }
     public sortByName() {
         this.sort((a, b) => {
-            return a.name > b.name ? 1 : -1;
+            return a.name > b.name ? 1 : a.name !== b.name ? -1 : 0;
         });
     }
     public sortById() {
         this.sort((a, b) => {
-            return a.id > b.id ? 1 : -1;
+            return a.id > b.id ? 1 : a.id !== b.id ? -1 : 0;
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
@@ -468,6 +470,25 @@ export class Location extends EqItem {
     public get longitude(): number { return this.data.longitude; }
     public set longitude(val: number) { this.setDataVal('longitude', val); }
 }
+export class ExpansionModuleCollection extends EqItemCollection<ExpansionModule> {
+    constructor(data: any, name?: string) { super(data, name || "modules"); }
+    public createItem(data: any): ExpansionModule { return new ExpansionModule(data); }
+}
+export class ExpansionModule extends EqItem {
+    public dataName = 'expansionModuleConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get desc(): string { return this.data.desc; }
+    public set desc(val: string) { this.setDataVal('desc', val); }
+    public get type(): number { return this.data.type; }
+    public set type(val: number) { this.setDataVal('type', val); }
+    public get part(): string { return this.data.part; }
+    public set part(val: string) { this.setDataVal('part', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+}
 export class ExpansionPanelCollection extends EqItemCollection<ExpansionPanel> {
     constructor(data: any, name?: string) { super(data, name || "expansions"); }
     public createItem(data: any): ExpansionPanel { return new ExpansionPanel(data); }
@@ -480,6 +501,7 @@ export class ExpansionPanel extends EqItem {
     public set type(val: number) { this.setDataVal('type', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
 }
 export class Equipment extends EqItem {
     public dataName='equipmentConfig';
@@ -516,6 +538,7 @@ export class Equipment extends EqItem {
     public get maxIntelliBrites(): number { return this.data.maxIntelliBrites; }
     public set maxIntelliBrites(val: number) { this.setDataVal('maxIntelliBrites', val); }
     public get expansions(): ExpansionPanelCollection { return new ExpansionPanelCollection(this.data, "expansions"); }
+    public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.setDataVal('maxCustomNames', val); }
     // Looking for IntelliCenter 1.029
@@ -595,6 +618,13 @@ export class ConfigVersion extends EqItem {
             }
         }
         return false;
+    }
+    public clear() {
+        for (let prop in this.data) {
+            if (prop === 'lastUpdated') continue;
+            this.data[prop] = 0;
+        }
+
     }
 }
 export class BodyCollection extends EqItemCollection<Body> {

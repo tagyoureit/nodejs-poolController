@@ -24,7 +24,7 @@ export class EquipmentMessage {
                         pnl = sys.equipment.expansions.getItemById(3, true);
                         pnl.type = msg.extractPayloadByte(38);
                         pnl.isActive = pnl.type !== 0;
-                        EquipmentMessage.calcModel(sys.equipment);
+                        //EquipmentMessage.calcModel(sys.equipment);
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
                         body.type = msg.extractPayloadByte(39);
                         body.capacity = msg.extractPayloadByte(34) * 1000;
@@ -107,44 +107,44 @@ export class EquipmentMessage {
         sys.equipment.bootloaderVersion = `${msg.extractPayloadByte(5)}.${msg.extractPayloadByte(6) < 100 ? '0' + msg.extractPayloadByte(6) : msg.extractPayloadByte(6)}`;
         sys.equipment.controllerFirmware = `${msg.extractPayloadByte(1)}.${msg.extractPayloadByte(2) < 100 ? '0' + msg.extractPayloadByte(2) : msg.extractPayloadByte(2)}`;
     }
-    private static calcModel(eq: Equipment) {
-        eq.shared = (eq.type & 8) === 8;
-        eq.maxPumps = 16;
-        eq.maxLightGroups = 40;
-        eq.maxCircuitGroups = 16;
-        eq.maxValves = EquipmentMessage.calcMaxValves(eq);
-        eq.maxCircuits = EquipmentMessage.calcMaxCircuits(eq);
-        eq.maxBodies = EquipmentMessage.calcMaxBodies(eq);
-        eq.model = 'IntelliCenter i' + (eq.maxCircuits + (eq.shared ? -1 : 0)).toString() + 'P' + (eq.shared ? 'S' : '');
-    }
-    private static calcMaxBodies(eq: Equipment): number {
-        let max: number = eq.shared ? 2 : 1;
-        for (let i = 0; i < eq.expansions.length; i++) {
-            const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
-            if (exp.type === 0) continue;
-            max += (exp.type & 8) === 8 ? 2 : 1;
-        }
-        return max;
-    }
-    private static calcMaxValves(eq: Equipment): number {
-        let max: number = 4;
-        max += (eq.type & 1) === 1 ? 6 : 0;
-        for (let i = 0; i < eq.expansions.length; i++) {
-            const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
-            max += (exp.type & 1) === 1 ? 6 : 0;
-        }
-        return max;
-    }
-    private static calcMaxCircuits(eq: Equipment): number {
-        let max: number = 6;
-        max += (eq.type & 2) === 2 ? 2 : 0;
-        max += (eq.type & 4) === 4 ? 2 : 0;
-        max += eq.shared ? 1 : 0;
-        for (let i = 0; i < eq.expansions.length; i++) {
-            const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
-            max += (exp.type & 2) === 2 ? 5 : 0;
-            max += (exp.type & 4) === 2 ? 5 : 0;
-        }
-        return max;
-    }
+    //private static calcModel(eq: Equipment) {
+    //    eq.shared = (eq.type & 8) === 8;
+    //    eq.maxPumps = 16;
+    //    eq.maxLightGroups = 40;
+    //    eq.maxCircuitGroups = 16;
+    //    eq.maxValves = EquipmentMessage.calcMaxValves(eq);
+    //    eq.maxCircuits = EquipmentMessage.calcMaxCircuits(eq);
+    //    eq.maxBodies = EquipmentMessage.calcMaxBodies(eq);
+    //    eq.model = 'IntelliCenter i' + (eq.maxCircuits + (eq.shared ? -1 : 0)).toString() + 'P' + (eq.shared ? 'S' : '');
+    //}
+    //private static calcMaxBodies(eq: Equipment): number {
+    //    let max: number = eq.shared ? 2 : 1;
+    //    for (let i = 0; i < eq.expansions.length; i++) {
+    //        const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
+    //        if (exp.type === 0) continue;
+    //        max += (exp.type & 8) === 8 ? 2 : 1;
+    //    }
+    //    return max;
+    //}
+    //private static calcMaxValves(eq: Equipment): number {
+    //    let max: number = 4;
+    //    max += (eq.type & 1) === 1 ? 6 : 0;
+    //    for (let i = 0; i < eq.expansions.length; i++) {
+    //        const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
+    //        max += (exp.type & 1) === 1 ? 6 : 0;
+    //    }
+    //    return max;
+    //}
+    //private static calcMaxCircuits(eq: Equipment): number {
+    //    let max: number = 6;
+    //    max += (eq.type & 2) === 2 ? 2 : 0;
+    //    max += (eq.type & 4) === 4 ? 2 : 0;
+    //    max += eq.shared ? 1 : 0;
+    //    for (let i = 0; i < eq.expansions.length; i++) {
+    //        const exp: ExpansionPanel = eq.expansions.getItemById(i + 1);
+    //        max += (exp.type & 2) === 2 ? 5 : 0;
+    //        max += (exp.type & 4) === 2 ? 5 : 0;
+    //    }
+    //    return max;
+    //}
 }

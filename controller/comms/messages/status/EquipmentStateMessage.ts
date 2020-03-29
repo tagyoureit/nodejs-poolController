@@ -3,6 +3,7 @@ import { ControllerType } from '../../../Constants';
 import { state, BodyTempState } from '../../../State';
 import { sys, Body, ExpansionPanel, Heater, ConfigVersion } from '../../../Equipment';
 import { logger } from 'logger/Logger';
+import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -242,17 +243,35 @@ export class EquipmentStateMessage {
         Message.headerSubByte = msg.header[1];
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
-        if (model2 === 0 && (model1 === 23 || model1 === 40)) EquipmentStateMessage.initIntelliCenter(msg);
-        else EquipmentStateMessage.initTouch(msg, model1, model2);
-        console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
-        setTimeout(() => sys.checkConfiguration(), 300);
+        if (model2 === 0 && (model1 === 23 || model1 === 40)) {
+            state.equipment.controllerType = 'intellicenter';
+            sys.controllerType = ControllerType.IntelliCenter;
+            console.log(`FOUND CONTROLLER BOARD, AWATING INSTALLED MODULES!`);
+            EquipmentStateMessage.initIntelliCenter(msg);
+        }
+        else {
+            EquipmentStateMessage.initTouch(msg, model1, model2);
+            console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
+            setTimeout(() => sys.checkConfiguration(), 300);
+        }
     }
     public static process(msg: Inbound) {
         if (!state.isInitialized) {
-            // RKS: This is a placeholder for now until we get the sys and state objects normalized.
-            if (msg.action !== 2) return;
-            EquipmentStateMessage.initController(msg);
-            return;
+            if (msg.action === 2) EquipmentStateMessage.initController(msg);
+            else return;
+        }
+        else if (!sys.board.modulesAcquired) {
+            if (msg.action === 204) {
+                let board = sys.board as IntelliCenterBoard;
+                // We have determined that the 204 message now contains the information
+                // related to the installed expansion boards.
+                console.log(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
+                board.initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
+                    msg.extractPayloadByte(15), 
+                    msg.extractPayloadByte(16),
+                    msg.extractPayloadByte(17));
+            }
+            else return;
         }
         var ndx = 0;
         switch (msg.action) {

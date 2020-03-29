@@ -80,7 +80,11 @@ export class ValveMessage {
         let ndx: number = 2;
         for (let i = 1; ndx < msg.payload.length - 1 && i <= sys.equipment.maxValves; i++) {
             let valve: Valve = sys.valves.getItemById(i, i <= sys.equipment.maxValves);
-            valve.circuit = msg.extractPayloadByte(ndx);
+            if (i == 3 || i == 4)
+                valve.circuit = 247 // Hardcode the intake/return;
+            else
+                valve.circuit = msg.extractPayloadByte(ndx) + 1;
+            valve.type = 1;
             if (ndx === 5) ndx += 2;
             valve.isActive = i <= sys.equipment.maxValves;
             ndx++;

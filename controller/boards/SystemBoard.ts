@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState } from '../State';
 import { Outbound, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -100,7 +100,8 @@ export class byteValueMaps {
         };
         this.lightThemes.transform = function(byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
-    public panelModes: byteValueMap=new byteValueMap([
+    public expansionBoards: byteValueMap = new byteValueMap();
+    public panelModes: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
         [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
@@ -130,6 +131,7 @@ export class byteValueMaps {
         [17, { name: 'magicstream', desc: 'Magicstream' }],
         [19, { name: 'notused', desc: 'Not Used' }]
     ]);
+   
     // Feature functions are used as the available options to define a circuit.
     public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
     public heaterTypes: byteValueMap=new byteValueMap();
@@ -308,20 +310,31 @@ export class byteValueMaps {
 export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
-    public valueMaps: byteValueMaps=new byteValueMaps();
+    protected _modulesAcquired: boolean = true;
+    public valueMaps: byteValueMaps = new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
     public stopAsync() { }
-    public system: SystemCommands=new SystemCommands(this);
-    public bodies: BodyCommands=new BodyCommands(this);
-    public pumps: PumpCommands=new PumpCommands(this);
-    public circuits: CircuitCommands=new CircuitCommands(this);
-    public features: FeatureCommands=new FeatureCommands(this);
-    public chlorinator: ChlorinatorCommands=new ChlorinatorCommands(this);
-    public schedules: ScheduleCommands=new ScheduleCommands(this);
-    public equipmentIds: EquipmentIds=new EquipmentIds();
-    public virtualChlorinatorController=new ChlorinatorController(this);
-    public virtualPumpControllers=new VirtualPumpControllerCollection(this);
+    public system: SystemCommands = new SystemCommands(this);
+    public bodies: BodyCommands = new BodyCommands(this);
+    public pumps: PumpCommands = new PumpCommands(this);
+    public circuits: CircuitCommands = new CircuitCommands(this);
+    public features: FeatureCommands = new FeatureCommands(this);
+    public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
+    public schedules: ScheduleCommands = new ScheduleCommands(this);
+    public equipmentIds: EquipmentIds = new EquipmentIds();
+    public virtualChlorinatorController = new ChlorinatorController(this);
+    public virtualPumpControllers = new VirtualPumpControllerCollection(this);
+    // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
+    // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
+    // virtual controller may need to make use of it after it looks for pumps and chlorinators.
+    public get modulesAcquired(): boolean { return this._modulesAcquired; }
+    public set modulesAcquired(value: boolean) { this._modulesAcquired = value; }
+    public reloadConfig() {
+        state.status = 0;
+        sys.resetData();
+        this.checkConfiguration();
+    }
 }
 export class ConfigRequest {
     public failed: boolean=false;
@@ -856,6 +869,44 @@ export class CircuitCommands extends BoardCommands {
         let circ = state.circuits.getItemById(id);
         circ.level = level;
     }
+    public getCircuitReferences(includeCircuits?: boolean, includeFeatures?: boolean, includeVirtual?: boolean, includeGroups?: boolean) {
+        let arrRefs = [];
+        if (includeCircuits) {
+            let circuits = sys.circuits.get();
+            for (let i = 0; i < circuits.length; i++) {
+                let c = circuits[i]
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuit', nameId: c.nameId });
+            }
+        }
+        if (includeFeatures) {
+            let features = sys.features.get();
+            for (let i = 0; i < sys.features.length; i++) {
+                let c = features[i];
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'feature', nameId: c.nameId });
+            }
+        }
+        if (includeVirtual) {
+            let vcs = sys.board.valueMaps.virtualCircuits.toArray();
+            for (let i = 0; i < vcs.length; i++) {
+                let c = vcs[i];
+                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual' });
+            }
+        }
+        if (includeGroups) {
+            let groups = sys.circuitGroups.get();
+            for (let i = 0; i < groups.length; i++) {
+                let c = groups[i];
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuitGroup', nameId: c.nameId });
+            }
+            groups = sys.lightGroups.get();
+            for (let i = 0; i < groups.length; i++) {
+                let c = groups[i];
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuitGroup', nameId: c.nameId });
+            }
+        }
+        arrRefs.sort((a, b) => { return a.id > b.id ? 1 : a.id === b.id ? 0 : -1; });
+        return arrRefs;
+    }
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
     public getCircuitNames() { return extend(true, [], sys.board.valueMaps.circuitNames.toArray(), sys.customNames.get()); }
@@ -1044,6 +1095,15 @@ export class HeaterCommands extends BoardCommands {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 heater[s] = obj[s];
+        }
+    }
+    public updateHeaterServices(heater: Heater) { }
+}
+export class ValveCommands extends BoardCommands {
+    public setValve(valve: Valve, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in obj)
+                valve[s] = obj[s];
         }
     }
     public updateHeaterServices(heater: Heater) { }

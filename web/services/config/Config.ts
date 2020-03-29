@@ -4,6 +4,7 @@ import {sys, LightGroup, ControllerType, Pump} from "../../../controller/Equipme
 import {read} from "fs";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
+import { utils } from "../../../controller/Constants";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -12,6 +13,13 @@ export class ConfigRoute {
         app.get('/config/circuit/names', (req, res)=>{
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
+        });
+        app.get('/config/circuit/references', (req, res) => {
+            let circuits = typeof req.query.circuits === 'undefined' || utils.makeBool(req.query.circuits);
+            let features = typeof req.query.features === 'undefined' || utils.makeBool(req.query.features);
+            let groups = typeof req.query.features === 'undefined' || utils.makeBool(req.query.groups);
+            let virtual = typeof req.query.virtual === 'undefined' || utils.makeBool(req.query.virtual);
+            return res.status(200).send(sys.board.circuits.getCircuitReferences(circuits, features, virtual, groups));
         });
         app.put('/config/circuit', (req, res)=>{
             // add/update a circuit
@@ -241,6 +249,10 @@ export class ConfigRoute {
         });
         app.get('/app/messages/broadcast/actions', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.msgBroadcastActions.toArray());
+        });
+        app.put('/app/config/reload', (req, res) => {
+            sys.board.reloadConfig();
+            return res.status(200).send('OK');
         });
     }
 }
