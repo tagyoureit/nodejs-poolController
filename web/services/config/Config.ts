@@ -21,6 +21,98 @@ export class ConfigRoute {
             let virtual = typeof req.query.virtual === 'undefined' || utils.makeBool(req.query.virtual);
             return res.status(200).send(sys.board.circuits.getCircuitReferences(circuits, features, virtual, groups));
         });
+
+        /******* CONFIGURATION PICK LISTS/REFERENCES and VALIDATION PARAMETERS *********/
+        /// Returns an object that contains the general options for setting up the panel.
+        app.get('/config/options/general', (req, res) => {
+            let opts = {
+                countries: [{ id: 1, name: 'United States' }, { id: 2, name: 'Mexico' }, { id: 3, name: 'Canada' }],
+                timeZones: sys.board.valueMaps.timeZones.toArray(),
+                clockSources: sys.board.valueMaps.clockSources.toArray(),
+                clockModes: sys.board.valueMaps.clockModes.toArray(),
+                pool: sys.general.get(true)
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/circuits', (req, res) => {
+            let opts = {
+                maxCircuits: sys.equipment.maxCircuits,
+                equipmentNames: sys.board.circuits.getCircuitNames(),
+                functions: sys.board.circuits.getCircuitFunctions(),
+                circuits: sys.circuits.get()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/circuitGroups', (req, res) => {
+            let opts = {
+                maxCircuitGroups: sys.equipment.maxCircuitGroups,
+                equipmentNames: sys.board.circuits.getCircuitNames(),
+                circuits: sys.board.circuits.getCircuitReferences(true, true, false),
+                circuitGroups: sys.circuitGroups.get()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/lightGroups', (req, res) => {
+            let opts = {
+                maxLightGroups: sys.equipment.maxLightGroups,
+                equipmentNames: sys.board.circuits.getCircuitNames(),
+                themes: sys.board.circuits.getLightThemes(),
+                colors: sys.board.valueMaps.lightColors.toArray(),
+                circuits: sys.board.circuits.getLightReferences(),
+                circuitGroups: sys.circuitGroups.get()
+            };
+            return res.status(200).send(opts);
+        });
+
+        app.get('/config/options/features', (req, res) => {
+            let opts = {
+                maxFeatures: sys.equipment.maxFeatures,
+                equipmentNames: sys.board.circuits.getCircuitNames(),
+                functions: sys.board.valueMaps.featureFunctions.toArray(),
+                features: sys.features.get()
+            };
+            return res.status(200).send(opts);
+        });
+
+        app.get('/config/options/bodies', (req, res) => {
+            let opts = {
+                maxBodies: sys.equipment.maxBodies,
+                bodyTypes: sys.board.valueMaps.bodies.toArray(),
+                bodies: sys.bodies.get()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/valves', (req, res) => {
+            let opts = {
+                valveTypes: sys.board.valueMaps.valveTypes.toArray(),
+                circuits: sys.board.circuits.getCircuitReferences(true, true, true),
+                valves: sys.valves.get()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/pumps', (req, res) => {
+            let opts = {
+                maxPumps: sys.equipment.maxPumps,
+                pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
+                pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
+                circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
+                pumps: sys.pumps.get()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/schedules', (req, res) => {
+            let opts = {
+                scheduleTimeTypes: sys.board.valueMaps.scheduleTimeTypes.toArray(),
+                scheduleTypes: sys.board.valueMaps.scheduleTypes.toArray(),
+                scheduleDays: sys.board.valueMaps.scheduleDays.toArray(),
+                circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
+                schedules: sys.schedules.get()
+            };
+            return res.status(200).send(opts);
+        });
+
+        /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
+
         app.put('/config/circuit', (req, res)=>{
             // add/update a circuit
             sys.board.circuits.setCircuit(req.body);
@@ -254,5 +346,7 @@ export class ConfigRoute {
             sys.board.reloadConfig();
             return res.status(200).send('OK');
         });
+
+
     }
 }

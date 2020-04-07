@@ -84,7 +84,7 @@ export class ValveMessage {
                 valve.circuit = 247 // Hardcode the intake/return;
             else
                 valve.circuit = msg.extractPayloadByte(ndx) + 1;
-            valve.type = 1;
+            valve.type = 0;
             if (ndx === 5) ndx += 2;
             valve.isActive = i <= sys.equipment.maxValves;
             ndx++;

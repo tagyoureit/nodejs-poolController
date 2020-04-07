@@ -19,22 +19,21 @@ export class IntelliCenterBoard extends SystemBoard {
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
-        // todo: val can probably be removed; RS to check
         this.valueMaps.circuitFunctions = new byteValueMap([
-            [0, { val: 0, name: 'generic', desc: 'Generic' }],
-            [1, { val: 1, name: 'spillway', desc: 'Spillway' }],
-            [2, { val: 2, name: 'mastercleaner', desc: 'Master Cleaner' }],
-            [3, { val: 3, name: 'chemrelay', desc: 'Chem Relay' }],
-            [4, { val: 4, name: 'light', desc: 'Light' }],
-            [5, { val: 5, name: 'intellibrite', desc: 'Intellibrite' }],
-            [6, { val: 6, name: 'globrite', desc: 'GloBrite' }],
-            [7, { val: 7, name: 'globritewhite', desc: 'GloBrite White' }],
-            [8, { val: 8, name: 'magicstream', desc: 'Magicstream' }],
-            [9, { val: 9, name: 'dimmer', desc: 'Dimmer' }],
-            [10, { val: 10, name: 'colorcascade', desc: 'ColorCascade' }],
-            [11, { val: 11, name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
-            [12, { val: 12, name: 'pool', desc: 'Pool' }],
-            [13, { val: 13, name: 'spa', desc: 'Spa' }]
+            [0, { name: 'generic', desc: 'Generic' }],
+            [1, { name: 'spillway', desc: 'Spillway' }],
+            [2, { name: 'mastercleaner', desc: 'Master Cleaner' }],
+            [3, { name: 'chemrelay', desc: 'Chem Relay' }],
+            [4, { name: 'light', desc: 'Light', isLight: true }],
+            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
+            [6, { name: 'globrite', desc: 'GloBrite', isLight: true }],
+            [7, { name: 'globritewhite', desc: 'GloBrite White', isLight: true }],
+            [8, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
+            [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
+            [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true }],
+            [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
+            [12, { name: 'pool', desc: 'Pool' }],
+            [13, { name: 'spa', desc: 'Spa' }]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater' }],
@@ -45,12 +44,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [5, { name: 'hybrid', desc: 'hybrid' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump' }],
-            [1, { name: 'ss', desc: 'Single Speed' }],
-            [2, { name: 'ds', desc: 'Two Speed' }],
-            [3, { name: 'vs', desc: 'Intelliflo VS' }],
-            [4, { name: 'vsf', desc: 'Intelliflo VSF' }],
-            [5, { name: 'vf', desc: 'Intelliflo VF' }]
+            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
+            [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false }],
+            [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 40, hasAddress: false }],
+            [3, { name: 'vs', desc: 'Intelliflo VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+            [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+            [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }]
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
@@ -112,6 +111,13 @@ export class IntelliCenterBoard extends SystemBoard {
             [204, { name: 'stateext', desc: 'State Extension' }],
             [222, { name: 'getdata', desc: 'Get Data' }],
             [228, {name: 'getversions', desc: 'Get Versions'}]
+        ]);
+        this.valueMaps.clockSources.merge([
+            [2, {name: 'internet', desc: 'Internet'}]
+        ]);
+        this.valueMaps.scheduleTimeTypes.merge([
+            [1, { name: 'sunrise', desc: 'Sunrise' }],
+            [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();

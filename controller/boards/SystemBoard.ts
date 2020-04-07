@@ -49,7 +49,7 @@ export class EquipmentIds {
 }
 export class byteValueMaps {
     constructor() {
-        this.pumpStatus.transform = function(byte) {
+        this.pumpStatus.transform = function (byte) {
             // if (byte === 0) return this.get(0);
             if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
             for (let b = 16; b > 0; b--) {
@@ -63,7 +63,7 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
         };
-        this.chlorinatorStatus.transform = function(byte) {
+        this.chlorinatorStatus.transform = function (byte) {
             if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
             else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
             for (let b = 8; b > 0; b--) {
@@ -77,10 +77,10 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
         };
-        this.scheduleTypes.transform = function(byte) {
+        this.scheduleTypes.transform = function (byte) {
             return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
-        this.scheduleDays.transform = function(byte) {
+        this.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
@@ -88,17 +88,17 @@ export class byteValueMaps {
             }
             return { val: b, days: days };
         };
-        this.virtualCircuits.transform = function(byte) {
+        this.virtualCircuits.transform = function (byte) {
             return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
         };
-        this.tempUnits.transform = function(byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
-        this.panelModes.transform = function(byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
-        this.controllerStatus.transform = function(byte: number, percent?: number) {
+        this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
+        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
+        this.controllerStatus.transform = function (byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function(byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -108,34 +108,34 @@ export class byteValueMaps {
         [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
         [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
     ]);
-    public controllerStatus: byteValueMap=new byteValueMap([
+    public controllerStatus: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
         [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
     ]);
 
-    public circuitFunctions: byteValueMap=new byteValueMap([
+    public circuitFunctions: byteValueMap = new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
         [6, { name: 'pool', desc: 'Pool' }],
-        [7, { name: 'light', desc: 'Light' }],
-        [9, { name: 'samlight', desc: 'SAM Light' }],
-        [10, { name: 'sallight', desc: 'SAL Light' }],
-        [11, { name: 'photongen', desc: 'Photon Gen' }],
-        [12, { name: 'colorwheel', desc: 'Color Wheer' }],
+        [7, { name: 'light', desc: 'Light', isLight: true }],
+        [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
+        [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
+        [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
+        [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
         [13, { name: 'valve', desc: 'Valve' }],
         [14, { name: 'spillway', desc: 'Spillway' }],
         [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
-        [16, { name: 'intellibrite', desc: 'Intellibrite' }],
-        [17, { name: 'magicstream', desc: 'Magicstream' }],
+        [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
+        [17, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
         [19, { name: 'notused', desc: 'Not Used' }]
     ]);
-   
+
     // Feature functions are used as the available options to define a circuit.
-    public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-    public heaterTypes: byteValueMap=new byteValueMap();
-    public virtualCircuits: byteValueMap=new byteValueMap([
+    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
+    public heaterTypes: byteValueMap = new byteValueMap();
+    public virtualCircuits: byteValueMap = new byteValueMap([
         [128, { name: 'solar', desc: 'Solar' }],
         [129, { name: 'heater', desc: 'Either Heater' }],
         [130, { name: 'poolHeater', desc: 'Pool Heater' }],
@@ -147,7 +147,7 @@ export class byteValueMaps {
         [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
         [255, { name: 'notused', desc: 'NOT USED' }]
     ]);
-    public lightThemes: byteValueMap=new byteValueMap([
+    public lightThemes: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [1, { name: 'green', desc: 'Green' }],
         [2, { name: 'blue', desc: 'Blue' }],
@@ -162,7 +162,7 @@ export class byteValueMaps {
         [11, { name: 'royal', desc: 'Royal' }],
         [255, { name: 'none', desc: 'None' }]
     ]);
-    public lightColors: byteValueMap=new byteValueMap([
+    public lightColors: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [16, { name: 'lightgreen', desc: 'Light Green' }],
         [32, { name: 'green', desc: 'Green' }],
@@ -172,7 +172,7 @@ export class byteValueMaps {
         [96, { name: 'magenta', desc: 'Magenta' }],
         [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
     ]);
-    public scheduleDays: byteValueMap=new byteValueMap([
+    public scheduleDays: byteValueMap = new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
         [2, { name: 'fri', desc: 'Friday', dow: 5 }],
         [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
@@ -181,13 +181,16 @@ export class byteValueMaps {
         [6, { name: 'mon', desc: 'Monday', dow: 1 }],
         [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
     ]);
-    public pumpTypes: byteValueMap=new byteValueMap([
-        [0, { name: 'none', desc: 'No pump' }],
-        [1, { name: 'vf', desc: 'Intelliflo VF' }],
-        [2, { name: 'ds', desc: 'Two-Speed' }],
-        [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
-        [128, { name: 'vs', desc: 'Intelliflo VS' }],
-        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
+    public scheduleTimeTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'manual', desc: 'Manual'}]
+    ]);
+    public pumpTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
+        [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+        [2, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false }],
+        [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+        [128, { name: 'vs', desc: 'Intelliflo VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
     public heatModes: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
@@ -302,6 +305,40 @@ export class byteValueMaps {
         // need to be verified
         [20, { name: 'ok', desc: 'Ok' }],
         [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
+    ]);
+    public timeZones: byteValueMap = new byteValueMap([
+        [128, { name: 'Samoa Standard Time', loc: 'Pacific', abbrev: 'SST', utcOffset: -11 }],
+        [129, { name: 'Tahiti Time', loc: 'Pacific', abbrev: 'TAHT', utcOffset: -10 }],
+        [130, { name: 'Alaska Standard Time', loc: 'North America', abbrev: 'AKST', utcOffset: -9 }],
+        [131, { name: 'Pacific Standard Time', loc: 'North America', abbrev: 'PST', utcOffset: -8 }],
+        [132, { name: 'Mountain Standard Time', loc: 'North America', abbrev: 'MST', utcOffset: -7 }],
+        [133, { name: 'Central Standard Time', loc: 'North America', abbrev: 'CST', utcOffset: -6 }],
+        [134, { name: 'Eastern Standard Time', loc: 'North America', abbrev: 'EST', utcOffset: -5 }],
+        [135, { name: 'Chile Standard Time', loc: 'South America', abbrev: 'CLT', utcOffset: -4 }],
+        [136, { name: 'French Guiana Time', loc: 'South America', abbrev: 'GFT', utcOffset: -3 }],
+        [137, { name: 'Fernando de Noronha Time', loc: 'South America', abbrev: 'FNT', utcOffset: -2 }],
+        [138, { name: 'Azores Time', loc: 'Atlantic', abbrev: 'AZOST', utcOffset: -1 }],
+        [139, { name: 'Greenwich Mean Time', loc: 'Europe', abbrev: 'GMT', utcOffset: 0 }],
+        [140, { name: 'Central European Time', loc: 'Europe', abbrev: 'CET', utcOffset: 1 }],
+        [141, { name: 'Eastern European Time', loc: 'Europe', abbrev: 'EET', utcOffset: 2 }],
+        [142, { name: 'Eastern Africa Time', loc: 'Africa', abbrev: 'EAT', utcOffset: 3 }],
+        [143, { name: 'Georgia Standard Time', loc: 'Europe/Asia', abbrev: 'GET', utcOffset: 4 }],
+        [144, { name: 'Pakistan Standard Time', loc: 'Asia', abbrev: 'PKT', utcOffset: 5 }],
+        [145, { name: 'Bangladesh Standard Time', loc: 'Asia', abbrev: 'BST', utcOffset: 6 }],
+        [146, { name: 'Western Indonesian Time', loc: 'Asia', abbrev: 'WIB', utcOffset: 7 }],
+        [147, { name: 'Australian Western Standard Time', loc: 'Australia', abbrev: 'AWST', utcOffset: 8 }],
+        [148, { name: 'Japan Standard Time', loc: 'Asia', abbrev: 'JST', utcOffset: 9 }],
+        [149, { name: 'Australian Eastern Standard Time', loc: 'Australia', abbrev: 'AEST', utcOffset: 10 }],
+        [150, { name: 'Solomon Islands Time', loc: 'Pacific', abbrev: 'SBT', utcOffset: 11 }],
+        [151, { name: 'Marshall Islands Time', loc: 'Pacific', abbrev: 'MHT', utcOffset: 12 }],
+        [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
+    ]);
+    public clockSources: byteValueMap = new byteValueMap([
+        [1, { name: 'manual', desc: 'Manual' }]
+    ]);
+    public clockModes: byteValueMap = new byteValueMap([
+        [12, { name: '12 Hour' }],
+        [24, { name: '24 Hour' }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
@@ -875,14 +912,14 @@ export class CircuitCommands extends BoardCommands {
             let circuits = sys.circuits.get();
             for (let i = 0; i < circuits.length; i++) {
                 let c = circuits[i]
-                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuit', nameId: c.nameId });
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId });
             }
         }
         if (includeFeatures) {
             let features = sys.features.get();
             for (let i = 0; i < sys.features.length; i++) {
                 let c = features[i];
-                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'feature', nameId: c.nameId });
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'feature', nameId: c.nameId });
             }
         }
         if (includeVirtual) {
@@ -901,10 +938,20 @@ export class CircuitCommands extends BoardCommands {
             groups = sys.lightGroups.get();
             for (let i = 0; i < groups.length; i++) {
                 let c = groups[i];
-                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuitGroup', nameId: c.nameId });
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'lightGroup', nameId: c.nameId });
             }
         }
         arrRefs.sort((a, b) => { return a.id > b.id ? 1 : a.id === b.id ? 0 : -1; });
+        return arrRefs;
+    }
+    public getLightReferences() {
+        let circuits = sys.circuits.get();
+        let arrRefs = [];
+        for (let i = 0; i < circuits.length; i++) {
+            let c = circuits[i]
+            let type = sys.board.valueMaps.circuitFunctions.transform(c.type);
+            if(type.isLight) arrRefs.push({ id: c.id, name: c.name, type:c.type, equipmentType: 'circuit', nameId: c.nameId });
+        }
         return arrRefs;
     }
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
