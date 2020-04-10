@@ -457,6 +457,9 @@ export class EquipmentState extends EqState {
     public set model(val: string) { this.setDataVal('model', val); }
     public get shared(): boolean { return this.data.shared; }
     public set shared(val: boolean) { this.setDataVal('shared', val); }
+    public get dual(): boolean { return this.data.dual; }
+    public set dual(val: boolean) { this.setDataVal('dual', val); }
+
     public get maxValves(): number { return this.data.maxValves; }
     public set maxValves(val: number) { this.setDataVal('maxValves', val); }
     public get maxCircuits(): number { return this.data.maxCircuits; }

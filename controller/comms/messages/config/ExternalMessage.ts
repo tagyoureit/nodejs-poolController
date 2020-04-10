@@ -2,6 +2,7 @@
 import {sys, Feature, Body, ICircuitGroup, LightGroup} from "../../../Equipment";
 import {state, BodyTempState, ICircuitGroupState, LightGroupState} from "../../../State";
 import {setTimeout} from "timers";
+import { exceptions, ExceptionHandler } from "winston";
 export class ExternalMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(0)) {
@@ -11,7 +12,8 @@ export class ExternalMessage {
             case 1: // Circuit Changes
                 ExternalMessage.processCircuit(msg);
                 break;
-            case 2: // Unkown
+            case 2: // Feature Changes
+                ExternalMessage.processFeature(msg);
                 break;
             case 3: // Schedule Changes
                 ExternalMessage.processSchedules(msg);
@@ -19,7 +21,7 @@ export class ExternalMessage {
             case 4: // Pump Information
                 ExternalMessage.processPump(msg);
                 break;
-            case 5: // Unknown
+            case 5: // Remotes
                 break;
             case 6: // Light/Circuit group
                 ExternalMessage.processGroupSettings(msg);
@@ -27,27 +29,80 @@ export class ExternalMessage {
             case 7: // Chlorinator
                 ExternalMessage.processChlorinator(msg);
                 break;
-            case 8: // Unknown
+            case 8: // IntelliChem
                 break;
             case 9: // Valves
+                ExternalMessage.processValve(msg);
                 break;
             case 10: // Heaters
                 ExternalMessage.processHeater(msg);
                 break;
-            case 11: // Unknown
+            case 11: // Security
                 break;
             case 12: // Pool Settings Alias, owner...etc.
+                ExternalMessage.processPool(msg);
                 break;
             case 13: // Bodies (Manual heat, capacities)
                 ExternalMessage.processBodies(msg);
                 break;
-            case 14:
+            case 14: // Covers
                 break;
             case 15: // Circuit, feature, group, and schedule States
                 ExternalMessage.processCircuitState(3, msg);
                 ExternalMessage.processFeatureState(9, msg);
                 ExternalMessage.processScheduleState(15, msg);
                 ExternalMessage.processCircuitGroupState(13, msg);
+                break;
+        }
+    }
+    public static processValve(msg: Inbound) {
+        let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);
+        valve.circuit = msg.extractPayloadByte(3) + 1;
+        valve.name = msg.extractPayloadString(4, 16);
+    }
+    public static processPool(msg: Inbound) {
+        switch (msg.extractPayloadByte(2)) {
+            case 0: // Pool Alias
+                sys.general.alias = msg.extractPayloadString(3, 16);
+                break;
+            case 1: // Address
+                sys.general.location.address = msg.extractPayloadString(3, 32);
+                break;
+            case 2: // Owner
+                sys.general.owner.name = msg.extractPayloadString(3, 16);
+                break;
+            case 3: // Email
+                sys.general.owner.email = msg.extractPayloadString(3, 32);
+                break;
+            case 4: // Email 2
+                sys.general.owner.email2 = msg.extractPayloadString(3, 32);
+                break;
+            case 5: // Phone 2
+                sys.general.owner.phone2 = msg.extractPayloadString(3, 16);
+                break;
+            case 6: // Phone
+                sys.general.owner.phone = msg.extractPayloadString(3, 16);
+                break;
+            case 7: // Zipcode
+                sys.general.location.zip = msg.extractPayloadString(3, 6);
+                break;
+            case 8: // Country
+                sys.general.location.country = msg.extractPayloadString(3, 16);
+                break;
+            case 9: // City
+                sys.general.location.city = msg.extractPayloadString(3, 32);
+                break;
+            case 10: // State
+                sys.general.location.state = msg.extractPayloadString(3, 16);
+                break;
+            case 11: // Latitute
+                sys.general.location.latitude = ((msg.extractPayloadByte(4) * 256) + msg.extractPayloadByte(3)) / 100;
+                break;
+            case 12: // Longitude
+                sys.general.location.longitude = -((msg.extractPayloadByte(4) * 256) + msg.extractPayloadByte(3)) / 100;
+                break;
+            case 13: // Timezone
+                sys.general.location.timeZone = msg.extractPayloadByte(3);
                 break;
         }
     }
@@ -420,6 +475,20 @@ export class ExternalMessage {
             spump.emitData('pumpExt', spump.getExtended()); // Do this so clients can delete them.
         }
     }
+    private static processFeature(msg: Inbound) {
+        let featureId = msg.extractPayloadByte(2) + sys.board.equipmentIds.features.start;
+        let feature = sys.features.getItemById(featureId, false);
+        let fstate = state.features.getItemById(featureId, false);
+        feature.showInFeatures = msg.extractPayloadByte(5) > 0;
+        feature.freeze = msg.extractPayloadByte(4) > 0;
+        feature.name = msg.extractPayloadString(9, 16);
+        feature.type = msg.extractPayloadByte(3);
+        feature.eggTimer = (msg.extractPayloadByte(6) * 60) + msg.extractPayloadByte(7);
+        fstate.type = feature.type;
+        fstate.showInFeatures = feature.showInFeatures;
+        fstate.name = feature.name;
+        state.emitEquipmentChanges();
+    }
     private static processCircuit(msg: Inbound) {
         let circuitId = msg.extractPayloadByte(2) + 1;
         let circuit = sys.circuits.getItemById(circuitId, false);
@@ -466,8 +535,17 @@ export class ExternalMessage {
             case 3: // Air Sensor Adj
                 sys.general.options.airTempAdj = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
                 break;
-            case 5:
-                sys.general.options.solarTempAdj2 = (msg.extractPayloadByte(7) & 0x007F) * (((msg.extractPayloadByte(7) & 0x0080) > 0) ? -1 : 1);
+            case 4: // Water Sensor 2 Adj
+                sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(7) & 0x007F) * (((msg.extractPayloadByte(7) & 0x0080) > 0) ? -1 : 1);
+                break;
+            case 5: // Solar Sensor 2 Adj
+                sys.general.options.solarTempAdj2 = (msg.extractPayloadByte(8) & 0x007F) * (((msg.extractPayloadByte(8) & 0x0080) > 0) ? -1 : 1);
+                break;
+            case 11: // Clock mode
+                sys.general.options.clockMode = (msg.extractPayloadByte(14) & 0x0001) == 1 ? 24 : 12;
+                break;
+            case 14: // Clock source
+                sys.general.options.clockSource = (msg.extractPayloadByte(17) & 0x0040) === 1 ? 'internet' : 'manual';
                 break;
             case 18: // Body 1 Setpoint
                 body = sys.bodies.getItemById(1, false);
@@ -516,6 +594,18 @@ export class ExternalMessage {
                 body.heatMode = msg.extractPayloadByte(28);
                 state.temps.bodies.getItemById(4).heatMode = body.heatMode;
                 state.emitEquipmentChanges();
+                break;
+            case 27: // Pump Valve Delay
+                sys.general.options.pumpDelay = msg.extractPayloadByte(30) !== 0;
+                break;
+            case 28: // Cooldown Delay
+                sys.general.options.cooldownDelay = msg.extractPayloadByte(31) !== 0;
+                break;
+            case 36: // Manual Priority
+                sys.general.options.manualPriority = msg.extractPayloadByte(39) !== 0;
+                break;
+            case 37: // Manual Heat
+                sys.general.options.manualHeat = msg.extractPayloadByte(40) !== 0;
                 break;
         }
     }
