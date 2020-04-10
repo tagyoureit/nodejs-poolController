@@ -80,12 +80,12 @@ export class IntelliCenterBoard extends SystemBoard {
             // we do not have in the wild and cannot verify as of (03-25-2020) as to whether their id values are correct.  I feel more confident
             // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
             // MUX and A/D modules don't seem to fit the pattern.
-            [0, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies:2, valves: 4, circuits: 6, shared: true }],
-            [1, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 4, circuits: 10, shared: false }], // This is a guess
-            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false }], // This is a guess
-            [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true }],
-            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies:1, valves: 4, circuits: 10, shared: false }], // This is a guess
-            [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies:2, valves: 4, circuits: 11, shared: true }],
+            [0, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies:2, valves: 4, circuits: 6, shared: true, dual: false }],
+            [1, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 6, circuits: 10, shared: false, dual: true }], // This is a guess
+            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false, dual: false }], // This is a guess
+            [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true, dual: false }],
+            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies:1, valves: 4, circuits: 10, shared: false, dual: false }], // This is a guess
+            [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies:2, valves: 4, circuits: 11, shared: true, dual: false }],
             [6, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
             [7, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // This is a guess
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
@@ -128,6 +128,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public pumps: IntelliCenterPumpCommands = new IntelliCenterPumpCommands(this);
     public schedules: IntelliCenterScheduleCommands = new IntelliCenterScheduleCommands(this);
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
+    public valves: IntelliCenterValveCommands = new IntelliCenterValveCommands(this);
     public reloadConfig() {
         sys.configVersion.clear();
         state.status = 0;
@@ -135,8 +136,8 @@ export class IntelliCenterBoard extends SystemBoard {
         this.modulesAcquired = false;
     }
     public checkConfiguration() {
-        if (!conn.mockPort){
-            this.needsConfigChanges = true;
+        if (!conn.mockPort) {
+            (sys.board as IntelliCenterBoard).needsConfigChanges = true;
             // Send out a message to the outdoor panel that we need info about
             // our current configuration.
             console.log('Checking IntelliCenter configuration...');
@@ -171,7 +172,7 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public stopAsync() { this._configQueue.close(); }
     public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp2A: number, ocp3A: number) {
-        let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 1 };
+        let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 1 };
         this.processExpansionModules(sys.equipment.modules, ocp0A, ocp0B, inv);
         this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0, inv);
         this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0, inv);
@@ -191,6 +192,7 @@ export class IntelliCenterBoard extends SystemBoard {
         sys.equipment.maxCircuits = inv.circuits;
         sys.equipment.maxChlorinators = inv.chlorinators;
         sys.equipment.shared = inv.shared;
+        sys.equipment.dual = inv.dual;
         sys.equipment.maxPumps = 16;
         sys.equipment.maxLightGroups = 40;
         sys.equipment.maxCircuitGroups = 16;
@@ -244,6 +246,7 @@ export class IntelliCenterBoard extends SystemBoard {
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
             if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
+            if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
         }
         if (slot1 === 0) modules.removeItemById(1);
         else {
@@ -395,7 +398,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         
         if (this._processing) {
             if (curr.hasChanges(ver)) this._newRequest = true;
-            console.log('WE ARE ALREADY PROCESSING CHANGES...')
+            if (sys.configVersion.lastUpdated.getTime() > new Date().getTime() - 90000)
+                console.log('WE ARE ALREADY PROCESSING CHANGES...')
             return;
         }
         this._processing = true;
@@ -530,6 +534,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
     public setCircuit(data: any){
         // overwrite systemboard method here
+
     }
     public setLightGroupColors(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
@@ -1018,18 +1023,24 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let out = this.createHeaterConfigMessage(heater);
         conn.queueSendMessage(out);
     }
-
-    // RG implement updateHeaterServices here
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public setValve(valve: Valve, obj?: any) {
-        super.setValve(valve, obj);
+    public setValve(valve: Valve, obj?: any, callback?: Function) {
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
+        let v = extend(true, valve.get(true), obj);
+        // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
+        // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
+        // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
         let out = Outbound.createMessage(
-            168, [9, 0, valve.id, valve.circuit]);
-        out.insertPayloadString(4, valve.name, 16);
+            168, [9, 0, v.id - 1, v.circuit - 1]);
+        out.appendPayloadString(v.name, 16);
+        if (typeof callback === 'function')
+            out.onComplete = (msg, err) => {
+                super.setValve(valve, v, callback);
+            }
+        else 
+            super.setValve(valve, v, callback);
         conn.queueSendMessage(out);
-        sys.board.checkConfiguration();
     }
 }
 enum ConfigCategories {

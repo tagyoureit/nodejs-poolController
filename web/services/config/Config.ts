@@ -129,6 +129,13 @@ export class ConfigRoute {
             else
             return res.status(200).send('OK');
         });
+        app.put('/config/valve/:id', (req, res) => {
+            // Update a valve.
+            let valve = sys.valves.getItemById(parseInt(req.params.id, 10));
+            sys.board.valves.setValve(valve, req.body, function (err) {
+                return err ? res.status(500).send(valve.get()) : res.status(200).send(valve.get());
+            });
+        });
         app.get('/config/features/names', (req, res)=>{
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
@@ -337,6 +344,10 @@ export class ConfigRoute {
         });
         app.put('/app/logger/setOptions', (req, res) => {
             logger.setOptions(req.body);
+            return res.status(200).send('OK');
+        });
+        app.put('/app/logger/clearMessages', (req, res) => {
+            logger.clearMessages();
             return res.status(200).send('OK');
         });
         app.get('/app/messages/broadcast/actions', (req, res) => {

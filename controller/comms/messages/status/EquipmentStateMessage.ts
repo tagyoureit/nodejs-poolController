@@ -252,7 +252,7 @@ export class EquipmentStateMessage {
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
             console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
-            setTimeout(() => sys.checkConfiguration(), 300);
+            setTimeout(function () { sys.checkConfiguration(); }, 300);
         }
     }
     public static process(msg: Inbound) {

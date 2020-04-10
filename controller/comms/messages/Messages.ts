@@ -416,6 +416,7 @@ export class Outbound extends Message {
     public failed: boolean=false;
     public onSuccess: (msg) => void;
     public onError: (msg, error) => void;
+    public onComplete: (msg, error?) => void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }

@@ -4,7 +4,7 @@ import * as extend from "extend";
 import { setTimeout } from "timers";
 import { logger } from "../logger/Logger";
 import { state, CommsState } from "./State";
-import { Timestamp, ControllerType } from "./Constants";
+import { Timestamp, ControllerType, utils } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
 import { SystemBoard } from "./boards/SystemBoard";
@@ -469,6 +469,8 @@ export class Location extends EqItem {
     public set latitude(val: number) { this.setDataVal('latitude', val); }
     public get longitude(): number { return this.data.longitude; }
     public set longitude(val: number) { this.setDataVal('longitude', val); }
+    public get timeZone(): number { return this.data.timeZone; }
+    public set timeZone(val: number) { this.setDataVal('timeZone', val); }
 }
 export class ExpansionModuleCollection extends EqItemCollection<ExpansionModule> {
     constructor(data: any, name?: string) { super(data, name || "modules"); }
@@ -511,6 +513,8 @@ export class Equipment extends EqItem {
     public set type(val: number) { this.setDataVal('type', val); }
     public get shared(): boolean { return this.data.shared; }
     public set shared(val: boolean) { this.setDataVal('shared', val); }
+    public get dual(): boolean { return this.data.dual; }
+    public set dual(val: boolean) { this.setDataVal('dual', val); }
     public get maxBodies(): number { return this.data.maxBodies || 4; }
     public set maxBodies(val: number) { this.setDataVal('maxBodies', val); }
     public get maxValves(): number { return this.data.maxValves || 26; }
@@ -572,8 +576,8 @@ export class ConfigVersion extends EqItem {
     }
     //protected _lastUpdated: Date;
     public get lastUpdated(): Date {
-        if (typeof this.data.lastUpdated === 'undefined') { this.data.lastUpdated = new Date().setHours((new Date).getHours() - 1); }
-        return this.data.lastUpdated;
+        if (typeof this.data.lastUpdated === 'undefined') { this.data.lastUpdated = new Date().setHours(new Date().getHours() - 1); }
+        return new Date(this.data.lastUpdated);
     }
     public set lastUpdated(val: Date) { this.setDataVal('lastUpdated', Timestamp.toISOLocal(val), false); }
     public get options(): number { return this.data.options; }
@@ -1044,6 +1048,10 @@ export class Valve extends EqItem {
     public set name(val: string) { this.setDataVal('name', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
+    public get isIntake(): boolean { return utils.makeBool(this.data.isIntake); }
+    public set isIntake(val: boolean) { this.setDataVal('isIntake', val); }
+    public get isReturn(): boolean { return utils.makeBool(this.data.isReturn); }
+    public set isReturn(val: boolean) { this.setDataVal('isReturn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }

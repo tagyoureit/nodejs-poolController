@@ -11,12 +11,15 @@ export class GeneralMessage {
             case 1:
                 sys.general.owner.phone = msg.extractPayloadString(2, 20);
                 sys.general.owner.phone2 = msg.extractPayloadString(21, 15);
+                sys.general.location.latitude = ((msg.extractPayloadByte(35) * 256) + msg.extractPayloadByte(34)) / 100;
                 break;
             case 2:
                 sys.general.location.address = msg.extractPayloadString(2, 32);
+                sys.general.location.longitude = -(((msg.extractPayloadByte(35) * 256) + msg.extractPayloadByte(34)) / 100);
                 break;
             case 3:
                 sys.general.owner.email = msg.extractPayloadString(2, 32);
+                sys.general.location.timeZone = msg.extractPayloadByte(34);
                 break;
             case 4:
                 sys.general.owner.email2 = msg.extractPayloadString(2, 32);

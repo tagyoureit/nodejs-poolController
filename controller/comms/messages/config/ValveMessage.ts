@@ -75,24 +75,49 @@ export class ValveMessage {
     }
     private static processCircuit(msg: Inbound) {
         // When it comes to valves there are some interesting numberings
-        // going on.  This is due to the fact that the position 5 & 6 are for a secondary pool control.  This will make
-        // the id of any valve > 5 skip 2 numbers in between.
+        // going on.  This is due to the fact that the i10d has two sets of intake/returns.
         let ndx: number = 2;
-        for (let i = 1; ndx < msg.payload.length - 1 && i <= sys.equipment.maxValves; i++) {
-            let valve: Valve = sys.valves.getItemById(i, i <= sys.equipment.maxValves);
-            if (i == 3 || i == 4)
+        let id = 1;
+        for (let i = 0; i < sys.equipment.maxValves; i++) {
+            if (id === 5) {
+                // If we aren't an i10d then lets jump over the second intake/return.
+                if (!sys.equipment.dual) {
+                    sys.valves.removeItemById(5);
+                    sys.valves.removeItemById(6);
+                    id += 2;
+                    ndx += 2;
+                }
+            }
+            let valve: Valve = sys.valves.getItemById(id, i < sys.equipment.maxValves);
+            if (id === 3 || id === 5) {
                 valve.circuit = 247 // Hardcode the intake/return;
-            else
-                valve.circuit = msg.extractPayloadByte(ndx) + 1;
+                valve.isIntake = true;
+                valve.isReturn = false;
+            }
+            else if (id === 4 || id === 6) {
+                valve.circuit = 247 // Hardcode the intake/return;
+                valve.isIntake = false;
+                valve.isReturn = true;
+            }
+            else {
+                valve.circuit = msg.extractPayloadByte(ndx) + 1; // Even the circuit ids are 0 based.
+                valve.isIntake = false;
+                valve.isReturn = false;
+            }
             valve.type = 0;
-            if (ndx === 5) ndx += 2;
-            valve.isActive = i <= sys.equipment.maxValves;
+            valve.isActive = i < sys.equipment.maxValves;
             ndx++;
+            id++;
         }
     }
     private static processValveNames(msg: Inbound) {
-        let valveId = msg.extractPayloadByte(1) <= 2 ? (msg.extractPayloadByte(1) - 1) * 2 + 1 : (msg.extractPayloadByte(1) - 4) * 2 + 5;
-        if (valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
-        if (valveId <= sys.equipment.maxValves) sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
+        let byte = msg.extractPayloadByte(1);
+        // byte = 4 == 7
+        // 2 + 5
+        // byte = 3 == 5
+        // 0 + 5
+        let valveId = byte <= 2 ? ((byte - 1) * 2) + 1 : (byte - 3) * 2 + 5;
+        sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
+        sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
     }
 }

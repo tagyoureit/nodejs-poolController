@@ -213,6 +213,7 @@ export class SendRecieveBuffer {
                     setTimeout(msg.response.callback, 100, msg);
                 }
                 if (typeof msg.onError !== 'undefined') msg.onError.apply(msg, 'packet aborted');
+                if (typeof msg.onComplete === 'function') msg.onComplete.apply(msg, [msg, 'packet aborted']);
                 conn.isRTS = true;
                 return;
             }
@@ -233,7 +234,10 @@ export class SendRecieveBuffer {
                     logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.retries}`);
                     // We have all the success we are going to get so if the call succeeded then
                     // don't set the waiting packet when we aren't actually waiting for a response.
-                    if (!msg.requiresResponse) conn.buffer._waitingPacket = null;
+                    if (!msg.requiresResponse) {
+                        conn.buffer._waitingPacket = null;
+                        if (typeof msg.onComplete === 'function') msg.onComplete.apply(msg, [msg, err]);
+                    }
                     else if (msg.retries >= 0) {
                         msg.retries--;
                         conn.buffer._waitingPacket = msg;
@@ -252,6 +256,8 @@ export class SendRecieveBuffer {
             if (msgOut.requiresResponse && resp.isResponse(msg)) {
                 conn.buffer._waitingPacket = null;
                 if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess.apply(msg, [msg]);
+                if (typeof msgOut.onComplete === 'function') msgOut.onComplete.apply(msg, [msg]);
+
                 callback = resp.callback;
                 resp.message = msg;
                 if (resp.ack) conn.queueSendMessage(resp.ack);

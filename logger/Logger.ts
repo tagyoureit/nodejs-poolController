@@ -91,6 +91,11 @@ class Logger {
             else if (!msg.isValid) logger._logger.warn(msg.toLog());
         }
     }
+    public clearMessages() {
+        if (fs.existsSync(logger.pktPath)) {
+            fs.truncateSync(logger.pktPath, 0);
+        }
+    }
     public flushLogs() {
         var p: Message[] = logger.pkts.splice(0, logger.pkts.length);
         var buf: string = '';

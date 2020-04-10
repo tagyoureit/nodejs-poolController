@@ -356,6 +356,7 @@ export class SystemBoard {
     public bodies: BodyCommands = new BodyCommands(this);
     public pumps: PumpCommands = new PumpCommands(this);
     public circuits: CircuitCommands = new CircuitCommands(this);
+    public valves: ValveCommands = new ValveCommands(this);
     public features: FeatureCommands = new FeatureCommands(this);
     public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
     public schedules: ScheduleCommands = new ScheduleCommands(this);
@@ -1147,13 +1148,13 @@ export class HeaterCommands extends BoardCommands {
     public updateHeaterServices(heater: Heater) { }
 }
 export class ValveCommands extends BoardCommands {
-    public setValve(valve: Valve, obj?: any) {
+    public setValve(valve: Valve, obj?: any, callback?: Function ) {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 valve[s] = obj[s];
         }
+        if (typeof callback === 'function') callback();
     }
-    public updateHeaterServices(heater: Heater) { }
 }
 
 export class ChlorinatorController extends BoardCommands {
