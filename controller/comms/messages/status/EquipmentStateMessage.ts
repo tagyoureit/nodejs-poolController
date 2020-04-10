@@ -98,6 +98,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxCircuitGroups = 3;
                 sys.equipment.maxIntelliBrites = 10;
+                sys.equipment.dual = true;
+                sys.equipment.shared = false;
                 break;
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;
