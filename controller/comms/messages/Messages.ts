@@ -397,6 +397,15 @@ export class Outbound extends Message {
         this.calcChecksum();
     }
     // Factory
+    public static create(obj?: any) {
+        let out = new Outbound(obj.protocol || Protocol.Broadcast,
+            obj.source || Message.pluginAddress, obj.dest || 16, obj.action || 0, obj.payload || [], obj.retries || 0);
+        out.onComplete = obj.onComplete;
+        out.onError = obj.onError;
+        out.onSuccess = obj.onSuccess;
+        out.response = obj.response;
+        return out;
+    }
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response, onSuccess?: (msg) => void, onError?: (msg) => void): Outbound {
         return new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, action, payload, retries, response);
     }
@@ -467,6 +476,7 @@ export class Outbound extends Message {
             else buf.push(i);
         }
         this.payload.splice(start, 0, ...buf);
+        return this;
     }
     public toPacket(): number[] {
         var pkt = [];

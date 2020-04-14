@@ -5,6 +5,7 @@ import {read} from "fs";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
+import { state } from "../../../controller/State";
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -27,10 +28,12 @@ export class ConfigRoute {
         app.get('/config/options/general', (req, res) => {
             let opts = {
                 countries: [{ id: 1, name: 'United States' }, { id: 2, name: 'Mexico' }, { id: 3, name: 'Canada' }],
+                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
                 timeZones: sys.board.valueMaps.timeZones.toArray(),
                 clockSources: sys.board.valueMaps.clockSources.toArray(),
                 clockModes: sys.board.valueMaps.clockModes.toArray(),
-                pool: sys.general.get(true)
+                pool: sys.general.get(true),
+                sensors: sys.board.system.getSensors()
             };
             return res.status(200).send(opts);
         });
@@ -63,7 +66,6 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-
         app.get('/config/options/features', (req, res) => {
             let opts = {
                 maxFeatures: sys.equipment.maxFeatures,
@@ -73,7 +75,6 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-
         app.get('/config/options/bodies', (req, res) => {
             let opts = {
                 maxBodies: sys.equipment.maxBodies,
@@ -110,24 +111,31 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
-
-        app.put('/config/circuit', (req, res)=>{
+        /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS *********/
+        app.put('/config/general', async (req, res, next) => {
+            // Change the options for the pool.
+            try {
+                await sys.board.system.setGeneral(req.body);
+                return res.status(200).send(sys.general.get());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/circuit', (req, res) => {
             // add/update a circuit
             sys.board.circuits.setCircuit(req.body);
             if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
                 return res.status(200).send();
             else
-                return res.status(500).send({result: 'Error', reason: 'Unknown'});
+                return res.status(500).send({ result: 'Error', reason: 'Unknown' });
         });
-        app.delete('/config/circuit', (req, res)=>{
+        app.delete('/config/circuit', (req, res) => {
             // add/update a circuit
             sys.board.circuits.deleteCircuit(req.body);
             if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
-            return res.status(500).send({result: 'Error', reason: 'Unknown'});
+                return res.status(500).send({ result: 'Error', reason: 'Unknown' });
             else
-            return res.status(200).send('OK');
+                return res.status(200).send('OK');
         });
         app.put('/config/valve/:id', (req, res) => {
             // Update a valve.
@@ -136,6 +144,8 @@ export class ConfigRoute {
                 return err ? res.status(500).send(valve.get()) : res.status(200).send(valve.get());
             });
         });
+
+
         app.get('/config/features/names', (req, res)=>{
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
@@ -206,7 +216,6 @@ export class ConfigRoute {
             pump.deletePumpCircuit(parseInt(req.params.pumpCircuitId, 10));
             return res.status(200).send('OK');
         });
-
         app.get('/config/pump/types', (req, res) => {
             let pumpTypes = sys.board.pumps.getPumpTypes();
             return res.status(200).send(pumpTypes);
@@ -321,7 +330,6 @@ export class ConfigRoute {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
         });
-
         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });
@@ -339,6 +347,9 @@ export class ConfigRoute {
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));
         });
+
+
+        /******* ENDPOINTS FOR MANAGING THE poolController APPLICATION *********/
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
         });

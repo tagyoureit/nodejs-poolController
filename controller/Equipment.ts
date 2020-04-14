@@ -437,7 +437,7 @@ export class Options extends EqItem {
     public set vacationMode(val: boolean) { this.setDataVal('vacationMode', val); }
     public get manualHeat(): boolean { return this.data.manualHeat; }
     public set manualHeat(val: boolean) { this.setDataVal('manualHeat', val); }
-    public get pumpDelay(): boolean { return this.pumpDelay; }
+    public get pumpDelay(): boolean { return this.data.pumpDelay; }
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }

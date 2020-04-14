@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands } from './SystemBoard';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands } from './SystemBoard';
 import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -40,7 +40,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [1, { name: 'gas', desc: 'Gas Heater' }],
             [2, { name: 'solar', desc: 'Solar Heater' }],
             [3, { name: 'heatpump', desc: 'Heat Pump' }],
-            [4, { name: 'ultratemp', desc: 'Ultratemp' }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp' }],
             [5, { name: 'hybrid', desc: 'hybrid' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
@@ -121,6 +121,7 @@ export class IntelliCenterBoard extends SystemBoard {
         ]);
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
+    public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
     public features: IntelliCenterFeatureCommands = new IntelliCenterFeatureCommands(this);
     public chlorinator: IntelliCenterChlorinatorCommands = new IntelliCenterChlorinatorCommands(this);
@@ -529,6 +530,428 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr, ver)) this.push(new IntelliCenterConfigRequest(cat, ver, opts));
     }
 
+}
+class IntelliCenterSystemCommands extends SystemCommands {
+    public async setGeneral(obj?: any) {
+        let arr = [];
+        if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 0],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.alias = obj.alias; resolve(); }
+                    }
+                }).appendPayloadString(obj.alias, 16);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
+        if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
+        if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
+        return Promise.all(arr);
+    }
+    public async setOptions(obj?: any) {
+        console.log(obj);
+        let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : num || 0; }
+        let payload = [0, 0, 0,
+            fnToByte(sys.general.options.waterTempAdj2),
+            fnToByte(sys.general.options.waterTempAdj1),
+            fnToByte(sys.general.options.solarTempAdj1),
+            fnToByte(sys.general.options.airTempAdj),
+            fnToByte(sys.general.options.waterTempAdj2),
+            fnToByte(sys.general.options.solarTempAdj2), // 8
+            0, 0, 0, 0, 0,
+            0 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00), // 14
+            0, 0,
+            sys.general.options.clockSource === 'manual' ? 0 : 1, // 17
+            3, 0, 0,
+            sys.bodies.getItemById(1, false).setPoint || 100, // 21
+            sys.bodies.getItemById(3, false).setPoint || 100,
+            sys.bodies.getItemById(2, false).setPoint || 100,
+            sys.bodies.getItemById(4, false).setPoint || 100,
+            sys.bodies.getItemById(1, false).heatMode || 0,
+            sys.bodies.getItemById(2, false).heatMode || 0,
+            sys.bodies.getItemById(3, false).heatMode || 0,
+            sys.bodies.getItemById(4, false).heatMode || 0,
+            15,
+            sys.general.options.pumpDelay ? 1 : 0,  // 30
+            sys.general.options.cooldownDelay ? 1 : 0,
+            0, 0, 100, 0, 0, 0, 0, 
+            sys.general.options.manualPriority ? 1 : 0, // 39
+            sys.general.options.manualHeat ? 1 : 0];
+        let arr = [];
+        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.general.options.waterTempAdj1) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 1;
+                payload[4] = parseInt(obj.waterTempAdj1, 10) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.waterTempAdj1 = parseInt(obj.waterTempAdj1, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.general.options.waterTempAdj2) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 4;
+                payload[3] = parseInt(obj.waterTempAdj2, 10) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.waterTempAdj2 = parseInt(obj.waterTempAdj2, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.general.options.solarTempAdj1) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 2;
+                payload[5] = parseInt(obj.solarTempAdj1, 10) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.solarTempAdj1 = parseInt(obj.solarTempAdj1, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.general.options.solarTempAdj2) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 5;
+                payload[8] = parseInt(obj.solarTempAdj2, 10) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.solarTempAdj2 = parseInt(obj.solarTempAdj2, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.general.options.airTempAdj) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 3;
+                payload[7] = parseInt(obj.airTempAdj, 10) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.airTempAdj = parseInt(obj.airTempAdj, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
+            (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
+            arr.push(new Promise(function (resolve, reject) {
+                let byte = 0x30; // These bits are always set.
+                if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
+                else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
+                if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
+                else byte |= obj.adjustDST ? 0x80 : 0x00;
+                payload[2] = 11;
+                payload[14] = byte;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else {
+                            if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
+                            if (typeof obj.adjustDST !== 'undefined') sys.general.options.adjustDST = obj.adjustDST ? true : false;
+                            resolve();
+                        }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 11;
+                payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.clockSource = obj.clockMode === 'internet' ? 'internet' : 'manual'; resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 27;
+                payload[30] = obj.pumpDelay ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.pumpDelay = obj.pumpDelay ? true : false; resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.cooldownDelay !== 'undefined' && obj.cooldownDelay !== sys.general.options.cooldownDelay) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 28;
+                payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false; resolve(); }
+                    }
+                });
+            }));
+        }
+        if (typeof obj.manualPriority !== 'undefined' && obj.manualPriority !== sys.general.options.manualPriority) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 36;
+                payload[39] = obj.manualPriority ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.manualPriority = obj.manualPriority ? true : false; resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 36;
+                payload[39] = obj.manualHeat ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.options.manualHeat = obj.manualHeat ? true : false; resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        return Promise.all(arr);
+    }
+    public async setLocation(obj?: any) {
+        let arr = [];
+        if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 1],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.address = obj.address; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.address, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.country === 'string' && obj.country !== sys.general.location.country) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 8],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.country = obj.country; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.country, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.city === 'string' && obj.city !== sys.general.location.city) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 9],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.city = obj.city; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.city, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.state === 'string' && obj.state !== sys.general.location.state) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 10],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.state = obj.state; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.state, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.zip === 'string' && obj.zip !== sys.general.location.zip) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 7],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.zip = obj.zip; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.zip, 6);
+                conn.queueSendMessage(out);
+            }));
+        }
+
+        if (typeof obj.latitude === 'number' && obj.latitude !== sys.general.location.latitude) {
+            arr.push(new Promise(function (resolve, reject) {
+                let lat = Math.round(Math.abs(obj.latitude) * 100);
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 11,
+                        Math.floor(lat/256),
+                        lat - Math.floor(lat/256)],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.longitude = lat/100; resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.longitude === 'number' && obj.longitude !== sys.general.location.longitude) {
+            arr.push(new Promise(function (resolve, reject) {
+                let lon = Math.round(Math.abs(obj.longitude) * 100);
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 12,
+                        Math.floor(lon / 256),
+                        lon - Math.floor(lon / 256)],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.longitude = -(lon/100); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.timeZone === 'number' && obj.timeZone !== sys.general.location.timeZone) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 10, parseInt(obj.timeZone, 10)],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.location.timeZone = parseInt(obj.timeZone, 10); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        return Promise.all(arr);
+    }
+    public async setOwner(obj?: any) {
+        let arr = [];
+        if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 2],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.owner.name = obj.name; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.name, 16);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.email === 'string' && obj.email !== sys.general.owner.email) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 3],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.owner.email = obj.email; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.email, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.email2 === 'string' && obj.email2 !== sys.general.owner.email2) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 4],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.owner.email2 = obj.email2; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.email2, 32);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.phone2 === 'string' && obj.phone2 !== sys.general.owner.phone2) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 6],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.owner.phone2 = obj.phone2; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.phone2, 16);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.phone === 'string' && obj.phone !== sys.general.owner.phone) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 5],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { sys.general.owner.phone = obj.phone; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.phone, 16);
+                conn.queueSendMessage(out);
+            }));
+        }
+        return Promise.all(arr);
+    }
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;

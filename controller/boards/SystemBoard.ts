@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState } from '../State';
 import { Outbound, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -359,6 +359,8 @@ export class SystemBoard {
     public valves: ValveCommands = new ValveCommands(this);
     public features: FeatureCommands = new FeatureCommands(this);
     public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
+    public heaters: HeaterCommands = new HeaterCommands(this);
+
     public schedules: ScheduleCommands = new ScheduleCommands(this);
     public equipmentIds: EquipmentIds = new EquipmentIds();
     public virtualChlorinatorController = new ChlorinatorController(this);
@@ -444,6 +446,70 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = 0; }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
+    public async setGeneral(obj: any) {
+        let general = sys.general.get();
+        if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
+        if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
+        if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
+        if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
+        return new Promise(function (resolve, reject) { resolve(); });
+    }
+    public async setOptions(obj: any) {
+        let opts = sys.general.options;
+        if (typeof obj !== undefined) {
+            for (var s in opts)
+                if (typeof obj[s] !== 'undefined')
+                    opts[s] = obj[s];
+        }
+        return new Promise(function (resolve, reject) { resolve(); });
+    }
+    public async setLocation(obj: any) {
+        let loc = sys.general.location;
+        if (typeof obj !== undefined) {
+            for (var s in loc)
+                if (typeof obj[s] !== 'undefined')
+                    loc[s] = obj[s];
+        }
+        return new Promise(function (resolve, reject) { resolve(); });
+    }
+    public async setOwner(obj: any) {
+        let owner = sys.general.owner;
+        if (typeof obj !== undefined) {
+            for (var s in owner)
+                if (typeof obj[s] !== 'undefined')
+                    owner[s] = obj[s];
+        }
+        return new Promise(function (resolve, reject) { resolve(); });
+    }
+    public getSensors() {
+        let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
+        if (sys.equipment.shared) {
+            if (sys.equipment.maxBodies > 2)
+                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' },
+                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2 - sys.general.options.waterTempAdj2, tempAdj: sys.general.options.waterTempAdj2, binding: 'waterTempAdj2' });
+            else
+                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' });
+
+            if (sys.board.heaters.isSolarInstalled()) {
+                if (sys.equipment.maxBodies > 2) {
+                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' },
+                        { name: 'Solar Sensor 2', temp: state.temps.solar - sys.general.options.solarTempAdj2, tempAdj: sys.general.options.solarTempAdj2, binding: 'solarTempAdj2' });
+                }
+                else
+                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' });
+            }
+        }
+        else if (sys.equipment.dual) {
+            sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' },
+                { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.general.options.waterTempAdj2, binding: 'waterTempAdj2' });
+            if (sys.board.heaters.isSolarInstalled()) {
+                sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' },
+                    { name: 'Solar Sensor 2', temp: state.temps.solar - sys.general.options.solarTempAdj2, tempAdj: sys.general.options.solarTempAdj2, binding: 'solarTempAdj2' });
+            }
+        }
+        return sensors;
+    }
+   
 }
 export class BodyCommands extends BoardCommands {
     public setHeatMode(body: Body, mode: number) { }
@@ -1139,20 +1205,37 @@ export class ScheduleCommands extends BoardCommands {
     }
 }
 export class HeaterCommands extends BoardCommands {
+    public isSolarInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'solar':
+                        return true;
+                }
+            }
+        }
+    }
     public setHeater(heater: Heater, obj?: any) {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 heater[s] = obj[s];
         }
     }
+   
     public updateHeaterServices(heater: Heater) { }
 }
 export class ValveCommands extends BoardCommands {
-    public setValve(valve: Valve, obj?: any, callback?: Function ) {
+    public setValve(valve: Valve, obj?: any, callback?: Function) {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 valve[s] = obj[s];
         }
+        
         if (typeof callback === 'function') callback();
     }
 }

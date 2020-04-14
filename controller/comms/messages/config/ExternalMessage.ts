@@ -77,11 +77,11 @@ export class ExternalMessage {
             case 4: // Email 2
                 sys.general.owner.email2 = msg.extractPayloadString(3, 32);
                 break;
-            case 5: // Phone 2
-                sys.general.owner.phone2 = msg.extractPayloadString(3, 16);
-                break;
-            case 6: // Phone
+            case 5: // Phone
                 sys.general.owner.phone = msg.extractPayloadString(3, 16);
+                break;
+            case 6: // Phone 2
+                sys.general.owner.phone2 = msg.extractPayloadString(3, 16);
                 break;
             case 7: // Zipcode
                 sys.general.location.zip = msg.extractPayloadString(3, 6);
