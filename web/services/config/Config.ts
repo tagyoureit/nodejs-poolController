@@ -121,6 +121,15 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/valve/:id', async(req, res, next) => {
+            // Update a valve.
+            try {
+                let valve = sys.valves.getItemById(parseInt(req.params.id, 10));
+                await sys.board.valves.setValve(valve, req.body);
+                return res.status(200).send(valve.get(true));
+            }
+            catch (err) { next(err); }
+        });
         app.put('/config/circuit', (req, res) => {
             // add/update a circuit
             sys.board.circuits.setCircuit(req.body);
@@ -136,13 +145,6 @@ export class ConfigRoute {
                 return res.status(500).send({ result: 'Error', reason: 'Unknown' });
             else
                 return res.status(200).send('OK');
-        });
-        app.put('/config/valve/:id', (req, res) => {
-            // Update a valve.
-            let valve = sys.valves.getItemById(parseInt(req.params.id, 10));
-            sys.board.valves.setValve(valve, req.body, function (err) {
-                return err ? res.status(500).send(valve.get()) : res.status(200).send(valve.get());
-            });
         });
 
 

@@ -559,7 +559,6 @@ class IntelliCenterSystemCommands extends SystemCommands {
         return Promise.all(arr);
     }
     public async setOptions(obj?: any) {
-        console.log(obj);
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : num || 0; }
         let payload = [0, 0, 0,
             fnToByte(sys.general.options.waterTempAdj2),
@@ -1454,22 +1453,26 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     }
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public setValve(valve: Valve, obj?: any, callback?: Function) {
+    public async setValve(valve: Valve, obj?: any) {
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
         let v = extend(true, valve.get(true), obj);
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
         // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
-        let out = Outbound.createMessage(
-            168, [9, 0, v.id - 1, v.circuit - 1]);
-        out.appendPayloadString(v.name, 16);
-        if (typeof callback === 'function')
-            out.onComplete = (msg, err) => {
-                super.setValve(valve, v, callback);
-            }
-        else 
-            super.setValve(valve, v, callback);
-        conn.queueSendMessage(out);
+        return new Promise(function (resolve, reject) {
+            let out = Outbound.create({
+                action: 168,
+                payload: [9, 0, v.id - 1, v.circuit - 1],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        valve.name = v.name;
+                        valve.circuit = v.circuit;
+                        valve.type = v.type;
+                    }
+                }
+            }).appendPayloadString(v.name, 16);
+        });
     }
 }
 enum ConfigCategories {
