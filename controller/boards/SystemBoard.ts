@@ -88,6 +88,12 @@ export class byteValueMaps {
             }
             return { val: b, days: days };
         };
+        this.scheduleDays.toArray = function () {
+            let arrKeys = Array.from(this.keys());
+            let arr = [];
+            for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
+            return arr;
+        }
         this.virtualCircuits.transform = function (byte) {
             return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
         };

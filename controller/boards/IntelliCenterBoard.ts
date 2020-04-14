@@ -67,6 +67,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
             [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
+        this.valueMaps.scheduleDays.toArray = function () {
+            let arrKeys = Array.from(this.keys());
+            let arr = [];
+            for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
+            return arr;
+        }
         this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
