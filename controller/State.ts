@@ -299,6 +299,7 @@ export interface ICircuitState {
     id: number;
     type: number;
     name: string;
+    nameId?: number;
     isOn: boolean;
     lightingTheme?: number;
     emitEquipmentChange();
@@ -527,13 +528,8 @@ export class PumpState extends EqState {
     public get time(): number { return this.data.time; }
     public set time(val: number) { this.setDataVal('time', val, false); }
     public getExtended() {
-        //let pumps = sys.pumps.get();
-        //pumps.sortById();
-        // sys.pumps.sortById();
         let pump = this.get(true);
-
         let cpump = sys.pumps.getItemById(pump.id);
-        // cpump.circuits.sortById();
         if (typeof (cpump.minSpeed) !== 'undefined') pump.minSpeed = cpump.minSpeed;
         if (typeof (cpump.maxSpeed) !== 'undefined') pump.maxSpeed = cpump.maxSpeed;
         if (typeof (cpump.minFlow) !== 'undefined') pump.minFlow = cpump.minFlow;
@@ -544,7 +540,7 @@ export class PumpState extends EqState {
         for (let i = 1; i <= 8; i++) {
             let c = cpump.circuits.getItemById(i).get(true);
             c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
-            if (typeof c.circuit.id === 'undefined') {
+            if (typeof c.circuit.id === 'undefined' || typeof c.circuit.name === 'undefined') {
                 // return "blank" circuit if none defined
                 c.circuit.id = 0;
                 c.circuit.name = 'Not Used';
@@ -559,9 +555,8 @@ export class PumpState extends EqState {
             }
             c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
             pump.circuits.push(c);
-        }
+        } 
         pump.circuits.sort((a, b) => { return a.id > b.id ? 1 : -1; });
-
         /*         for (let i = 0; i < cpump.circuits.length; i++) {
                     let c = cpump.circuits.getItemByIndex(i).get(true);
                     c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
@@ -573,6 +568,16 @@ export class PumpState extends EqState {
 }
 export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
     public createItem(data: any): ScheduleState { return new ScheduleState(data); }
+    public getExtended(){
+        // operate on a copy
+        let scheduleColl = this.get(true);
+        let schedColl = [];
+        for (let i = 0; i < scheduleColl.length; i++){
+            let sched = scheduleColl[i].getItemByIndex(i).get(true);
+            schedColl.push(sched);
+        }
+        schedColl.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; });
+    }
 }
 export class ScheduleState extends EqState {
     constructor(data: any, dataName?: string) {
@@ -642,6 +647,7 @@ export interface ICircuitGroupState {
     id: number;
     type: number;
     name: string;
+    nameId?: number;
     eggTimer: number;
     isOn: boolean;
     isActive: boolean;
@@ -664,7 +670,9 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : 0; }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
+    public get type(): number { return this.data.type; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.circuitGroupTypes.transform(val);
@@ -828,6 +836,8 @@ export class FeatureState extends EqState implements ICircuitState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get type() { return typeof this.data.type !== 'undefined' ? this.data.type.val : -1; }
@@ -846,6 +856,8 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get type() { return typeof this.data.type !== 'undefined' ? this.data.type.val : -1; }
@@ -884,6 +896,8 @@ export class CircuitState extends EqState implements ICircuitState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get isOn(): boolean { return this.data.isOn; }

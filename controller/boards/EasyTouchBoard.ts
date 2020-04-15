@@ -9,11 +9,16 @@ export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.circuits = new EquipmentIdRange(1, function() {return this.start + sys.equipment.maxCircuits - 1;});
+        this.equipmentIds.circuits = new EquipmentIdRange(1, function() { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
-        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() {return this.start + sys.equipment.maxCircuitGroups - 1;});
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() { return this.start + sys.equipment.maxCircuitGroups - 1; });
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
+        this.valueMaps.customNames = new byteValueMap(
+            sys.customNames.get().map((el, idx)=>{
+                return [idx + 200, {name: el.name, desc: el.name}];
+            })
+         );
         this.valueMaps.circuitNames = new byteValueMap([
             [0, { name: 'notused', desc: 'Not Used' }],
             [1, { name: 'aerator', desc: 'Aerator' }],
@@ -33,7 +38,7 @@ export class EasyTouchBoard extends SystemBoard {
             [15, { name: 'bbqlight', desc: 'BBQ Light' }],
             [16, { name: 'beachlight', desc: 'Beach Light' }],
             [17, { name: 'boosterpump', desc: 'Booster Pump' }],
-            [18, { name: 'buglight', desc: 'But Light' }],
+            [18, { name: 'buglight', desc: 'Bug Light' }],
             [19, { name: 'cabanalts', desc: 'Cabana Lights' }],
             [20, { name: 'chem.feeder', desc: 'Chemical Feeder' }],
             [21, { name: 'chlorinator', desc: 'Chlorinator' }],
@@ -117,7 +122,7 @@ export class EasyTouchBoard extends SystemBoard {
             [99, { name: 'feature6', desc: 'Feature 6' }],
             [100, { name: 'feature7', desc: 'Feature 7' }],
             [101, { name: 'feature8', desc: 'Feature 8' }]
-        ]); 
+        ]);
         /* this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spa', desc: 'Spa' }],
@@ -127,7 +132,7 @@ export class EasyTouchBoard extends SystemBoard {
             [9, { name: 'samlight', desc: 'SAM Light' }],
             [10, { name: 'sallight', desc: 'SAL Light' }],
             [11, { name: 'photongen', desc: 'Photon Gen' }],
-            [12, { name: 'colorwheel', desc: 'Color Wheer' }],
+            [12, { name: 'colorwheel', desc: 'Color Wheel' }],
             [13, { name: 'valve', desc: 'Valve' }],
             [14, { name: 'spillway', desc: 'Spillway' }],
             [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
@@ -135,26 +140,26 @@ export class EasyTouchBoard extends SystemBoard {
             [17, { name: 'magicstream', desc: 'Magicstream' }],
             [19, { name: 'notused', desc: 'Not Used' }]
         ]); */
-/*         this.valueMaps.virtualCircuits = new byteValueMap([
-            [128, { name: 'solar', desc: 'Solar' }],
-            [129, { name: 'heater', desc: 'Either Heater' }],
-            [130, { name: 'poolHeater', desc: 'Pool Heater' }],
-            [131, { name: 'spaHeater', desc: 'Spa Heater' }],
-            [132, { name: 'freeze', desc: 'Freeze' }],
-            [133, { name: 'heatBoost', desc: 'Heat Boost' }],
-            [134, { name: 'heatEnable', desc: 'Heat Enable' }],
-            [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
-            [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
-            [255, { name: 'notused', desc: 'NOT USED' }]
-        ]); */
-/*         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump' }],
-            [1, { name: 'vf', desc: 'Intelliflo VF' }],
-            [2, { name: 'ds', desc: 'Two-Speed' }],
-            [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
-            [128, { name: 'vs', desc: 'Intelliflo VS' }],
-            [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
-        ]); */
+        /*         this.valueMaps.virtualCircuits = new byteValueMap([
+                    [128, { name: 'solar', desc: 'Solar' }],
+                    [129, { name: 'heater', desc: 'Either Heater' }],
+                    [130, { name: 'poolHeater', desc: 'Pool Heater' }],
+                    [131, { name: 'spaHeater', desc: 'Spa Heater' }],
+                    [132, { name: 'freeze', desc: 'Freeze' }],
+                    [133, { name: 'heatBoost', desc: 'Heat Boost' }],
+                    [134, { name: 'heatEnable', desc: 'Heat Enable' }],
+                    [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
+                    [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
+                    [255, { name: 'notused', desc: 'NOT USED' }]
+                ]); */
+        /*         this.valueMaps.pumpTypes = new byteValueMap([
+                    [0, { name: 'none', desc: 'No pump' }],
+                    [1, { name: 'vf', desc: 'Intelliflo VF' }],
+                    [2, { name: 'ds', desc: 'Two-Speed' }],
+                    [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
+                    [128, { name: 'vs', desc: 'Intelliflo VS' }],
+                    [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
+                ]); */
         this.valueMaps.lightThemes = new byteValueMap([
             [0, { name: 'white', desc: 'White' }],
             [2, { name: 'lightgreen', desc: 'Light Green' }],
@@ -224,7 +229,70 @@ export class EasyTouchBoard extends SystemBoard {
             [0, { name: 'repeat', desc: 'Repeats' }],
             [128, { name: 'runonce', desc: 'Run Once' }]
         ]);
-        // RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
+        this.valueMaps.msgBroadcastActions.merge([
+            [5, { name: 'dateTime', desc: 'Date/Time' }],
+            [8, { name: 'heatTemp', desc: 'Heat/Temperature' }],
+            [10, { name: 'customNames', desc: 'Custom Names' }],
+            [11, { name: 'circuits', desc: 'Circuits' }],
+            [17, { name: 'schedules', desc: 'Schedules' }],
+            [22, { name: 'spaSideRemote', desc: 'Spa Side Remotes' }],
+            [23, { name: 'pumpStatus', desc: 'Pump Status' }],
+            [24, { name: 'pumpConfig', desc: 'Pump Config' }],
+            [25, { name: 'intellichlor', desc: 'IntelliChlor' }],
+            [29, { name: 'valves', desc: 'Valves' }],
+            [30, { name: 'highSpeedCircuits', desc: 'High Speed Circuits' }],
+            [32, { name: 'is4is10', desc: 'IS4/IS10' }],
+            [34, { name: 'solarHeatPump', desc: 'Solar Heat Pump' }],
+            [35, { name: 'delays', desc: 'Delays' }],
+            [39, { name: 'lightGroupPositions', desc: 'Light Group Positions' }],
+            [40, { name: 'settings', desc: 'Settings' }],
+            [41, { name: 'circuitGroups', desc: 'Circuit Groups' }],
+            [96, { name: 'setColor', desc: 'Set Color' }],
+            [114, { name: 'setHeatPump', desc: 'Heat Pump Status?' }],
+            [131, { name: 'setDelayCancel', desc: 'Set Delay Cancel' }],
+            [133, { name: 'setDateTime', desc: 'Set Date/Time' }],
+            [134, { name: 'setCircuit', desc: 'Set Circuit' }],
+            [136, { name: 'setHeatTemp', desc: 'Set Heat/Temperature' }],
+            [137, { name: 'setHeatPump', desc: 'Set heat pump?' }],
+            [138, { name: 'setCustomName', desc: 'Set Custom Name' }],
+            [139, { name: 'setCircuitNameFunc', desc: 'Set Circuit Name/Function' }],
+            [144, { name: 'setHeatPump2', desc: 'Set Heat Pump' }],
+            [145, { name: 'setSchedule', desc: 'Set Schedule' }],
+            [146, { name: 'setIntelliChem', desc: 'Set IntelliChem' }],
+            [147, { name: 'setIntelli?', desc: 'Set Intelli(?)' }],
+            [150, { name: 'setSpaSideRemote', desc: 'Set Intelliflow Spa Side Control' }],
+            [152, { name: 'setPumpConfig', desc: 'Set Pump Config' }],
+            [153, { name: 'setIntelliChlor', desc: 'Set IntelliChlor' }],
+            [155, { name: 'setPumpConfigExtended', desc: 'Set Pump Config (Extended)' }],
+            [157, { name: 'setValves', desc: 'Set Valves' }],
+            [158, { name: 'setHighSpeedCircuits', desc: 'Set High Speed Circuits for Valves' }], 
+            [160, { name: 'setIs4Is10', desc: 'Set is4/is10 Spa Side Remote' }],
+            [161, { name: 'setQuickTouch', desc: 'Set QuickTouch Spa Side Remote' }],
+            [162, { name: 'setSolarHeatPump', desc: 'Set Solar/Heat Pump' }],
+            [163, { name: 'setDelay', desc: 'Set Delay' }],
+            [167, { name: 'set', desc: 'Set Light Groups/Positions' }],
+            [168, { name: 'set', desc: 'Set Heat Mode' }],
+            [197, { name: 'dateTime', desc: 'Get Date/Time' }],
+            [200, { name: 'heatTemp', desc: 'Get Heat/Temperature' }],
+            [202, { name: 'customNames', desc: 'Get Custom Names' }],
+            [203, { name: 'circuits', desc: 'Get Circuits' }],
+            [209, { name: 'schedules', desc: 'Get Schedules' }],
+            [214, { name: 'spaSideRemote', desc: 'Get Spa Side Remotes' }],
+            [215, { name: 'pumpStatus', desc: 'Get Pump Status' }],
+            [216, { name: 'pumpConfig', desc: 'Get Pump Config' }],
+            [217, { name: 'intellichlor', desc: 'Get IntelliChlor' }],
+            [221, { name: 'valves', desc: 'Get Valves' }],
+            [222, { name: 'highSpeedCircuits', desc: 'Get High Speed Circuits' }],
+            [224, { name: 'is4is10', desc: 'Get IS4/IS10' }],
+            [226, { name: 'solarHeatPump', desc: 'Get Solar Heat Pump' }],
+            [227, { name: 'delays', desc: 'Get Delays' }],
+            [231, { name: 'lightGroupPositions', desc: 'Get Light Group Positions' }],
+            [232, { name: 'settings', desc: 'Get Settings' }],
+            [233, { name: 'circuitGroups', desc: 'Get Circuit Groups' }],
+            [252, { name: 'version', desc: 'Versions' }],
+            [253, { name: 'version', desc: 'Get Versions' }]
+        ]);
+        // TODO: RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
         this.valueMaps.scheduleDays.transform = function(byte) {
             let days = [];
             let b = byte & 0x007F;
@@ -234,6 +302,15 @@ export class EasyTouchBoard extends SystemBoard {
             return { val: b, days: days };
         };
         this.valueMaps.lightThemes.transform = function(byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.valueMaps.circuitNames.transform = function(byte){
+            if (byte < 200) {
+                return extend(true, {}, {val: byte}, this.get(byte));
+            }
+            else {
+                const customName = sys.customNames.getItemById(byte - 200);
+                return extend(true, {}, {val: byte, desc: customName.name, name: customName.name});
+            }
+        };
     }
     public bodies: TouchBodyCommands=new TouchBodyCommands(this);
     public system: TouchSystemCommands=new TouchSystemCommands(this);
@@ -250,8 +327,8 @@ export class EasyTouchBoard extends SystemBoard {
         if (ver && ver.lastUpdated && sys.configVersion.lastUpdated !== ver.lastUpdated) {
             sys.configVersion.lastUpdated = new Date(ver.lastUpdated);
         }
-       if (ver && ver.equipment && sys.configVersion.equipment !== ver.equipment) sys.configVersion.equipment = ver.equipment;
-            
+        if (ver && ver.equipment && sys.configVersion.equipment !== ver.equipment) sys.configVersion.equipment = ver.equipment;
+
         //this.needsConfigChanges = true;
         this.checkConfiguration();
     }
@@ -280,7 +357,7 @@ export class TouchConfigRequest extends ConfigRequest {
 }
 export class TouchConfigQueue extends ConfigQueue {
     protected _configQueueTimer: NodeJS.Timeout;
-    public clearTimer():void{clearTimeout(this._configQueueTimer);}
+    public clearTimer(): void { clearTimeout(this._configQueueTimer); }
     protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
@@ -598,11 +675,32 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public setCircuit(data: any){
-        // overwrite systemboard method here
+    public setCircuit(data: any) {
+        // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
+        // set circuit 17 to function 14 and name 209
+        // response: [255,0,255][165,33,34,16,1,1][139][1,133]
+        let circuit = sys.circuits.getInterfaceById(data.id);
+        let typeByte = data.type || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+        let nameByte = 3; // set default `Aux 1`
+        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+        else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
+        let out = Outbound.createMessage(139, [data.id, typeByte, nameByte], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [139], null, function(msg) {
+            if (msg && !msg.failed) {
+                let circuit = sys.circuits.getInterfaceById(data.id);
+                let cstate = state.circuits.getInterfaceById(data.id);
+                circuit.nameId = cstate.nameId = nameByte;
+                circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                circuit.type = cstate.type = typeByte;
+                state.emitEquipmentChanges();
+            }
+            // TODO: look into msg being null
+            else if (!msg) { console.log(`why are we getting no msg?`); }
+        }));
+        conn.queueSendMessage(out);
     }
-    public deleteCircuit(data: any){
-        // overwrite systemboard method here
+    public deleteCircuit(data: any) {
+        data.nameId = 0;
+        this.setCircuit(data);
     }
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
@@ -612,7 +710,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 state.emitEquipmentChanges();
             }
             // TODO: look into msg being null
-            else if (!msg){ console.log (`why are we getting no msg?`);}
+            else if (!msg) { console.log(`why are we getting no msg?`); }
         }));
         conn.queueSendMessage(out);
     }
@@ -664,14 +762,14 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         // if chlorinator is controlled by thas app; call super();
         let vc = sys.chlorinators.getItemById(1);
-        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
+        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (msg) => {
             // TODO: RG : should this call super.setChlor()?
             // or will the response take care of setting this anyway and CB is unnecessary?
             if (!msg.failed) {
-                super.setChlor(cstate, poolSetpoint, spaSetpoint,superChlorHours, superChlor);
+                super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
                 // state.emitEquipmentChanges(); // will be taken care of by super.
             }
         }));

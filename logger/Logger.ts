@@ -125,7 +125,7 @@ class Logger {
                 //console.log({ o: o, c: c, prop: prop });
                 c[prop] = o; // Stop here we are replacing the array.
             }
-            else if (typeof o == 'object') {
+            else if (typeof o === 'object') {
                 if (typeof c[prop] === 'undefined') c[prop] = {};
                 this.setOptions(o, c[prop]); // Use recursion here.  Harder to follow but much less code.
             }

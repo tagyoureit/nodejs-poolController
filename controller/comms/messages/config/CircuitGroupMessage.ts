@@ -87,6 +87,7 @@ export class CircuitGroupMessage {
             let group = sys.circuitGroups.getItemById(groupId, _isActive);
             let feature = sys.circuits.getInterfaceById(groupId);
             group.name = feature.name;
+            group.nameId = feature.nameId;
             group.type = 2; 
             group.isActive = _isActive;
             let circuits: CircuitGroupCircuitCollection = group.circuits;
@@ -113,6 +114,7 @@ export class CircuitGroupMessage {
             let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
             sgroup.type = group.type;
             sgroup.name = group.name;
+            sgroup.nameId = group.nameId;
         }
         else {
             sys.circuitGroups.removeItemById(groupId);

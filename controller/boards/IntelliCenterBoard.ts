@@ -5,7 +5,7 @@ import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitG
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, LightGroupState } from '../State';
+import { state, ChlorinatorState, LightGroupState, VirtualCircuitState } from '../State';
 import { REPLServer } from 'repl';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;

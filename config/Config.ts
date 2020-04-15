@@ -20,7 +20,10 @@ class Config {
                 .readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8")
                 .trim()
         );
-        this._cfg = extend(true, {}, def, this._cfg);
+        const packageJson = JSON.parse(fs
+            .readFileSync(path.join(process.cwd(), "/package.json"), "utf8")
+            .trim());
+        this._cfg = extend(true, {}, def, this._cfg, {appVersion: packageJson.version});
     }
     public update() {
         // Don't overwrite the configuration if we failed during the initialization.

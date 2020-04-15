@@ -204,10 +204,10 @@ export class PoolSystem implements IPoolSystem {
             logger.info(`SKIPPING persist equipment because it is empty!`);
             return;
         }
+        sys.emitEquipmentChange();
         Promise.resolve()
             .then(() => { fs.writeFileSync(sys.cfgPath, JSON.stringify(sys.data, undefined, 2)); })
             .catch(function(err) { if (err) logger.error('Error writing pool config %s %s', err, sys.cfgPath); });
-        sys.emitEquipmentChange();
     }
     protected onchange=(obj, fn) => {
         const handler = {
@@ -774,6 +774,8 @@ export class Circuit extends EqItem implements ICircuit {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get type(): number { return this.data.type; }
     public set type(val: number) { this.setDataVal('type', val); }
     // RG - remove this after I figure out what a macro means
@@ -814,6 +816,8 @@ export class Feature extends EqItem implements ICircuit {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get type(): number { return this.data.type; }
     public set type(val: number) { this.setDataVal('type', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -833,6 +837,7 @@ export interface ICircuitCollection {
 export interface ICircuit {
     id: number;
     name: string;
+    nameId?: number;
     type: number;
     eggTimer: number;
     freeze?: boolean;
@@ -1123,6 +1128,7 @@ export interface ICircuitGroup {
     id: number;
     type: number;
     name: string;
+    nameId?: number;
     eggTimer: number;
     isActive: boolean;
     lightingTheme?: number;
@@ -1192,6 +1198,8 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get type(): number { return this.data.type; }
     public set type(val: number) { this.setDataVal('type', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1263,6 +1271,8 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get nameId(): number { return this.data.nameId; }
+    public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get type(): number { return this.data.type; }
     public set type(val: number) { this.setDataVal('type', val); }
     public get isActive(): boolean { return this.data.isActive; }

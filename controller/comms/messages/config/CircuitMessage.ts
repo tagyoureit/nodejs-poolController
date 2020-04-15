@@ -194,10 +194,10 @@ export class CircuitMessage {
             const nameId = msg.extractPayloadByte(2);
             const _isActive = functionId !== 19 && nameId !== 0;
             if (_isActive) {
-                const name = sys.board.circuits.getNameById(nameId);
                 const type = functionId & 63;
                 let circuit: ICircuit = sys.circuits.getInterfaceById(id, _isActive);
-                circuit.name = name;
+                circuit.name = sys.board.circuits.getNameById(nameId);
+                circuit.nameId = nameId;
                 circuit.type = type;
                 circuit.isActive = _isActive;
                 circuit.freeze = (functionId & 64) === 64;

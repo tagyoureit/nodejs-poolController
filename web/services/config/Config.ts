@@ -1,7 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
 import {sys, LightGroup, ControllerType, Pump} from "../../../controller/Equipment";
-import {read} from "fs";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -138,17 +137,20 @@ export class ConfigRoute {
             else
                 return res.status(500).send({ result: 'Error', reason: 'Unknown' });
         });
-        app.delete('/config/circuit', (req, res) => {
-            // add/update a circuit
+        app.delete('/config/circuit', (req, res)=>{
+            // delete a circuit
+
+            // deleteCircuit and setCircuit can prob be combined...
             sys.board.circuits.deleteCircuit(req.body);
-            if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
-                return res.status(500).send({ result: 'Error', reason: 'Unknown' });
-            else
-                return res.status(200).send('OK');
+            // RG: this was throwing a 500 error because we are waiting for the controller to respond
+            // and this code is executing before we get the response
+            // change to a callback(?)
+            // if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
+            // return res.status(500).send({result: 'Error', reason: 'Unknown'});
+            // else
+            return res.status(200).send('OK');
         });
-
-
-        app.get('/config/features/names', (req, res)=>{
+        app.get('/config/circuits/names', (req, res)=>{
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });

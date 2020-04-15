@@ -581,6 +581,7 @@ export class EquipmentStateMessage {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circuit.name;
+                    cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
                     if (cstate.isOn && circuitId === 6) body = 6;
@@ -627,6 +628,7 @@ export class EquipmentStateMessage {
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circ.name;
                     cstate.type = circ.type;
+                    cstate.nameId = circ.nameId;
                 }
                 circId++;
             }

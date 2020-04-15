@@ -15,7 +15,7 @@ export class StateRoute {
             return res.status(200).send(pump.getExtended());
         });
         app.put('/state/circuit/setState', (req, res) => {
-            console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`)
+            console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`);
             state.circuits.setCircuitState(parseInt(req.body.id, 10), req.body.state);
             return res.status(200).send('OK');
         });

@@ -268,6 +268,7 @@ export class byteValueMaps {
         [2, { name: 'aquarite', desc: 'Aquarite' }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
+    public customNames: byteValueMap=new byteValueMap();
     public circuitNames: byteValueMap=new byteValueMap();
     public scheduleTypes: byteValueMap=new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once' }],
@@ -958,7 +959,6 @@ export class CircuitCommands extends BoardCommands {
                 cstate.isOn = bState;
                 cstate.type = vc.val;
                 cstate.name = vc.desc;
-    
             }
         }
     }
@@ -1021,15 +1021,16 @@ export class CircuitCommands extends BoardCommands {
         let circuits = sys.circuits.get();
         let arrRefs = [];
         for (let i = 0; i < circuits.length; i++) {
-            let c = circuits[i]
+            let c = circuits[i];
             let type = sys.board.valueMaps.circuitFunctions.transform(c.type);
-            if(type.isLight) arrRefs.push({ id: c.id, name: c.name, type:c.type, equipmentType: 'circuit', nameId: c.nameId });
+            if (type.isLight) arrRefs.push({ id: c.id, name: c.name, type:c.type, equipmentType: 'circuit', nameId: c.nameId });
         }
         return arrRefs;
     }
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
-    public getCircuitNames() { return extend(true, [], sys.board.valueMaps.circuitNames.toArray(), sys.customNames.get()); }
+    public getCircuitNames() { 
+        return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
     public setCircuit(data: any) { 
         if (!sys.board.equipmentIds.features.isInRange(data.id) || data.id === 6) return;
         if (typeof data.id !== 'undefined'){
@@ -1037,7 +1038,11 @@ export class CircuitCommands extends BoardCommands {
             let scircuit = state.circuits.getInterfaceById(data.id, true);
             circuit.isActive = true;
             scircuit.isOn = false;
-            if (data.name) circuit.name = scircuit.name = data.name;
+            if (data.nameId) {
+                circuit.nameId = scircuit.nameId = data.nameId;
+                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId)
+            }
+            else if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
             if (typeof data.type !== 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10);
             else if (!circuit.type && typeof data.type !== 'undefined') circuit.type = scircuit.type = 0;
