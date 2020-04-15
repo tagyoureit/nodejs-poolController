@@ -568,16 +568,6 @@ export class PumpState extends EqState {
 }
 export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
     public createItem(data: any): ScheduleState { return new ScheduleState(data); }
-    public getExtended(){
-        // operate on a copy
-        let scheduleColl = this.get(true);
-        let schedColl = [];
-        for (let i = 0; i < scheduleColl.length; i++){
-            let sched = scheduleColl[i].getItemByIndex(i).get(true);
-            schedColl.push(sched);
-        }
-        schedColl.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; });
-    }
 }
 export class ScheduleState extends EqState {
     constructor(data: any, dataName?: string) {
