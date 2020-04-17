@@ -7,6 +7,7 @@ import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState } from '../State';
 import { REPLServer } from 'repl';
+import { utils } from '../../controller/Constants';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -978,8 +979,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             arrOut[1].payload[i + 3] = circuit ? circuit.color || 0 : 255;
             arrOut[2].payload[i + 3] = circuit ? circuit.color || 0 : 0;
         }
-        arrOut[arrOut.length - 1].onSuccess = (msg) => {
+        arrOut[arrOut.length - 1].onSuccess = (msg:Outbound) => {
             if (!msg.failed) {
+                
                 grp.circuits.clear();
                 for (let i = 0; i < group.circuits.length; i++) {
                     let circuit = group.circuits.getItemByIndex(i);
@@ -1316,6 +1318,74 @@ class IntelliCenterPumpCommands extends PumpCommands {
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {
+    public async setBody(body: Body, obj?: any) {
+        let arr = [];
+        let byte = 0;
+        switch (body.id) {
+            case 1:
+                byte = 0;
+                break;
+            case 2:
+                byte = 2;
+                break;
+            case 3:
+                byte = 1;
+                break;
+            case 4:
+                byte = 3;
+                break;
+        }
+        if (typeof obj !== 'undefined') {
+            if (typeof obj.name === 'string' && obj.name !== body.name) {
+                arr.push(new Promise(function (resolve, reject) {
+                    let out = Outbound.create({
+                        action: 168,
+                        payload: [13, 0, byte],
+                        onComplete: (msg, err) => {
+                            if (err) reject(err);
+                            else { body.name = obj.name; resolve(); }
+                        }
+                    });
+                    out.appendPayloadString(obj.name, 16);
+                    conn.queueSendMessage(out);
+                }));
+            }
+            if (typeof obj.capacity !== 'undefined') {
+                let cap = parseInt(obj.capacity, 10);
+                if (cap !== body.capacity) {
+                    arr.push(new Promise(function (resolve, reject) {
+                        let out = Outbound.create({
+                            action: 168,
+                            payload: [13, 0, byte + 4, Math.floor(cap / 1000)],
+                            onComplete: (msg, err) => {
+                                if (err) reject(err);
+                                else { body.capacity = cap; resolve(); }
+                            }
+                        });
+                        conn.queueSendMessage(out);
+                    }));
+                }
+            }
+            if (typeof obj.manualHeat !== 'undefined') {
+                let manHeat = utils.makeBool(obj.manualHeat);
+                if (manHeat !== body.manualHeat) {
+                    arr.push(new Promise(function (resolve, reject) {
+                        let out = Outbound.create({
+                            action: 168,
+                            payload: [13, 0, byte + 8, manHeat ? 1 : 0],
+                            onComplete: (msg, err) => {
+                                if (err) reject(err);
+                                else { body.manualHeat = manHeat; resolve(); }
+                            }
+                        });
+                        conn.queueSendMessage(out);
+                    }));
+                }
+            }
+        }
+        return Promise.all(arr);
+    }
+
     public setHeatMode(body: Body, mode: number) {
         const self = this;
         let byte2 = 18;
@@ -1472,9 +1542,11 @@ class IntelliCenterValveCommands extends ValveCommands {
                         valve.name = v.name;
                         valve.circuit = v.circuit;
                         valve.type = v.type;
+                        resolve(valve.get(true));
                     }
                 }
             }).appendPayloadString(v.name, 16);
+            conn.queueSendMessage(out);
         });
     }
 }

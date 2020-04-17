@@ -519,6 +519,14 @@ export class SystemCommands extends BoardCommands {
    
 }
 export class BodyCommands extends BoardCommands {
+    public async setBody(body: Body, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in body)
+                if (typeof obj[s] !== 'undefined')
+                    body[s] = obj[s];
+        }
+        return new Promise(function (resolve, reject) { resolve(); });
+    }
     public setHeatMode(body: Body, mode: number) { }
     public setHeatSetpoint(body: Body, setPoint: number) { }
     public getHeatModes(bodyId: number) {

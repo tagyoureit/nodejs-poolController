@@ -421,10 +421,10 @@ export class Outbound extends Message {
     public retries: number=0;
     public timeout: number=1000;
     public response: Response;
-    public failed: boolean=false;
-    public onSuccess: (msg) => void;
-    public onError: (msg, error) => void;
-    public onComplete: (msg, error?) => void;
+    public failed: boolean = false;
+    public onSuccess: (msg: Outbound) => void;
+    public onError: (msg:Outbound, error) => void;
+    public onComplete: (msg:Outbound, error?) => void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }

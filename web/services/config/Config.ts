@@ -129,6 +129,17 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/body/:id', async (req, res, next) => {
+            // Change the body attributes.
+            try {
+                let body = sys.bodies.getItemById(parseInt(req.params.id, 10));
+                await sys.board.bodies.setBody(body, req.body);
+                return res.status(200).send(body.get());
+            }
+            catch (err) { next(err); }
+        });
+
+
         app.put('/config/circuit', (req, res) => {
             // add/update a circuit
             sys.board.circuits.setCircuit(req.body);
