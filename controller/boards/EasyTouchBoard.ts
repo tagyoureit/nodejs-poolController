@@ -15,10 +15,10 @@ export class EasyTouchBoard extends SystemBoard {
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() { return this.start + sys.equipment.maxCircuitGroups - 1; });
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.customNames = new byteValueMap(
-            sys.customNames.get().map((el, idx)=>{
-                return [idx + 200, {name: el.name, desc: el.name}];
+            sys.customNames.get().map((el, idx) => {
+                return [idx + 200, { name: el.name, desc: el.name }];
             })
-         );
+        );
         this.valueMaps.circuitNames = new byteValueMap([
             [0, { name: 'notused', desc: 'Not Used' }],
             [1, { name: 'aerator', desc: 'Aerator' }],
@@ -265,7 +265,7 @@ export class EasyTouchBoard extends SystemBoard {
             [153, { name: 'setIntelliChlor', desc: 'Set IntelliChlor' }],
             [155, { name: 'setPumpConfigExtended', desc: 'Set Pump Config (Extended)' }],
             [157, { name: 'setValves', desc: 'Set Valves' }],
-            [158, { name: 'setHighSpeedCircuits', desc: 'Set High Speed Circuits for Valves' }], 
+            [158, { name: 'setHighSpeedCircuits', desc: 'Set High Speed Circuits for Valves' }],
             [160, { name: 'setIs4Is10', desc: 'Set is4/is10 Spa Side Remote' }],
             [161, { name: 'setQuickTouch', desc: 'Set QuickTouch Spa Side Remote' }],
             [162, { name: 'setSolarHeatPump', desc: 'Set Solar/Heat Pump' }],
@@ -302,13 +302,13 @@ export class EasyTouchBoard extends SystemBoard {
             return { val: b, days: days };
         };
         this.valueMaps.lightThemes.transform = function(byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
-        this.valueMaps.circuitNames.transform = function(byte){
+        this.valueMaps.circuitNames.transform = function(byte) {
             if (byte < 200) {
-                return extend(true, {}, {val: byte}, this.get(byte));
+                return extend(true, {}, { val: byte }, this.get(byte));
             }
             else {
                 const customName = sys.customNames.getItemById(byte - 200);
-                return extend(true, {}, {val: byte, desc: customName.name, name: customName.name});
+                return extend(true, {}, { val: byte, desc: customName.name, name: customName.name });
             }
         };
     }
@@ -725,6 +725,28 @@ class TouchCircuitCommands extends CircuitCommands {
         }));
         conn.queueSendMessage(out);
     }
+    /*     public async setCircuitState(id: number, val: boolean) {
+            let cstate = state.circuits.getInterfaceById(id);
+            return new Promise(function(resolve, reject) {
+                let out = Outbound.create({
+                    action: 134,
+                    payload: [id, val ? 1 : 0],
+                    retries: 3,
+                    response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
+                        if (msg && !msg.failed) {
+                            cstate.isOn = val ? true : false;
+                            resolve(cstate.get(true));
+                            //state.emitEquipmentChanges(); // still needed?
+                        }
+                        else {
+                            reject('message failed');
+                        }
+                    }),
+                    onError: err => reject(err)
+                });
+                conn.queueSendMessage(out);
+            });
+        } */
     public toggleCircuitState(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         this.setCircuitState(id, !cstate.isOn);
