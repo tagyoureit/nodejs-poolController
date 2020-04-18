@@ -84,6 +84,7 @@ export class ConfigRoute {
         });
         app.get('/config/options/valves', (req, res) => {
             let opts = {
+                maxValves: sys.equipment.maxValves,
                 valveTypes: sys.board.valueMaps.valveTypes.toArray(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, true),
                 valves: sys.valves.get()
@@ -102,6 +103,7 @@ export class ConfigRoute {
         });
         app.get('/config/options/schedules', (req, res) => {
             let opts = {
+                maxSchedules: sys.equipment.maxSchedules,
                 scheduleTimeTypes: sys.board.valueMaps.scheduleTimeTypes.toArray(),
                 scheduleTypes: sys.board.valueMaps.scheduleTypes.toArray(),
                 scheduleDays: sys.board.valueMaps.scheduleDays.toArray(),
