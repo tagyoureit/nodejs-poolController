@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import {sys, LightGroup, ControllerType, Pump} from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -120,35 +120,31 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/config/valve/:id', async(req, res, next) => {
+        app.put('/config/valve', async(req, res, next) => {
             // Update a valve.
             try {
-                let valve = sys.valves.getItemById(parseInt(req.params.id, 10));
-                await sys.board.valves.setValve(valve, req.body);
-                return res.status(200).send(valve.get(true));
+                let valve = await sys.board.valves.setValve(req.body);
+                return res.status(200).send((valve as Valve).get(true));
             }
             catch (err) { next(err); }
         });
-        app.put('/config/body/:id', async (req, res, next) => {
+        app.put('/config/body', async (req, res, next) => {
             // Change the body attributes.
             try {
-                let body = sys.bodies.getItemById(parseInt(req.params.id, 10));
-                await sys.board.bodies.setBody(body, req.body);
-                return res.status(200).send(body.get());
+                let body = await sys.board.bodies.setBody(req.body);
+                return res.status(200).send((body as Body).get(true));
             }
             catch (err) { next(err); }
         });
-
-
-        app.put('/config/circuit', (req, res) => {
+        app.put('/config/circuit', async (req, res, next) => {
             // add/update a circuit
-            sys.board.circuits.setCircuit(req.body);
-            if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
-                return res.status(200).send();
-            else
-                return res.status(500).send({ result: 'Error', reason: 'Unknown' });
+            try {
+                let circuit = await sys.board.circuits.setCircuit(req.body);
+                return res.status(200).send((circuit as ICircuit).get(true));
+            }
+            catch (err) { next(err); }
         });
-        app.delete('/config/circuit', (req, res)=>{
+        app.delete('/config/circuit', (req, res) => {
             // delete a circuit
 
             // deleteCircuit and setCircuit can prob be combined...

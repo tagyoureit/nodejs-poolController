@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState } from '../State';
 import { Outbound, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -453,40 +453,40 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = 0; }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-    public async setGeneral(obj: any) {
+    public async setGeneral(obj: any): Promise<General | string> {
         let general = sys.general.get();
         if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
         if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
         if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
-        return new Promise(function (resolve, reject) { resolve(); });
+        return new Promise<General | string>(function (resolve, reject) { resolve(sys.general); });
     }
-    public async setOptions(obj: any) {
+    public async setOptions(obj: any): Promise<Options | string> {
         let opts = sys.general.options;
         if (typeof obj !== undefined) {
             for (var s in opts)
                 if (typeof obj[s] !== 'undefined')
                     opts[s] = obj[s];
         }
-        return new Promise(function (resolve, reject) { resolve(); });
+        return new Promise<Options | string>(function (resolve, reject) { resolve(sys.general.options); });
     }
-    public async setLocation(obj: any) {
+    public async setLocation(obj: any) : Promise<Location | string> {
         let loc = sys.general.location;
         if (typeof obj !== undefined) {
             for (var s in loc)
                 if (typeof obj[s] !== 'undefined')
                     loc[s] = obj[s];
         }
-        return new Promise(function (resolve, reject) { resolve(); });
+        return new Promise<Location | string>(function (resolve, reject) { resolve(sys.general.location); });
     }
-    public async setOwner(obj: any) {
+    public async setOwner(obj: any) : Promise<Owner | string> {
         let owner = sys.general.owner;
         if (typeof obj !== undefined) {
             for (var s in owner)
                 if (typeof obj[s] !== 'undefined')
                     owner[s] = obj[s];
         }
-        return new Promise(function (resolve, reject) { resolve(); });
+        return new Promise<Owner | string>(function (resolve, reject) { resolve(sys.general.owner); });
     }
     public getSensors() {
         let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
@@ -519,13 +519,17 @@ export class SystemCommands extends BoardCommands {
    
 }
 export class BodyCommands extends BoardCommands {
-    public async setBody(body: Body, obj?: any) {
-        if (typeof obj !== undefined) {
+    public async setBody(obj: any): Promise<Body | string> {
+        return new Promise<Body | string>(function (resolve, reject) {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) reject('Body Id has not been defined')
+            let body = sys.bodies.getItemById(id, false);
             for (var s in body)
-                if (typeof obj[s] !== 'undefined')
-                    body[s] = obj[s];
-        }
-        return new Promise(function (resolve, reject) { resolve(); });
+                body[s] = obj[s];
+            resolve(body);
+        });
+
+
     }
     public setHeatMode(body: Body, mode: number) { }
     public setHeatSetpoint(body: Body, setPoint: number) { }
@@ -1038,10 +1042,15 @@ export class CircuitCommands extends BoardCommands {
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
     public getCircuitNames() { 
-        return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
-    public setCircuit(data: any) { 
+        return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
+    }
+    public async setCircuit(data: any): Promise<ICircuit | string> { 
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid circuit id: ${data.id}`);
+        if (id === 6) throw new Error('You may not set the pool circuit');
+
         if (!sys.board.equipmentIds.features.isInRange(data.id) || data.id === 6) return;
-        if (typeof data.id !== 'undefined'){
+        if (typeof data.id !== 'undefined') {
             let circuit = sys.circuits.getInterfaceById(data.id, true);
             let scircuit = state.circuits.getInterfaceById(data.id, true);
             circuit.isActive = true;
@@ -1057,7 +1066,10 @@ export class CircuitCommands extends BoardCommands {
             if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
             if (typeof data.showInFeatures !== 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
+            return new Promise<ICircuit | string>((resolve, reject) => { resolve(circuit); });
         }
+        else
+            throw new Error('Circuit id has not been defined');
     }
     public deleteCircuit(data: any){
         if (typeof data.id !== 'undefined'){
@@ -1248,13 +1260,15 @@ export class HeaterCommands extends BoardCommands {
     public updateHeaterServices(heater: Heater) { }
 }
 export class ValveCommands extends BoardCommands {
-    public setValve(valve: Valve, obj?: any, callback?: Function) {
-        if (typeof obj !== undefined) {
+    public async setValve(obj: any): Promise<Valve | Error> {
+        return new Promise<Valve>(function (resolve, reject) {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) reject('Valve Id has not been defined')
+            let valve = sys.valves.getItemById(id, false);
             for (var s in obj)
                 valve[s] = obj[s];
-        }
-        
-        if (typeof callback === 'function') callback();
+            resolve(valve);
+        });
     }
 }
 

@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve } from '../Equipment';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -539,27 +539,26 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 
 }
 class IntelliCenterSystemCommands extends SystemCommands {
-    public async setGeneral(obj?: any) {
-        let arr = [];
-        if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
-            arr.push(new Promise(function (resolve, reject) {
+    public async setGeneral(obj?: any): Promise<General | string> {
+        return new Promise<General | string>(async (resolve, reject) => {
+            if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
                 let out = Outbound.create({
                     action: 168,
                     payload: [12, 0, 0],
                     onComplete: (msg, err) => {
-                        if (err) reject(err);
-                        else { sys.general.alias = obj.alias; resolve(); }
+                        if (err) throw new Error(err);
+                        else { sys.general.alias = obj.alias; }
                     }
                 }).appendPayloadString(obj.alias, 16);
                 conn.queueSendMessage(out);
-            }));
-        }
-        if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
-        if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
-        if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
-        return Promise.all(arr);
+            }
+            if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options).catch(err => { throw new Error(err) });
+            if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
+            if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
+            resolve(sys.general);
+        });
     }
-    public async setOptions(obj?: any) {
+    public async setOptions(obj?: any) : Promise<Options | string> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : num || 0; }
         let payload = [0, 0, 0,
             fnToByte(sys.general.options.waterTempAdj2),
@@ -762,9 +761,12 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return Promise.all(arr);
+        return new Promise<Options | string>(async (resolve, reject) => {
+            await Promise.all(arr).catch(err => reject(err));
+            resolve(sys.general.options);
+        });
     }
-    public async setLocation(obj?: any) {
+    public async setLocation(obj?: any): Promise<Location | string> {
         let arr = [];
         if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
             arr.push(new Promise(function (resolve, reject) {
@@ -882,9 +884,12 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return Promise.all(arr);
+        return new Promise<Location | string>(async (reject, resolve) => {
+            await Promise.all(arr).catch(err => reject(err));
+            resolve(sys.general.location);
+        });
     }
-    public async setOwner(obj?: any) {
+    public async setOwner(obj?: any) : Promise<Owner | string> {
         let arr = [];
         if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
             arr.push(new Promise(function (resolve, reject) {
@@ -956,14 +961,17 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return Promise.all(arr);
+        return new Promise<Owner | string>(async (resolve, reject) => {
+            await Promise.all(arr).catch(err => reject(err));
+            resolve(sys.general.owner);
+        });
     }
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
-    public setCircuit(data: any){
+    public async setCircuit(data: any): Promise<ICircuit | string> {
         // overwrite systemboard method here
-
+        return Promise.resolve(sys.circuits.getItemById(data.id));
     }
     public deleteCircuit(data: any){
         // overwrite systemboard method here
@@ -1318,9 +1326,12 @@ class IntelliCenterPumpCommands extends PumpCommands {
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {
-    public async setBody(body: Body, obj?: any) {
+    public async setBody(obj: any): Promise<Body | string> {
         let arr = [];
         let byte = 0;
+        let id = parseInt(obj.id, 10);
+        if (isNaN) throw new Error('Body Id is not defined');
+        let body = sys.bodies.getItemById(id, false);
         switch (body.id) {
             case 1:
                 byte = 0;
@@ -1335,55 +1346,56 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 byte = 3;
                 break;
         }
-        if (typeof obj !== 'undefined') {
-            if (typeof obj.name === 'string' && obj.name !== body.name) {
+        if (typeof obj.name === 'string' && obj.name !== body.name) {
+            arr.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [13, 0, byte],
+                    onComplete: (msg, err) => {
+                        if (err) reject(err);
+                        else { body.name = obj.name; resolve(); }
+                    }
+                });
+                out.appendPayloadString(obj.name, 16);
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.capacity !== 'undefined') {
+            let cap = parseInt(obj.capacity, 10);
+            if (cap !== body.capacity) {
                 arr.push(new Promise(function (resolve, reject) {
                     let out = Outbound.create({
                         action: 168,
-                        payload: [13, 0, byte],
+                        payload: [13, 0, byte + 4, Math.floor(cap / 1000)],
                         onComplete: (msg, err) => {
                             if (err) reject(err);
-                            else { body.name = obj.name; resolve(); }
+                            else { body.capacity = cap; resolve(); }
                         }
                     });
-                    out.appendPayloadString(obj.name, 16);
                     conn.queueSendMessage(out);
                 }));
             }
-            if (typeof obj.capacity !== 'undefined') {
-                let cap = parseInt(obj.capacity, 10);
-                if (cap !== body.capacity) {
-                    arr.push(new Promise(function (resolve, reject) {
-                        let out = Outbound.create({
-                            action: 168,
-                            payload: [13, 0, byte + 4, Math.floor(cap / 1000)],
-                            onComplete: (msg, err) => {
-                                if (err) reject(err);
-                                else { body.capacity = cap; resolve(); }
-                            }
-                        });
-                        conn.queueSendMessage(out);
-                    }));
-                }
-            }
-            if (typeof obj.manualHeat !== 'undefined') {
-                let manHeat = utils.makeBool(obj.manualHeat);
-                if (manHeat !== body.manualHeat) {
-                    arr.push(new Promise(function (resolve, reject) {
-                        let out = Outbound.create({
-                            action: 168,
-                            payload: [13, 0, byte + 8, manHeat ? 1 : 0],
-                            onComplete: (msg, err) => {
-                                if (err) reject(err);
-                                else { body.manualHeat = manHeat; resolve(); }
-                            }
-                        });
-                        conn.queueSendMessage(out);
-                    }));
-                }
+        }
+        if (typeof obj.manualHeat !== 'undefined') {
+            let manHeat = utils.makeBool(obj.manualHeat);
+            if (manHeat !== body.manualHeat) {
+                arr.push(new Promise(function (resolve, reject) {
+                    let out = Outbound.create({
+                        action: 168,
+                        payload: [13, 0, byte + 8, manHeat ? 1 : 0],
+                        onComplete: (msg, err) => {
+                            if (err) reject(err);
+                            else { body.manualHeat = manHeat; resolve(); }
+                        }
+                    });
+                    conn.queueSendMessage(out);
+                }));
             }
         }
-        return Promise.all(arr);
+        return new Promise<Body | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(body);
+        });
     }
 
     public setHeatMode(body: Body, mode: number) {
@@ -1526,13 +1538,16 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     }
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public async setValve(valve: Valve, obj?: any) {
+    public async setValve(obj?: any) : Promise<Valve | Error> {
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
-        let v = extend(true, valve.get(true), obj);
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
         // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
-        return new Promise(function (resolve, reject) {
+        return new Promise<Valve>(function (resolve, reject) {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) reject('Valve Id has not been defined')
+            let valve = sys.valves.getItemById(id);
+            let v = extend(true, valve.get(true), obj);
             let out = Outbound.create({
                 action: 168,
                 payload: [9, 0, v.id - 1, v.circuit - 1],
@@ -1542,7 +1557,7 @@ class IntelliCenterValveCommands extends ValveCommands {
                         valve.name = v.name;
                         valve.circuit = v.circuit;
                         valve.type = v.type;
-                        resolve(valve.get(true));
+                        resolve(valve);
                     }
                 }
             }).appendPayloadString(v.name, 16);

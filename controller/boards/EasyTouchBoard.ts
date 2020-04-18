@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State } from '../State';
 import { logger } from '../../logger/Logger';
@@ -675,7 +675,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public setCircuit(data: any) {
+    public async setCircuit(data: any): Promise<ICircuit | string> {
         // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
         // set circuit 17 to function 14 and name 209
         // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -684,19 +684,30 @@ class TouchCircuitCommands extends CircuitCommands {
         let nameByte = 3; // set default `Aux 1`
         if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
         else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-        let out = Outbound.createMessage(139, [data.id, typeByte, nameByte], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [139], null, function(msg) {
-            if (msg && !msg.failed) {
-                let circuit = sys.circuits.getInterfaceById(data.id);
-                let cstate = state.circuits.getInterfaceById(data.id);
-                circuit.nameId = cstate.nameId = nameByte;
-                circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                circuit.type = cstate.type = typeByte;
-                state.emitEquipmentChanges();
-            }
-            // TODO: look into msg being null
-            else if (!msg) { console.log(`why are we getting no msg?`); }
-        }));
-        conn.queueSendMessage(out);
+        return new Promise<ICircuit | string>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 39,
+                payload: [data.id, typeByte, nameByte],
+                retries: 3,
+                response: Response.create({ action: 1, payload: [139],
+                    callback: function (msg) {
+                        if (msg && !msg.failed) {
+                            let circuit = sys.circuits.getInterfaceById(data.id);
+                            let cstate = state.circuits.getInterfaceById(data.id);
+                            circuit.nameId = cstate.nameId = nameByte;
+                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                            circuit.type = cstate.type = typeByte;
+                            state.emitEquipmentChanges();
+                            resolve(circuit);
+                        }
+                        // TODO: look into msg being null
+                        else if (!msg) { console.log(`why are we getting no msg?`); reject('Response message is not returned'); }
+                        else reject('Error setting circuit');
+                    }
+                })
+            });
+            conn.queueSendMessage(out);
+        });
     }
     public deleteCircuit(data: any) {
         data.nameId = 0;

@@ -847,7 +847,7 @@ export interface ICircuit {
     // RG - remove this after I figure out what macros are
     macro?: boolean;
     getLightThemes?: () => {};
-
+    get(copy?: boolean);
 }
 /* export class VirtualPumpControllerCollection extends EqItemCollection<VirtualPumpController> {
     constructor(data: any, name?: string) { super(data, name || "virtualPumpController"); }
@@ -1132,7 +1132,8 @@ export interface ICircuitGroup {
     eggTimer: number;
     isActive: boolean;
     lightingTheme?: number;
-    circuits: LightGroupCircuitCollection|CircuitGroupCircuitCollection;
+    circuits: LightGroupCircuitCollection | CircuitGroupCircuitCollection;
+    get(copy?: boolean);
 }
 export class LightGroupCollection extends EqItemCollection<LightGroup> {
     constructor(data: any, name?: string) { super(data, name || "lightGroups"); }

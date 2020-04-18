@@ -515,6 +515,12 @@ export class Response extends Message {
         if (typeof ack !== 'undefined' && ack !== null) this.ack = new Ack(ack);
         this.callback = callback;
     }
+    public static create(obj?: any) {
+        let res = new Response(obj.protocol || Protocol.Broadcast,
+            obj.source || Message.pluginAddress, obj.dest || 16, obj.action || 0, obj.payload || [], obj.ack, obj.callback);
+        return res;
+    }
+
     // Factory
     public static createResponse(action: number, payload: number[]): Response {
         return new Response(Protocol.Broadcast, 15, Message.pluginAddress, action, payload);
