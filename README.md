@@ -68,6 +68,7 @@ Extend nodejs-Poolcontroller with these additional integration points
 * [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
+* [Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo
 
 ***
 
