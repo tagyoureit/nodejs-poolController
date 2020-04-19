@@ -145,15 +145,19 @@ module.exports = function (container) {
 
             servers['mdns'].on('response', function (response) {
                 //container.logger.silly('got a response packet:', response)
-                mdns.query.forEach(function (mdnsname) {
-                    container.logger.silly('looking to match on ', mdnsname)
-                    if (response.answers[0].name.includes(mdnsname)) {
-                        // container.logger.silly('TXT data:', response.additionals[0].data.toString())
-                        // container.logger.silly('SRV data:', JSON.stringify(response.additionals[1].data))
-                        // container.logger.silly('IP Address:', response.additionals[2].data)
-                        mdnsEmitter.emit('response', response)
-                    }
-                })
+                try {
+                    mdns.query.forEach(function (mdnsname) {
+                        container.logger.silly('looking to match on ', mdnsname)
+                        if (response.answers[0].name.includes(mdnsname)) {
+                            // container.logger.silly('TXT data:', response.additionals[0].data.toString())
+                            // container.logger.silly('SRV data:', JSON.stringify(response.additionals[1].data))
+                            // container.logger.silly('IP Address:', response.additionals[2].data)
+                            mdnsEmitter.emit('response', response)
+                        }
+                    })
+                catch (err) {
+                    container.logger.error(`ignoring error: ${err}`);
+                }
             })
 
             servers['mdns'].on('query', function (query) {
