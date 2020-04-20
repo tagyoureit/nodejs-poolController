@@ -155,6 +155,7 @@ module.exports = function (container) {
                             mdnsEmitter.emit('response', response)
                         }
                     })
+                }
                 catch (err) {
                     container.logger.error(`ignoring error: ${err}`);
                 }
