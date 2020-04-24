@@ -58,9 +58,11 @@ export class FeatureMessage {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
             let featureId = i + sys.board.equipmentIds.features.start - 1;
             let feature: Feature = sys.features.getItemById(featureId);
-            feature.type = msg.extractPayloadByte(i + 1);
-            let sFeature = state.features.getItemById(featureId);
-            sFeature.type = feature.type;
+            if (feature.isActive) {
+                feature.type = msg.extractPayloadByte(i + 1);
+                let sFeature = state.features.getItemById(featureId);
+                sFeature.type = feature.type;
+            }
         }
     }
     private static processFreezeProtect(msg: Inbound) {

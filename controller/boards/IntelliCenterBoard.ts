@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit } from '../Equipment';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -14,7 +14,7 @@ export class IntelliCenterBoard extends SystemBoard {
         super(system);
         this._modulesAcquired = false; // Set us up so that we can wait for a 2 and a 204.
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
-        this.equipmentIds.features = new EquipmentIdRange(function () { return sys.equipment.maxCircuits + 1; }, function () { return this.start + sys.equipment.maxFeatures + 3; });
+        this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; });
         this.equipmentIds.features.start = 129;
@@ -48,7 +48,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false }],
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 40, hasAddress: false }],
-            [3, { name: 'vs', desc: 'Intelliflo VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
             [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
             [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }]
         ]);
@@ -547,19 +547,19 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     payload: [12, 0, 0],
                     onComplete: (msg, err) => {
                         if (err) throw new Error(err);
-                        else { sys.general.alias = obj.alias; }
+                        else { sys.general.alias = obj.alias; resolve(); }
                     }
                 }).appendPayloadString(obj.alias, 16);
                 conn.queueSendMessage(out);
             }
-            if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options).catch(err => { throw new Error(err) });
+            if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
             if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
             if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
             resolve(sys.general);
         });
     }
     public async setOptions(obj?: any) : Promise<Options | string> {
-        let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : num || 0; }
+        let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
         let payload = [0, 0, 0,
             fnToByte(sys.general.options.waterTempAdj2),
             fnToByte(sys.general.options.waterTempAdj1),
@@ -568,7 +568,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             fnToByte(sys.general.options.waterTempAdj2),
             fnToByte(sys.general.options.solarTempAdj2), // 8
             0, 0, 0, 0, 0,
-            0 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00), // 14
+            0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00), // 14
             0, 0,
             sys.general.options.clockSource === 'manual' ? 0 : 1, // 17
             3, 0, 0,
@@ -590,7 +590,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.general.options.waterTempAdj1) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 1;
-                payload[4] = parseInt(obj.waterTempAdj1, 10) || 0;
+                payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     payload: payload,
@@ -605,7 +605,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.general.options.waterTempAdj2) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 4;
-                payload[3] = parseInt(obj.waterTempAdj2, 10) || 0;
+                payload[3] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     payload: payload,
@@ -620,7 +620,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.general.options.solarTempAdj1) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 2;
-                payload[5] = parseInt(obj.solarTempAdj1, 10) || 0;
+                payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     payload: payload,
@@ -635,7 +635,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.general.options.solarTempAdj2) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 5;
-                payload[8] = parseInt(obj.solarTempAdj2, 10) || 0;
+                payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     payload: payload,
@@ -650,7 +650,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.general.options.airTempAdj) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 3;
-                payload[7] = parseInt(obj.airTempAdj, 10) || 0;
+                payload[7] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     payload: payload,
@@ -884,8 +884,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return new Promise<Location | string>(async (reject, resolve) => {
-            await Promise.all(arr).catch(err => reject(err));
+
+        return new Promise<Location | string>(async (resolve, reject) => {
+            await Promise.all(arr);
             resolve(sys.general.location);
         });
     }
@@ -962,7 +963,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }));
         }
         return new Promise<Owner | string>(async (resolve, reject) => {
-            await Promise.all(arr).catch(err => reject(err));
+            await Promise.all(arr);
             resolve(sys.general.owner);
         });
     }
@@ -970,8 +971,333 @@ class IntelliCenterSystemCommands extends SystemCommands {
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
     public async setCircuit(data: any): Promise<ICircuit | string> {
-        // overwrite systemboard method here
-        return Promise.resolve(sys.circuits.getItemById(data.id));
+        return new Promise<ICircuit | string>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            let circuit = sys.circuits.getItemById(id, false);
+            if (isNaN(id)) throw new Error('Circuit Id has not been defined');
+            if (!sys.board.equipmentIds.circuits.isInRange(id)) throw new Error(`Circuit Id ${id}: is out of range.`);
+            let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
+            if (isNaN(eggTimer)) eggTimer = circuit.eggTimer;
+            let eggHrs = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHrs * 60);
+            let out = Outbound.create({
+                action: 168,
+                payload: [1, 0, id - 1,
+                    typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type,
+                    (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze) ? 1 : 0,
+                    (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures) ? 1 : 0,
+                    typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme,
+                    eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        circuit.eggTimer = eggTimer;
+                        circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
+                        circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
+                        circuit.lightingTheme = typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme;
+                        circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
+                        circuit.type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type;
+                        resolve(circuit);
+                    }
+                }
+            });
+            out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : circuit.name, 16);
+            conn.queueSendMessage(out);
+        });
+    }
+    public async setCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+        let group: CircuitGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        let type = 0;
+        let isAdd = false;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+            type = parseInt(obj.type, 10) || 2;
+            group = sys.circuitGroups.getItemById(id, true);
+            isAdd = true;
+        }
+        else {
+            group = sys.circuitGroups.getItemById(id, false);
+            type = group.type;
+        }
+        if (typeof id === 'undefined') throw new Error(`Max circuit group ids exceeded`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
+            if (isNaN(eggTimer)) eggTimer = 720;
+            eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+            let eggHours = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHours * 60);
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        group.eggTimer = eggTimer;
+                        group.type = 2;
+                        if (typeof obj.circuits !== 'undefined') {
+                            for (let i = 0; i < obj.circuits.length; i++) {
+                                let c = group.circuits.getItemByIndex(i, true);
+                                c.id = i + 1;
+                                c.circuit = obj.circuits[i].circuit;
+                            }
+                            for (let i = obj.circuits.length; i < group.circuits.length; i++)
+                                group.circuits.removeItemByIndex(i);
+                        }
+                        resolve();
+                    }
+                }
+            });
+            // Add in all the info for the circuits.
+            if (typeof obj.circuits === 'undefined')
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.circuit - 1 : 255);
+                }
+            else {
+                for (let i = 0; i < 16; i++)
+                    (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].circuit - 1) : out.payload.push(255);
+            }
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            out.payload.push(eggHours);
+            out.payload.push(eggMins);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        if (typeof obj.name !== 'undefined') group.name = obj.name.toString().substring(0, 16);
+                        resolve();
+                    }
+                }
+            });
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else { resolve(); }
+                }
+            });
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            conn.queueSendMessage(out);
+        }));
+        return new Promise<CircuitGroup | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            let grp = sys.circuitGroups.getItemById(id);
+            let sgrp = state.circuitGroups.getItemById(id, isAdd);
+            sgrp.name = grp.name;
+            sgrp.eggTimer = grp.eggTimer;
+            sgrp.nameId = grp.nameId;
+            sgrp.type = grp.type;
+            sgrp.emitEquipmentChange();
+            resolve(grp);
+        });
+    }
+    public async deleteCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+        let group: CircuitGroup = null;
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        group = sys.circuitGroups.getItemById(id);
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        let gstate = state.circuitGroups.getItemById(id);
+                        gstate.isActive = false;
+                        gstate.emitEquipmentChange();
+                        sys.circuitGroups.removeItemById(id);
+                        state.circuitGroups.removeItemById(id);
+                        resolve();
+                    }
+                }
+            });
+            for (let i = 0; i < 16; i++) i < group.circuits.length ? out.payload.push(group.circuits.getItemByIndex(i).circuit - 1) : out.payload.push(255);
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            out.payload.push(12);
+            out.payload.push(0);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        resolve();
+                    }
+                }
+            });
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.appendPayloadString(group.name);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else { resolve(); }
+                }
+            });
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            conn.queueSendMessage(out);
+        }));
+        return new Promise<CircuitGroup | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(group);
+        });
+    }
+    public async setLightGroup(obj: any): Promise<LightGroup | string> {
+        let group: LightGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.lightGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+            group = sys.lightGroups.getItemById(id, true);
+        }
+        else {
+            group = sys.lightGroups.getItemById(id, false);
+        }
+        if (typeof id === 'undefined') throw new Error(`Max light group ids exceeded`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid light group id: ${obj.id}`);
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
+            if (isNaN(eggTimer)) eggTimer = 720;
+            eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+            let eggHours = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHours * 60);
+            let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme : obj.lightingTheme;
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, (theme << 2) + 1, 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        resolve();
+                        group.eggTimer = eggTimer;
+                        group.type = 2;
+                        group.lightingTheme = theme;
+
+                        if (typeof obj.circuits !== 'undefined') {
+                            for (let i = 0; i < obj.circuits.length; i++) {
+                                let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                                c.circuit = obj.circuits[i];
+                            }
+                            group.circuits.length = obj.circuits.length;
+                        }
+                    }
+
+                }
+            });
+            // Add in all the info for the circuits.
+            if (typeof obj.circuits === 'undefined') {
+                // Circuits
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.circuit - 1 : 255);
+                }
+                // Swim Delay
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.swimDelay : 255);
+                }
+            }
+            else {
+                // Circuits
+                for (let i = 0; i < 16; i++) {
+                    if (i < obj.circuits.length) {
+                        let c = parseInt(obj.circuits[i].circuit, 10);
+                        out.payload.push(!isNaN(c) ? c : 255);
+                    }
+                    else out.payload.push(255);
+                }
+                // Swim Delay
+                for (let i = 0; i < 16; i++) {
+                    if (i < obj.circuits.length) {
+                        let delay = parseInt(obj.circuits[i].swimDelay, 10);
+                        out.payload.push(!isNaN(delay) ? delay : 10);
+                    }
+                    else out.payload.push(0);
+                }
+            }
+            out.payload.push(eggHours);
+            out.payload.push(eggMins);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        if (typeof obj.name !== 'undefined') group.name = obj.name.toString().substring(0, 16);
+                        resolve();
+                    }
+                }
+            });
+            for (let i = 0; i < 15; i++) out.payload.push(255);
+            out.payload[3] = 10;
+            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name);
+            conn.queueSendMessage(out);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else { resolve(); }
+                }
+            });
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < 15; i++) {
+                    let color = 0;
+                    if (i < obj.circuits.length) {
+                        color = parseInt(obj.circuits[i].color, 10);
+                        if (isNaN(color)) {
+                            color = group.circuits.getItemByIndex(i, false).color;
+                        }
+                    }
+                    out.payload.push(0);
+                }
+            }
+            else {
+                for (let i = 0; i < 15; i++) {
+                    out.payload.push(group.circuits.getItemByIndex(i, false).color);
+                }
+            }
+            conn.queueSendMessage(out);
+        }));
+        return new Promise<LightGroup | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(group);
+        });
+    }
+    private validateCircuits(arr: []) {
+        for (let a in arr) {
+
+        }
     }
     public deleteCircuit(data: any){
         // overwrite systemboard method here
@@ -1241,6 +1567,76 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
     public setFeatureState(id, val) { this.board.circuits.setCircuitState(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
+    public async setFeature(data: any): Promise<Feature | string> {
+        return new Promise<Feature | string>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            let feature: Feature;
+            if (id <= 0) {
+                id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+                feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
+            }
+            else
+                feature = sys.features.getItemById(id, false);
+            if (isNaN(id)) throw new Error('feature Id has not been defined');
+            if (!sys.board.equipmentIds.features.isInRange(id)) throw new Error(`feature Id ${id}: is out of range.`);
+            let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
+            if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
+            let eggHrs = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHrs * 60);
+            let out = Outbound.create({
+                action: 168,
+                payload: [2, 0, id - sys.board.equipmentIds.features.start,
+                    typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type,
+                    (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
+                    (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures) ? 1 : 0,
+                    eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        feature = sys.features.getItemById(id, true);
+                        let fstate = state.features.getItemById(id, true);
+
+                        feature.eggTimer = eggTimer;
+                        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
+                        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
+                        fstate.name = feature.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : feature.name;
+                        fstate.type = feature.type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type;
+                        fstate.emitEquipmentChange();
+                        resolve(feature);
+                    }
+                }
+            });
+            out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
+            conn.queueSendMessage(out);
+        });
+    }
+    public async deleteFeature(data: any): Promise<Feature | string> {
+        return new Promise<Feature | string>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            if (isNaN(id)) throw new Error('feature Id has not been defined');
+            let feature = sys.features.getItemById(id, false);
+            let out = Outbound.create({
+                action: 168,
+                payload: [2, 0, id - sys.board.equipmentIds.features.start,
+                    255, // Delete the feature
+                    0, 0, 12, 0, 0],
+                onComplete: (msg, err) => {
+                    if (err) reject(err);
+                    else {
+                        sys.features.removeItemById(id);
+                        feature.isActive = false;
+                        let fstate = state.features.getItemById(id, false);
+                        fstate.showInFeatures = false;
+                        state.features.removeItemById(id);
+                        resolve(feature);
+                    }
+                }
+            });
+            out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
+            conn.queueSendMessage(out);
+        });
+
+    }
 }
 class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
@@ -1330,7 +1726,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         let arr = [];
         let byte = 0;
         let id = parseInt(obj.id, 10);
-        if (isNaN) throw new Error('Body Id is not defined');
+        if (isNaN(id)) throw new Error('Body Id is not defined');
         let body = sys.bodies.getItemById(id, false);
         switch (body.id) {
             case 1:

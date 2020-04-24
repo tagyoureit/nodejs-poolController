@@ -7,7 +7,7 @@ import { state, CommsState } from "./State";
 import { Timestamp, ControllerType, utils } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
-import { SystemBoard } from "./boards/SystemBoard";
+import { SystemBoard, EquipmentIdRange } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
@@ -323,11 +323,10 @@ class EqItemCollection<T> {
         this.name = name;
     }
     public getItemByIndex(ndx: number, add?: boolean, data?: any): T {
-        return this.data.length > ndx ?
-            this.createItem(this.data[ndx]) :
-            typeof add !== 'undefined' && add ?
-                this.add(this.createItem(data || { id: ndx + 1 })) :
-                this.createItem(data || { id: ndx + 1 });
+        if (this.data.length > ndx) return this.createItem(this.data[ndx]);
+        if (typeof add !== 'undefined' && add)
+            return this.add(extend({}, { id: ndx + 1 }, data));
+        return this.createItem(extend({}, { id: ndx + 1 }, data));
     }
     public getItemById(id: number, add?: boolean, data?: any): T {
         for (let i = 0; i < this.data.length; i++)
@@ -377,6 +376,12 @@ class EqItemCollection<T> {
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
+    public getNextEquipmentId(range: EquipmentIdRange): number {
+        for (let i = range.start; i <= range.end; i++) {
+            let eq = this.data.find(elem => elem.id === i);
+            if (typeof eq === 'undefined') return i;
+        }
+    }
 }
 export class General extends EqItem {
     ctor(data): General { return new General(data, name || 'pool'); }
@@ -1163,7 +1168,9 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
     public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1; }); }
 }
 export class LightGroupCircuit extends EqItem {
-    public dataName='lightGroupCircuitConfig';
+    public dataName = 'lightGroupCircuitConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     // RG - these shouldn't be here; only need them for CircuitGroupCircuit but if I remove it getItemById returns an error... to be fixed.
@@ -1233,6 +1240,8 @@ export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroup
 }
 export class CircuitGroupCircuit extends EqItem {
     public dataName='circuitGroupCircuitConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get desiredStateOn(): boolean { return this.data.desiredStateOn; }

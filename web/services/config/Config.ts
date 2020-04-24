@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -61,7 +61,7 @@ export class ConfigRoute {
                 themes: sys.board.circuits.getLightThemes(),
                 colors: sys.board.valueMaps.lightColors.toArray(),
                 circuits: sys.board.circuits.getLightReferences(),
-                circuitGroups: sys.circuitGroups.get()
+                lightGroups: sys.lightGroups.get()
             };
             return res.status(200).send(opts);
         });
@@ -118,7 +118,10 @@ export class ConfigRoute {
                 await sys.board.system.setGeneral(req.body);
                 return res.status(200).send(sys.general.get());
             }
-            catch (err) { next(err); }
+            catch (err) {
+                console.log(err);
+                next(err);
+            }
         });
         app.put('/config/valve', async(req, res, next) => {
             // Update a valve.
@@ -144,6 +147,47 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/feature', async (req, res, next) => {
+            // add/update a feature
+            try {
+                let feature = await sys.board.features.setFeature(req.body);
+                return res.status(200).send((feature as Feature).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/feature', async (req, res, next) => {
+            // delete a feature
+            try {
+                let feature = await sys.board.features.deleteFeature(req.body);
+                return res.status(200).send((feature as Feature).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/circuitGroup', async (req, res, next) => {
+            // add/update a circuitGroup
+            try {
+                let group = await sys.board.circuits.setCircuitGroup(req.body);
+                return res.status(200).send((group as CircuitGroup).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/circuitGroup', async (req, res, next) => {
+            // add/update a circuitGroup
+            try {
+                let group = await sys.board.circuits.deleteCircuitGroup(req.body);
+                return res.status(200).send((group as CircuitGroup).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/lightGroup', async (req, res, next) => {
+            // add/update a lightGroup
+            try {
+                let group = await sys.board.circuits.setLightGroup(req.body);
+                return res.status(200).send((group as LightGroup).get(true));
+            }
+            catch (err) { next(err); }
+        });
+
         app.delete('/config/circuit', (req, res) => {
             // delete a circuit
 

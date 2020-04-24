@@ -24,6 +24,7 @@ data/
 *.csproj
 *.njsproj
 *.sln
+*.njsproj.user
 obj/
 bin/
 .vs/

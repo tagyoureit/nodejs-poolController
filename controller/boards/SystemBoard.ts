@@ -195,8 +195,8 @@ export class byteValueMaps {
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [2, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-        [128, { name: 'vs', desc: 'Intelliflo VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
+        [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
     public heatModes: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
@@ -463,7 +463,7 @@ export class SystemCommands extends BoardCommands {
     }
     public async setOptions(obj: any): Promise<Options | string> {
         let opts = sys.general.options;
-        if (typeof obj !== undefined) {
+        if (typeof obj !== 'undefined') {
             for (var s in opts)
                 if (typeof obj[s] !== 'undefined')
                     opts[s] = obj[s];
@@ -472,7 +472,7 @@ export class SystemCommands extends BoardCommands {
     }
     public async setLocation(obj: any) : Promise<Location | string> {
         let loc = sys.general.location;
-        if (typeof obj !== undefined) {
+        if (typeof obj !== 'undefined') {
             for (var s in loc)
                 if (typeof obj[s] !== 'undefined')
                     loc[s] = obj[s];
@@ -481,7 +481,7 @@ export class SystemCommands extends BoardCommands {
     }
     public async setOwner(obj: any) : Promise<Owner | string> {
         let owner = sys.general.owner;
-        if (typeof obj !== undefined) {
+        if (typeof obj !== 'undefined') {
             for (var s in owner)
                 if (typeof obj[s] !== 'undefined')
                     owner[s] = obj[s];
@@ -1049,10 +1049,10 @@ export class CircuitCommands extends BoardCommands {
         if (isNaN(id)) throw new Error(`Invalid circuit id: ${data.id}`);
         if (id === 6) throw new Error('You may not set the pool circuit');
 
-        if (!sys.board.equipmentIds.features.isInRange(data.id) || data.id === 6) return;
+        if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
         if (typeof data.id !== 'undefined') {
-            let circuit = sys.circuits.getInterfaceById(data.id, true);
-            let scircuit = state.circuits.getInterfaceById(data.id, true);
+            let circuit = sys.circuits.getInterfaceById(id, true);
+            let scircuit = state.circuits.getInterfaceById(id, true);
             circuit.isActive = true;
             scircuit.isOn = false;
             if (data.nameId) {
@@ -1070,6 +1070,82 @@ export class CircuitCommands extends BoardCommands {
         }
         else
             throw new Error('Circuit id has not been defined');
+    }
+    public async setCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+        let group: CircuitGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+        }
+        if (typeof id === 'undefined') throw new Error(`Max circuit group ids exceeded`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        group = sys.circuitGroups.getItemById(id, true);
+        return new Promise<CircuitGroup | string>((resolve, reject) => {
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.isActive = true;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    let cobj = obj.circuits[i];
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    if (typeof cobj.desiredStateOn !== 'undefined') c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
+                    if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                }
+                group.circuits.length = obj.circuits.length;
+            }
+            resolve(group);
+        });
+    
+    }
+    public async setLightGroup(obj: any): Promise<LightGroup | string> {
+        let group: LightGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+        }
+        if (typeof id === 'undefined') throw new Error(`Max circuit group ids exceeded`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        group = sys.lightGroups.getItemById(id, true);
+        return new Promise<LightGroup | string>((resolve, reject) => {
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.isActive = true;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    let cobj = obj.circuits[i];
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                    if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                    if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                }
+                group.circuits.length = obj.circuits.length;
+            }
+            resolve(group);
+        });
+
+    }
+    public async deleteCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid group id: ${obj.id}`);
+        if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let group = sys.circuitGroups.getItemById(id, false);
+            let sgroup = state.circuitGroups.getItemById(id, false);
+            sys.features.removeItemById(id);
+            state.features.removeItemById(id);
+            group.isActive = false;
+            sgroup.isOn = false;
+            sgroup.isActive = false;
+            sgroup.emitEquipmentChange();
+            return new Promise<CircuitGroup | string>((resolve, reject) => { resolve(group); });
+        }
+        else
+            throw new Error('Group id has not been defined');
+
     }
     public deleteCircuit(data: any){
         if (typeof data.id !== 'undefined'){
@@ -1139,6 +1215,52 @@ export class CircuitCommands extends BoardCommands {
     }
 }
 export class FeatureCommands extends BoardCommands {
+    public async setFeature(obj: any) : Promise<Feature | string> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid feature id: ${obj.id}`);
+        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let feature = sys.features.getItemById(obj.id, true);
+            let sfeature = state.features.getItemById(obj.id, true);
+            feature.isActive = true;
+            sfeature.isOn = false;
+            if (obj.nameId) {
+                feature.nameId = sfeature.nameId = obj.nameId;
+                feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId)
+            }
+            else if (obj.name) feature.name = sfeature.name = obj.name;
+            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
+            if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
+            else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
+            if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
+            if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
+            if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
+            return new Promise<Feature | string>((resolve, reject) => { resolve(feature); });
+        }
+        else
+            throw new Error('Feature id has not been defined');
+
+    }
+    public async deleteFeature(obj: any): Promise<Feature | string> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid feature id: ${obj.id}`);
+        if (!sys.board.equipmentIds.features.isInRange(id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let feature = sys.features.getItemById(id, false);
+            let sfeature = state.features.getItemById(id, false);
+            sys.features.removeItemById(id);
+            state.features.removeItemById(id);
+            feature.isActive = false;
+            sfeature.isOn = false;
+            sfeature.showInFeatures = false;
+            sfeature.emitEquipmentChange();
+            return new Promise<Feature | string>((resolve, reject) => { resolve(feature); });
+        }
+        else
+            throw new Error('Circuit id has not been defined');
+
+    }
+
     public setFeatureState(id: number, val: boolean) {
         let feat = state.features.getItemById(id);
         feat.isOn = val;
