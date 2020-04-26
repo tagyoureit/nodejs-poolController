@@ -115,6 +115,14 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/heaters', (req, res) => {
+            let opts = {
+                maxHeaters: sys.equipment.maxHeaters,
+                heaters: sys.heaters.get(),
+                heaterTypes: sys.board.valueMaps.heaterTypes.toArray()
+            };
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS *********/
         app.put('/config/general', async (req, res, next) => {

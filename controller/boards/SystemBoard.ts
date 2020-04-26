@@ -41,16 +41,36 @@ export class EquipmentIdRange {
     public set end(val: number) { this._end = val; }
     public isInRange(id: number) { return id >= this.start && id <= this.end; }
 }
+export class InvalidEquipmentIdArray {
+    constructor(data: number[]) { this._data = data; }
+    private _data: number[];
+
+    public get() { return this._data; }
+    public set(val: number[]) {this._data = val;}
+    public add(val: number) {
+        if (!this._data.includes(val)) {
+            this._data.push(val);
+            this._data.sort();
+        }
+    }
+    public remove(val: number){
+        this._data = this._data.filter(el=> el !== val);
+    }
+    public isValidId(val: number){
+        return !this._data.includes(val);
+    }
+}
 export class EquipmentIds {
     public circuits: EquipmentIdRange=new EquipmentIdRange(6, 6);
     public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
     public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
     public circuitGroups: EquipmentIdRange=new EquipmentIdRange(0, 0);
     public virtualCircuits: EquipmentIdRange=new EquipmentIdRange(128, 136);
+    public invalidIds: InvalidEquipmentIdArray = new InvalidEquipmentIdArray([]);
 }
 export class byteValueMaps {
     constructor() {
-        this.pumpStatus.transform = function (byte) {
+        this.pumpStatus.transform = function(byte) {
             // if (byte === 0) return this.get(0);
             if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
             for (let b = 16; b > 0; b--) {
@@ -64,7 +84,7 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
         };
-        this.chlorinatorStatus.transform = function (byte) {
+        this.chlorinatorStatus.transform = function(byte) {
             if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
             else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
             for (let b = 8; b > 0; b--) {
@@ -78,10 +98,10 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
         };
-        this.scheduleTypes.transform = function (byte) {
+        this.scheduleTypes.transform = function(byte) {
             return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
-        this.scheduleDays.transform = function (byte) {
+        this.scheduleDays.transform = function(byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
@@ -89,39 +109,39 @@ export class byteValueMaps {
             }
             return { val: b, days: days };
         };
-        this.scheduleDays.toArray = function () {
+        this.scheduleDays.toArray = function() {
             let arrKeys = Array.from(this.keys());
             let arr = [];
             for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
             return arr;
-        }
-        this.virtualCircuits.transform = function (byte) {
+        };
+        this.virtualCircuits.transform = function(byte) {
             return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
         };
-        this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
-        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
-        this.controllerStatus.transform = function (byte: number, percent?: number) {
+        this.tempUnits.transform = function(byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
+        this.panelModes.transform = function(byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
+        this.controllerStatus.transform = function(byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function(byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
-    public expansionBoards: byteValueMap = new byteValueMap();
-    public panelModes: byteValueMap = new byteValueMap([
+    public expansionBoards: byteValueMap=new byteValueMap();
+    public panelModes: byteValueMap=new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
         [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
         [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
         [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
     ]);
-    public controllerStatus: byteValueMap = new byteValueMap([
+    public controllerStatus: byteValueMap=new byteValueMap([
         [0, { val: 0, name: 'initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
         [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
     ]);
 
-    public circuitFunctions: byteValueMap = new byteValueMap([
+    public circuitFunctions: byteValueMap=new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
@@ -140,9 +160,9 @@ export class byteValueMaps {
     ]);
 
     // Feature functions are used as the available options to define a circuit.
-    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-    public heaterTypes: byteValueMap = new byteValueMap();
-    public virtualCircuits: byteValueMap = new byteValueMap([
+    public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
+    public heaterTypes: byteValueMap=new byteValueMap();
+    public virtualCircuits: byteValueMap=new byteValueMap([
         [128, { name: 'solar', desc: 'Solar' }],
         [129, { name: 'heater', desc: 'Either Heater' }],
         [130, { name: 'poolHeater', desc: 'Pool Heater' }],
@@ -154,7 +174,7 @@ export class byteValueMaps {
         [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
         [255, { name: 'notused', desc: 'NOT USED' }]
     ]);
-    public lightThemes: byteValueMap = new byteValueMap([
+    public lightThemes: byteValueMap=new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [1, { name: 'green', desc: 'Green' }],
         [2, { name: 'blue', desc: 'Blue' }],
@@ -169,7 +189,7 @@ export class byteValueMaps {
         [11, { name: 'royal', desc: 'Royal' }],
         [255, { name: 'none', desc: 'None' }]
     ]);
-    public lightColors: byteValueMap = new byteValueMap([
+    public lightColors: byteValueMap=new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [16, { name: 'lightgreen', desc: 'Light Green' }],
         [32, { name: 'green', desc: 'Green' }],
@@ -179,7 +199,7 @@ export class byteValueMaps {
         [96, { name: 'magenta', desc: 'Magenta' }],
         [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
     ]);
-    public scheduleDays: byteValueMap = new byteValueMap([
+    public scheduleDays: byteValueMap=new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
         [2, { name: 'fri', desc: 'Friday', dow: 5 }],
         [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
@@ -191,7 +211,7 @@ export class byteValueMaps {
     public scheduleTimeTypes: byteValueMap = new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
-    public pumpTypes: byteValueMap = new byteValueMap([
+    public pumpTypes: byteValueMap=new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [2, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false }],
@@ -314,7 +334,7 @@ export class byteValueMaps {
         [20, { name: 'ok', desc: 'Ok' }],
         [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
     ]);
-    public timeZones: byteValueMap = new byteValueMap([
+    public timeZones: byteValueMap=new byteValueMap([
         [128, { name: 'Samoa Standard Time', loc: 'Pacific', abbrev: 'SST', utcOffset: -11 }],
         [129, { name: 'Tahiti Time', loc: 'Pacific', abbrev: 'TAHT', utcOffset: -10 }],
         [130, { name: 'Alaska Standard Time', loc: 'North America', abbrev: 'AKST', utcOffset: -9 }],
@@ -341,10 +361,10 @@ export class byteValueMaps {
         [151, { name: 'Marshall Islands Time', loc: 'Pacific', abbrev: 'MHT', utcOffset: 12 }],
         [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
     ]);
-    public clockSources: byteValueMap = new byteValueMap([
+    public clockSources: byteValueMap=new byteValueMap([
         [1, { name: 'manual', desc: 'Manual' }]
     ]);
-    public clockModes: byteValueMap = new byteValueMap([
+    public clockModes: byteValueMap=new byteValueMap([
         [12, { name: '12 Hour' }],
         [24, { name: '24 Hour' }]
     ]);
@@ -355,24 +375,24 @@ export class byteValueMaps {
 export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
-    protected _modulesAcquired: boolean = true;
-    public valueMaps: byteValueMaps = new byteValueMaps();
+    protected _modulesAcquired: boolean=true;
+    public valueMaps: byteValueMaps=new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
     public stopAsync() { }
-    public system: SystemCommands = new SystemCommands(this);
-    public bodies: BodyCommands = new BodyCommands(this);
-    public pumps: PumpCommands = new PumpCommands(this);
-    public circuits: CircuitCommands = new CircuitCommands(this);
-    public valves: ValveCommands = new ValveCommands(this);
-    public features: FeatureCommands = new FeatureCommands(this);
-    public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
-    public heaters: HeaterCommands = new HeaterCommands(this);
+    public system: SystemCommands=new SystemCommands(this);
+    public bodies: BodyCommands=new BodyCommands(this);
+    public pumps: PumpCommands=new PumpCommands(this);
+    public circuits: CircuitCommands=new CircuitCommands(this);
+    public valves: ValveCommands=new ValveCommands(this);
+    public features: FeatureCommands=new FeatureCommands(this);
+    public chlorinator: ChlorinatorCommands=new ChlorinatorCommands(this);
+    public heaters: HeaterCommands=new HeaterCommands(this);
 
-    public schedules: ScheduleCommands = new ScheduleCommands(this);
-    public equipmentIds: EquipmentIds = new EquipmentIds();
-    public virtualChlorinatorController = new ChlorinatorController(this);
-    public virtualPumpControllers = new VirtualPumpControllerCollection(this);
+    public schedules: ScheduleCommands=new ScheduleCommands(this);
+    public equipmentIds: EquipmentIds=new EquipmentIds();
+    public virtualChlorinatorController=new ChlorinatorController(this);
+    public virtualPumpControllers=new VirtualPumpControllerCollection(this);
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
     // virtual controller may need to make use of it after it looks for pumps and chlorinators.
@@ -454,40 +474,40 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = 0; }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-    public async setGeneral(obj: any): Promise<General | string> {
+    public async setGeneral(obj: any): Promise<General|string> {
         let general = sys.general.get();
         if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
         if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
         if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
-        return new Promise<General | string>(function (resolve, reject) { resolve(sys.general); });
+        return new Promise<General|string>(function(resolve, reject) { resolve(sys.general); });
     }
-    public async setOptions(obj: any): Promise<Options | string> {
+    public async setOptions(obj: any): Promise<Options|string> {
         let opts = sys.general.options;
         if (typeof obj !== 'undefined') {
             for (var s in opts)
                 if (typeof obj[s] !== 'undefined')
                     opts[s] = obj[s];
         }
-        return new Promise<Options | string>(function (resolve, reject) { resolve(sys.general.options); });
+        return new Promise<Options|string>(function(resolve, reject) { resolve(sys.general.options); });
     }
-    public async setLocation(obj: any) : Promise<Location | string> {
+    public async setLocation(obj: any): Promise<Location|string> {
         let loc = sys.general.location;
         if (typeof obj !== 'undefined') {
             for (var s in loc)
                 if (typeof obj[s] !== 'undefined')
                     loc[s] = obj[s];
         }
-        return new Promise<Location | string>(function (resolve, reject) { resolve(sys.general.location); });
+        return new Promise<Location|string>(function(resolve, reject) { resolve(sys.general.location); });
     }
-    public async setOwner(obj: any) : Promise<Owner | string> {
+    public async setOwner(obj: any): Promise<Owner|string> {
         let owner = sys.general.owner;
         if (typeof obj !== 'undefined') {
             for (var s in owner)
                 if (typeof obj[s] !== 'undefined')
                     owner[s] = obj[s];
         }
-        return new Promise<Owner | string>(function (resolve, reject) { resolve(sys.general.owner); });
+        return new Promise<Owner|string>(function(resolve, reject) { resolve(sys.general.owner); });
     }
     public getSensors() {
         let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
@@ -517,13 +537,13 @@ export class SystemCommands extends BoardCommands {
         }
         return sensors;
     }
-   
+
 }
 export class BodyCommands extends BoardCommands {
-    public async setBody(obj: any): Promise<Body | string> {
-        return new Promise<Body | string>(function (resolve, reject) {
+    public async setBody(obj: any): Promise<Body|string> {
+        return new Promise<Body|string>(function(resolve, reject) {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) reject('Body Id has not been defined')
+            if (isNaN(id)) reject('Body Id has not been defined');
             let body = sys.bodies.getItemById(id, false);
             for (var s in body)
                 body[s] = obj[s];
@@ -826,7 +846,7 @@ export class PumpCommands extends BoardCommands {
         this.setPumpPowerPacket(pump, _maxSpeed > 0);
         if (_maxSpeed > 130) { this.runRPM(pump, _maxSpeed); }
         if (_maxSpeed > 0 && _maxSpeed <= 130) { this.runGPM(pump, _maxSpeed); }
-        setTimeout(()=>{this.requestPumpStatus(pump);}, 7 * 1000);
+        setTimeout(() => { this.requestPumpStatus(pump); }, 7 * 1000);
         this.requestPumpStatus(pump);
     }
     private setPumpToRemoteControl(pump: Pump) {
@@ -1006,10 +1026,10 @@ export class CircuitCommands extends BoardCommands {
         }
     }
     public setCircuitState(id: number, val: boolean) {
-            let circ = state.circuits.getInterfaceById(id);
-            circ.isOn = utils.makeBool(val);
-            sys.board.virtualPumpControllers.start();
-        }
+        let circ = state.circuits.getInterfaceById(id);
+        circ.isOn = utils.makeBool(val);
+        sys.board.virtualPumpControllers.start();
+    }
     public toggleCircuitState(id: number) {
         let circ = state.circuits.getInterfaceById(id);
         this.setCircuitState(id, !circ.isOn);
@@ -1027,7 +1047,7 @@ export class CircuitCommands extends BoardCommands {
         if (includeCircuits) {
             let circuits = sys.circuits.get();
             for (let i = 0; i < circuits.length; i++) {
-                let c = circuits[i]
+                let c = circuits[i];
                 arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId });
             }
         }
@@ -1066,18 +1086,18 @@ export class CircuitCommands extends BoardCommands {
         for (let i = 0; i < circuits.length; i++) {
             let c = circuits[i];
             let type = sys.board.valueMaps.circuitFunctions.transform(c.type);
-            if (type.isLight) arrRefs.push({ id: c.id, name: c.name, type:c.type, equipmentType: 'circuit', nameId: c.nameId });
+            if (type.isLight) arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId });
         }
         return arrRefs;
     }
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
-    public getCircuitNames() { 
+    public getCircuitNames() {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
     }
-    public async setCircuit(data: any): Promise<ICircuit | string> { 
+    public async setCircuit(data: any): Promise<ICircuit|string> {
         let id = parseInt(data.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid circuit id: ${data.id}`);
+        if (isNaN(id)) throw new Error(`Invalid circuit id: ${ data.id }`);
         if (id === 6) throw new Error('You may not set the pool circuit');
 
         if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
@@ -1088,21 +1108,21 @@ export class CircuitCommands extends BoardCommands {
             scircuit.isOn = false;
             if (data.nameId) {
                 circuit.nameId = scircuit.nameId = data.nameId;
-                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId)
+                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId);
             }
             else if (data.name) circuit.name = scircuit.name = data.name;
-            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
+            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${ data.id }`;
             if (typeof data.type !== 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10);
             else if (!circuit.type && typeof data.type !== 'undefined') circuit.type = scircuit.type = 0;
             if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
             if (typeof data.showInFeatures !== 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
-            return new Promise<ICircuit | string>((resolve, reject) => { resolve(circuit); });
+            return new Promise<ICircuit|string>((resolve, reject) => { resolve(circuit); });
         }
         else
             throw new Error('Circuit id has not been defined');
     }
-    public async setCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+    public async setCircuitGroup(obj: any): Promise<CircuitGroup|string> {
         let group: CircuitGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1110,9 +1130,9 @@ export class CircuitCommands extends BoardCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new Error(`Max circuit group ids exceeded`);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${ obj.id }`);
         group = sys.circuitGroups.getItemById(id, true);
-        return new Promise<CircuitGroup | string>((resolve, reject) => {
+        return new Promise<CircuitGroup|string>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             group.isActive = true;
@@ -1128,9 +1148,9 @@ export class CircuitCommands extends BoardCommands {
             }
             resolve(group);
         });
-    
+
     }
-    public async setLightGroup(obj: any): Promise<LightGroup | string> {
+    public async setLightGroup(obj: any): Promise<LightGroup|string> {
         let group: LightGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1138,9 +1158,9 @@ export class CircuitCommands extends BoardCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new Error(`Max circuit group ids exceeded`);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${ obj.id }`);
         group = sys.lightGroups.getItemById(id, true);
-        return new Promise<LightGroup | string>((resolve, reject) => {
+        return new Promise<LightGroup|string>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             group.isActive = true;
@@ -1159,9 +1179,9 @@ export class CircuitCommands extends BoardCommands {
         });
 
     }
-    public async deleteCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+    public async deleteCircuitGroup(obj: any): Promise<CircuitGroup|string> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid group id: ${obj.id}`);
+        if (isNaN(id)) throw new Error(`Invalid group id: ${ obj.id }`);
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
@@ -1172,21 +1192,21 @@ export class CircuitCommands extends BoardCommands {
             sgroup.isOn = false;
             sgroup.isActive = false;
             sgroup.emitEquipmentChange();
-            return new Promise<CircuitGroup | string>((resolve, reject) => { resolve(group); });
+            return new Promise<CircuitGroup|string>((resolve, reject) => { resolve(group); });
         }
         else
             throw new Error('Group id has not been defined');
 
     }
-    public deleteCircuit(data: any){
-        if (typeof data.id !== 'undefined'){
+    public deleteCircuit(data: any) {
+        if (typeof data.id !== 'undefined') {
             let circuit = sys.circuits.getInterfaceById(data.id);
             if (circuit instanceof Circuit) {
                 sys.circuits.removeItemById(data.id);
                 state.circuits.removeItemById(data.id);
                 return;
             }
-            if (circuit instanceof Feature){
+            if (circuit instanceof Feature) {
                 sys.features.removeItemById(data.id);
                 state.features.removeItemById(data.id);
                 return;
@@ -1246,9 +1266,9 @@ export class CircuitCommands extends BoardCommands {
     }
 }
 export class FeatureCommands extends BoardCommands {
-    public async setFeature(obj: any) : Promise<Feature | string> {
+    public async setFeature(obj: any): Promise<Feature|string> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid feature id: ${obj.id}`);
+        if (isNaN(id)) throw new Error(`Invalid feature id: ${ obj.id }`);
         if (!sys.board.equipmentIds.features.isInRange(obj.id)) return;
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(obj.id, true);
@@ -1257,24 +1277,24 @@ export class FeatureCommands extends BoardCommands {
             sfeature.isOn = false;
             if (obj.nameId) {
                 feature.nameId = sfeature.nameId = obj.nameId;
-                feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId)
+                feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
             }
             else if (obj.name) feature.name = sfeature.name = obj.name;
-            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
+            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${ obj.id }`;
             if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
             else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
             if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
             if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
             if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
-            return new Promise<Feature | string>((resolve, reject) => { resolve(feature); });
+            return new Promise<Feature|string>((resolve, reject) => { resolve(feature); });
         }
         else
             throw new Error('Feature id has not been defined');
 
     }
-    public async deleteFeature(obj: any): Promise<Feature | string> {
+    public async deleteFeature(obj: any): Promise<Feature|string> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid feature id: ${obj.id}`);
+        if (isNaN(id)) throw new Error(`Invalid feature id: ${ obj.id }`);
         if (!sys.board.equipmentIds.features.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(id, false);
@@ -1285,7 +1305,7 @@ export class FeatureCommands extends BoardCommands {
             sfeature.isOn = false;
             sfeature.showInFeatures = false;
             sfeature.emitEquipmentChange();
-            return new Promise<Feature | string>((resolve, reject) => { resolve(feature); });
+            return new Promise<Feature|string>((resolve, reject) => { resolve(feature); });
         }
         else
             throw new Error('Circuit id has not been defined');
@@ -1410,14 +1430,14 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
-   
+
     public updateHeaterServices(heater: Heater) { }
 }
 export class ValveCommands extends BoardCommands {
-    public async setValve(obj: any): Promise<Valve | Error> {
-        return new Promise<Valve>(function (resolve, reject) {
+    public async setValve(obj: any): Promise<Valve|Error> {
+        return new Promise<Valve>(function(resolve, reject) {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) reject('Valve Id has not been defined')
+            if (isNaN(id)) reject('Valve Id has not been defined');
             let valve = sys.valves.getItemById(id, false);
             for (var s in obj)
                 valve[s] = obj[s];
@@ -1535,50 +1555,50 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             pump.isVirtual = true;
             pump.type = 128;
 
-/*             sys.board.pumps.initPump(pump, () => {
-                let pump = sys.pumps.getItemById(i, true);
-                pump.isActive = true;
-                pump.isVirtual = true;
-                pump.type = 128;
-                // this._pumpControllers[i] = this.getItemById(i, true);
-            });
-
-            pump.type = 1; // vf
-            sys.board.pumps.initPump(pump, () => {
-                let pump = sys.pumps.getItemById(i, true);
-                pump.isActive = true;
-                pump.isVirtual = true;
-                pump.type = 1;
-                // this._pumpControllers[i] = this.getItemById(i, true);
-            });
-
-            pump.type = 64; // vsf
-            sys.board.pumps.initPump(pump, () => {
-                let pump = sys.pumps.getItemById(i, true);                
-                if (pump.isActive) return;
-                pump.isActive = true;
-                pump.isVirtual = true;
-                pump.type = 64;
-                // this._pumpControllers[i] = this.getItemById(i, true);
-            }); */
+            /*             sys.board.pumps.initPump(pump, () => {
+                            let pump = sys.pumps.getItemById(i, true);
+                            pump.isActive = true;
+                            pump.isVirtual = true;
+                            pump.type = 128;
+                            // this._pumpControllers[i] = this.getItemById(i, true);
+                        });
+            
+                        pump.type = 1; // vf
+                        sys.board.pumps.initPump(pump, () => {
+                            let pump = sys.pumps.getItemById(i, true);
+                            pump.isActive = true;
+                            pump.isVirtual = true;
+                            pump.type = 1;
+                            // this._pumpControllers[i] = this.getItemById(i, true);
+                        });
+            
+                        pump.type = 64; // vsf
+                        sys.board.pumps.initPump(pump, () => {
+                            let pump = sys.pumps.getItemById(i, true);                
+                            if (pump.isActive) return;
+                            pump.isActive = true;
+                            pump.isVirtual = true;
+                            pump.type = 64;
+                            // this._pumpControllers[i] = this.getItemById(i, true);
+                        }); */
 
             // send vs, vf, vsf init packets; callback has setup
             console.log(`pump search... ${ i }`);
         }
     }
     public stop() {
-        for (let i = 1; i <= this._timers.length; i++){
+        for (let i = 1; i <= this._timers.length; i++) {
             clearTimeout(this._timers[i]);
         }
     }
-    
-    public start(){
-        for (let i = 1; i <= sys.pumps.length; i++){
+
+    public start() {
+        for (let i = 1; i <= sys.pumps.length; i++) {
             // sys.pumps.getItemById(i).control();
             let pump = sys.pumps.getItemById(i);
-            if (pump.isVirtual){
+            if (pump.isVirtual) {
                 clearTimeout(this._timers[i]);
-                this._timers[i] = setInterval(function(){sys.board.pumps.run(pump);}, 8000);
+                this._timers[i] = setInterval(function() { sys.board.pumps.run(pump); }, 8000);
             }
         }
     }

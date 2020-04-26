@@ -5,6 +5,7 @@ import { Protocol, Outbound, Message, Response } from '../comms/messages/Message
 import { state, ChlorinatorState, CommsState, State } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
+import { resolve } from 'dns';
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
@@ -900,10 +901,13 @@ class TouchPumpCommands extends PumpCommands {
             };
             conn.queueSendMessage(cfgMsg);
         }));
-        return new Promise<Pump | string>(async (resolve, reject) => {
+        try {
             await Promise.all(arr);
-            resolve(sys.pumps.getItemById(id));
-        });
+            return Promise.resolve(sys.pumps.getItemById(id));
+        }
+        catch (err){
+            return Promise.reject(err);
+        }
     }
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]

@@ -107,8 +107,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
-                sys.equipment.invalidCircuitIds.getItemById(10, true); // exclude invalid circuit
-                sys.equipment.invalidCircuitIds.getItemById(19, true); // exclude invalid circuit
+                sys.board.equipmentIds.invalidIds.add(10); // exclude invalid circuit
+                sys.board.equipmentIds.invalidIds.add(19); // exclude invalid circuit
                 // will exclude AUX EXTRA 
                 switch (model1) {
                     case 0:
@@ -122,26 +122,26 @@ export class EquipmentStateMessage {
                         sys.equipment.maxCircuits = 8;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 8;
-                        sys.equipment.invalidCircuitIds.getItemById(1, true); // exclude spa
+                        sys.board.equipmentIds.invalidIds.add(1); // exclude spa
                         break;
                     case 2:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.maxFeatures = 2;
-                        sys.equipment.invalidCircuitIds.getItemById(7, true); // exclude Aux5
-                        sys.equipment.invalidCircuitIds.getItemById(8, true); // exclude Aux6
-                        sys.equipment.invalidCircuitIds.getItemById(9, true); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 2;
-                        sys.equipment.invalidCircuitIds.getItemById(1, true); // exclude spa
-                        sys.equipment.invalidCircuitIds.getItemById(7, true); // exclude Aux5
-                        sys.equipment.invalidCircuitIds.getItemById(8, true); // exclude Aux6
-                        sys.equipment.invalidCircuitIds.getItemById(9, true); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(1); // exclude spa
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
                         break;
                 }
                 break;
@@ -216,7 +216,7 @@ export class EquipmentStateMessage {
         heater.isActive = true;
         heater.type = 1;
         heater.name = "Gas Heater";
-        sys.equipment.shared ? heater.body = 32 : heater.body = 1;
+        sys.equipment.shared ? heater.body = 32 : heater.body = 0;
         sys.equipment.setEquipmentIds();
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
@@ -622,13 +622,12 @@ export class EquipmentStateMessage {
         const count = sys.board.equipmentIds.features.end;
         let circId = 1;
         let body = 0;
-        const invalidEquipmentIds = sys.equipment.invalidCircuitIds.toArray();
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
                 const circ = sys.circuits.getInterfaceById(circId);
-                if (invalidEquipmentIds.includes(circId)) {
+                if (!sys.board.equipmentIds.invalidIds.isValidId(circId)) {
                     circ.isActive = false;
                     if (circ instanceof Circuit ){
                         sys.circuits.removeItemById(circId);
