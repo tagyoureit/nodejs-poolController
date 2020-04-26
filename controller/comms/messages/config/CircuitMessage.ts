@@ -206,6 +206,7 @@ export class CircuitMessage {
                 if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
                 if ([9, 10, 16, 17].includes(circuit.type)) {
                     const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
+                    sys.intellibrite.isActive = true;
                     ib.isActive = true;
                 }
                 else
@@ -238,6 +239,9 @@ export class CircuitMessage {
                 }
             }
             else {
+                if (sys.intellibrite.circuits.length === 0){
+                    sys.intellibrite.isActive = false;
+                }
                 sys.features.removeItemById(id);
                 sys.circuits.removeItemById(id);
                 sys.circuitGroups.removeItemById(id);

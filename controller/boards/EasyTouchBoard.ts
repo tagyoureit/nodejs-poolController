@@ -369,27 +369,27 @@ export class TouchConfigQueue extends ConfigQueue {
         req.fillRange(start, end);
         this.push(req);
     }
-    protected queueItems(cat: number, items?: number[]) { this.push(new TouchConfigRequest(cat, items)); }
+    protected queueItems(cat: number, items: number[] = [0]) { this.push(new TouchConfigRequest(cat, items)); }
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
             logger.info(`Skipping Controller Init because MockPort enabled.`);
         } else {
             logger.info(`Requesting ${ sys.controllerType } configuration`);
-            this.queueItems(GetTouchConfigCategories.dateTime, [0]);
-            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
+            this.queueItems(GetTouchConfigCategories.dateTime);
+            this.queueItems(GetTouchConfigCategories.heatTemperature);
+            this.queueItems(GetTouchConfigCategories.solarHeatPump);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
-            this.queueItems(GetTouchConfigCategories.delays, [0]);
-            this.queueItems(GetTouchConfigCategories.settings, [0]);
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
-            this.queueItems(GetTouchConfigCategories.is4is10, [0]);
-            this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);
-            this.queueItems(GetTouchConfigCategories.valves, [0]);
-            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
-            this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
+            this.queueItems(GetTouchConfigCategories.delays);
+            this.queueItems(GetTouchConfigCategories.settings);
+            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes);
+            this.queueItems(GetTouchConfigCategories.is4is10);
+            this.queueItems(GetTouchConfigCategories.spaSideRemote);
+            this.queueItems(GetTouchConfigCategories.valves);
+            // this.queueItems(GetTouchConfigCategories.lightGroupPositions);
+            this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
             // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
         }

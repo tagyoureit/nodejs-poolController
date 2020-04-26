@@ -216,7 +216,7 @@ export class EquipmentStateMessage {
         heater.isActive = true;
         heater.type = 1;
         heater.name = "Gas Heater";
-        sys.equipment.shared ? heater.body = 32 : heater.body = 6;
+        sys.equipment.shared ? heater.body = 32 : heater.body = 1;
         sys.equipment.setEquipmentIds();
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
