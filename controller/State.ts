@@ -960,7 +960,7 @@ export class ChlorinatorState extends EqState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get currentOutput(): number { return this.data.currentOutput; }
+    public get currentOutput(): number { return this.data.currentOutput || 0; }
     public set currentOutput(val: number) { this.setDataVal('currentOutput', val); }
     public get setPointForCurrentBody() {
         if (state.body === 1) return this.data.spaSetpoint;

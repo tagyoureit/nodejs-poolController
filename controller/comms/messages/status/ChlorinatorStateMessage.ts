@@ -1,5 +1,5 @@
 ﻿import { Inbound, Protocol } from "../Messages";
-import { state } from "../../../State";
+import { state, BodyTempState } from "../../../State";
 import { sys, ControllerType } from "../../../Equipment";
 
 export class ChlorinatorStateMessage {
@@ -45,7 +45,9 @@ export class ChlorinatorStateMessage {
                 }
                 case 17:
                 case 21: {
-                    // Set Salt Output
+                    // Set Salt Output / 10
+                    // This packet is coming through differently on the IntelliConnect.
+                    // eg 13:42:31.304 VERBOSE Msg# 1531   Controller --> Salt cell: Set current output to 1.6 %: 16,2,80,21,0,119,16,3
                     let cstate = state.chlorinators.getItemById(1, true);
                     cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
                     cstate.targetOutput = cstate.setPointForCurrentBody;
@@ -63,6 +65,19 @@ export class ChlorinatorStateMessage {
                     let c = sys.chlorinators.getItemById(1, true);
                     let chlor = state.chlorinators.getItemById(1, true);
                     chlor.type = c.type = msg.extractPayloadByte(0);
+                    break;
+                }
+                case 22: {
+                    // temp and output as seen from IntelliConnect.  
+                    // Issue #157 - https://github.com/tagyoureit/nodejs-poolController/issues/157
+                    // [10 02, 10, 16], [00, 0f, 49, 00,05, 10], [85,  10,03] = hex
+                    // [16, 2, 16, 22], [00, 15, 73, 00, 5, 16], [133, 16, 3]
+                    // I was at 15% and the temp was 73 F
+                    // 0f49 - 15 and 73
+                    let chlor = state.chlorinators.getItemById(1, true);
+                    chlor.currentOutput = msg.extractPayloadByte(1);
+                    const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                    tbody.temp = msg.extractPayloadByte(2);
                     break;
                 }
             }

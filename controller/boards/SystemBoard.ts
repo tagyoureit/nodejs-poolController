@@ -215,8 +215,7 @@ export class byteValueMaps {
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
         [2, { name: 'solar', desc: 'Solar' }],
-        [3, { nane: 'cooling', desc: 'Cooling' }]
-
+        [3, { name: 'cooling', desc: 'Cooling' }]
     ]);
     public pumpStatus: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
@@ -1317,6 +1316,7 @@ export class ChlorinatorCommands extends BoardCommands {
                 this.ping(cstate);
             }
         }
+        state.emitEquipmentChanges();
     }
     public setPoolSetpoint(cstate: ChlorinatorState, poolSetpoint: number) { this.setChlor(cstate, poolSetpoint); }
     public setSpaSetpoint(cstate: ChlorinatorState, spaSetpoint: number) { this.setChlor(cstate, cstate.poolSetpoint, spaSetpoint); }
@@ -1496,7 +1496,14 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             if (pump.isActive) continue;
             pump.type = 128; // vs
-            sys.board.pumps.initPump(pump, () => {
+
+            // FORCE SET
+            pump = sys.pumps.getItemById(i, true);
+            pump.isActive = true;
+            pump.isVirtual = true;
+            pump.type = 128;
+
+/*             sys.board.pumps.initPump(pump, () => {
                 let pump = sys.pumps.getItemById(i, true);
                 pump.isActive = true;
                 pump.isVirtual = true;
@@ -1521,7 +1528,7 @@ export class VirtualPumpControllerCollection extends BoardCommands {
                 pump.isVirtual = true;
                 pump.type = 64;
                 // this._pumpControllers[i] = this.getItemById(i, true);
-            });
+            }); */
 
             // send vs, vf, vsf init packets; callback has setup
             console.log(`pump search... ${ i }`);

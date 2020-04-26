@@ -92,13 +92,16 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/pumps', (req, res) => {
-            let opts = {
+            let opts:any = {
                 maxPumps: sys.equipment.maxPumps,
                 pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
                 pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
                 pumps: sys.pumps.get()
             };
+            if (sys.controllerType !== ControllerType.IntelliCenter){
+                opts.circuitNames = sys.board.circuits.getCircuitNames();
+            }
             return res.status(200).send(opts);
         });
         app.get('/config/options/schedules', (req, res) => {

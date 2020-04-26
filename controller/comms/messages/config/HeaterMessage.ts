@@ -69,6 +69,7 @@ export class HeaterMessage {
                 if (msg.extractPayloadByte(0) === 21) {
                     let solar: Heater = sys.heaters.getItemById(2);
                     solar.isActive = false;
+                    sys.equipment.invalidCircuitIds.removeItemById(20); // include Aux Extra
                     let heatPump: Heater = sys.heaters.getItemById(3);
                     heatPump.isActive = false;
                     return;
@@ -79,6 +80,7 @@ export class HeaterMessage {
                     solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
+                    sys.equipment.invalidCircuitIds.getItemById(20, true); // exclude Aux Extra
                     solar.body = 32;
                     solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1; 
                     solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
@@ -95,6 +97,7 @@ export class HeaterMessage {
                     heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
                     let solar = sys.heaters.getItemById(2);
                     solar.isActive = false;
+                    sys.equipment.invalidCircuitIds.removeItemById(20); // include Aux Extra
                 }
                 for (var i = 0; i <= sys.heaters.length; i++){
                     let heater = sys.heaters.getItemByIndex(i);

@@ -243,7 +243,9 @@ export class HttpServer extends ProtoServer {
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                 if ('OPTIONS' === req.method) { res.sendStatus(200); }
                 else {
-                    console.log(`${ req.ip } ${ req.method } ${ req.url } ${ typeof req.body === 'undefined' ? '' : JSON.stringify(req.body) }`);
+                    if (req.url !== '/device'){
+                        console.log(`${ req.ip } ${ req.method } ${ req.url } ${ typeof req.body === 'undefined' ? '' : JSON.stringify(req.body) }`);
+                    }
                     next();
                 }
             });

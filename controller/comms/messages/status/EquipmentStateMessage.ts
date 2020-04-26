@@ -1,7 +1,7 @@
 ﻿import { Inbound, Message } from '../Messages';
 import { ControllerType } from '../../../Constants';
 import { state, BodyTempState } from '../../../State';
-import { sys, Body, ExpansionPanel, Heater, ConfigVersion } from '../../../Equipment';
+import { sys, Body, ExpansionPanel, Heater, ConfigVersion, Circuit, Feature } from '../../../Equipment';
 import { logger } from 'logger/Logger';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 
@@ -107,6 +107,9 @@ export class EquipmentStateMessage {
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
+                sys.equipment.invalidCircuitIds.getItemById(10, true); // exclude invalid circuit
+                sys.equipment.invalidCircuitIds.getItemById(19, true); // exclude invalid circuit
+                // will exclude AUX EXTRA 
                 switch (model1) {
                     case 0:
                         sys.equipment.model = 'EasyTouch2 8';
@@ -119,25 +122,33 @@ export class EquipmentStateMessage {
                         sys.equipment.maxCircuits = 8;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 8;
+                        sys.equipment.invalidCircuitIds.getItemById(1, true); // exclude spa
                         break;
                     case 2:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.maxFeatures = 2;
+                        sys.equipment.invalidCircuitIds.getItemById(7, true); // exclude Aux5
+                        sys.equipment.invalidCircuitIds.getItemById(8, true); // exclude Aux6
+                        sys.equipment.invalidCircuitIds.getItemById(9, true); // exclude Aux7
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 4;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 2;
+                        sys.equipment.invalidCircuitIds.getItemById(1, true); // exclude spa
+                        sys.equipment.invalidCircuitIds.getItemById(7, true); // exclude Aux5
+                        sys.equipment.invalidCircuitIds.getItemById(8, true); // exclude Aux6
+                        sys.equipment.invalidCircuitIds.getItemById(9, true); // exclude Aux7
                         break;
                 }
                 break;
 
             case 14: // EasyTouch1 Models
                 sys.controllerType = ControllerType.EasyTouch;
-                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
@@ -611,12 +622,21 @@ export class EquipmentStateMessage {
         const count = sys.board.equipmentIds.features.end;
         let circId = 1;
         let body = 0;
+        const invalidEquipmentIds = sys.equipment.invalidCircuitIds.toArray();
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
-                // const feature = sys.features.getItemById(circId);
                 const circ = sys.circuits.getInterfaceById(circId);
+                if (invalidEquipmentIds.includes(circId)) {
+                    circ.isActive = false;
+                    if (circ instanceof Circuit ){
+                        sys.circuits.removeItemById(circId);
+                    } 
+                    else if (circ instanceof Feature){
+                        sys.features.removeItemById(circId);
+                    }
+                }
                 if (circ.isActive) {
                     const cstate = state.circuits.getInterfaceById(
                         circId,

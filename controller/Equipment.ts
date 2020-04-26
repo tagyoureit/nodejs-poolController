@@ -550,6 +550,7 @@ export class Equipment extends EqItem {
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.setDataVal('maxCustomNames', val); }
+    public get invalidCircuitIds(): InvalidEquipmentIdCollection { return new InvalidEquipmentIdCollection(this.data, "invalidEquipmentIds"); }
     // Looking for IntelliCenter 1.029
     public set controllerFirmware(val: string) { this.setDataVal('softwareVersion', val); }
     public get controllerFirmware(): string { return this.data.softwareVersion; }
@@ -635,6 +636,21 @@ export class ConfigVersion extends EqItem {
         }
 
     }
+}
+export class InvalidEquipmentIdCollection extends EqItemCollection<InvalidEquipmentId>{
+    constructor(data: any, name?: string) { super (data, name || "invalidEquipmentIds");}
+    public toArray():number[]{
+        let arr = [];
+        for (let i = 0; i < this.data.length; i++){
+            let _id = this.getItemByIndex(i).get(true);
+            arr.push(_id.id);
+        }
+        return arr;
+    }
+}
+export class InvalidEquipmentId extends EqItem {
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = this.data.id; }
 }
 export class BodyCollection extends EqItemCollection<Body> {
     constructor(data: any, name?: string) { super(data, name || "bodies"); }

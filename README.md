@@ -52,7 +52,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## Installation Instructions
 
-**This code requires a physical [RS485](#module_nodejs-poolController--RS485) adapter to work.**
+**This code requires a physical [RS485](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) adapter to work.**
 
 **This is only the server code.  See [clients](#module_nodejs-poolController--clients) below for web or other ways to read/control the pool equipment.** 
 
@@ -83,7 +83,10 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 ### Web Clients
 1. [nodejs-poolControl.dashPanel](https://github.com/rstrouse/nodejs-poolControl.dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
-1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolContreller-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
+1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
+
+* This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
+
 
 ### Home Automation Integrations
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
@@ -102,12 +105,48 @@ Need to be updated:
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
 
 # Changed/dropped since 5.3
-1. Ability to load different config.json files (to be added back)
+1. Ability to load different config.json files
 1. Ability to run stand-alone chlorinator or pump controllers (to be added back)
 1. Automatic upgrade of config.json files (tbd)
 1. Automatic version notification of newer releases available (tbd)
 1. Most of the output to console has been eliminited.
 1. InfluxDB (to be added back)
+
+<a name="module_nodejs-poolController--config.json"></a>
+# Config.json changes
+
+## Controller section - changes to the communications for the app
+* `rs485Port` - set to the name of you rs485 controller.  See [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) for details and testing.
+* `portSettings` - should not need to be changed for RS485
+* `mockPort` - opens a "fake" port for this app to communicate on.  Can be used with [packet captures/replays](https://github.com/tagyoureit/nodejs-poolController/wiki/How-to-capture-all-packets-for-issue-resolution).
+* `netConnect` - used to connect via [Socat](https://github.com/tagyoureit/nodejs-poolController/wiki/Socat)
+  * `netHost` and `netPort` - host and port for Socat connection.
+* `inactivityRetry` - # of seconds the app should wait before trying to reopen the port after no communications.  If your equipment isn't on all the time or you are running a virtual controller you may want to dramatically increase the timeout so you don't get console warnings.
+
+## Web section - controls various aspects of external communications
+* `servers` - setting for different servers/services
+ * `http2` - not used currently
+ * `http` - primary server used for api connections without secure communications
+    * `enabled` - self-explanatory
+    * `ip` - The ip of the network address to listen on.  Default of `127.0.0.1` will only listen on the local loopback (localhost) adapter.  `0.0.0.0` will listen on all network interfaces.  Any other address will listen exclusively on that interface.
+    * `port` - Port to listen on.  Default is `4200`.
+    * `httpsRedirect` - Redirect http traffic to https
+    * `authentication` - Enable basic username/password authentication.  (Not implemented yet.)
+    * `authFile` - Location of the encrypted password file.  By default, `/users.htpasswd`. If you have `authentication=1` then create the file users.htpasswd in the root of the application.  Use a tool such as http://www.htaccesstools.com/htpasswd-generator/ and paste your user(s) into this file.  You will now be prompted for authentication.
+ * `https` - See http options above.
+    * `sslKeyFile` - Location of key file
+    * `sslCertFile` - Location of certificate file
+ * `mdns` - Not currently used.
+ * `ssdp` - Enable for automatic configuration by the webClient and other platforms.
+
+
+## Services - None currently available
+
+## Log - Different aspects of logging to the application
+ * `app` - Application wide settings
+    * `enabled` - Enable/disable logging for the entire application
+    * `level` - Different levels of logging from least to most: 'error', 'warn', 'info', 'verbose', 'debug', 'silly'
+* `packet` - Configuration for the 
 
 # Credit
 

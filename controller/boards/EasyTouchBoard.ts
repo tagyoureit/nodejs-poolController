@@ -10,7 +10,7 @@ export class EasyTouchBoard extends SystemBoard {
     constructor(system: PoolSystem) {
         super(system);
         this.equipmentIds.circuits = new EquipmentIdRange(1, function() { return this.start + sys.equipment.maxCircuits - 1; });
-        this.equipmentIds.features = new EquipmentIdRange(() => { return sys.equipment.maxCircuits + 1; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 3; });
+        this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() { return this.start + sys.equipment.maxCircuitGroups - 1; });
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
@@ -207,6 +207,12 @@ export class EasyTouchBoard extends SystemBoard {
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'solarpref', desc: 'Solar Preferred' }],
             [3, { name: 'solar', desc: 'Solar Only' }]
+        ]);
+        this.valueMaps.heatStatus = new byteValueMap([
+            [0, { name: 'off', desc: 'Off' }],
+            [1, { name: 'heater', desc: 'Heater' }],
+            [2, { name: 'cooling', desc: 'Cooling' }],
+            [3, { name: 'solar', desc: 'Solar' }]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater' }],
@@ -686,7 +692,7 @@ class TouchCircuitCommands extends CircuitCommands {
         else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
         return new Promise<ICircuit | string>((resolve, reject) => {
             let out = Outbound.create({
-                action: 39,
+                action: 139,
                 payload: [data.id, typeByte, nameByte],
                 retries: 3,
                 response: Response.create({ action: 1, payload: [139],
@@ -695,7 +701,8 @@ class TouchCircuitCommands extends CircuitCommands {
                             let circuit = sys.circuits.getInterfaceById(data.id);
                             let cstate = state.circuits.getInterfaceById(data.id);
                             circuit.nameId = cstate.nameId = nameByte;
-                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                            // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
                             circuit.type = cstate.type = typeByte;
                             state.emitEquipmentChanges();
                             resolve(circuit);
@@ -711,6 +718,7 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public deleteCircuit(data: any) {
         data.nameId = 0;
+        data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
         this.setCircuit(data);
     }
     public setCircuitState(id: number, val: boolean) {
