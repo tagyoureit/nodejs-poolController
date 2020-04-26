@@ -192,6 +192,15 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/pump', async (req, res, next) => {
+            // Change the pump attributes.  This will add the pump if it doesn't exist.
+            try {
+                let pump = await sys.board.pumps.setPumpConfig(req.body);
+                return res.status(200).send((pump as Pump).get(true));
+            }
+            catch (err) { next(err); }
+        });
+
 
         app.delete('/config/circuit', (req, res) => {
             // delete a circuit

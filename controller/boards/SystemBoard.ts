@@ -43,7 +43,8 @@ export class EquipmentIdRange {
 }
 export class EquipmentIds {
     public circuits: EquipmentIdRange=new EquipmentIdRange(6, 6);
-    public features: EquipmentIdRange=new EquipmentIdRange(7, function() { return this.start + sys.equipment.maxFeatures; });
+    public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
+    public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
     public circuitGroups: EquipmentIdRange=new EquipmentIdRange(0, 0);
     public virtualCircuits: EquipmentIdRange=new EquipmentIdRange(128, 136);
 }
@@ -188,36 +189,36 @@ export class byteValueMaps {
         [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
     ]);
     public scheduleTimeTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'manual', desc: 'Manual'}]
+        [0, { name: 'manual', desc: 'Manual' }]
     ]);
     public pumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [2, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-        [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
+        [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+        [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
-    public heatModes: byteValueMap=new byteValueMap([
+    public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [12, { name: 'solarpref', desc: 'Solar Preferred' }]
     ]);
-    public heatSources: byteValueMap=new byteValueMap([
+    public heatSources: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'No Heater' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [21, { name: 'solarpref', desc: 'Solar Preferred' }],
         [32, { name: 'nochange', desc: 'No Change' }]
     ]);
-    public heatStatus: byteValueMap=new byteValueMap([
+    public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
         [2, { name: 'solar', desc: 'Solar' }],
         [3, { name: 'cooling', desc: 'Cooling' }]
     ]);
-    public pumpStatus: byteValueMap=new byteValueMap([
+    public pumpStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
         // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
         [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
@@ -239,18 +240,18 @@ export class byteValueMaps {
         [15, { name: 'error15', desc: 'Unspecified Error 15' }],
         [16, { name: 'commfailure', desc: 'Communication failure' }]
     ]);
-    public pumpUnits: byteValueMap=new byteValueMap([
+    public pumpUnits: byteValueMap = new byteValueMap([
         [0, { name: 'rpm', desc: 'RPM' }],
         [1, { name: 'gpm', desc: 'GPM' }]
     ]);
-    public bodies: byteValueMap=new byteValueMap([
+    public bodies: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [2, { name: 'body3', desc: 'Body 3' }],
         [3, { name: 'body4', desc: 'Body 4' }],
         [32, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
-    public chlorinatorStatus: byteValueMap=new byteValueMap([
+    public chlorinatorStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'lowflow', desc: 'Low Flow' }],
         [2, { name: 'lowsalt', desc: 'Low Salt' }],
@@ -261,40 +262,41 @@ export class byteValueMaps {
         [7, { name: 'lowtemp', dest: 'Water Temp Low' }],
         [8, { name: 'commlost', desc: 'Communication Lost' }]
     ]);
-    public chlorinatorType: byteValueMap=new byteValueMap([
+    public chlorinatorType: byteValueMap = new byteValueMap([
         [0, { name: 'pentair', desc: 'Pentair' }],
         [1, { name: 'unknown', desc: 'unknown' }],
         [2, { name: 'aquarite', desc: 'Aquarite' }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
-    public customNames: byteValueMap=new byteValueMap();
-    public circuitNames: byteValueMap=new byteValueMap();
-    public scheduleTypes: byteValueMap=new byteValueMap([
+    public customNames: byteValueMap = new byteValueMap();
+    public circuitNames: byteValueMap = new byteValueMap();
+    public scheduleTypes: byteValueMap = new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once' }],
         [128, { name: 'repeat', desc: 'Repeats' }]
     ]);
-    public circuitGroupTypes: byteValueMap=new byteValueMap([
+    public circuitGroupTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'Unspecified' }],
         [1, { name: 'light', desc: 'Light' }],
         [2, { name: 'circuit', desc: 'Circuit' }],
         [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
-    public tempUnits: byteValueMap=new byteValueMap([
+    public tempUnits: byteValueMap = new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
         [4, { name: 'C', desc: 'Celcius' }]
     ]);
-    public valveTypes: byteValueMap=new byteValueMap([
+    public valveTypes: byteValueMap = new byteValueMap([
         [0, { name: 'standard', desc: 'Standard' }],
         [1, { name: 'intellivalve', desc: 'IntelliValve' }]
     ]);
-    public intellibriteActions: byteValueMap=new byteValueMap([
+    public intellibriteActions: byteValueMap = new byteValueMap([
         [0, { name: 'ready', desc: 'Ready' }],
         [1, { name: 'sync', desc: 'Synchronizing' }],
         [2, { name: 'set', desc: 'Sequencing Set Operation' }],
         [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
     ]);
-    public msgBroadcastActions: byteValueMap=new byteValueMap([
-        [2, { name: 'status', desc: 'Equipment Status' }]
+    public msgBroadcastActions: byteValueMap = new byteValueMap([
+        [2, { name: 'status', desc: 'Equipment Status' }],
+        [82, { name: 'ivstatus', desc: 'IntelliValve Status'}]
     ]);
     public intelliChemWaterFlow: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -587,6 +589,7 @@ export class PumpCommands extends BoardCommands {
             return this.board.valueMaps.pumpUnits.transform(val);
         }
     }
+
     public setPump(pump: Pump, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -594,7 +597,36 @@ export class PumpCommands extends BoardCommands {
             }
         }
     }
-
+    public async setPumpConfig(data: any): Promise<Pump | string> {
+        if (typeof data.id !== 'undefined') {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            if (id <= 0) id = sys.pumps.length + 1;
+            if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
+            let pump = sys.pumps.getItemById(id, data.id <= 0);
+            let spump = state.pumps.getItemById(id, data.id <= 0);
+            for (let prop in data) {
+                if (prop in pump) pump[prop] = data[prop];
+                if (prop in spump) spump[prop] = data[prop];
+            }
+            if (typeof data.circuits !== 'undefined') {
+                // We are setting the circuits as well.
+                let c = Math.max(pump.circuits.length, data.circuits.length);
+                for (let i = 0; i < c; i++) {
+                    if (i > data.circuits.length) pump.circuits.removeItemByIndex(i);
+                    else {
+                        let circ = pump.circuits.getItemByIndex(i, true, { id: i + 1 });
+                        for (let prop in data) {
+                            if (prop in circ) circ[prop] = data[prop];
+                        }
+                    }
+                }
+            }
+            spump.emitEquipmentChange();
+            return new Promise<Pump | string>((resolve, reject) => { resolve(pump); });
+        }
+        else
+            throw new Error('No pump information provided');
+    }
     public deletePumpCircuit(pump: Pump, pumpCircuitId: number) {
         pump.circuits.removeItemById(pumpCircuitId);
         this.setPump(pump);

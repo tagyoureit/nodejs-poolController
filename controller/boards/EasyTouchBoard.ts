@@ -826,6 +826,85 @@ class TouchPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
+    public async setPumpConfig(data: any): Promise<Pump | string> {
+        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
+        else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
+        // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
+        // get it from the current pump configuration.
+        let pump = sys.pumps.getItemById(id, false);
+        let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
+        // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
+        // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
+        if (isNaN(ntype) || ntype <= 0) throw new Error(`Invalid pump type: ${data.id} - ${data.type}`);
+        let type = sys.board.valueMaps.pumpTypes.transform(ntype);
+        if (typeof type.name === 'undefined') throw new Error(`Invalid pump type: ${data.id} - ${ntype}`);
+        let arr = [];
+        let outc = Outbound.create({
+            action: 155, payload: [id, ntype], retries: 2, response: Response.create({ action: 1, payload: [155] })
+        });
+        outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
+        outc.appendPayloadBytes(0, 44);
+        if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
+            let primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
+            outc.setPayloadByte(21, Math.floor(primingSpeed / 256));
+            outc.setPayloadByte(30, primingSpeed - (Math.floor(primingSpeed / 256) * 256));
+        }
+        if (type.val > 1 && type.val < 64) { // All of the pumps that do not have RS-485 control.
+            outc.setPayloadByte(1, parseInt(data.backgroundCircuit, 10), pump.backgroundCircuit || 6);
+            outc.setPayloadByte(3, parseInt(data.turnovers, 10), pump.turnovers || 2);
+            let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+            outc.setPayloadByte(2, body.capacity / 1000, 15);
+            outc.setPayloadByte(21, parseInt(data.manualFilterGPM, 10), pump.manualFilterGPM || 30);
+            outc.setPayloadByte(22, parseInt(data.primingSpeed, 10), pump.primingSpeed || 55);
+            let primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime;
+            let maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime;
+            outc.setPayloadByte(23, primingTime | maxSystemTime << 4, 5);
+            outc.setPayloadByte(24, parseInt(data.maxPressureIncrease, 10), pump.maxPressureIncrease || 10);
+            outc.setPayloadByte(25, parseInt(data.backwashFlow, 10), pump.backwashFlow || 60);
+            outc.setPayloadByte(26, parseInt(data.backwashTime, 10), pump.backwashTime || 5);
+            outc.setPayloadByte(27, parseInt(data.rinseTime, 10), pump.rinseTime || 1);
+            outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
+            outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
+        }
+        else if (typeof type.maxCircuits !== 'undefined') { // This pump type supports circuits
+            for (let i = 1; i <= 8; i++) {
+                if (i < data.circuits.length && i < type.maxCircuits) {
+                    let circ = pump.circuits.getItemByIndex(i, false);
+                    let c = data.circuits[i];
+                    let speed = parseInt(c.speed, 10) || circ.speed || type.minSpeed;
+                    let flow = parseInt(c.flow, 10) || circ.speed || type.minFlow;
+                    outc.setPayloadByte(i * 2 + 3, parseInt(data.circuit, 10), 0);
+                    if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
+                        outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
+                        outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                    }
+                    else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
+                        outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                    }
+                }
+            }
+        }
+        arr.push(new Promise((resolve, reject) => {
+            outc.onComplete = (msg, err) => {
+                if (err) reject(err);
+                else resolve(); // Just resolve we are going to ask for the config in the second message. NOTE: This will only resolve if we get an action 1 [155] back otherwise it will reject.
+            };
+            conn.queueSendMessage(outc);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            let cfgMsg = Outbound.create({ action: 216, payload: [id], retries: 2, response: Response.create({ action: 24, payload: [id] }) });
+            cfgMsg.onComplete = (msg, err) => {
+                if (err) reject(err);
+                else resolve();  // The message will be complete only after the message is processed by our message processor.
+            };
+            conn.queueSendMessage(cfgMsg);
+        }));
+        return new Promise<Pump | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(sys.pumps.getItemById(id));
+        });
+    }
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
         const setPumpConfig = Outbound.createMessage(155, [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [155]));

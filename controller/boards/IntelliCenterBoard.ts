@@ -48,7 +48,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false }],
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 40, hasAddress: false }],
-            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimeTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
             [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
             [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }]
         ]);
@@ -1719,6 +1719,160 @@ class IntelliCenterPumpCommands extends PumpCommands {
         for (let i = 0; i < msgs.length; i++){
             conn.queueSendMessage(msgs[i]);
         }
+    }
+    public async setPumpConfig(data: any): Promise<Pump | string> {
+        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
+        if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
+        else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
+        // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
+        // get it from the current pump configuration.
+        let pump = sys.pumps.getItemById(id, false);
+        let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
+        // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
+        // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
+        if (isNaN(ntype) || ntype <= 0) throw new Error(`Invalid pump type: ${data.id} - ${data.type}`);
+        let type = sys.board.valueMaps.pumpTypes.transform(ntype);
+        if (typeof type.name === 'undefined') throw new Error(`Invalid pump type: ${data.id} - ${ntype}`);
+        // Build out our messsages. We are merging data together so that the data items from the current config can be overridden.  If they are not
+        // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
+        // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
+        // the endpoint capability is.
+        let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, ntype, 0] });
+        outc.appendPayloadByte(parseInt(data.address, 10), id + 95);
+        outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);
+        outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);
+        outc.appendPayloadByte(parseInt(data.minFlow, 10), pump.minFlow);
+        outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);
+        outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize);
+        outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed);
+        outc.appendPayloadByte(parseInt(data.speedStepSize, 10), pump.speedStepSize);
+        outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime);
+        outc.appendPayloadByte(5); // Not sure what this value is but it is always 5.
+        outc.appendPayloadBytes(255, 8);
+        outc.appendPayloadBytes(0, 8);
+
+        let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
+        outn.appendPayloadBytes(0, 16);
+        outn.appendPayloadString(data.name, 16, pump.name || type.name);
+        // Add in all the circuits
+        if (data.circuits === 'undefined') {
+            // The endpoint isn't changing the circuits and is just setting the attributes.
+            for (let i = 0; i < 8; i++) {
+                let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
+                outc.setPayloadByte(i + 18, circ.circuit);
+            }
+        }
+        else {
+            if (typeof type.maxCircuits !== 'undefined' && type.maxCirciuts > 0) {
+                for (let i = 0; i < 8; i++) {
+                    let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
+                    if (i >= data.circuits.length) {
+                        // The incoming data does not include this circuit.
+                        outc.setPayloadByte(i + 18, 255);
+                        if (typeof type.minSpeed !== 'undefined')
+                            outn.setPayloadInt((i * 2) + 3, type.minSpeed);
+                        else if (typeof type.minFlow !== 'undefined') {
+                            outn.setPayloadInt((i * 2) + 3, type.minFlow);
+                            outc.setPayloadByte(i + 26, 1);
+                        }
+                        else
+                            outn.setPayloadInt(i + 3, 0);
+                    }
+                    else {
+                        let c = data.circuits[i];
+                        let speed = parseInt(c.speed, 10);
+                        let flow = parseInt(c.flow, 10);
+                        let circuit = i < type.maxCircuits ? parseInt(c.circuit, 10) : 256;
+                        outn.setPayloadByte(i + 18, circuit - 1, circ.circuit - 1);
+                        if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
+                            outc.setPayloadByte(i + 26, 0); // Set to rpm
+                            outn.setPayloadInt((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed);
+                        }
+                        else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
+                            outc.setPayloadByte(i + 26, 1); // Set to gpm
+                            outn.setPayloadInt((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow);
+                        }
+                    }
+                }
+            }
+        }
+
+        // We now have our messages.  Let's send them off and update our values.
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            outc.onComplete = (msg, err) => {
+                if (err) reject(err);
+                else {
+                    // We have been successful so lets set our pump with the new data.
+                    let pump = sys.pumps.getItemById(id, true);
+                    pump.type = type;
+                    if (typeof data.address !== 'undefined') pump.address = data.address;
+                    if (typeof data.primingTime !== 'undefined') pump.primingTime = parseInt(data.primingTime, 10);
+                    if (typeof data.primingSpeed !== 'undefined') pump.primingSpeed = parseInt(data.primingSpeed, 10);
+                    if (typeof data.minSpeed !== 'undefined') pump.minSpeed = parseInt(data.minSpeed, 10);
+                    if (typeof data.maxSpeed !== 'undefined') pump.maxSpeed = parseInt(data.maxSpeed, 10);
+                    if (typeof data.minFlow !== 'undefined') pump.minFlow = parseInt(data.minFlow, 10);
+                    if (typeof data.maxFlow !== 'undefined') pump.maxFlow = parseInt(data.maxFlow, 10);
+                    if (typeof data.flowStepSize !== 'undefined') pump.flowStepSize = parseInt(data.flowStepSize, 10);
+                    if (typeof data.speedStepSize !== 'undefined') pump.speedStepSize = parseInt(data.speedStepSize, 10);
+                    if (typeof data.circuits !== 'undefined') {
+                        // Set all the circuits
+                        for (let i = 0; i < 8; i++) {
+                            if (i < data.circuits.length) pump.circuits.removeItemByIndex(i);
+                            else {
+                                let c = data.circuits[i];
+                                let circuitId = parseInt(c.circuit, 10);
+                                if (isNaN(circuitId)) pump.circuits.removeItemByIndex(i);
+                                else {
+                                    let circ = pump.circuits.getItemByIndex(i, true);
+                                    circ.circuit = circuitId;
+                                    circ.units = parseInt(c.units, 10);
+                                }
+                            }
+                        }
+                    }
+                    resolve();
+                }
+            };
+            conn.queueSendMessage(outc);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            outn.onComplete = (msg, err) => {
+                if (err) reject(err);
+                else {
+                    // We have been successful so lets set our pump with the new data.
+                    let pump = sys.pumps.getItemById(id, true);
+                    pump.type = type;
+                    if (typeof data.circuits !== 'undefined') {
+                        // Set all the circuits
+                        for (let i = 0; i < 8; i++) {
+                            if (i < data.circuits.length) pump.circuits.removeItemByIndex(i);
+                            else {
+                                let c = data.circuits[i];
+                                let circuitId = typeof c.circuit !== 'undefined' ? parseInt(c.circuit, 10) : pump.circuits.getItemById(i, false).circuit;
+                                let circ = pump.circuits.getItemByIndex(i, true);
+                                circ.circuit = circuitId;
+                                circ.units = parseInt(c.units || circ.units, 10);
+                                let speed = parseInt(c.speed, 10);
+                                let flow = parseInt(c.flow, 10);
+                                if (isNaN(speed)) speed = type.minSpeed || 0;
+                                if (isNaN(flow)) flow = type.minFlow || 0;
+                                if (circ.units === 1 && typeof type.minFlow !== 'undefined')
+                                    circ.flow = Math.max(flow, circ.flow);
+                                else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
+                                    circ.speed = Math.max(speed, circ.speed);
+                            }
+                        }
+                    }
+                    resolve();
+                }
+            };
+            conn.queueSendMessage(outn);
+        }));
+        return new Promise<Pump | string>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(sys.pumps.getItemById(id));
+        });
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {

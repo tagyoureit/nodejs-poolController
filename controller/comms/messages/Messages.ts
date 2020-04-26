@@ -457,7 +457,70 @@ export class Outbound extends Message {
                 break;
         }
     }
-    public appendPayloadString(s: string, len?: number) {
+    public setPayloadByte(ndx: number, value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        if (ndx < this.payload.length) this.payload[ndx] = value;
+        return this;
+    }
+    public appendPayloadByte(value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        this.payload.push(value);
+        return this;
+    }
+    public appendPayloadBytes(value: number, len: number) {
+        for (let i = 0; i < len; i++) this.payload.push(value);
+        return this;
+    }
+    public setPayloadBytes(value: number, len: number) {
+        for (let i = 0; i < len; i++) {
+            if (i < this.payload.length) this.payload[i] = value;
+        }
+        return this;
+    }
+    public insertPayloadBytes(ndx: number, value: number, len: number) {
+        let buf = [];
+        for (let i = 0; i < len; i++) {
+            buf.push(value);
+        }
+        this.payload.splice(ndx, 0, ...buf);
+        return this;
+    }
+    public setPayloadInt(ndx: number, value: number, def?:number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        let b1 = Math.floor(value / 256);
+        let b0 = (value - b1) * 256;
+        if (ndx < this.payload.length) this.payload[ndx] = b0;
+        if (ndx + 1 < this.payload.length) this.payload[ndx + 1] = b1;
+        return this;
+    }
+    public appendPayloadInt(value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        let b1 = Math.floor(value / 256);
+        let b0 = (value - b1) * 256;
+        this.payload.push(b0);
+        this.payload.push(b1);
+        return this;
+    }
+    public insertPayloadInt(ndx: number, value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        let b1 = Math.floor(value / 256);
+        let b0 = (value - b1) * 256;
+        this.payload.splice(ndx, 0, b0, b1);
+        return this;
+    }
+    public setPayloadString(s: string, len?: number, def?: string) {
+        if (typeof s === 'undefined') s = def;
+        for (var i = 0; i < s.length; i++) {
+            if (i < this.payload.length) this.payload[i] = s.charCodeAt(i);
+        }
+        if (typeof (len) !== 'undefined') {
+            for (var j = i; j < len; j++)
+                if (i < this.payload.length) this.payload[i] = 0;
+        }
+        return this;
+    }
+    public appendPayloadString(s: string, len?: number, def?: string) {
+        if (typeof s === 'undefined') s = def;
         for (var i = 0; i < s.length; i++) {
             if (typeof (len) !== 'undefined' && i >= len) break;
             this.payload.push(s.charCodeAt(i));
@@ -467,7 +530,8 @@ export class Outbound extends Message {
         }
         return this;
     }
-    public insertPayloadString(start: number, s: string, len?: number) {
+    public insertPayloadString(start: number, s: string, len?: number, def?: string) {
+        if (typeof s === 'undefined') s = def;
         let l = typeof len === 'undefined' ? s.length : len;
         let buf = [];
         for (let i = 0; i < l; l++) {
