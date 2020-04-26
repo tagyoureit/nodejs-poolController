@@ -388,7 +388,7 @@ export class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.is4is10);
             this.queueItems(GetTouchConfigCategories.spaSideRemote);
             this.queueItems(GetTouchConfigCategories.valves);
-            // this.queueItems(GetTouchConfigCategories.lightGroupPositions);
+            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
             this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
             // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
