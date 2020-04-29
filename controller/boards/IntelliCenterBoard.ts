@@ -8,6 +8,7 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState } from '../State';
 import { REPLServer } from 'repl';
 import { utils } from '../../controller/Constants';
+import { InvalidEquipmentIdError } from '../Errors';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -314,6 +315,8 @@ export class IntelliCenterBoard extends SystemBoard {
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
         }
     }
+    public get commandSourceAddress(): number { return 16; }
+    public get commandDestAddress(): number { return 15; }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
     constructor(cat: number, ver: number, items?: number[], oncomplete?: Function) {
@@ -539,26 +542,30 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 
 }
 class IntelliCenterSystemCommands extends SystemCommands {
-    public async setGeneral(obj?: any): Promise<General | string> {
+    public async setGeneralAsync(obj?: any): Promise<General | string> {
         return new Promise<General | string>(async (resolve, reject) => {
-            if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [12, 0, 0],
-                    onComplete: (msg, err) => {
-                        if (err) throw new Error(err);
-                        else { sys.general.alias = obj.alias; resolve(); }
-                    }
-                }).appendPayloadString(obj.alias, 16);
-                conn.queueSendMessage(out);
+            try {
+                if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
+                    let out = Outbound.create({
+                        action: 168,
+                        payload: [12, 0, 0],
+                        retries: 1,
+                        onComplete: (err, msg) => {
+                            if (err) throw new Error(err);
+                            else { sys.general.alias = obj.alias; resolve(); }
+                        }
+                    }).appendPayloadString(obj.alias, 16);
+                    conn.queueSendMessage(out);
+                }
+                if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
+                if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
+                if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
+                resolve(sys.general);
             }
-            if (typeof obj.options !== 'undefined') await sys.board.system.setOptions(obj.options);
-            if (typeof obj.location !== 'undefined') await sys.board.system.setLocation(obj.location);
-            if (typeof obj.owner !== 'undefined') await sys.board.system.setOwner(obj.owner);
-            resolve(sys.general);
+            catch (err) { reject(err); }
         });
     }
-    public async setOptions(obj?: any) : Promise<Options | string> {
+    public async setOptionsAsync(obj?: any) : Promise<Options | string> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
         let payload = [0, 0, 0,
             fnToByte(sys.general.options.waterTempAdj2),
@@ -593,8 +600,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.waterTempAdj1 = parseInt(obj.waterTempAdj1, 10); resolve(); }
                     }
@@ -608,8 +616,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[3] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.waterTempAdj2 = parseInt(obj.waterTempAdj2, 10); resolve(); }
                     }
@@ -623,8 +632,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.solarTempAdj1 = parseInt(obj.solarTempAdj1, 10); resolve(); }
                     }
@@ -638,8 +648,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.solarTempAdj2 = parseInt(obj.solarTempAdj2, 10); resolve(); }
                     }
@@ -653,8 +664,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[7] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.airTempAdj = parseInt(obj.airTempAdj, 10); resolve(); }
                     }
@@ -674,8 +686,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[14] = byte;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else {
                             if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
@@ -693,8 +706,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.clockSource = obj.clockMode === 'internet' ? 'internet' : 'manual'; resolve(); }
                     }
@@ -708,8 +722,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[30] = obj.pumpDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.pumpDelay = obj.pumpDelay ? true : false; resolve(); }
                     }
@@ -723,8 +738,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false; resolve(); }
                     }
@@ -737,8 +753,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[39] = obj.manualPriority ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.manualPriority = obj.manualPriority ? true : false; resolve(); }
                     }
@@ -752,8 +769,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[39] = obj.manualHeat ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: payload,
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.manualHeat = obj.manualHeat ? true : false; resolve(); }
                     }
@@ -762,18 +780,22 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }));
         }
         return new Promise<Options | string>(async (resolve, reject) => {
-            await Promise.all(arr).catch(err => reject(err));
-            resolve(sys.general.options);
+            try {
+                await Promise.all(arr).catch(err => reject(err));
+                resolve(sys.general.options);
+            }
+            catch (err) { reject(err); }
         });
     }
-    public async setLocation(obj?: any): Promise<Location | string> {
+    public async setLocationAsync(obj?: any): Promise<Location | string> {
         let arr = [];
         if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 1],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.address = obj.address; resolve(); }
                     }
@@ -786,8 +808,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 8],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.country = obj.country; resolve(); }
                     }
@@ -800,8 +823,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 9],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.city = obj.city; resolve(); }
                     }
@@ -814,8 +838,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 10],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.state = obj.state; resolve(); }
                     }
@@ -828,8 +853,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 7],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.zip = obj.zip; resolve(); }
                     }
@@ -844,10 +870,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 let lat = Math.round(Math.abs(obj.latitude) * 100);
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 11,
                         Math.floor(lat/256),
                         lat - Math.floor(lat/256)],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.longitude = lat/100; resolve(); }
                     }
@@ -860,10 +887,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 let lon = Math.round(Math.abs(obj.longitude) * 100);
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 12,
                         Math.floor(lon / 256),
                         lon - Math.floor(lon / 256)],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.longitude = -(lon/100); resolve(); }
                     }
@@ -875,8 +903,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 10, parseInt(obj.timeZone, 10)],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.timeZone = parseInt(obj.timeZone, 10); resolve(); }
                     }
@@ -886,18 +915,22 @@ class IntelliCenterSystemCommands extends SystemCommands {
         }
 
         return new Promise<Location | string>(async (resolve, reject) => {
-            await Promise.all(arr);
-            resolve(sys.general.location);
+            try {
+                await Promise.all(arr);
+                resolve(sys.general.location);
+            }
+            catch (err) { reject(err); }
         });
     }
-    public async setOwner(obj?: any) : Promise<Owner | string> {
+    public async setOwnerAsync(obj?: any) : Promise<Owner | string> {
         let arr = [];
         if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 2],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.name = obj.name; resolve(); }
                     }
@@ -910,8 +943,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 3],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.email = obj.email; resolve(); }
                     }
@@ -924,8 +958,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 4],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.email2 = obj.email2; resolve(); }
                     }
@@ -938,8 +973,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 6],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.phone2 = obj.phone2; resolve(); }
                     }
@@ -952,8 +988,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
+                    retries: 1,
                     payload: [12, 0, 5],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.phone = obj.phone; resolve(); }
                     }
@@ -963,19 +1000,22 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }));
         }
         return new Promise<Owner | string>(async (resolve, reject) => {
-            await Promise.all(arr);
-            resolve(sys.general.owner);
+            try {
+                await Promise.all(arr);
+                resolve(sys.general.owner);
+            }
+            catch (err) { reject(err); }
         });
     }
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
-    public async setCircuit(data: any): Promise<ICircuit | string> {
+    public async setCircuitAsync(data: any): Promise<ICircuit | string> {
         return new Promise<ICircuit | string>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             let circuit = sys.circuits.getItemById(id, false);
-            if (isNaN(id)) throw new Error('Circuit Id has not been defined');
-            if (!sys.board.equipmentIds.circuits.isInRange(id)) throw new Error(`Circuit Id ${id}: is out of range.`);
+            if (isNaN(id)) throw new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit');
+            if (!sys.board.equipmentIds.circuits.isInRange(id)) throw new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit');
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = circuit.eggTimer;
             let eggHrs = Math.floor(eggTimer / 60);
@@ -988,7 +1028,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures) ? 1 : 0,
                     typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme,
                     eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         circuit.eggTimer = eggTimer;
@@ -1005,7 +1045,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup | string> {
         let group: CircuitGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         let type = 0;
@@ -1033,7 +1073,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         group.eggTimer = eggTimer;
@@ -1070,7 +1110,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         if (typeof obj.name !== 'undefined') group.name = obj.name.toString().substring(0, 16);
@@ -1086,7 +1126,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else { resolve(); }
                 }
@@ -1106,7 +1146,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             resolve(grp);
         });
     }
-    public async deleteCircuitGroup(obj: any): Promise<CircuitGroup | string> {
+    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup | string> {
         let group: CircuitGroup = null;
         let id = parseInt(obj.id, 10);
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
@@ -1116,7 +1156,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         let gstate = state.circuitGroups.getItemById(id);
@@ -1138,7 +1178,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         resolve();
@@ -1153,7 +1193,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else { resolve(); }
                 }
@@ -1166,7 +1206,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             resolve(group);
         });
     }
-    public async setLightGroup(obj: any): Promise<LightGroup | string> {
+    public async setLightGroupAsync(obj: any): Promise<LightGroup | string> {
         let group: LightGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1190,7 +1230,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, (theme << 2) + 1, 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         resolve();
@@ -1248,7 +1288,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         if (typeof obj.name !== 'undefined') group.name = obj.name.toString().substring(0, 16);
@@ -1265,7 +1305,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = Outbound.create({
                 action: 168,
                 payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else { resolve(); }
                 }
@@ -1476,7 +1516,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-9
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10-19
             0, 0, 0, 0, 0, 0, 0, 0, 255, 255, // 20-29
-            255, 255, 0, 0, 0, 0], // 30-35
+            255, 255, 0, 1, 1, 0], // 30-35
             3);
         let circuitId = sys.board.equipmentIds.circuits.start;
         for (let i = 1; i <= state.data.circuits.length; i++) {
@@ -1567,7 +1607,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
     public setFeatureState(id, val) { this.board.circuits.setCircuitState(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
-    public async setFeature(data: any): Promise<Feature | string> {
+    public async setFeatureAsync(data: any): Promise<Feature | string> {
         return new Promise<Feature | string>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             let feature: Feature;
@@ -1577,8 +1617,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             }
             else
                 feature = sys.features.getItemById(id, false);
-            if (isNaN(id)) throw new Error('feature Id has not been defined');
-            if (!sys.board.equipmentIds.features.isInRange(id)) throw new Error(`feature Id ${id}: is out of range.`);
+            if (isNaN(id)) throw new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature');
+            if (!sys.board.equipmentIds.features.isInRange(id)) throw new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature');
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
             let eggHrs = Math.floor(eggTimer / 60);
@@ -1590,7 +1630,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures) ? 1 : 0,
                     eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         feature = sys.features.getItemById(id, true);
@@ -1610,17 +1650,17 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async deleteFeature(data: any): Promise<Feature | string> {
+    public async deleteFeatureAsync(data: any): Promise<Feature | string> {
         return new Promise<Feature | string>((resolve, reject) => {
             let id = parseInt(data.id, 10);
-            if (isNaN(id)) throw new Error('feature Id has not been defined');
+            if (isNaN(id)) throw new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature');
             let feature = sys.features.getItemById(id, false);
             let out = Outbound.create({
                 action: 168,
                 payload: [2, 0, id - sys.board.equipmentIds.features.start,
                     255, // Delete the feature
                     0, 0, 12, 0, 0],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         sys.features.removeItemById(id);
@@ -1720,7 +1760,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
-    public async setPumpConfig(data: any): Promise<Pump | string> {
+    public async setPumpAsync(data: any): Promise<Pump | string> {
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
         else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
@@ -1800,7 +1840,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         // We now have our messages.  Let's send them off and update our values.
         let arr = [];
         arr.push(new Promise((resolve, reject) => {
-            outc.onComplete = (msg, err) => {
+            outc.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else {
                     // We have been successful so lets set our pump with the new data.
@@ -1837,7 +1877,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
             conn.queueSendMessage(outc);
         }));
         arr.push(new Promise((resolve, reject) => {
-            outn.onComplete = (msg, err) => {
+            outn.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else {
                     // We have been successful so lets set our pump with the new data.
@@ -1876,11 +1916,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {
-    public async setBody(obj: any): Promise<Body | string> {
+    public async setBodyAsync(obj: any): Promise<Body | string> {
         let arr = [];
         let byte = 0;
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new Error('Body Id is not defined');
+        if (isNaN(id)) throw new InvalidEquipmentIdError('Body Id is not defined', obj.id, 'Body');
         let body = sys.bodies.getItemById(id, false);
         switch (body.id) {
             case 1:
@@ -1901,7 +1941,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 let out = Outbound.create({
                     action: 168,
                     payload: [13, 0, byte],
-                    onComplete: (msg, err) => {
+                    onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { body.name = obj.name; resolve(); }
                     }
@@ -1917,7 +1957,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     let out = Outbound.create({
                         action: 168,
                         payload: [13, 0, byte + 4, Math.floor(cap / 1000)],
-                        onComplete: (msg, err) => {
+                        onComplete: (err, msg) => {
                             if (err) reject(err);
                             else { body.capacity = cap; resolve(); }
                         }
@@ -1933,7 +1973,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     let out = Outbound.create({
                         action: 168,
                         payload: [13, 0, byte + 8, manHeat ? 1 : 0],
-                        onComplete: (msg, err) => {
+                        onComplete: (err, msg) => {
                             if (err) reject(err);
                             else { body.manualHeat = manHeat; resolve(); }
                         }
@@ -1943,8 +1983,11 @@ class IntelliCenterBodyCommands extends BodyCommands {
             }
         }
         return new Promise<Body | string>(async (resolve, reject) => {
-            await Promise.all(arr);
-            resolve(body);
+            try {
+                await Promise.all(arr);
+                resolve(body);
+            }
+            catch (err) { reject(err); }
         });
     }
 
@@ -2088,20 +2131,20 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     }
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public async setValve(obj?: any) : Promise<Valve | Error> {
+    public async setValveAsync(obj?: any) : Promise<Valve | Error> {
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
         // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
         return new Promise<Valve>(function (resolve, reject) {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) reject('Valve Id has not been defined')
+            if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
             let valve = sys.valves.getItemById(id);
             let v = extend(true, valve.get(true), obj);
             let out = Outbound.create({
                 action: 168,
                 payload: [9, 0, v.id - 1, v.circuit - 1],
-                onComplete: (msg, err) => {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         valve.name = v.name;

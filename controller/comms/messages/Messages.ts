@@ -398,15 +398,15 @@ export class Outbound extends Message {
     // Factory
     public static create(obj?: any) {
         let out = new Outbound(obj.protocol || Protocol.Broadcast,
-            obj.source || Message.pluginAddress, obj.dest || 16, obj.action || 0, obj.payload || [], obj.retries || 0);
+            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || obj.dest || 16, obj.action || 0, obj.payload || [], obj.retries || 0);
         out.onComplete = obj.onComplete;
         out.onError = obj.onError;
         out.onSuccess = obj.onSuccess;
         out.response = obj.response;
         return out;
     }
-    public static createMessage(action: number, payload: number[], retries?: number, response?: Response, onSuccess?: (msg) => void, onError?: (msg) => void): Outbound {
-        return new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, action, payload, retries, response);
+    public static createMessage(action: number, payload: number[], retries?: number, response?: Response, onSuccess?: (msg) => void, onError?: (err: Error, msg: Outbound) => void): Outbound {
+        return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
     public static createBroadcastRaw(dest: number, source: number, action: number, payload: number[], retries?: number, response?: Response): Outbound {
         return new Outbound(Protocol.Broadcast, source, dest, action, payload, retries);
@@ -417,14 +417,16 @@ export class Outbound extends Message {
     public static createPumpMessage(dest: number, action: number, payload: number[], retries?: number, response?: Response): Outbound {
         return new Outbound(Protocol.Pump, Message.pluginAddress, dest, action, payload, retries, response);
     }
+   
     // Fields
-    public retries: number=0;
+    public retries: number = 0;
+    public tries: number = 0;
     public timeout: number=1000;
     public response: Response;
     public failed: boolean = false;
     public onSuccess: (msg: Outbound) => void;
-    public onError: (msg:Outbound, error) => void;
-    public onComplete: (msg:Outbound, error?) => void;
+    public onError: (error: Error, msg: Outbound) => void;
+    public onComplete: (error: Error, msg: Outbound) => void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }
@@ -441,7 +443,7 @@ export class Outbound extends Message {
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
     public get requiresResponse(): boolean { return (typeof (this.response) !== 'undefined' && this.response !== null && this.response.needsResponse); }
-
+    public get remainingTries(): number { return this.retries - this.tries + 1; } // Always allow 1 try.
     // Methods
     public calcChecksum() {
         this.datalen = this.payload.length;
@@ -559,7 +561,7 @@ export class Ack extends Outbound {
 }
 export class Response extends Message {
     public message: Inbound;
-    constructor(proto: Protocol, source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (msg?: Outbound) => void) {
+    constructor(proto: Protocol, source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (err, msg?: Outbound) => void) {
         super();
         this.protocol = proto;
         this.direction = Direction.In;
@@ -595,7 +597,7 @@ export class Response extends Message {
     }
     // Fields
     public ack: Ack;
-    public callback: () => void;
+    public callback: (err, msg?: Outbound) => void;
 
     // Properties
     public get sub() { return super.sub; }

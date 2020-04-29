@@ -124,22 +124,21 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
-        /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS *********/
+        /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/general', async (req, res, next) => {
             // Change the options for the pool.
             try {
-                await sys.board.system.setGeneral(req.body);
+                await sys.board.system.setGeneralAsync(req.body);
                 return res.status(200).send(sys.general.get());
             }
             catch (err) {
-                console.log(err);
                 next(err);
             }
         });
         app.put('/config/valve', async(req, res, next) => {
             // Update a valve.
             try {
-                let valve = await sys.board.valves.setValve(req.body);
+                let valve = await sys.board.valves.setValveAsync(req.body);
                 return res.status(200).send((valve as Valve).get(true));
             }
             catch (err) { next(err); }
@@ -147,7 +146,7 @@ export class ConfigRoute {
         app.put('/config/body', async (req, res, next) => {
             // Change the body attributes.
             try {
-                let body = await sys.board.bodies.setBody(req.body);
+                let body = await sys.board.bodies.setBodyAsync(req.body);
                 return res.status(200).send((body as Body).get(true));
             }
             catch (err) { next(err); }
@@ -155,7 +154,15 @@ export class ConfigRoute {
         app.put('/config/circuit', async (req, res, next) => {
             // add/update a circuit
             try {
-                let circuit = await sys.board.circuits.setCircuit(req.body);
+                let circuit = await sys.board.circuits.setCircuitAsync(req.body);
+                return res.status(200).send((circuit as ICircuit).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/circuit', async (req, res, next) => {
+            // delete a circuit
+            try {
+                let circuit = await sys.board.circuits.deleteCircuitAsync(req.body);
                 return res.status(200).send((circuit as ICircuit).get(true));
             }
             catch (err) { next(err); }
@@ -163,7 +170,7 @@ export class ConfigRoute {
         app.put('/config/feature', async (req, res, next) => {
             // add/update a feature
             try {
-                let feature = await sys.board.features.setFeature(req.body);
+                let feature = await sys.board.features.setFeatureAsync(req.body);
                 return res.status(200).send((feature as Feature).get(true));
             }
             catch (err) { next(err); }
@@ -171,7 +178,7 @@ export class ConfigRoute {
         app.delete('/config/feature', async (req, res, next) => {
             // delete a feature
             try {
-                let feature = await sys.board.features.deleteFeature(req.body);
+                let feature = await sys.board.features.deleteFeatureAsync(req.body);
                 return res.status(200).send((feature as Feature).get(true));
             }
             catch (err) { next(err); }
@@ -179,15 +186,14 @@ export class ConfigRoute {
         app.put('/config/circuitGroup', async (req, res, next) => {
             // add/update a circuitGroup
             try {
-                let group = await sys.board.circuits.setCircuitGroup(req.body);
+                let group = await sys.board.circuits.setCircuitGroupAsync(req.body);
                 return res.status(200).send((group as CircuitGroup).get(true));
             }
             catch (err) { next(err); }
         });
         app.delete('/config/circuitGroup', async (req, res, next) => {
-            // add/update a circuitGroup
             try {
-                let group = await sys.board.circuits.deleteCircuitGroup(req.body);
+                let group = await sys.board.circuits.deleteCircuitGroupAsync(req.body);
                 return res.status(200).send((group as CircuitGroup).get(true));
             }
             catch (err) { next(err); }
@@ -195,7 +201,7 @@ export class ConfigRoute {
         app.put('/config/lightGroup', async (req, res, next) => {
             // add/update a lightGroup
             try {
-                let group = await sys.board.circuits.setLightGroup(req.body);
+                let group = await sys.board.circuits.setLightGroupAsync(req.body);
                 return res.status(200).send((group as LightGroup).get(true));
             }
             catch (err) { next(err); }
@@ -203,27 +209,23 @@ export class ConfigRoute {
         app.put('/config/pump', async (req, res, next) => {
             // Change the pump attributes.  This will add the pump if it doesn't exist.
             try {
-                let pump = await sys.board.pumps.setPumpConfig(req.body);
+                let pump = await sys.board.pumps.setPumpAsync(req.body);
                 return res.status(200).send((pump as Pump).get(true));
             }
             catch (err) { next(err); }
         });
-
-
-        app.delete('/config/circuit', (req, res) => {
-            // delete a circuit
-
-            // deleteCircuit and setCircuit can prob be combined...
-            sys.board.circuits.deleteCircuit(req.body);
-            // RG: this was throwing a 500 error because we are waiting for the controller to respond
-            // and this code is executing before we get the response
-            // change to a callback(?)
-            // if (sys.circuits.getInterfaceById(parseInt(req.body.id)).isActive)
-            // return res.status(500).send({result: 'Error', reason: 'Unknown'});
-            // else
-            return res.status(200).send('OK');
+        app.delete('/config/pump', async (req, res, next) => {
+            try {
+                let pump = await sys.board.pumps.deletePumpAsync(req.body);
+                return res.status(200).send((pump as Pump).get(true));
+            }
+            catch (err) { next(err); }
         });
-        app.get('/config/circuits/names', (req, res)=>{
+        /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
+
+
+
+        app.get('/config/circuits/names', (req, res) => {
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });

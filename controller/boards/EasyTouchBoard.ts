@@ -6,6 +6,7 @@ import { state, ChlorinatorState, CommsState, State } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { resolve } from 'dns';
+import { MessageError } from '../Errors';
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
@@ -682,7 +683,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public async setCircuit(data: any): Promise<ICircuit | string> {
+    public async setCircuitAsync(data: any): Promise<ICircuit | string> {
         // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
         // set circuit 17 to function 14 and name 209
         // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -696,32 +697,54 @@ class TouchCircuitCommands extends CircuitCommands {
                 action: 139,
                 payload: [data.id, typeByte, nameByte],
                 retries: 3,
-                response: Response.create({ action: 1, payload: [139],
-                    callback: function (msg) {
-                        if (msg && !msg.failed) {
-                            let circuit = sys.circuits.getInterfaceById(data.id);
-                            let cstate = state.circuits.getInterfaceById(data.id);
-                            circuit.nameId = cstate.nameId = nameByte;
-                            // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                            circuit.type = cstate.type = typeByte;
-                            state.emitEquipmentChanges();
-                            resolve(circuit);
-                        }
-                        // TODO: look into msg being null
-                        else if (!msg) { console.log(`why are we getting no msg?`); reject('Response message is not returned'); }
-                        else reject('Error setting circuit');
+                response: Response.create({
+                    action: 1, payload: [139]
+                    // RKS: Removed this so that the onComplete signature can be called.  In this instance there will be an error object already.
+                    //callback: function (msg) {
+                    //    if (msg && !msg.failed) {
+                    //        let circuit = sys.circuits.getInterfaceById(data.id);
+                    //        let cstate = state.circuits.getInterfaceById(data.id);
+                    //        circuit.nameId = cstate.nameId = nameByte;
+                    //        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                    //        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                    //        circuit.type = cstate.type = typeByte;
+                    //        state.emitEquipmentChanges();
+                    //        resolve(circuit);
+
+                    //    }
+                    //    // TODO: look into msg being null
+                    //    else if (!msg) { console.log(`why are we getting no msg?`); reject('Response message is not returned'); }
+                    //    else reject(new MessageError(msg, 'Error setting circuit'));
+                    //}
+                }),
+                onComplete: (error) => {
+                    if (error) reject(error);
+                    else {
+                        let circuit = sys.circuits.getInterfaceById(data.id);
+                        let cstate = state.circuits.getInterfaceById(data.id);
+                        circuit.nameId = cstate.nameId = nameByte;
+                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                        circuit.type = cstate.type = typeByte;
+                        state.emitEquipmentChanges();
+                        resolve(circuit);
                     }
-                })
+                }
             });
             conn.queueSendMessage(out);
         });
     }
-    public deleteCircuit(data: any) {
+    public async deleteCircuitAsync(data: any): Promise<ICircuit | string> {
         data.nameId = 0;
         data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
-        this.setCircuit(data);
+        return this.setCircuitAsync(data);
     }
+    // RKS: Deprecated for Async version.  RSG - Remove this if it the async version is OK.
+    //public deleteCircuit(data: any) {
+    //    data.nameId = 0;
+    //    data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
+    //    this.setCircuitAsync(data);
+    //}
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
         let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
@@ -827,7 +850,7 @@ class TouchPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
-    public async setPumpConfig(data: any): Promise<Pump | string> {
+    public async setPumpAsync(data: any): Promise<Pump | string> {
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
         else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
@@ -887,7 +910,7 @@ class TouchPumpCommands extends PumpCommands {
             }
         }
         arr.push(new Promise((resolve, reject) => {
-            outc.onComplete = (msg, err) => {
+            outc.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else resolve(); // Just resolve we are going to ask for the config in the second message. NOTE: This will only resolve if we get an action 1 [155] back otherwise it will reject.
             };
@@ -895,7 +918,7 @@ class TouchPumpCommands extends PumpCommands {
         }));
         arr.push(new Promise((resolve, reject) => {
             let cfgMsg = Outbound.create({ action: 216, payload: [id], retries: 2, response: Response.create({ action: 24, payload: [id] }) });
-            cfgMsg.onComplete = (msg, err) => {
+            cfgMsg.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else resolve();  // The message will be complete only after the message is processed by our message processor.
             };

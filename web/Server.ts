@@ -250,6 +250,17 @@ export class HttpServer extends ProtoServer {
                 }
             });
             this.app.use(express.json());
+            // Put in a custom replacer so that we can send error messages to the client.  If we don't do this the base properties of Error
+            // are omitted from the output.
+            this.app.set('json replacer', (key, value) => {
+                if (value instanceof Error) {
+                    var err = {};
+                    Object.getOwnPropertyNames(value).forEach((prop) => { err[prop] = value[prop]; });
+                    return err;
+                }
+                return value;
+            });
+
             ConfigRoute.initRoutes(this.app);
             StateRoute.initRoutes(this.app);
             UtilitiesRoute.initRoutes(this.app);
@@ -257,6 +268,13 @@ export class HttpServer extends ProtoServer {
             // The socket initialization needs to occur before we start listening.  If we don't then
             // the headers from the server will not be picked up.
             this.initSockets();
+            this.app.use((error, req, res, next) => {
+                logger.error(error);
+                if (!res.headersSent) {
+                    let httpCode = error.httpCode || 500;
+                    res.status(httpCode).send(error);
+                }
+            });
 
             // start our server on port
             this.server.listen(cfg.port, cfg.ip, function() {
