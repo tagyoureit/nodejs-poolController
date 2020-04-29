@@ -545,18 +545,21 @@ class IntelliCenterSystemCommands extends SystemCommands {
     public async setGeneralAsync(obj?: any): Promise<General | string> {
         return new Promise<General | string>(async (resolve, reject) => {
             try {
-                if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
-                    let out = Outbound.create({
-                        action: 168,
-                        payload: [12, 0, 0],
-                        retries: 1,
-                        onComplete: (err, msg) => {
-                            if (err) throw new Error(err);
-                            else { sys.general.alias = obj.alias; resolve(); }
-                        }
-                    }).appendPayloadString(obj.alias, 16);
-                    conn.queueSendMessage(out);
-                }
+                await new Promise((resolve, reject) => {
+                    if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
+                        let out = Outbound.create({
+                            action: 168,
+                            payload: [12, 0, 0],
+                            retries: 1,
+                            onComplete: (err, msg) => {
+                                if (err) throw new Error(err);
+                                else { sys.general.alias = obj.alias; resolve(); }
+                            }
+                        }).appendPayloadString(obj.alias, 16);
+                        conn.queueSendMessage(out);
+                    }
+                    resolve();
+                });
                 if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
                 if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
                 if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
@@ -565,6 +568,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             catch (err) { reject(err); }
         });
     }
+    
     public async setOptionsAsync(obj?: any) : Promise<Options | string> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
         let payload = [0, 0, 0,
