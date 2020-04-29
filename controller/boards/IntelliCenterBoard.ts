@@ -5,7 +5,7 @@ import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitG
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, LightGroupState, VirtualCircuitState } from '../State';
+import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState } from '../State';
 import { REPLServer } from 'repl';
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError } from '../Errors';
@@ -1338,14 +1338,6 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             resolve(group);
         });
     }
-    private validateCircuits(arr: []) {
-        for (let a in arr) {
-
-        }
-    }
-    public deleteCircuit(data: any){
-        // overwrite systemboard method here
-    }
     public setLightGroupColors(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         let arrOut = this.createLightGroupMessages(grp);
@@ -1424,6 +1416,22 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState | string> {
+        let circ = state.circuits.getInterfaceById(id);
+        let out = this.createCircuitStateMessage(id, val);
+        return new Promise<ICircuitState | string>((resolve, reject) => {
+            out.onComplete = (err, msg: Outbound) => {
+                if (err) reject(err);
+                else {
+                    circ.isOn = val;
+                    state.emitEquipmentChanges();
+                    resolve(circ);
+                }
+            };
+            conn.queueSendMessage(out);
+        });
+    }
+
     public setCircuitState(id: number, val: boolean) {
         let circ = state.circuits.getInterfaceById(id);
         let out = this.createCircuitStateMessage(id, val);

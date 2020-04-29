@@ -72,7 +72,7 @@ export class InvalidEquipmentIdError extends EquipmentError {
     }
     public id: number;
 }
-export class InvalidEquipmentData extends EquipmentError {
+export class InvalidEquipmentDataError extends EquipmentError {
     constructor(message: string, eqType: string, eqData) {
         super(message, 270, eqType);
         this.name = 'InvalidEquipmentData';

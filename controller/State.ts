@@ -537,7 +537,7 @@ export class PumpState extends EqState {
         pump.speedStepSize = cpump.speedStepSize;
         pump.flowStepSize = cpump.flowStepSize;
         pump.circuits = [];
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 0; i < 8; i++) {
             let c = cpump.circuits.getItemById(i).get(true);
             c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
             if (typeof c.circuit.id === 'undefined' || typeof c.circuit.name === 'undefined') {

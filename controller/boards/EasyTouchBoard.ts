@@ -2,11 +2,11 @@
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State } from '../State';
+import { state, ChlorinatorState, CommsState, State, ICircuitState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { resolve } from 'dns';
-import { MessageError } from '../Errors';
+import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
@@ -757,6 +757,22 @@ class TouchCircuitCommands extends CircuitCommands {
         }));
         conn.queueSendMessage(out);
     }
+    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState | string> {
+        let cstate = state.circuits.getInterfaceById(id);
+        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134]));
+        return new Promise<ICircuitState | string>((resolve, reject) => {
+            out.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    cstate.isOn = val ? true : false;
+                    state.emitEquipmentChanges();
+                    resolve(cstate);
+                }
+            };
+            conn.queueSendMessage(out);
+        });
+    }
+
     /*     public async setCircuitState(id: number, val: boolean) {
             let cstate = state.circuits.getInterfaceById(id);
             return new Promise(function(resolve, reject) {
@@ -851,85 +867,160 @@ class TouchPumpCommands extends PumpCommands {
         }
     }
     public async setPumpAsync(data: any): Promise<Pump | string> {
-        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
-        else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
-        // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
-        // get it from the current pump configuration.
-        let pump = sys.pumps.getItemById(id, false);
-        let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
-        // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
-        // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
-        if (isNaN(ntype) || ntype <= 0) throw new Error(`Invalid pump type: ${data.id} - ${data.type}`);
-        let type = sys.board.valueMaps.pumpTypes.transform(ntype);
-        if (typeof type.name === 'undefined') throw new Error(`Invalid pump type: ${data.id} - ${ntype}`);
-        let arr = [];
-        let outc = Outbound.create({
-            action: 155, payload: [id, ntype], retries: 2, response: Response.create({ action: 1, payload: [155] })
-        });
-        outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
-        outc.appendPayloadBytes(0, 44);
-        if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
-            let primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
-            outc.setPayloadByte(21, Math.floor(primingSpeed / 256));
-            outc.setPayloadByte(30, primingSpeed - (Math.floor(primingSpeed / 256) * 256));
+        // Rules regarding Pumps in *Touch
+        // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
+        // 485 Controlled pumps - Any of the IntelliFlo pumps.  These are managed by the control panel.
+        // Dual Speed - There is only one allowed by the panel this will always be at id 9.  Only the high speed circuits are managed by the panel.
+        // Single Speed - There is only one allowed by the panel this will always be at id 10.
+        // 1. Addressable pumps (vs, vf, vsf, vsf+svrs) will consume ids 1-8. 
+        //    a. vf pumps allow configuration of filter, backwash, and vacuum options. Which is tied to the background circuit.
+        //    b. vsf+svrs pumps allow the configuration of max pressure for each circuit but only when GPM is selected.
+        // 2. There can only be 1 Dual Speed pump it will be id 9
+        //    a. dual speed pumps allow the identification of a ds pump model.  This determines the high/low speed wattage.
+        // 3. There can only be 1 single speed pump it will be id 10
+        //    a. single speed pumps allow the identification of an ss pump model.  This determines the continuous wattage for when it is on.
+        // 4. Background Circuits can be assigned for (vf, vsf, vs, ss, and ds pumps).
+        let pump : Pump;
+        let ntype;
+        let type;
+        let isAdd = false;
+        let id = (typeof data.id === 'undefined') ? -1 : parseInt(data.id, 10);
+        if (typeof data.id === 'undefined' || isNaN(id) || id <= 0) {
+            // We are adding a new pump
+            ntype = parseInt(data.type, 10);
+            type = sys.board.valueMaps.pumpTypes.transform(ntype);
+            if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') throw new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data);
+            if (type.name === 'ds') {
+                id = 9;
+                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data);
+            }
+            else if (type.name === 'ss') {
+                id = 10;
+                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data);
+            }
+            else if (type.name === 'none') throw new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data);
+            else {
+                // Under most circumstances the id will = the address minus 95.
+                if (typeof data.address !== 'undefined') {
+                    data.address = parseInt(data.address, 10);
+                    if (isNaN(data.address)) throw new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data);
+                    id = data.address - 95;
+                    // Make sure it doesn't already exist.
+                    if (sys.pumps.find(elem => elem.address === data.address)) throw new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data);
+                }
+                else {
+                    if (typeof id === 'undefined') throw new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data);
+                    id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
+                    data.address = id + 95;
+                }
+            }
+            isAdd = true;
         }
-        if (type.val > 1 && type.val < 64) { // All of the pumps that do not have RS-485 control.
-            outc.setPayloadByte(1, parseInt(data.backgroundCircuit, 10), pump.backgroundCircuit || 6);
-            outc.setPayloadByte(3, parseInt(data.turnovers, 10), pump.turnovers || 2);
-            let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-            outc.setPayloadByte(2, body.capacity / 1000, 15);
-            outc.setPayloadByte(21, parseInt(data.manualFilterGPM, 10), pump.manualFilterGPM || 30);
-            outc.setPayloadByte(22, parseInt(data.primingSpeed, 10), pump.primingSpeed || 55);
-            let primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime;
-            let maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime;
-            outc.setPayloadByte(23, primingTime | maxSystemTime << 4, 5);
-            outc.setPayloadByte(24, parseInt(data.maxPressureIncrease, 10), pump.maxPressureIncrease || 10);
-            outc.setPayloadByte(25, parseInt(data.backwashFlow, 10), pump.backwashFlow || 60);
-            outc.setPayloadByte(26, parseInt(data.backwashTime, 10), pump.backwashTime || 5);
-            outc.setPayloadByte(27, parseInt(data.rinseTime, 10), pump.rinseTime || 1);
-            outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
-            outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
+        else {
+            pump = sys.pumps.getItemById(id, false);
+            ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);            
+            if (isNaN(ntype)) throw new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data);
+            type = sys.board.valueMaps.pumpTypes.transform(ntype);
         }
-        else if (typeof type.maxCircuits !== 'undefined') { // This pump type supports circuits
-            for (let i = 1; i <= 8; i++) {
-                if (i < data.circuits.length && i < type.maxCircuits) {
-                    let circ = pump.circuits.getItemByIndex(i, false);
-                    let c = data.circuits[i];
-                    let speed = parseInt(c.speed, 10) || circ.speed || type.minSpeed;
-                    let flow = parseInt(c.flow, 10) || circ.speed || type.minFlow;
-                    outc.setPayloadByte(i * 2 + 3, parseInt(data.circuit, 10), 0);
-                    if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
-                        outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
-                        outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
-                    }
-                    else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
-                        outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+        // Validate all the ids since in *Touch the address is determined from the id.
+        if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) !== undefined;
+        // Now lets validate the ids related to the type.
+        if (id === 9 && type.name !== 'ds') throw new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data);
+        else if (id === 10 && type.name !== 'ss') throw new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data);
+        else if (id > sys.equipment.maxPumps) throw new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data);
+
+
+        if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+        else data = extend(false, {}, data, { id: id, type: ntype });
+        data.name = data.name || pump.name || type.desc;
+        // We will not be sending message for ss type pumps.
+        if (type.name === 'ss') {
+            // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
+            data.circuits = [];
+            pump = sys.pumps.getItemById(id, true);
+            pump.set(pump);
+            let spump = state.pumps.getItemById(id, true);
+            for (var prop in spump) {
+                if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
+            }
+            spump.emitEquipmentChange();
+            return Promise.resolve(pump);
+        }
+        else if (type.name === 'ds') {
+            // We are going to set all the high speed circuits.
+            // RSG: TODO I don't know what the message is to set the high speed circuits.  The following should
+            // be moved into the onComplete for the outbound message to set high speed circuits.
+            for (var prop in pump) {
+                if (typeof data[prop] !== 'undefined') pump[prop] = data[prop];
+            }
+            let spump = state.pumps.getItemById(id, true);
+            for (var prop in spump) {
+                if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
+            }
+            spump.emitEquipmentChange();
+            return Promise.resolve(pump);
+        }
+        else {
+            let arr = [];
+            data.name = data.name || type.desc;
+            let outc = Outbound.create({ action: 155, payload: [id, ntype], retries: 2, response: Response.create({ action: 1, payload: [155] }) });
+            outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
+            outc.appendPayloadBytes(0, 44);
+            if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
+                let primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
+                outc.setPayloadByte(21, Math.floor(primingSpeed / 256));
+                outc.setPayloadByte(30, primingSpeed - (Math.floor(primingSpeed / 256) * 256));
+            }
+            if (type.val > 1 && type.val < 64) { // All of the pumps that do not have RS-485 control.
+                outc.setPayloadByte(1, parseInt(data.backgroundCircuit, 10), pump.backgroundCircuit || 6);
+                outc.setPayloadByte(3, parseInt(data.turnovers, 10), pump.turnovers || 2);
+                let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+                outc.setPayloadByte(2, body.capacity / 1000, 15);
+                outc.setPayloadByte(21, parseInt(data.manualFilterGPM, 10), pump.manualFilterGPM || 30);
+                outc.setPayloadByte(22, parseInt(data.primingSpeed, 10), pump.primingSpeed || 55);
+                let primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime;
+                let maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime;
+                outc.setPayloadByte(23, primingTime | maxSystemTime << 4, 5);
+                outc.setPayloadByte(24, parseInt(data.maxPressureIncrease, 10), pump.maxPressureIncrease || 10);
+                outc.setPayloadByte(25, parseInt(data.backwashFlow, 10), pump.backwashFlow || 60);
+                outc.setPayloadByte(26, parseInt(data.backwashTime, 10), pump.backwashTime || 5);
+                outc.setPayloadByte(27, parseInt(data.rinseTime, 10), pump.rinseTime || 1);
+                outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
+                outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
+            }
+            else if (typeof type.maxCircuits !== 'undefined') { // This pump type supports circuits
+                for (let i = 1; i <= 8; i++) {
+                    if (i < data.circuits.length && i < type.maxCircuits) {
+                        let circ = pump.circuits.getItemByIndex(i, false);
+                        let c = data.circuits[i];
+                        let speed = parseInt(c.speed, 10) || circ.speed || type.minSpeed;
+                        let flow = parseInt(c.flow, 10) || circ.speed || type.minFlow;
+                        outc.setPayloadByte(i * 2 + 3, parseInt(data.circuit, 10), 0);
+                        if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
+                            outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
+                            outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                        }
+                        else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
+                            outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                        }
                     }
                 }
             }
-        }
-        arr.push(new Promise((resolve, reject) => {
-            outc.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else resolve(); // Just resolve we are going to ask for the config in the second message. NOTE: This will only resolve if we get an action 1 [155] back otherwise it will reject.
-            };
-            conn.queueSendMessage(outc);
-        }));
-        arr.push(new Promise((resolve, reject) => {
-            let cfgMsg = Outbound.create({ action: 216, payload: [id], retries: 2, response: Response.create({ action: 24, payload: [id] }) });
-            cfgMsg.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else resolve();  // The message will be complete only after the message is processed by our message processor.
-            };
-            conn.queueSendMessage(cfgMsg);
-        }));
-        try {
-            await Promise.all(arr);
-            return Promise.resolve(sys.pumps.getItemById(id));
-        }
-        catch (err){
-            return Promise.reject(err);
+            return new Promise<Pump | string>((resolve, reject) => {
+                outc.onComplete = (err, msg) => {
+                    if (err) reject(err);
+                    else {
+                        pump = sys.pumps.getItemById(id, true);
+                        pump.set(data); // Sets all the data back to the pump.
+                        let spump = state.pumps.getItemById(id, true);
+                        spump.name = pump.name;
+                        spump.type = pump.type;
+                        spump.emitEquipmentChange();
+                        resolve();
+                    }
+                };
+                conn.queueSendMessage(outc);
+            });
         }
     }
     private createPumpConfigMessages(pump: Pump): Outbound[] {

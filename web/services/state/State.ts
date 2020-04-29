@@ -1,5 +1,5 @@
 ﻿import * as express from "express";
-import { state } from "../../../controller/State";
+import { state, ICircuitState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 export class StateRoute {
@@ -15,10 +15,14 @@ export class StateRoute {
             let pump = state.pumps.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(pump.getExtended());
         });
-        app.put('/state/circuit/setState', (req, res) => {
-            console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`);
-            state.circuits.setCircuitState(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
-            return res.status(200).send('OK');
+        app.put('/state/circuit/setState', async (req, res, next) => {
+            try {
+                console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`);
+                //state.circuits.setCircuitState(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
+                let circuit = await sys.board.circuits.setCircuitStateAsync(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
+                return res.status(200).send((circuit as ICircuitState).get(true));
+            }
+            catch (err) { next(err); }
         });
         app.put('/state/circuit/toggleState', (req, res) => {
             state.circuits.toggleCircuitState(parseInt(req.body.id, 10));

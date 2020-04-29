@@ -279,7 +279,13 @@ export class PoolSystem implements IPoolSystem {
 
 }
 interface IEqItemCreator<T> { ctor(data: any, name: string): T; }
-class EqItem implements IEqItemCreator<EqItem> {
+interface IEqItem {
+    set(data);
+    clear();
+    hasChanged: boolean;
+    get(bCopy: boolean);
+}
+class EqItem implements IEqItemCreator<EqItem>, IEqItem {
     public dataName: string;
     protected data: any;
     public get hasChanged(): boolean { return sys._hasChanged; }
@@ -305,6 +311,20 @@ class EqItem implements IEqItemCreator<EqItem> {
             else this.data[prop] = undefined;
         }
     }
+    // This is a tricky endeavor.  If we run into a collection then we need to obliterate the existing data and add in our data.
+    public set(data: any) {
+        let d = this.data;
+        for (let prop in this) {
+            if (typeof data[prop] !== 'undefined') {
+                if (this[prop] instanceof EqItemCollection) {
+                    ((this[prop] as unknown) as IEqItemCollection).set(data[prop]);
+                }
+                else if (this[prop] instanceof EqItem)
+                    ((this[prop] as unknown) as IEqItem).set(data[prop]);
+                else this[prop] = data[prop];
+            }
+        }
+    }
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             // console.log(`Changing equipment: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
@@ -313,8 +333,13 @@ class EqItem implements IEqItemCreator<EqItem> {
         }
         else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
     }
+   
 }
-class EqItemCollection<T> {
+interface IEqItemCollection {
+    set(data);
+    clear();
+}
+class EqItemCollection<T> implements IEqItemCollection {
     protected data: any;
     protected name: string;
     constructor(data: [], name: string) {
@@ -329,13 +354,18 @@ class EqItemCollection<T> {
         return this.createItem(extend({}, { id: ndx + 1 }, data));
     }
     public getItemById(id: number, add?: boolean, data?: any): T {
-        for (let i = 0; i < this.data.length; i++)
-            if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
-                return this.createItem(this.data[i]);
-            }
-        if (typeof add !== 'undefined' && add)
-            return this.add(data || { id: id });
+        let itm = this.find(elem => elem.id === id && typeof elem.id !== 'undefined');
+        if (typeof itm !== 'undefined') return itm;
+        if (typeof add !== 'undefined' && add) return this.add(data || { id: id });
         return this.createItem(data || { id: id });
+
+        //for (let i = 0; i < this.data.length; i++)
+        //    if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
+        //        return this.createItem(this.data[i]);
+        //    }
+        //if (typeof add !== 'undefined' && add)
+        //    return this.add(data || { id: id });
+        //return this.createItem(data || { id: id });
     }
     public removeItemById(id: number): T {
         let rem: T = null;
@@ -346,8 +376,31 @@ class EqItemCollection<T> {
             }
         return rem;
     }
+    public set(data) {
+        if (typeof data !== 'undefined') {
+            if (Array.isArray(data)) {
+                this.clear();
+                for (let i = 0; i < data.length; i++) {
+                    // We are getting clever here in that we are simply adding the object and the add method
+                    // should take care of hooking it all up.
+                    this.add(data[i]);
+                }
+            }
+        }
+    }
     public removeItemByIndex(ndx: number) {
         this.data.splice(ndx, 1);
+    }
+    // Finds an item and returns undefined if it doesn't exist.
+    public find(f: (value:any, index?:number, obj?:any) => boolean): T {
+        let itm = this.data.find(f);
+        if (typeof itm !== 'undefined') return this.createItem(itm);
+    }
+    // This will return a new collection of this type. NOTE: This is a separate object but the data is still attached to the
+    // overall configuration.  This meanse that changes made to the objects in the collection will reflect in the configuration.
+    // HOWEVER, any of the array manipulation methods like removeItemBy..., add..., or creation methods will not modify the configuration.
+    public filter(f: (value:any, index?: any, array?:any[]) => []): EqItemCollection<T> {
+        return new EqItemCollection<T>(this.data.filter(f), this.name);
     }
     public toArray() {
         let arr = [];
@@ -879,7 +932,13 @@ export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
     public getDualSpeed(add?: boolean): Pump {
-        return this.getItemById(0, add, { id: 0, type: 2, name: 'Two Speed' });
+        return this.getItemById(10, add, { id: 10, type: 2, name: 'Two Speed' });
+    }
+    public getPumpByAddress(address: number, add?: boolean, data?: any) {
+        let pmp = this.find(elem => elem.address === address);
+        if (typeof pmp !== 'undefined') return this.createItem(pmp);
+        if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
+        return this.createItem(data || { id: this.data.length + 1, address: address });
     }
 }
 export class Pump extends EqItem {
@@ -1003,7 +1062,10 @@ export class PumpCircuit extends EqItem {
     public set speed(val: number) { this.setDataVal('speed', val); }
     public get units(): number { return this.data.units; }
     public set units(val: number) { this.setDataVal('units', val); }
+    public get maxPressure(): number { return this.data.maxPressure; }
+    public set maxPressure(val: number) { this.setDataVal('maxPressure', val); }
     // TODO: Figure out why this is here.
+    // RKS: This is not a requirement for IntelliCenter.  It probably should be deleted.
     public get body(): number { return this.data.body; }
     public set body(val: number) { this.setDataVal('body', val); }
 }
