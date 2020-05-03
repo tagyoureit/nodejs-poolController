@@ -47,7 +47,30 @@
                 "enabled": false
             }
         },
-        "services": {}
+      "services": {},
+      "interfaces": {
+        "smartThings": {
+          "name": "SmartThings",
+          "enabled": false,
+          "fileName": "smartThings.json",
+          "globals": {},
+          "options": {
+            "host": "*"
+          }
+        },
+        "vera": {
+          "name": "Vera",
+          "enabled": false,
+          "fileName": "vera.json",
+          "vars": {
+            "deviceId": 0
+          },
+          "options": {
+            "host": "",
+            "port": 3480
+          }
+        }
+      }
     },
     "log": {
         "packet": {

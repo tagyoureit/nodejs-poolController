@@ -1,4 +1,5 @@
 ﻿import * as path from "path";
+import * as fs from "fs";
 import express=require('express');
 import { config } from "../config/Config";
 import { logger } from "../logger/Logger";
@@ -17,7 +18,9 @@ import { sys } from '../controller/Equipment';
 import * as multicastdns from 'multicast-dns';
 import * as ssdp from 'node-ssdp';
 import * as os from 'os';
-
+import { URL } from "url";
+import { HttpInterfaceBindings } from './interfaces/httpInterface';
+import extend = require("extend");
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
 export class WebServer {
@@ -48,12 +51,27 @@ export class WebServer {
                 srv = undefined;
             }
         }
+        for (let s in cfg.interfaces) {
+            let int;
+            let c = cfg.interfaces[s];
+            if (!c.enabled) continue;
+            let type = c.type || 'http';
+            logger.info(`Init ${type} interface: ${c.name}`);
+            switch (type) {
+                case 'http':
+                    int = new HttpInterfaceServer();
+                    int.init(c);
+                    this._servers.push(int);
+                    break;
+            }
+        }
     }
     public emitToClients(evt: string, ...data: any) {
         for (let i = 0; i < this._servers.length; i++) {
             this._servers[i].emitToClients(evt, ...data);
         }
     }
+    public get mdnsServer(): MdnsServer { return this._servers.find(elem => elem instanceof MdnsServer) as MdnsServer; }
     public deviceXML() { } // override in SSDP
     public stop() {
         for (let s in this._servers) {
@@ -415,5 +433,63 @@ export class MdnsServer extends ProtoServer {
         this.server.query({ questions: [query] });
     }
 }
-
 export const webApp = new WebServer();
+export class HttpInterfaceServer extends ProtoServer {
+    public bindingsPath: string;
+    public bindings: HttpInterfaceBindings;
+    public init(cfg) {
+        if (cfg.enabled) {
+            if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
+        }
+    }
+    public loadBindings(cfg): boolean {
+        if (fs.existsSync(this.bindingsPath)) {
+            try {
+                let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
+                let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
+                this.bindings = Object.assign<HttpInterfaceBindings, any>(new HttpInterfaceBindings(cfg), ext);
+                this.isRunning = true;
+                return true;
+            }
+            catch (err) {
+                logger.error(`Error reading interface bindings file: ${this.bindingsPath}. ${err}`);
+                this.isRunning = false;
+                return false;
+            }
+        }
+        return false;
+    }
+    public initBindings(cfg): boolean {
+        let self = this;
+        try {
+            this.bindingsPath = path.posix.join(process.cwd(), "/web/bindings") + '/' + cfg.fileName;
+            fs.watch(this.bindingsPath, (event, file) => { self.loadBindings(cfg); });
+            this.loadBindings(cfg);
+            if (this.bindings.context.mdnsDiscovery) {
+                let srv = webApp.mdnsServer;
+                let qry = typeof this.bindings.context.mdnsDiscovery === 'string' ? { name: this.bindings.context.mdnsDiscovery, type: 'A' } : this.bindings.context.mdnsDiscovery;
+                if (typeof srv !== 'undefined') {
+                    srv.queryMdns(qry);
+                    srv.mdnsEmitter.on('mdnsResponse', (response) => {
+                        let url: URL;
+                        url = new URL(response);
+                        this.bindings.context.options.host = url.host;
+                        this.bindings.context.options.port = url.port || 80;
+                    });
+                }
+            }
+
+            return true;
+        }
+        catch (err) {
+            logger.error(`Error initializing interface bindings: ${err}`);
+        }
+        return false;
+    }
+    public emitToClients(evt: string, ...data: any) {
+        if (this.isRunning) {
+            // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
+            this.bindings.bindEvent(evt, ...data);
+        }
+    }
+}

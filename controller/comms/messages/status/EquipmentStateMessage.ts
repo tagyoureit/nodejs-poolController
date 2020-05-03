@@ -449,6 +449,7 @@ export class EquipmentStateMessage {
                                 sys.processVersionChanges(ver);
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
+                                sys.board.circuits.syncVirtualCircuitStates();
                                 break;
                             }
                         case ControllerType.IntelliCom:
