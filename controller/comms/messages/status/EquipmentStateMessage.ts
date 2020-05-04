@@ -224,6 +224,7 @@ export class EquipmentStateMessage {
     public static initVirtual() {
         state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
         state.equipment.model = sys.equipment.model = 'Virtual Controller';
+        state.status = 1;
         sys.equipment.maxFeatures = 10;
         sys.equipment.maxCircuits = 0;
         sys.equipment.maxSchedules = 0;
@@ -235,12 +236,14 @@ export class EquipmentStateMessage {
         // if 2nd pump found, enable this(?)
         // sys.circuits.getItemById(1, true, {id: 1, type: "1", name: "SPA", isActive: false});
         // sys.bodies.getItemById(2, true, {id: 2, isActive: true, name: "Spa"});
+        // setup pool circuit
         let pool = sys.circuits.getItemById(6, true);
         let spool = state.circuits.getItemById(6, true);
-        pool.name = spool.name = "POOL";
+        pool.name = spool.name = 'Pool';
         pool.type = spool.type = 6;
         pool.isActive = true;
         spool.isOn = false;
+        pool.type = spool.type = 6;
         sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
         sys.general.options.clockMode = 12;
         sys.general.options.clockSource = "manual";

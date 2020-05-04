@@ -117,7 +117,7 @@ export class Connection {
         else
             conn._port.write(bytes, cb);
     }
-    public stopAsync() {
+    public async stopAsync() {
         Promise.resolve()
             .then(function() { conn.close(); })
             .then(function() { console.log('closed connection'); });

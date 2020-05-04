@@ -98,7 +98,7 @@ export class State implements IState {
 
         }
     }
-    public stopAsync() {
+    public stop() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
     }

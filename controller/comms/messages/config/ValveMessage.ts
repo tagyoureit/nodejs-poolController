@@ -61,8 +61,6 @@ export class ValveMessage {
             valve.isActive = valve.circuit > 0 && valve.circuit < 255;
             valve.name = ValveMessage.getName(valve.circuit);
         }
-
-        // todo: if circuit===128 (solar) do we set the heater here?  or is there another packet defining solar heat on the system?
     }
     private static getName(cir: number) {
         if (cir < 64)
@@ -90,12 +88,12 @@ export class ValveMessage {
             }
             let valve: Valve = sys.valves.getItemById(id, i < sys.equipment.maxValves);
             if (id === 3 || id === 5) {
-                valve.circuit = 247 // Hardcode the intake/return;
+                valve.circuit = 247; // Hardcode the intake/return;
                 valve.isIntake = true;
                 valve.isReturn = false;
             }
             else if (id === 4 || id === 6) {
-                valve.circuit = 247 // Hardcode the intake/return;
+                valve.circuit = 247; // Hardcode the intake/return;
                 valve.isIntake = false;
                 valve.isReturn = true;
             }

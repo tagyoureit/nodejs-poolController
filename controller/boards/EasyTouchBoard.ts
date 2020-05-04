@@ -348,7 +348,7 @@ export class EasyTouchBoard extends SystemBoard {
             this._configQueue.queueChanges();
         }
     }
-    public stopAsync() { this._configQueue.close(); }
+    public async stopAsync() { this._configQueue.close(); }
 }
 export class TouchConfigRequest extends ConfigRequest {
     constructor(setcat: number, items?: number[], oncomplete?: Function) {
@@ -442,14 +442,14 @@ export class TouchConfigQueue extends ConfigQueue {
         let itm = 0;
         if (this.curr && !this.curr.isComplete) {
             itm = this.curr.items.shift();
-            const out: Outbound = new Outbound(
-                Protocol.Broadcast,
-                Message.pluginAddress,
-                16,
-                this.curr.setcategory,
-                [itm],
-                3,
-                new Response(
+            const out: Outbound = Outbound.create({
+                proto: Protocol.Broadcast,
+                source: Message.pluginAddress,
+                dest: 16,
+                action: this.curr.setcategory,
+                payload: [itm],
+                retries: 3,
+                response: new Response(
                     Protocol.Broadcast,
                     16,
                     15,
@@ -457,7 +457,7 @@ export class TouchConfigQueue extends ConfigQueue {
                     [itm],
                     undefined,
                     function(msgOut) { self.processNext(msgOut); })
-            );
+                });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
@@ -577,14 +577,14 @@ class TouchSystemCommands extends SystemCommands {
         // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
         // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
         // [165,33,34,16,1,1],[133],[1,127]
-        const out = new Outbound(
-            Protocol.Broadcast,
-            Message.pluginAddress,
-            16,
-            133,
-            [hour, min, dow, date, month, year, 0, dst],
-            3,
-            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [133], null, function(msg) {
+        const out = Outbound.create({
+           proto: Protocol.Broadcast,
+            source: Message.pluginAddress,
+            dest: 16,
+            action: 133,
+            payload: [hour, min, dow, date, month, year, 0, dst],
+            retries: 3,
+            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [133], null, function(msg) {
                 if (!msg.failed) {
                     state.time.hours = hour;
                     state.time.minutes = min;
@@ -594,7 +594,7 @@ class TouchSystemCommands extends SystemCommands {
                     state.emitControllerChange();
                 }
             })
-        );
+         });
         conn.queueSendMessage(out);
     }
 
@@ -609,21 +609,20 @@ class TouchBodyCommands extends BodyCommands {
         let mode1 = body1.heatMode;
         let mode2 = body2.heatMode;
         body.id === 1 ? mode1 = mode : mode2 = mode;
-        let out = new Outbound(
-            Protocol.Broadcast,
-            Message.pluginAddress,
-            16,
-            136,
-            [temp1, temp2, mode2 << 2 | mode1, 0],
-            3,
-            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
+        let out = Outbound.create({
+            proto: Protocol.Broadcast,
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+            retries: 3,
+            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
                 if (!msg.failed) {
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
                     state.temps.emitEquipmentChange();
                 }
             })
-        );
+        });
         conn.queueSendMessage(out);
     }
     public setHeatSetpoint(body: Body, setPoint: number) {
@@ -655,21 +654,20 @@ class TouchBodyCommands extends BodyCommands {
         body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
         const mode1 = body1.heatMode;
         const mode2 = body2.heatMode;
-        const out = new Outbound(
-            Protocol.Broadcast,
-            Message.pluginAddress,
-            16,
-            136,
-            [temp1, temp2, mode2 << 2 | mode1, 0],
-            3,
-            new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
+        const out = Outbound.create({
+            proto: Protocol.Broadcast,
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+            retries: 3,
+            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
                 if (msg && !msg.failed) {
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.temps.emitEquipmentChange();
                 }
             })
-        );
+        });
         conn.queueSendMessage(out);
     }
 }
@@ -846,15 +844,18 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
-        let out = new Outbound(Protocol.Broadcast, Message.pluginAddress, 16, 153, [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 3, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (msg) => {
-            // TODO: RG : should this call super.setChlor()?
-            // or will the response take care of setting this anyway and CB is unnecessary?
+        let out = Outbound.create({
+            dest:16, 
+            action: 153, 
+            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 
+            retries: 3, 
+            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (err, msg) => {
+            if (err) {logger.error(`Error with setChlor: ${err.message}`);}
             if (!msg.failed) {
-                super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-                // state.emitEquipmentChanges(); // will be taken care of by super.
+                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
             }
-        }));
-
+        })
+    });
         conn.queueSendMessage(out);
     }
 }
@@ -971,7 +972,7 @@ class TouchPumpCommands extends PumpCommands {
                 outc.setPayloadByte(21, Math.floor(primingSpeed / 256));
                 outc.setPayloadByte(30, primingSpeed - (Math.floor(primingSpeed / 256) * 256));
             }
-            if (type.val > 1 && type.val < 64) { // All of the pumps that do not have RS-485 control.
+            if (type.val > 1 && type.val < 64) { // Any VF pump.  It probably only goes up to Circuit 40 because that's how many circuits *Touch can support.
                 outc.setPayloadByte(1, parseInt(data.backgroundCircuit, 10), pump.backgroundCircuit || 6);
                 outc.setPayloadByte(3, parseInt(data.turnovers, 10), pump.turnovers || 2);
                 let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);

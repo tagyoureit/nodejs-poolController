@@ -1,7 +1,7 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState } from '../State';
-import { Outbound, Response, Message } from '../comms/messages/Messages';
+import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
 import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError } from '../Errors';
@@ -47,31 +47,31 @@ export class InvalidEquipmentIdArray {
     private _data: number[];
 
     public get() { return this._data; }
-    public set(val: number[]) {this._data = val;}
+    public set(val: number[]) { this._data = val; }
     public add(val: number) {
         if (!this._data.includes(val)) {
             this._data.push(val);
             this._data.sort();
         }
     }
-    public remove(val: number){
-        this._data = this._data.filter(el=> el !== val);
+    public remove(val: number) {
+        this._data = this._data.filter(el => el !== val);
     }
-    public isValidId(val: number){
+    public isValidId(val: number) {
         return !this._data.includes(val);
     }
 }
 export class EquipmentIds {
     public circuits: EquipmentIdRange=new EquipmentIdRange(6, 6);
-    public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
-    public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
+    public features: EquipmentIdRange=new EquipmentIdRange(7, function() { return this.start + sys.equipment.maxFeatures; });
+    public pumps: EquipmentIdRange=new EquipmentIdRange(1, function() { return this.start + sys.equipment.maxPumps; });
     public circuitGroups: EquipmentIdRange=new EquipmentIdRange(0, 0);
     public virtualCircuits: EquipmentIdRange=new EquipmentIdRange(128, 136);
-    public invalidIds: InvalidEquipmentIdArray = new InvalidEquipmentIdArray([]);
+    public invalidIds: InvalidEquipmentIdArray=new InvalidEquipmentIdArray([]);
 }
 export class byteValueMaps {
     constructor() {
-        this.pumpStatus.transform = function (byte) {
+        this.pumpStatus.transform = function(byte) {
             // if (byte === 0) return this.get(0);
             if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
             for (let b = 16; b > 0; b--) {
@@ -85,7 +85,7 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
         };
-        this.chlorinatorStatus.transform = function (byte) {
+        this.chlorinatorStatus.transform = function(byte) {
             if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
             else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
             for (let b = 8; b > 0; b--) {
@@ -99,10 +99,10 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
         };
-        this.scheduleTypes.transform = function (byte) {
+        this.scheduleTypes.transform = function(byte) {
             return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
-        this.scheduleDays.transform = function (byte) {
+        this.scheduleDays.transform = function(byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
@@ -110,39 +110,39 @@ export class byteValueMaps {
             }
             return { val: b, days: days };
         };
-        this.scheduleDays.toArray = function () {
+        this.scheduleDays.toArray = function() {
             let arrKeys = Array.from(this.keys());
             let arr = [];
             for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
             return arr;
         };
-        this.virtualCircuits.transform = function (byte) {
+        this.virtualCircuits.transform = function(byte) {
             return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
         };
-        this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
-        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
-        this.controllerStatus.transform = function (byte: number, percent?: number) {
+        this.tempUnits.transform = function(byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
+        this.panelModes.transform = function(byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
+        this.controllerStatus.transform = function(byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function(byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
-    public expansionBoards: byteValueMap = new byteValueMap();
-    public panelModes: byteValueMap = new byteValueMap([
+    public expansionBoards: byteValueMap=new byteValueMap();
+    public panelModes: byteValueMap=new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
         [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
         [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
         [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
     ]);
-    public controllerStatus: byteValueMap = new byteValueMap([
+    public controllerStatus: byteValueMap=new byteValueMap([
         [0, { val: 0, name: 'initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
         [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
     ]);
 
-    public circuitFunctions: byteValueMap = new byteValueMap([
+    public circuitFunctions: byteValueMap=new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
@@ -161,9 +161,9 @@ export class byteValueMaps {
     ]);
 
     // Feature functions are used as the available options to define a circuit.
-    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-    public heaterTypes: byteValueMap = new byteValueMap();
-    public virtualCircuits: byteValueMap = new byteValueMap([
+    public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
+    public heaterTypes: byteValueMap=new byteValueMap();
+    public virtualCircuits: byteValueMap=new byteValueMap([
         [128, { name: 'solar', desc: 'Solar' }],
         [129, { name: 'heater', desc: 'Either Heater' }],
         [130, { name: 'poolHeater', desc: 'Pool Heater' }],
@@ -175,7 +175,7 @@ export class byteValueMaps {
         [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
         [255, { name: 'notused', desc: 'NOT USED' }]
     ]);
-    public lightThemes: byteValueMap = new byteValueMap([
+    public lightThemes: byteValueMap=new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [1, { name: 'green', desc: 'Green' }],
         [2, { name: 'blue', desc: 'Blue' }],
@@ -190,7 +190,7 @@ export class byteValueMaps {
         [11, { name: 'royal', desc: 'Royal' }],
         [255, { name: 'none', desc: 'None' }]
     ]);
-    public lightColors: byteValueMap = new byteValueMap([
+    public lightColors: byteValueMap=new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [16, { name: 'lightgreen', desc: 'Light Green' }],
         [32, { name: 'green', desc: 'Green' }],
@@ -200,7 +200,7 @@ export class byteValueMaps {
         [96, { name: 'magenta', desc: 'Magenta' }],
         [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
     ]);
-    public scheduleDays: byteValueMap = new byteValueMap([
+    public scheduleDays: byteValueMap=new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
         [2, { name: 'fri', desc: 'Friday', dow: 5 }],
         [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
@@ -209,10 +209,10 @@ export class byteValueMaps {
         [6, { name: 'mon', desc: 'Monday', dow: 1 }],
         [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
     ]);
-    public scheduleTimeTypes: byteValueMap = new byteValueMap([
+    public scheduleTimeTypes: byteValueMap=new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
-    public pumpTypes: byteValueMap = new byteValueMap([
+    public pumpTypes: byteValueMap=new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [2, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false }],
@@ -220,43 +220,43 @@ export class byteValueMaps {
         [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
         [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
-    public pumpSSModels: byteValueMap = new byteValueMap([
+    public pumpSSModels: byteValueMap=new byteValueMap([
         [0, { name: 'wf1hpE', desc: '1hp WhisperFlo E+', amps: 7.4, pf: .9, volts: 230, watts: 1532 }],
         [1, { name: 'wf1hpMax', desc: '1hp WhisperFlo Max', amps: 9, pf: .87, volts: 230, watts: 1600 }],
         [2, { name: 'generic15hp', desc: '1.5hp Pump', amps: 9.3, pf: .9, volts: 230, watts: 1925 }],
         [3, { name: 'generic2hp', desc: '2hp Pump', amps: 12, pf: .9, volts: 230, watts: 2484 }],
         [4, { name: 'generic25hp', desc: '2.5hp Pump', amps: 12.5, pf: .9, volts: 230, watts: 2587 }],
-        [5, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf:.9, volts:230, watts: 2794}]
+        [5, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf: .9, volts: 230, watts: 2794 }]
     ]);
-    public pumpDSModels: byteValueMap = new byteValueMap([
-        [0, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps:6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
-        [1, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps:9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
+    public pumpDSModels: byteValueMap=new byteValueMap([
+        [0, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps: 6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
+        [1, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps: 9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
         [2, { name: 'generic2hp', desc: '2hp Pump', loAmps: 2.9, hiAmps: 12, pf: .9, volts: 230, loWatts: 600, hiWatts: 2484 }],
-        [3, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts:642, hiWatts: 2587 }],
-        [4, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts:683, hiWatts: 2794 }]
+        [3, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts: 642, hiWatts: 2587 }],
+        [4, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts: 683, hiWatts: 2794 }]
     ]);
-    
 
-    public heatModes: byteValueMap = new byteValueMap([
+
+    public heatModes: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [12, { name: 'solarpref', desc: 'Solar Preferred' }]
     ]);
-    public heatSources: byteValueMap = new byteValueMap([
+    public heatSources: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'No Heater' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [21, { name: 'solarpref', desc: 'Solar Preferred' }],
         [32, { name: 'nochange', desc: 'No Change' }]
     ]);
-    public heatStatus: byteValueMap = new byteValueMap([
+    public heatStatus: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
         [2, { name: 'solar', desc: 'Solar' }],
         [3, { name: 'cooling', desc: 'Cooling' }]
     ]);
-    public pumpStatus: byteValueMap = new byteValueMap([
+    public pumpStatus: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
         // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
         [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
@@ -278,18 +278,18 @@ export class byteValueMaps {
         [15, { name: 'error15', desc: 'Unspecified Error 15' }],
         [16, { name: 'commfailure', desc: 'Communication failure' }]
     ]);
-    public pumpUnits: byteValueMap = new byteValueMap([
+    public pumpUnits: byteValueMap=new byteValueMap([
         [0, { name: 'rpm', desc: 'RPM' }],
         [1, { name: 'gpm', desc: 'GPM' }]
     ]);
-    public bodies: byteValueMap = new byteValueMap([
+    public bodies: byteValueMap=new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [2, { name: 'body3', desc: 'Body 3' }],
         [3, { name: 'body4', desc: 'Body 4' }],
         [32, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
-    public chlorinatorStatus: byteValueMap = new byteValueMap([
+    public chlorinatorStatus: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'lowflow', desc: 'Low Flow' }],
         [2, { name: 'lowsalt', desc: 'Low Salt' }],
@@ -300,41 +300,41 @@ export class byteValueMaps {
         [7, { name: 'lowtemp', dest: 'Water Temp Low' }],
         [8, { name: 'commlost', desc: 'Communication Lost' }]
     ]);
-    public chlorinatorType: byteValueMap = new byteValueMap([
+    public chlorinatorType: byteValueMap=new byteValueMap([
         [0, { name: 'pentair', desc: 'Pentair' }],
         [1, { name: 'unknown', desc: 'unknown' }],
         [2, { name: 'aquarite', desc: 'Aquarite' }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
-    public customNames: byteValueMap = new byteValueMap();
-    public circuitNames: byteValueMap = new byteValueMap();
-    public scheduleTypes: byteValueMap = new byteValueMap([
+    public customNames: byteValueMap=new byteValueMap();
+    public circuitNames: byteValueMap=new byteValueMap();
+    public scheduleTypes: byteValueMap=new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once' }],
         [128, { name: 'repeat', desc: 'Repeats' }]
     ]);
-    public circuitGroupTypes: byteValueMap = new byteValueMap([
+    public circuitGroupTypes: byteValueMap=new byteValueMap([
         [0, { name: 'none', desc: 'Unspecified' }],
         [1, { name: 'light', desc: 'Light' }],
         [2, { name: 'circuit', desc: 'Circuit' }],
         [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
-    public tempUnits: byteValueMap = new byteValueMap([
+    public tempUnits: byteValueMap=new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
         [4, { name: 'C', desc: 'Celcius' }]
     ]);
-    public valveTypes: byteValueMap = new byteValueMap([
+    public valveTypes: byteValueMap=new byteValueMap([
         [0, { name: 'standard', desc: 'Standard' }],
         [1, { name: 'intellivalve', desc: 'IntelliValve' }]
     ]);
-    public intellibriteActions: byteValueMap = new byteValueMap([
+    public intellibriteActions: byteValueMap=new byteValueMap([
         [0, { name: 'ready', desc: 'Ready' }],
         [1, { name: 'sync', desc: 'Synchronizing' }],
         [2, { name: 'set', desc: 'Sequencing Set Operation' }],
         [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
     ]);
-    public msgBroadcastActions: byteValueMap = new byteValueMap([
+    public msgBroadcastActions: byteValueMap=new byteValueMap([
         [2, { name: 'status', desc: 'Equipment Status' }],
-        [82, { name: 'ivstatus', desc: 'IntelliValve Status'}]
+        [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
     public intelliChemWaterFlow: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -397,7 +397,7 @@ export class SystemBoard {
     public valueMaps: byteValueMaps=new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
-    public stopAsync() { }
+    public async stopAsync() { return sys.board.virtualPumpControllers.stopAsync(); }
     public system: SystemCommands=new SystemCommands(this);
     public bodies: BodyCommands=new BodyCommands(this);
     public pumps: PumpCommands=new PumpCommands(this);
@@ -563,7 +563,7 @@ export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body|string> {
         return new Promise<Body|string>(function(resolve, reject) {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body') );
+            if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
             let body = sys.bodies.getItemById(id, false);
             for (let s in body) body[s] = obj[s];
             resolve(body);
@@ -636,11 +636,11 @@ export class PumpCommands extends BoardCommands {
             }
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump | string> {
+    public async setPumpAsync(data: any): Promise<Pump|string> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
+            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${ data.id }`, data.id, 'Pump');
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             let spump = state.pumps.getItemById(id, data.id <= 0);
             for (let prop in data) {
@@ -661,16 +661,16 @@ export class PumpCommands extends BoardCommands {
                 }
             }
             spump.emitEquipmentChange();
-            return new Promise<Pump | string>((resolve, reject) => { resolve(pump); });
+            return new Promise<Pump|string>((resolve, reject) => { resolve(pump); });
         }
         else
             throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
     }
-    public deletePumpAsync(data: any): Promise<Pump | string> {
+    public deletePumpAsync(data: any): Promise<Pump|string> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
+            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${ data.id }`, data.id, 'Pump');
             let pump = sys.pumps.getItemById(id, false);
             let spump = state.pumps.getItemById(id, false);
             sys.pumps.removeItemById(id);
@@ -689,7 +689,7 @@ export class PumpCommands extends BoardCommands {
                 }
             }
             spump.emitEquipmentChange();
-            return new Promise<Pump | string>((resolve, reject) => { resolve(pump); });
+            return new Promise<Pump|string>((resolve, reject) => { resolve(pump); });
         }
         else
             throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
@@ -816,6 +816,7 @@ export class PumpCommands extends BoardCommands {
         this.setPump(pump);
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
+        sys.emitEquipmentChange();
         return { result: 'OK' };
 
     }
@@ -883,29 +884,154 @@ export class PumpCommands extends BoardCommands {
         let pumpCircuits = pump.circuits.get();
         let _maxSpeed = 0;
         let _units;
-        for (let i = 1; i <= pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits.id);
+        for (let i = 0; i < pumpCircuits.length; i++) {
+            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
             if (circ.isOn) {
                 if (typeof _units === 'undefined') _units = pumpCircuits[i].units;
                 if (_units === pumpCircuits[i].units && pumpCircuits[i].speed > _maxSpeed) { _maxSpeed = pumpCircuits[i].speed; }
             }
         }
-        this.setPumpToRemoteControl(pump);
+        this.setPumpToRemoteControl(pump, true);
         this.setPumpPowerPacket(pump, _maxSpeed > 0);
         if (_maxSpeed > 130) { this.runRPM(pump, _maxSpeed); }
         if (_maxSpeed > 0 && _maxSpeed <= 130) { this.runGPM(pump, _maxSpeed); }
         setTimeout(() => { this.requestPumpStatus(pump); }, 7 * 1000);
         this.requestPumpStatus(pump);
     }
-    private setPumpToRemoteControl(pump: Pump) {
-        //         var remoteControlPacket = [165, 0, address, container.settings.get('appAddress'), 4, 1, 255]; 
-        const msg = Outbound.createPumpMessage(pump.id + 95, 4, [1], 1);
-        conn.queueSendMessage(msg);
+
+    public stop(pump: Pump) {
+        let p = [];
+        p.push(this.setPumpPowerPacketAsync(pump, false));
+        p.push(this.setPumpManualAsync(pump));
+        p.push(this.setPumpPowerPacket(pump, true));
+        p.push(this.setPumpToRemoteControlAsync(pump, false));
+        return Promise.all(p);
     }
+    private setPumpToRemoteControl(pump: Pump, isRemotControl: boolean) {
+        //         var remoteControlPacket = [165, 0, address, container.settings.get('appAddress'), 4, 1, 255]; 
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.id + 95,
+            action: 4,
+            payload: isRemotControl ? [255] : [0],
+            retries: 1,
+            response: new Response(Protocol.Pump, pump.id + 95, Message.pluginAddress, 4, [1], null, function(msg) {
+                if (!msg.failed) {
+                    console.log(`Now we have remote control resp`);
+                }
+                else {
+                    console.log(`remote control fail`);
+                }
+            }),
+            onComplete: (err, msg: Outbound) => {
+                if (err) {
+                    console.log(`err!  no pump remote control packet received`);
+                }
+                else {
+                    console.log(`received back pump remote control.`);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+        /*         const msg = Outbound.createPumpMessage(pump.id + 95, 4, [255], 1, resp);
+                conn.queueSendMessage(msg); */
+    }
+    private setPumpToRemoteControlAsync(pump: Pump, isRemotControl: boolean) {
+        //         var remoteControlPacket = [165, 0, address, container.settings.get('appAddress'), 4, 1, 255]; 
+        return new Promise((resolve, reject) => {
+
+            let out = Outbound.create({
+                protocol: Protocol.Pump,
+                dest: pump.id + 95,
+                action: 4,
+                payload: isRemotControl ? [255] : [0],
+                retries: 1,
+                response: new Response(Protocol.Pump, pump.id + 95, Message.pluginAddress, 4, [1], null, function(msg) {
+                    if (!msg.failed) {
+                        console.log(`Now we have remote control resp`);
+                        resolve();
+                    }
+                    else {
+                        console.log(`remote control fail`);
+                        reject();
+                    }
+                }),
+                onComplete: (err, msg: Outbound) => {
+                    if (err) {
+                        console.log(`err!  no pump remote control packet received`);
+                    }
+                    else {
+                        console.log(`received back pump remote control.`);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+
+    private setPumpPowerPacketAsync(pump: Pump, power: boolean) {
+        return new Promise((resolve, reject) => {
+
+            let out = Outbound.create({
+                protocol: Protocol.Pump,
+                dest: pump.id + 95,
+                action: 6,
+                payload: power ? [10] : [4],
+                retries: 1,
+                onComplete: (err, msg: Outbound) => {
+                    if (err) reject(err);
+                    else {
+                        console.log(`received back pump power packet.`);
+                        resolve();
+                        // console.log(msg);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+    private setPumpManualAsync(pump: Pump) {
+        return new Promise((resolve, reject) => {
+
+            let out = Outbound.create({
+                protocol: Protocol.Pump,
+                dest: pump.id + 95,
+                action: 5,
+                payload: [],
+                retries: 1,
+                onComplete: (err, msg: Outbound) => {
+                    if (err) reject(err);
+                    else {
+                        console.log(`received back pump power packet.`);
+                        resolve();
+                        // console.log(msg);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+
+
     private setPumpPowerPacket(pump: Pump, power: boolean) {
-        const msg = Outbound.createPumpMessage(pump.id + 95, 4, [], 1);
-        power ? msg.payload = [6, 1, 10] : msg.payload = [6, 1, 4];
-        conn.queueSendMessage(msg);
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.id + 95,
+            action: 6,
+            payload: power ? [10] : [4],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) throw new Error(err);
+                else {
+                    console.log(`received back pump power packet.`);
+                    // console.log(msg);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
         /*
             if (power === 0) {
             setPrg = [6, 1, 4];
@@ -922,8 +1048,26 @@ export class PumpCommands extends BoardCommands {
     }
     private runRPM(pump: Pump, speed: number) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
-        const msg = Outbound.createPumpMessage(pump.id + 95, 4, [pump.type === 128 ? 1 : 10, 4, 2, 196, Math.floor(speed / 256), speed % 256], 1);
-        conn.queueSendMessage(msg);
+        /* 
+                const msg = Outbound.createPumpMessage(pump.id + 95, pump.type === 128 ? 1 : 10, [2, 196, Math.floor(speed / 256), speed % 256], 1);
+                conn.queueSendMessage(msg); */
+
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.id + 95,
+            action: pump.type === 128 ? 1 : 10,
+            payload: [2, 196, Math.floor(speed / 256), speed % 256],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) throw new Error(err);
+                else {
+                    console.log(`received back run rpm.`);
+                    // console.log(msg);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
         /*
             var type = container.pump.getCurrentPumpStatus().pump[address-95].type
         if (type==='VS'){
@@ -952,18 +1096,44 @@ export class PumpCommands extends BoardCommands {
 
     private runGPM(pump: Pump, speed: number) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
-        const msg = Outbound.createPumpMessage(pump.id + 95, 4, [pump.type === 128 ? 1 : 10, 4, 2, 196, Math.floor(speed / 256), speed % 256], 1);
+
+        /*         const msg = Outbound.createPumpMessage(pump.id + 95, 4, [pump.type === 128 ? 1 : 10, 4, 2, 196, Math.floor(speed / 256), speed % 256], 1);
+                if (pump.type === 1) {
+                    // vf
+                    msg.payload[0] = 1;
+                    msg.payload[3] = 228;
+                }
+                else {
+                    // vsf
+                    msg.payload[0] = 9;
+                    msg.payload[3] = 196;
+                }
+                conn.queueSendMessage(msg); */
+
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.id + 95,
+            action: pump.type === 128 ? 1 : 10,
+            payload: [],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) throw new Error(err);
+                else {
+                    console.log(`received back run gpm.`);
+                    // console.log(msg);
+                }
+            }
+        });
+
         if (pump.type === 1) {
             // vf
-            msg.payload[0] = 1;
-            msg.payload[3] = 228;
+            out.payload = [1, 4, 2, 228, speed, 0];
         }
         else {
-            // vsf
-            msg.payload[0] = 9;
-            msg.payload[3] = 196;
+            out.payload = [1, 4, 2, 196, speed, 0];
         }
-        conn.queueSendMessage(msg);
+        conn.queueSendMessage(out);
+
 
         /*
         var type = container.pump.getCurrentPumpStatus().pump[address-95].type
@@ -991,9 +1161,26 @@ export class PumpCommands extends BoardCommands {
         */
     }
     private requestPumpStatus(pump: Pump) {
+
         // var statusPacket = [165, 0, address, container.settings.get('appAddress'), 7, 0];
-        const msg = Outbound.createPumpMessage(pump.id + 95, 7, [0], 1);
-        conn.queueSendMessage(msg);
+
+        // const msg = Outbound.createPumpMessage(pump.id + 95, 7, [], 1);
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.id + 95,
+            action: 7,
+            payload: [],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) throw new Error(err);
+                else {
+                    console.log(`received back pump status.`);
+                    // console.log(msg);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
 
     }
 }
@@ -1077,8 +1264,10 @@ export class CircuitCommands extends BoardCommands {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
         sys.board.virtualPumpControllers.start();
+        if (circ.id === 6) { sys.board.virtualChlorinatorController.start(); }
+        sys.emitEquipmentChange();
     }
-    public setCircuitStateAsync(id: number, val: boolean) : Promise<ICircuitState | string> {
+    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
         sys.board.virtualPumpControllers.start();
@@ -1152,7 +1341,7 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setCircuitAsync(data: any): Promise<ICircuit|string> {
         let id = parseInt(data.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit');
+        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${ data.id }`, data.id, 'Circuit');
         if (id === 6) throw new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id);
 
         if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
@@ -1213,7 +1402,7 @@ export class CircuitCommands extends BoardCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup');
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'LightGroup');
         group = sys.lightGroups.getItemById(id, true);
         return new Promise<LightGroup|string>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
@@ -1252,7 +1441,7 @@ export class CircuitCommands extends BoardCommands {
             throw new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup');
 
     }
-    public async deleteCircuitAsync(data: any): Promise<ICircuit | string> {
+    public async deleteCircuitAsync(data: any): Promise<ICircuit|string> {
         if (typeof data.id === 'undefined') throw new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit');
         let circuit = sys.circuits.getInterfaceById(data.id);
         if (circuit instanceof Circuit) {
@@ -1263,7 +1452,7 @@ export class CircuitCommands extends BoardCommands {
             sys.features.removeItemById(data.id);
             state.features.removeItemById(data.id);
         }
-        return new Promise<ICircuit | string>((resolve, reject) => { resolve(circuit); });       
+        return new Promise<ICircuit|string>((resolve, reject) => { resolve(circuit); });
     }
     public deleteCircuit(data: any) {
         if (typeof data.id !== 'undefined') {
@@ -1426,13 +1615,9 @@ export class ChlorinatorCommands extends BoardCommands {
         chlor.superChlor = cstate.superChlor = superChlor;
 
         // scenario 2; chlorinator is being controlled by this app and not a board
-        if (chlor && chlor.isActive && chlor.isVirtual) {
-            if (cstate.setPointForCurrentBody) {
-                this.setDesiredOutput(cstate);
-            }
-            else {
-                this.ping(cstate);
-            }
+        // todo: are both the same?  check against controller
+        if (chlor && chlor.isActive && chlor.isVirtual) {            
+            this.setDesiredOutput(cstate);
         }
         state.emitEquipmentChanges();
     }
@@ -1450,19 +1635,42 @@ export class ChlorinatorCommands extends BoardCommands {
 
     public setDesiredOutput(cstate: ChlorinatorState) {
         let chlor = state.chlorinators.getItemById(cstate.id, true);
-        if (chlor.setPointForCurrentBody > 0) {
-            let response = Response.createChlorinatorResponse(18);
+            let response = Response.createChlorinatorResponse(18, (err, msg)=>{
+                if (err){
+                    console.log(`error with chlorinator: ${err.message}`);
+                }
+                else {
+                    cstate.currentOutput = cstate.setPointForCurrentBody;
+                }
+            });
+        
             // [16,2,80,17][23][138,16,3]
-            let out = Outbound.createChlorinatorMessage(cstate.id, 17, [chlor.setPointForCurrentBody], 3, response);
+            // let out = Outbound.createChlorinatorMessage(cstate.id, 17, [chlor.setPointForCurrentBody], 3, response);
+            let out = Outbound.create({
+                proto: Protocol.Chlorinator,
+                dest: cstate.id,
+                action: 17,
+                payload: [chlor.setPointForCurrentBody],
+                retries: 3,
+                response
+            });
             conn.queueSendMessage(out);
-        }
+        
     }
 
-    public ping(cstate: ChlorinatorState, cb?: () => void) {
+    public ping(cstate: ChlorinatorState, cb?: (err, msg) => void) {
         // Resp: [16,2,0,1][0,0][19,16,3]
         let response = Response.createChlorinatorResponse(1, cb);
         // Ping: [16,2,80,0][0][98,16,3]
-        let out = Outbound.createChlorinatorMessage(cstate.id, 0, [0], 3, response);
+        let out = Outbound.create({
+            dest: cstate.id,
+            action: 0,
+            payload: [0],
+            retries: 3,
+            response
+        });
+       
+        // Outbound.createChlorinatorMessage(cstate.id, 0, [0], 3, response);
         conn.queueSendMessage(out);
     }
 }
@@ -1513,7 +1721,9 @@ export class ValveCommands extends BoardCommands {
 
 export class ChlorinatorController extends BoardCommands {
     private _timer: NodeJS.Timeout;
-
+    public start() {
+        sys.board.virtualChlorinatorController.checkTimer();
+    }
     // this method will check to see if we have any virtual chlors we are responsible for
     // if we have any, we will see if the timer is already running or if it needs to be started
     public checkTimer() {
@@ -1521,7 +1731,7 @@ export class ChlorinatorController extends BoardCommands {
         if (chlor.isActive && chlor.isVirtual) {
 
             // If we have a controller but it isn't controlling the chlorinator
-            if (sys.bodies.getItemById(1).isActive) {
+            if (sys.bodies.getItemById(1).isActive) { // need to enable additional bodies(?)
                 if (state.circuits.getItemById(6).isOn) {
                     // pool is on
                     this._timer = setInterval(this.chlorinatorHeartbeat, 4000);
@@ -1565,8 +1775,6 @@ export class ChlorinatorController extends BoardCommands {
             let chlor = sys.chlorinators.getItemById(i);
             if (chlor.isActive && chlor.isVirtual) {
                 let cstate = state.chlorinators.getItemById(chlor.id);
-                if (typeof cstate.name === 'undefined') sys.board.chlorinator.requestName(cstate);
-                cstate.body = 32;
                 sys.board.chlorinator.setChlor(cstate);
             }
         }
@@ -1578,15 +1786,30 @@ export class ChlorinatorController extends BoardCommands {
         if (chlor.isVirtual) return this.checkTimer(); // we already have an active virtual chlorinator controller
         let cstate = state.chlorinators.getItemById(1);
         sys.board.chlorinator.ping(cstate, () => {
+            console.log(`Found Chlorinator at address 80; id: 1.`);
             let chlor = sys.chlorinators.getItemById(1, true);
             chlor.isActive = true;
             chlor.isVirtual = true;
+            chlor.body = 0;
+            chlor.poolSetpoint = 0;
+            chlor.superChlor = false;
+            chlor.superChlorHours = 0;
+            chlor.address = 80;
+            let cstate = state.chlorinators.getItemById(1);
+            cstate.status = 0;
+            cstate.body = chlor.body;
+            cstate.poolSetpoint = chlor.poolSetpoint;
+            // schlor.type = chlor.type;
+            cstate.superChlor = chlor.superChlor;
+            cstate.superChlorHours = chlor.superChlorHours;
+            sys.board.chlorinator.requestName(cstate);
+            sys.board.virtualChlorinatorController.chlorinatorHeartbeat();
             sys.board.virtualChlorinatorController.checkTimer();
         });
     }
 }
 export class VirtualPumpControllerCollection extends BoardCommands {
-    private _timers: NodeJS.Timeout[];
+    private _timers: NodeJS.Timeout[]=[];
     // private _pumpControllers: PumpController[]=[];
     /* public add(obj: any): PumpController { this._pumpControllers.push(obj); return this.createItem(obj); }
     public createItem(data: any): PumpController { return new PumpController(data); }
@@ -1651,9 +1874,16 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             console.log(`pump search... ${ i }`);
         }
     }
-    public stop() {
-        for (let i = 1; i <= this._timers.length; i++) {
-            clearTimeout(this._timers[i]);
+    public async stopAsync() {
+        for (let i = 1; i <= sys.pumps.length; i++) {
+            // sys.pumps.getItemById(i).control();
+            let pump = sys.pumps.getItemById(i);
+            if (pump.isVirtual && pump.isActive) {
+                console.log(`stopping pump ${ i }`);
+                await sys.board.pumps.stop(pump);
+                console.log(`pump ${ i } stopped`);
+                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
+            }
         }
     }
 
@@ -1661,8 +1891,9 @@ export class VirtualPumpControllerCollection extends BoardCommands {
         for (let i = 1; i <= sys.pumps.length; i++) {
             // sys.pumps.getItemById(i).control();
             let pump = sys.pumps.getItemById(i);
-            if (pump.isVirtual) {
-                clearTimeout(this._timers[i]);
+            if (pump.isVirtual && pump.isActive) {
+                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
+                sys.board.pumps.run(pump);
                 this._timers[i] = setInterval(function() { sys.board.pumps.run(pump); }, 8000);
             }
         }

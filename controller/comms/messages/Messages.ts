@@ -384,9 +384,14 @@ export class Outbound extends Message {
             this.header.push.apply(this.header, [16, 2, 0, 0]);
             this.term.push.apply(this.term, [0, 16, 3]);
         }
-        else {
+        else if (proto === Protocol.Broadcast){
             this.preamble.push.apply(this.preamble, [255, 0, 255]);
             this.header.push.apply(this.header, [165, Message.headerSubByte, 15, Message.pluginAddress, 0, 0]);
+            this.term.push.apply(this.term, [0, 0]);
+        }
+        else if (proto === Protocol.Pump){
+            this.preamble.push.apply(this.preamble, [255, 0, 255]);
+            this.header.push.apply(this.header, [165, 0, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
         }
         this.source = source;
@@ -398,7 +403,7 @@ export class Outbound extends Message {
     // Factory
     public static create(obj?: any) {
         let out = new Outbound(obj.protocol || Protocol.Broadcast,
-            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || obj.dest || 16, obj.action || 0, obj.payload || [], obj.retries || 0);
+            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0);
         out.onComplete = obj.onComplete;
         out.onError = obj.onError;
         out.onSuccess = obj.onSuccess;
@@ -591,9 +596,12 @@ export class Response extends Message {
     public static createResponse(action: number, payload: number[]): Response {
         return new Response(Protocol.Broadcast, 15, Message.pluginAddress, action, payload);
     }
-    public static createChlorinatorResponse(action: number, callback?: () => void){
+    public static createChlorinatorResponse(action: number, callback?: (err, msg) => void){
         // source, payload, ack are` not used
         return new Response(Protocol.Chlorinator, 80, 0, action, undefined, undefined, callback);
+    }
+    public static createPumpResponse(action: number, pumpAddress: number, payload?: number[], callback?: (err, msg?: Outbound)=>void){
+        return new Response(Protocol.Pump, pumpAddress, 0, action, payload, undefined, callback);
     }
     // Fields
     public ack: Ack;

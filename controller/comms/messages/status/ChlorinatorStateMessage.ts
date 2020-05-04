@@ -14,7 +14,7 @@ export class ChlorinatorStateMessage {
                     // We have not talked to the chlorinator in 20 seconds so we have lost communication.
                     cstate.status = 128;
                 }
-                let chlor = sys.chlorinators.getItemById(msg.dest, true)
+                let chlor = sys.chlorinators.getItemById(msg.dest, true);
                 chlor.address = msg.dest + 79;
                 chlor.isActive = true;
             }
@@ -41,6 +41,7 @@ export class ChlorinatorStateMessage {
                     let cstate = state.chlorinators.getItemById(1, true);
                     let chlor = sys.chlorinators.getItemById(1, true);
                     cstate.name = chlor.name = msg.extractPayloadString(1, 16);
+                    sys.emitEquipmentChange();
                     break;
                 }
                 case 17:
@@ -51,6 +52,7 @@ export class ChlorinatorStateMessage {
                     let cstate = state.chlorinators.getItemById(1, true);
                     cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
                     cstate.targetOutput = cstate.setPointForCurrentBody;
+                    state.emitEquipmentChanges();
                     break;
                 }
                 case 18: {
@@ -58,6 +60,8 @@ export class ChlorinatorStateMessage {
                     let cstate = state.chlorinators.getItemById(1, true);
                     cstate.saltLevel = msg.extractPayloadByte(0) * 50;
                     cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
+                    cstate.currentOutput = cstate.setPointForCurrentBody; 
+                    state.emitEquipmentChanges();
                     break;
                 }
                 case 20: {
@@ -65,6 +69,7 @@ export class ChlorinatorStateMessage {
                     let c = sys.chlorinators.getItemById(1, true);
                     let chlor = state.chlorinators.getItemById(1, true);
                     chlor.type = c.type = msg.extractPayloadByte(0);
+                    state.emitEquipmentChanges();
                     break;
                 }
                 case 22: {
@@ -78,10 +83,10 @@ export class ChlorinatorStateMessage {
                     chlor.currentOutput = msg.extractPayloadByte(1);
                     const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                     tbody.temp = msg.extractPayloadByte(2);
+                    state.emitEquipmentChanges();
                     break;
                 }
             }
-            state.emitEquipmentChanges();
         }
         // question: does IntelliCenter ever broadcast Chlorinator packet?  Answer: Never.  My guess is that this is actually 
         // a configuration message rather than a status message.  Also, IntelliCenter has a 204 extension status that contains
@@ -92,6 +97,7 @@ export class ChlorinatorStateMessage {
             // [165,33,15,16,25,22],[1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48],[7,231]
             let chlorId = 1;
             let chlor = sys.chlorinators.getItemById(chlorId, true);
+            if (chlor.isVirtual) {return;} // shouldn't get here except for testing Chlor on *Touch system.
             // installed = (aaaaaaa)1 so 1 = installed
             chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
             if (chlor.isActive) {

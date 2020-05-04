@@ -136,10 +136,10 @@ export class PoolSystem implements IPoolSystem {
         console.log(this.configVersion);
        
     }
-    public stopAsync() {
+    public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
         if (this._timerDirty) clearTimeout(this._timerDirty);
-        this.board.stopAsync();
+        await this.board.stopAsync();
     }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
@@ -147,8 +147,12 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initVirtual();
             sys.board.virtualChlorinatorController.search();
             sys.board.virtualPumpControllers.search();
-        }    
-    }
+        }  
+        else if (this.controllerType === ControllerType.Virtual){
+            sys.board.virtualPumpControllers.start();
+            sys.board.virtualChlorinatorController.start();
+        }  
+     }
     public board: SystemBoard=new SystemBoard(this);
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
     public checkConfiguration() { this.board.checkConfiguration(); }
@@ -989,8 +993,8 @@ export class Pump extends EqItem {
     public set vacuumTime(val: number) { this.setDataVal('vacuumTime', val); }
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
-    public get isVirtual() { return this.data.virtual; }
-    public set isVirtual(val: boolean){ this.setDataVal('virtual', val); }
+    public get isVirtual() { return this.data.isVirtual; }
+    public set isVirtual(val: boolean){ this.setDataVal('isVirtual', val); }
     public get defaultUnits() { 
         if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vf')
             return sys.board.valueMaps.pumpUnits.getValue('gpm');
@@ -1110,8 +1114,8 @@ export class Chlorinator extends EqItem {
     public set superChlor(val: boolean) { this.setDataVal('superChlor', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get isVirtual() { return this.data.virtual; }
-    public set isVirtual(val: boolean){ this.setDataVal('virtual', val); }
+    public get isVirtual() { return this.data.isVirtual; }
+    public set isVirtual(val: boolean){ this.setDataVal('isVirtual', val); }
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }
