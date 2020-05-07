@@ -489,7 +489,6 @@ export class Outbound extends Message {
         out.onComplete = obj.onComplete;
         out.onError = obj.onError;
         out.onSuccess = obj.onSuccess;
-       // out.response = this.generateResponse(obj.response);
         return out;
     }
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response|Boolean|Function, onSuccess?: (msg) => void, onError?: (err: Error, msg: Outbound) => void): Outbound {
