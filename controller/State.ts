@@ -304,7 +304,7 @@ export interface ICircuitState {
     lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
-    showInFeatures?: boolean
+    showInFeatures?: boolean;
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
@@ -417,6 +417,11 @@ class EqStateCollection<T> {
         }
         return arr;
     }
+    // Finds an item and returns undefined if it doesn't exist.
+    public find(f: (value: any, index?: number, obj?: any) => boolean): T {
+        let itm = this.data.find(f);
+        if (typeof itm !== 'undefined') return this.createItem(itm);
+    }
 }
 class DirtyStateCollection extends Array<EqState> {
     public maybeAddEqState(eqItem: EqState) { if (!this.eqStateExists(eqItem)) this.push(eqItem); }
@@ -484,15 +489,23 @@ export class EquipmentState extends EqState {
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
     public createItem(data: any): PumpState { return new PumpState(data); }
+    public getPumpByAddress(address: number, add?: boolean, data?: any) {
+        let pmp = this.find(elem => elem.address === address);
+        if (typeof pmp !== 'undefined') return this.createItem(pmp);
+        if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
+        return this.createItem(data || { id: this.data.length + 1, address: address });
+    }
 }
 export class PumpState extends EqState {
-    public dataName: string = 'pump';
-    private _threshold = 0.05;
-    private exceedsThreshold(origVal: number, newVal:number){
-        return Math.abs((newVal - origVal) / origVal ) > this._threshold; 
+    public dataName: string='pump';
+    private _threshold=0.05;
+    private exceedsThreshold(origVal: number, newVal: number) {
+        return Math.abs((newVal - origVal) / origVal) > this._threshold;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
+    public get address(): number { return this.data.address || this.data.id + 95; }
+    public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get rpm(): number { return this.data.rpm; }
@@ -507,8 +520,6 @@ export class PumpState extends EqState {
     public set driveState(val: number) { this.setDataVal('driveState', val); }
     public get command(): number { return this.data.command; }
     public set command(val: number) { this.setDataVal('command', val); }
-    public get address(): number { return this.data.address; }
-    public set address(val: number) { this.setDataVal('address', val); }
     public get ppc(): number { return this.data.ppc; } // I think this is actually the filter % for vf and vsf.  Pump Pressure determines how much backpressure.
     public set ppc(val: number) { this.setDataVal('ppc', val); }
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
@@ -555,7 +566,7 @@ export class PumpState extends EqState {
             }
             c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
             pump.circuits.push(c);
-        } 
+        }
         pump.circuits.sort((a, b) => { return a.id > b.id ? 1 : -1; });
         /*         for (let i = 0; i < cpump.circuits.length; i++) {
                     let c = cpump.circuits.getItemByIndex(i).get(true);
@@ -583,7 +594,7 @@ export class ScheduleState extends EqState {
         this.startDate.setHours(0, 0, 0, 0);
         this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate));
     }
-    public dataName: string = 'schedule';
+    public dataName: string='schedule';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get startTime(): number { return this.data.startTime; }
@@ -655,7 +666,7 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
     }
 }
 export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName: string = 'circuitGroup';
+    public dataName: string='circuitGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -698,7 +709,7 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName = 'lightGroup';
+    public dataName='lightGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -756,7 +767,7 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     public createItem(data: any): BodyTempState { return new BodyTempState(data); }
 }
 export class BodyTempState extends EqState {
-    public dataName = 'bodyTempState';
+    public dataName='bodyTempState';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('circuit', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -807,7 +818,7 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
     public createItem(data: any): HeaterState { return new HeaterState(data); }
 }
 export class HeaterState extends EqState {
-    public dataName: string = 'heater';
+    public dataName: string='heater';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -821,7 +832,7 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public toggleFeatureState(id: number) { sys.board.features.toggleFeatureState(id); }
 }
 export class FeatureState extends EqState implements ICircuitState {
-    public dataName: string = 'feature';
+    public dataName: string='feature';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -841,7 +852,7 @@ export class FeatureState extends EqState implements ICircuitState {
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
-    public dataName: string = 'virtualCircuit';
+    public dataName: string='virtualCircuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -881,7 +892,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     }
 }
 export class CircuitState extends EqState implements ICircuitState {
-    public dataName = 'circuit';
+    public dataName='circuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -913,7 +924,7 @@ export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
 }
 export class ValveState extends EqState {
-    public dataName: string = 'valve';
+    public dataName: string='valve';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -930,7 +941,7 @@ export class CoverStateCollection extends EqStateCollection<CoverState> {
     public createItem(data: any): CoverState { return new CoverState(data); }
 }
 export class CoverState extends EqState {
-    public dataName: string = 'cover';
+    public dataName: string='cover';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -949,7 +960,7 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public superChlorinate(id: number, bSet: boolean) { this.getItemById(id).superChlorinate(bSet); }
 }
 export class ChlorinatorState extends EqState {
-    public dataName: string = 'chlorinator';
+    public dataName: string='chlorinator';
     // The lastComm property has a fundamental flaw.  Although, the structure is
     // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
     // triggered by this. We need to find a way that the property change does not trigger persistence.
@@ -969,8 +980,9 @@ export class ChlorinatorState extends EqState {
     }
     public get targetOutput(): number { return this.data.targetOutput; }
     public set targetOutput(val: number) { this.setDataVal('targetOutput', val); }
-    public get status(): number { 
-        return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
+    public get status(): number {
+        return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1;
+    }
     public set status(val: number) {
         if (this.status !== val) {
             this.data.status = sys.board.valueMaps.chlorinatorStatus.transform(val);
@@ -1167,4 +1179,3 @@ export class CommsState {
 }
 
 export var state = new State();
-

@@ -25,6 +25,11 @@
             "runOptions": {
                 "runOn": "folderOpen"
             }
+        },
+        {
+            "label": "clean data",
+            "type":"shell",
+            "command": "cd data; echo '{}' > poolConfig.json; echo '{}' > poolState.json;"
         }
     ]
 }

@@ -408,7 +408,7 @@ export class ConfigRoute {
         });
         app.put('/config/lightGroup/:id/setColors', (req, res) => {
             let grp = extend(true, {id: parseInt(req.params.id, 10)}, req.body);
-            sys.board.circuits.setLightGroupColors(new LightGroup(grp));
+            sys.board.circuits.setLightGroupAttribs(new LightGroup(grp));
             return res.status(200).send('OK');
         });
         app.get('/config/intellibrite/themes', (req, res) => {

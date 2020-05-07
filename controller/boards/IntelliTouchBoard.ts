@@ -55,7 +55,11 @@ class ITTouchConfigQueue extends TouchConfigQueue {
 }
 class TouchCircuitCommands extends CircuitCommands {
     public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function (msg) {
+        let out = Outbound.create({
+            action: 96, 
+            payload: [theme, 0], 
+            retries: 3, 
+            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function (msg) {
             if (!msg.failed) {
                 state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                 for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -66,7 +70,8 @@ class TouchCircuitCommands extends CircuitCommands {
                 }
                 state.emitEquipmentChanges();
             }
-        }));
+        })
+    });
         conn.queueSendMessage(out);
     }
 }

@@ -231,11 +231,12 @@ export class HttpServer extends ProtoServer {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();
 
                 // todo: logic for chlor packets
-                let src = bytesToProcess.shift();
-                let dest = bytesToProcess.shift();
-                let action = bytesToProcess.shift();
-                let payload = bytesToProcess.splice(1, bytesToProcess[0]);
-                let out = Outbound.createBroadcastRaw(src, dest, action, payload);
+                let out = Outbound.create({
+                    source: bytesToProcess.shift(),
+                    dest: bytesToProcess.shift(), 
+                    action: bytesToProcess.shift(), 
+                    payload: bytesToProcess.splice(1, bytesToProcess[0])
+                });
                 conn.queueSendMessage(out);
             } while (bytesToProcessArr.length > 0);
 

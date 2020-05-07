@@ -28,10 +28,10 @@ export class StateRoute {
             state.circuits.toggleCircuitState(parseInt(req.body.id, 10));
             return res.status(200).send('OK');
         });
-        app.put('/state/circuit/setTheme', (req, res) => {
+            app.put('/state/circuit/setTheme', (req, res) => {
             state.circuits.setLightTheme(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
-        });
+        }); 
         app.put('/state/intellibrite/setTheme', (req, res) => {
             sys.board.circuits.setIntelliBriteTheme(parseInt(req.body.theme, 10));
             return res.status(200).send('OK');

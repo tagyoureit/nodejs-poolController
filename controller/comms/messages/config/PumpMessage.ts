@@ -26,6 +26,7 @@ export class PumpMessage {
             pump = sys.pumps.getItemById(pumpId, true);
         }
         pump.type = msg.extractPayloadByte(1);
+        pump.address = pumpId + 95;
         pump.isActive = pump.type !== 0;
         switch (pump.type) {
             case 0: // none

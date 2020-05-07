@@ -14,6 +14,8 @@ export class PumpStateMessage {
         let pumpId = msg.source - 96 + 1;
         let pump = state.pumps.getItemById(pumpId, true);
         let pumpCfg = sys.pumps.getItemById(pumpId);
+        // let pump2 = state.pumps.getPumpByAddress(msg.source, true);
+        // let pumpCfg2 = sys.pumps.getPumpByAddress(msg.source);
         switch (msg.action) {
             case 7:
                 //[165, 63, 15, 16, 2, 29][11, 47, 32, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 59, 59, 0, 241, 56, 121, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 219]

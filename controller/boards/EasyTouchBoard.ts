@@ -443,21 +443,25 @@ export class TouchConfigQueue extends ConfigQueue {
         if (this.curr && !this.curr.isComplete) {
             itm = this.curr.items.shift();
             const out: Outbound = Outbound.create({
-                proto: Protocol.Broadcast,
                 source: Message.pluginAddress,
                 dest: 16,
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: new Response(
+                /* response: new Response(
                     Protocol.Broadcast,
                     16,
                     15,
                     this.curr.category,
                     [itm],
                     undefined,
-                    function(msgOut) { self.processNext(msgOut); })
-                });
+                    function(msgOut) { self.processNext(msgOut); }) */
+                response: true,
+                onComplete: (err, msg:Outbound) => {
+                    if (err){logger.error(`Error recieving configuration: ${err.message}`); }
+                    self.processNext(msg);
+                }
+            });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
@@ -487,7 +491,12 @@ export class TouchScheduleCommands extends ScheduleCommands {
         // delete sched 1
         // [ 255, 0, 255], [165, 33, 16, 33, 145, 7], [1, 0, 0, 0, 0, 0, 0], [1, 144]
 
-        const setSchedConfig = Outbound.createMessage(145, [sched.id, 0, 0, 0, 0, 0, 0], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [145]));
+        const setSchedConfig = Outbound.create({
+            action: 145,
+            payload: [sched.id, 0, 0, 0, 0, 0, 0],
+            retries: 2,
+            response: Response.create({ action: 1, payload: [145] })
+        });
         if (sched.circuit === 0) {
             // delete - take defaults
         }
@@ -508,7 +517,12 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 if (sched.runOnce) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
             }
         }
-        const schedConfigRequest = Outbound.createMessage(209, [sched.id], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 17, [sched.id]));
+        const schedConfigRequest = Outbound.create({
+            action: 209,
+            payload: [sched.id],
+            retries: 2,
+            response: Response.create({ action: 17, payload: [sched.id] })
+        });
 
         return [setSchedConfig, schedConfigRequest];
     }
@@ -557,12 +571,17 @@ export enum GetTouchConfigCategories {
 }
 class TouchSystemCommands extends SystemCommands {
     public cancelDelay() {
-        let out = Outbound.createMessage(131, [0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [131], null, function(msg) {
-            if (!msg.failed) {
-                // todo: track delay status?
-                state.delay = 0;
-            }
-        }));
+        let out = Outbound.create({
+            action: 131,
+            payload: [0],
+            retries: 0,
+            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [131], null, function(msg) {
+                if (!msg.failed) {
+                    // todo: track delay status?
+                    state.delay = 0;
+                }
+            })
+        });
         conn.queueSendMessage(out);
     }
     public setDateTime(obj: any) {
@@ -578,7 +597,6 @@ class TouchSystemCommands extends SystemCommands {
         // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
         // [165,33,34,16,1,1],[133],[1,127]
         const out = Outbound.create({
-           proto: Protocol.Broadcast,
             source: Message.pluginAddress,
             dest: 16,
             action: 133,
@@ -594,7 +612,7 @@ class TouchSystemCommands extends SystemCommands {
                     state.emitControllerChange();
                 }
             })
-         });
+        });
         conn.queueSendMessage(out);
     }
 
@@ -610,7 +628,6 @@ class TouchBodyCommands extends BodyCommands {
         let mode2 = body2.heatMode;
         body.id === 1 ? mode1 = mode : mode2 = mode;
         let out = Outbound.create({
-            proto: Protocol.Broadcast,
             dest: 16,
             action: 136,
             payload: [temp1, temp2, mode2 << 2 | mode1, 0],
@@ -655,7 +672,6 @@ class TouchBodyCommands extends BodyCommands {
         const mode1 = body1.heatMode;
         const mode2 = body2.heatMode;
         const out = Outbound.create({
-            proto: Protocol.Broadcast,
             dest: 16,
             action: 136,
             payload: [temp1, temp2, mode2 << 2 | mode1, 0],
@@ -681,7 +697,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public async setCircuitAsync(data: any): Promise<ICircuit | string> {
+    public async setCircuitAsync(data: any): Promise<ICircuit|string> {
         // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
         // set circuit 17 to function 14 and name 209
         // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -690,7 +706,7 @@ class TouchCircuitCommands extends CircuitCommands {
         let nameByte = 3; // set default `Aux 1`
         if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
         else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-        return new Promise<ICircuit | string>((resolve, reject) => {
+        return new Promise<ICircuit|string>((resolve, reject) => {
             let out = Outbound.create({
                 action: 139,
                 payload: [data.id, typeByte, nameByte],
@@ -732,7 +748,7 @@ class TouchCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async deleteCircuitAsync(data: any): Promise<ICircuit | string> {
+    public async deleteCircuitAsync(data: any): Promise<ICircuit|string> {
         data.nameId = 0;
         data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
         return this.setCircuitAsync(data);
@@ -745,20 +761,30 @@ class TouchCircuitCommands extends CircuitCommands {
     //}
     public setCircuitState(id: number, val: boolean) {
         let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
-            if (msg && !msg.failed) {
-                cstate.isOn = val ? true : false;
-                state.emitEquipmentChanges();
-            }
-            // TODO: look into msg being null
-            else if (!msg) { console.log(`why are we getting no msg?`); }
-        }));
+        let out = Outbound.create({
+            action: 134,
+            payload: [id, val ? 1 : 0],
+            retries: 3,
+            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
+                if (msg && !msg.failed) {
+                    cstate.isOn = val ? true : false;
+                    state.emitEquipmentChanges();
+                }
+                // TODO: look into msg being null
+                else if (!msg) { console.log(`why are we getting no msg?`); }
+            })
+        });
         conn.queueSendMessage(out);
     }
-    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState | string> {
+    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
         let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.createMessage(134, [id, val ? 1 : 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134]));
-        return new Promise<ICircuitState | string>((resolve, reject) => {
+        let out = Outbound.create({
+            action: 134,
+            payload: [id, val ? 1 : 0],
+            retries: 3,
+            response: Response.create({ action: 1, payload: [134] })
+        });
+        return new Promise<ICircuitState|string>((resolve, reject) => {
             out.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else {
@@ -802,18 +828,24 @@ class TouchCircuitCommands extends CircuitCommands {
         this.setIntelliBriteTheme(theme);
     }
     public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.createMessage(96, [theme, 0], 3, new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function(msg) {
-            if (!msg.failed) {
-                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
-                for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                    let c = sys.intellibrite.circuits.getItemByIndex(i);
-                    let cstate = state.circuits.getItemById(c.circuit);
-                    let circuit = sys.circuits.getInterfaceById(c.circuit);
-                    cstate.lightingTheme = circuit.lightingTheme = theme;
+        let out = Outbound.create({
+            action: 96,
+            payload: [theme, 0],
+            retries: 3,
+            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function(msg) {
+                if (!msg.failed) {
+                    state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                    for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                        let c = sys.intellibrite.circuits.getItemByIndex(i);
+                        let cstate = state.circuits.getItemById(c.circuit);
+                        let circuit = sys.circuits.getInterfaceById(c.circuit);
+                        cstate.lightingTheme = circuit.lightingTheme = theme;
+                    }
+                    state.emitEquipmentChanges();
                 }
-                state.emitEquipmentChanges();
-            }
-        }));
+            })
+        });
+        conn.queueSendMessage(out);
         // Turn on the circuit if it is not on.
         for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
             let c = sys.intellibrite.circuits.getItemByIndex(i);
@@ -845,17 +877,17 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = Outbound.create({
-            dest:16, 
-            action: 153, 
-            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0], 
-            retries: 3, 
-            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [153], null, (err, msg) => {
-            if (err) {logger.error(`Error with setChlor: ${err.message}`);}
-            if (!msg.failed) {
+            dest: 16,
+            action: 153,
+            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
+            retries: 3,
+            response: Response.create({ action: 1, payload: [153] }),
+            onComplete: (err) => {
+                if (err) { logger.error(`Error with setChlor: ${ err.message }`); }
                 sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
             }
-        })
-    });
+        });
+
         conn.queueSendMessage(out);
     }
 }
@@ -867,7 +899,7 @@ class TouchPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump | string> {
+    public async setPumpAsync(data: any): Promise<Pump|string> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
         // 485 Controlled pumps - Any of the IntelliFlo pumps.  These are managed by the control panel.
@@ -881,7 +913,7 @@ class TouchPumpCommands extends PumpCommands {
         // 3. There can only be 1 single speed pump it will be id 10
         //    a. single speed pumps allow the identification of an ss pump model.  This determines the continuous wattage for when it is on.
         // 4. Background Circuits can be assigned for (vf, vsf, vs, ss, and ds pumps).
-        let pump : Pump;
+        let pump: Pump;
         let ntype;
         let type;
         let isAdd = false;
@@ -893,24 +925,24 @@ class TouchPumpCommands extends PumpCommands {
             if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') throw new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data);
             if (type.name === 'ds') {
                 id = 9;
-                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data);
+                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${ type.desc } pump`, 'Pump', data);
             }
             else if (type.name === 'ss') {
                 id = 10;
-                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data);
+                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${ type.desc } pump`, 'Pump', data);
             }
             else if (type.name === 'none') throw new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data);
             else {
                 // Under most circumstances the id will = the address minus 95.
                 if (typeof data.address !== 'undefined') {
                     data.address = parseInt(data.address, 10);
-                    if (isNaN(data.address)) throw new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data);
+                    if (isNaN(data.address)) throw new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${ type.desc } pump.`, 'Pump', data);
                     id = data.address - 95;
                     // Make sure it doesn't already exist.
-                    if (sys.pumps.find(elem => elem.address === data.address)) throw new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data);
+                    if (sys.pumps.find(elem => elem.address === data.address)) throw new InvalidEquipmentDataError(`A pump already exists at address ${ data.address - 95 }`, 'Pump', data);
                 }
                 else {
-                    if (typeof id === 'undefined') throw new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data);
+                    if (typeof id === 'undefined') throw new InvalidEquipmentDataError(`You may not add another ${ type.desc } pump.  Max number of pumps exceeded.`, 'Pump', data);
                     id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
                     data.address = id + 95;
                 }
@@ -919,16 +951,16 @@ class TouchPumpCommands extends PumpCommands {
         }
         else {
             pump = sys.pumps.getItemById(id, false);
-            ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);            
-            if (isNaN(ntype)) throw new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data);
+            ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
+            if (isNaN(ntype)) throw new InvalidEquipmentDataError(`Pump type ${ data.type } is not valid`, 'Pump', data);
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
         }
         // Validate all the ids since in *Touch the address is determined from the id.
         if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) !== undefined;
         // Now lets validate the ids related to the type.
-        if (id === 9 && type.name !== 'ds') throw new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data);
-        else if (id === 10 && type.name !== 'ss') throw new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data);
-        else if (id > sys.equipment.maxPumps) throw new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data);
+        if (id === 9 && type.name !== 'ds') throw new InvalidEquipmentDataError(`The id for a ${ type.desc } pump must be 9`, 'Pump', data);
+        else if (id === 10 && type.name !== 'ss') throw new InvalidEquipmentDataError(`The id for a ${ type.desc } pump must be 10`, 'Pump', data);
+        else if (id > sys.equipment.maxPumps) throw new InvalidEquipmentDataError(`The id for a ${ type.desc } must be less than ${ sys.equipment.maxPumps }`, 'Pump', data);
 
 
         if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
@@ -1007,7 +1039,7 @@ class TouchPumpCommands extends PumpCommands {
                     }
                 }
             }
-            return new Promise<Pump | string>((resolve, reject) => {
+            return new Promise<Pump|string>((resolve, reject) => {
                 outc.onComplete = (err, msg) => {
                     if (err) reject(err);
                     else {
@@ -1026,7 +1058,12 @@ class TouchPumpCommands extends PumpCommands {
     }
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
-        const setPumpConfig = Outbound.createMessage(155, [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [155]));
+        const setPumpConfig = Outbound.create({
+            action: 155,
+            payload: [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            retries: 2,
+            response: Response.create({ action: 1, payload: [155] })
+        });
         if (pump.type === 128) {
             // vs
             setPumpConfig.payload[2] = pump.primingTime || 0;
@@ -1080,7 +1117,12 @@ class TouchPumpCommands extends PumpCommands {
                 setPumpConfig.payload[i * 2 + 4] = circ.flow || 15;
             }
         }
-        const pumpConfigRequest = Outbound.createMessage(216, [pump.id], 2, new Response(Protocol.Broadcast, 16, Message.pluginAddress, 24, [pump.id]));
+        const pumpConfigRequest = Outbound.create({
+            action: 216,
+            payload: [pump.id],
+            retries: 2,
+            response: Response.create({ action: 24, payload: [pump.id] })
+        });
         return [setPumpConfig, pumpConfigRequest];
     }
     /*     public setType(pump: Pump, pumpType: number) {

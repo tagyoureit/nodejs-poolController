@@ -18,6 +18,18 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Launch Program - CLEAN",
+            "program": "${workspaceFolder}/dist/app.js",
+            "console": "integratedTerminal",
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*"
+            ],
+            "sourceMaps": true,
+            "preLaunchTask": "clean data"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Launch Program -- INSPECT",
             "program": "${workspaceFolder}/dist/app.js",
             "console": "integratedTerminal",

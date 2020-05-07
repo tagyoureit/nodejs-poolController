@@ -936,7 +936,7 @@ export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
     public getDualSpeed(add?: boolean): Pump {
-        return this.getItemById(10, add, { id: 10, type: 2, name: 'Two Speed' });
+        return this.getItemById(10, add, { id: 10, type: 65, name: 'Two Speed' });
     }
     public getPumpByAddress(address: number, add?: boolean, data?: any) {
         let pmp = this.find(elem => elem.address === address);
@@ -949,6 +949,8 @@ export class Pump extends EqItem {
     public dataName='pumpConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
+    public get address(): number { return this.data.address || this.data.id + 95; }
+    public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get type(): number { return this.data.type; }
@@ -967,8 +969,6 @@ export class Pump extends EqItem {
     public set minFlow(val: number) { this.setDataVal('minFlow', val); }
     public get maxFlow(): number { return this.data.maxFlow; }
     public set maxFlow(val: number) { this.setDataVal('maxFlow', val); }
-    public get address(): number { return this.data.address; }
-    public set address(val: number) { this.setDataVal('address', val); }
     public get primingTime(): number { return this.data.primingTime; }
     public set primingTime(val: number) { this.setDataVal('primingTime', val); }
     public get speedStepSize(): number { return this.data.speedStepSize; }
@@ -1013,15 +1013,6 @@ export class Pump extends EqItem {
     public deletePumpCircuit(pumpCircuitId: number) {
         return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }
-    /*     public setCircuitRate(circuitId: number, rate: number) {
-            // below should check with the board to see if units is 0 or 1
-            let c = this.circuits.getItemById(circuitId);
-            if (c.units === 0) c.speed = rate;
-            else c.flow = rate;
-            this.setPump();
-        }
-        public setCircuitRateUnits(circuitId: number, units: number) {sys.board.pumps.setCircuitRateUnits(this, circuitId, units);}
-        public setCircuitId(pumpCircuitId: number, circuitId: number) {sys.board.pumps.setCircuitId(this, pumpCircuitId, circuitId);} */
     public setType(pumpType: number) {
         sys.board.pumps.setType(this, pumpType);
     }
@@ -1068,26 +1059,7 @@ export class PumpCircuit extends EqItem {
     public set units(val: number) { this.setDataVal('units', val); }
     public get maxPressure(): number { return this.data.maxPressure; }
     public set maxPressure(val: number) { this.setDataVal('maxPressure', val); }
-    // TODO: Figure out why this is here.
-    // RKS: This is not a requirement for IntelliCenter.  It probably should be deleted.
-    public get body(): number { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
 }
-/* export class VirtualChlorinatorControllerCollection extends EqItemCollection<VirtualChlorinatorController> {
-    constructor(data: any, name?: string) { super(data, name || "virtualChlorinatorController"); }
-    public createItem(data: any): VirtualChlorinatorController { return new VirtualChlorinatorController(data); }
-    public clear(){
-        sys.board.virtualChlorinatorController.stop();
-        super.clear();
-    }
-}
-export class VirtualChlorinatorController extends EqItem {
-    public dataName='virtualChlorinatorControllerConfig';
-    public get id(): number { return this.data.id; }
-    public set id(val: number) { this.setDataVal('id', val); }
-    public get isActive(): boolean { return this.data.isActive; }
-    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-} */
 export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     constructor(data: any, name?: string) { super(data, name || "chlorinators"); }
     public createItem(data: any): Chlorinator { return new Chlorinator(data); }

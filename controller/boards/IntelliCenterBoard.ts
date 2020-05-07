@@ -1338,7 +1338,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             resolve(group);
         });
     }
-    public setLightGroupColors(group: LightGroup) {
+    public setLightGroupAttribs(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         let arrOut = this.createLightGroupMessages(grp);
         // Set all the info in the messages.
