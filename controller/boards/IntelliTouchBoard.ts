@@ -15,7 +15,6 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         this.equipmentIds.features.end = 50;
         this._configQueue = new ITTouchConfigQueue();
     }
-    public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
 }
 class ITTouchConfigQueue extends TouchConfigQueue {
@@ -53,28 +52,7 @@ class ITTouchConfigQueue extends TouchConfigQueue {
         state.emitControllerChange();
     }
 }
-class TouchCircuitCommands extends CircuitCommands {
-    public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.create({
-            action: 96, 
-            payload: [theme, 0], 
-            retries: 3, 
-            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function (msg) {
-            if (!msg.failed) {
-                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
-                for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                    let c = sys.intellibrite.circuits.getItemByIndex(i);
-                    let cstate = state.circuits.getItemById(c.circuit);
-                    let circuit = sys.circuits.getInterfaceById(c.circuit);
-                    cstate.lightingTheme = circuit.lightingTheme = theme;
-                }
-                state.emitEquipmentChanges();
-            }
-        })
-    });
-        conn.queueSendMessage(out);
-    }
-}
+// TODO: is this needed?  Should be in EasyTouch and not overridden here?
 class TouchFeatureCommands extends FeatureCommands {
     public syncGroupStates() {
         let arr = sys.circuitGroups.toArray();

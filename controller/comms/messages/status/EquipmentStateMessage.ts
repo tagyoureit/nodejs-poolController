@@ -262,12 +262,12 @@ export class EquipmentStateMessage {
         if (model2 === 0 && (model1 === 23 || model1 === 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
-            console.log(`FOUND CONTROLLER BOARD, AWATING INSTALLED MODULES!`);
+            console.log(`Found Controller Board ${state.equipment.model}, awaiting installed modules.`);
             EquipmentStateMessage.initIntelliCenter(msg);
         }
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
-            console.log(`FOUND CONTROLLER BOARD, REQUESTING STATUS!`);
+            console.log(`Found Controller Board ${state.equipment.model}`);
             setTimeout(function () { sys.checkConfiguration(); }, 300);
         }
     }
@@ -480,8 +480,8 @@ export class EquipmentStateMessage {
                 // defaults
                 sys.general.options.clockMode = 12;
                 sys.general.options.clockSource = 'manual';
-                // state.emitControllerChange();
-                // state.emitEquipmentChanges();
+                state.emitControllerChange();
+                state.emitEquipmentChanges();
                 break;
             case 8: {
                 // IntelliTouch only.  Heat status

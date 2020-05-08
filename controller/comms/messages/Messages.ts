@@ -501,9 +501,9 @@ export class Outbound extends Message {
     public timeout: number=1000;
     public response: (msgIn: Inbound, msgOut: Outbound) => Boolean|Response;
     public failed: boolean=false;
-    public onSuccess: (msg: Outbound) => void;
-    public onError: (error: Error, msg: Outbound) => void;
-    public onComplete: (error: Error, msg: Outbound) => void;
+    public onSuccess: (msg: Inbound|Outbound) => void;
+    public onError: (error: Error, msg: Inbound|Outbound) => void;
+    public onComplete: (error: Error, msg: Inbound|Outbound) => void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }
@@ -520,6 +520,10 @@ export class Outbound extends Message {
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
     public get requiresResponse(): boolean {
+        if (typeof this.response === 'undefined' || this.response === null) { return false;}
+        if (this.response instanceof Response && this.response.nee) { return true;
+
+        }
         if (typeof (this.response) !== 'undefined' && this.response !== null) { return true; }
         return false;
     }

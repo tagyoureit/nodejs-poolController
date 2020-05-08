@@ -2,7 +2,7 @@
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands } from './SystemBoard';
 import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup } from '../Equipment';
-import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
+import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState } from '../State';
@@ -1349,7 +1349,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             arrOut[1].payload[i + 3] = circuit ? circuit.color || 0 : 255;
             arrOut[2].payload[i + 3] = circuit ? circuit.color || 0 : 0;
         }
-        arrOut[arrOut.length - 1].onSuccess = (msg:Outbound) => {
+        arrOut[arrOut.length - 1].onSuccess = (msg:Inbound) => {
             if (!msg.failed) {
                 
                 grp.circuits.clear();

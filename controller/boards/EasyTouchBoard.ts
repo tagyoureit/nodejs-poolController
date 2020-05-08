@@ -7,6 +7,7 @@ import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { resolve } from 'dns';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
+import { rejects } from 'assert';
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
@@ -448,17 +449,9 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                /* response: new Response(
-                    Protocol.Broadcast,
-                    16,
-                    15,
-                    this.curr.category,
-                    [itm],
-                    undefined,
-                    function(msgOut) { self.processNext(msgOut); }) */
                 response: true,
-                onComplete: (err, msg:Outbound) => {
-                    if (err){logger.error(`Error recieving configuration: ${err.message}`); }
+                onComplete: (err, msg: Outbound) => {
+                    if (err) { logger.error(`Error recieving configuration: ${ err.message }`); }
                     self.processNext(msg);
                 }
             });
@@ -570,52 +563,56 @@ export enum GetTouchConfigCategories {
     version=253
 }
 class TouchSystemCommands extends SystemCommands {
-    public cancelDelay() {
-        let out = Outbound.create({
-            action: 131,
-            payload: [0],
-            retries: 0,
-            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [131], null, function(msg) {
-                if (!msg.failed) {
+    public async cancelDelay() {
+        return new Promise((resolve, reject) => {
+            let out = Outbound.create({
+                action: 131,
+                payload: [0],
+                retries: 0,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
                     // todo: track delay status?
                     state.delay = 0;
+                    resolve();
                 }
-            })
+            });
+            conn.queueSendMessage(out);
         });
-        conn.queueSendMessage(out);
     }
-    public setDateTime(obj: any) {
-        let { hour = state.time.hours,
-            min = state.time.minutes,
-            date = state.time.date,
-            month = state.time.month,
-            year = state.time.year,
-            dst = sys.general.options.adjustDST ? 1 : 0,
-            dow = state.time.dayOfWeek } = obj;
-        // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
-        // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
-        // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
-        // [165,33,34,16,1,1],[133],[1,127]
-        const out = Outbound.create({
-            source: Message.pluginAddress,
-            dest: 16,
-            action: 133,
-            payload: [hour, min, dow, date, month, year, 0, dst],
-            retries: 3,
-            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [133], null, function(msg) {
-                if (!msg.failed) {
-                    state.time.hours = hour;
-                    state.time.minutes = min;
-                    state.time.date = date;
-                    state.time.year = year;
-                    sys.general.options.adjustDST = dst === 1 ? true : false;
-                    state.emitControllerChange();
+    public async setDateTime(obj: any) {
+        return new Promise((resolve, reject) => {
+            let id = 1;
+            let { hour = state.time.hours,
+                min = state.time.minutes,
+                date = state.time.date,
+                month = state.time.month,
+                year = state.time.year,
+                dst = sys.general.options.adjustDST ? 1 : 0,
+                dow = state.time.dayOfWeek } = obj;
+            // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
+            // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
+            // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
+            // [165,33,34,16,1,1],[133],[1,127]
+            const out = Outbound.create({
+                source: Message.pluginAddress,
+                dest: 16,
+                action: 133,
+                payload: [hour, min, dow, date, month, year, 0, dst],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    console.log(this);
+                    console.log(out);
+                    console.log(id);
+                    console.log(msg);
+                    if (err) reject(err);
+                    resolve();
                 }
-            })
+            });
+            conn.queueSendMessage(out);
         });
-        conn.queueSendMessage(out);
     }
-
 }
 class TouchBodyCommands extends BodyCommands {
     public setHeatMode(body: Body, mode: number) {
@@ -711,28 +708,9 @@ class TouchCircuitCommands extends CircuitCommands {
                 action: 139,
                 payload: [data.id, typeByte, nameByte],
                 retries: 3,
-                response: Response.create({
-                    action: 1, payload: [139]
-                    // RKS: Removed this so that the onComplete signature can be called.  In this instance there will be an error object already.
-                    //callback: function (msg) {
-                    //    if (msg && !msg.failed) {
-                    //        let circuit = sys.circuits.getInterfaceById(data.id);
-                    //        let cstate = state.circuits.getInterfaceById(data.id);
-                    //        circuit.nameId = cstate.nameId = nameByte;
-                    //        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                    //        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                    //        circuit.type = cstate.type = typeByte;
-                    //        state.emitEquipmentChanges();
-                    //        resolve(circuit);
-
-                    //    }
-                    //    // TODO: look into msg being null
-                    //    else if (!msg) { console.log(`why are we getting no msg?`); reject('Response message is not returned'); }
-                    //    else reject(new MessageError(msg, 'Error setting circuit'));
-                    //}
-                }),
-                onComplete: (error) => {
-                    if (error) reject(error);
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
                     else {
                         let circuit = sys.circuits.getInterfaceById(data.id);
                         let cstate = state.circuits.getInterfaceById(data.id);
@@ -776,64 +754,42 @@ class TouchCircuitCommands extends CircuitCommands {
         });
         conn.queueSendMessage(out);
     }
-    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
-        let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.create({
-            action: 134,
-            payload: [id, val ? 1 : 0],
-            retries: 3,
-            response: Response.create({ action: 1, payload: [134] })
-        });
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
         return new Promise<ICircuitState|string>((resolve, reject) => {
-            out.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else {
+            let cstate = state.circuits.getInterfaceById(id);
+            let out = Outbound.create({
+                action: 134,
+                payload: [id, val ? 1 : 0],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
                     cstate.isOn = val ? true : false;
                     state.emitEquipmentChanges();
-                    resolve(cstate);
+                    resolve(cstate.get(true));
                 }
-            };
+            });
             conn.queueSendMessage(out);
         });
     }
-
-    /*     public async setCircuitState(id: number, val: boolean) {
-            let cstate = state.circuits.getInterfaceById(id);
-            return new Promise(function(resolve, reject) {
-                let out = Outbound.create({
-                    action: 134,
-                    payload: [id, val ? 1 : 0],
-                    retries: 3,
-                    response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
-                        if (msg && !msg.failed) {
-                            cstate.isOn = val ? true : false;
-                            resolve(cstate.get(true));
-                            //state.emitEquipmentChanges(); // still needed?
-                        }
-                        else {
-                            reject('message failed');
-                        }
-                    }),
-                    onError: err => reject(err)
-                });
-                conn.queueSendMessage(out);
-            });
-        } */
     public toggleCircuitState(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         this.setCircuitState(id, !cstate.isOn);
     }
     public setLightTheme(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
-        this.setIntelliBriteTheme(theme);
+        this.setIntelliBriteThemeAsync(theme);
     }
-    public setIntelliBriteTheme(theme: number) {
-        let out = Outbound.create({
-            action: 96,
-            payload: [theme, 0],
-            retries: 3,
-            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [96], null, function(msg) {
-                if (!msg.failed) {
+    public async setIntelliBriteThemeAsync(theme: number) {
+        return new Promise((resolve, reject) => {
+
+            let out = Outbound.create({
+                action: 96,
+                payload: [theme, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
                     state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                     for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                         let c = sys.intellibrite.circuits.getItemByIndex(i);
@@ -842,20 +798,22 @@ class TouchCircuitCommands extends CircuitCommands {
                         cstate.lightingTheme = circuit.lightingTheme = theme;
                     }
                     state.emitEquipmentChanges();
+                    resolve(theme);
                 }
-            })
+            });
+            conn.queueSendMessage(out);
+            // Turn on the circuit if it is not on.
+            for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                let c = sys.intellibrite.circuits.getItemByIndex(i);
+                let cstate = state.circuits.getItemById(c.circuit);
+                if (!cstate.isOn) sys.board.circuits.setCircuitState(c.circuit, true);
+            } 
+            // Let everyone know we turned these on.  The theme messages will come later.
+            state.emitEquipmentChanges();
         });
-        conn.queueSendMessage(out);
-        // Turn on the circuit if it is not on.
-        for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-            let c = sys.intellibrite.circuits.getItemByIndex(i);
-            let cstate = state.circuits.getItemById(c.circuit);
-            if (!cstate.isOn) sys.board.circuits.setCircuitState(c.circuit, true);
-        }
-        // Let everyone know we turned these on.  The theme messages will come later.
-        state.emitEquipmentChanges();
     }
 }
+
 class TouchFeatureCommands extends FeatureCommands {
     // todo: remove this in favor of setCircuitState only?
     public setFeatureState(id: number, val: boolean) {

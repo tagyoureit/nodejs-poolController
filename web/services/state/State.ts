@@ -33,7 +33,7 @@ export class StateRoute {
             return res.status(200).send('OK');
         }); 
         app.put('/state/intellibrite/setTheme', (req, res) => {
-            sys.board.circuits.setIntelliBriteTheme(parseInt(req.body.theme, 10));
+            sys.board.circuits.setIntelliBriteThemeAsync(parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
         });
         app.put('/state/circuit/setDimmerLevel', (req, res) => {

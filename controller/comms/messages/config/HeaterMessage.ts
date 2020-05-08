@@ -81,6 +81,7 @@ export class HeaterMessage {
                     solar.type = 2;
                     solar.isActive = true;
                     sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    sys.board.circuits.deleteCircuit(20); 
                     solar.body = 32;
                     solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1; 
                     solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 

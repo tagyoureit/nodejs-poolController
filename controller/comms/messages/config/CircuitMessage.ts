@@ -1,5 +1,6 @@
 import { Inbound } from "../Messages";
 import { sys, Body, Circuit, ICircuit } from "../../../Equipment";
+import { state } from "../../../State";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -244,7 +245,9 @@ export class CircuitMessage {
                     sys.intellibrite.isActive = false;
                 }
                 sys.features.removeItemById(id);
+                state.features.removeItemById(id);
                 sys.circuits.removeItemById(id);
+                state.circuits.removeItemById(id);
                 sys.circuitGroups.removeItemById(id);
             }
         }

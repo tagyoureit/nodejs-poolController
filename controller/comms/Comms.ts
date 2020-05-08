@@ -218,8 +218,8 @@ export class SendRecieveBuffer {
                         setTimeout(msg.response, 100, undefined, msg);
                 }
                 let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s)`);
-                if (typeof msg.onError !== 'undefined') msg.onError.apply(err, msg);
-                if (typeof msg.onComplete === 'function') msg.onComplete.apply(msg, [err, msg]);
+                if (typeof msg.onError !== 'undefined') msg.onError(err, msg);
+                if (typeof msg.onComplete === 'function') msg.onComplete(err, msg);
                 conn.isRTS = true;
                 return;
             }
@@ -239,8 +239,8 @@ export class SendRecieveBuffer {
                         // This is a hard fail.  We don't have any more tries left and the message didn't
                         // make it onto the wire.
                         let error = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ err }`);
-                        if (typeof msg.onError !== 'undefined') msg.onError.apply(error, msg);
-                        if (typeof msg.onComplete === 'function') msg.onComplete.apply(msg, [error, msg]);
+                        if (typeof msg.onError !== 'undefined') msg.onError(error, undefined);
+                        if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                         conn.buffer._waitingPacket = null;
                     }
                 }
@@ -251,7 +251,7 @@ export class SendRecieveBuffer {
                     if (!msg.requiresResponse) {
                         // As far as we know the message made it to OCP.
                         conn.buffer._waitingPacket = null;
-                        if (typeof msg.onComplete === 'function') msg.onComplete.apply(msg, [err, msg]);
+                        if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined); 
                     }
                     else if (msg.remainingTries >= 0) {
                         conn.buffer._waitingPacket = msg;
@@ -270,8 +270,8 @@ export class SendRecieveBuffer {
             if (msgOut.requiresResponse) {
                 if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
                     conn.buffer._waitingPacket = null;
-                    if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess.apply(msgIn, [msgIn]);
-                    if (typeof msgOut.onComplete === 'function') msgOut.onComplete.apply(msgIn, [undefined, msgIn]);
+                    if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
+                    if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     callback = resp.callback;
                     resp.message = msgIn;
                     if (resp.ack) conn.queueSendMessage(resp.ack);
@@ -279,8 +279,8 @@ export class SendRecieveBuffer {
                 else {
                     if (typeof resp === 'function' && resp(msgIn, msgOut)) {
                         conn.buffer._waitingPacket = null;
-                        if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess.apply(msgIn, [msgIn]);
-                        if (typeof msgOut.onComplete === 'function') msgOut.onComplete.apply(msgIn, [undefined, msgIn]);
+                        if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
+                        if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     }
                 }
             }
