@@ -741,7 +741,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public setTheme(val: number) { sys.board.circuits.setLightTheme; }
+    public setTheme(val: number) { sys.board.circuits.setLightThemeAsync; }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
@@ -874,9 +874,9 @@ export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCirc
 }
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
-    public setCircuitState(id: number, val: boolean) { sys.board.circuits.setCircuitState(id, val); }
-    public toggleCircuitState(id: number) { sys.board.circuits.toggleCircuitState(id); }
-    public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightTheme(id, theme); }
+    public setCircuitState(id: number, val: boolean) { sys.board.circuits.setCircuitStateAsync(id, val); }
+    public async toggleCircuitStateAsync(id: number) { sys.board.circuits.toggleCircuitStateAsync(id); }
+    public setLightTheme(id: number, theme: number) { sys.board.circuits.setLightThemeAsync(id, theme); }
     public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
     public getInterfaceById(id: number, add?: true): ICircuitState {
         let iCircuit: ICircuitState = null;
@@ -1059,7 +1059,7 @@ export class ChlorinatorState extends EqState {
         else
             this.setDataVal('superChlor', false);
     }
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlor(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
+    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlorAsync(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
     public setPoolSetpoint(setpoint: number) { sys.board.chlorinator.setPoolSetpoint(this, setpoint); }
     public setSpaSetpoint(setpoint: number) { sys.board.chlorinator.setSpaSetpoint(this, setpoint); }
     public setSuperChlorHours(hours: number) { sys.board.chlorinator.setSuperChlorHours(this, hours); }

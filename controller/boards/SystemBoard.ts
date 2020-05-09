@@ -572,8 +572,8 @@ export class BodyCommands extends BoardCommands {
 
 
     }
-    public setHeatMode(body: Body, mode: number) { }
-    public setHeatSetpoint(body: Body, setPoint: number) { }
+    public setHeatModeAsync(body: Body, mode: number) { }
+    public setHeatSetpointAsync(body: Body, setPoint: number) { }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         heatModes.push(this.board.valueMaps.heatModes.transform(0));
@@ -1158,7 +1158,7 @@ export class CircuitCommands extends BoardCommands {
             }
         }
     }
-    public setCircuitState(id: number, val: boolean) {
+    public setCircuitStateAsync(id: number, val: boolean) {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
         sys.board.virtualPumpControllers.start();
@@ -1172,11 +1172,11 @@ export class CircuitCommands extends BoardCommands {
         return Promise.resolve(circ);
     }
 
-    public toggleCircuitState(id: number) {
+    public toggleCircuitStateAsync(id: number) {
         let circ = state.circuits.getInterfaceById(id);
-        this.setCircuitState(id, !circ.isOn);
+        this.setCircuitStateAsync(id, !circ.isOn);
     }
-    public setLightTheme(id: number, theme: number) {
+    public setLightThemeAsync(id: number, theme: number) {
         let circ = state.circuits.getItemById(id);
         circ.lightingTheme = theme;
     }
@@ -1477,7 +1477,7 @@ export class FeatureCommands extends BoardCommands {
         let circuits = grp.circuits.toArray();
         for (let i = 0; i < circuits.length; i++) {
             let circuit: CircuitGroupCircuit = circuits[i];
-            sys.board.circuits.setCircuitState(circuit.circuit, val);
+            sys.board.circuits.setCircuitStateAsync(circuit.circuit, val);
         }
     }
     public syncGroupStates() {
@@ -1501,7 +1501,7 @@ export class FeatureCommands extends BoardCommands {
 
 }
 export class ChlorinatorCommands extends BoardCommands {
-    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    public setChlorAsync(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
 
         // we will get here under 2 scenarios
         // 1. instance class members call super.setChlor to set values
@@ -1519,10 +1519,10 @@ export class ChlorinatorCommands extends BoardCommands {
         }
         state.emitEquipmentChanges();
     }
-    public setPoolSetpoint(cstate: ChlorinatorState, poolSetpoint: number) { this.setChlor(cstate, poolSetpoint); }
-    public setSpaSetpoint(cstate: ChlorinatorState, spaSetpoint: number) { this.setChlor(cstate, cstate.poolSetpoint, spaSetpoint); }
-    public setSuperChlorHours(cstate: ChlorinatorState, hours: number) { this.setChlor(cstate, cstate.poolSetpoint, cstate.spaSetpoint, hours); }
-    public superChlorinate(cstate: ChlorinatorState, bSet: boolean, hours: number) { this.setChlor(cstate, cstate.poolSetpoint, cstate.spaSetpoint, typeof hours !== 'undefined' ? hours : cstate.superChlorHours, bSet); }
+    public setPoolSetpoint(cstate: ChlorinatorState, poolSetpoint: number) { this.setChlorAsync(cstate, poolSetpoint); }
+    public setSpaSetpoint(cstate: ChlorinatorState, spaSetpoint: number) { this.setChlorAsync(cstate, cstate.poolSetpoint, spaSetpoint); }
+    public setSuperChlorHours(cstate: ChlorinatorState, hours: number) { this.setChlorAsync(cstate, cstate.poolSetpoint, cstate.spaSetpoint, hours); }
+    public superChlorinate(cstate: ChlorinatorState, bSet: boolean, hours: number) { this.setChlorAsync(cstate, cstate.poolSetpoint, cstate.spaSetpoint, typeof hours !== 'undefined' ? hours : cstate.superChlorHours, bSet); }
 
     // Chlorinator direct control methods
     public requestNameAsync(cstate: ChlorinatorState) {
@@ -1697,7 +1697,7 @@ export class ChlorinatorController extends BoardCommands {
             let chlor = sys.chlorinators.getItemById(i);
             if (chlor.isActive && chlor.isVirtual) {
                 let cstate = state.chlorinators.getItemById(chlor.id);
-                sys.board.chlorinator.setChlor(cstate);
+                sys.board.chlorinator.setChlorAsync(cstate);
             }
         }
     }

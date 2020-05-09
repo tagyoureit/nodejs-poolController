@@ -25,7 +25,7 @@ export class StateRoute {
             catch (err) { next(err); }
         });
         app.put('/state/circuit/toggleState', (req, res) => {
-            state.circuits.toggleCircuitState(parseInt(req.body.id, 10));
+            state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
             return res.status(200).send('OK');
         });
             app.put('/state/circuit/setTheme', (req, res) => {

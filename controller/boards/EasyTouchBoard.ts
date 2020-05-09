@@ -5,9 +5,10 @@ import { Protocol, Outbound, Message, Response } from '../comms/messages/Message
 import { state, ChlorinatorState, CommsState, State, ICircuitState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
-import { resolve } from 'dns';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
 import { rejects } from 'assert';
+import { resolve } from 'dns';
+
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
@@ -406,7 +407,6 @@ export class TouchConfigQueue extends ConfigQueue {
     // bit of work I'll bet we can eliminate these extension objects altogether.
     public processNext(msg?: Outbound) {
         if (this.closed) return;
-        let self = this;
         if (typeof msg !== "undefined" && msg !== null)
             if (!msg.failed) {
                 // Remove all references to future items. We got it so we don't need it again.
@@ -450,9 +450,9 @@ export class TouchConfigQueue extends ConfigQueue {
                 payload: [itm],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg: Outbound) => {
+                onComplete: (err, msg) => {
                     if (err) { logger.error(`Error recieving configuration: ${ err.message }`); }
-                    self.processNext(msg);
+                    this.processNext(msg);
                 }
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
@@ -487,8 +487,8 @@ export class TouchScheduleCommands extends ScheduleCommands {
         const setSchedConfig = Outbound.create({
             action: 145,
             payload: [sched.id, 0, 0, 0, 0, 0, 0],
-            retries: 2,
-            response: Response.create({ action: 1, payload: [145] })
+            retries: 2
+            // ,response: Response.create({ action: 1, payload: [145] })
         });
         if (sched.circuit === 0) {
             // delete - take defaults
@@ -513,8 +513,8 @@ export class TouchScheduleCommands extends ScheduleCommands {
         const schedConfigRequest = Outbound.create({
             action: 209,
             payload: [sched.id],
-            retries: 2,
-            response: Response.create({ action: 17, payload: [sched.id] })
+            retries: 2
+            // ,response: Response.create({ action: 17, payload: [sched.id] })
         });
 
         return [setSchedConfig, schedConfigRequest];
@@ -602,10 +602,6 @@ class TouchSystemCommands extends SystemCommands {
                 retries: 3,
                 response: true,
                 onComplete: (err, msg) => {
-                    console.log(this);
-                    console.log(out);
-                    console.log(id);
-                    console.log(msg);
                     if (err) reject(err);
                     resolve();
                 }
@@ -615,32 +611,35 @@ class TouchSystemCommands extends SystemCommands {
     }
 }
 class TouchBodyCommands extends BodyCommands {
-    public setHeatMode(body: Body, mode: number) {
-        //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-        const body1 = sys.bodies.getItemById(1);
-        const body2 = sys.bodies.getItemById(2);
-        const temp1 = body1.setPoint || 100;
-        const temp2 = body2.setPoint || 100;
-        let mode1 = body1.heatMode;
-        let mode2 = body2.heatMode;
-        body.id === 1 ? mode1 = mode : mode2 = mode;
-        let out = Outbound.create({
-            dest: 16,
-            action: 136,
-            payload: [temp1, temp2, mode2 << 2 | mode1, 0],
-            retries: 3,
-            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
-                if (!msg.failed) {
+    public async setHeatModeAsync(body: Body, mode: number) {
+        return new Promise((resolve, reject)=>{
+            //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+            const body1 = sys.bodies.getItemById(1);
+            const body2 = sys.bodies.getItemById(2);
+            const temp1 = body1.setPoint || 100;
+            const temp2 = body2.setPoint || 100;
+            let mode1 = body1.heatMode;
+            let mode2 = body2.heatMode;
+            body.id === 1 ? mode1 = mode : mode2 = mode;
+            let out = Outbound.create({
+                dest: 16,
+                action: 136,
+                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg)=> {
+                    if (err) reject(err);
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
                     state.temps.emitEquipmentChange();
+                    resolve();
                 }
-            })
+            });
+            conn.queueSendMessage(out);
         });
-        conn.queueSendMessage(out);
     }
-    public setHeatSetpoint(body: Body, setPoint: number) {
-        const self = this;
+    public setHeatSetpointAsync(body: Body, setPoint: number) {
+        return new Promise((resolve, reject)=>{
         // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
         // 165,33,16,34,136,4,89,99,7,0,2,71  Request
         // 165,33,34,16,1,1,136,1,130  Controller Response
@@ -673,15 +672,18 @@ class TouchBodyCommands extends BodyCommands {
             action: 136,
             payload: [temp1, temp2, mode2 << 2 | mode1, 0],
             retries: 3,
-            response: new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [136], null, function(msg) {
-                if (msg && !msg.failed) {
+            response: true,
+            onComplete: (err, msg) => {
+                if (err) reject(err);
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.temps.emitEquipmentChange();
-                }
+                    resolve();
+            }
+                
             })
+            conn.queueSendMessage(out);
         });
-        conn.queueSendMessage(out);
     }
 }
 class TouchCircuitCommands extends CircuitCommands {
@@ -731,29 +733,6 @@ class TouchCircuitCommands extends CircuitCommands {
         data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
         return this.setCircuitAsync(data);
     }
-    // RKS: Deprecated for Async version.  RSG - Remove this if it the async version is OK.
-    //public deleteCircuit(data: any) {
-    //    data.nameId = 0;
-    //    data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
-    //    this.setCircuitAsync(data);
-    //}
-    public setCircuitState(id: number, val: boolean) {
-        let cstate = state.circuits.getInterfaceById(id);
-        let out = Outbound.create({
-            action: 134,
-            payload: [id, val ? 1 : 0],
-            retries: 3,
-            response: new Response(Protocol.Broadcast, Message.pluginAddress, 16, 1, [134], null, function(msg) {
-                if (msg && !msg.failed) {
-                    cstate.isOn = val ? true : false;
-                    state.emitEquipmentChanges();
-                }
-                // TODO: look into msg being null
-                else if (!msg) { console.log(`why are we getting no msg?`); }
-            })
-        });
-        conn.queueSendMessage(out);
-    }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
         return new Promise<ICircuitState|string>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
@@ -767,22 +746,21 @@ class TouchCircuitCommands extends CircuitCommands {
                     cstate.isOn = val ? true : false;
                     state.emitEquipmentChanges();
                     resolve(cstate.get(true));
-                }
+
             });
             conn.queueSendMessage(out);
         });
     }
-    public toggleCircuitState(id: number) {
+    public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
-        this.setCircuitState(id, !cstate.isOn);
+        return this.setCircuitStateAsync(id, !cstate.isOn);
     }
-    public setLightTheme(id: number, theme: number) {
+    public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
         this.setIntelliBriteThemeAsync(theme);
     }
     public async setIntelliBriteThemeAsync(theme: number) {
         return new Promise((resolve, reject) => {
-
             let out = Outbound.create({
                 action: 96,
                 payload: [theme, 0],
@@ -796,20 +774,13 @@ class TouchCircuitCommands extends CircuitCommands {
                         let cstate = state.circuits.getItemById(c.circuit);
                         let circuit = sys.circuits.getInterfaceById(c.circuit);
                         cstate.lightingTheme = circuit.lightingTheme = theme;
-                    }
+                        if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                    }// Let everyone know we turned these on.  The theme messages will come later.
                     state.emitEquipmentChanges();
                     resolve(theme);
                 }
             });
             conn.queueSendMessage(out);
-            // Turn on the circuit if it is not on.
-            for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                let c = sys.intellibrite.circuits.getItemByIndex(i);
-                let cstate = state.circuits.getItemById(c.circuit);
-                if (!cstate.isOn) sys.board.circuits.setCircuitState(c.circuit, true);
-            } 
-            // Let everyone know we turned these on.  The theme messages will come later.
-            state.emitEquipmentChanges();
         });
     }
 }
@@ -819,19 +790,22 @@ class TouchFeatureCommands extends FeatureCommands {
     public setFeatureState(id: number, val: boolean) {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
-        this.board.circuits.setCircuitState(id, val);
+        this.board.circuits.setCircuitStateAsync(id, val);
     }
     public toggleFeatureState(id: number) {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
-        this.board.circuits.toggleCircuitState(id);
+        this.board.circuits.toggleCircuitStateAsync(id);
     }
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    public setChlorAsync(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+        return new Promise((resolve, reject)=>{
+
+    
         // if chlorinator is controlled by thas app; call super();
         let vc = sys.chlorinators.getItemById(1);
-        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+        if (vc.isActive && vc.isVirtual) return super.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = Outbound.create({
@@ -839,14 +813,18 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             action: 153,
             payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
             retries: 3,
-            response: Response.create({ action: 1, payload: [153] }),
+            response: true,
             onComplete: (err) => {
-                if (err) { logger.error(`Error with setChlor: ${ err.message }`); }
-                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+                if (err) { logger.error(`Error with setChlor: ${ err.message }`
+                ); 
+            reject(err);
+        }
+                sys.board.chlorinator.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+                resolve();
             }
         });
-
         conn.queueSendMessage(out);
+    });
     }
 }
 class TouchPumpCommands extends PumpCommands {
@@ -931,7 +909,7 @@ class TouchPumpCommands extends PumpCommands {
             pump = sys.pumps.getItemById(id, true);
             pump.set(pump);
             let spump = state.pumps.getItemById(id, true);
-            for (var prop in spump) {
+            for (let prop in spump) {
                 if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
             }
             spump.emitEquipmentChange();
@@ -941,11 +919,11 @@ class TouchPumpCommands extends PumpCommands {
             // We are going to set all the high speed circuits.
             // RSG: TODO I don't know what the message is to set the high speed circuits.  The following should
             // be moved into the onComplete for the outbound message to set high speed circuits.
-            for (var prop in pump) {
+            for (let prop in pump) {
                 if (typeof data[prop] !== 'undefined') pump[prop] = data[prop];
             }
             let spump = state.pumps.getItemById(id, true);
-            for (var prop in spump) {
+            for (let prop in spump) {
                 if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
             }
             spump.emitEquipmentChange();
@@ -954,7 +932,12 @@ class TouchPumpCommands extends PumpCommands {
         else {
             let arr = [];
             data.name = data.name || type.desc;
-            let outc = Outbound.create({ action: 155, payload: [id, ntype], retries: 2, response: Response.create({ action: 1, payload: [155] }) });
+            let outc = Outbound.create({ 
+                action: 155, 
+                payload: [id, ntype], 
+                retries: 2, 
+                response: Response.create({ action: 1, payload: [155] })
+             });
             outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
             outc.appendPayloadBytes(0, 44);
             if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
@@ -1020,7 +1003,7 @@ class TouchPumpCommands extends PumpCommands {
             action: 155,
             payload: [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             retries: 2,
-            response: Response.create({ action: 1, payload: [155] })
+            response: true
         });
         if (pump.type === 128) {
             // vs
@@ -1079,7 +1062,7 @@ class TouchPumpCommands extends PumpCommands {
             action: 216,
             payload: [pump.id],
             retries: 2,
-            response: Response.create({ action: 24, payload: [pump.id] })
+            response: true
         });
         return [setPumpConfig, pumpConfigRequest];
     }

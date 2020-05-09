@@ -701,11 +701,11 @@ export class BodyCollection extends EqItemCollection<Body> {
     public createItem(data: any): Body { return new Body(data); }
     public setHeatMode(id: number, mode: number) {
         let body = this.getItemById(id);
-        sys.board.bodies.setHeatMode(body, mode);
+        sys.board.bodies.setHeatModeAsync(body, mode);
     }
     public setHeatSetpoint(id: number, setPoint: number) {
         let body = this.getItemById(id);
-        sys.board.bodies.setHeatSetpoint(body, setPoint);
+        sys.board.bodies.setHeatSetpointAsync(body, setPoint);
     }
 }
 export class Body extends EqItem {
@@ -731,8 +731,8 @@ export class Body extends EqItem {
     public get heatMode(): number { return this.data.heatMode; }
     public set heatMode(val: number) { this.setDataVal('heatMode', val); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
-    public setHeatMode(mode: number) { sys.board.bodies.setHeatMode(this, mode); }
-    public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpoint(this, setPoint); }
+    public async setHeatModeAsync(mode: number) { return sys.board.bodies.setHeatModeAsync(this, mode); }
+    public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpointAsync(this, setPoint); }
 }
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }

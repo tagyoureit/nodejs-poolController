@@ -120,13 +120,13 @@ export class Message {
     private(val: number) {
         if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
     }
-    protected generateResponse(resp:Boolean|Response|Function): (msgIn:Inbound, msgOut:Outbound)=>Boolean|Response {
-        if (typeof resp === 'undefined') { return () => { return false; }; }
+    protected generateResponse(resp:Boolean|Response|Function): ((msgIn:Inbound, msgOut:Outbound)=>Boolean)|Boolean {
+        if (typeof resp === 'undefined') { return false; }
         else if (typeof resp === 'function') {
             return resp as (msgIn: Inbound, msgOut: Outbound) => Boolean;
         }
         else if (typeof resp === 'boolean') {
-            if (!resp) { return () => { return false; }; }
+            if (!resp) { return false; }
             else {
                 if (this.protocol === Protocol.Pump) {
                     switch (this.action) {
@@ -499,7 +499,7 @@ export class Outbound extends Message {
     public retries: number=0;
     public tries: number=0;
     public timeout: number=1000;
-    public response: (msgIn: Inbound, msgOut: Outbound) => Boolean|Response;
+    public response: ((msgIn: Inbound, msgOut: Outbound) => Boolean)|Response|Boolean;
     public failed: boolean=false;
     public onSuccess: (msg: Inbound|Outbound) => void;
     public onError: (error: Error, msg: Inbound|Outbound) => void;
@@ -520,11 +520,8 @@ export class Outbound extends Message {
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
     public get requiresResponse(): boolean {
-        if (typeof this.response === 'undefined' || this.response === null) { return false;}
-        if (this.response instanceof Response && this.response.nee) { return true;
-
-        }
-        if (typeof (this.response) !== 'undefined' && this.response !== null) { return true; }
+        if (typeof this.response === 'undefined' || this.response === false) { return false;}
+        if (this.response instanceof Response || typeof this.response === 'function') { return true; }
         return false;
     }
     public get remainingTries(): number { return this.retries - this.tries + 1; } // Always allow 1 try.

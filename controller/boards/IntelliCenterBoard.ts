@@ -1349,8 +1349,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             arrOut[1].payload[i + 3] = circuit ? circuit.color || 0 : 255;
             arrOut[2].payload[i + 3] = circuit ? circuit.color || 0 : 0;
         }
-        arrOut[arrOut.length - 1].onSuccess = (msg:Inbound) => {
-            if (!msg.failed) {
+        arrOut[arrOut.length - 1].onComplete = (err, msg:Inbound) => {
+            if (!err) {
                 
                 grp.circuits.clear();
                 for (let i = 0; i < group.circuits.length; i++) {
@@ -1395,8 +1395,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
             console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
             out.payload[28 + byteNdx] = byte;
-            out.onSuccess = (msg) => {
-                if (!msg.failed) {
+            out.onComplete = (err, msg) => {
+                if (!err) {
                     sgroup.action = nop;
                     state.emitEquipmentChanges();
                 }
@@ -1432,7 +1432,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         });
     }
 
-    public setCircuitState(id: number, val: boolean) {
+/*     RSG deprecated this
+        public setCircuitStateAsync(id: number, val: boolean) {
         let circ = state.circuits.getInterfaceById(id);
         let out = this.createCircuitStateMessage(id, val);
         out.onSuccess = (msg: Outbound) => {
@@ -1442,7 +1443,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
         };
         conn.queueSendMessage(out);
-    }
+    } */
     private setLightGroupTheme(id: number, theme: number) {
         let group = sys.lightGroups.getItemById(id);
         let sgroup = state.lightGroups.getItemById(id);
@@ -1458,7 +1459,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < arrOut.length; i++)
             conn.queueSendMessage(arrOut[i]);
     }
-    public setLightTheme(id: number, theme: number) {
+    public setLightThemeAsync(id: number, theme: number) {
         if (sys.board.equipmentIds.circuitGroups.isInRange(id))
             // Redirect here for now as we will need to do some work
             // on the default.
@@ -1473,7 +1474,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     if (!msg.failed) {
                         circuit.lightingTheme = theme;
                         cstate.lightingTheme = theme;
-                        if (!cstate.isOn) this.setCircuitState(id, true);
+                        if (!cstate.isOn) this.setCircuitStateAsync(id, true);
                         state.emitEquipmentChanges();
                     }
                 }
@@ -1610,14 +1611,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         conn.queueSendMessage(out);
         if (!cstate.isOn) {
             // If the circuit is off we need to turn it on.
-            this.setCircuitState(id, true);
+            this.setCircuitStateAsync(id, true);
         }
     }
 
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
-    public setFeatureState(id, val) { this.board.circuits.setCircuitState(id, val); }
+    public setFeatureState(id, val) { this.board.circuits.setCircuitStateAsync(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
     public async setFeatureAsync(data: any): Promise<Feature | string> {
         return new Promise<Feature | string>((resolve, reject) => {
@@ -1691,11 +1692,11 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     }
 }
 class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
-    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    public setChlorAsync(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlor ? 1 : 0, superChlorHours, 0, 1], 3,
             new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [168]));
         conn.queueSendMessage(out);
-        super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
+        super.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours);
     }
 }
 class IntelliCenterPumpCommands extends PumpCommands {
@@ -2003,7 +2004,9 @@ class IntelliCenterBodyCommands extends BodyCommands {
         });
     }
 
-    public setHeatMode(body: Body, mode: number) {
+    public async setHeatModeAsync(body: Body, mode: number) {
+        return new Promise((resolve, reject)=>{
+
         const self = this;
         let byte2 = 18;
         let mode1 = sys.bodies.getItemById(1).setPoint || 100;
@@ -2028,20 +2031,24 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 mode4 = mode;
                 break;
         }
-        let out = Outbound.createMessage(168,
-            [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
-                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined,
-            (msg) => {
-                if (!msg.failed) {
+        let out = Outbound.create({
+            action: 168,
+            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
+                , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0], 
+                retries: 0,
+                onComplete: (err, msg) => {
+                if (err) reject(err);
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
                     state.emitEquipmentChanges();
-                }
-            });
+                    resolve();
+            }
+        })
         conn.queueSendMessage(out);
+        });
 
     }
-    public setHeatSetpoint(body: Body, setPoint: number) {
+    public setHeatSetpointAsync(body: Body, setPoint: number) {
         let byte2 = 18;
         let temp1 = sys.bodies.getItemById(1).setPoint || 100;
         let temp2 = sys.bodies.getItemById(2).setPoint || 100;
