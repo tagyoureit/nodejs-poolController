@@ -305,9 +305,11 @@ export class SendRecieveBuffer {
                 }
             }
         }
-        if (typeof (callback) === 'function') {
-            setTimeout(callback, 100, msgOut);
-        }
+        // RKS: This callback is important because we are managing queues. The position of this callback
+        // occurs after all things related to the message have been processed including removal of subsequent
+        // messages from the queue.  This is because another panel on the bus may throw additional messages
+        // that we also need.  This occurs when more than one panel on the bus requests a reconfig at the same time.
+        if (typeof (callback) === 'function') { setTimeout(callback, 100, msgOut); }
     }
 
     protected processInbound() {

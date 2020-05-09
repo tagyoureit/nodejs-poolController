@@ -120,7 +120,7 @@ export class Message {
     private(val: number) {
         if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
     }
-    protected generateResponse(resp:Boolean|Response|Function): ((msgIn:Inbound, msgOut:Outbound)=>Boolean)|Boolean {
+    protected generateResponse(resp:Boolean|Response|Function): ((msgIn:Inbound, msgOut:Outbound)=>Boolean)|Boolean|Response {
         if (typeof resp === 'undefined') { return false; }
         else if (typeof resp === 'function') {
             return resp as (msgIn: Inbound, msgOut: Outbound) => Boolean;
@@ -135,7 +135,7 @@ export class Message {
                             // Msg In:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
                             // Msg Out:    [165,0,96, 16, 7, 0],[1,28]
                             return (msgIn, msgOut) => {
-                                if (typeof msgIn === 'undefined') {return;} // getting here on msg send failure
+                                if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
                                 if (msgIn.action === 7 && msgOut.action === 7) { return true; }
                                 return false;
@@ -143,7 +143,7 @@ export class Message {
                         default:
                             //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
                             return (msgIn, msgOut) => {
-                                if (typeof msgIn === 'undefined') {return;} // getting here on msg send failure
+                                if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
                                 if (JSON.stringify(msgIn.payload) === JSON.stringify(msgOut.payload)) { return true; }
                                 return false;
@@ -152,7 +152,7 @@ export class Message {
                 }
                 else if (this.protocol === Protocol.Chlorinator) {
                     return (msgIn, msgOut) => {
-                        if (typeof msgIn === 'undefined') {return;} // getting here on msg send failure
+                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                         switch (msgOut.action) {
                             case 0:
                                 return msgIn.action === 1 ? true : false;
@@ -168,7 +168,7 @@ export class Message {
                 }
                 else if (sys.controllerType !== ControllerType.IntelliCenter) {
                     return (msgIn, msgOut) => {
-                        if (typeof msgIn === 'undefined') {return;} // getting here on msg send failure
+                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                         switch (msgIn.action) {
                             // these responses have multiple items so match the 1st payload byte
                             case 1: // ack
@@ -189,7 +189,7 @@ export class Message {
                 else if (sys.controllerType === ControllerType.IntelliCenter) {
                     // intellicenter packets
                     return (msgIn, msgOut) => {
-                        if (typeof msgIn === 'undefined') {return;} // getting here on msg send failure
+                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                         for (let i = 0; i < msgIn.payload.length; i++) {
                             if (i > msgOut.payload.length - 1)
                                 return false;
@@ -200,6 +200,7 @@ export class Message {
                 }
             }
         }
+        else return resp;
     }
 }
 export class Inbound extends Message {
@@ -520,7 +521,7 @@ export class Outbound extends Message {
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public set chkLo(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[1] = val; else this.term[0] = val; }
     public get requiresResponse(): boolean {
-        if (typeof this.response === 'undefined' || this.response === false) { return false;}
+        if (typeof this.response === 'undefined' || (typeof this.response === 'boolean' && !this.response)) return false;
         if (this.response instanceof Response || typeof this.response === 'function') { return true; }
         return false;
     }
@@ -790,9 +791,11 @@ export class Response extends Message {
             for (let i = 0; i < this.payload.length; i++) {
                 if (i > msgIn.payload.length - 1)
                     return false;
+                //console.log({ msg: 'Checking response', p1: msgIn.payload[i], pd: this.payload[i] });
                 if (msgIn.payload[i] !== this.payload[i]) return false;
             }
         }
+        //console.log({ msg: 'Found response', action: msgIn.action });
         return true;
     }
 }

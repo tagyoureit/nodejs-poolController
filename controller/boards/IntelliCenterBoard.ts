@@ -382,16 +382,11 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // this used to send a 30 Ack when it received its response but it appears that is
             // any other panel is awake at the same address it may actually collide with it
             // as both boards are processing at the same time and sending an outbound ack.
-            const out: Outbound = new Outbound(
-                Protocol.Broadcast,
-                Message.pluginAddress,
-                15, 222,
-                [this.curr.category, itm], 5,
-                new Response(Protocol.Broadcast, 16, 15, 30,
-                    [this.curr.category, itm],
-                    undefined,
-                    function (msgOut) { self.processNext(msgOut); })
-            );
+            let out = Outbound.create({
+                action: 222, payload: [this.curr.category, itm], retries: 5,
+                response: Response.create({ action: 30, payload: [this.curr.category, itm], callback: () => { self.processNext(out); } })
+            });
+            logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             setTimeout(conn.queueSendMessage, 50, out);
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
@@ -400,6 +395,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this.curr = null;
             this._processing = false;
             if (this._failed) setTimeout(function () { sys.checkConfiguration(); }, 100);
+            logger.info(`Configuration Complete`);
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
