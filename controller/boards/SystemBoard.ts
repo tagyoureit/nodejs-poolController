@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
@@ -1401,14 +1401,14 @@ export class CircuitCommands extends BoardCommands {
         let sgrp = state.lightGroups.getItemById(group.id);
         sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
     }
-    public sequenceLightGroup(id: number, operation: string) {
+    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState | string> {
         let sgroup = state.lightGroups.getItemById(id);
-        sgroup.hasChanged = true;
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             sgroup.action = nop;
             setTimeout(function() { sgroup.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
         }
+        return Promise.resolve(sgroup);
     }
     public sequenceIntelliBrite(operation: string) {
         state.intellibrite.hasChanged = true;

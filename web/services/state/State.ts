@@ -1,5 +1,5 @@
 ﻿import * as express from "express";
-import { state, ICircuitState } from "../../../controller/State";
+import { state, ICircuitState, LightGroupState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 export class StateRoute {
@@ -79,17 +79,26 @@ export class StateRoute {
             state.equipment.cancelDelay();
             return res.status(200).send('OK');
         });
-        app.put('/state/lightGroup/:id/colorSync', (req, res) => {
-            sys.board.circuits.sequenceLightGroup(parseInt(req.params.id, 10), 'sync');
-            return res.status(200).send('OK');
+        app.put('/state/lightGroup/:id/colorSync', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'sync');
+                return res.status(200).send((sgroup as LightGroupState).get(true));
+            }
+            catch (err) { next(err); }
         });
-        app.put('/state/lightGroup/:id/colorSet', (req, res) => {
-            sys.board.circuits.sequenceLightGroup(parseInt(req.params.id, 10), 'set');
-            return res.status(200).send('OK');
+        app.put('/state/lightGroup/:id/colorSet', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'set');
+                return res.status(200).send((sgroup as LightGroupState).get(true));
+            }
+            catch (err) { next(err); }
         });
-        app.put('/state/lightGroup/:id/colorSwim', (req, res) => {
-            sys.board.circuits.sequenceLightGroup(parseInt(req.params.id, 10), 'swim');
-            return res.status(200).send('OK');
+        app.put('/state/lightGroup/:id/colorSwim', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'swim');
+                return res.status(200).send((sgroup as LightGroupState).get(true));
+            }
+            catch (err) { next(err); }
         });
         app.put('/state/intellibrite/colorSync', (req, res) => {
             sys.board.circuits.sequenceIntelliBrite('sync');

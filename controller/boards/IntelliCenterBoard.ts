@@ -1361,6 +1361,50 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < arrOut.length; i++)
             conn.queueSendMessage(arrOut[i]);
     }
+    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState | string> {
+        let sgroup = state.lightGroups.getItemById(id);
+        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        if (nop > 0) {
+            let out = this.createCircuitStateMessage(id, true);
+            let ndx = id - sys.board.equipmentIds.circuitGroups.start;
+            let byteNdx = Math.floor(ndx / 4);
+            let bitNdx = (ndx * 2);
+            let byte = out.payload[28 + byteNdx];
+            // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+            // does acutally send 4 so all are represented there.
+            // [10] = Set
+            // [01] = Swim
+            // [00] = Sync
+            // [11] = No sequencing underway.
+            // In the end we are only trying to impact the specific bits in the middle of the byte that represent
+            // the light group we are dealing with.            
+            switch (nop) {
+                case 1: // Sync
+                    byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
+                    break;
+                case 2: // Color Set
+                    byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
+                    break;
+                case 3: // Color Swim
+                    byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
+                    break;
+            }
+            console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
+            out.payload[28 + byteNdx] = byte;
+            return new Promise<LightGroupState | string>((resolve, reject) => {
+                out.onComplete = (err, msg) => {
+                    if (!err) {
+                        sgroup.action = nop;
+                        state.emitEquipmentChanges();
+                        resolve(sgroup);
+                    }
+                    else reject(err);
+                };
+                conn.queueSendMessage(out);
+            });
+        }
+        return Promise.resolve(sgroup);
+    }
     public sequenceLightGroup(id: number, operation: string) {
         let sgroup = state.lightGroups.getItemById(id);
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
