@@ -1158,7 +1158,7 @@ export class CircuitCommands extends BoardCommands {
             }
         }
     }
-    public setCircuitStateAsync(id: number, val: boolean) {
+    public setCircuitState(id: number, val: boolean) {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
         sys.board.virtualPumpControllers.start();

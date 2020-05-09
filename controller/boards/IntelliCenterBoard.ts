@@ -1449,8 +1449,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let sgroup = state.lightGroups.getItemById(id);
         let arrOut = this.createLightGroupMessages(group);
         arrOut[0].payload[4] = (theme << 2) + 1;
-        arrOut[arrOut.length - 1].onSuccess = (msg) => {
-            if (!msg.failed) {
+        arrOut[arrOut.length - 1].onComplete = (err, msg) => {
+            if (!err) {
                 group.lightingTheme = theme;
                 sgroup.lightingTheme = theme;
                 state.emitEquipmentChanges();

@@ -746,7 +746,7 @@ class TouchCircuitCommands extends CircuitCommands {
                     cstate.isOn = val ? true : false;
                     state.emitEquipmentChanges();
                     resolve(cstate.get(true));
-
+                }
             });
             conn.queueSendMessage(out);
         });
