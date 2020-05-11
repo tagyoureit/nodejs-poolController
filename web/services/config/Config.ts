@@ -10,7 +10,7 @@ export class ConfigRoute {
         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
-        app.get('/config/circuit/names', (req, res)=>{
+        app.get('/config/circuit/names', (req, res) => {
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });
@@ -92,14 +92,14 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/pumps', (req, res) => {
-            let opts:any = {
+            let opts: any = {
                 maxPumps: sys.equipment.maxPumps,
                 pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
                 pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
                 pumps: sys.pumps.get()
             };
-            if (sys.controllerType !== ControllerType.IntelliCenter){
+            if (sys.controllerType !== ControllerType.IntelliCenter) {
                 opts.circuitNames = sys.board.circuits.getCircuitNames();
             }
             return res.status(200).send(opts);
@@ -135,7 +135,7 @@ export class ConfigRoute {
                 next(err);
             }
         });
-        app.put('/config/valve', async(req, res, next) => {
+        app.put('/config/valve', async (req, res, next) => {
             // Update a valve.
             try {
                 let valve = await sys.board.valves.setValveAsync(req.body);
@@ -229,11 +229,11 @@ export class ConfigRoute {
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });
-        app.get('/config/circuit/functions', (req, res)=>{
+        app.get('/config/circuit/functions', (req, res) => {
             let circuitFunctions = sys.board.circuits.getCircuitFunctions();
             return res.status(200).send(circuitFunctions);
         });
-        app.get('/config/features/functions', (req, res)=>{
+        app.get('/config/features/functions', (req, res) => {
             let circuitFunctions = sys.board.circuits.getCircuitFunctions();
             return res.status(200).send(circuitFunctions);
         });
@@ -250,11 +250,27 @@ export class ConfigRoute {
         app.get('/config/chlorinator/:id', (req, res) => {
             return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });
+        app.put('/config/chlorinator', (req, res) => {
+            let chlor = sys.chlorinators.getItemById(parseInt(req.body.id, 10), true);
+            sys.board.chlorinator.setChlorProps(chlor, req.body);
+            if (chlor.isVirtual) { sys.board.virtualChlorinatorController.start(); }
+            return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
+        });
+        app.get('/config/chlorinators/search', async (req, res, next) => {
+            // Change the options for the pool.
+            try {
+                await sys.board.virtualChlorinatorController.search();
+                return res.status(200).send(sys.chlorinators.getItemById(1).get());
+            }
+            catch (err) {
+                next(err);
+            }
+        });
         app.get('/config/pump/:id/circuits', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
         });
         app.get('/config/pump/availableCircuits', (req, res) => {
-            return res.status(200).send( sys.board.pumps.availableCircuits());
+            return res.status(200).send(sys.board.pumps.availableCircuits());
         });
         app.get('/config/pump/:id/circuit/:circuitid', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits[parseInt(req.params.circuitid, 10)]);
@@ -266,7 +282,7 @@ export class ConfigRoute {
         });
         app.put('/config/pump/:id/pumpCircuit', (req, res) => {
             // if no pumpCircuitId is specified, set it as 0 and take the next available one
-            req.url = `${req.url}/0`;
+            req.url = `${ req.url }/0`;
             req.next();
         });
         app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
@@ -275,7 +291,7 @@ export class ConfigRoute {
             let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);
             let _circuit = parseInt(req.body.circuit, 10);
             let _rate = parseInt(req.body.rate, 10) || 1000;
-            let _units = parseInt(req.body.units, 10) || pump.defaultUnits; 
+            let _units = parseInt(req.body.units, 10) || pump.defaultUnits;
             let pumpCircuit = {
                 pump: parseInt(req.params.id, 10),
                 pumpCircuitId: isNaN(_pumpCircuitId) ? undefined : _pumpCircuitId,
@@ -284,10 +300,10 @@ export class ConfigRoute {
                 units: isNaN(_units) ? undefined : _units
             };
             let { result, reason } = pump.setPumpCircuit(pumpCircuit);
-            if (result === 'OK') 
-                return res.status(200).send({result: result, reason: reason});
-            else 
-                return res.status(500).send({result: result, reason: reason});
+            if (result === 'OK')
+                return res.status(200).send({ result: result, reason: reason });
+            else
+                return res.status(500).send({ result: result, reason: reason });
         });
         app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
@@ -310,7 +326,7 @@ export class ConfigRoute {
             // if there is 1+ object so this creates parity
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             let pumpTypes = sys.board.pumps.getCircuitUnits(pump);
-            if (!Array.isArray(pumpTypes)) pumpTypes = [ pumpTypes ];
+            if (!Array.isArray(pumpTypes)) pumpTypes = [pumpTypes];
             return res.status(200).send(pumpTypes);
         });
         app.put('/config/pump/:pumpId/type', (req, res) => {
@@ -318,7 +334,7 @@ export class ConfigRoute {
             const _pumpId = parseInt(req.params.pumpId, 10);
             // RG - this was left as it's own end point because trying to combine changing the pump type (which requires resetting the pump values) while simultaneously setting new pump values was tricky. 
             let pump = sys.pumps.getItemById(_pumpId);
-            if (sys.controllerType === ControllerType.Virtual){
+            if (sys.controllerType === ControllerType.Virtual) {
                 pump.isVirtual = true;
             }
             if (_type !== pump.type) {
@@ -334,12 +350,12 @@ export class ConfigRoute {
             // this will change the pump type
             let _type = parseInt(req.body.pumpType, 10);
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
-            if (sys.controllerType === ControllerType.Virtual){
+            if (sys.controllerType === ControllerType.Virtual) {
                 // if virtualController, add the virtual pump
                 pump.isVirtual = true;
             }
 
-            if (_type !== pump.type  && typeof _type !== 'undefined') {
+            if (_type !== pump.type && typeof _type !== 'undefined') {
                 pump.setType(_type);
             }
             // get a new instance of the pump here because setType will remove/add a new instance
@@ -349,7 +365,7 @@ export class ConfigRoute {
         app.delete('/config/pump/:pumpId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
             if (pump.type === 0) {
-                return res.status(500).send(`Pump ${pump.id} not active`);    
+                return res.status(500).send(`Pump ${ pump.id } not active`);
             }
             pump.setType(0);
             return res.status(200).send('OK');
@@ -388,31 +404,31 @@ export class ConfigRoute {
         app.get('/config/lightGroups/themes', (req, res) => {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?
             // todo: if no intellibrite/lightThemes are available is [] returned?
-            if (sys.controllerType === ControllerType.IntelliCenter){
+            if (sys.controllerType === ControllerType.IntelliCenter) {
                 let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
                 return res.status(200).send(grp.getLightThemes());
             }
             else
-            return res.status(200).send(sys.intellibrite.getLightThemes());
+                return res.status(200).send(sys.intellibrite.getLightThemes());
         });
         app.get('/config/lightGroup/:id', (req, res) => {
-            if (sys.controllerType === ControllerType.IntelliCenter){  
+            if (sys.controllerType === ControllerType.IntelliCenter) {
                 let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
                 return res.status(200).send(grp.getExtended());
             }
-            else    
+            else
                 return res.status(200).send(sys.intellibrite.getExtended());
         });
         app.get('/config/lightGroup/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
         app.put('/config/lightGroup/:id/setColors', (req, res) => {
-            let grp = extend(true, {id: parseInt(req.params.id, 10)}, req.body);
+            let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
             sys.board.circuits.setLightGroupAttribs(new LightGroup(grp));
             return res.status(200).send('OK');
         });
         app.get('/config/intellibrite/themes', (req, res) => {
-            return res.status(200).send(sys.intellibrite.getLightThemes());
+            return res.status(200).send(sys.board.circuits.getLightThemes(16));
         });
         app.get('/config/circuitGroup/:id', (req, res) => {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
@@ -425,7 +441,7 @@ export class ConfigRoute {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
         app.put('/config/intellibrite/setColors', (req, res) => {
-            let grp = extend(true, {id: 0}, req.body);
+            let grp = extend(true, { id: 0 }, req.body);
             sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
             return res.status(200).send('OK');
         });

@@ -127,85 +127,6 @@ export class EasyTouchBoard extends SystemBoard {
             [100, { name: 'feature7', desc: 'Feature 7' }],
             [101, { name: 'feature8', desc: 'Feature 8' }]
         ]);
-        /* this.valueMaps.circuitFunctions = new byteValueMap([
-            [0, { name: 'generic', desc: 'Generic' }],
-            [1, { name: 'spa', desc: 'Spa' }],
-            [2, { name: 'pool', desc: 'Pool' }],
-            [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
-            [7, { name: 'light', desc: 'Light' }],
-            [9, { name: 'samlight', desc: 'SAM Light' }],
-            [10, { name: 'sallight', desc: 'SAL Light' }],
-            [11, { name: 'photongen', desc: 'Photon Gen' }],
-            [12, { name: 'colorwheel', desc: 'Color Wheel' }],
-            [13, { name: 'valve', desc: 'Valve' }],
-            [14, { name: 'spillway', desc: 'Spillway' }],
-            [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
-            [16, { name: 'intellibrite', desc: 'Intellibrite' }],
-            [17, { name: 'magicstream', desc: 'Magicstream' }],
-            [19, { name: 'notused', desc: 'Not Used' }]
-        ]); */
-        /*         this.valueMaps.virtualCircuits = new byteValueMap([
-                    [128, { name: 'solar', desc: 'Solar' }],
-                    [129, { name: 'heater', desc: 'Either Heater' }],
-                    [130, { name: 'poolHeater', desc: 'Pool Heater' }],
-                    [131, { name: 'spaHeater', desc: 'Spa Heater' }],
-                    [132, { name: 'freeze', desc: 'Freeze' }],
-                    [133, { name: 'heatBoost', desc: 'Heat Boost' }],
-                    [134, { name: 'heatEnable', desc: 'Heat Enable' }],
-                    [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
-                    [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
-                    [255, { name: 'notused', desc: 'NOT USED' }]
-                ]); */
-        /*         this.valueMaps.pumpTypes = new byteValueMap([
-                    [0, { name: 'none', desc: 'No pump' }],
-                    [1, { name: 'vf', desc: 'Intelliflo VF' }],
-                    [2, { name: 'ds', desc: 'Two-Speed' }],
-                    [64, { name: 'vsf', desc: 'Intelliflo VSF' }],
-                    [128, { name: 'vs', desc: 'Intelliflo VS' }],
-                    [169, { name: 'vs+svrs', desc: 'IntelliFlo VS+SVRS' }]
-                ]); */
-        this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White' }],
-            [2, { name: 'lightgreen', desc: 'Light Green' }],
-            [4, { name: 'green', desc: 'Green' }],
-            [6, { name: 'cyan', desc: 'Cyan' }],
-            [8, { name: 'blue', desc: 'Blue' }],
-            [10, { name: 'lavender', desc: 'Lavender' }],
-            [12, { name: 'magenta', desc: 'Magenta' }],
-            [14, { name: 'lightmagenta', desc: 'Light Magenta' }],
-            [128, { name: 'colorsync', desc: 'Color Sync' }],
-            [144, { name: 'colorswim', desc: 'Color Swim' }],
-            [160, { name: 'colorset', desc: 'Color Set' }],
-            [177, { name: 'party', desc: 'Party' }],
-            [178, { name: 'romance', desc: 'Romance' }],
-            [179, { name: 'caribbean', desc: 'Caribbean' }],
-            [180, { name: 'american', desc: 'American' }],
-            [181, { name: 'sunset', desc: 'Sunset' }],
-            [182, { name: 'royal', desc: 'Royal' }],
-            [190, { name: 'save', desc: 'Save' }],
-            [191, { name: 'recall', desc: 'Recall' }],
-            [193, { name: 'blue', desc: 'Blue' }],
-            [194, { name: 'green', desc: 'Green' }],
-            [195, { name: 'red', desc: 'Red' }],
-            [196, { name: 'white', desc: 'White' }],
-            [197, { name: 'magenta', desc: 'Magenta' }],
-            [208, { name: 'thumper', desc: 'Thumper' }],
-            [209, { name: 'hold', desc: 'Hold' }],
-            [210, { name: 'reset', desc: 'Reset' }],
-            [211, { name: 'mode', desc: 'Mode' }],
-            [254, { name: 'unknown', desc: 'unknown' }],
-            [255, { name: 'none', desc: 'None' }]
-        ]);
-        this.valueMaps.lightColors = new byteValueMap([
-            [0, { name: 'white', desc: 'White' }],
-            [2, { name: 'lightgreen', desc: 'Light Green' }],
-            [4, { name: 'green', desc: 'Green' }],
-            [6, { name: 'cyan', desc: 'Cyan' }],
-            [8, { name: 'blue', desc: 'Blue' }],
-            [10, { name: 'lavender', desc: 'Lavender' }],
-            [12, { name: 'magenta', desc: 'Magenta' }],
-            [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
-        ]);
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],
@@ -441,6 +362,7 @@ export class TouchConfigQueue extends ConfigQueue {
             this.curr = this.queue.shift() || null;
         }
         let itm = 0;
+        const self = this;
         if (this.curr && !this.curr.isComplete) {
             itm = this.curr.items.shift();
             const out: Outbound = Outbound.create({
@@ -450,10 +372,12 @@ export class TouchConfigQueue extends ConfigQueue {
                 payload: [itm],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg) => {
-                    if (err) { logger.error(`Error recieving configuration: ${ err.message }`); }
-                    this.processNext(msg);
-                }
+                onFinished: function() { self.processNext(out); }
+/*                 response: Response.create({
+                    action: this.curr.category,
+                    payload: [itm],
+                    callback: function() { self.processNext(out); }
+                }) */
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
@@ -681,17 +605,19 @@ class TouchBodyCommands extends BodyCommands {
                     resolve();
             }
                 
-            })
+            });
             conn.queueSendMessage(out);
         });
     }
 }
 class TouchCircuitCommands extends CircuitCommands {
     public getLightThemes(type: number): any[] {
+        let themes = sys.board.valueMaps.lightThemes.toArray();
         switch (type) {
-            case 16: // Intellibrite
             case 8: // Magicstream
-                return sys.board.valueMaps.lightThemes.toArray();
+                return themes.filter(theme => theme.type === 'magicstream'); 
+            case 16: // Intellibrite
+                return themes.filter(theme => theme.type === 'intellibrite'); 
             default:
                 return [];
         }
@@ -744,6 +670,8 @@ class TouchCircuitCommands extends CircuitCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     cstate.isOn = val ? true : false;
+                    if (id === 6) { sys.board.virtualChlorinatorController.start(); }
+                    sys.board.virtualPumpControllers.start();
                     state.emitEquipmentChanges();
                     resolve(cstate.get(true));
                 }
@@ -799,13 +727,13 @@ class TouchFeatureCommands extends FeatureCommands {
     }
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public setChlorAsync(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    public async setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         return new Promise((resolve, reject)=>{
 
     
         // if chlorinator is controlled by thas app; call super();
         let vc = sys.chlorinators.getItemById(1);
-        if (vc.isActive && vc.isVirtual) return super.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
         // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
         // all map here unless overridden.
         let out = Outbound.create({
@@ -819,7 +747,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                 ); 
             reject(err);
         }
-                sys.board.chlorinator.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
                 resolve();
             }
         });

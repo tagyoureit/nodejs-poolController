@@ -127,6 +127,32 @@ export class IntelliCenterBoard extends SystemBoard {
             [1, { name: 'sunrise', desc: 'Sunrise' }],
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
+        this.valueMaps.lightThemes = new byteValueMap([
+            [0, { name: 'white', desc: 'White' }],
+            [1, { name: 'green', desc: 'Green' }],
+            [2, { name: 'blue', desc: 'Blue' }],
+            [3, { name: 'magenta', desc: 'Magenta' }],
+            [4, { name: 'red', desc: 'Red' }],
+            [5, { name: 'sam', desc: 'SAm Mode' }],
+            [6, { name: 'party', desc: 'Party' }],
+            [7, { name: 'romance', desc: 'Romance' }],
+            [8, { name: 'caribbean', desc: 'Caribbean' }],
+            [9, { name: 'american', desc: 'American' }],
+            [10, { name: 'sunset', desc: 'Sunset' }],
+            [11, { name: 'royal', desc: 'Royal' }],
+            [255, { name: 'none', desc: 'None' }]
+        ]);
+        this.valueMaps.lightColors = new byteValueMap([
+            [0, { name: 'white', desc: 'White' }],
+            [16, { name: 'lightgreen', desc: 'Light Green' }],
+            [32, { name: 'green', desc: 'Green' }],
+            [48, { name: 'cyan', desc: 'Cyan' }],
+            [64, { name: 'blue', desc: 'Blue' }],
+            [80, { name: 'lavender', desc: 'Lavender' }],
+            [96, { name: 'magenta', desc: 'Magenta' }],
+            [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
+        ]);
+
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
@@ -1460,7 +1486,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let circ = state.circuits.getInterfaceById(id);
         let out = this.createCircuitStateMessage(id, val);
         return new Promise<ICircuitState | string>((resolve, reject) => {
-            out.onComplete = (err, msg: Outbound) => {
+            out.onComplete = (err, msg: Inbound) => {
                 if (err) reject(err);
                 else {
                     circ.isOn = val;
@@ -1732,11 +1758,11 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     }
 }
 class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
-    public setChlorAsync(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlor ? 1 : 0, superChlorHours, 0, 1], 3,
             new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [168]));
         conn.queueSendMessage(out);
-        super.setChlorAsync(cstate, poolSetpoint, spaSetpoint, superChlorHours);
+        super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
     }
 }
 class IntelliCenterPumpCommands extends PumpCommands {

@@ -529,6 +529,15 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get virtualControllerStatus(): number {
+        return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
+    }
+    public set virtualControllerStatus(val: number) {
+        if (this.virtualControllerStatus !== val) {
+            this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -989,6 +998,15 @@ export class ChlorinatorState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get virtualControllerStatus(): number {
+        return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
+    }
+    public set virtualControllerStatus(val: number) {
+        if (this.virtualControllerStatus !== val) {
+            this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -1059,7 +1077,7 @@ export class ChlorinatorState extends EqState {
         else
             this.setDataVal('superChlor', false);
     }
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlorAsync(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
+    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlor(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
     public setPoolSetpoint(setpoint: number) { sys.board.chlorinator.setPoolSetpoint(this, setpoint); }
     public setSpaSetpoint(setpoint: number) { sys.board.chlorinator.setSpaSetpoint(this, setpoint); }
     public setSuperChlorHours(hours: number) { sys.board.chlorinator.setSuperChlorHours(this, hours); }

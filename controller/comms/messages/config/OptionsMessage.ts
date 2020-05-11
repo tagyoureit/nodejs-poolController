@@ -75,7 +75,7 @@ export class OptionsMessage {
                     let pump = sys.pumps.getDualSpeed(true);
                     for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j];
                 }
-                else sys.pumps.removeItemById(0);
+                else sys.pumps.removeItemById(10);
                 break;
             }
             case 40:

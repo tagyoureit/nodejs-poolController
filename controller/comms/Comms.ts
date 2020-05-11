@@ -200,65 +200,70 @@ export class SendRecieveBuffer {
         // This ends in goofiness as it can send more than one message at a time while it
         // waits for the command buffer to be flushed.  NOTE: There is no success message and the callback to
         // write only verifies that the buffer got ahold of it.
-        if (!conn.isRTS) return;
-        conn.isRTS = false;
-        var bytes = msg.toPacket();
-        if (conn.isOpen) {
-            if (msg.remainingTries <= 0) {
-                // It will almost never fall into here.  The rare case where
-                // we have an RTS semaphore and a waiting response might make it go here.
-                msg.failed = true;
-                conn.buffer._waitingPacket = null;
-                logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }`);
-                if (msg.requiresResponse) {
-                    if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
-                        setTimeout(msg.response.callback, 100, msg);
-                    }
-                    else if (typeof msg.response === 'function')
-                        setTimeout(msg.response, 100, undefined, msg);
+            if (!conn.isRTS) return;
+            conn.isRTS = false;
+            var bytes = msg.toPacket();
+            if (conn.isOpen) {
+                if (msg.remainingTries <= 0) {
+                    // It will almost never fall into here.  The rare case where
+                    // we have an RTS semaphore and a waiting response might make it go here.
+                    msg.failed = true;
+                    conn.buffer._waitingPacket = null;
+                    logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }`);
+                    let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s)`);
+                    if (typeof msg.onError !== 'undefined') msg.onError(err, undefined);
+                    if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+                    if (msg.requiresResponse) {
+                        if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
+                            setTimeout(msg.response.callback, 100, msg);
+                        }
+                        /*  RSG: This shouldn't be here, correct?  No reason to get back a boolean value here. 
+                        else if (typeof msg.response === 'function')
+                            setTimeout(msg.response, 100, undefined, msg); */
+                        
+                        }
+                    // RSG - I'm not even sure this needs to be in the requiresResponse closure.  If it's set, shouldn't we just call it?
+                    if (typeof msg.onFinished !== 'undefined') setTimeout(msg.onFinished, 100);
+                    
+                    conn.isRTS = true;
+                    return;
                 }
-                let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s)`);
-                if (typeof msg.onError !== 'undefined') msg.onError(err, msg);
-                if (typeof msg.onComplete === 'function') msg.onComplete(err, msg);
-                conn.isRTS = true;
-                return;
-            }
-            conn.buffer.counter.bytesSent += bytes.length;
-            msg.timestamp = new Date();
-            logger.packet(msg);
-            conn.write(Buffer.from(bytes), function(err) {
-                msg.tries++;
-                conn.isRTS = true;
-                if (err) {
-                    logger.error('Error writing packet %s', err);
-                    // We had an error so we need to set the waiting packet if there are retries
-                    if (msg.remainingTries > 0) conn.buffer._waitingPacket = msg;
+                conn.buffer.counter.bytesSent += bytes.length;
+                msg.timestamp = new Date();
+                logger.packet(msg);
+                conn.write(Buffer.from(bytes), function(err) {
+                    msg.tries++;
+                    conn.isRTS = true;
+                    if (err) {
+                        logger.error('Error writing packet %s', err);
+                        // We had an error so we need to set the waiting packet if there are retries
+                        if (msg.remainingTries > 0) conn.buffer._waitingPacket = msg;
+                        else {
+                            msg.failed = true;
+                            logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }: ${ err }`);
+                            // This is a hard fail.  We don't have any more tries left and the message didn't
+                            // make it onto the wire.
+                            let error = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ err }`);
+                            if (typeof msg.onError !== 'undefined') msg.onError(error, undefined);
+                            if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
+                            conn.buffer._waitingPacket = null;
+                        }
+                    }
                     else {
-                        msg.failed = true;
-                        logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }: ${ err }`);
-                        // This is a hard fail.  We don't have any more tries left and the message didn't
-                        // make it onto the wire.
-                        let error = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ err }`);
-                        if (typeof msg.onError !== 'undefined') msg.onError(error, undefined);
-                        if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
-                        conn.buffer._waitingPacket = null;
+                        logger.verbose(`Wrote packet [${ bytes }].  Retries remaining: ${ msg.remainingTries }`);
+                        // We have all the success we are going to get so if the call succeeded then
+                        // don't set the waiting packet when we aren't actually waiting for a response.
+                        if (!msg.requiresResponse) {
+                            // As far as we know the message made it to OCP.
+                            conn.buffer._waitingPacket = null;
+                            if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+                        }
+                        else if (msg.remainingTries >= 0) {
+                            conn.buffer._waitingPacket = msg;
+                        }
                     }
-                }
-                else {
-                    logger.verbose(`Wrote packet [${ bytes }].  Retries remaining: ${ msg.remainingTries }`);
-                    // We have all the success we are going to get so if the call succeeded then
-                    // don't set the waiting packet when we aren't actually waiting for a response.
-                    if (!msg.requiresResponse) {
-                        // As far as we know the message made it to OCP.
-                        conn.buffer._waitingPacket = null;
-                        if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined); 
-                    }
-                    else if (msg.remainingTries >= 0) {
-                        conn.buffer._waitingPacket = msg;
-                    }
-                }
-            });
-        }
+                });
+            }
     }
     private clearResponses(msgIn: Inbound) {
         if (conn.buffer._outBuffer.length === 0 && typeof (conn.buffer._waitingPacket) !== 'object' && conn.buffer._waitingPacket) return;
@@ -267,7 +272,7 @@ export class SendRecieveBuffer {
         let msgOut = conn.buffer._waitingPacket;
         if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
             var resp = msgOut.response;
-            if (msgOut.requiresResponse) {
+             if (msgOut.requiresResponse) {
                 if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
                     conn.buffer._waitingPacket = null;
                     if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
@@ -281,6 +286,7 @@ export class SendRecieveBuffer {
                         conn.buffer._waitingPacket = null;
                         if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
                         if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
+                        if (typeof msgOut.onFinished !== 'undefined') callback = msgOut.onFinished;
                     }
                 }
             }
@@ -301,6 +307,7 @@ export class SendRecieveBuffer {
                     conn.buffer._outBuffer.splice(i, 1);
                 }
                 else if (resp instanceof Function && resp(msgIn, out)) {
+                    if (typeof out.onFinished !== 'undefined') callback = out.onFinished;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
             }

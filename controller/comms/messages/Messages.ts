@@ -120,10 +120,10 @@ export class Message {
     private(val: number) {
         if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
     }
-    protected generateResponse(resp:Boolean|Response|Function): ((msgIn:Inbound, msgOut:Outbound)=>Boolean)|Boolean|Response {
+    public generateResponse(resp: boolean|Response|Function): ((msgIn: Inbound, msgOut: Outbound) => boolean)|boolean|Response {
         if (typeof resp === 'undefined') { return false; }
         else if (typeof resp === 'function') {
-            return resp as (msgIn: Inbound, msgOut: Outbound) => Boolean;
+            return resp as (msgIn: Inbound, msgOut: Outbound) => boolean;
         }
         else if (typeof resp === 'boolean') {
             if (!resp) { return false; }
@@ -135,6 +135,7 @@ export class Message {
                             // Msg In:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
                             // Msg Out:    [165,0,96, 16, 7, 0],[1,28]
                             return (msgIn, msgOut) => {
+                                if (msgIn.protocol !== msgOut.protocol) {return false;}
                                 if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
                                 if (msgIn.action === 7 && msgOut.action === 7) { return true; }
@@ -143,7 +144,8 @@ export class Message {
                         default:
                             //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
                             return (msgIn, msgOut) => {
-                                if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
+                                if (msgIn.protocol !== msgOut.protocol) {return false;}
+                                if (typeof msgIn === 'undefined' ) { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
                                 if (JSON.stringify(msgIn.payload) === JSON.stringify(msgOut.payload)) { return true; }
                                 return false;
@@ -152,15 +154,16 @@ export class Message {
                 }
                 else if (this.protocol === Protocol.Chlorinator) {
                     return (msgIn, msgOut) => {
-                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
-                        switch (msgOut.action) {
-                            case 0:
-                                return msgIn.action === 1 ? true : false;
-                            case 17:
-                            case 18:
-                                return msgIn.action === 17 || msgIn.action === 21 ? true : false;
+                        if (msgIn.protocol !== msgOut.protocol) {return false;}
+                        if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
+                        switch (msgIn.action) {
+                            case 1:
+                                return msgOut.action === 0 ? true : false;
                             case 3:
-                                return msgIn.action === 20 ? true : false;
+                                return msgOut.action === 20 ? true : false;
+                            case 18:
+                            case 21:
+                                return msgOut.action === 17 ? true : false;
                             default:
                                 return false;
                         }
@@ -168,14 +171,17 @@ export class Message {
                 }
                 else if (sys.controllerType !== ControllerType.IntelliCenter) {
                     return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) {return false;}
                         if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                         switch (msgIn.action) {
                             // these responses have multiple items so match the 1st payload byte
                             case 1: // ack
+                                if (msgIn.payload[0] === msgOut.action) return true;
+                                break;
                             case 10:
                             case 11:
                             case 17:
-                                if (msgOut.payload[0] === msgIn.payload[0]) return true;
+                                if (msgIn.action === (msgOut.action & 63) && msgIn.payload[0] === msgOut.payload[0]) return true;
                                 break;
                             case 252:
                                 if (msgOut.action === 253) return true;
@@ -189,6 +195,7 @@ export class Message {
                 else if (sys.controllerType === ControllerType.IntelliCenter) {
                     // intellicenter packets
                     return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) {return false;}
                         if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                         for (let i = 0; i < msgIn.payload.length; i++) {
                             if (i > msgOut.payload.length - 1)
@@ -453,7 +460,7 @@ export class Inbound extends Message {
     }
 }
 export class Outbound extends Message {
-    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response|Boolean|Function) {
+    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response|boolean|Function) {
         super();
         this.protocol = proto;
         this.direction = Direction.Out;
@@ -490,9 +497,10 @@ export class Outbound extends Message {
         out.onComplete = obj.onComplete;
         out.onError = obj.onError;
         out.onSuccess = obj.onSuccess;
+        out.onFinished = obj.onFinished;
         return out;
     }
-    public static createMessage(action: number, payload: number[], retries?: number, response?: Response|Boolean|Function, onSuccess?: (msg) => void, onError?: (err: Error, msg: Outbound) => void): Outbound {
+    public static createMessage(action: number, payload: number[], retries?: number, response?: Response|boolean|Function, onSuccess?: (msg) => void, onError?: (err: Error, msg: Outbound) => void): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
 
@@ -500,11 +508,12 @@ export class Outbound extends Message {
     public retries: number=0;
     public tries: number=0;
     public timeout: number=1000;
-    public response: ((msgIn: Inbound, msgOut: Outbound) => Boolean)|Response|Boolean;
+    public response: ((msgIn: Inbound, msgOut: Outbound) => boolean)|Response|boolean;
     public failed: boolean=false;
-    public onSuccess: (msg: Inbound|Outbound) => void;
-    public onError: (error: Error, msg: Inbound|Outbound) => void;
-    public onComplete: (error: Error, msg: Inbound|Outbound) => void;
+    public onSuccess: (msg: Inbound) => void;
+    public onError: (error: Error, msg: Inbound) => void;
+    public onComplete: (error: Error, msg: Inbound) => void;
+    public onFinished: ()=>void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }
@@ -541,7 +550,7 @@ export class Outbound extends Message {
                 break;
         }
     }
-    
+
     public setPayloadByte(ndx: number, value: number, def?: number) {
         if (typeof value === 'undefined' || isNaN(value)) value = def;
         if (ndx < this.payload.length) this.payload[ndx] = value;
@@ -722,10 +731,25 @@ export class Response extends Message {
         }
     }
     // Methods
-    public isResponse(msgIn: Message, msgOut?: Message): boolean {
+    public isResponse(msgIn: Inbound, msgOut?: Outbound): boolean {
         if (typeof this.action !== 'undefined' && this.action !== null && msgIn.action !== this.action)
             return false;
-        if (msgIn.protocol === Protocol.Pump) {
+
+        if (sys.controllerType === ControllerType.IntelliCenter) {
+            // intellicenter packets
+            for (let i = 0; i < this.payload.length; i++) {
+                if (i > msgIn.payload.length - 1)
+                    return false;
+                //console.log({ msg: 'Checking response', p1: msgIn.payload[i], pd: this.payload[i] });
+                if (msgIn.payload[i] !== this.payload[i]) return false;
+            }
+        }
+        else {
+            let resp = msgOut.generateResponse(true) as (msgIn: Inbound, msgOut: Outbound) => boolean;
+            return resp(msgIn, msgOut);
+        }
+        
+        /* if (msgIn.protocol === Protocol.Pump) {
             if (msgIn.source !== this.source || msgIn.dest !== this.dest) { return false; }
             // pump response logic -- same across all controllers
             if (msgIn.action === 7 && this.action === 7 && !this.payload.length) {
@@ -739,51 +763,53 @@ export class Response extends Message {
                 //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
                 return true;
             }
-            /*   This is for pump direct control.  Not supperted in 6.0             
-            //Any commands with <01> are 4 bytes.  The responses are 2 bytes.  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
-                        if (msg.source === this.source && msg.dest === this.dest && msg.header[5] === 1 && this.header[5] === 1 && msg.payload[2] === this.payload[0] && msg.payload[3] === this.payload[1]
-                        ) {
-                            // Scenario 3
-                            // For pump response to set program 1 to 800 RPM
-                            //                                                0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
-                            // Msg Writter: [165,0,16,96, 1, 2], [3,32],[1,59]
-                            // Ack In:      [165,0,96,16, 1, 4] ,[3,39, 3,32], [1,103]
-                            {
-                                return true;
-                            }
-                        } */
+            //  This is for pump direct control.  Not supperted in 6.0             
+            // //Any commands with <01> are 4 bytes.  The responses are 2 bytes.  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
+            //             if (msg.source === this.source && msg.dest === this.dest && msg.header[5] === 1 && this.header[5] === 1 && msg.payload[2] === this.payload[0] && msg.payload[3] === this.payload[1]
+            //             ) {
+            //                 // Scenario 3
+            //                 // For pump response to set program 1 to 800 RPM
+            //                 //                                                0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
+            //                 // Msg Writter: [165,0,16,96, 1, 2], [3,32],[1,59]
+            //                 // Ack In:      [165,0,96,16, 1, 4] ,[3,39, 3,32], [1,103]
+            //                 {
+            //                     return true;
+            //                 }
+            //             } 
             return false;
         }
         else if (msgIn.protocol === Protocol.Chlorinator) {
-            /*  chlorinator logic -- same across all controllers
-                Reponses
-                msg(inbound)=>resp(this)
-                0=>1
-                17=>18
-                21=>18
-                20=>3 
+            //   chlorinator logic -- same across all controllers
+            //     Reponses
+            //     msg(inbound)=>resp(this)
+            //     0=>1
+            //     17=>18
+            //     21=>18
+            //     20=>3 
                 
-                here the "this" is the response we are expecting and "msg"
-                is the inbound.
-                */
+            //     here the "this" is the response we are expecting and "msg"
+            //     is the inbound.
+                
 
             if (this.action !== msgIn.action) return false;
         }
         else if (sys.controllerType !== ControllerType.IntelliCenter) {
             if (this.action === 252 && msgIn.action === 253) return true;
-            switch (this.action) {
+            switch (msgIn.action) {
                 // these responses have multiple items so match the 1st payload byte
                 case 1: // ack
+                    if (msgIn.payload[0] !== msgOut.payload[0]) return false;
+                    break;
                 case 10:
                 case 11:
                 case 17:
-                    if (msgIn.payload[0] !== this.payload[0]) return false;
+                    if (msgIn.action !== (msgOut.action & 63) || msgIn.payload[0] !== msgOut.payload[0]) return false;
                     break;
                 case 252:
                     if (msgIn.action !== 253) return false;
                     break;
                 default:
-                    if (this.action !== msgIn.action) return false;
+                    if (msgIn.action !== msgOut.action) return false;
             }
         }
         else if (sys.controllerType === ControllerType.IntelliCenter) {
@@ -796,6 +822,6 @@ export class Response extends Message {
             }
         }
         //console.log({ msg: 'Found response', action: msgIn.action });
-        return true;
+        return true; */
     }
 }
