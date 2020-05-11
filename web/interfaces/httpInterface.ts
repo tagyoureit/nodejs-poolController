@@ -17,52 +17,79 @@ export class HttpInterfaceBindings {
     public bindEvent(evt: string, ...data: any) {
         // Find the binding by first looking for the specific event name.  If that doesn't exist then look for the "*" (all events).
         if (typeof this.events !== 'undefined') {
-            let e = this.events.find(elem => elem.name === evt) || this.events.find(elem => elem.name === '*');
-            if (typeof e !== 'undefined') {
-                let opts = extend(true, { headers: {} }, this.cfg.options, this.context.options, e.options);
-                // If we are still waiting on mdns then blow this off.
-                if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
-                    logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`)
-                    return;
-                }
-                // Put together the data object.
-                let sbody = '';
+            let evts = this.events.filter(elem => elem.name === evt);
+            // If we don't have an explicitly defined event then see if thers is a default.
+            if (evts.length === 0) {
+                let e = this.events.find(elem => elem.name === '*');
+                evts = e ? [e] : [];
+            }
+
+            let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
+            if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
+                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`)
+                return;
+            }
+            if (evts.length > 0) {
                 let toks = {};
-                switch (this.cfg.contentType) {
-                    //case 'application/json':
-                    //case 'json':
-                    default:
-                        sbody = JSON.stringify(e.body);
-                        break;
-                    // We may need an XML output and can add transforms for that
-                    // later.  There isn't a native xslt processor in node and most
-                    // of them that I looked at seemed pretty amatuer hour or overbearing
-                    // as they used SAX. => Need down and clean not down and dirty... we aren't building 
-                    // a web client at this point.
-                }
-                this.buildTokens(sbody, evt, toks, e, data[0]);
-                sbody = this.replaceTokens(sbody, toks);
-                for (let prop in opts) {
-                    if (prop === 'headers') {
-                        for (let header in opts.headers) {
-                            this.buildTokens(opts.headers[header], evt, toks, e, data[0]);
-                            opts.headers[header] = this.replaceTokens(opts.headers[header], toks);
+                for(let i = 0; i < evts.length; i++) {
+                    let e = evts[i];
+                    let opts = extend(true, baseOpts, e.options);
+                    // If we are still waiting on mdns then blow this off.
+                    if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
+                        logger.warn(`Interface: ${this.cfg.name} Event: ${e.name} has not resolved to a valid host.`)
+                        continue;
+                    }
+
+                    // Put together the data object.
+                    let sbody = '';
+                    switch (this.cfg.contentType) {
+                        //case 'application/json':
+                        //case 'json':
+                        default:
+                            sbody = JSON.stringify(e.body);
+                            break;
+                        // We may need an XML output and can add transforms for that
+                        // later.  There isn't a native xslt processor in node and most
+                        // of them that I looked at seemed pretty amatuer hour or overbearing
+                        // as they used SAX. => Need down and clean not down and dirty... we aren't building 
+                        // a web client at this point.
+                    }
+                    this.buildTokens(sbody, evt, toks, e, data[0]);
+                    sbody = this.replaceTokens(sbody, toks);
+                    for (let prop in opts) {
+                        if (prop === 'headers') {
+                            for (let header in opts.headers) {
+                                this.buildTokens(opts.headers[header], evt, toks, e, data[0]);
+                                opts.headers[header] = this.replaceTokens(opts.headers[header], toks);
+                            }
+                        }
+                        else if (typeof opts[prop] === 'string') {
+                            this.buildTokens(opts[prop], evt, toks, e, data[0]);
+                            opts[prop] = this.replaceTokens(opts[prop] || '', toks);
                         }
                     }
-                    else if(typeof opts[prop] === 'string') {
-                        this.buildTokens(opts[prop], evt, toks, e, data[0]);
-                        opts[prop] = this.replaceTokens(opts[prop] || '', toks);
+                    if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
+                    opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
+                    logger.verbose(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
+                    let req: http.ClientRequest;
+                    // We should now have all the tokens.  Put together the request.
+                    if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
+                        req = https.request(opts, (response: http.IncomingMessage) => {
+                            console.log(response);
+                        });
                     }
+                    else {
+                        req = http.request(opts, (response: http.IncomingMessage) => {
+                            console.log(response.statusCode);
+                        });
+                    }
+                    req.on('error', (err, req, res) => { logger.error(err); });
+                    if(typeof sbody !== 'undefined') req.write(sbody);
+                    req.end();
+
+
+
                 }
-                if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
-                opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody);
-                logger.verbose(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
-                console.log(opts.path);
-                // We should now have all the tokens.  Put together the request.
-                let req = opts.port === 443 || (opts.protocol || '').startsWith(https) ? https.request(opts) : http.request(opts);
-                req.on('error', (err, req, res) => { logger.error(err); });
-                req.write(sbody);
-                req.end();
             }
         }
     }

@@ -2,8 +2,8 @@
   "context": {
     "name": "Vera",
     "options": {
-      "method": "POST",
-      "path": "/data_request?id=action&DeviceNum=@bind=vars.deviceId;serviceId=urn:rstrouse-com:SetData1&action=@bind=eventName;",
+      "method": "GET",
+      "path": "/data_request?id=action&DeviceNum=@bind=vars.deviceId;&serviceId=urn:rstrouse-com:SetData1&action=@bind=eventName;",
       "headers": {
         "CONTENT-TYPE": "application/json"
       }
@@ -11,6 +11,17 @@
     "vars": {}
   },
   "events": [
-    { "name": "*", "description": "All events that are not trapped by other event names.  Sends the entire emitted response.", "body": "@bind=data;" }
+    {
+      "name": "circuit",
+      "description": "Emitted when the state of a circuit changes",
+      "options": {
+        "path": "/data_request?id=variableset&DeviceNum=@bind=vars.deviceId;&serviceId=urn:upnp-org:serviceId:VContainer1&Variable=Variable@bind=data.id;&Value=@bind=data.isOn ? 1 : 0;"
+      }
+    },
+    {
+      "name": "XXXXX*",
+      "description": "This will be the UPnP version when I get the services built in Vera and the only binding required.  Sends the entire emitted response.",
+      "body": "@bind=data;"
+    }
   ]
 }
