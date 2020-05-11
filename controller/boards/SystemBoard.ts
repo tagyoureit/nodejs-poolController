@@ -1671,6 +1671,7 @@ export class ChlorinatorController extends BoardCommands {
     // if we have any, we will see if the timer is already running or if it needs to be started
     public start() {
         let chlor = sys.chlorinators.getItemById(1);
+        let schlor = state.chlorinators.getItemById(1);
         if (chlor.isActive && chlor.isVirtual) {
 
             // If we have a controller but it isn't controlling the chlorinator
@@ -1681,6 +1682,7 @@ export class ChlorinatorController extends BoardCommands {
                     let cstate = state.chlorinators.getItemById(chlor.id);
                     sys.board.chlorinator.setChlor(cstate);
                     this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 4000);
+                    schlor.virtualControllerStatus = 1;
                     return;
                 }
                 else {
@@ -1688,11 +1690,11 @@ export class ChlorinatorController extends BoardCommands {
                     let cstate = state.chlorinators.getItemById(chlor.id);
                     sys.board.chlorinator.setChlor(cstate);
                     this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 30000);
+                    schlor.virtualControllerStatus = 1;
                     return;
                 }
             }
             // if we have a chlor, but not a controller, set the interval based on the setPoint of the chlor
-            let schlor = state.chlorinators.getItemById(1);
             if (schlor.poolSetpoint > 0 && schlor.status !== 128) {
                 // setpoint > 0 and good comms
                 // this._timer = setInterval(this.chlorinatorHeartbeat, 4000);
