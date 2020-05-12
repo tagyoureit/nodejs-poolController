@@ -98,9 +98,10 @@ export class State implements IState {
 
         }
     }
-    public stop() {
+    public async stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
+        return Promise.resolve();
     }
     protected hasChanged=false;
     public get controllerState() {

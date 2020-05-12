@@ -20,13 +20,19 @@ export function initAsync() {
         .then(function() { webApp.init(); });
 }
 export async function stopAsync(): Promise<void> {
-
-       console.log('Shutting down open processes');
-    //    await sys.board.virtualPumpControllers.stopAsync(); // TODO: need to make downstream "stop" functions async or can call pump.stop async directly.  Regardless need to do this before conn.stopAsync
-       await sys.stopAsync(); 
-       state.stop(); 
-       await conn.stopAsync(); 
+    try {
+        console.log('Shutting down open processes');
+        await sys.board.virtualPumpControllers.stopAsync(); 
+        await sys.stopAsync(); 
+        await state.stopAsync(); 
+        await conn.stopAsync(); 
+    }
+    catch (err){
+        console.error(`Error stopping processes: ${err.message}`);
+    }
+    finally {
         process.exit();
+    }
 }
 if (process.platform === 'win32') {
     let rl = readline.createInterface({ input: process.stdin, output: process.stdout });

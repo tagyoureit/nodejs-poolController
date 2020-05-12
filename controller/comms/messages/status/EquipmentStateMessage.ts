@@ -233,9 +233,6 @@ export class EquipmentStateMessage {
         sys.equipment.maxLightGroups = 0;
         sys.equipment.maxCustomNames = 10;
         sys.customNames.getItemById(1, true, { id: 1, name: "Generic", isActive: true });
-        // if 2nd pump found, enable this(?)
-        // sys.circuits.getItemById(1, true, {id: 1, type: "1", name: "SPA", isActive: false});
-        // sys.bodies.getItemById(2, true, {id: 2, isActive: true, name: "Spa"});
         // setup pool circuit
         let pool = sys.circuits.getItemById(6, true);
         let spool = state.circuits.getItemById(6, true);
@@ -250,6 +247,7 @@ export class EquipmentStateMessage {
         state.equipment.maxBodies = sys.equipment.maxBodies;
         state.mode = 0;
         state.status = 1;
+        state.temps.units = 0;
         sys.equipment.setEquipmentIds();
         state.emitControllerChange();
 

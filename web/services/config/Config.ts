@@ -39,6 +39,8 @@ export class ConfigRoute {
         app.get('/config/options/circuits', (req, res) => {
             let opts = {
                 maxCircuits: sys.equipment.maxCircuits,
+                equipmentIds: sys.equipment.equipmentIds.circuits,
+                invalidIds: sys.board.equipmentIds.invalidIds.get(),
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.circuits.getCircuitFunctions(),
                 circuits: sys.circuits.get()
@@ -68,6 +70,8 @@ export class ConfigRoute {
         app.get('/config/options/features', (req, res) => {
             let opts = {
                 maxFeatures: sys.equipment.maxFeatures,
+                invalidIds: sys.board.equipmentIds.invalidIds.get(),
+                equipmentIds: sys.equipment.equipmentIds.features,
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.valueMaps.featureFunctions.toArray(),
                 features: sys.features.get()

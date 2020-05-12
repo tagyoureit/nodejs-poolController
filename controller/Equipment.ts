@@ -52,7 +52,7 @@ export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean=false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
-        setTimeout(()=>{this.searchForAdditionalDevices();}, 5000);
+        setTimeout(()=>{this.searchForAdditionalDevices();}, 7500);
     }
     public init() {
         let cfg = this.loadConfigFile(this.cfgPath, {});

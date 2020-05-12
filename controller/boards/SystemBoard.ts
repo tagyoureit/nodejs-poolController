@@ -841,8 +841,13 @@ export class PumpCommands extends BoardCommands {
         // and props that aren't for this pump type
         let _id = pump.id;
         if (pump.type !== pumpType || pumpType === 0) {
+            const _isVirtual = sys.pumps.getItemById(_id).isVirtual;
             sys.pumps.removeItemById(_id);
             let pump = sys.pumps.getItemById(_id, true);
+            if (_isVirtual) {
+                pump.isActive = true;
+                pump.isVirtual = true;
+            }
             state.pumps.removeItemById(pump.id);
             pump.type = pumpType;
             this.setPump(pump);
@@ -923,18 +928,13 @@ export class PumpCommands extends BoardCommands {
         }
     }
 
-    public async stop(pump: Pump) {
-        try {
-            let p = [];
-            p.push(this.setDriveStatePacketAsync(pump, false));
-            p.push(this.setPumpManualAsync(pump));
-            p.push(this.setDriveStatePacketAsync(pump, true));
-            p.push(this.setPumpToRemoteControlAsync(pump, false));
-            return Promise.all(p);
-        }
-        catch (err) {
-            logger.error(`Error stopping pump ${ pump.id }.  ${ err.message }`);
-        }
+    public async stopAsync(pump: Pump) {
+        let p = [];
+        p.push(this.setDriveStatePacketAsync(pump, false));
+        p.push(this.setPumpManualAsync(pump));
+        p.push(this.setDriveStatePacketAsync(pump, true));
+        p.push(this.setPumpToRemoteControlAsync(pump, false));
+        return Promise.all(p);
     }
     private async setPumpToRemoteControlAsync(pump: Pump, isRemotControl: boolean) {
         return new Promise((resolve, reject) => {
@@ -1270,7 +1270,7 @@ export class CircuitCommands extends BoardCommands {
             else if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${ data.id }`;
             if (typeof data.type !== 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10);
-            else if (!circuit.type && typeof data.type !== 'undefined') circuit.type = scircuit.type = 0;
+            else circuit.type = scircuit.type = 0;
             if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
             if (typeof data.showInFeatures !== 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
@@ -1794,17 +1794,19 @@ export class VirtualPumpControllerCollection extends BoardCommands {
         }
     }
     public async stopAsync() {
+        let promises = [];
+
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive && (spump.watts > 0 || spump.rpm > 0 || spump.flow > 0)) {
-                console.log(`stopping pump ${ i }`);
-                await sys.board.pumps.stop(pump);
-                console.log(`pump ${ i } stopped`);
+                console.log(`Queueing pump ${ i } to stop.`);
+                promises.push(sys.board.pumps.stopAsync(pump));
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
                 state.pumps.getItemById(i, true).virtualControllerStatus = 0;
             }
         }
+        return Promise.all(promises);
     }
 
     public start() {
