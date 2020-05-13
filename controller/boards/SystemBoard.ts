@@ -1172,13 +1172,7 @@ export class CircuitCommands extends BoardCommands {
             }
         }
     }
-    /*     public setCircuitState(id: number, val: boolean) {
-            let circ = state.circuits.getInterfaceById(id);
-            circ.isOn = utils.makeBool(val);
-            if (circ.id === 6) { sys.board.virtualChlorinatorController.start(); }
-            sys.board.virtualPumpControllers.start();
-            sys.emitEquipmentChange();
-        } */
+
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
@@ -1274,6 +1268,8 @@ export class CircuitCommands extends BoardCommands {
             if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
             if (typeof data.showInFeatures !== 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
+            sys.emitEquipmentChange();
+            state.emitEquipmentChanges();
             return new Promise<ICircuit|string>((resolve, reject) => { resolve(circuit); });
         }
         else
