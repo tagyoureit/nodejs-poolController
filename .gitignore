@@ -1,2 +1,7 @@
 node_modules
 .cache
+docs
+data
+dist
+config.json
+package-lock.json
