@@ -200,7 +200,7 @@ export class SendRecieveBuffer {
         // This ends in goofiness as it can send more than one message at a time while it
         // waits for the command buffer to be flushed.  NOTE: There is no success message and the callback to
         // write only verifies that the buffer got ahold of it.
-            if (!conn.isRTS) return;
+            if (!conn.isRTS || conn.mockPort) return;
             conn.isRTS = false;
             var bytes = msg.toPacket();
             if (conn.isOpen) {
@@ -211,7 +211,6 @@ export class SendRecieveBuffer {
                     conn.buffer._waitingPacket = null;
                     logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }`);
                     let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s)`);
-                    if (typeof msg.onError !== 'undefined') msg.onError(err, undefined);
                     if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                     if (msg.requiresResponse) {
                         if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
@@ -220,10 +219,10 @@ export class SendRecieveBuffer {
                         /*  RSG: This shouldn't be here, correct?  No reason to get back a boolean value here. 
                         else if (typeof msg.response === 'function')
                             setTimeout(msg.response, 100, undefined, msg); */
-                        
+    
                         }
                     // RSG - I'm not even sure this needs to be in the requiresResponse closure.  If it's set, shouldn't we just call it?
-                    if (typeof msg.onFinished !== 'undefined') setTimeout(msg.onFinished, 100);
+                    if (typeof msg.onResponseProcessed !== 'undefined') setTimeout(msg.onResponseProcessed, 100);
                     
                     conn.isRTS = true;
                     return;
@@ -244,7 +243,6 @@ export class SendRecieveBuffer {
                             // This is a hard fail.  We don't have any more tries left and the message didn't
                             // make it onto the wire.
                             let error = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ err }`);
-                            if (typeof msg.onError !== 'undefined') msg.onError(error, undefined);
                             if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                             conn.buffer._waitingPacket = null;
                         }
@@ -275,7 +273,6 @@ export class SendRecieveBuffer {
              if (msgOut.requiresResponse) {
                 if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
                     conn.buffer._waitingPacket = null;
-                    if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
                     if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     callback = resp.callback;
                     resp.message = msgIn;
@@ -284,9 +281,8 @@ export class SendRecieveBuffer {
                 else {
                     if (typeof resp === 'function' && resp(msgIn, msgOut)) {
                         conn.buffer._waitingPacket = null;
-                        if (typeof msgOut.onSuccess === 'function') msgOut.onSuccess(msgIn);
                         if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
-                        if (typeof msgOut.onFinished !== 'undefined') callback = msgOut.onFinished;
+                        callback = msgOut.onResponseProcessed;
                     }
                 }
             }
@@ -307,7 +303,7 @@ export class SendRecieveBuffer {
                     conn.buffer._outBuffer.splice(i, 1);
                 }
                 else if (resp instanceof Function && resp(msgIn, out)) {
-                    if (typeof out.onFinished !== 'undefined') callback = out.onFinished;
+                    if (typeof out.onResponseProcessed !== 'undefined') callback = out.onResponseProcessed;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
             }

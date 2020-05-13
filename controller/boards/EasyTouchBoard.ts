@@ -372,7 +372,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 payload: [itm],
                 retries: 3,
                 response: true,
-                onFinished: function() { self.processNext(out); }
+                onResponseProcessed: function() { self.processNext(out); }
 /*                 response: Response.create({
                     action: this.curr.category,
                     payload: [itm],

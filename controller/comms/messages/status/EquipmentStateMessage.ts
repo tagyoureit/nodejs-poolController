@@ -29,6 +29,13 @@ export class EquipmentStateMessage {
         switch (model2) {
             case 11: // SunTouch.  Eq to IntelliCom??
                 sys.controllerType = ControllerType.IntelliCom;
+                sys.equipment.model = 'Suntouch/Intellicom';
+                sys.equipment.maxBodies = 2;
+                sys.equipment.maxFeatures = 4;
+                sys.equipment.maxValves = 2; 
+                sys.equipment.maxSchedules = 4;
+                sys.equipment.maxCircuits = 4; // 2 filter + 2 aux
+                sys.equipment.maxCircuitGroups = 0;
                 break;
             case 0:
                 sys.controllerType = ControllerType.IntelliTouch;

@@ -2186,15 +2186,17 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             ],
             0
         );
-        out.onSuccess = (msg) => {
-            csched.startTime = sched.startTime;
-            csched.endTime = sched.endTime;
-            csched.circuit = sched.circuit;
-            csched.heatSetpoint = sched.heatSetpoint;
-            csched.heatSource = sched.heatSource;
-            csched.scheduleDays = (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
-            csched.scheduleType = sched.runOnce;
-            state.emitEquipmentChanges();
+        out.onComplete = (err, msg) => {
+            if (!err){
+                csched.startTime = sched.startTime;
+                csched.endTime = sched.endTime;
+                csched.circuit = sched.circuit;
+                csched.heatSetpoint = sched.heatSetpoint;
+                csched.heatSource = sched.heatSource;
+                csched.scheduleDays = (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
+                csched.scheduleType = sched.runOnce;
+                state.emitEquipmentChanges();
+            }
         };
         conn.queueSendMessage(out); // Send it off in a letter to yourself.
     }

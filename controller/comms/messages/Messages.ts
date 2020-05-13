@@ -495,12 +495,10 @@ export class Outbound extends Message {
         let out = new Outbound(obj.protocol || Protocol.Broadcast,
             obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false);
         out.onComplete = obj.onComplete;
-        out.onError = obj.onError;
-        out.onSuccess = obj.onSuccess;
-        out.onFinished = obj.onFinished;
+        out.onResponseProcessed = obj.onResponseProcessed;
         return out;
     }
-    public static createMessage(action: number, payload: number[], retries?: number, response?: Response|boolean|Function, onSuccess?: (msg) => void, onError?: (err: Error, msg: Outbound) => void): Outbound {
+    public static createMessage(action: number, payload: number[], retries?: number, response?: Response|boolean|Function): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
 
@@ -510,10 +508,8 @@ export class Outbound extends Message {
     public timeout: number=1000;
     public response: ((msgIn: Inbound, msgOut: Outbound) => boolean)|Response|boolean;
     public failed: boolean=false;
-    public onSuccess: (msg: Inbound) => void;
-    public onError: (error: Error, msg: Inbound) => void;
     public onComplete: (error: Error, msg: Inbound) => void;
-    public onFinished: ()=>void;
+    public onResponseProcessed: ()=>void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }
