@@ -1535,16 +1535,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
                 theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-                0, undefined,
-                (msg) => {
-                    if (!msg.failed) {
-                        circuit.lightingTheme = theme;
-                        cstate.lightingTheme = theme;
-                        if (!cstate.isOn) this.setCircuitStateAsync(id, true);
-                        state.emitEquipmentChanges();
-                    }
-                }
+                0, undefined
             );
+            out.onComplete = (err, msg) => {
+                if (!err) {
+                    circuit.lightingTheme = theme;
+                    cstate.lightingTheme = theme;
+                    if (!cstate.isOn) this.setCircuitStateAsync(id, true);
+                    state.emitEquipmentChanges();
+                }
+            }
             out.appendPayloadString(circuit.name, 16);
             conn.queueSendMessage(out);
         }
@@ -2140,14 +2140,15 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let out = Outbound.createMessage(
             168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
-                , 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined,
-            (msg) => {
-                if (!msg.failed) {
+                , 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined
+            );
+            out.onComplete = (err, msg) => {
+                if (!err) {
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.emitEquipmentChanges();
                 }
-            });
+            }
         conn.queueSendMessage(out);
     }
 }
