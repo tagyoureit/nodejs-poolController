@@ -777,11 +777,13 @@ export class PumpCommands extends BoardCommands {
                     // do we have a valid combo of units and rate? -- do we need to check that or assume it will be passed in correctly?
                     if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
                         shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
+                        shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
                         shadowPumpCircuit.flow = undefined;
                         succeeded = true;
                     }
                     else {
                         shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
+                        shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
                         shadowPumpCircuit.speed = undefined;
                         succeeded = true;
                     }
@@ -850,7 +852,7 @@ export class PumpCommands extends BoardCommands {
             }
             state.pumps.removeItemById(pump.id);
             pump.type = pumpType;
-            this.setPump(pump);
+            this.setPump(pump, sys.board.valueMaps.pumpTypes.get(pumpType));
             let spump = state.pumps.getItemById(pump.id, true);
             spump.type = pump.type;
             spump.status = 0;

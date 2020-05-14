@@ -36,7 +36,7 @@ export class EasyTouchBoard extends SystemBoard {
             [9, { name: 'aux7', desc: 'AUX 7' }],
             [10, { name: 'aux8', desc: 'AUX 8' }],
             [11, { name: 'aux9', desc: 'AUX 9' }],
-            [12, { name: 'auk10', desc: 'AUX 10' }],
+            [12, { name: 'aux10', desc: 'AUX 10' }],
             [13, { name: 'backwash', desc: 'Backwash' }],
             [14, { name: 'backlight', desc: 'Back Light' }],
             [15, { name: 'bbqlight', desc: 'BBQ Light' }],
