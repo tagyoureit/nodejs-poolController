@@ -92,7 +92,7 @@ To do anything with this app, you need a client to connect to it.  A client can 
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
 Ready for 6.0;
-* None.
+* [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
 * Alpha - SmartThings integration script.  Run [this](https://github.com/tagyoureit/nodejs-poolController-webClient/tree/master/scripts) file directly from the command line.  Check the IP inside the script.
 
 Need to be updated:
