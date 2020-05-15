@@ -1,5 +1,4 @@
 /nbproject/private/
-package-lock.*
 *.log
 .coveralls*
 .idea/
