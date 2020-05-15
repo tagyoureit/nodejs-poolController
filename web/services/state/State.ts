@@ -44,9 +44,18 @@ export class StateRoute {
             state.features.setFeatureState(req.body.id, req.body.state);
             return res.status(200).send('OK');
         });
-        app.put('/state/body/heatMode', (req, res) => {
+        app.put('/state/body/heatMode', (req, res, next) => {
             // todo: is body 0/1 as in the bodies object or should we also be able to reference this by circuit; 1=spa; 6=pool, etc.
-            sys.bodies.setHeatMode(parseInt(req.body.id, 10), parseInt(req.body.mode, 10));
+            let mode = parseInt(req.body.mode, 10);
+            if (isNaN(mode)) {
+                // The user sent us a text based name.
+                let val = sys.board.valueMaps.heatModes.transformByName(req.body.mode);
+                if (typeof val.val === 'undefined') {
+                    return next(new Error(`Invalid value for heatMode: ${req.body.mode}`));
+                }
+                mode = val.val;
+            }
+            sys.bodies.setHeatMode(parseInt(req.body.id, 10), mode);
             return res.status(200).send('OK');
         });
         app.put('/state/body/setPoint', (req, res) => {

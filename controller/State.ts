@@ -115,7 +115,8 @@ export class State implements IState {
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
             mode: self.data.mode || {},
-            freeze: self.data.freeze || false
+            freeze: self.data.freeze || false,
+            appVersion: sys.appVersion || ''
         };
     }
     public emitEquipmentChanges() {
@@ -487,6 +488,13 @@ export class EquipmentState extends EqState {
     public set maxLightGroups(val: number) { this.setDataVal('maxLightGroups', val); }
     // This could be extended to include all the expansion panels but not sure why.
     public cancelDelay() { sys.board.system.cancelDelay(); }
+    public getExtended() {
+        let obj = this.get(true);
+        obj.softwareVersion = sys.equipment.controllerFirmware || "";
+        obj.bootLoaderVersion = sys.equipment.bootloaderVersion || "";
+        return obj;
+    }
+
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
     public createItem(data: any): PumpState { return new PumpState(data); }
