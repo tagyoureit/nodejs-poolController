@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -572,7 +572,27 @@ export class SystemCommands extends BoardCommands {
         }
         return sensors;
     }
-
+    public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection | string> {
+        let arr = [];
+        for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
+        return new Promise<CustomNameCollection | string>(async (resolve, reject) => {
+            try {
+                await Promise.all(arr).catch(err => reject(err));
+                resolve(sys.customNames);
+            }
+            catch (err) { reject(err); }
+        });
+    }
+    public async setCustomNameAsync(data: any): Promise<CustomName | string> {
+        return new Promise<CustomName | string>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
+            if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
+            let cname = sys.customNames.getItemById(id, true);
+            cname.name = data.name;
+            return resolve(cname);
+        });
+    }
 }
 export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body|string> {

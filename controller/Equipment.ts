@@ -454,7 +454,9 @@ export class CustomNameCollection extends EqItemCollection<CustomName> {
     public createItem(data: any): CustomName { return new CustomName(data); }
 }
 export class CustomName extends EqItem {
-    public dataName='customNameConfig';
+    public dataName = 'customNameConfig';
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get id(): number { return this.data.id; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get isActive(): boolean { return this.data.isActive; }

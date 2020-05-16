@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -127,6 +127,13 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/customNames', (req, res) => {
+            let opts = {
+                maxCustomNames: sys.equipment.maxCustomNames,
+                customNames: sys.customNames.get()
+            };
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/general', async (req, res, next) => {
@@ -222,6 +229,13 @@ export class ConfigRoute {
             try {
                 let pump = await sys.board.pumps.deletePumpAsync(req.body);
                 return res.status(200).send((pump as Pump).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/customNames', async (req, res, next) => {
+            try {
+                let names = await sys.board.system.setCustomNamesAsync(req.body);
+                return res.status(200).send((names as CustomNameCollection).toArray());
             }
             catch (err) { next(err); }
         });

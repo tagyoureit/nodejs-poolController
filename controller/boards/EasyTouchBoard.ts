@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState } from '../State';
 import { logger } from '../../logger/Logger';
@@ -530,6 +530,30 @@ class TouchSystemCommands extends SystemCommands {
                     resolve();
                 }
             });
+            conn.queueSendMessage(out);
+        });
+    }
+    public async setCustomNameAsync(data: any): Promise<CustomName | string> {
+        return new Promise<CustomName | string>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
+            if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
+            let cname = sys.customNames.getItemById(id);
+            // No need to make any changes. Just return.
+            if (cname.name == data.name) return resolve(cname);
+            let out = Outbound.create({
+                action: 202,
+                payload: [data.id - 1],
+                onComplete: (err) => {
+                    if (err) throw reject(err);
+                    else {
+                        let c = sys.customNames.getItemById(id, true);
+                        c.name = data.name;
+                        resolve(c);
+                    }
+                }
+            });
+            out.appendPayloadString(data.name, 10);
             conn.queueSendMessage(out);
         });
     }

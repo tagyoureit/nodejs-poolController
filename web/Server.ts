@@ -314,7 +314,7 @@ export class SsdpServer extends ProtoServer {
             var udn = 'uuid:806f52f4-1f35-4e33-9299-' + this.mac();
             // todo: should probably check if http/https is enabled at this point
             var port = config.getSection('web').servers.http.port || 4200;
-            console.log(port);
+            //console.log(port);
             let location = 'http://' + this.ip() + ':' + port + '/device';
             var SSDP = ssdp.Server;
             this.server = new SSDP({
