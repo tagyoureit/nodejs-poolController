@@ -86,7 +86,10 @@ export class HttpInterfaceBindings {
                         });
                     }
                     req.on('error', (err, req, res) => { logger.error(err); });
-                    if(typeof sbody !== 'undefined') req.write(sbody);
+                    if (typeof sbody !== 'undefined') {
+                        if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
+                        req.write(sbody);
+                    }
                     req.end();
 
 
