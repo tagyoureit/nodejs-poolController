@@ -12,6 +12,11 @@
   },
   "events": [
     {
+      "name": "config",
+      "description": "Vera doesn't use this payload.",
+      "enabled": false
+    },
+    {
       "name": "*",
       "description": "This will be the UPnP version when I get the services built in Vera and the only binding required.  Sends the entire emitted response.",
       "body": "@bind=data;"

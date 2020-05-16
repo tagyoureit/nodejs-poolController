@@ -291,6 +291,7 @@ export class EquipmentStateMessage {
                     msg.extractPayloadByte(15), 
                     msg.extractPayloadByte(16),
                     msg.extractPayloadByte(17));
+                sys.equipment.setEquipmentIds();
             }
             else return;
         }

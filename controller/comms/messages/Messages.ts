@@ -116,10 +116,6 @@ export class Message {
         return '{"type":"packet","packet":[' + this.toPacket().join(',') + '],"direction":"' + (this.direction === Direction.In ? 'inbound' : 'outbound') + '","level":"info","timestamp":"'
             + this.timestamp.toISOString() + '"}';
     }
-    // RG - seems like the function name is missing here.  :)
-    private(val: number) {
-        if (this.protocol !== Protocol.Chlorinator) this.header[2] = val;
-    }
     public generateResponse(resp: boolean|Response|Function): ((msgIn: Inbound, msgOut: Outbound) => boolean)|boolean|Response {
         if (typeof resp === 'undefined') { return false; }
         else if (typeof resp === 'function') {
@@ -730,7 +726,6 @@ export class Response extends Message {
     public isResponse(msgIn: Inbound, msgOut?: Outbound): boolean {
         if (typeof this.action !== 'undefined' && this.action !== null && msgIn.action !== this.action)
             return false;
-
         if (sys.controllerType === ControllerType.IntelliCenter) {
             // intellicenter packets
             for (let i = 0; i < this.payload.length; i++) {
@@ -739,85 +734,11 @@ export class Response extends Message {
                 //console.log({ msg: 'Checking response', p1: msgIn.payload[i], pd: this.payload[i] });
                 if (msgIn.payload[i] !== this.payload[i]) return false;
             }
+            return true;
         }
         else {
             let resp = msgOut.generateResponse(true) as (msgIn: Inbound, msgOut: Outbound) => boolean;
             return resp(msgIn, msgOut);
         }
-        
-        /* if (msgIn.protocol === Protocol.Pump) {
-            if (msgIn.source !== this.source || msgIn.dest !== this.dest) { return false; }
-            // pump response logic -- same across all controllers
-            if (msgIn.action === 7 && this.action === 7 && !this.payload.length) {
-                // Scenario 1.  Request for pump status.
-                //                                                    0 1  2  3   4  5  6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22
-                // Msg written:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
-                // Ack in           [165,0,96, 16, 7, 0],[1,28]
-                return true;
-            }
-            if (JSON.stringify(msgIn.payload) === JSON.stringify(this.payload)) {
-                //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
-                return true;
-            }
-            //  This is for pump direct control.  Not supperted in 6.0             
-            // //Any commands with <01> are 4 bytes.  The responses are 2 bytes.  The 3rd/4th byte of the request seem to match the 1st/2nd bytes of the response.
-            //             if (msg.source === this.source && msg.dest === this.dest && msg.header[5] === 1 && this.header[5] === 1 && msg.payload[2] === this.payload[0] && msg.payload[3] === this.payload[1]
-            //             ) {
-            //                 // Scenario 3
-            //                 // For pump response to set program 1 to 800 RPM
-            //                 //                                                0 1  2   3  4  5  6  7 8 9 10 11 12 13 14
-            //                 // Msg Writter: [165,0,16,96, 1, 2], [3,32],[1,59]
-            //                 // Ack In:      [165,0,96,16, 1, 4] ,[3,39, 3,32], [1,103]
-            //                 {
-            //                     return true;
-            //                 }
-            //             } 
-            return false;
-        }
-        else if (msgIn.protocol === Protocol.Chlorinator) {
-            //   chlorinator logic -- same across all controllers
-            //     Reponses
-            //     msg(inbound)=>resp(this)
-            //     0=>1
-            //     17=>18
-            //     21=>18
-            //     20=>3 
-                
-            //     here the "this" is the response we are expecting and "msg"
-            //     is the inbound.
-                
-
-            if (this.action !== msgIn.action) return false;
-        }
-        else if (sys.controllerType !== ControllerType.IntelliCenter) {
-            if (this.action === 252 && msgIn.action === 253) return true;
-            switch (msgIn.action) {
-                // these responses have multiple items so match the 1st payload byte
-                case 1: // ack
-                    if (msgIn.payload[0] !== msgOut.payload[0]) return false;
-                    break;
-                case 10:
-                case 11:
-                case 17:
-                    if (msgIn.action !== (msgOut.action & 63) || msgIn.payload[0] !== msgOut.payload[0]) return false;
-                    break;
-                case 252:
-                    if (msgIn.action !== 253) return false;
-                    break;
-                default:
-                    if (msgIn.action !== msgOut.action) return false;
-            }
-        }
-        else if (sys.controllerType === ControllerType.IntelliCenter) {
-            // intellicenter packets
-            for (let i = 0; i < this.payload.length; i++) {
-                if (i > msgIn.payload.length - 1)
-                    return false;
-                //console.log({ msg: 'Checking response', p1: msgIn.payload[i], pd: this.payload[i] });
-                if (msgIn.payload[i] !== this.payload[i]) return false;
-            }
-        }
-        //console.log({ msg: 'Found response', action: msgIn.action });
-        return true; */
     }
 }

@@ -18,7 +18,7 @@ export class HttpInterfaceBindings {
         // Find the binding by first looking for the specific event name.  If that doesn't exist then look for the "*" (all events).
         if (typeof this.events !== 'undefined') {
             let evts = this.events.filter(elem => elem.name === evt);
-            // If we don't have an explicitly defined event then see if thers is a default.
+            // If we don't have an explicitly defined event then see if there is a default.
             if (evts.length === 0) {
                 let e = this.events.find(elem => elem.name === '*');
                 evts = e ? [e] : [];
@@ -33,7 +33,9 @@ export class HttpInterfaceBindings {
                 let toks = {};
                 for(let i = 0; i < evts.length; i++) {
                     let e = evts[i];
+                    if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
                     let opts = extend(true, baseOpts, e.options);
+                    
                     // If we are still waiting on mdns then blow this off.
                     if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
                         logger.warn(`Interface: ${this.cfg.name} Event: ${e.name} has not resolved to a valid host.`)
@@ -129,6 +131,7 @@ export class HttpInterfaceBindings {
 }
 export class HttpInterfaceEvent {
     public name: string;
+    public enabled: boolean = true
     public options: any = {};
     public body: any = {};
     public vars: any = {};

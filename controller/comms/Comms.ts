@@ -222,7 +222,10 @@ export class SendRecieveBuffer {
     
                         }
                     // RSG - I'm not even sure this needs to be in the requiresResponse closure.  If it's set, shouldn't we just call it?
-                    if (typeof msg.onResponseProcessed !== 'undefined') setTimeout(msg.onResponseProcessed, 100);
+                    // RKS: Still not sure what this does.  We already have the onComplete.  The response callback is already being called above and in this
+                    // case I suspect that there was actually no requested response as it would have been handled by either of the two message above.
+                    if (typeof msg.onResponseProcessed === 'function') setTimeout(msg.onResponseProcessed, 100);
+                    
                     
                     conn.isRTS = true;
                     return;
