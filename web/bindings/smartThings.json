@@ -1,17 +1,13 @@
 {
   "context": {
     "name":  "SmartThings",
-    "mdnsDiscovery": {
-      "name": "smartthings._tcp.local",
-      "type": "A"
-    },
     "vars": {},
     "options": {
       "method": "NOTIFY",
       "path": "/notify",
       "headers": {
         "CONTENT-TYPE": "application/json",
-        "X-EVENT": "@bind=eventName;"
+        "X-EVENT-TYPE": "@bind=eventName;"
       }
     }
   },

@@ -697,7 +697,7 @@ class TouchCircuitCommands extends CircuitCommands {
                     if (id === 6) { sys.board.virtualChlorinatorController.start(); }
                     sys.board.virtualPumpControllers.start();
                     state.emitEquipmentChanges();
-                    resolve(cstate.get(true));
+                    resolve(cstate);
                 }
             });
             conn.queueSendMessage(out);

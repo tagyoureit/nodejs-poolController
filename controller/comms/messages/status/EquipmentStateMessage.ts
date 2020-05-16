@@ -663,7 +663,8 @@ export class EquipmentStateMessage {
             }
         }
         state.body = body;
-        // state.emitControllerChange();
+        //state.emitControllerChange();
+        state.emitEquipmentChanges();
     }
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
