@@ -46,7 +46,8 @@
           "fileName": "smartThings.json",
           "globals": {},
           "options": {
-            "host": "*"
+            "host": "127.0.0.1",
+            "port": 39500
           }
         },
         "vera": {

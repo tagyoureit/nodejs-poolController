@@ -1828,14 +1828,17 @@ export class VirtualPumpControllerCollection extends BoardCommands {
     }
 
     public start() {
-        console.log(`STARTING VIRTUAL PUMP CONTROLLER`);
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
                 sys.board.pumps.run(pump);
                 this._timers[i] = setInterval(function() { sys.board.pumps.run(pump); }, 8000);
-                state.pumps.getItemById(i, true).virtualControllerStatus = 1;
+                if (!state.pumps.getItemById(i, true).virtualControllerStatus){
+                    logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
+                    state.pumps.getItemById(i, true).virtualControllerStatus = 1;
+                }
+
             }
         }
     }

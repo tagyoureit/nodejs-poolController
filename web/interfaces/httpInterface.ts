@@ -2,7 +2,7 @@
 import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
-import extend = require("extend");
+import extend=require("extend");
 import { logger } from "../../logger/Logger";
 import { sys } from "../../controller/Equipment";
 import { state } from "../../controller/State";
@@ -26,19 +26,19 @@ export class HttpInterfaceBindings {
 
             let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
             if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
-                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`)
+                logger.warn(`Interface: ${ this.cfg.name } has not resolved to a valid host.`);
                 return;
             }
             if (evts.length > 0) {
                 let toks = {};
-                for(let i = 0; i < evts.length; i++) {
+                for (let i = 0; i < evts.length; i++) {
                     let e = evts[i];
                     if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
                     let opts = extend(true, baseOpts, e.options);
-                    
+
                     // If we are still waiting on mdns then blow this off.
                     if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
-                        logger.warn(`Interface: ${this.cfg.name} Event: ${e.name} has not resolved to a valid host.`)
+                        logger.warn(`Interface: ${ this.cfg.name } Event: ${ e.name } has not resolved to a valid host.`);
                         continue;
                     }
 
@@ -71,34 +71,34 @@ export class HttpInterfaceBindings {
                         }
                     }
                     if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
-                    opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-                    logger.verbose(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
+                    // opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
+                    logger.verbose(`Sending [${ evt }] request to ${ this.cfg.name }: ${ JSON.stringify(opts) }`);
                     let req: http.ClientRequest;
                     // We should now have all the tokens.  Put together the request.
+                    if (typeof sbody !== 'undefined') {
+                        if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
+                        opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
+                    }
                     if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                         req = https.request(opts, (response: http.IncomingMessage) => {
-                            //console.log(response);
+                            console.log(response);
                         });
                     }
                     else {
                         req = http.request(opts, (response: http.IncomingMessage) => {
-                            //console.log(response.statusCode);
+                            console.log(response.statusCode);
                         });
                     }
                     req.on('error', (err, req, res) => { logger.error(err); });
                     if (typeof sbody !== 'undefined') {
-                        if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
                         req.write(sbody);
                     }
                     req.end();
-
-
-
                 }
             }
         }
     }
-    private buildTokens(input: string, eventName: string, toks: any, e: HttpInterfaceEvent, data) : any {
+    private buildTokens(input: string, eventName: string, toks: any, e: HttpInterfaceEvent, data): any {
         toks = toks || [];
         let s = input;
         let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
@@ -110,7 +110,7 @@ export class HttpInterfaceBindings {
         while (match = regx.exec(s)) {
             let bind = match[0];
             if (typeof toks[bind] !== 'undefined') continue;
-            let tok:any = {};
+            let tok: any = {};
             toks[bind] = tok;
             tok.value = eval(bind);
             tok.reg = new RegExp("@bind=" + this.escapeRegex(bind) + ";", "g");
@@ -134,14 +134,14 @@ export class HttpInterfaceBindings {
 }
 export class HttpInterfaceEvent {
     public name: string;
-    public enabled: boolean = true
-    public options: any = {};
-    public body: any = {};
-    public vars: any = {};
+    public enabled: boolean=true;
+    public options: any={};
+    public body: any={};
+    public vars: any={};
 }
 export class HttpInterfaceContext {
     public mdnsDiscovery: any;
     public upnpDevice: any;
-    public options: any = {};
-    public vars: any = {}
+    public options: any={};
+    public vars: any={};
 }
