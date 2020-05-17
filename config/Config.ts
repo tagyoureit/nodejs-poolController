@@ -8,6 +8,9 @@ class Config {
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), "/config.json");
         try {
+            let test = fs.readFileSync(this.cfgPath, "utf8");
+            let p = JSON.parse(test);
+
             this._cfg = fs.existsSync(this.cfgPath)
                 ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8"))
                 : {};

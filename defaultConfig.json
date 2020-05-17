@@ -41,9 +41,9 @@
       "services": {},
       "interfaces": {
         "smartThings": {
-          "name": "SmartThings",
+          "name": "SmartThings/Hubitat",
           "enabled": false,
-          "fileName": "smartThings.json",
+          "fileName": "smartThings-Hubitat.json",
           "globals": {},
           "options": {
             "host": "127.0.0.1",

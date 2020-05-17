@@ -190,66 +190,64 @@ export class CircuitMessage {
         // Sample packet
         // [255, 0, 255], [165, 33, 15, 16, 11, 5], [1, 1, 72, 0, 0], [1, 63]
         const id = msg.extractPayloadByte(0);
-        if (id !== 10 && id !== 19) {
-            const functionId = msg.extractPayloadByte(1);
-            const nameId = msg.extractPayloadByte(2);
-            let _isActive = functionId !== 19 && nameId !== 0;
-            if (!sys.board.equipmentIds.invalidIds.isValidId(id)) {_isActive = false;}
-            if (_isActive) {
-                const type = functionId & 63;
-                let circuit: ICircuit = sys.circuits.getInterfaceById(id, _isActive);
-                circuit.name = sys.board.circuits.getNameById(nameId);
-                circuit.nameId = nameId;
-                circuit.type = type;
-                circuit.isActive = _isActive;
-                circuit.freeze = (functionId & 64) === 64;
-                circuit.showInFeatures = true;
-                circuit.isActive = _isActive;
-                if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
-                if ([9, 10, 16, 17].includes(circuit.type)) {
-                    const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
-                    sys.intellibrite.isActive = true;
-                    ib.isActive = true;
-                }
-                else
-                    sys.intellibrite.circuits.removeItemByCircuitId(id);
-                if (sys.board.equipmentIds.circuits.isInRange(id)) {
-                    // Circuits will be the only type that are referenced here.
-                    if (circuit.type === 0) return; // do not process if type doesn't exist
-                    let body: Body;
-                    switch (msg.extractPayloadByte(0)) {
-                        case 6: // pool
-                            body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                            body.name = "Pool";
-                            circuit.type === 2 ? body.isActive = true : body.isActive = false;
-                            sys.board.virtualChlorinatorController.start();
-                            break;
-                        case 1: // spa
-                            body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                            body.name = "Spa";
-                            // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
-                            // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.
-                            circuit.type === 1 ? body.isActive = true : body.isActive = false;
-                            break;
-                    }
-                }
-                else {
-                    // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
-
-                    // feature specific logic
-                    circuit.macro = (functionId & 128) === 128;
+        const functionId = msg.extractPayloadByte(1);
+        const nameId = msg.extractPayloadByte(2);
+        let _isActive = functionId !== 19 && nameId !== 0;
+        if (!sys.board.equipmentIds.invalidIds.isValidId(id)) { _isActive = false; }
+        if (_isActive) {
+            const type = functionId & 63;
+            let circuit: ICircuit = sys.circuits.getInterfaceById(id, _isActive);
+            circuit.name = sys.board.circuits.getNameById(nameId);
+            circuit.nameId = nameId;
+            circuit.type = type;
+            circuit.isActive = _isActive;
+            circuit.freeze = (functionId & 64) === 64;
+            circuit.showInFeatures = true;
+            circuit.isActive = _isActive;
+            if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
+            if ([9, 10, 16, 17].includes(circuit.type)) {
+                const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
+                sys.intellibrite.isActive = true;
+                ib.isActive = true;
+            }
+            else
+                sys.intellibrite.circuits.removeItemByCircuitId(id);
+            if (sys.board.equipmentIds.circuits.isInRange(id)) {
+                // Circuits will be the only type that are referenced here.
+                if (circuit.type === 0) return; // do not process if type doesn't exist
+                let body: Body;
+                switch (msg.extractPayloadByte(0)) {
+                    case 6: // pool
+                        body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                        body.name = "Pool";
+                        circuit.type === 2 ? body.isActive = true : body.isActive = false;
+                        sys.board.virtualChlorinatorController.start();
+                        break;
+                    case 1: // spa
+                        body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+                        body.name = "Spa";
+                        // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
+                        // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.
+                        circuit.type === 1 ? body.isActive = true : body.isActive = false;
+                        break;
                 }
             }
             else {
-                if (sys.intellibrite.circuits.length === 0){
-                    sys.intellibrite.isActive = false;
-                }
-                sys.features.removeItemById(id);
-                state.features.removeItemById(id);
-                sys.circuits.removeItemById(id);
-                state.circuits.removeItemById(id);
-                sys.circuitGroups.removeItemById(id);
+                // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
+
+                // feature specific logic
+                circuit.macro = (functionId & 128) === 128;
             }
+        }
+        else {
+            if (sys.intellibrite.circuits.length === 0) {
+                sys.intellibrite.isActive = false;
+            }
+            sys.features.removeItemById(id);
+            state.features.removeItemById(id);
+            sys.circuits.removeItemById(id);
+            state.circuits.removeItemById(id);
+            sys.circuitGroups.removeItemById(id);
         }
     }
 }

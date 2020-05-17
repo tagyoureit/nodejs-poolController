@@ -134,7 +134,7 @@ export class EquipmentStateMessage {
                     case 2:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
-                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxCircuits = 6;
                         sys.equipment.maxFeatures = 2;
                         sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
                         sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
@@ -142,7 +142,7 @@ export class EquipmentStateMessage {
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
-                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxCircuits = 6;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 2;
                         sys.board.equipmentIds.invalidIds.add(1); // exclude spa
@@ -174,11 +174,11 @@ export class EquipmentStateMessage {
                     case 2: // check...
                         sys.equipment.model = 'EasyTouch1 4';
                         sys.equipment.maxBodies = 2;
-                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxCircuits = 6;
                         break;
                     case 3: // check...
                         sys.equipment.model = 'EasyTouch1 4P';
-                        sys.equipment.maxCircuits = 4;
+                        sys.equipment.maxCircuits = 6;
                         break;
                 }
                 break;

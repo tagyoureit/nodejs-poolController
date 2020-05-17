@@ -81,12 +81,12 @@ export class HttpInterfaceBindings {
                     }
                     if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                         req = https.request(opts, (response: http.IncomingMessage) => {
-                            console.log(response);
+                            //console.log(response);
                         });
                     }
                     else {
                         req = http.request(opts, (response: http.IncomingMessage) => {
-                            console.log(response.statusCode);
+                            //console.log(response.statusCode);
                         });
                     }
                     req.on('error', (err, req, res) => { logger.error(err); });
