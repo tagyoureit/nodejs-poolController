@@ -141,12 +141,17 @@ export class EquipmentStateMessage {
                         sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
                         break;
                     case 3:
+                        /*  RG 5/2020
+                        Per #167, updated the number of maxCircuits for EasyTouch2 4*.
+                        It was originally set as 4 (with Id's 1-4) but with pool id=6
+                        that clearly was wrong.  Not sure if they go 2-6 or 2-7 or something else.
+                        */
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 6;
                         sys.equipment.maxBodies = 1; // All Ps are single body
                         sys.equipment.maxFeatures = 2;
                         sys.board.equipmentIds.invalidIds.add(1); // exclude spa
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        // sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
                         sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
                         sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
                         break;
@@ -216,6 +221,7 @@ export class EquipmentStateMessage {
         state.equipment.model = sys.equipment.model;
         state.equipment.controllerType = sys.controllerType;
         ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
+        sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         // shared equipment frees up one physical circuit
         sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
         state.equipment.maxBodies = sys.equipment.maxBodies;
