@@ -636,8 +636,9 @@ class TouchBodyCommands extends BodyCommands {
     }
 }
 class TouchCircuitCommands extends CircuitCommands {
-    public getLightThemes(type: number): any[] {
+    public getLightThemes(type?: number): any[] {
         let themes = sys.board.valueMaps.lightThemes.toArray();
+        if (typeof type === 'undefined') return themes;
         switch (type) {
             case 8: // Magicstream
                 return themes.filter(theme => theme.type === 'magicstream'); 

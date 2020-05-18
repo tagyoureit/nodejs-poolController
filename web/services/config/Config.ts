@@ -63,8 +63,13 @@ export class ConfigRoute {
                 themes: sys.board.circuits.getLightThemes(),
                 colors: sys.board.valueMaps.lightColors.toArray(),
                 circuits: sys.board.circuits.getLightReferences(),
-                lightGroups: sys.lightGroups.get()
+                lightGroups: sys.lightGroups.get(),
+                functions: sys.board.circuits.getCircuitFunctions()
             };
+            if (sys.controllerType.toLowerCase().includes('touch')){
+                //TODO: remove when Intellibrite is migrated to light groups
+                opts['lightGroups'] = [sys.intellibrite.getExtended()];
+            }
             return res.status(200).send(opts);
         });
         app.get('/config/options/features', (req, res) => {
