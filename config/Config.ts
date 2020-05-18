@@ -5,37 +5,25 @@ import { logger } from "../logger/Logger";
 class Config {
     private cfgPath: string;
     private _cfg: any;
+    private _isInitialized: boolean = false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), "/config.json");
+        // RKS 05-18-20: This originally had multiple points of failure where it was not in the try/catch.
         try {
-            let test = fs.readFileSync(this.cfgPath, "utf8");
-            let p = JSON.parse(test);
-
-            this._cfg = fs.existsSync(this.cfgPath)
-                ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8"))
-                : {};
+            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
+            const def = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8").trim());
+            const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
+            this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
+            this._isInitialized = true;
         } catch (err) {
-            console.log(`Error reading config.json.  Setting to {}.`);
-            this._cfg = {};
+            console.log(`Error reading configuration information.  Aborting startup: ${err}`);
+            // Rethrow this error so we exit the app with the appropriate pause in the console.
+            throw err;
         }
-        const def = JSON.parse(
-            fs
-                .readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8")
-                .trim()
-        );
-        const packageJson = JSON.parse(fs
-            .readFileSync(path.join(process.cwd(), "/package.json"), "utf8")
-            .trim());
-        this._cfg = extend(true, {}, def, this._cfg, {appVersion: packageJson.version});
     }
     public update() {
         // Don't overwrite the configuration if we failed during the initialization.
-        if (
-            typeof this._cfg === "undefined" ||
-            !this._cfg === null ||
-            typeof this._cfg.appVersion === "undefined"
-        )
-            return;
+        if (!this._isInitialized) return;
         return fs.writeFile(
             this.cfgPath,
             JSON.stringify(this._cfg, undefined, 2),

@@ -1267,13 +1267,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                                 let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
                                 c.circuit = obj.circuits[i].circuit;
                                 c.swimDelay = obj.circuits[i].swimDelay;
-                                console.log(c);
                             }
                             group.circuits.length = obj.circuits.length;
                         }
                         resolve();
                     }
-
                 }
             });
             // Add in all the info for the circuits.

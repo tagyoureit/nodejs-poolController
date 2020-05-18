@@ -418,7 +418,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     public createItem(data: any): T { return (new EqItem(data) as unknown) as T; }
     public clear() { this.data.length = 0; }
     public get length(): number { return typeof this.data !== 'undefined' ? this.data.length : 0; }
-    public set length(val: number) { if (typeof (length) !== 'undefined') this.data.length = val; }
+    public set length(val: number) { if (typeof val !== 'undefined' && typeof this.data !== 'undefined') this.data.length = val; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
     public get(): any { return this.data; }
     public emitEquipmentChange() { webApp.emitToClients(this.name, this.data); }

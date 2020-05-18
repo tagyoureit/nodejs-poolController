@@ -438,24 +438,30 @@ export const webApp = new WebServer();
 export class HttpInterfaceServer extends ProtoServer {
     public bindingsPath: string;
     public bindings: HttpInterfaceBindings;
+    private _fileTime: Date = new Date(0);
+    private _isLoading: boolean = false;
     public init(cfg) {
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
         }
     }
     public loadBindings(cfg): boolean {
+        this._isLoading = true;
         if (fs.existsSync(this.bindingsPath)) {
             try {
                 let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
                 let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
                 this.bindings = Object.assign<HttpInterfaceBindings, any>(new HttpInterfaceBindings(cfg), ext);
                 this.isRunning = true;
+                this._isLoading = false;
+                const stats = fs.statSync(this.bindingsPath);
+                this._fileTime = stats.mtime;
                 return true;
             }
             catch (err) {
                 logger.error(`Error reading interface bindings file: ${this.bindingsPath}. ${err}`);
                 this.isRunning = false;
-                return false;
+                this._isLoading = false;
             }
         }
         return false;
@@ -464,7 +470,16 @@ export class HttpInterfaceServer extends ProtoServer {
         let self = this;
         try {
             this.bindingsPath = path.posix.join(process.cwd(), "/web/bindings") + '/' + cfg.fileName;
-            fs.watch(this.bindingsPath, (event, file) => { self.loadBindings(cfg); });
+            let fileTime = new Date(0).valueOf();
+            fs.watch(this.bindingsPath, (event, fileName) => {
+                if (fileName && event === 'change') {
+                    if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                    const stats = fs.statSync(self.bindingsPath);
+                    if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
+                    self.loadBindings(cfg);
+                    logger.info(`Reloading ${cfg.name || ''} interface config: ${fileName}`);
+                }
+            });
             this.loadBindings(cfg);
             if (this.bindings.context.mdnsDiscovery) {
                 let srv = webApp.mdnsServer;
