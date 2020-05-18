@@ -1172,10 +1172,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             resolve(grp);
         });
     }
-    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup | string> {
+    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
         let id = parseInt(obj.id, 10);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid circuit group id: ${obj.id}`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) Promise.reject(new Error(`Invalid circuit group id: ${obj.id}`));
         group = sys.circuitGroups.getItemById(id);
         let arr = [];
         arr.push(new Promise((resolve, reject) => {
@@ -1227,12 +1227,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             for (let i = 0; i < 16; i++) out.payload.push(0);
             conn.queueSendMessage(out);
         }));
-        return new Promise<CircuitGroup | string>(async (resolve, reject) => {
+        return new Promise<CircuitGroup>(async (resolve, reject) => {
             await Promise.all(arr);
             resolve(group);
         });
     }
-    public async setLightGroupAsync(obj: any): Promise<LightGroup | string> {
+    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
         let group: LightGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1244,7 +1244,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             group = sys.lightGroups.getItemById(id, false);
         }
         if (typeof id === 'undefined') throw new Error(`Max light group ids exceeded`);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new Error(`Invalid light group id: ${obj.id}`);
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         let arr = [];
         arr.push(new Promise((resolve, reject) => {
             let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
@@ -1255,22 +1255,23 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme : obj.lightingTheme;
             let out = Outbound.create({
                 action: 168,
-                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, (theme << 2) + 1, 0],
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0],
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
-                        resolve();
                         group.eggTimer = eggTimer;
-                        group.type = 2;
+                        group.type = 1;
                         group.lightingTheme = theme;
-
                         if (typeof obj.circuits !== 'undefined') {
                             for (let i = 0; i < obj.circuits.length; i++) {
                                 let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-                                c.circuit = obj.circuits[i];
+                                c.circuit = obj.circuits[i].circuit;
+                                c.swimDelay = obj.circuits[i].swimDelay;
+                                console.log(c);
                             }
                             group.circuits.length = obj.circuits.length;
                         }
+                        resolve();
                     }
 
                 }
@@ -1293,7 +1294,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 for (let i = 0; i < 16; i++) {
                     if (i < obj.circuits.length) {
                         let c = parseInt(obj.circuits[i].circuit, 10);
-                        out.payload.push(!isNaN(c) ? c : 255);
+                        out.payload.push(!isNaN(c) ? c - 1 : 255);
                     }
                     else out.payload.push(255);
                 }
@@ -1322,9 +1323,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     }
                 }
             });
-            for (let i = 0; i < 15; i++) out.payload.push(255);
+            for (let i = 0; i < 16; i++) out.payload.push(255);
             out.payload[3] = 10;
-            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name);
+            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
             conn.queueSendMessage(out);
         }));
         arr.push(new Promise((resolve, reject) => {
@@ -1333,11 +1334,24 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
                 onComplete: (err, msg) => {
                     if (err) reject(err);
-                    else { resolve(); }
+                    else {
+                        if (typeof obj.circuits !== 'undefined') {
+                            for (let i = 0; i < obj.circuits.length; i++) {
+                                let circ = group.circuits.getItemByIndex(i, false);
+                                let color = 0;
+                                if (i < obj.circuits.length) {
+                                    color = parseInt(obj.circuits[i].color, 10);
+                                    if (isNaN(color)) { color = circ.color || 0; }
+                                }
+                                circ.color = color;
+                            }
+                        }
+                        resolve();
+                    }
                 }
             });
             if (typeof obj.circuits !== 'undefined') {
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 16; i++) {
                     let color = 0;
                     if (i < obj.circuits.length) {
                         color = parseInt(obj.circuits[i].color, 10);
@@ -1345,17 +1359,17 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                             color = group.circuits.getItemByIndex(i, false).color;
                         }
                     }
-                    out.payload.push(0);
+                    out.payload.push(color);
                 }
             }
             else {
-                for (let i = 0; i < 15; i++) {
+                for (let i = 0; i < 16; i++) {
                     out.payload.push(group.circuits.getItemByIndex(i, false).color);
                 }
             }
             conn.queueSendMessage(out);
         }));
-        return new Promise<LightGroup | string>(async (resolve, reject) => {
+        return new Promise<LightGroup>(async (resolve, reject) => {
             await Promise.all(arr);
             resolve(group);
         });

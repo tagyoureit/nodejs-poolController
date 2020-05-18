@@ -215,7 +215,6 @@ export class ConfigRoute {
             catch (err) { next(err); }
         });
         app.put('/config/lightGroup', async (req, res, next) => {
-            // add/update a lightGroup
             try {
                 let group = await sys.board.circuits.setLightGroupAsync(req.body);
                 return res.status(200).send((group as LightGroup).get(true));

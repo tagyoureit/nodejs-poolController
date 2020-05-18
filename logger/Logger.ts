@@ -93,6 +93,7 @@ class Logger {
     }
     public clearMessages() {
         if (fs.existsSync(logger.pktPath)) {
+            logger.info(`Clearing message log: ${logger.pktPath}`);
             fs.truncateSync(logger.pktPath, 0);
         }
     }
