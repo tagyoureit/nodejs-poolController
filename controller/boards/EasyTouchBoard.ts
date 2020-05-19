@@ -149,17 +149,21 @@ export class EasyTouchBoard extends SystemBoard {
             [5, { name: 'hybrid', desc: 'hybrid' }]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
-            [1, { name: 'sun', desc: 'Sunday', dow: 1 }],
-            [2, { name: 'mon', desc: 'Monday', dow: 2 }],
-            [4, { name: 'tue', desc: 'Tuesday', dow: 4 }],
-            [8, { name: 'wed', desc: 'Wednesday', dow: 8 }],
-            [16, { name: 'thu', desc: 'Thursday', dow: 16 }],
-            [32, { name: 'fri', desc: 'Friday', dow: 32 }],
-            [64, { name: 'sat', desc: 'Saturday', dow: 64 }]
+            [1, { name: 'sun', desc: 'Sunday', dow: 0 }],
+            [2, { name: 'mon', desc: 'Monday', dow: 1 }],
+            [4, { name: 'tue', desc: 'Tuesday', dow: 2 }],
+            [8, { name: 'wed', desc: 'Wednesday', dow: 3 }],
+            [16, { name: 'thu', desc: 'Thursday', dow: 4 }],
+            [32, { name: 'fri', desc: 'Friday', dow: 5 }],
+            [64, { name: 'sat', desc: 'Saturday', dow: 6 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'repeat', desc: 'Repeats' }],
             [128, { name: 'runonce', desc: 'Run Once' }]
+        ]);
+        this.valueMaps.featureFunctions = new byteValueMap([
+            [0, { name: 'generic', desc: 'Generic' }], 
+            [14, { name: 'spillway', desc: 'Spillway' }]
         ]);
         this.valueMaps.msgBroadcastActions.merge([
             [5, { name: 'dateTime', desc: 'Date/Time' }],
