@@ -146,8 +146,8 @@ export class byteValueMaps {
     public circuitFunctions: byteValueMap=new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa' }],
+        [2, { name: 'pool', desc: 'Pool' }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
-        [6, { name: 'pool', desc: 'Pool' }],
         [7, { name: 'light', desc: 'Light', isLight: true }],
         [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
         [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
