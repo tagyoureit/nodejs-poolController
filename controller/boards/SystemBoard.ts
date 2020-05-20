@@ -408,7 +408,8 @@ export class byteValueMaps {
         [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
     ]);
     public clockSources: byteValueMap=new byteValueMap([
-        [1, { name: 'manual', desc: 'Manual' }]
+        [1, { name: 'manual', desc: 'Manual' }],
+        [2, { name: 'server', desc: 'Server' }]
     ]);
     public clockModes: byteValueMap=new byteValueMap([
         [12, { name: '12 Hour' }],
