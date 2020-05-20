@@ -220,12 +220,14 @@ export class CircuitMessage {
                     case 6: // pool
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                         body.name = "Pool";
+                        body.type = 1;
                         circuit.type === 2 ? body.isActive = true : body.isActive = false;
                         sys.board.virtualChlorinatorController.start();
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                         body.name = "Spa";
+                        body.type = 0;
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
                         // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.
                         circuit.type === 1 ? body.isActive = true : body.isActive = false;

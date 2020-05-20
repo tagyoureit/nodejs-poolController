@@ -46,9 +46,9 @@ export class IntelliCenterBoard extends SystemBoard {
             [5, { name: 'hybrid', desc: 'hybrid' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false }],
-            [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false }],
-            [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 40, hasAddress: false }],
+            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody:false }],
+            [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody:true }],
+            [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody:true }],
             [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
             [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
             [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }]
@@ -69,6 +69,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
             [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
+        // Keep this around for now so I can fart with the custom names array.
+        //this.valueMaps.customNames = new byteValueMap(
+        //    sys.customNames.get().map((el, idx) => {
+        //        return [idx + 200, { name: el.name, desc: el.name }];
+        //    })
+        //);
         this.valueMaps.scheduleDays.toArray = function () {
             let arrKeys = Array.from(this.keys());
             let arr = [];
@@ -1851,83 +1857,110 @@ class IntelliCenterPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump | string> {
+    public async setPumpAsync(data: any): Promise<Pump> {
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
-        if (isNaN(id)) throw new Error(`Invalid pump id: ${data.id}`);
-        else if (id >= sys.equipment.maxPumps) throw new Error(`Pump id out of range: ${data.id}`);
+        if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
+        else if (id >= sys.equipment.maxPumps) return Promise.reject(new Error(`Pump id out of range: ${data.id}`));
         // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
         // get it from the current pump configuration.
         let pump = sys.pumps.getItemById(id, false);
         let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
         // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
         // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
-        if (isNaN(ntype) || ntype <= 0) throw new Error(`Invalid pump type: ${data.id} - ${data.type}`);
+        if (isNaN(ntype) || ntype <= 0) return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${data.type}`));
         let type = sys.board.valueMaps.pumpTypes.transform(ntype);
-        if (typeof type.name === 'undefined') throw new Error(`Invalid pump type: ${data.id} - ${ntype}`);
+        if (typeof type.name === 'undefined') return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${ntype}`));
         // Build out our messsages. We are merging data together so that the data items from the current config can be overridden.  If they are not
         // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
         // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
         // the endpoint capability is.
         let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, ntype, 0] });
-        outc.appendPayloadByte(parseInt(data.address, 10), id + 95);
-        outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);
-        outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);
-        outc.appendPayloadByte(parseInt(data.minFlow, 10), pump.minFlow);
-        outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);
-        outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize);
-        outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed);
-        outc.appendPayloadByte(parseInt(data.speedStepSize, 10), pump.speedStepSize);
-        outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime);
-        outc.appendPayloadByte(5); // Not sure what this value is but it is always 5.
-        outc.appendPayloadBytes(255, 8);
-        outc.appendPayloadBytes(0, 8);
-
+        outc.appendPayloadByte(parseInt(data.address, 10), id + 95);        // 5
+        outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);  // 6
+        outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);  // 8
+        outc.appendPayloadByte(parseInt(data.minFlow, 10), pump.minFlow);   // 10
+        outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);   // 11
+        outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize); // 12
+        outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed);  // 13
+        outc.appendPayloadInt(parseInt(data.speedStepSize, 10), pump.speedStepSize);   // 15
+        outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime);   // 17
+        outc.appendPayloadBytes(255, 8);    // 18
+        outc.appendPayloadBytes(0, 8);      // 26
         let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
         outn.appendPayloadBytes(0, 16);
         outn.appendPayloadString(data.name, 16, pump.name || type.name);
-        // Add in all the circuits
-        if (data.circuits === 'undefined') {
-            // The endpoint isn't changing the circuits and is just setting the attributes.
-            for (let i = 0; i < 8; i++) {
-                let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
-                outc.setPayloadByte(i + 18, circ.circuit);
+        if (type.name === 'ss') {
+            outc.setPayloadByte(5, 0); // Clear the pump address
+
+            // At some point we may add these to the pump model.
+            outc.setPayloadInt(6, type.minSpeed, 450);  
+            outc.setPayloadInt(8, type.maxSpeed, 3450);
+            outc.setPayloadByte(10, type.minFlow, 0);
+            outc.setPayloadByte(11, type.maxFlow, 130);
+            outc.setPayloadByte(12, 1);
+            outc.setPayloadInt(13, type.primingSpeed, 2500);
+            outc.setPayloadByte(15, 10);
+            outc.setPayloadByte(16, 1);
+            outc.setPayloadByte(17, 5);
+            outc.setPayloadByte(18, data.body, pump.body);
+            outc.setPayloadByte(26, 0);
+            outn.setPayloadInt(3, 0);
+            for (let i = 1; i < 8; i++) {
+                outc.setPayloadByte(i + 18, 255);
+                outc.setPayloadByte(i + 26, 0);
+                outn.setPayloadInt((i * 2) + 3, 1000);
             }
         }
         else {
-            if (typeof type.maxCircuits !== 'undefined' && type.maxCirciuts > 0) {
+            
+            // All of these pumps potentially have circuits.
+            // Add in all the circuits
+            if (data.circuits === 'undefined') {
+                // The endpoint isn't changing the circuits and is just setting the attributes.
                 for (let i = 0; i < 8; i++) {
                     let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
-                    if (i >= data.circuits.length) {
-                        // The incoming data does not include this circuit.
-                        outc.setPayloadByte(i + 18, 255);
-                        if (typeof type.minSpeed !== 'undefined')
-                            outn.setPayloadInt((i * 2) + 3, type.minSpeed);
-                        else if (typeof type.minFlow !== 'undefined') {
-                            outn.setPayloadInt((i * 2) + 3, type.minFlow);
-                            outc.setPayloadByte(i + 26, 1);
+                    outc.setPayloadByte(i + 18, circ.circuit);
+                }
+            }
+            else {
+                if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0) {
+                    for (let i = 0; i < 8; i++) {
+                        let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
+                        if (i >= data.circuits.length) {
+                            // The incoming data does not include this circuit so we will set it to 255.
+                            outc.setPayloadByte(i + 18, 255);
+                            if (typeof type.minSpeed !== 'undefined')
+                                outn.setPayloadInt((i * 2) + 3, type.minSpeed);
+                            else if (typeof type.minFlow !== 'undefined') {
+                                outn.setPayloadInt((i * 2) + 3, type.minFlow);
+                                outc.setPayloadByte(i + 26, 1);
+                            }
+                            else
+                                outn.setPayloadInt((i * 2) + 3, 0);
                         }
-                        else
-                            outn.setPayloadInt(i + 3, 0);
-                    }
-                    else {
-                        let c = data.circuits[i];
-                        let speed = parseInt(c.speed, 10);
-                        let flow = parseInt(c.flow, 10);
-                        let circuit = i < type.maxCircuits ? parseInt(c.circuit, 10) : 256;
-                        outn.setPayloadByte(i + 18, circuit - 1, circ.circuit - 1);
-                        if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
-                            outc.setPayloadByte(i + 26, 0); // Set to rpm
-                            outn.setPayloadInt((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed);
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
-                            outc.setPayloadByte(i + 26, 1); // Set to gpm
-                            outn.setPayloadInt((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow);
+                        else {
+                            let c = data.circuits[i];
+                            let speed = parseInt(c.speed, 10);
+                            let flow = parseInt(c.flow, 10);
+                            let circuit = i < type.maxCircuits ? parseInt(c.circuit, 10) : 256;
+                            let units = parseInt(c.units, 10);
+                            if (isNaN(units)) units = 0;
+                            if (type.name === 'vs') units = 0;
+                            else if (type.name === 'vf') units = 1;
+                            outc.setPayloadByte(i + 18, circuit - 1, circ.circuit - 1);
+                            if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
+                                outc.setPayloadByte(i + 26, 0); // Set to rpm
+                                outn.setPayloadInt((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed);
+                            }
+                            else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
+                                outc.setPayloadByte(i + 26, 1); // Set to gpm
+                                outn.setPayloadInt((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow);
+                            }
                         }
                     }
                 }
             }
         }
-
         // We now have our messages.  Let's send them off and update our values.
         let arr = [];
         arr.push(new Promise((resolve, reject) => {
@@ -1936,20 +1969,45 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 else {
                     // We have been successful so lets set our pump with the new data.
                     let pump = sys.pumps.getItemById(id, true);
-                    pump.type = type;
-                    if (typeof data.address !== 'undefined') pump.address = data.address;
-                    if (typeof data.primingTime !== 'undefined') pump.primingTime = parseInt(data.primingTime, 10);
-                    if (typeof data.primingSpeed !== 'undefined') pump.primingSpeed = parseInt(data.primingSpeed, 10);
-                    if (typeof data.minSpeed !== 'undefined') pump.minSpeed = parseInt(data.minSpeed, 10);
-                    if (typeof data.maxSpeed !== 'undefined') pump.maxSpeed = parseInt(data.maxSpeed, 10);
-                    if (typeof data.minFlow !== 'undefined') pump.minFlow = parseInt(data.minFlow, 10);
-                    if (typeof data.maxFlow !== 'undefined') pump.maxFlow = parseInt(data.maxFlow, 10);
-                    if (typeof data.flowStepSize !== 'undefined') pump.flowStepSize = parseInt(data.flowStepSize, 10);
-                    if (typeof data.speedStepSize !== 'undefined') pump.speedStepSize = parseInt(data.speedStepSize, 10);
-                    if (typeof data.circuits !== 'undefined') {
+                    let spump = state.pumps.getItemById(id, true);
+                    spump.type = pump.type = ntype;
+                    if (typeof data.model !== 'undefined') pump.model = data.model;
+                    if (type.name === 'ss') {
+                        pump.address = undefined;
+                        pump.primingTime = 0;
+                        pump.primingSpeed = type.primingSpeed || 2500;
+                        pump.minSpeed = type.minSpeed || 450;
+                        pump.maxSpeed = type.maxSpeed || 3450;
+                        pump.minFlow = type.minFlow, 0;
+                        pump.maxFlow = type.maxFlow, 130;
+                        pump.circuits.clear();
+                        if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
+                    }
+                    else if (type.name === 'ds') {
+                        pump.address = undefined;
+                        pump.primingTime = 0;
+                        pump.primingSpeed = type.primingSpeed || 2500;
+                        pump.minSpeed = type.minSpeed || 450;
+                        pump.maxSpeed = type.maxSpeed || 3450;
+                        pump.minFlow = type.minFlow, 0;
+                        pump.maxFlow = type.maxFlow, 130;
+                        if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
+                    }
+                    else {
+                        if (typeof data.address !== 'undefined') pump.address = data.address;
+                        if (typeof data.primingTime !== 'undefined') pump.primingTime = parseInt(data.primingTime, 10);
+                        if (typeof data.primingSpeed !== 'undefined') pump.primingSpeed = parseInt(data.primingSpeed, 10);
+                        if (typeof data.minSpeed !== 'undefined') pump.minSpeed = parseInt(data.minSpeed, 10);
+                        if (typeof data.maxSpeed !== 'undefined') pump.maxSpeed = parseInt(data.maxSpeed, 10);
+                        if (typeof data.minFlow !== 'undefined') pump.minFlow = parseInt(data.minFlow, 10);
+                        if (typeof data.maxFlow !== 'undefined') pump.maxFlow = parseInt(data.maxFlow, 10);
+                        if (typeof data.flowStepSize !== 'undefined') pump.flowStepSize = parseInt(data.flowStepSize, 10);
+                        if (typeof data.speedStepSize !== 'undefined') pump.speedStepSize = parseInt(data.speedStepSize, 10);
+                    }
+                    if (typeof data.circuits !== 'undefined' && type.name !== 'undefined') {
                         // Set all the circuits
                         for (let i = 0; i < 8; i++) {
-                            if (i < data.circuits.length) pump.circuits.removeItemByIndex(i);
+                            if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
                             else {
                                 let c = data.circuits[i];
                                 let circuitId = parseInt(c.circuit, 10);
@@ -1957,7 +2015,12 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                 else {
                                     let circ = pump.circuits.getItemByIndex(i, true);
                                     circ.circuit = circuitId;
-                                    circ.units = parseInt(c.units, 10);
+                                    if (type.name === 'ds') circ.units = undefined;
+                                    else {
+                                        // Need to validate this earlier.
+                                        let units = c.units !== 'undefined' ? parseInt(c.units, 10) : 0
+                                        circ.units = units;
+                                    }
                                 }
                             }
                         }
@@ -1973,38 +2036,95 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 else {
                     // We have been successful so lets set our pump with the new data.
                     let pump = sys.pumps.getItemById(id, true);
-                    pump.type = type;
-                    if (typeof data.circuits !== 'undefined') {
-                        // Set all the circuits
-                        for (let i = 0; i < 8; i++) {
-                            if (i < data.circuits.length) pump.circuits.removeItemByIndex(i);
-                            else {
-                                let c = data.circuits[i];
-                                let circuitId = typeof c.circuit !== 'undefined' ? parseInt(c.circuit, 10) : pump.circuits.getItemById(i, false).circuit;
-                                let circ = pump.circuits.getItemByIndex(i, true);
-                                circ.circuit = circuitId;
-                                circ.units = parseInt(c.units || circ.units, 10);
-                                let speed = parseInt(c.speed, 10);
-                                let flow = parseInt(c.flow, 10);
-                                if (isNaN(speed)) speed = type.minSpeed || 0;
-                                if (isNaN(flow)) flow = type.minFlow || 0;
-                                if (circ.units === 1 && typeof type.minFlow !== 'undefined')
-                                    circ.flow = Math.max(flow, circ.flow);
-                                else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
-                                    circ.speed = Math.max(speed, circ.speed);
+                    let spump = state.pumps.getItemById(id, true);
+                    if (typeof data.name !== 'undefined') spump.name = pump.name = data.name;
+                    spump.type = pump.type = ntype;
+                    if (type.name !== 'ss') {
+                        if (typeof data.circuits !== 'undefined') {
+                            // Set all the circuits
+                            for (let i = 0; i < 8; i++) {
+                                if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
+                                else {
+                                    let c = data.circuits[i];
+                                    let circuitId = typeof c.circuit !== 'undefined' ? parseInt(c.circuit, 10) : pump.circuits.getItemById(i, false).circuit;
+                                    let circ = pump.circuits.getItemByIndex(i, true);
+                                    circ.circuit = circuitId;
+                                    circ.units = parseInt(c.units || circ.units, 10);
+                                    let speed = parseInt(c.speed, 10);
+                                    let flow = parseInt(c.flow, 10);
+                                    if (isNaN(speed)) speed = type.minSpeed || 0;
+                                    if (isNaN(flow)) flow = type.minFlow || 0;
+                                    if (circ.units === 1 && typeof type.minFlow !== 'undefined')
+                                        circ.flow = Math.max(flow, circ.flow);
+                                    else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
+                                        circ.speed = Math.max(speed, circ.speed);
+                                }
                             }
                         }
                     }
+                    state.emitEquipmentChanges();
                     resolve();
                 }
             };
             conn.queueSendMessage(outn);
         }));
-        return new Promise<Pump | string>(async (resolve, reject) => {
+        return new Promise<Pump>(async (resolve, reject) => {
             await Promise.all(arr);
             resolve(sys.pumps.getItemById(id));
         });
     }
+    public async deletePumpAsync(data: any): Promise<Pump> {
+        let id = parseInt(data.id);
+        if (isNaN(id)) return Promise.reject(new Error(`Cannot Delete Pump, Invalid pump id: ${data.id}`));
+        // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
+        // get it from the current pump configuration.
+        let pump = sys.pumps.getItemById(id, false);
+        if (typeof pump.type === 'undefined') return Promise.reject(new Error(`Pump #${data.id} does not exist in configuration`));
+        let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, 0, 0, id + 95] });
+        outc.appendPayloadInt(450);  // 6
+        outc.appendPayloadInt(3450);  // 8
+        outc.appendPayloadByte(15);   // 10
+        outc.appendPayloadByte(130);   // 11
+        outc.appendPayloadByte(1); // 12
+        outc.appendPayloadInt(1000);  // 13
+        outc.appendPayloadInt(10);   // 15
+        outc.appendPayloadByte(5);   // 17
+        outc.appendPayloadBytes(255, 8);    // 18
+        outc.appendPayloadBytes(0, 8);      // 26
+        let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
+        outn.appendPayloadBytes(0, 16);
+        outn.appendPayloadString('Pump -' + (id + 1));
+        // We now have our messages.  Let's send them off and update our values.
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            outc.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    // We have been successful so lets set our pump with the new data.
+                    sys.pumps.removeItemById(id);
+                    state.pumps.removeItemById(id);
+                    resolve();
+                }
+            };
+            conn.queueSendMessage(outc);
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            outn.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    // We have been successful so lets set our pump with the new data.
+                    state.emitEquipmentChanges();
+                    resolve();
+                }
+            };
+            conn.queueSendMessage(outn);
+        }));
+        return new Promise<Pump>(async (resolve, reject) => {
+            await Promise.all(arr);
+            resolve(sys.pumps.getItemById(id));
+        });
+    }
+
 }
 class IntelliCenterBodyCommands extends BodyCommands {
     public async setBodyAsync(obj: any): Promise<Body | string> {

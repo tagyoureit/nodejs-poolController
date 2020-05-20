@@ -920,7 +920,7 @@ class TouchPumpCommands extends PumpCommands {
                 outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
                 outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
             }
-            else if (typeof type.maxCircuits !== 'undefined') { // This pump type supports circuits
+            else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0) { // This pump type supports circuits
                 for (let i = 1; i <= 8; i++) {
                     if (i < data.circuits.length && i < type.maxCircuits) {
                         let circ = pump.circuits.getItemByIndex(i, false);

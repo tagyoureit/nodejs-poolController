@@ -8,7 +8,7 @@
         "CONTENT-TYPE": "application/json"
       }
     },
-    "vars": {}
+    "vars": {} 
   },
   "events": [
     {

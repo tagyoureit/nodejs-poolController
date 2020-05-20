@@ -574,7 +574,7 @@ export class Outbound extends Message {
     public setPayloadInt(ndx: number, value: number, def?: number) {
         if (typeof value === 'undefined' || isNaN(value)) value = def;
         let b1 = Math.floor(value / 256);
-        let b0 = (value - b1) * 256;
+        let b0 = value - (b1 * 256);
         if (ndx < this.payload.length) this.payload[ndx] = b0;
         if (ndx + 1 < this.payload.length) this.payload[ndx + 1] = b1;
         return this;
@@ -582,7 +582,7 @@ export class Outbound extends Message {
     public appendPayloadInt(value: number, def?: number) {
         if (typeof value === 'undefined' || isNaN(value)) value = def;
         let b1 = Math.floor(value / 256);
-        let b0 = (value - b1) * 256;
+        let b0 = value - (b1 * 256);
         this.payload.push(b0);
         this.payload.push(b1);
         return this;

@@ -61,10 +61,7 @@ export class PumpMessage {
             pump = sys.pumps.getItemById(pumpId);
             if (pump.type === 1) { // If this is a single speed pump it will have the body stored in the first circuit position.  All other pumps have no
                 // reference to the body.
-                let body = msg.extractPayloadByte(34);
-                if (body === 0) pump.body = 0;
-                else if (body === 101) pump.body = 1;
-                else pump.body = 32;
+                pump.body = msg.extractPayloadByte(34);
                 // Clear the circuits as there should be none.
                 pump.circuits.clear();
             }
@@ -174,6 +171,12 @@ export class PumpMessage {
                 state.pumps.removeItemById(pump.id);
             }
             else {
+                if (pump.type !== type) {
+                    let ptype = sys.board.valueMaps.pumpTypes.transform(type);
+                    if (ptype.name === 'ss') pump.circuits.clear();
+                    pump.model = 0;
+                }
+                if (typeof pump.model === 'undefined') pump.model = 0;
                 pump.type = type;
                 state.pumps.getItemById(pump.id, true).type = pump.type;
                 pump.isActive = true;
@@ -239,6 +242,7 @@ export class PumpMessage {
         // [255, 0, 255], [165, 33, 15, 16, 27, 46], [1, 128, 1, 2, 0, 1, 6, 2, 12, 4, 9, 11, 7, 6, 7, 128, 8, 132, 3, 15, 5, 3, 234, 128, 46, 108, 58, 2, 232, 220, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [8, 5]
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
+        if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3); 
             if (_circuit !== 0) {
@@ -265,6 +269,7 @@ export class PumpMessage {
         // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 6, 15, 2, 0, 1, 29, 11, 35, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 30, 55, 5, 10, 60, 5, 1, 50, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [3, 41]
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
+        if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3);
             if (_circuit !== 0) {
@@ -309,12 +314,14 @@ export class PumpMessage {
         pump.rinseTime = msg.extractPayloadByte(27);
         pump.vacuumFlow = msg.extractPayloadByte(28);
         pump.vacuumTime = msg.extractPayloadByte(30);
+        if (typeof pump.model === 'undefined') pump.model = 0;
     }
     private static processVSF_IT(msg: Inbound) {
         // Sample packet
         // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 64, 0, 0, 2, 1, 33, 2, 4, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 94]
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
+        if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3);
             if (_circuit !== 0){
@@ -339,5 +346,6 @@ export class PumpMessage {
         pump.maxFlow = 130;
         pump.minSpeed = 450;
         pump.maxSpeed = 3450;
+        if (typeof pump.model === 'undefined') pump.model = 0;
     }
 }

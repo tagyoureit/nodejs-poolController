@@ -105,9 +105,20 @@ export class ConfigRoute {
                 maxPumps: sys.equipment.maxPumps,
                 pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
                 pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
+                models: {
+                    ss: sys.board.valueMaps.pumpSSModels.toArray(),
+                    ds: sys.board.valueMaps.pumpDSModels.toArray(),
+                    vs: sys.board.valueMaps.pumpVSModels.toArray(),
+                    vsf: sys.board.valueMaps.pumpVSFModels.toArray(),
+                    vssvrs: sys.board.valueMaps.pumpVSSVRSModels.toArray()
+                },
                 circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
+                bodies: sys.board.valueMaps.pumpBodies.toArray(),
                 pumps: sys.pumps.get()
             };
+            // RKS: Why do we need the circuit names?  We have the circuits.  Is this so
+            // that we can name the pump.  I thought that *Touch uses the pump type as the name
+            // plus a number.
             if (sys.controllerType !== ControllerType.IntelliCenter) {
                 opts.circuitNames = sys.board.circuits.getCircuitNames();
             }
@@ -222,7 +233,8 @@ export class ConfigRoute {
             catch (err) { next(err); }
         });
         app.put('/config/pump', async (req, res, next) => {
-            // Change the pump attributes.  This will add the pump if it doesn't exist.
+            // Change the pump attributes.  This will add the pump if it doesn't exist, set
+            // any affiliated circuits and maintain all attribututes of the pump.
             try {
                 let pump = await sys.board.pumps.setPumpAsync(req.body);
                 return res.status(200).send((pump as Pump).get(true));

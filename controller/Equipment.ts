@@ -1003,10 +1003,12 @@ export class Pump extends EqItem {
         else
             return sys.board.valueMaps.pumpUnits.getValue('rpm');
         }
-    // This is relevant only for single speed pumps attached to IntelliCenter.  All other pumps are driven from the circuits.  You cannot
-    // identify a single speed pump in *Touch.
+    // This is relevant only for single speed pumps.  All other pumps are driven from the circuits.  You cannot
+    // identify a single speed pump in *Touch but the definition can be stored and the wattage is acquired by the model.
     public get body() { return this.data.body; }
     public set body(val: number) { this.setDataVal('body', val); }
+    public get model(): number { return this.data.model }
+    public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
     public setPumpCircuit(pumpCircuit: any) {
