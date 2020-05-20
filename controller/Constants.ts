@@ -63,6 +63,7 @@ export class Timestamp {
         else
             return Math.pow(2, this._dt.getUTCDay() - 1);
     }
+    public getTime() { return this._dt.getTime(); }
     public format(): string { return Timestamp.toISOLocal(this._dt); }
     public static toISOLocal(dt): string {
         let tzo = dt.getTimezoneOffset();
