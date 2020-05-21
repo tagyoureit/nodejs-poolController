@@ -437,7 +437,7 @@ export class ConfigRoute {
         });
         app.get('/config/lightGroups/themes', (req, res) => {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?
-            // todo: if no intellibrite/lightThemes are available is [] returned?
+
             if (sys.controllerType === ControllerType.IntelliCenter) {
                 let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
                 return res.status(200).send(grp.getLightThemes());

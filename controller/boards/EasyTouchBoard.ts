@@ -538,14 +538,14 @@ class TouchSystemCommands extends SystemCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName | string> {
-        return new Promise<CustomName | string>((resolve, reject) => {
+    public async setCustomNameAsync(data: any): Promise<CustomName> {
+        return new Promise<CustomName>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
             if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
             let cname = sys.customNames.getItemById(id);
             // No need to make any changes. Just return.
-            if (cname.name == data.name) return resolve(cname);
+            if (cname.name === data.name) return resolve(cname);
             let out = Outbound.create({
                 action: 202,
                 payload: [data.id - 1],
@@ -652,7 +652,7 @@ class TouchCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public async setCircuitAsync(data: any): Promise<ICircuit|string> {
+    public async setCircuitAsync(data: any): Promise<ICircuit> {
         // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
         // set circuit 17 to function 14 and name 209
         // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -661,7 +661,7 @@ class TouchCircuitCommands extends CircuitCommands {
         let nameByte = 3; // set default `Aux 1`
         if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
         else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-        return new Promise<ICircuit|string>((resolve, reject) => {
+        return new Promise<ICircuit>((resolve, reject) => {
             let out = Outbound.create({
                 action: 139,
                 payload: [data.id, typeByte, nameByte],
@@ -684,13 +684,13 @@ class TouchCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async deleteCircuitAsync(data: any): Promise<ICircuit|string> {
+    public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         data.nameId = 0;
         data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
         return this.setCircuitAsync(data);
     }
-    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
-        return new Promise<ICircuitState|string>((resolve, reject) => {
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.create({
                 action: 134,
@@ -793,7 +793,7 @@ class TouchPumpCommands extends PumpCommands {
             conn.queueSendMessage(msgs[i]);
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump|string> {
+    public async setPumpAsync(data: any): Promise<Pump> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
         // 485 Controlled pumps - Any of the IntelliFlo pumps.  These are managed by the control panel.
@@ -938,7 +938,7 @@ class TouchPumpCommands extends PumpCommands {
                     }
                 }
             }
-            return new Promise<Pump|string>((resolve, reject) => {
+            return new Promise<Pump>((resolve, reject) => {
                 outc.onComplete = (err, msg) => {
                     if (err) reject(err);
                     else {

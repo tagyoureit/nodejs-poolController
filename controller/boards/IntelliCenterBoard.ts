@@ -570,8 +570,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 
 }
 class IntelliCenterSystemCommands extends SystemCommands {
-    public async setGeneralAsync(obj?: any): Promise<General | string> {
-        return new Promise<General | string>(async (resolve, reject) => {
+    public async setGeneralAsync(obj?: any): Promise<General> {
+        return new Promise<General>(async (resolve, reject) => {
             try {
                 await new Promise((resolve, reject) => {
                     if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
@@ -597,7 +597,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         });
     }
     
-    public async setOptionsAsync(obj?: any) : Promise<Options | string> {
+    public async setOptionsAsync(obj?: any) : Promise<Options> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
         let payload = [0, 0, 0,
             fnToByte(sys.general.options.waterTempAdj2),
@@ -811,7 +811,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return new Promise<Options | string>(async (resolve, reject) => {
+        return new Promise<Options>(async (resolve, reject) => {
             try {
                 await Promise.all(arr).catch(err => reject(err));
                 resolve(sys.general.options);
@@ -819,7 +819,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             catch (err) { reject(err); }
         });
     }
-    public async setLocationAsync(obj?: any): Promise<Location | string> {
+    public async setLocationAsync(obj?: any): Promise<Location> {
         let arr = [];
         if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
             arr.push(new Promise(function (resolve, reject) {
@@ -946,7 +946,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }));
         }
 
-        return new Promise<Location | string>(async (resolve, reject) => {
+        return new Promise<Location>(async (resolve, reject) => {
             try {
                 await Promise.all(arr);
                 resolve(sys.general.location);
@@ -954,7 +954,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             catch (err) { reject(err); }
         });
     }
-    public async setOwnerAsync(obj?: any) : Promise<Owner | string> {
+    public async setOwnerAsync(obj?: any) : Promise<Owner> {
         let arr = [];
         if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
             arr.push(new Promise(function (resolve, reject) {
@@ -1031,7 +1031,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 conn.queueSendMessage(out);
             }));
         }
-        return new Promise<Owner | string>(async (resolve, reject) => {
+        return new Promise<Owner>(async (resolve, reject) => {
             try {
                 await Promise.all(arr);
                 resolve(sys.general.owner);
@@ -1042,8 +1042,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
-    public async setCircuitAsync(data: any): Promise<ICircuit | string> {
-        return new Promise<ICircuit | string>((resolve, reject) => {
+    public async setCircuitAsync(data: any): Promise<ICircuit> {
+        return new Promise<ICircuit>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             let circuit = sys.circuits.getItemById(id, false);
             if (isNaN(id)) throw new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit');
@@ -1077,7 +1077,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup | string> {
+    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         let type = 0;
@@ -1166,7 +1166,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             for (let i = 0; i < 16; i++) out.payload.push(0);
             conn.queueSendMessage(out);
         }));
-        return new Promise<CircuitGroup | string>(async (resolve, reject) => {
+        return new Promise<CircuitGroup>(async (resolve, reject) => {
             await Promise.all(arr);
             let grp = sys.circuitGroups.getItemById(id);
             let sgrp = state.circuitGroups.getItemById(id, isAdd);
@@ -1405,7 +1405,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < arrOut.length; i++)
             conn.queueSendMessage(arrOut[i]);
     }
-    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState | string> {
+    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
@@ -1435,7 +1435,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
             console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
             out.payload[28 + byteNdx] = byte;
-            return new Promise<LightGroupState | string>((resolve, reject) => {
+            return new Promise<LightGroupState>((resolve, reject) => {
                 out.onComplete = (err, msg) => {
                     if (!err) {
                         sgroup.action = nop;
@@ -1500,10 +1500,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState | string> {
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         let out = this.createCircuitStateMessage(id, val);
-        return new Promise<ICircuitState | string>((resolve, reject) => {
+        return new Promise<ICircuitState>((resolve, reject) => {
             out.onComplete = (err, msg: Inbound) => {
                 if (err) reject(err);
                 else {
@@ -1704,8 +1704,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
     public setFeatureState(id, val) { this.board.circuits.setCircuitStateAsync(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
-    public async setFeatureAsync(data: any): Promise<Feature | string> {
-        return new Promise<Feature | string>((resolve, reject) => {
+    public async setFeatureAsync(data: any): Promise<Feature> {
+        return new Promise<Feature>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             let feature: Feature;
             if (id <= 0) {
@@ -1747,8 +1747,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async deleteFeatureAsync(data: any): Promise<Feature | string> {
-        return new Promise<Feature | string>((resolve, reject) => {
+    public async deleteFeatureAsync(data: any): Promise<Feature> {
+        return new Promise<Feature>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             if (isNaN(id)) throw new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature');
             let feature = sys.features.getItemById(id, false);
@@ -2127,7 +2127,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
 
 }
 class IntelliCenterBodyCommands extends BodyCommands {
-    public async setBodyAsync(obj: any): Promise<Body | string> {
+    public async setBodyAsync(obj: any): Promise<Body> {
         let arr = [];
         let byte = 0;
         let id = parseInt(obj.id, 10);
@@ -2193,7 +2193,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 }));
             }
         }
-        return new Promise<Body | string>(async (resolve, reject) => {
+        return new Promise<Body>(async (resolve, reject) => {
             try {
                 await Promise.all(arr);
                 resolve(body);
@@ -2351,7 +2351,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     }
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public async setValveAsync(obj?: any) : Promise<Valve | Error> {
+    public async setValveAsync(obj?: any) : Promise<Valve> {
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In

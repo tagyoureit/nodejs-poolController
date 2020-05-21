@@ -69,6 +69,9 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Run the app with 'npm start'* (again, in the root directory). It should now run properly.
    * to run with a specific configuration, run `node index.js arg` where arg is the name of your current config file. eg `npm start configCustomized.json`.  By default, the app will load `config.json`.
 
+## Docker instructions
+@wurmr created Docker [Dockerfile](https://hub.docker.com/r/wurmr/nodejs-pool-controller) and [pre-built containers](https://github.com/wurmr/nodejs-poolController-docker).
+
 **UPDATE THIS AND PACKAGE.JSON SCRIPTS**
 
 
@@ -97,20 +100,19 @@ Ready for 6.0;
 * [SmartThings](https://github.com/tagyoureit/nodejs-poolController/tree/next) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
 
 Need to be updated:
-* [outputSocketToConsoleExample](src/integrations/outputSocketToConsoleExample.js) A sample included with the code to demonstrate correct usage.
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
-* [ISY](src/integrations/socketISY.js) included with this app.  Original credit to @blueman2, enhancements by @mayermd
+* [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
+* InfluxDB
 
 # Changed/dropped since 5.3
 1. Ability to load different config.json files
-1. Ability to run stand-alone chlorinator or pump controllers (to be added back)
 1. Automatic upgrade of config.json files (tbd)
 1. Automatic version notification of newer releases available (tbd)
 1. Most of the output to console has been eliminited.
-1. InfluxDB (to be added back)
+
 
 <a name="module_nodejs-poolController--config.json"></a>
 # Config.json changes

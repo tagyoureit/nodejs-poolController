@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -528,40 +528,40 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = 0; }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-    public async setGeneralAsync(obj: any): Promise<General|string> {
+    public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
         if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
         if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
         if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-        return new Promise<General|string>(function(resolve, reject) { resolve(sys.general); });
+        return new Promise<General>(function(resolve, reject) { resolve(sys.general); });
     }
-    public async setOptionsAsync(obj: any): Promise<Options|string> {
+    public async setOptionsAsync(obj: any): Promise<Options> {
         let opts = sys.general.options;
         if (typeof obj !== 'undefined') {
             for (var s in opts)
                 if (typeof obj[s] !== 'undefined')
                     opts[s] = obj[s];
         }
-        return new Promise<Options|string>(function(resolve, reject) { resolve(sys.general.options); });
+        return new Promise<Options>(function(resolve, reject) { resolve(sys.general.options); });
     }
-    public async setLocationAsync(obj: any): Promise<Location|string> {
+    public async setLocationAsync(obj: any): Promise<Location> {
         let loc = sys.general.location;
         if (typeof obj !== 'undefined') {
             for (var s in loc)
                 if (typeof obj[s] !== 'undefined')
                     loc[s] = obj[s];
         }
-        return new Promise<Location|string>(function(resolve, reject) { resolve(sys.general.location); });
+        return new Promise<Location>(function(resolve, reject) { resolve(sys.general.location); });
     }
-    public async setOwnerAsync(obj: any): Promise<Owner|string> {
+    public async setOwnerAsync(obj: any): Promise<Owner> {
         let owner = sys.general.owner;
         if (typeof obj !== 'undefined') {
             for (var s in owner)
                 if (typeof obj[s] !== 'undefined')
                     owner[s] = obj[s];
         }
-        return new Promise<Owner|string>(function(resolve, reject) { resolve(sys.general.owner); });
+        return new Promise<Owner>(function(resolve, reject) { resolve(sys.general.owner); });
     }
     public getSensors() {
         let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
@@ -591,10 +591,10 @@ export class SystemCommands extends BoardCommands {
         }
         return sensors;
     }
-    public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection | string> {
+    public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection> {
         let arr = [];
         for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
-        return new Promise<CustomNameCollection | string>(async (resolve, reject) => {
+        return new Promise<CustomNameCollection>(async (resolve, reject) => {
             try {
                 await Promise.all(arr).catch(err => reject(err));
                 resolve(sys.customNames);
@@ -602,8 +602,8 @@ export class SystemCommands extends BoardCommands {
             catch (err) { reject(err); }
         });
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName | string> {
-        return new Promise<CustomName | string>((resolve, reject) => {
+    public async setCustomNameAsync(data: any): Promise<CustomName> {
+        return new Promise<CustomName>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
             if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
@@ -614,8 +614,8 @@ export class SystemCommands extends BoardCommands {
     }
 }
 export class BodyCommands extends BoardCommands {
-    public async setBodyAsync(obj: any): Promise<Body|string> {
-        return new Promise<Body|string>(function(resolve, reject) {
+    public async setBodyAsync(obj: any): Promise<Body> {
+        return new Promise<Body>(function(resolve, reject) {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
             let body = sys.bodies.getItemById(id, false);
@@ -690,7 +690,7 @@ export class PumpCommands extends BoardCommands {
             }
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump|string> {
+    public async setPumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
@@ -715,12 +715,12 @@ export class PumpCommands extends BoardCommands {
                 }
             }
             spump.emitEquipmentChange();
-            return new Promise<Pump|string>((resolve, reject) => { resolve(pump); });
+            return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
         else
             throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
     }
-    public deletePumpAsync(data: any): Promise<Pump|string> {
+    public deletePumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
@@ -743,7 +743,7 @@ export class PumpCommands extends BoardCommands {
                 }
             }
             spump.emitEquipmentChange();
-            return new Promise<Pump|string>((resolve, reject) => { resolve(pump); });
+            return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
         else
             throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
@@ -1214,7 +1214,7 @@ export class CircuitCommands extends BoardCommands {
         }
     }
 
-    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState|string> {
+    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
         if (circ.id === 6) { sys.board.virtualChlorinatorController.start(); }
@@ -1287,7 +1287,7 @@ export class CircuitCommands extends BoardCommands {
     public getCircuitNames() {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
     }
-    public async setCircuitAsync(data: any): Promise<ICircuit|string> {
+    public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
         if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${ data.id }`, data.id, 'Circuit');
         if (id === 6) throw new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id);
@@ -1311,12 +1311,12 @@ export class CircuitCommands extends BoardCommands {
             if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
-            return new Promise<ICircuit|string>((resolve, reject) => { resolve(circuit); });
+            return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
         }
         else
             throw new Error('Circuit id has not been defined');
     }
-    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup|string> {
+    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1326,7 +1326,7 @@ export class CircuitCommands extends BoardCommands {
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup');
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'CircuitGroup');
         group = sys.circuitGroups.getItemById(id, true);
-        return new Promise<CircuitGroup|string>((resolve, reject) => {
+        return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             group.isActive = true;
@@ -1344,7 +1344,7 @@ export class CircuitCommands extends BoardCommands {
         });
 
     }
-    public async setLightGroupAsync(obj: any): Promise<LightGroup|string> {
+    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
         let group: LightGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
@@ -1354,25 +1354,29 @@ export class CircuitCommands extends BoardCommands {
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'LightGroup');
         group = sys.lightGroups.getItemById(id, true);
-        return new Promise<LightGroup|string>((resolve, reject) => {
+        return new Promise<LightGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             group.isActive = true;
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
-                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
                     let cobj = obj.circuits[i];
+                    let c:LightGroupCircuit;
+                    if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                    else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                    else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
                     if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
                     if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
                     if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
                     if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                    if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
                 }
                 group.circuits.length = obj.circuits.length;
             }
             resolve(group);
         });
     }
-    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup|string> {
+    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${ obj.id }`, 'CircuitGroup');
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
@@ -1385,13 +1389,13 @@ export class CircuitCommands extends BoardCommands {
             sgroup.isOn = false;
             sgroup.isActive = false;
             sgroup.emitEquipmentChange();
-            return new Promise<CircuitGroup|string>((resolve, reject) => { resolve(group); });
+            return new Promise<CircuitGroup>((resolve, reject) => { resolve(group); });
         }
         else
             throw new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup');
 
     }
-    public async deleteCircuitAsync(data: any): Promise<ICircuit|string> {
+    public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         if (typeof data.id === 'undefined') throw new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit');
         let circuit = sys.circuits.getInterfaceById(data.id);
         if (circuit instanceof Circuit) {
@@ -1402,7 +1406,7 @@ export class CircuitCommands extends BoardCommands {
             sys.features.removeItemById(data.id);
             state.features.removeItemById(data.id);
         }
-        return new Promise<ICircuit|string>((resolve, reject) => { resolve(circuit); });
+        return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
     }
     public deleteCircuit(data: any) {
         if (typeof data.id !== 'undefined') {
@@ -1453,7 +1457,7 @@ export class CircuitCommands extends BoardCommands {
         let sgrp = state.lightGroups.getItemById(group.id);
         sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
     }
-    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState|string> {
+    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
@@ -1472,7 +1476,7 @@ export class CircuitCommands extends BoardCommands {
     }
 }
 export class FeatureCommands extends BoardCommands {
-    public async setFeatureAsync(obj: any): Promise<Feature|string> {
+    public async setFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${ obj.id }`, obj.id, 'Feature');
         if (!sys.board.equipmentIds.features.isInRange(obj.id)) return;
@@ -1492,13 +1496,13 @@ export class FeatureCommands extends BoardCommands {
             if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
             if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
             if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
-            return new Promise<Feature|string>((resolve, reject) => { resolve(feature); });
+            return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }
         else
             throw new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature');
 
     }
-    public async deleteFeatureAsync(obj: any): Promise<Feature|string> {
+    public async deleteFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${ obj.id }`, obj.id, 'Feature');
         if (!sys.board.equipmentIds.features.isInRange(id)) return;
@@ -1511,7 +1515,7 @@ export class FeatureCommands extends BoardCommands {
             sfeature.isOn = false;
             sfeature.showInFeatures = false;
             sfeature.emitEquipmentChange();
-            return new Promise<Feature|string>((resolve, reject) => { resolve(feature); });
+            return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }
         else
             throw new InvalidEquipmentIdError('Feature id has not been defined', obj.id, 'Feature');
@@ -1690,7 +1694,7 @@ export class HeaterCommands extends BoardCommands {
     public updateHeaterServices(heater: Heater) { }
 }
 export class ValveCommands extends BoardCommands {
-    public async setValveAsync(obj: any): Promise<Valve|Error> {
+    public async setValveAsync(obj: any): Promise<Valve> {
         return new Promise<Valve>(function(resolve, reject) {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));

@@ -79,6 +79,8 @@ export class CircuitMessage {
         let byte: number; // which byte are we starting with?
         msg.datalen === 25 ? byte = 1 : byte = 0;
         sys.intellibrite.isActive = true;
+        let lg = sys.lightGroups.getItemById(1, true);
+        lg.type = 3;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -86,6 +88,12 @@ export class CircuitMessage {
                 // only evaluate intellibrites here; skip others
                 // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
                 ibCircuit.isActive = false;
+            }
+            for (let i = 0; i < lg.circuits.length; i++) {
+                let lgCircuit = lg.circuits.getItemByIndex(i);
+                // only evaluate intellibrites here; skip others
+                // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
+                lgCircuit.isActive = false;
             }
         }
         for (byte; byte <= msg.datalen; byte = byte + 4) {
@@ -100,6 +108,12 @@ export class CircuitMessage {
                     ibCircuit.position = (pair >> 4) + 1;
                     ibCircuit.color = pair & 15;
                     ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
+                    const lgCircuit = lg.circuits.getItemByCircuitId(circuitId, _isActive);
+                    lgCircuit.isActive = _isActive;
+                    lgCircuit.circuit = circuitId;
+                    lgCircuit.position = (pair >> 4) + 1;
+                    lgCircuit.color = pair & 15;
+                    lgCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
                 }
             }
         }
@@ -109,6 +123,11 @@ export class CircuitMessage {
                 const ibCircuit = sys.intellibrite.circuits.getItemByIndex(idx);
                 if (ibCircuit.isActive === true) continue;
                 sys.intellibrite.circuits.removeItemById(ibCircuit.circuit);
+            }
+            for (let idx = 0; idx < lg.circuits.length; idx++) {
+                const lgCircuit = lg.circuits.getItemByIndex(idx);
+                if (lgCircuit.isActive === true) continue;
+                lg.circuits.removeItemById(lgCircuit.circuit);
             }
         // Now that we are done.  Lets sort the array by position.
         //  sys.intellibrite.circuits.sortByPosition();
@@ -126,9 +145,12 @@ export class CircuitMessage {
                 case 8:
                 case 10:
                     sys.intellibrite.circuits.getItemByCircuitId(circuit.id, true);
+                    // RG - to RKS shouldn't these be as below.  Not sure why intellibrite is being set here.
+                    // sys.lightGroups.getItemById(1, true).circuits.getItemByCircuitId(circuit.id, true);
                     break;
-                default:
-                    sys.intellibrite.circuits.removeItemByCircuitId(circuit.id);
+                    default:
+                        sys.intellibrite.circuits.removeItemByCircuitId(circuit.id);
+                        // sys.lightGroups.getItemById(1, true).circuits.removeItemByCircuitId(circuit.id);
                     break;
             }
         }
@@ -209,6 +231,10 @@ export class CircuitMessage {
                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
                 sys.intellibrite.isActive = true;
                 ib.isActive = true;
+                const lg = sys.lightGroups.getItemById(1, true);
+                lg.circuits.getItemByCircuitId(id, true).isActive = true;
+                lg.isActive = true;
+
             }
             else
                 sys.intellibrite.circuits.removeItemByCircuitId(id);
@@ -244,6 +270,9 @@ export class CircuitMessage {
         else {
             if (sys.intellibrite.circuits.length === 0) {
                 sys.intellibrite.isActive = false;
+            }
+            if (sys.lightGroups.getItemById(1).circuits.length === 0) {
+                sys.lightGroups.getItemById(1).isActive = false;
             }
             sys.features.removeItemById(id);
             state.features.removeItemById(id);

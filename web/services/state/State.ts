@@ -121,21 +121,6 @@ export class StateRoute {
             sys.board.circuits.sequenceIntelliBrite('swim');
             return res.status(200).send('OK');
         });
-        app.put('/state/circuit/setLightColor', (req, res) => {
-            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
-            //state.circuits.setLightColor( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
-            return res.status(404).send('NOT IMPLEMENTED');
-        });
-        app.put('/state/circuit/setLightSwimDelay', (req, res) => {
-            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
-            //state.circuits.setLightSwimDelay( parseInt( req.body.id, 10 ), parseInt( req.body.delay, 10 ) );
-            return res.status(404).send('NOT IMPLEMENTED');
-        });
-        app.put('/state/circuit/setLightPosition', (req, res) => {
-            //RKS: This is fundamentally wrong.  These are light groups but Easy/Intelli Touch only have one light group.
-            //state.circuits.setLightPosition( parseInt( req.body.id, 10 ), parseInt( req.body.color, 10 ) );
-            return res.status(404).send('NOT IMPLEMENTED');
-        });
         app.get('/state/:section', (req, res) => {
             res.status(200).send(state.getState(req.params.section));
         });

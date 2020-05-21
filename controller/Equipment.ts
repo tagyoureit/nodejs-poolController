@@ -81,8 +81,6 @@ export class PoolSystem implements IPoolSystem {
         this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
-/*         this.virtualChlorinatorControllers = new VirtualChlorinatorControllerCollection(this.data, 'virtualChlorinatorController');
-        this.virtualPumpControllers = new VirtualPumpControllerCollection(this.data, 'virtualPumpControllerCollection'); */
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
