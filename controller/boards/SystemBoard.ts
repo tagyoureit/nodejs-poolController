@@ -364,6 +364,10 @@ export class byteValueMaps {
         [2, { name: 'status', desc: 'Equipment Status' }],
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
+    public chemControllerTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'unknown', desc: 'Unknown' }],
+        [1, { name: 'intellichem', desc: 'IntelliChem' }]
+    ]);
     public intelliChemWaterFlow: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]

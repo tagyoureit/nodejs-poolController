@@ -33,7 +33,8 @@ interface IPoolSystem {
     remotes: RemoteCollection;
     eggTimers: EggTimerCollection;
     security: Security;
-    intellichem: IntelliChem;
+    chemControllers: ChemControllerCollection;
+    //intellichem: IntelliChem;
     board: SystemBoard;
     // virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
     // virtualPumpControllers: VirtualPumpControllerCollection;
@@ -77,7 +78,8 @@ export class PoolSystem implements IPoolSystem {
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
-        this.intellichem = new IntelliChem(this.data, 'intellichem');
+        //this.intellichem = new IntelliChem(this.data, 'intellichem');
+        this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
         this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
@@ -130,7 +132,8 @@ export class PoolSystem implements IPoolSystem {
         this.security.clear();
         this.valves.clear();
         this.covers.clear();
-        this.intellichem.clear();
+        this.chemControllers.clear();
+        //this.intellichem.clear();
         console.log(this.configVersion);
        
     }
@@ -181,7 +184,8 @@ export class PoolSystem implements IPoolSystem {
     public security: Security;
     public customNames: CustomNameCollection;
     public intellibrite: LightGroup;
-    public intellichem: IntelliChem;
+    public chemControllers: ChemControllerCollection;
+    //public intellichem: IntelliChem;
 /*     public virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
     public virtualPumpControllers: VirtualPumpControllerCollection;
  */    //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
@@ -1449,20 +1453,40 @@ export class Security extends EqItem {
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
     public get roles(): SecurityRoleCollection { return new SecurityRoleCollection(this.data, "roles"); }
 }
-export class IntelliChem extends EqItem {
-    public dataName='intellichemConfig';
+export class ChemControllerCollection extends EqItemCollection<ChemController> {
+    constructor(data: any, name?: string) { super(data, name || "chemcontrollers"); }
+    public createItem(data: any): ChemController { return new ChemController(data); }
+    public getItemByAddress(address: number, add?: boolean, data?: any): ChemController {
+        let itm = this.find(elem => elem.address === address && typeof elem.address !== 'undefined');
+        if (typeof itm !== 'undefined') return itm;
+        if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
+        return this.createItem(data || { id:this.data.length + 1, address: address });
+    }
+}
+export class ChemController extends EqItem {
+    public dataName='chemControllerConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get type(): number { return this.data.type; }
+    public set type(val: number) { this.setDataVal('type', val); }
+    public get body(): number { return this.data.body; }
+    public set body(val: number) { this.setDataVal('body', val); }
+    public get address(): number { return this.data.address; }
+    public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public get pH(): number { return this.data.pH; }
-    public set pH(val: number) { this.setDataVal('pH', val); }
-    public get ORP(): number { return this.data.ORP; }
-    public set ORP(val: number) { this.setDataVal('ORP', val); }
-    public get CH(): number { return this.data.CH; }
-    public set CH(val: number) { this.setDataVal('CH', val); }
-    public get CYA(): number { return this.data.CYA; }
-    public set CYA(val: number) { this.setDataVal('CYA', val); }
-    public get TA(): number { return this.data.TA; }
-    public set TA(val: number) { this.setDataVal('TA', val); }
+    public get pHSetpoint(): number { return this.data.pHSetpoint; }
+    public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
+    public get orpSetpoint(): number { return this.data.orpSetpoint; }
+    public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
+    public get calciumHardness(): number { return this.data.calciumHardness; }
+    public set calciumHardness(val: number) { this.setDataVal('calciumHardness', val); }
+    public get cyanuricAcid(): number { return this.data.cyanuricAcid; }
+    public set cyanuricAcid(val: number) { this.setDataVal('cyanuricAcid', val); }
+    public get alkalinity(): number { return this.data.alkalinity; }
+    public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
     public getExtended() {
         let circ = this.get(true);
         circ.circuit = state.circuits.getInterfaceById(circ.circuit);

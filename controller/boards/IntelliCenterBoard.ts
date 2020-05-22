@@ -513,8 +513,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this.push(req);
         }
         if (this.compareVersions(curr.intellichem, ver.intellichem)) {
-            // TODO: RKS -- Dunno what the intellichem data looks like.
-            curr.intellichem = ver.intellichem;
+            let req = new IntelliCenterConfigRequest(ConfigCategories.intellichem, ver.intellichem, [0, 1]);
+            this.push(req);
         }
         if (this.compareVersions(curr.heaters, ver.heaters)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.heaters, ver.heaters, [0, 1, 2, 3, 4],
@@ -2248,6 +2248,11 @@ class IntelliCenterBodyCommands extends BodyCommands {
     }
     public setHeatSetpointAsync(body: Body, setPoint: number) {
         let byte2 = 18;
+        let body1 = sys.bodies.getItemById(1);
+        let body2 = sys.bodies.getItemById(2);
+        let body3 = sys.bodies.getItemById(3);
+        let body4 = sys.bodies.getItemById(4);
+
         let temp1 = sys.bodies.getItemById(1).setPoint || 100;
         let temp2 = sys.bodies.getItemById(2).setPoint || 100;
         let temp3 = sys.bodies.getItemById(3).setPoint || 100;
@@ -2270,9 +2275,13 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 temp4 = setPoint;
                 break;
         }
+        //                                                             6                             15       17 18        21   22       24 25 
+        //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176,  89, 27, 110, 3, 0, 0, 89, 100, 98, 100, 0, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 243]
+        //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 235, 27, 167, 1, 0, 0, 89,  81, 98, 103, 5, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][6, 48]
         let out = Outbound.createMessage(
-            168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, temp1, temp3, temp2, temp4, 0, 0, 0, 0, 15, 0, 0, 0
-                , 0, 100, 0, 0, 0, 0, 0, 0], 0, undefined
+            168, [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
+                temp1, temp3, temp2, temp4, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
+                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0], 2, undefined
             );
             out.onComplete = (err, msg) => {
                 if (!err) {

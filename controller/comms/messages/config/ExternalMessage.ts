@@ -30,6 +30,7 @@ export class ExternalMessage {
                 ExternalMessage.processChlorinator(msg);
                 break;
             case 8: // IntelliChem
+                ExternalMessage.processIntelliChem(msg);
                 break;
             case 9: // Valves
                 ExternalMessage.processValve(msg);
@@ -54,6 +55,9 @@ export class ExternalMessage {
                 ExternalMessage.processCircuitGroupState(13, msg);
                 break;
         }
+    }
+    public static processIntelliChem(msg: Inbound) {
+        let controller = sys.chemControllers.getItemById(msg.extractPayloadByte(2) + 1);
     }
     public static processValve(msg: Inbound) {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);

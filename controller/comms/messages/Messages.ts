@@ -21,15 +21,19 @@ import { HeaterMessage } from "./config/HeaterMessage";
 import { CircuitGroupMessage } from "./config/CircuitGroupMessage";
 import { IntellichemMessage } from "./config/IntellichemMessage";
 import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
+import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
+import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 export enum Direction {
     In='in',
     Out='out'
 }
 export enum Protocol {
-    Unknown='unknown',
-    Broadcast='broadcast',
-    Pump='pump',
-    Chlorinator='chlorinator'
+    Unknown = 'unknown',
+    Broadcast = 'broadcast',
+    Pump = 'pump',
+    Chlorinator = 'chlorinator',
+    IntelliChem = 'intellichem',
+    IntelliValve = 'intellivalve'
 }
 export class Message {
     constructor() { }
@@ -254,11 +258,16 @@ export class Inbound extends Message {
         }
         switch (this.protocol) {
             case Protocol.Pump:
+            case Protocol.IntelliChem:
+            case Protocol.IntelliValve:
             case Protocol.Broadcast:
                 ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
                 ndx = this.pushBytes(this.header, bytes, ndx, 6);
                 if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
-                if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
+                else if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
+                else if (this.dest >= 144 && this.dest <= 158) this.protocol = Protocol.IntelliChem;
+                else if (this.source >= 144 && this.source <= 158) this.protocol = Protocol.IntelliChem;
+                else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
                 if (this.datalen > 50) this.isValid = false;
                 break;
             case Protocol.Chlorinator:
@@ -274,6 +283,8 @@ export class Inbound extends Message {
         switch (this.protocol) {
             case Protocol.Broadcast:
             case Protocol.Pump:
+            case Protocol.IntelliChem:
+            case Protocol.IntelliValve:
                 ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
                 break;
             case Protocol.Chlorinator:
@@ -294,6 +305,8 @@ export class Inbound extends Message {
         switch (this.protocol) {
             case Protocol.Broadcast:
             case Protocol.Pump:
+            case Protocol.IntelliValve:
+            case Protocol.IntelliChem:
                 if (this.payload.length >= this.datalen) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 2);
@@ -441,6 +454,12 @@ export class Inbound extends Message {
             case Protocol.Broadcast:
                 this.processBroadcast();
                 break;
+            case Protocol.IntelliValve:
+                IntelliValveStateMessage.process(this);
+                break;
+            case Protocol.IntelliChem:
+                IntelliChemStateMessage.process(this);
+                break;
             case Protocol.Pump:
                 if ((this.source >= 96 && this.source <= 111) || (this.dest >= 96 && this.dest <= 111))
                     PumpStateMessage.process(this);
@@ -474,7 +493,7 @@ export class Outbound extends Message {
             this.header.push.apply(this.header, [165, Message.headerSubByte, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
         }
-        else if (proto === Protocol.Pump) {
+        else if (proto === Protocol.Pump || proto === Protocol.IntelliValve || proto === Protocol.IntelliChem) {
             this.preamble.push.apply(this.preamble, [255, 0, 255]);
             this.header.push.apply(this.header, [165, 0, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
@@ -712,6 +731,8 @@ export class Response extends Message {
         this.datalen = this.payload.length;
         let sum: number = this.checksum;
         switch (this.protocol) {
+            case Protocol.IntelliChem:
+            case Protocol.IntelliValve:
             case Protocol.Pump:
             case Protocol.Broadcast:
                 this.chkHi = Math.floor(sum / 256);

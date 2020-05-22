@@ -1,113 +1,131 @@
 ﻿{
-    "controller": {
-        "comms": {
-            "rs485Port": "/dev/ttyUSB0",
-            "mockPort": false,
-            "netConnect": false,
-            "netHost": "raspberrypi",
-            "netPort": 9801,
-            "inactivityRetry": 10
-        }
-    },
-    "web": {
-        "servers": {
-            "http2": {
-                "enabled": false
-            },
-            "http": {
-                "enabled": true,
-                "ip": "127.0.0.1",
-                "port": 4200,
-                "httpsRedirect": false,
-                "authentication": "none",
-                "authFile": "/users.htpasswd"
-            },
-            "https": {
-                "enabled": true,
-                "ip": "127.0.0.1",
-                "port": 4201,
-                "authentication": "none",
-                "authFile": "/users.htpasswd",
-                "sslKeyFile": "",
-                "sslCertFile": ""
-            },
-            "mdns": {
-                "enabled": false
-            },
-            "ssdp": {
-                "enabled": false
-            }
-        },
-      "services": {},
-      "interfaces": {
-        "smartThings": {
-          "name": "SmartThings/Hubitat",
-          "enabled": false,
-          "fileName": "smartThings-Hubitat.json",
-          "globals": {},
-          "options": {
-            "host": "127.0.0.1",
-            "port": 39500
-          }
-        },
-        "vera": {
-          "name": "Vera",
-          "enabled": false,
-          "fileName": "vera.json",
-          "vars": {
-            "deviceId": 0
-          },
-          "options": {
-            "host": "",
-            "port": 3480
-          }
-        }
+  "controller": {
+    "comms": {
+      "rs485Port": "/dev/ttyUSB0",
+      "mockPort": false,
+      "netConnect": false,
+      "netHost": "raspberrypi",
+      "netPort": 9801,
+      "inactivityRetry": 10
+    }
+  },
+  "web": {
+    "servers": {
+      "http2": {
+        "enabled": false
+      },
+      "http": {
+        "enabled": true,
+        "ip": "127.0.0.1",
+        "port": 4200,
+        "httpsRedirect": false,
+        "authentication": "none",
+        "authFile": "/users.htpasswd"
+      },
+      "https": {
+        "enabled": true,
+        "ip": "127.0.0.1",
+        "port": 4201,
+        "authentication": "none",
+        "authFile": "/users.htpasswd",
+        "sslKeyFile": "",
+        "sslCertFile": ""
+      },
+      "mdns": {
+        "enabled": false
+      },
+      "ssdp": {
+        "enabled": false
       }
     },
-    "log": {
-        "packet": {
-            "enabled": false,
-            "logToConsole": false,
-            "logToFile": false,
-            "filename": "packetLog",
-            "replay": false,
-            "broadcast": {
-                "enabled": true,
-                "includeActions": [],
-                "includeSource": [],
-                "includeDest": [],
-                "excludeActions": [],
-                "excludeSource": [],
-                "excludeDest": []
-            },
-            "pump": {
-                "enabled": false,
-                "includeActions": [],
-                "includeSource": [],
-                "includeDest": [],
-                "excludeActions": [],
-                "excludeSource": [],
-                "excludeDest": []
-            },
-            "chlorinator": {
-                "enabled": true,
-                "includeSource": [],
-                "includeDest": [],
-                "excludeSource": [],
-                "excludeDest": []
-            },
-            "unknown": {
-                "enabled": true,
-                "includeSource": [],
-                "includeDest": [],
-                "excludeSource": [],
-                "excludeDest": []
-            }
-        },
-        "app": {
-            "enabled": true,
-            "level": "info"
+    "services": {},
+    "interfaces": {
+      "smartThings": {
+        "name": "SmartThings/Hubitat",
+        "enabled": false,
+        "fileName": "smartThings-Hubitat.json",
+        "globals": {},
+        "options": {
+          "host": "127.0.0.1",
+          "port": 39500
         }
+      },
+      "vera": {
+        "name": "Vera",
+        "enabled": false,
+        "fileName": "vera.json",
+        "vars": {
+          "deviceId": 0
+        },
+        "options": {
+          "host": "",
+          "port": 3480
+        }
+      }
+    }
+  },
+  "log": {
+    "packet": {
+      "enabled": false,
+      "logToConsole": false,
+      "logToFile": false,
+      "filename": "packetLog",
+      "replay": false,
+      "broadcast": {
+        "enabled": true,
+        "includeActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeActions": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "pump": {
+        "enabled": false,
+        "includeActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeActions": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "chlorinator": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "intellichem": {
+        "enabled": true,
+        "includeActions": [],
+        "exclueActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "intellivalve": {
+        "enabled": true,
+        "includeActions": [],
+        "exclueActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "unknown": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      }
     },
-    "appVersion": "0.0.1"
+    "app": {
+      "enabled": true,
+      "level": "info"
+    }
+  },
+  "appVersion": "0.0.1"
 }

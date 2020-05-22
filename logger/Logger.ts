@@ -2,9 +2,9 @@
 import * as fs from 'fs';
 import * as winston from 'winston';
 import * as os from 'os';
-import { Message } from '../controller/comms/messages/Messages.js';
+import { Message } from '../controller/comms/messages/Messages';
 import { config } from '../config/Config';
-import {fips} from 'crypto';
+import { webApp } from '../web/Server';
 class Logger {
     constructor() {
         if (!fs.existsSync(path.join(process.cwd(), '/logs'))) fs.mkdirSync(path.join(process.cwd(), '/logs'));
@@ -83,7 +83,7 @@ class Logger {
                     if (logger.pktTimer) clearTimeout(logger.pktTimer);
                     logger.pktTimer = setTimeout(logger.flushLogs, 1000);
                 }
-
+                webApp.emitToChannel('msgLogger', 'logMessage', msg);
             }
         }
         if (logger.cfg.packet.logToConsole) {

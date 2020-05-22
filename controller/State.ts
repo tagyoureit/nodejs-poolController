@@ -5,7 +5,7 @@ import { setTimeout } from 'timers';
 import { logger } from '../logger/Logger';
 import { Timestamp, ControllerType } from './Constants';
 import { webApp } from '../web/Server';
-import { sys } from './Equipment';
+import { sys, ChemController } from './Equipment';
 import { isArray } from 'util';
 export class State implements IState {
     statePath: string;
@@ -81,7 +81,8 @@ export class State implements IState {
             _state.intellibrite = this.intellibrite.getExtended();
             _state.covers = this.covers.getExtended();
             _state.schedules = this.schedules.getExtended();
-            _state.intellichem = this.intellichem.getExtended();
+            //_state.intellichem = this.intellichem.getExtended();
+            _state.chemControllers = this.chemControllers.getExtended();
             return _state;
         }
         else {
@@ -225,7 +226,8 @@ export class State implements IState {
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
         this.intellibrite = new LightGroupState(this.data, 'intellibrite');
-        this.intellichem = new IntelliChemState(this.data, 'intellichem');
+        this.chemControllers = new ChemControllerStateCollection(this.data, 'chemControllers');
+        //this.intellichem = new IntelliChemState(this.data, 'intellichem');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
     }
@@ -245,7 +247,8 @@ export class State implements IState {
         this.valves.clear();
         this.virtualCircuits.clear();
         this.covers.clear();
-        this.intellichem.clear();
+        this.chemControllers.clear();
+        //this.intellichem.clear();
     }
 
     public equipment: EquipmentState;
@@ -262,7 +265,8 @@ export class State implements IState {
     public virtualCircuits: VirtualCircuitStateCollection;
     public intellibrite: LightGroupState;
     public covers: CoverStateCollection;
-    public intellichem: IntelliChemState;
+    public chemControllers: ChemControllerStateCollection;
+    //public intellichem: IntelliChemState;
     public comms: CommsState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
@@ -292,7 +296,8 @@ interface IState {
     schedules: ScheduleStateCollection;
     circuitGroups: CircuitGroupStateCollection;
     virtualCircuits: VirtualCircuitStateCollection;
-    intellichem: IntelliChemState;
+    chemControllers: ChemControllerStateCollection;
+    //intellichem: IntelliChemState;
     comms: CommsState;
     //createCircuitStateMessage(): Outbound;
     //cancelDelay(): void;
@@ -1026,7 +1031,6 @@ export class ChlorinatorState extends EqState {
     public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
     public set body(val: number) {
         if (this.body !== val) {
-            // TODO: Change this to return the body data from the bodies collection.
             this.data.body = sys.board.valueMaps.bodies.transform(val);
             this.hasChanged = true;
         }
@@ -1092,15 +1096,38 @@ export class ChlorinatorState extends EqState {
     public setSuperChlorHours(hours: number) { sys.board.chlorinator.setSuperChlorHours(this, hours); }
     public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chlorinator.superChlorinate(this, bSet, hours); }
 }
+export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
+    public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
+}
 
-export class IntelliChemState extends EqState {
-    public get pH(): number { return this.data.pH; }
-    // this.setDataVal('name', val);
-    public set pH(val: number) { this.setDataVal('pH', val); }
-    public get ORP(): number { return this.data.ORP; }
-    public set ORP(val: number) { this.setDataVal('ORP', val); }
-    public get salt(): number { return this.data.salt; }
-    public set salt(val: number) { this.setDataVal('salt', val); }
+export class ChemControllerState extends EqState {
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get address(): number { return this.data.address; }
+    public set address(val: number) { this.setDataVal('address', val); }
+    public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
+    public set body(val: number) {
+        if (this.body !== val) {
+            this.data.body = sys.board.valueMaps.bodies.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : 0; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.chemControllerTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
+    public get pHLevel(): number { return this.data.pHLevel; }
+    public set pHLevel(val: number) { this.setDataVal('pHLevel', val); }
+    public get orpLevel(): number { return this.data.orpLevel; }
+    public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
+    public get saltLevel(): number { return this.data.saltLevel; }
+    public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
     public get waterFlow(): number { return this.data.waterFlow; }
     public set waterFlow(val: number) {
         if (this.waterFlow !== val) {
@@ -1108,10 +1135,10 @@ export class IntelliChemState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get tank1Level(): number { return this.data.tank1; }
-    public set tank1Level(val: number) { this.setDataVal('tank1', val); }
-    public get tank2Level(): number { return this.data.tank2; }
-    public set tank2Level(val: number) { this.setDataVal('tank2', val); }
+    public get acidTankLevel(): number { return this.data.acidTankLevel; }
+    public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
+    public get orpTankLevel(): number { return this.data.orpTankLevel; }
+    public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
     public get status1(): number { return this.data.mode1; }
     public set status1(val: number) {
         if (this.status1 !== val) {
@@ -1126,17 +1153,34 @@ export class IntelliChemState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get SI(): number {
-        // Saturation Index = SI = pH + CHF + AF + TF - TDSF
-        return Math.round(
-            (sys.intellichem.pH +
-                this.calculateCalciumHardnessFactor() +
-                this.calculateTotalCarbonateAlkalinity() +
-                this.calculateTemperatureFactor() -
-                this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+    public get pHDosingTime(): number { return this.data.pHDosingTime; }
+    public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
+    public get orpDosingTime(): number { return this.data.orpDosingTime; }
+    public set orpDosingTime(val: number) { this.setDataVal('orpDosingTime', val); }
+    public get saturationIndex() : number { return this.data.saturationIndex; }
+    public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val); }
+    public get temp(): number { return this.data.temp; }
+    public set temp(val: number) { this.setDataVal('temp', val); }
+    public get tempUnits(): number { return typeof (this.data.tempUnits) !== 'undefined' ? this.data.tempUnits.val : -1; }
+    public set tempUnits(val: number) {
+        if (this.tempUnits !== val) {
+            this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
+            this.hasChanged = true;
+        }
     }
-    private calculateCalciumHardnessFactor(): number {
-        let CH = sys.intellichem.CH;
+
+    //public get saturationIndex(): number {
+    //    // Saturation Index = SI = pH + CHF + AF + TF - TDSF
+    //    let controller = sys.chemControllers.getItemById(this.id);
+    //    return Math.round(
+    //        (this.pHLevel +
+    //            this.calculateCalciumHardnessFactor(controller) +
+    //            this.calculateTotalCarbonateAlkalinity(controller) +
+    //            this.calculateTemperatureFactor(controller) -
+    //            this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+    //}
+    private calculateCalciumHardnessFactor(controller: ChemController) {
+        let CH = controller.calciumHardness;
         if (CH <= 25) return 1.0;
         else if (CH <= 50) return 1.3;
         else if (CH <= 75) return 1.5;
@@ -1149,8 +1193,8 @@ export class IntelliChemState extends EqState {
         else if (CH <= 400) return 2.2;
         else if (CH <= 800) return 2.5;
     }
-    private calculateTotalCarbonateAlkalinity(): number {
-        var ppm = this.correctedAlkalinity();
+    private calculateTotalCarbonateAlkalinity(controller: ChemController): number {
+        var ppm = this.correctedAlkalinity(controller);
         if (ppm <= 25) return 1.4;
         else if (ppm <= 50) return 1.7;
         else if (ppm <= 75) return 1.9;
@@ -1163,10 +1207,13 @@ export class IntelliChemState extends EqState {
         else if (ppm <= 400) return 2.6;
         else if (ppm <= 800) return 2.9;
     }
-    private correctedAlkalinity(): number {
-        return sys.intellichem.TA - (sys.intellichem.CYA / 3);
+    private correctedAlkalinity(controller: ChemController): number {
+        return controller.alkalinity - (controller.cyanuricAcid / 3);
     }
-    private calculateTemperatureFactor(): number {
+    private calculateTemperatureFactor(controller: ChemController): number {
+        // RKS: I suspect that this value is returned by what is sent in
+        // from the primary controller.  Either way we cannot rely in the temp from
+        // water sensor 1 as this my be for another body.
         const temp = state.temps.waterSensor1;
         const UOM = sys.board.valueMaps.tempUnits.getName(state.temps.units);
         if (UOM === 'F') {
@@ -1194,12 +1241,17 @@ export class IntelliChemState extends EqState {
         }
     }
     private calculateTotalDisolvedSolidsFactor(): number {
+        // RKS: This needs to match with the target body of the chlorinator if it exists.
         // 12.1 for non-salt pools; 12.2 for salt pools
         let chlorInstalled = false;
         if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
         return chlorInstalled ? 12.2 : 12.1;
     }
-    public getExtended(): any { return this.get(true); }
+    public getExtended(): any {
+        let obj = this.get(true);
+        obj.saturationIndex = this.saturationIndex;
+        return this.get(true);
+    }
 }
 export class CommsState {
     public keepAlives: number;

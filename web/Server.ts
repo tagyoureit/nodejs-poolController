@@ -71,6 +71,11 @@ export class WebServer {
             this._servers[i].emitToClients(evt, ...data);
         }
     }
+    public emitToChannel(channel: string, evt: string, ...data: any) {
+        for (let i = 0; i < this._servers.length; i++) {
+            this._servers[i].emitToChannel(channel, evt, ...data);
+        }
+    }
     public get mdnsServer(): MdnsServer { return this._servers.find(elem => elem instanceof MdnsServer) as MdnsServer; }
     public deviceXML() { } // override in SSDP
     public stop() {
@@ -83,6 +88,7 @@ class ProtoServer {
     // base class for all servers.
     public isRunning: boolean=false;
     public emitToClients(evt: string, ...data: any) { }
+    public emitToChannel(channel: string, evt: string, ...data: any) { }
     public stop() { }
     protected _dev: boolean=process.env.NODE_ENV !== 'production';
     // todo: how do we know if the client is using IPv4/IPv6?
@@ -135,8 +141,13 @@ export class HttpServer extends ProtoServer {
             this.sockServer.emit(evt, ...data);
         }
     }
+    public emitToChannel(channel: string, evt: string, ...data: any) {
+        //console.log(`Emitting to channel ${channel} - ${evt}`)
+        if (this.isRunning) this.sockServer.to(channel).emit(evt, ...data);
+    }
     private initSockets() {
         this.sockServer = socketio(this.server, { cookie: false });
+        
         //this.sockServer.origins('*:*');
         this.sockServer.on('error', (err) => {
             logger.error('Socket server error %s', err.message);
@@ -154,10 +165,6 @@ export class HttpServer extends ProtoServer {
             sock.conn.emit('controller', state.controllerState);
         });
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
-        // this.app.use('/jquery', express.static(path.join(process.cwd(), '/node_modules/jquery/'), {maxAge: '60d'}));
-        // this.app.use('/jquery-ui', express.static(path.join(process.cwd(), '/node_modules/jquery-ui-dist/'), {maxAge: '60d'}));
-        // this.app.use('/font-awesome', express.static(path.join(process.cwd(), '/node_modules/@fortawesome/fontawesome-free/'), {maxAge: '60d'}));
-
     }
     private socketHandler(sock: socketio.Socket) {
         let self = this;
@@ -240,6 +247,11 @@ export class HttpServer extends ProtoServer {
                 conn.queueSendMessage(out);
             } while (bytesToProcessArr.length > 0);
 
+        });
+        sock.on('sendLogMessages', function (sendMessages: boolean) {
+            console.log(`sendLogMessages set to ${sendMessages}`);
+            if (!sendMessages) sock.leave('msgLogger');
+            else sock.join('msgLogger');
         });
     }
     public init(cfg) {
@@ -363,7 +375,6 @@ export class SsdpServer extends ProtoServer {
         this.server.stop();
     }
 }
-
 export class MdnsServer extends ProtoServer {
     // Multi-cast DNS server
     public server;
@@ -434,7 +445,6 @@ export class MdnsServer extends ProtoServer {
         this.server.query({ questions: [query] });
     }
 }
-export const webApp = new WebServer();
 export class HttpInterfaceServer extends ProtoServer {
     public bindingsPath: string;
     public bindings: HttpInterfaceBindings;
@@ -509,3 +519,4 @@ export class HttpInterfaceServer extends ProtoServer {
         }
     }
 }
+export const webApp = new WebServer();
