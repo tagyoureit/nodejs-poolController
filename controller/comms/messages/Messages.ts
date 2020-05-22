@@ -445,7 +445,7 @@ export class Inbound extends Message {
                 if (this.action === 109 && this.payload[1] === 3) break;
                 if (this.source === 17 && this.payload[0] === 109) break;
                 if (sys.controllerType === ControllerType.IntelliCenter && (this.action === 222 || this.action === 228)) break; // These are config requests from another controller (100s of them).
-                logger.info(`Unknown packet seen: ${ this.toPacket() }`);
+                logger.debug(`Packet not processed: ${ this.toPacket() }`);
                 break;
         }
     }

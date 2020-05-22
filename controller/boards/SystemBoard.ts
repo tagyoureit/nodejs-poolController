@@ -358,7 +358,9 @@ export class byteValueMaps {
         [0, { name: 'ready', desc: 'Ready' }],
         [1, { name: 'sync', desc: 'Synchronizing' }],
         [2, { name: 'set', desc: 'Sequencing Set Operation' }],
-        [3, { name: 'swim', desc: 'Sequencing Swim Operation' }]
+        [3, { name: 'swim', desc: 'Sequencing Swim Operation' }],
+        [4, { name: 'color', desc: 'Sequencing Theme/Color Operation' }],
+        [5, { name: 'other', desc: 'Sequencing Save/Recall Operation' }]
     ]);
     public msgBroadcastActions: byteValueMap=new byteValueMap([
         [2, { name: 'status', desc: 'Equipment Status' }],

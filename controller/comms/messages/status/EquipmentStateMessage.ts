@@ -32,7 +32,7 @@ export class EquipmentStateMessage {
                 sys.equipment.model = 'Suntouch/Intellicom';
                 sys.equipment.maxBodies = 2;
                 sys.equipment.maxFeatures = 4;
-                sys.equipment.maxValves = 2; 
+                sys.equipment.maxValves = 2;
                 sys.equipment.maxSchedules = 4;
                 sys.equipment.maxCircuits = 4; // 2 filter + 2 aux
                 sys.equipment.maxCircuitGroups = 0;
@@ -273,13 +273,13 @@ export class EquipmentStateMessage {
         if (model2 === 0 && (model1 === 23 || model1 === 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
-            console.log(`Found Controller Board ${state.equipment.model}, awaiting installed modules.`);
+            console.log(`Found Controller Board ${ state.equipment.model }, awaiting installed modules.`);
             EquipmentStateMessage.initIntelliCenter(msg);
         }
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
-            console.log(`Found Controller Board ${state.equipment.model}`);
-            setTimeout(function () { sys.checkConfiguration(); }, 300);
+            console.log(`Found Controller Board ${ state.equipment.model }`);
+            setTimeout(function() { sys.checkConfiguration(); }, 300);
         }
     }
     public static process(msg: Inbound) {
@@ -294,7 +294,7 @@ export class EquipmentStateMessage {
                 // related to the installed expansion boards.
                 console.log(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
                 board.initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
-                    msg.extractPayloadByte(15), 
+                    msg.extractPayloadByte(15),
                     msg.extractPayloadByte(16),
                     msg.extractPayloadByte(17));
                 sys.equipment.setEquipmentIds();
@@ -459,7 +459,7 @@ export class EquipmentStateMessage {
                                 EquipmentStateMessage.processCircuitState(msg);
                                 EquipmentStateMessage.processFeatureState(msg);
                                 let ver: ConfigVersion =
-                                typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                                    typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
                                 ver.equipment = msg.extractPayloadInt(25);
                                 sys.processVersionChanges(ver);
                                 state.emitControllerChange();
@@ -479,8 +479,8 @@ export class EquipmentStateMessage {
                             //state.emitControllerChange();
                             //state.emitEquipmentChanges();
                             break;
-                        }
                     }
+                }
                 break;
             case 5: // Intellitouch only.  Date/Time packet
                 // [255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
@@ -645,10 +645,10 @@ export class EquipmentStateMessage {
                 const circ = sys.circuits.getInterfaceById(circId);
                 if (!sys.board.equipmentIds.invalidIds.isValidId(circId)) {
                     circ.isActive = false;
-                    if (circ instanceof Circuit ){
+                    if (circ instanceof Circuit) {
                         sys.circuits.removeItemById(circId);
-                    } 
-                    else if (circ instanceof Feature){
+                    }
+                    else if (circ instanceof Feature) {
                         sys.features.removeItemById(circId);
                     }
                 }
@@ -681,24 +681,55 @@ export class EquipmentStateMessage {
             case 1: // on
             case 190: // save
                 // case 191: // recall
-                // RKS: TODO hold may be in this list since I see the all on and all off command here.  Sync is probably in the colorset message that includes the timings.
+                // RKS: TODO hold may be in this list since I see the all on and all off command here.  Sync is probably in the colorset message that includes the timings. 
                 // do nothing as these don't actually change the state.
                 break;
 
             default:
-                // intellibrite themes
-                // This is an observed message in that no-one asked for it.  *Touch does not report the theme and in fact, it is not even
-                // stored.  Once the message is sent then it throws away the data.  When you turn the light
-                // on again it will be on at whatever theme happened to be set at the time it went off.  We keep this
-                // as a best guess so when the user turns on the light it will likely be the last theme observed.
-                state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
-                for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-                    let ib = sys.intellibrite.circuits.getItemByIndex(i);
-                    let circuit = sys.circuits.getItemById(ib.circuit);
-                    let cstate = state.circuits.getItemById(ib.circuit);
-                    if (cstate.isOn || sys.controllerType !== ControllerType.IntelliTouch) cstate.lightingTheme = circuit.lightingTheme = theme;
+                {
+                    // intellibrite themes
+                    // This is an observed message in that no-one asked for it.  *Touch does not report the theme and in fact, it is not even
+                    // stored.  Once the message is sent then it throws away the data.  When you turn the light
+                    // on again it will be on at whatever theme happened to be set at the time it went off.  We keep this
+                    // as a best guess so when the user turns on the light it will likely be the last theme observed.
+                    state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                    const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+                    const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+                    sgrp.lightingTheme = theme;
+                    for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+                        let ib = sys.intellibrite.circuits.getItemByIndex(i);
+                        const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+                        let circuit = sys.circuits.getItemById(ib.circuit);
+                        let cstate = state.circuits.getItemById(ib.circuit);
+                        if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
+                    }
+                    for (let i = 0; i < grp.circuits.length; i++) {
+                        let c = grp.circuits.getItemByIndex(i);
+                        let cstate = state.circuits.getItemById(c.circuit);
+                        let circuit = sys.circuits.getInterfaceById(c.circuit);
+                        if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
+                    }
+                    switch (theme) {
+                        case 128: // sync
+                            sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');
+                            break;
+                        case 144: // swim
+                            sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
+                            break;
+                        case 160: // swim
+                            sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
+                            break;
+                        case 190: // save
+                        case 191: // recall
+                            sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');
+                            break;
+                        default:
+                            sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
+                        // other themes for magicstream?
+        
+                    }
+                    break;
                 }
-                break;
         }
     }
 }

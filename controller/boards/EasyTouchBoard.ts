@@ -2,7 +2,7 @@
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State, ICircuitState } from '../State';
+import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
@@ -13,7 +13,7 @@ export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.circuits = new EquipmentIdRange(function(){return this.start;}, function() { return this.start + sys.equipment.maxCircuits - 1; });
+        this.equipmentIds.circuits = new EquipmentIdRange(function() { return this.start; }, function() { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() { return this.start + sys.equipment.maxCircuitGroups - 1; });
@@ -162,7 +162,7 @@ export class EasyTouchBoard extends SystemBoard {
             [128, { name: 'runonce', desc: 'Run Once' }]
         ]);
         this.valueMaps.featureFunctions = new byteValueMap([
-            [0, { name: 'generic', desc: 'Generic' }], 
+            [0, { name: 'generic', desc: 'Generic' }],
             [14, { name: 'spillway', desc: 'Spillway' }]
         ]);
         this.valueMaps.msgBroadcastActions.merge([
@@ -276,7 +276,7 @@ export class EasyTouchBoard extends SystemBoard {
             this._configQueue.queueChanges();
         }
     }
-    public async stopAsync() { this._configQueue.close(); return Promise.resolve([]);}
+    public async stopAsync() { this._configQueue.close(); return Promise.resolve([]); }
 }
 export class TouchConfigRequest extends ConfigRequest {
     constructor(setcat: number, items?: number[], oncomplete?: Function) {
@@ -378,11 +378,11 @@ export class TouchConfigQueue extends ConfigQueue {
                 retries: 3,
                 response: true,
                 onResponseProcessed: function() { self.processNext(out); }
-/*                 response: Response.create({
-                    action: this.curr.category,
-                    payload: [itm],
-                    callback: function() { self.processNext(out); }
-                }) */
+                /*                 response: Response.create({
+                                    action: this.curr.category,
+                                    payload: [itm],
+                                    callback: function() { self.processNext(out); }
+                                }) */
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
@@ -565,7 +565,7 @@ class TouchSystemCommands extends SystemCommands {
 }
 class TouchBodyCommands extends BodyCommands {
     public async setHeatModeAsync(body: Body, mode: number) {
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
             //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
@@ -580,11 +580,11 @@ class TouchBodyCommands extends BodyCommands {
                 payload: [temp1, temp2, mode2 << 2 | mode1, 0],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg)=> {
+                onComplete: (err, msg) => {
                     if (err) reject(err);
                     body.heatMode = mode;
                     state.temps.bodies.getItemById(body.id).heatMode = mode;
-                    state.temps.emitEquipmentChange();
+                    state.emitEquipmentChanges();
                     resolve();
                 }
             });
@@ -592,48 +592,48 @@ class TouchBodyCommands extends BodyCommands {
         });
     }
     public setHeatSetpointAsync(body: Body, setPoint: number) {
-        return new Promise((resolve, reject)=>{
-        // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-        // 165,33,16,34,136,4,89,99,7,0,2,71  Request
-        // 165,33,34,16,1,1,136,1,130  Controller Response
-        const tempUnits = state.temps.units;
-        switch (tempUnits) {
-            case 0: // fahrenheit
-                if (setPoint < 40 || setPoint > 104) {
-                    logger.warn(`Setpoint of ${ setPoint } is outside acceptable range.`);
-                    return;
-                }
-                break;
-            case 1: // celcius
-                if (setPoint < 4 || setPoint > 40) {
-                    logger.warn(
-                        `Setpoint of ${ setPoint } is outside of acceptable range.`
-                    );
-                    return;
-                }
-                break;
-        }
-        const body1 = sys.bodies.getItemById(1);
-        const body2 = sys.bodies.getItemById(2);
-        let temp1 = body1.setPoint || 100;
-        let temp2 = body2.setPoint || 100;
-        body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
-        const mode1 = body1.heatMode;
-        const mode2 = body2.heatMode;
-        const out = Outbound.create({
-            dest: 16,
-            action: 136,
-            payload: [temp1, temp2, mode2 << 2 | mode1, 0],
-            retries: 3,
-            response: true,
-            onComplete: (err, msg) => {
-                if (err) reject(err);
+        return new Promise((resolve, reject) => {
+            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+            // 165,33,34,16,1,1,136,1,130  Controller Response
+            const tempUnits = state.temps.units;
+            switch (tempUnits) {
+                case 0: // fahrenheit
+                    if (setPoint < 40 || setPoint > 104) {
+                        logger.warn(`Setpoint of ${ setPoint } is outside acceptable range.`);
+                        return;
+                    }
+                    break;
+                case 1: // celcius
+                    if (setPoint < 4 || setPoint > 40) {
+                        logger.warn(
+                            `Setpoint of ${ setPoint } is outside of acceptable range.`
+                        );
+                        return;
+                    }
+                    break;
+            }
+            const body1 = sys.bodies.getItemById(1);
+            const body2 = sys.bodies.getItemById(2);
+            let temp1 = body1.setPoint || 100;
+            let temp2 = body2.setPoint || 100;
+            body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
+            const mode1 = body1.heatMode;
+            const mode2 = body2.heatMode;
+            const out = Outbound.create({
+                dest: 16,
+                action: 136,
+                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
                     body.setPoint = setPoint;
                     state.temps.bodies.getItemById(body.id).setPoint = setPoint;
                     state.temps.emitEquipmentChange();
                     resolve();
-            }
-                
+                }
+
             });
             conn.queueSendMessage(out);
         });
@@ -645,9 +645,9 @@ class TouchCircuitCommands extends CircuitCommands {
         if (typeof type === 'undefined') return themes;
         switch (type) {
             case 8: // Magicstream
-                return themes.filter(theme => theme.type === 'magicstream'); 
+                return themes.filter(theme => theme.type === 'magicstream');
             case 16: // Intellibrite
-                return themes.filter(theme => theme.type === 'intellibrite'); 
+                return themes.filter(theme => theme.type === 'intellibrite');
             default:
                 return [];
         }
@@ -715,10 +715,11 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
-        this.setIntelliBriteThemeAsync(theme);
+        return this.setIntelliBriteThemeAsync(theme);
     }
     public async setIntelliBriteThemeAsync(theme: number) {
         return new Promise((resolve, reject) => {
+            const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
             let out = Outbound.create({
                 action: 96,
                 payload: [theme, 0],
@@ -726,9 +727,15 @@ class TouchCircuitCommands extends CircuitCommands {
                 response: true,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
-                    state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                     for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                         let c = sys.intellibrite.circuits.getItemByIndex(i);
+                        let cstate = state.circuits.getItemById(c.circuit);
+                        let circuit = sys.circuits.getInterfaceById(c.circuit);
+                        cstate.lightingTheme = circuit.lightingTheme = theme;
+                        if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                    }// Let everyone know we turned these on.  The theme messages will come later.
+                    for (let i = 0; i < grp.circuits.length; i++) {
+                        let c = grp.circuits.getItemByIndex(i);
                         let cstate = state.circuits.getItemById(c.circuit);
                         let circuit = sys.circuits.getInterfaceById(c.circuit);
                         cstate.lightingTheme = circuit.lightingTheme = theme;
@@ -738,9 +745,29 @@ class TouchCircuitCommands extends CircuitCommands {
                     resolve(theme);
                 }
             });
+            switch (theme) {
+                case 128: // sync
+                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');
+                    break;
+                case 144: // swim
+                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
+                    break;
+                case 160: // swim
+                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
+                    break;
+                case 190: // save
+                case 191: // recall
+                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');
+                    break;
+                default:
+                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
+                // other themes for magicstream?
+
+            }
             conn.queueSendMessage(out);
         });
     }
+
 }
 
 class TouchFeatureCommands extends FeatureCommands {
@@ -758,31 +785,32 @@ class TouchFeatureCommands extends FeatureCommands {
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public async setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
-        return new Promise((resolve, reject)=>{
+        return new Promise((resolve, reject) => {
 
-    
-        // if chlorinator is controlled by thas app; call super();
-        let vc = sys.chlorinators.getItemById(1);
-        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-        // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
-        // all map here unless overridden.
-        let out = Outbound.create({
-            dest: 16,
-            action: 153,
-            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) { logger.error(`Error with setChlor: ${ err.message }`
-                ); 
-            reject(err);
-        }
-                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-                resolve();
-            }
+
+            // if chlorinator is controlled by thas app; call super();
+            let vc = sys.chlorinators.getItemById(1);
+            if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+            // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
+            // all map here unless overridden.
+            let out = Outbound.create({
+                dest: 16,
+                action: 153,
+                payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.error(`Error with setChlor: ${ err.message }`
+                        );
+                        reject(err);
+                    }
+                    sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+                    resolve();
+                }
+            });
+            conn.queueSendMessage(out);
         });
-        conn.queueSendMessage(out);
-    });
     }
 }
 class TouchPumpCommands extends PumpCommands {
@@ -890,12 +918,12 @@ class TouchPumpCommands extends PumpCommands {
         else {
             let arr = [];
             data.name = data.name || type.desc;
-            let outc = Outbound.create({ 
-                action: 155, 
-                payload: [id, ntype], 
-                retries: 2, 
+            let outc = Outbound.create({
+                action: 155,
+                payload: [id, ntype],
+                retries: 2,
                 response: Response.create({ action: 1, payload: [155] })
-             });
+            });
             outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
             outc.appendPayloadBytes(0, 44);
             if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {

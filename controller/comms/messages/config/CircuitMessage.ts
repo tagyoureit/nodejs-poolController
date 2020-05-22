@@ -79,8 +79,11 @@ export class CircuitMessage {
         let byte: number; // which byte are we starting with?
         msg.datalen === 25 ? byte = 1 : byte = 0;
         sys.intellibrite.isActive = true;
-        let lg = sys.lightGroups.getItemById(1, true);
-        lg.type = 3;
+        let lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
+        let sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
+        lg.name = sgrp.name = 'Intellibrite';
+        lg.type = sgrp.type = 3;
+        sgrp.action = 0;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
@@ -139,7 +142,7 @@ export class CircuitMessage {
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
-            switch (circuit.type) {
+           /*  switch (circuit.type) {
                 case 5:
                 case 6:
                 case 8:
@@ -152,8 +155,8 @@ export class CircuitMessage {
                         sys.intellibrite.circuits.removeItemByCircuitId(circuit.id);
                         // sys.lightGroups.getItemById(1, true).circuits.removeItemByCircuitId(circuit.id);
                     break;
-            }
-        }
+            }  */
+        } 
         // sys.intellibrite.circuits.sortByPosition();
     }
     private static processFreezeProtect(msg: Inbound) {
@@ -231,13 +234,15 @@ export class CircuitMessage {
                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
                 sys.intellibrite.isActive = true;
                 ib.isActive = true;
-                const lg = sys.lightGroups.getItemById(1, true);
+                const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
+                const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 lg.circuits.getItemByCircuitId(id, true).isActive = true;
-                lg.isActive = true;
-
+                lg.isActive = sgrp.isActive = true;
             }
-            else
+            else {
                 sys.intellibrite.circuits.removeItemByCircuitId(id);
+                sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.removeItemByCircuitId(id);
+            }
             if (sys.board.equipmentIds.circuits.isInRange(id)) {
                 // Circuits will be the only type that are referenced here.
                 if (circuit.type === 0) return; // do not process if type doesn't exist
@@ -271,8 +276,9 @@ export class CircuitMessage {
             if (sys.intellibrite.circuits.length === 0) {
                 sys.intellibrite.isActive = false;
             }
-            if (sys.lightGroups.getItemById(1).circuits.length === 0) {
-                sys.lightGroups.getItemById(1).isActive = false;
+            if (sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.length === 0) {
+                sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).isActive = false;
+                state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
             }
             sys.features.removeItemById(id);
             state.features.removeItemById(id);
