@@ -695,7 +695,7 @@ export class EquipmentStateMessage {
                     state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                     const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
-                    sgrp.lightingTheme = theme;
+                    grp.lightingTheme = sgrp.lightingTheme = theme;
                     for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
                         let ib = sys.intellibrite.circuits.getItemByIndex(i);
                         const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);

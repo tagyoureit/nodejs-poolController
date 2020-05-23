@@ -1435,8 +1435,8 @@ export class CircuitCommands extends BoardCommands {
         else
             return sys.customNames.getItemById(id - 200).name;
     }
-    public async setIntelliBriteThemeAsync(theme: number) {
-        return sys.board.circuits.setIntelliBriteThemeAsync(theme);
+    public async setIntelliBriteThemeAsync(id:number, theme: number) {
+        return sys.board.circuits.setIntelliBriteThemeAsync(id, theme);
         /* state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
             let ib = sys.intellibrite.circuits.getItemByIndex(i);

@@ -27,13 +27,18 @@ export class StateRoute {
         app.put('/state/circuit/toggleState', (req, res) => {
             state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
             return res.status(200).send('OK');
-        });
-            app.put('/state/circuit/setTheme', (req, res) => {
-            state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
-            return res.status(200).send('OK');
+        });    
+        app.put('/state/circuit/setTheme', (req, res, next) => {
+           try {
+               let theme = state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
+               return res.status(200).send(theme);
+            } 
+            catch (err) { next(err); }
         }); 
         app.put('/state/intellibrite/setTheme', (req, res) => {
-            sys.board.circuits.setIntelliBriteThemeAsync(parseInt(req.body.theme, 10));
+            let id = sys.board.equipmentIds.circuitGroups.start; 
+            if (typeof req.body.theme !== 'undefined') id = parseInt(req.body.id, 10);
+            sys.board.circuits.setIntelliBriteThemeAsync(id ,parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
         });
         app.put('/state/circuit/setDimmerLevel', (req, res) => {

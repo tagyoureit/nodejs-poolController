@@ -715,11 +715,13 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
-        return this.setIntelliBriteThemeAsync(theme);
+        return this.setIntelliBriteThemeAsync(id, theme);
     }
-    public async setIntelliBriteThemeAsync(theme: number) {
+    public async setIntelliBriteThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number) {
         return new Promise((resolve, reject) => {
-            const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+            const grp = sys.lightGroups.getItemById(id);
+            const sgrp = state.lightGroups.getItemById(id);
+            grp.lightingTheme = sgrp.lightingTheme = theme;
             let out = Outbound.create({
                 action: 96,
                 payload: [theme, 0],
