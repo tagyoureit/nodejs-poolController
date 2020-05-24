@@ -6,6 +6,7 @@ import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
 import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError } from '../Errors';
 import { logger } from '../../logger/Logger';
+import { config } from '../../config/Config'; // TODO: RG - we shouldn't import this in here but I want to set the inactivityRetry from here.  What's the best way?
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
@@ -1833,6 +1834,11 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             pump.type = 0;
             try {
                 sys.board.pumps.initPump(pump);
+                let c = config.getSection('controller');
+                if (c.comms.inactivityRetry > 0) {
+                    c.comms.inactivityRetry = -1;
+                    config.setSection('controller', c);
+                }
             }
             catch (err) {
                 console.log(`Error finding pumps: ${ err.message }`);

@@ -14,6 +14,7 @@
     "dependencies": {
         "express": "^4.17.1",
         "extend": "^3.0.2",
+        "jszip": "^3.4.0",
         "multicast-dns": "^7.2.0",
         "node-ssdp": "^4.0.0",
         "serialport": "^7.1.5",

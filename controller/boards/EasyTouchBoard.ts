@@ -358,7 +358,7 @@ export class TouchConfigQueue extends ConfigQueue {
             state.status = sys.board.valueMaps.controllerStatus.transform(2, this.percent);
         }
         // Shift to the next config queue item.
-        logger.silly(
+        logger.verbose(
             `Config Queue Completed... ${ this.percent }% (${ this.remainingItems } remaining)`
         );
         while (

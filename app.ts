@@ -4,7 +4,7 @@ require('source-map-support').install();
 import { logger } from "./logger/Logger";
 import { config } from "./config/Config";
 import { conn } from "./controller/comms/Comms";
-import { sys } from "./controller/Equipment";
+import { sys, ControllerType } from "./controller/Equipment";
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
@@ -19,16 +19,40 @@ export function initAsync() {
         .then(function() { sys.init(); })
         .then(function() { webApp.init(); });
 }
+// used to reset files and reinitialize files
+// if replayBaseDir is included, it will copy config.json to replay directory
+export function startReplay(bResetLogs: boolean) {
+    try {
+        let log = config.getSection('log');
+        log.app.captureForReplay = true;
+        config.setSection('log', log);
+        logger.startCaptureForReplay(bResetLogs);
+        if (bResetLogs){
+            //sys.board.reloadConfig();
+            sys.controllerType = ControllerType.Unknown;
+        }
+    }
+    catch (err) {
+        console.error(`Error starting replay: ${ err.message }`);
+    }
+}
+export async function stopReplayAsync() {
+    let log = config.getSection('log');
+    log.app.captureForReplay = false;
+    config.setSection('log', log);
+    return logger.stopCaptureForReplayAsync();
+}
 export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
-        await sys.board.virtualPumpControllers.stopAsync(); 
-        await sys.stopAsync(); 
-        await state.stopAsync(); 
-        await conn.stopAsync(); 
+        await sys.board.virtualPumpControllers.stopAsync();
+        await logger.stopAsync();
+        await sys.stopAsync();
+        await state.stopAsync();
+        await conn.stopAsync();
     }
-    catch (err){
-        console.error(`Error stopping processes: ${err.message}`);
+    catch (err) {
+        console.error(`Error stopping processes: ${ err.message }`);
     }
     finally {
         process.exit();

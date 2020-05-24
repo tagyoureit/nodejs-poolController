@@ -2,6 +2,7 @@
 import { state, ICircuitState, LightGroupState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
+import { logger } from "../../../logger/Logger";
 export class StateRoute {
     public static initRoutes(app: express.Application) {
         app.get('/state/chlorinator/:id', (req, res) => {

@@ -2,7 +2,7 @@
   "controller": {
     "comms": {
       "rs485Port": "/dev/ttyUSB0",
-      "mockPort": false,
+      "mockPort": true,
       "netConnect": false,
       "netHost": "raspberrypi",
       "netPort": 9801,
@@ -16,7 +16,7 @@
       },
       "http": {
         "enabled": true,
-        "ip": "127.0.0.1",
+        "ip": "0.0.0.0",
         "port": 4200,
         "httpsRedirect": false,
         "authentication": "none",
@@ -70,7 +70,6 @@
       "logToConsole": false,
       "logToFile": false,
       "filename": "packetLog",
-      "replay": false,
       "broadcast": {
         "enabled": true,
         "includeActions": [],
@@ -81,7 +80,7 @@
         "excludeDest": []
       },
       "pump": {
-        "enabled": false,
+        "enabled": true,
         "includeActions": [],
         "includeSource": [],
         "includeDest": [],
@@ -124,7 +123,8 @@
     },
     "app": {
       "enabled": true,
-      "level": "info"
+      "level": "info",
+      "captureForReplay": false
     }
   },
   "appVersion": "0.0.1"

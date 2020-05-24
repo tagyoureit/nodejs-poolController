@@ -5,6 +5,7 @@ import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
+import {stopReplayAsync, startReplay} from '../../../app';
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -324,7 +325,7 @@ export class ConfigRoute {
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);
             let _circuit = parseInt(req.body.circuit, 10);
-            let _rate = parseInt(req.body.rate, 10) || 1000;
+            let _rate = parseInt(req.body.rate, 10);
             let _units = parseInt(req.body.units, 10) || pump.defaultUnits;
             let pumpCircuit = {
                 pump: parseInt(req.params.id, 10),
@@ -488,9 +489,6 @@ export class ConfigRoute {
 
 
         /******* ENDPOINTS FOR MANAGING THE poolController APPLICATION *********/
-        app.get('/app/config/:section', (req, res) => {
-            return res.status(200).send(config.getSection(req.params.section));
-        });
         app.put('/app/logger/setOptions', (req, res) => {
             logger.setOptions(req.body);
             return res.status(200).send('OK');
@@ -505,6 +503,24 @@ export class ConfigRoute {
         app.put('/app/config/reload', (req, res) => {
             sys.board.reloadConfig();
             return res.status(200).send('OK');
+        });
+        app.get('/app/config/startReplay', (req, res) => {
+            startReplay(true);
+            return res.status(200).send('OK');
+        });
+        app.get('/app/config/startReplayWithoutReset', (req, res) => {
+            startReplay(false);
+            return res.status(200).send('OK');
+        });
+        app.get('/app/config/stopReplay', async (req, res,next) => {
+            try {
+                let file = await stopReplayAsync();
+                res.download(file);
+            }
+            catch (err) {next(err);}
+        });
+        app.get('/app/config/:section', (req, res) => {
+            return res.status(200).send(config.getSection(req.params.section));
         });
 
 

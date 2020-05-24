@@ -2,7 +2,7 @@
 import { ControllerType } from '../../../Constants';
 import { state, BodyTempState } from '../../../State';
 import { sys, Body, ExpansionPanel, Heater, ConfigVersion, Circuit, Feature } from '../../../Equipment';
-import { logger } from 'logger/Logger';
+import { logger } from '../../../../logger/Logger';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 
 export class EquipmentStateMessage {
@@ -273,12 +273,12 @@ export class EquipmentStateMessage {
         if (model2 === 0 && (model1 === 23 || model1 === 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
-            console.log(`Found Controller Board ${ state.equipment.model }, awaiting installed modules.`);
+            logger.info(`Found Controller Board ${ state.equipment.model }, awaiting installed modules.`);
             EquipmentStateMessage.initIntelliCenter(msg);
         }
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
-            console.log(`Found Controller Board ${ state.equipment.model }`);
+            logger.info(`Found Controller Board ${ state.equipment.model }`);
             setTimeout(function() { sys.checkConfiguration(); }, 300);
         }
     }

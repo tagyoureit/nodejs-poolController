@@ -20,6 +20,7 @@ import * as ssdp from 'node-ssdp';
 import * as os from 'os';
 import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
+import {Timestamp} from '../controller/Constants';
 import extend = require("extend");
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -268,6 +269,7 @@ export class HttpServer extends ProtoServer {
                     return res.redirect('https://' + host + req.url);
                 });
             }
+            this.app.use(express.json());
             this.app.use((req, res, next) => {
                 res.header('Access-Control-Allow-Origin', '*');
                 res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -276,11 +278,12 @@ export class HttpServer extends ProtoServer {
                 else {
                     if (req.url !== '/device'){
                         console.log(`${ req.ip } ${ req.method } ${ req.url } ${ typeof req.body === 'undefined' ? '' : JSON.stringify(req.body) }`);
+                        logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${ typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},` }"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
                     }
                     next();
                 }
             });
-            this.app.use(express.json());
+
             // Put in a custom replacer so that we can send error messages to the client.  If we don't do this the base properties of Error
             // are omitted from the output.
             this.app.set('json replacer', (key, value) => {
