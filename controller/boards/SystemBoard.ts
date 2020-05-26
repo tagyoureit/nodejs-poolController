@@ -964,7 +964,7 @@ export class PumpCommands extends BoardCommands {
             await this.setPumpToRemoteControlAsync(pump, true);
             await this.setDriveStatePacketAsync(pump, _maxSpeed > 0);
             if (_maxSpeed > 130) { this.runRPMAsync(pump, _maxSpeed); }
-            if (_maxSpeed > 0 && _maxSpeed <= 130) { this.runGPM(pump, _maxSpeed); }
+            if (_maxSpeed > 0 && _maxSpeed <= 130) { this.runGPMAsync(pump, _maxSpeed); }
         }
         catch (err) {
             // log something
@@ -1051,7 +1051,7 @@ export class PumpCommands extends BoardCommands {
                 payload: [2, 196, Math.floor(speed / 256), speed % 256],
                 retries: 1,
                 response: true,
-                onComplete: (err) => {
+                onComplete: (err, msg) => {
                     if (err) { reject(err); }
                     console.log(`received back run rpm.`);
                     resolve();
@@ -1085,7 +1085,7 @@ export class PumpCommands extends BoardCommands {
         */
     }
 
-    private runGPM(pump: Pump, speed: number) {
+    private runGPMAsync(pump: Pump, speed: number) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
 
         /*         const msg = Outbound.createPumpMessage(pump.address, 4, [pump.type === 128 ? 1 : 10, 4, 2, 196, Math.floor(speed / 256), speed % 256], 1);
@@ -1107,7 +1107,7 @@ export class PumpCommands extends BoardCommands {
                 action: pump.type === 128 ? 1 : 10,
                 payload: [],
                 retries: 1,
-                onComplete: (err) => {
+                onComplete: (err, msg) => {
                     if (err) { reject(err); }
                     console.log(`received back run gpm.`);
                     resolve();
@@ -1133,13 +1133,13 @@ export class PumpCommands extends BoardCommands {
                 action: 7,
                 payload: [],
                 retries: 1,
-                response: true
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) { reject(err); }
+                    console.log(`received back pump status.`);
+                    resolve();
+                }
             });
-            let fn = (err) => {
-                if (err) { reject(err); }
-                console.log(`received back pump status.`);
-                resolve();
-            };
             conn.queueSendMessage(out);
         });
     }

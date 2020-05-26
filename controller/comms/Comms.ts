@@ -209,8 +209,8 @@ export class SendRecieveBuffer {
                     // we have an RTS semaphore and a waiting response might make it go here.
                     msg.failed = true;
                     conn.buffer._waitingPacket = null;
-                    logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }`);
-                    let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s)`);
+                    logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }: ${msg.toShortPacket()}`);
+                    let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${msg.toShortPacket()}`);
                     if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                     if (msg.requiresResponse) {
                         if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
