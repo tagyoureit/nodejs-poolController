@@ -21,7 +21,7 @@ export function initAsync() {
 }
 // used to reset files and reinitialize files
 // if replayBaseDir is included, it will copy config.json to replay directory
-export function startReplay(bResetLogs: boolean) {
+export function startPacketCapture(bResetLogs: boolean) {
     try {
         let log = config.getSection('log');
         log.app.captureForReplay = true;
@@ -36,7 +36,7 @@ export function startReplay(bResetLogs: boolean) {
         console.error(`Error starting replay: ${ err.message }`);
     }
 }
-export async function stopReplayAsync() {
+export async function stopPacketCaptureAsync() {
     let log = config.getSection('log');
     log.app.captureForReplay = false;
     config.setSection('log', log);

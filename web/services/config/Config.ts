@@ -5,7 +5,7 @@ import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
-import {stopReplayAsync, startReplay} from '../../../app';
+import {stopPacketCaptureAsync, startPacketCapture} from '../../../app';
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -504,17 +504,17 @@ export class ConfigRoute {
             sys.board.reloadConfig();
             return res.status(200).send('OK');
         });
-        app.get('/app/config/startReplay', (req, res) => {
-            startReplay(true);
+        app.get('/app/config/startPacketCapture', (req, res) => {
+            startPacketCapture(true);
             return res.status(200).send('OK');
         });
-        app.get('/app/config/startReplayWithoutReset', (req, res) => {
-            startReplay(false);
+        app.get('/app/config/startPacketCaptureWithoutReset', (req, res) => {
+            startPacketCapture(false);
             return res.status(200).send('OK');
         });
-        app.get('/app/config/stopReplay', async (req, res,next) => {
+        app.get('/app/config/stopPacketCapture', async (req, res,next) => {
             try {
-                let file = await stopReplayAsync();
+                let file = await stopPacketCaptureAsync();
                 res.download(file);
             }
             catch (err) {next(err);}

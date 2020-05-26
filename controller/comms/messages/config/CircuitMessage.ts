@@ -81,6 +81,7 @@ export class CircuitMessage {
         sys.intellibrite.isActive = true;
         let lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
         let sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
+        lg.isActive = true;
         lg.name = sgrp.name = 'Intellibrite';
         lg.type = sgrp.type = 3;
         sgrp.action = 0;

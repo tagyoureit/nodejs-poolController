@@ -6,8 +6,7 @@ import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupSt
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
-import { rejects } from 'assert';
-import { resolve } from 'dns';
+
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean=false;
@@ -712,6 +711,91 @@ class TouchCircuitCommands extends CircuitCommands {
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !cstate.isOn);
+    }
+    private createLightGroupMessages(){
+        let packets:Outbound[] = [];
+        // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
+
+        const defs = {
+            numPackets: sys.equipment.maxIntelliBrites === 8 ? 1 : 2,
+            packets: [{
+                numCircuits: sys.equipment.maxIntelliBrites === 8 ? 8 : 5,
+                startCirc: 1,
+                endCirc: sys.equipment.maxIntelliBrites === 8 ? 8 : 5,
+                isValid: true,
+                padPayload: (pkt:number[])=>{
+                    if (sys.equipment.maxIntelliBrites === 8) {
+                        return pkt.fill(0,0,sys.equipment.maxIntelliBrites);
+                    }
+                    else {
+                        pkt[0] = 1;
+                        return pkt.fill(0,0,5);
+                    }
+                },
+                fillPayload: (pkt:number[]) => {
+                    let idx = pkt.length;
+                    for (let circ = 1; circ <= defs.packets[1].numCircuits; circ++){
+                        //
+                    }
+                }
+            },
+            {
+                numCircuits: 5,
+                startCirc: 6,
+                endCirc: 10,
+                isValid: sys.equipment.maxIntelliBrites === 8 ? false : true,
+                padPayload: (pkt:number[])=>{
+                        pkt[0] = 2;
+                        return pkt.fill(0,0,5);
+                    }
+
+            }]
+        }
+        for (let packet = 0; packet < 2; packet++){
+            let out = Outbound.create({
+                action: 167,
+                payload: [],
+                retries: 3,
+                response: true
+            });
+            defs.packets[packet].padPayload(out.payload);
+            const lgrp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+            const lgrpCircs = lgrp.circuits;
+
+            
+        }
+    }
+    public async setLightGroupAsync(data: any): Promise<LightGroup> {
+
+
+aaa
+        let circuit = sys.circuits.getInterfaceById(data.id);
+        let typeByte = data.type || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+        let nameByte = 3; // set default `Aux 1`
+        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+        else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
+        return new Promise<ICircuit>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 139,
+                payload: [data.id, typeByte, nameByte],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    else {
+                        let circuit = sys.circuits.getInterfaceById(data.id);
+                        let cstate = state.circuits.getInterfaceById(data.id);
+                        circuit.nameId = cstate.nameId = nameByte;
+                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                        circuit.type = cstate.type = typeByte;
+                        state.emitEquipmentChanges();
+                        resolve(circuit);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.

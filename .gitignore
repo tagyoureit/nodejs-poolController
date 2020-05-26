@@ -1,4 +1,5 @@
 /nbproject/private/
+/logs
 *.log
 .coveralls*
 .idea/
