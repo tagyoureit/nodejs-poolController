@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState } from '../State';
 import { logger } from '../../logger/Logger';
@@ -767,9 +767,8 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public async setLightGroupAsync(data: any): Promise<LightGroup> {
 
-
-aaa
-        let circuit = sys.circuits.getInterfaceById(data.id);
+        return {} as LightGroup;
+/*         let circuit = sys.lightGroups.getItemById(data.id);
         let typeByte = data.type || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
         let nameByte = 3; // set default `Aux 1`
         if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
@@ -783,8 +782,8 @@ aaa
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
-                        let circuit = sys.circuits.getInterfaceById(data.id);
-                        let cstate = state.circuits.getInterfaceById(data.id);
+                        let circuit = sys.lightGroups.getItemById(data.id);
+                        let cstate = state.lightGroups.getItemById(data.id);
                         circuit.nameId = cstate.nameId = nameByte;
                         // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
                         circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
@@ -795,7 +794,7 @@ aaa
                 }
             });
             conn.queueSendMessage(out);
-        });
+        }); */
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
