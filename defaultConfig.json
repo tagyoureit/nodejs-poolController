@@ -24,7 +24,7 @@
       },
       "https": {
         "enabled": true,
-        "ip": "127.0.0.1",
+        "ip": "0.0.0.0",
         "port": 4201,
         "authentication": "none",
         "authFile": "/users.htpasswd",
@@ -70,6 +70,7 @@
       "logToConsole": false,
       "logToFile": false,
       "filename": "packetLog",
+      "invalid": true,
       "broadcast": {
         "enabled": true,
         "includeActions": [],

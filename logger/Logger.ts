@@ -80,14 +80,21 @@ class Logger {
             var bLog: boolean = true;
             var cfgPacket = logger.cfg.packet[msg.protocol];
             if (!logger.cfg.app.captureForReplay) {
-                if (bLog && !cfgPacket.enabled) bLog = false;
-                if (bLog && !logger.isIncluded(msg.source, cfgPacket.includeSouce)) bLog = false;
-                if (bLog && !logger.isIncluded(msg.dest, cfgPacket.includeDest)) bLog = false;
-                if (bLog && !logger.isIncluded(msg.action, cfgPacket.includeActions)) bLog = false;
-                if (bLog && logger.isExcluded(msg.source, cfgPacket.excludeSource)) bLog = false;
-                if (bLog && logger.isExcluded(msg.dest, cfgPacket.excludeDest)) bLog = false;
-                if (bLog && logger.isExcluded(msg.action, cfgPacket.excludeActions)) bLog = false;
+                // Log invalid messages no matter what if the user has selected invalid message logging.
+                if (bLog && !msg.isValid) {
+                    if (!logger.cfg.packet.invalid) bLog = false;
+                }
+                else {
+                    if (bLog && !cfgPacket.enabled) bLog = false;
+                    if (bLog && !logger.isIncluded(msg.source, cfgPacket.includeSouce)) bLog = false;
+                    if (bLog && !logger.isIncluded(msg.dest, cfgPacket.includeDest)) bLog = false;
+                    if (bLog && !logger.isIncluded(msg.action, cfgPacket.includeActions)) bLog = false;
+                    if (bLog && logger.isExcluded(msg.source, cfgPacket.excludeSource)) bLog = false;
+                    if (bLog && logger.isExcluded(msg.dest, cfgPacket.excludeDest)) bLog = false;
+                    if (bLog && logger.isExcluded(msg.action, cfgPacket.excludeActions)) bLog = false;
+                }
             }
+            
             if (bLog) {
                 logger.pkts.push(msg);
                 if (logger.pkts.length > 5)
