@@ -244,7 +244,7 @@ class Logger {
         this.transports.console.level = 'silly';
     }
     public async stopCaptureForReplayAsync():Promise<string> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise<string>(async (resolve, reject) => {
             try {
                 fs.copyFileSync(path.join(process.cwd(), "/config.json"), path.join(this.captureForReplayBaseDir, `config.json`));
                 fs.copyFileSync(path.join(process.cwd(), 'data/poolConfig.json'), path.join(this.captureForReplayBaseDir, 'poolConfig.json'));
