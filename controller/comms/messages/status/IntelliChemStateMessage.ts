@@ -113,8 +113,11 @@ export class IntelliChemStateMessage {
         scontroller.status1 = msg.extractPayloadByte(34);
 
         // RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
-        let chlor = state.chlorinators.find(elem => elem.id === 1);
-        scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+        if (sys.chlorinators.length > 0) {
+            let chlor = state.chlorinators.find(elem => elem.id === 1);
+            scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+        }
+        else scontroller.saltLevel = 0;
 
     }
 }

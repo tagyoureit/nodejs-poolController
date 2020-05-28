@@ -14,7 +14,8 @@ export class Connection {
     public isOpen: boolean=false;
     private _cfg: any;
     private _port: any;
-    public mockPort: boolean=false;
+    public mockPort: boolean = false;
+    private isPaused: boolean = false;
     public buffer: SendRecieveBuffer;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
@@ -38,7 +39,7 @@ export class Connection {
                     logger.info(`Net connect (socat) connected to: ${ conn._cfg.netHost }:${ conn._cfg.netPort }`);
                     timeOut = undefined;
                 }
-                if (data.length > 0) conn.emitter.emit('packetread', data);
+                if (data.length > 0 && !conn.isPaused) conn.emitter.emit('packetread', data);
                 conn.resetConnTimer('timeout');
             });
         }
@@ -75,7 +76,11 @@ export class Connection {
             });
             sp.on('readable', function() {
                 if (!this.mockPort) {
-                    conn.emitter.emit('packetread', sp.read());
+                    // If we are paused just read the port and do nothing with it.
+                    if (conn.isPaused)
+                        sp.read();
+                    else
+                        conn.emitter.emit('packetread', sp.read());
                     conn.resetConnTimer();
                 }
             });
@@ -135,11 +140,15 @@ export class Connection {
         conn.open();
     }
     public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }
-
-    public queueReceiveMessage(pkt: Inbound) {
-        logger.info(`Receiving ${ pkt.action }`);
-        conn.buffer.pushIn(pkt);
-    }
+    public pause() { this.isPaused = true; this.buffer.clear(); this.drain(function (err) { }); }
+    // RKS: Resume is executed in a closure.  This is because we want the current async process to complete
+    // before we resume.  This way the messages are cleared right before we restart.
+    public resume() { if (this.isPaused) setTimeout(function () { this.buffer.clear(); this.isPaused = false; }, 0); }
+    // RKS: This appears to not be used.
+    //public queueReceiveMessage(pkt: Inbound) {
+    //    logger.info(`Receiving ${ pkt.action }`);
+    //    conn.buffer.pushIn(pkt);
+    //}
 }
 export class SendRecieveBuffer {
     constructor() {
@@ -158,7 +167,7 @@ export class SendRecieveBuffer {
     public pushIn(pkt) { conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); }
     public pushOut(msg) { conn.buffer._outBuffer.push(msg); }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
-    public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); }
+    public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); this._msg = undefined; }
     private processPackets() {
         if (conn.buffer._processing) return;
         conn.buffer._processing = true;

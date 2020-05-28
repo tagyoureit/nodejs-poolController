@@ -546,14 +546,15 @@ export class EquipmentStateMessage {
                 state.time.year = msg.extractPayloadByte(8);
                 sys.equipment.controllerFirmware = (msg.extractPayloadByte(42)
                     + (msg.extractPayloadByte(43) / 1000)).toString();
-                if (msg.extractPayloadByte(37, 255) !== 255) {
-                    const chlor = state.chlorinators.getItemById(1);
-                    chlor.superChlorRemaining =
-                        msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
-                } else {
-                    const chlor = state.chlorinators.getItemById(1);
-                    chlor.superChlorRemaining = 0;
-                    chlor.superChlor = false;
+                if (sys.chlorinators.length > 0) {
+                    if (msg.extractPayloadByte(37, 255) !== 255) {
+                        const chlor = state.chlorinators.getItemById(1);
+                        chlor.superChlorRemaining = msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
+                    } else {
+                        const chlor = state.chlorinators.getItemById(1);
+                        chlor.superChlorRemaining = 0;
+                        chlor.superChlor = false;
+                    }
                 }
                 // state.emitControllerChange();
                 // state.emitEquipmentChanges();
