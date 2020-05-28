@@ -99,7 +99,17 @@ export class PoolSystem implements IPoolSystem {
         }
         return cfg;
     }
-
+    public resetSystem() {
+        conn.pause();
+        this.resetData();
+        state.resetData();
+        this.data.controllerType === 'unknown';
+        state.equipment.controllerType = ControllerType.Unknown;
+        this.controllerType = ControllerType.Unknown;
+        state.status = 0;
+        this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
+        setTimeout(function () { state.status = 0; conn.resume(); }, 0);
+    }
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val) {
@@ -133,8 +143,9 @@ export class PoolSystem implements IPoolSystem {
         this.valves.clear();
         this.covers.clear();
         this.chemControllers.clear();
+        if(typeof this.data.intelliBrite !== 'undefined') delete this.data.intelliBrite;
         //this.intellichem.clear();
-        console.log(this.configVersion);
+        //console.log(this.configVersion);
        
     }
     public async stopAsync() {

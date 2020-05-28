@@ -273,7 +273,7 @@ export class EquipmentStateMessage {
         if (model2 === 0 && (model1 === 23 || model1 === 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
-            logger.info(`Found Controller Board ${ state.equipment.model }, awaiting installed modules.`);
+            logger.info(`Found Controller Board ${state.equipment.model || 'IntelliCenter'}, awaiting installed modules.`);
             EquipmentStateMessage.initIntelliCenter(msg);
         }
         else {

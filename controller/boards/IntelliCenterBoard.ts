@@ -171,6 +171,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public valves: IntelliCenterValveCommands = new IntelliCenterValveCommands(this);
     public reloadConfig() {
+        //sys.resetSystem();
         sys.configVersion.clear();
         state.status = 0;
         console.log('RESETTING THE CONFIGURATION');

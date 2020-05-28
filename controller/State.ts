@@ -64,6 +64,7 @@ export class State implements IState {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
         //let state:any = {};
         let obj: any = this;
+        
         if (typeof section === 'undefined' || section === 'all') {
             var _state: any = this.controllerState;
             _state.circuits = this.circuits.getExtended();

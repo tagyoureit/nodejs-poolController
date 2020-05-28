@@ -140,10 +140,10 @@ export class Connection {
         conn.open();
     }
     public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }
-    public pause() { this.isPaused = true; this.buffer.clear(); this.drain(function (err) { }); }
+    public pause() { conn.isPaused = true; conn.buffer.clear(); conn.drain(function (err) { }); }
     // RKS: Resume is executed in a closure.  This is because we want the current async process to complete
     // before we resume.  This way the messages are cleared right before we restart.
-    public resume() { if (this.isPaused) setTimeout(function () { this.buffer.clear(); this.isPaused = false; }, 0); }
+    public resume() { if (this.isPaused) setTimeout(function () { conn.buffer.clear(); conn.isPaused = false; }, 0); }
     // RKS: This appears to not be used.
     //public queueReceiveMessage(pkt: Inbound) {
     //    logger.info(`Receiving ${ pkt.action }`);
