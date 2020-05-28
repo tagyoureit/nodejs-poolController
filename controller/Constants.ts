@@ -106,7 +106,7 @@ export class Utils {
         if (typeof (val) === 'undefined') return false;
         if (typeof (val) === 'number') return val >= 1;
         if (typeof (val) === 'string') {
-            if (val === '') return false;
+            if (val === '' || typeof val === 'undefined') return false;
             switch (val.toLowerCase().trim()) {
                 case 'on':
                 case 'true':

@@ -193,11 +193,22 @@ export class HttpServer extends ProtoServer {
             }
             //logger.info(str);
         });
-        sock.on('replayPackets', function(bytesToProcessArr: number[][]) {
+        sock.on('replayPackets', function(inboundPkt: number[][]) {
+            // takes an input of raw bytes and will merge bytes to make a full packet if needed
+            // used for replay
+            logger.debug(`Received ${ inboundPkt }`);
+            let pkt = {
+                header: inboundPkt[2],
+                payload: inboundPkt[3],
+                term: inboundPkt[4]
+            }
+            Inbound.replay(pkt);
+        });
+        sock.on('replayPacketsV5', function(bytesToProcessArr: number[][]) {
             // takes an input of raw bytes and will merge bytes to make a full packet if needed
             // used for replay
             logger.debug(`Received ${ bytesToProcessArr }`);
-            for (let i = 0; i < bytesToProcessArr.length; i++) {
+             for (let i = 0; i < bytesToProcessArr.length; i++) {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();
 
                 let msg: Inbound = self._pendingMsg;
@@ -228,10 +239,10 @@ export class HttpServer extends ProtoServer {
                     bytesToProcess = bytesToProcess.slice(ndx);
                 }
                 while (ndx < bytesToProcess.length);
-            }
+            } 
         });
         sock.on('sendPackets', function(bytesToProcessArr: number[][]) {
-            // takes an input of bytes (src/dest/action/payload) and adds preamble/checksum and sends
+            // takes an input of bytes (src/dest/action/payload) and sends
             if (!bytesToProcessArr.length) return;
             logger.silly('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
 

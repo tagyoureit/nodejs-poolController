@@ -28,12 +28,12 @@ export enum Direction {
     Out='out'
 }
 export enum Protocol {
-    Unknown = 'unknown',
-    Broadcast = 'broadcast',
-    Pump = 'pump',
-    Chlorinator = 'chlorinator',
-    IntelliChem = 'intellichem',
-    IntelliValve = 'intellivalve'
+    Unknown='unknown',
+    Broadcast='broadcast',
+    Pump='pump',
+    Chlorinator='chlorinator',
+    IntelliChem='intellichem',
+    IntelliValve='intellivalve'
 }
 export class Message {
     constructor() { }
@@ -104,21 +104,13 @@ export class Message {
     }
     public toShortPacket(): number[] {
         const pkt = [];
-        // pkt.push.apply( pkt, this.padding );
-        // pkt.push.apply( pkt, this.preamble );
         pkt.push(...this.header);
         pkt.push(...this.payload);
         pkt.push(...this.term);
         return pkt;
     }
     public toLog(): string {
-        return '{"valid":' + this.isValid + ',"dir":"' + this.direction + '","proto":"' + this.protocol
-            + '","pkt":[' + JSON.stringify(this.padding) + JSON.stringify(this.preamble) + JSON.stringify(this.header) + JSON.stringify(this.payload) + JSON.stringify(this.term) + ']'
-            + ',"ts":"' + Timestamp.toISOLocal(this.timestamp) + '"}';
-    }
-    public toReplay(): string {
-        return '{"type":"packet","packet":[' + this.toPacket().join(',') + '],"direction":"' + (this.direction === Direction.In ? 'inbound' : 'outbound') + '","level":"info","timestamp":"'
-            + this.timestamp.toISOString() + '"}';
+        return `{"valid":${ this.isValid },"dir":"${ this.direction }","proto":"${ this.protocol }","pkt":[${ JSON.stringify(this.padding) },${ JSON.stringify(this.preamble) },${ JSON.stringify(this.header) },${ JSON.stringify(this.payload) },${ JSON.stringify(this.term) }],"ts":"${ Timestamp.toISOLocal(this.timestamp) }"}`;
     }
     public generateResponse(resp: boolean|Response|Function): ((msgIn: Inbound, msgOut: Outbound) => boolean)|boolean|Response {
         if (typeof resp === 'undefined') { return false; }
@@ -135,78 +127,84 @@ export class Message {
                             // Msg In:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
                             // Msg Out:    [165,0,96, 16, 7, 0],[1,28]
                             return (msgIn, msgOut) => {
-                                if (msgIn.protocol !== msgOut.protocol) {return false;}
+                                if (msgIn.protocol !== msgOut.protocol) { return false; }
                                 if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
                                 if (msgIn.action === 7 && msgOut.action === 7) { return true; }
                                 return false;
                             };
+
                         default:
                             //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
                             return (msgIn, msgOut) => {
-                                if (msgIn.protocol !== msgOut.protocol) {return false;}
-                                if (typeof msgIn === 'undefined' ) { return; } // getting here on msg send failure
+                                if (msgIn.protocol !== msgOut.protocol) { return false; }
+                                if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
                                 if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
+                                // sub-case                           
+                                // Msg In:     [165,0,16, 96, 1, 2], [3,32],[1,59]
+                                // Msg Out:    [165,0,96,16, 1,4],[3,39, 3,32], [1,103]
+                                if (msgIn.payload[0] === msgOut.payload[2] && msgIn.payload[1] === msgOut.payload[3]) { return true; }
+                                // else mimics
                                 if (JSON.stringify(msgIn.payload) === JSON.stringify(msgOut.payload)) { return true; }
                                 return false;
                             };
                     }
                 }
                 else if (this.protocol === Protocol.Chlorinator) {
-                    return (msgIn, msgOut) => {
-                        if (msgIn.protocol !== msgOut.protocol) {return false;}
-                        if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
-                        switch (msgIn.action) {
-                            case 1:
-                                return msgOut.action === 0 ? true : false;
-                            case 3:
-                                return msgOut.action === 20 ? true : false;
-                            case 18:
-                            case 21:
-                                return msgOut.action === 17 ? true : false;
-                            default:
-                                return false;
-                        }
-                    };
-                }
-                else if (sys.controllerType !== ControllerType.IntelliCenter) {
-                    return (msgIn, msgOut) => {
-                        if (msgIn.protocol !== msgOut.protocol) {return false;}
-                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
-                        switch (msgIn.action) {
-                            // these responses have multiple items so match the 1st payload byte
-                            case 1: // ack
-                                if (msgIn.payload[0] === msgOut.action) return true;
-                                break;
-                            case 10:
-                            case 11:
-                            case 17:
-                                if (msgIn.action === (msgOut.action & 63) && msgIn.payload[0] === msgOut.payload[0]) return true;
-                                break;
-                            case 252:
-                                if (msgOut.action === 253) return true;
-                                break;
-                            default:
-                                if (msgIn.action === (msgOut.action & 63)) return true;
-                        }
-                        return false;
-                    };
-                }
-                else if (sys.controllerType === ControllerType.IntelliCenter) {
-                    // intellicenter packets
-                    return (msgIn, msgOut) => {
-                        if (msgIn.protocol !== msgOut.protocol) {return false;}
-                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
-                        for (let i = 0; i < msgIn.payload.length; i++) {
-                            if (i > msgOut.payload.length - 1)
-                                return false;
-                            if (msgOut.payload[i] !== msgIn.payload[i]) return false;
-                            return true;
-                        }
-                    };
-                }
+                return (msgIn, msgOut) => {
+                    if (msgIn.protocol !== msgOut.protocol) { return false; }
+                    if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
+                    switch (msgIn.action) {
+                        case 1:
+                            return msgOut.action === 0 ? true : false;
+                        case 3:
+                            return msgOut.action === 20 ? true : false;
+                        case 18:
+                        case 21:
+                            return msgOut.action === 17 ? true : false;
+                        default:
+                            return false;
+                    }
+                };
+            }
+            else if (sys.controllerType !== ControllerType.IntelliCenter) {
+                return (msgIn, msgOut) => {
+                    if (msgIn.protocol !== msgOut.protocol) { return false; }
+                    if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
+                    switch (msgIn.action) {
+                        // these responses have multiple items so match the 1st payload byte
+                        case 1: // ack
+                            if (msgIn.payload[0] === msgOut.action) return true;
+                            break;
+                        case 10:
+                        case 11:
+                        case 17:
+                            if (msgIn.action === (msgOut.action & 63) && msgIn.payload[0] === msgOut.payload[0]) return true;
+                            break;
+                        case 252:
+                            if (msgOut.action === 253) return true;
+                            break;
+                        default:
+                            if (msgIn.action === (msgOut.action & 63)) return true;
+                    }
+                    return false;
+                };
+            }
+            else if (sys.controllerType === ControllerType.IntelliCenter) {
+                // intellicenter packets
+                return (msgIn, msgOut) => {
+                    if (msgIn.protocol !== msgOut.protocol) { return false; }
+                    if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
+                    for (let i = 0; i < msgIn.payload.length; i++) {
+                        if (i > msgOut.payload.length - 1)
+                            return false;
+                        if (msgOut.payload[i] !== msgIn.payload[i]) return false;
+                        return true;
+                    }
+                };
             }
         }
+    }
         else return resp;
     }
 }
@@ -215,6 +213,14 @@ export class Inbound extends Message {
     constructor() {
         super();
         this.direction = Direction.In;
+    }
+    // Factory
+    public static replay(obj?: any) {
+        let inbound = new Inbound();
+        inbound.readHeader(obj.header, 0);
+        inbound.readPayload(obj.payload, 0);
+        inbound.readChecksum(obj.term, 0);
+        inbound.process();
     }
     // Private methods
     private isValidChecksum(): boolean {
@@ -268,7 +274,7 @@ export class Inbound extends Message {
                 else if (this.dest >= 144 && this.dest <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source >= 144 && this.source <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
-                if (this.datalen > 50) this.isValid = false;
+                if (this.datalen > 75) this.isValid = false;
                 break;
             case Protocol.Chlorinator:
                 ndx = this.pushBytes(this.header, bytes, ndx, 4);
@@ -524,7 +530,7 @@ export class Outbound extends Message {
     public response: ((msgIn: Inbound, msgOut: Outbound) => boolean)|Response|boolean;
     public failed: boolean=false;
     public onComplete: (error: Error, msg: Inbound) => void;
-    public onResponseProcessed: ()=>void;
+    public onResponseProcessed: () => void;
     // Properties
     public get sub() { return super.sub; }
     public get dest() { return super.dest; }

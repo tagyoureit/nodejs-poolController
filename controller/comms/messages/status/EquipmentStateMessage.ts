@@ -254,7 +254,13 @@ export class EquipmentStateMessage {
         pool.isActive = true;
         spool.isOn = false;
         pool.type = spool.type = 6;
-        sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
+        const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
+        const tbody = state.temps.bodies.getItemById(1, true);
+        tbody.heatMode = cbody.heatMode = 0;
+        tbody.name = cbody.name;
+        tbody.circuit = cbody.circuit = 6;
+        tbody.heatStatus = 0;
+        tbody.isOn = false;
         sys.general.options.clockMode = 12;
         sys.general.options.clockSource = "manual";
         state.equipment.maxBodies = sys.equipment.maxBodies;
@@ -329,7 +335,6 @@ export class EquipmentStateMessage {
                         if (sys.bodies.length > 0) {
                             // We will not go in here if this is not a shared body.
                             const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                            // const tbody: BodyTempState = state.temps.bodies.getItemById(6, true);
                             const cbody: Body = sys.bodies.getItemById(1);
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
@@ -342,7 +347,6 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 1) {
-                            // const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                             const cbody: Body = sys.bodies.getItemById(2);
                             tbody.heatMode = cbody.heatMode;

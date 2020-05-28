@@ -224,10 +224,10 @@ export class byteValueMaps {
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
     public pumpTypes: byteValueMap=new byteValueMap([
-        [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody:false }],
+        [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-        [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody:true }],
+        [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
         [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
         [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
@@ -240,7 +240,7 @@ export class byteValueMaps {
         [5, { name: 'generic25hp', desc: '2.5hp Pump', amps: 12.5, pf: .9, volts: 230, watts: 2587 }],
         [6, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf: .9, volts: 230, watts: 2794 }]
     ]);
-    public pumpDSModels: byteValueMap = new byteValueMap([
+    public pumpDSModels: byteValueMap=new byteValueMap([
         [0, { name: 'unspecified', desc: 'Unspecified', loAmps: 0, hiAmps: 0, pf: 0, volts: 0, loWatts: 0, hiWatts: 0 }],
         [1, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps: 6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
         [2, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps: 9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
@@ -248,21 +248,21 @@ export class byteValueMaps {
         [4, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts: 642, hiWatts: 2587 }],
         [5, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts: 683, hiWatts: 2794 }]
     ]);
-    public pumpVSModels: byteValueMap = new byteValueMap([
+    public pumpVSModels: byteValueMap=new byteValueMap([
         [0, { name: 'intelliflovs', desc: 'IntelliFlo VS' }]
     ]);
-    public pumpVSFModels: byteValueMap = new byteValueMap([
+    public pumpVSFModels: byteValueMap=new byteValueMap([
         [0, { name: 'intelliflovsf', desc: 'IntelliFlo VSF' }]
     ]);
-    public pumpVSSVRSModels: byteValueMap = new byteValueMap([
+    public pumpVSSVRSModels: byteValueMap=new byteValueMap([
         [0, { name: 'intelliflovssvrs', desc: 'IntelliFlo VS+SVRS' }]
     ]);
     // These are used for single-speed pump definitions.  Essentially the way this works is that when
     // the body circuit is running the single speed pump is on.
-    public pumpBodies: byteValueMap = new byteValueMap([
+    public pumpBodies: byteValueMap=new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [101, { name: 'spa', desc: 'Spa' }],
-        [255, {name: 'poolspa', desc: 'Pool/Spa'}]
+        [255, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
 
 
@@ -367,7 +367,7 @@ export class byteValueMaps {
         [2, { name: 'status', desc: 'Equipment Status' }],
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
-    public chemControllerTypes: byteValueMap = new byteValueMap([
+    public chemControllerTypes: byteValueMap=new byteValueMap([
         [0, { name: 'unknown', desc: 'Unknown' }],
         [1, { name: 'intellichem', desc: 'IntelliChem' }]
     ]);
@@ -994,8 +994,8 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 response: true,
                 onComplete: (err) => {
-                    if (err) { reject(err); }
-                    resolve();
+                    if (err)  reject(err); 
+                    else resolve();
                 }
             });
             conn.queueSendMessage(out);
@@ -1011,9 +1011,11 @@ export class PumpCommands extends BoardCommands {
                 payload: [],
                 retries: 1,
                 onComplete: (err, msg: Outbound) => {
-                    if (err) { reject(err); }
-                    console.log(`received back pump power packet.`);
-                    resolve();
+                    if (err) reject(err);
+                    else {
+                        console.log(`received back pump power packet.`);
+                        resolve();
+                    }
                     // console.log(msg);
                 }
             });
@@ -1030,8 +1032,10 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 onComplete: (err, msg: Outbound) => {
                     if (err) reject(err);
-                    console.log(`received back pump power packet.`);
-                    resolve();
+                    else {
+                        console.log(`received back pump drivestate packet.`);
+                        resolve();
+                    }
                 }
             });
             conn.queueSendMessage(out);
@@ -1052,9 +1056,11 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 response: true,
                 onComplete: (err, msg) => {
-                    if (err) { reject(err); }
-                    console.log(`received back run rpm.`);
-                    resolve();
+                    if (err) reject(err);
+                    else {
+                        console.log(`received back run rpm.`);
+                        resolve();
+                    }
                 }
             });
             conn.queueSendMessage(out);
@@ -1108,8 +1114,8 @@ export class PumpCommands extends BoardCommands {
                 payload: [],
                 retries: 1,
                 onComplete: (err, msg) => {
-                    if (err) { reject(err); }
-                    console.log(`received back run gpm.`);
+                    if (err) reject(err); 
+                    else console.log(`received back run gpm.`);
                     resolve();
                 }
             });
@@ -1135,9 +1141,11 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 response: true,
                 onComplete: (err, msg) => {
-                    if (err) { reject(err); }
-                    console.log(`received back pump status.`);
-                    resolve();
+                    if (err) reject(err); 
+                    else {
+                        console.log(`received back pump status.`);
+                        resolve();
+                    }
                 }
             });
             conn.queueSendMessage(out);
@@ -1368,7 +1376,7 @@ export class CircuitCommands extends BoardCommands {
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
                     let cobj = obj.circuits[i];
-                    let c:LightGroupCircuit;
+                    let c: LightGroupCircuit;
                     if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
                     else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
                     else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
@@ -1436,7 +1444,7 @@ export class CircuitCommands extends BoardCommands {
         else
             return sys.customNames.getItemById(id - 200).name;
     }
-    public async setIntelliBriteThemeAsync(id:number, theme: number) {
+    public async setIntelliBriteThemeAsync(id: number, theme: number) {
         return sys.board.circuits.setIntelliBriteThemeAsync(id, theme);
         /* state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
@@ -1658,8 +1666,8 @@ export class ChlorinatorCommands extends BoardCommands {
                 retries: 3,
                 response: true,
                 onComplete: (err) => {
-                    if (err) { reject(err); }
-                    else { resolve(); }
+                    if (err) reject(err); 
+                    else resolve(); 
                 }
             });
 
@@ -1869,8 +1877,8 @@ export class VirtualPumpControllerCollection extends BoardCommands {
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
                 sys.board.pumps.run(pump);
                 this._timers[i] = setInterval(function() { sys.board.pumps.run(pump); }, 8000);
-                if (!state.pumps.getItemById(i, true).virtualControllerStatus){
-                    logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
+                if (!state.pumps.getItemById(i, true).virtualControllerStatus) {
+                    logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
                     state.pumps.getItemById(i, true).virtualControllerStatus = 1;
                 }
 

@@ -67,7 +67,7 @@ export class ConfigRoute {
                 lightGroups: sys.lightGroups.get(),
                 functions: sys.board.circuits.getCircuitFunctions()
             };
-            if (sys.controllerType.toLowerCase().includes('touch')){
+            if (typeof sys.controllerType !== 'undefined' && sys.controllerType.toLowerCase().includes('touch')){
                 //TODO: remove when Intellibrite is migrated to light groups
                 opts['lightGroups'] = [sys.intellibrite.getExtended()];
             }
