@@ -85,7 +85,7 @@ for discussions, designs, and clarifications, we recommend you join our [Gitter 
 To do anything with this app, you need a client to connect to it.  A client can be a web application or Home Automation system.
 
 ### Web Clients
-1. [nodejs-poolControl.dashPanel](https://github.com/rstrouse/nodejs-poolControl.dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
+1. [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolControl.dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
 1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
 
 * This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
