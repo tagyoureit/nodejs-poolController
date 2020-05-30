@@ -174,8 +174,14 @@ class Logger {
 
         if (!fs.existsSync(this.captureForReplayPath)) fs.mkdirSync(this.captureForReplayBaseDir, { recursive: true });
         if (bResetLogs){
-            if (fs.existsSync(path.join(process.cwd(), 'data/poolConfig.json'))) fs.copyFileSync(path.join(process.cwd(), 'data/poolConfig.json'), path.join(process.cwd(),'data/', `poolConfig-${this.getLogTimestamp()}.json`));
-            if (fs.existsSync(path.join(process.cwd(), 'data/poolState.json'))) fs.copyFileSync(path.join(process.cwd(), 'data/poolState.json'), path.join(process.cwd(),'data/', `poolState-${this.getLogTimestamp()}.json`));
+            if (fs.existsSync(path.join(process.cwd(), 'data/poolConfig.json'))) {
+                fs.copyFileSync(path.join(process.cwd(), 'data/poolConfig.json'), path.join(process.cwd(),'data/', `poolConfig-${this.getLogTimestamp()}.json`));
+                fs.unlinkSync((path.join(process.cwd(), 'data/poolConfig.json')));
+            }
+            if (fs.existsSync(path.join(process.cwd(), 'data/poolState.json'))) {
+                fs.copyFileSync(path.join(process.cwd(), 'data/poolState.json'), path.join(process.cwd(),'data/', `poolState-${this.getLogTimestamp()}.json`));
+                fs.unlinkSync((path.join(process.cwd(), 'data/poolState.json')));
+            }
             this.clearMessages();
         }
         logger.cfg = extend(true, {}, logger.cfg, {

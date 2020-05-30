@@ -435,10 +435,27 @@ export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
     protected _modulesAcquired: boolean=true;
+    public needsConfigChanges: boolean = false;
     public valueMaps: byteValueMaps=new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
-    public async stopAsync() { return sys.board.virtualPumpControllers.stopAsync(); }
+    public async stopAsync() { 
+        
+        // turn off all circuits/features
+        for (let i = 0; i <= state.circuits.length; i++){
+            state.circuits.getItemByIndex(i).isOn = false;
+        }
+        for (let i = 0; i <= state.features.length; i++){
+            state.features.getItemByIndex(i).isOn = false;
+        }
+        for (let i = 0; i <= state.lightGroups.length; i++){
+            state.lightGroups.getItemByIndex(i).isOn = false;
+        }
+        // turn off chlor
+        sys.board.virtualChlorinatorController.stop();
+
+        return sys.board.virtualPumpControllers.stopAsync(); 
+    }
     public system: SystemCommands=new SystemCommands(this);
     public bodies: BodyCommands=new BodyCommands(this);
     public pumps: PumpCommands=new PumpCommands(this);
@@ -938,14 +955,14 @@ export class PumpCommands extends BoardCommands {
         try {
             await this.setPumpToRemoteControlAsync(pump, true);
             await this.requestPumpStatusAsync(pump);
-            console.log(`found pump ${ pump.id }`);
+            logger.info(`found pump ${ pump.id }`);
             let spump = sys.pumps.getItemById(pump.id, true);
             spump.type = pump.type;
             pump.circuits.clear();
             await this.setPumpToRemoteControlAsync(pump, false);
         }
         catch (err) {
-            console.log(`Init pump cannot find pump: ${ err.message }.  Removing.`);
+            logger.info(`Init pump cannot find pump: ${ err.message }.  Removing.`);
             if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
         }
     }
@@ -1013,10 +1030,10 @@ export class PumpCommands extends BoardCommands {
                 onComplete: (err, msg: Outbound) => {
                     if (err) reject(err);
                     else {
-                        console.log(`received back pump power packet.`);
+                        logger.info(`received back pump power packet.`);
                         resolve();
                     }
-                    // console.log(msg);
+                    // logger.info(msg);
                 }
             });
             conn.queueSendMessage(out);
@@ -1033,7 +1050,7 @@ export class PumpCommands extends BoardCommands {
                 onComplete: (err, msg: Outbound) => {
                     if (err) reject(err);
                     else {
-                        console.log(`received back pump drivestate packet.`);
+                        logger.info(`received back pump drivestate packet.`);
                         resolve();
                     }
                 }
@@ -1058,7 +1075,7 @@ export class PumpCommands extends BoardCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
-                        console.log(`received back run rpm.`);
+                        logger.info(`received back run rpm.`);
                         resolve();
                     }
                 }
@@ -1115,7 +1132,7 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 onComplete: (err, msg) => {
                     if (err) reject(err); 
-                    else console.log(`received back run gpm.`);
+                    else logger.info(`received back run gpm.`);
                     resolve();
                 }
             });
@@ -1143,7 +1160,7 @@ export class PumpCommands extends BoardCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err); 
                     else {
-                        console.log(`received back pump status.`);
+                        logger.info(`received back pump status.`);
                         resolve();
                     }
                 }
@@ -1232,14 +1249,17 @@ export class CircuitCommands extends BoardCommands {
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
-        if (circ.id === 6) { sys.board.virtualChlorinatorController.start(); }
-        sys.board.virtualPumpControllers.start();
+        if (circ.id === 6) { 
+            state.temps.bodies.getItemById(1).isOn = circ.isOn;
+            circ.isOn ?  sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
+        }
+        sys.board.virtualPumpControllers.start()
         return Promise.resolve(circ);
     }
 
     public toggleCircuitStateAsync(id: number) {
         let circ = state.circuits.getInterfaceById(id);
-        this.setCircuitStateAsync(id, !circ.isOn);
+        return this.setCircuitStateAsync(id, !circ.isOn);
     }
     public setLightThemeAsync(id: number, theme: number) {
         let circ = state.circuits.getItemById(id);
@@ -1639,10 +1659,11 @@ export class ChlorinatorCommands extends BoardCommands {
             response: true,
             onComplete: (err) => {
                 if (err) {
-                    console.log(`error with chlorinator: ${ err.message }`);
-                    schlor.virtualControllerStatus = 0;
+                    logger.warn(`error with chlorinator: ${ err.message }`);
                 }
-                cstate.currentOutput = cstate.setPointForCurrentBody;
+                else {
+                    cstate.currentOutput = cstate.setPointForCurrentBody;
+                }
             }
         });
         conn.queueSendMessage(out);
@@ -1729,29 +1750,28 @@ export class ChlorinatorController extends BoardCommands {
         let chlor = sys.chlorinators.getItemById(1);
         let schlor = state.chlorinators.getItemById(1);
         if (chlor.isActive && chlor.isVirtual) {
-
+            if (schlor.lastComm + (30 * 1000) < new Date().getTime()) {
+                // We have not talked to the chlorinator in 30 seconds so we have lost communication.
+                schlor.status = 128;
+                schlor.currentOutput = 0;
+            }
+            schlor.virtualControllerStatus = 1;
             // If we have a controller but it isn't controlling the chlorinator
-            if (sys.bodies.getItemById(1).isActive) { // need to enable additional bodies(?)
-                if (state.circuits.getItemById(6).isOn) {
+            // if (sys.bodies.getItemById(1).isActive) { 
+                if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
                     // pool is on
-                    // this._timer = setInterval(this.chlorinatorHeartbeat, 4000);
-                    let cstate = state.chlorinators.getItemById(chlor.id);
-                    sys.board.chlorinator.setChlor(cstate);
+                    //sys.board.chlorinator.setChlor(schlor);
                     this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 4000);
-                    schlor.virtualControllerStatus = 1;
                     return;
                 }
                 else {
-                    // this._timer = setInterval(this.chlorinatorHeartbeat, 30000);
-                    let cstate = state.chlorinators.getItemById(chlor.id);
-                    sys.board.chlorinator.setChlor(cstate);
+                    //sys.board.chlorinator.setChlor(schlor);
                     this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 30000);
-                    schlor.virtualControllerStatus = 1;
                     return;
                 }
-            }
+            // }
             // if we have a chlor, but not a controller, set the interval based on the setPoint of the chlor
-            if (schlor.poolSetpoint > 0 && schlor.status !== 128) {
+            /* else if (schlor.poolSetpoint > 0 && schlor.status !== 128) {
                 // setpoint > 0 and good comms
                 // this._timer = setInterval(this.chlorinatorHeartbeat, 4000);
                 let cstate = state.chlorinators.getItemById(chlor.id);
@@ -1759,8 +1779,8 @@ export class ChlorinatorController extends BoardCommands {
                 this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 4000);
                 schlor.virtualControllerStatus = 1;
                 return;
-            }
-            else if (schlor.poolSetpoint > 0 && schlor.status === 128) {
+            } */
+/*             else if (schlor.poolSetpoint > 0 && schlor.status === 128) {
                 // setpoint > 0, but likely no power to chlorinator
                 // this._timer = setInterval(this.chlorinatorHeartbeat, 30000);
                 let cstate = state.chlorinators.getItemById(chlor.id);
@@ -1768,18 +1788,21 @@ export class ChlorinatorController extends BoardCommands {
                 this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 30000);
                 schlor.virtualControllerStatus = 1;
                 return;
-            }
-            else {
+            } */
+           /*  else {
                 // no setpoint configured
                 schlor.virtualControllerStatus = 0;
                 clearInterval(this._timer);
                 // this._timer = setInterval(this.chlorinatorHeartbeat, 30000);
                 return;
-            }
+            } */
 
         }
         // if we get this far, then no virtual chlorinators are active and clear the timer
-        clearInterval(this._timer);
+       else {
+           schlor.virtualControllerStatus = 0;
+           clearInterval(this._timer);
+        } 
     }
 
     public stop() {
@@ -1825,7 +1848,7 @@ export class ChlorinatorController extends BoardCommands {
             logger.warn(`No Chlorinator Found`);
             sys.chlorinators.removeItemById(1);
             state.chlorinators.removeItemById(1);
-            console.log('no chlor');
+            logger.info('no chlor');
         }
     }
 }
@@ -1840,6 +1863,7 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             pump.isActive = true;
             pump.isVirtual = true;
             pump.type = 0;
+            logger.info(`Searching for a pump at address... ${ pump.address }`);
             try {
                 sys.board.pumps.initPump(pump);
                 let c = config.getSection('controller');
@@ -1849,19 +1873,18 @@ export class VirtualPumpControllerCollection extends BoardCommands {
                 }
             }
             catch (err) {
-                console.log(`Error finding pumps: ${ err.message }`);
+                logger.info(`No pump found at address ${pump.address}: ${ err.message }`);
             }
-            console.log(`pump search... ${ i }`);
         }
     }
     public async stopAsync() {
         let promises = [];
-
+        // turn off all pumps
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive && (spump.watts > 0 || spump.rpm > 0 || spump.flow > 0)) {
-                console.log(`Queueing pump ${ i } to stop.`);
+                logger.info(`Queueing pump ${ i } to stop.`);
                 promises.push(sys.board.pumps.stopAsync(pump));
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
                 state.pumps.getItemById(i, true).virtualControllerStatus = 0;

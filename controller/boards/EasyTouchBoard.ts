@@ -750,7 +750,7 @@ class TouchCircuitCommands extends CircuitCommands {
                     }
 
             }]
-        }
+        };
         for (let packet = 0; packet < 2; packet++){
             let out = Outbound.create({
                 action: 167,

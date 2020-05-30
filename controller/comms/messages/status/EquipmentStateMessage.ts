@@ -285,6 +285,7 @@ export class EquipmentStateMessage {
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
             logger.info(`Found Controller Board ${ state.equipment.model }`);
+            sys.board.needsConfigChanges = true;
             setTimeout(function() { sys.checkConfiguration(); }, 300);
         }
     }

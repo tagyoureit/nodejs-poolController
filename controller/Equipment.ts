@@ -143,7 +143,8 @@ export class PoolSystem implements IPoolSystem {
         this.valves.clear();
         this.covers.clear();
         this.chemControllers.clear();
-        if(typeof this.data.intelliBrite !== 'undefined') delete this.data.intelliBrite;
+        if (typeof this.data.intelliBrite !== 'undefined') this.intellibrite.clear();
+        if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
         //this.intellichem.clear();
         //console.log(this.configVersion);
        
@@ -726,7 +727,7 @@ export class BodyCollection extends EqItemCollection<Body> {
 export class Body extends EqItem {
     public dataName='bodyConfig';
     public get id(): number { return this.data.id; }
-    public set id(val: number) { this.data.id = this.data.id; }
+    public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get alias(): string { return this.data.alias; }
@@ -929,24 +930,6 @@ export interface ICircuit {
     getLightThemes?: () => {};
     get(copy?: boolean);
 }
-/* export class VirtualPumpControllerCollection extends EqItemCollection<VirtualPumpController> {
-    constructor(data: any, name?: string) { super(data, name || "virtualPumpController"); }
-    public createItem(data: any): VirtualPumpController { return new VirtualPumpController(data); }
-    public clear(){
-        sys.board.virtualPumpControllers.stop();
-        super.clear();
-    }
-}
-export class VirtualPumpController extends EqItem {
-    public dataName='virtualPumpControllerConfig';
-    public get id(): number { return this.data.id; }
-    public set id(val: number) { this.setDataVal('id', val); }
-    public get isActive(): boolean { return this.data.isActive; }
-    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public control(){
-        sys.board.pumps.run(sys.pumps.getItemById(this.id));
-    }
-} */
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
@@ -1020,7 +1003,7 @@ export class Pump extends EqItem {
     // identify a single speed pump in *Touch but the definition can be stored and the wattage is acquired by the model.
     public get body() { return this.data.body; }
     public set body(val: number) { this.setDataVal('body', val); }
-    public get model(): number { return this.data.model }
+    public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }

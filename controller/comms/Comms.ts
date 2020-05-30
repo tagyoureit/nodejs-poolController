@@ -62,7 +62,7 @@ export class Connection {
                 if (err) {
                     conn.resetConnTimer();
                     conn.isOpen = false;
-                    logger.error('Error opening port: %s. Retry in %s seconds', err, (conn._cfg.inactivityRetry));
+                    logger.error(`Error opening port: ${err.message}. ${conn._cfg.inactivityRetry > 0 ? `Retry in ${conn._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${conn._cfg.inactivityRetry}`}`);
                 }
                 else
                     logger.info(`Serial port: ${ this.path } request to open succeeded without error`);
@@ -93,7 +93,7 @@ export class Connection {
         }
         conn.resetConnTimer('retry_timeout');
         conn._port.on('error', function(err) {
-            logger.error('Error opening port: %s. Retry in %s seconds', err, (conn._cfg.inactivityRetry));
+            logger.error(`Error opening port: ${err.message}. ${conn._cfg.inactivityRetry > 0 ? `Retry in ${conn._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${conn._cfg.inactivityRetry}`}`);
             conn.resetConnTimer();
             conn.isOpen = false;
         });

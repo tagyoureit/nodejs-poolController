@@ -29,7 +29,7 @@
         {
             "label": "clean data",
             "type":"shell",
-            "command": "rm -rf logs; cd data; rm .; echo '{}' > poolConfig.json; echo '{}' > poolState.json; "
+            "command": "rm -rf logs; cd data; rm pool*.json; echo '{}' > poolConfig.json; echo '{}' > poolState.json; "
         },
         {
             "label": "copy to remote",

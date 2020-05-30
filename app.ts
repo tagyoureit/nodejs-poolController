@@ -9,7 +9,7 @@ import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
 
-export function initAsync() {
+export async function initAsync() {
     return Promise.resolve()
         .then(function() { config.init(); })
         .then(function() { logger.init(); })
@@ -19,17 +19,15 @@ export function initAsync() {
         .then(function() { sys.init(); })
         .then(function() { webApp.init(); });
 }
-// used to reset files and reinitialize files
-// if replayBaseDir is included, it will copy config.json to replay directory
-export function startPacketCapture(bResetLogs: boolean) {
+
+export async function startPacketCapture(bResetLogs: boolean) {
     try {
         let log = config.getSection('log');
         log.app.captureForReplay = true;
         config.setSection('log', log);
         logger.startCaptureForReplay(bResetLogs);
         if (bResetLogs){
-            //sys.board.reloadConfig();
-            sys.controllerType = ControllerType.Unknown;
+            sys.resetSystem();
         }
     }
     catch (err) {
