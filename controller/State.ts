@@ -627,10 +627,24 @@ export class ScheduleState extends EqState {
     public set endTime(val: number) { this.setDataVal('endTime', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
-    public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : 0; }
+    public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : -1; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {
             this.data.scheduleType = sys.board.valueMaps.scheduleTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get startTimeType(): number { return typeof (this.data.startTimeType) !== 'undefined' ? this.data.startTimeType.val : -1; }
+    public set startTimeType(val: number) {
+        if (this.startTimeType !== val) {
+            this.data.startTimeType = sys.board.valueMaps.scheduleTimeTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get endTimeType(): number { return typeof (this.data.endTimeType) !== 'undefined' ? this.data.endTimeType.val : -1; }
+    public set endTimeType(val: number) {
+        if (this.endTimeType !== val) {
+            this.data.endTimeType = sys.board.valueMaps.scheduleTimeTypes.transform(val);
             this.hasChanged = true;
         }
     }

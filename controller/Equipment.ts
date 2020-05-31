@@ -790,6 +790,13 @@ export class Schedule extends EqItem {
     public set startYear(val: number) { this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; }
+    public get scheduleType(): number { return this.data.scheduleType; }
+    public set scheduleType(val: number) { this.setDataVal('scheduleType', val); }
+    public get startTimeType(): number { return this.data.startTimeType; }
+    public set startTimeType(val: number) { this.setDataVal('startTimeType', val); }
+    public get endTimeType(): number { return this.data.endTimeType; }
+    public set endTimeType(val: number) { this.setDataVal('endTimeType', val); }
+
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.data.startDate = Timestamp.toISOLocal(this.startDate); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }

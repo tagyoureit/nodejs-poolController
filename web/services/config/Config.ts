@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -128,11 +128,14 @@ export class ConfigRoute {
         app.get('/config/options/schedules', (req, res) => {
             let opts = {
                 maxSchedules: sys.equipment.maxSchedules,
+                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
                 scheduleTimeTypes: sys.board.valueMaps.scheduleTimeTypes.toArray(),
                 scheduleTypes: sys.board.valueMaps.scheduleTypes.toArray(),
                 scheduleDays: sys.board.valueMaps.scheduleDays.toArray(),
+                heatSources: sys.board.valueMaps.heatSources.toArray(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
-                schedules: sys.schedules.get()
+                schedules: sys.schedules.get(),
+                clockMode: sys.general.options.clockMode || 12
             };
             return res.status(200).send(opts);
         });
@@ -256,6 +259,26 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/schedule', async (req, res, next) => {
+            try {
+                let sched = await sys.board.schedules.setScheduleAsync(req.body);
+                return res.status(200).send((sched as Schedule).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/schedule', async (req, res, next) => {
+            try {
+                let sched = await sys.board.schedules.deleteScheduleAsync(req.body);
+                return res.status(200).send((sched as Schedule).get(true));
+            }
+            catch (err) {
+                console.log(`Error deleting schedule... ${err}`);
+                next(err);
+            }
+        });
+
+
+
         /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
 
 

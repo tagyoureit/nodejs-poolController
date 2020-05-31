@@ -4,7 +4,7 @@ import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentS
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
-import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError } from '../Errors';
+import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError, InvalidEquipmentDataError } from '../Errors';
 import { logger } from '../../logger/Logger';
 import { config } from '../../config/Config'; // TODO: RG - we shouldn't import this in here but I want to set the inactivityRetry from here.  What's the best way?
 
@@ -29,6 +29,10 @@ export class byteValueMap extends Map<number, any> {
         for (let val of vals) {
             this.set(val[0], val[1]);
         }
+    }
+    public valExists(val: number) {
+        let arrKeys = Array.from(this.keys());
+        return typeof arrKeys.find(elem => elem === val) !== 'undefined';
     }
 }
 export class EquipmentIdRange {
@@ -223,6 +227,7 @@ export class byteValueMaps {
     public scheduleTimeTypes: byteValueMap=new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
+
     public pumpTypes: byteValueMap=new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
@@ -770,8 +775,7 @@ export class PumpCommands extends BoardCommands {
             return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
         else
-            throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
-
+            return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
     }
     public deletePumpCircuit(pump: Pump, pumpCircuitId: number) {
         pump.circuits.removeItemById(pumpCircuitId);
@@ -1697,11 +1701,131 @@ export class ChlorinatorCommands extends BoardCommands {
     }
 }
 export class ScheduleCommands extends BoardCommands {
+    public transformDays(val: any): number {
+        if (typeof val === 'number') return val;
+        let edays = sys.board.valueMaps.scheduleDays.toArray();
+        let dayFromString = function (str) {
+            let lstr = str.toLowerCase();
+            let byte = 0;
+            for (let i = 0; i < edays.length; i++) {
+                let eday = edays[i];
+                switch (lstr) {
+                    case 'weekdays':
+                        if (eday.name === 'mon' || eday.name === 'tue' || eday.name === 'wed' || eday.name === 'thu' || eday.name === 'fri')
+                            byte |= (1 << (eday.val - 1));
+                        break;
+                    case 'weekends':
+                        if (eday.name === 'sat' || eday.name === 'sun')
+                            byte |= (1 << (eday.val - 1));
+                        break;
+                    default:
+                        if (lstr.startsWith(eday.name)) byte |= (1 << (eday.val - 1));
+                        break;
+                }
+            }
+            return byte;
+        }
+        let dayFromDow = function (dow) {
+            let byte = 0;
+            for (let i = 0; i < edays.length; i++) {
+                let eday = edays[i];
+                if (eday.dow === dow) {
+                    byte |= (1 << (eday.val - 1));
+                    break;
+                }
+            }
+            return byte;
+        }
+        let bdays = 0;
+        if (val.isArray) {
+            for (let i in val) {
+                let v = val[i];
+                if (typeof v === 'string') bdays |= dayFromString(v);
+                else if (typeof v === 'number') bdays |= dayFromDow(v);
+                else if (typeof v === 'object') {
+                    if (typeof v.name !== 'undefined') bdays |= dayFromString(v);
+                    else if (typeof v.dow !== 'undefined') bdays |= dayFromDow(v);
+                    else if (typeof v.desc !== 'undefined') bdays |= dayFromString(v);
+                }
+            }
+        }
+        return bdays;
+    }
+
     public setSchedule(sched: Schedule|EggTimer, obj?: any) {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 sched[s] = obj[s];
         }
+    }
+    public async setScheduleAsync(data: any): Promise<Schedule> {
+        if (typeof data.id !== 'undefined') {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            let sched = sys.schedules.getItemById(id, data.id <= 0);
+            let ssched = state.schedules.getItemById(id, data.id <= 0);
+            let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+            if (typeof schedType === 'undefined') schedType = 0; // Repeats
+
+            let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+            let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+            let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+            if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+            let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+            let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+            let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+            let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+
+            // Ensure all the defaults.
+            if (isNaN(startDate.getTime())) startDate = new Date();
+            if (typeof startTime === 'undefined') startTime = 480; // 8am
+            if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+            if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+            if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+
+            // At this point we should have all the data.  Validate it.
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+            if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
+                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+
+
+            sched.circuit = ssched.circuit = circuit;
+            sched.scheduleDays = ssched.scheduleDays = schedDays;
+            sched.scheduleType = ssched.scheduleType = schedType;
+            sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+            sched.heatSource = ssched.heatSource = heatSource;
+            sched.startTime = ssched.startTime = startTime;
+            sched.endTime = ssched.endTime = endTime;
+            sched.startTimeType = ssched.startTimeType = startTimeType;
+            sched.endTimeType = ssched.endTimeType = endTimeType;
+            sched.startDate = ssched.startDate = startDate;
+            ssched.emitEquipmentChange();
+            return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
+    }
+    public deleteScheduleAsync(data: any): Promise<Schedule> {
+        if (typeof data.id !== 'undefined') {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            let sched = sys.schedules.getItemById(id, false);
+            let ssched = state.schedules.getItemById(id, false);
+            sys.schedules.removeItemById(id);
+            state.schedules.removeItemById(id);
+            ssched.emitEquipmentChange();
+            return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
     }
 }
 export class HeaterCommands extends BoardCommands {

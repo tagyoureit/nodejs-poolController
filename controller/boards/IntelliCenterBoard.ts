@@ -8,7 +8,7 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState } from '../State';
 import { REPLServer } from 'repl';
 import { utils } from '../../controller/Constants';
-import { InvalidEquipmentIdError } from '../Errors';
+import { InvalidEquipmentIdError, InvalidEquipmentDataError } from '../Errors';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -158,7 +158,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [96, { name: 'magenta', desc: 'Magenta' }],
             [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
-
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
@@ -2295,6 +2294,139 @@ class IntelliCenterBodyCommands extends BodyCommands {
     }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {
+    public async setScheduleAsync(data: any): Promise<Schedule> {
+        if (typeof data.id !== 'undefined') {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            let sched = sys.schedules.getItemById(id, data.id <= 0);
+            let ssched = state.schedules.getItemById(id, data.id <= 0);
+            let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+            if (typeof schedType === 'undefined') schedType = 0; // Repeats
+
+            let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+            let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+            let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+            if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+            let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+            let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+            let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+            let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+
+            // Ensure all the defaults.
+            if (isNaN(startDate.getTime())) startDate = new Date();
+            if (typeof startTime === 'undefined') startTime = 480; // 8am
+            if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+            if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+            if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+
+            // At this point we should have all the data.  Validate it.
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+            if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
+                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+
+            // If we make it here we can make it anywhere.
+            let runOnce = schedType !== 128 ? 0 : 1;
+            if(startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
+            if(endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
+            let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
+            let out = Outbound.createMessage(168, [
+                3
+                , 0
+                , id - 1 // IntelliCenter schedules start at 0.
+                , startTime - Math.floor(startTime / 256) * 256
+                , Math.floor(startTime / 256)
+                , endTime - Math.floor(endTime / 256) * 256
+                , Math.floor(endTime / 256)
+                , circuit - 1
+                , runOnce
+                , schedDays
+                , startDate.getMonth() + 1
+                , startDate.getDate()
+                , startDate.getFullYear() - 2000
+                , heatSource
+                , heatSetpoint
+                , flags
+            ],
+                0
+            );
+            return new Promise<Schedule>((resolve, reject) => {
+                out.onComplete = (err, msg) => {
+                    if (!err) {
+                        sched.circuit = ssched.circuit = circuit;
+                        sched.scheduleDays = ssched.scheduleDays = schedDays;
+                        sched.scheduleType = ssched.scheduleType = schedType;
+                        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+                        sched.heatSource = ssched.heatSource = heatSource;
+                        sched.startTime = ssched.startTime = startTime;
+                        sched.endTime = ssched.endTime = endTime;
+                        sched.startTimeType = ssched.startTimeType = startTimeType;
+                        sched.endTimeType = ssched.endTimeType = endTimeType;
+                        sched.startDate = ssched.startDate = startDate;
+                        ssched.emitEquipmentChange();
+                        resolve(sched);
+                    }
+                    else reject(err);
+                };
+                conn.queueSendMessage(out); // Send it off in a letter to yourself.
+            });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Pump'));
+    }
+    public async deleteScheduleAsync(data: any): Promise<Schedule> {
+        if (typeof data.id !== 'undefined') {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            let sched = sys.schedules.getItemById(id);
+            let ssched = state.schedules.getItemById(id);
+            let out = Outbound.create({
+                action: 168,
+                payload: [
+                    3
+                    , 0
+                    , id - 1 // IntelliCenter schedules start at 0.
+                    , 0
+                    , 0
+                    , 0
+                    , 0
+                    , 255
+                    , 0
+                    , 0
+                    , sched.startDate.getMonth() + 1
+                    , sched.startDate.getDay()
+                    , sched.startDate.getFullYear() - 2000
+                    , 32
+                    , 78
+                    , sched.flags
+                ],
+                retries: 3
+            });
+            return new Promise<Schedule>((resolve, reject) => {
+                out.onComplete = (err, msg) => {
+                    if (!err) {
+                        sys.schedules.removeItemById(id);
+                        state.schedules.removeItemById(id);
+                        ssched.emitEquipmentChange();
+                        sched.isActive = false;
+                        resolve(sched);
+                    }
+                    else reject(err);
+                };
+                conn.queueSendMessage(out);
+            });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+    }
+
     public setSchedule(sched: Schedule, obj: any) {
         // We are going to extract the properties from
         // the object then send a related message to set it
