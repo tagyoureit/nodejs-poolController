@@ -1,6 +1,7 @@
 import { Inbound } from "../Messages";
 import { sys, Body, Circuit, ICircuit } from "../../../Equipment";
 import { state } from "../../../State";
+import { getPriority } from "os";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -237,6 +238,7 @@ export class CircuitMessage {
                 ib.isActive = true;
                 const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
+                sgrp.action = 0;
                 lg.circuits.getItemByCircuitId(id, true).isActive = true;
                 lg.isActive = sgrp.isActive = true;
             }

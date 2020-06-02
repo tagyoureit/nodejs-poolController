@@ -3,6 +3,7 @@ import { state, ICircuitState, LightGroupState } from "../../../controller/State
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
+
 export class StateRoute {
     public static initRoutes(app: express.Application) {
         app.get('/state/chlorinator/:id', (req, res) => {
@@ -25,9 +26,12 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/state/circuit/toggleState', (req, res) => {
-            state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
-            return res.status(200).send('OK');
+        app.put('/state/circuit/toggleState', (req, res, next) => {
+            try {
+                let cstate = state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
+                return res.status(200).send(cstate);
+            }
+            catch (err) {next(err);}
         });    
         app.put('/state/circuit/setTheme', (req, res, next) => {
            try {
@@ -71,7 +75,7 @@ export class StateRoute {
         });
         app.put('/state/chlorinator/setChlor', (req, res) => {
             state.chlorinators.setChlor(parseInt(req.body.id, 10), parseInt(req.body.poolSetpoint, 10), parseInt(req.body.spaSetpoint, 10) || 0, parseInt(req.body.superChlorHours, 10) || 0);
-            sys.board.virtualChlorinatorController.start();
+            if (sys.chlorinators.getItemById(1).isVirtual) sys.board.virtualChlorinatorController.start();
             return res.status(200).send('OK');
         });
         app.put('/state/chlorinator/poolSetpoint', (req, res) => {

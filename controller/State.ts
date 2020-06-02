@@ -627,7 +627,7 @@ export class ScheduleState extends EqState {
     public set endTime(val: number) { this.setDataVal('endTime', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
-    public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : -1; }
+    public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : undefined; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {
             this.data.scheduleType = sys.board.valueMaps.scheduleTypes.transform(val);
@@ -648,14 +648,14 @@ export class ScheduleState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get scheduleDays(): number { return typeof (this.data.scheduleDays) !== 'undefined' ? this.data.scheduleDays.val : -1; }
+    public get scheduleDays(): number { return typeof (this.data.scheduleDays) !== 'undefined' ? this.data.scheduleDays.val : undefined; }
     public set scheduleDays(val: number) {
         if (this.scheduleDays !== val) {
             this.data.scheduleDays = sys.board.valueMaps.scheduleDays.transform(val);
             this.hasChanged = true;
         }
     }
-    public get heatSource(): number { return typeof (this.data.heatSource) !== 'undefined' ? this.data.heatSource.val : 0; }
+    public get heatSource(): number { return typeof (this.data.heatSource) !== 'undefined' ? this.data.heatSource.val : undefined; }
     public set heatSource(val: number) {
         if (this.heatSource !== val) {
             this.data.heatSource = sys.board.valueMaps.heatSources.transform(val);
@@ -913,7 +913,7 @@ export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCirc
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
     public setCircuitState(id: number, val: boolean) { return sys.board.circuits.setCircuitStateAsync(id, val); }
-    public async toggleCircuitStateAsync(id: number) { sys.board.circuits.toggleCircuitStateAsync(id); }
+    public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
     public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
     public getInterfaceById(id: number, add?: true): ICircuitState {

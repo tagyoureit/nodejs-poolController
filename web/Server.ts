@@ -22,6 +22,7 @@ import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import {Timestamp} from '../controller/Constants';
 import extend = require("extend");
+
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
 export class WebServer {
@@ -193,53 +194,13 @@ export class HttpServer extends ProtoServer {
             }
             //logger.info(str);
         });
-        sock.on('replayPackets', function(inboundPkt: number[][]) {
-            // takes an input of raw bytes and will merge bytes to make a full packet if needed
+        sock.on('replayPackets', function(inboundPkts: number[][]) {
             // used for replay
-            logger.debug(`Received ${ inboundPkt }`);
-            let pkt = {
-                header: inboundPkt[2],
-                payload: inboundPkt[3],
-                term: inboundPkt[4]
-            }
-            Inbound.replay(pkt);
-        });
-        sock.on('replayPacketsV5', function(bytesToProcessArr: number[][]) {
-            // takes an input of raw bytes and will merge bytes to make a full packet if needed
-            // used for replay
-            logger.debug(`Received ${ bytesToProcessArr }`);
-             for (let i = 0; i < bytesToProcessArr.length; i++) {
-                let bytesToProcess: number[] = bytesToProcessArr.shift();
-
-                let msg: Inbound = self._pendingMsg;
-                let ndx: number = 0;
-                do {
-                    if (typeof (msg) === "undefined" || msg === null || msg.isComplete || !msg.isValid) {
-                        msg = new Inbound();
-                        ndx = msg.readPacket(bytesToProcess);
-                    }
-                    else {
-                        ndx = msg.mergeBytes(bytesToProcess);
-                    }
-                    if (msg.isComplete) {
-                        if (msg.isValid) {
-
-                            let out = new Outbound(msg.protocol, msg.source, msg.dest, msg.action, msg.payload);
-                            conn.queueSendMessage(out);
-                            logger.info(`Sending ${ out.toShortPacket() }`);
-                        }
-                        else {
-                            logger.info(`replay: discarding packet ${ msg.toShortPacket() }`);
-                        }
-                        ndx = 0;
-                        msg = new Inbound();
-                        bytesToProcess = [];
-                    }
-                    else self._pendingMsg = msg;
-                    bytesToProcess = bytesToProcess.slice(ndx);
-                }
-                while (ndx < bytesToProcess.length);
-            } 
+            logger.debug(`Received replayPackets: ${ inboundPkts }`);
+            inboundPkts.forEach(inbound =>{
+                conn.buffer.pushIn(Buffer.from([].concat.apply([], inbound)));
+                // conn.queueInboundMessage([].concat.apply([], inbound));
+            });
         });
         sock.on('sendPackets', function(bytesToProcessArr: number[][]) {
             // takes an input of bytes (src/dest/action/payload) and sends

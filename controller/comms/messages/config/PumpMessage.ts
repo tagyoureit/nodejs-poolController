@@ -314,7 +314,6 @@ export class PumpMessage {
         pump.rinseTime = msg.extractPayloadByte(27);
         pump.vacuumFlow = msg.extractPayloadByte(28);
         pump.vacuumTime = msg.extractPayloadByte(30);
-        if (typeof pump.model === 'undefined') pump.model = 0;
     }
     private static processVSF_IT(msg: Inbound) {
         // Sample packet
@@ -346,6 +345,5 @@ export class PumpMessage {
         pump.maxFlow = 130;
         pump.minSpeed = 450;
         pump.maxSpeed = 3450;
-        if (typeof pump.model === 'undefined') pump.model = 0;
     }
 }

@@ -21,7 +21,7 @@ class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
-            logger.info(`Skipping Controller Init because MockPort enabled.`);
+            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime, [0]);

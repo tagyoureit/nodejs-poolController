@@ -67,10 +67,10 @@ export class ConfigRoute {
                 lightGroups: sys.lightGroups.get(),
                 functions: sys.board.circuits.getCircuitFunctions()
             };
-            if (typeof sys.controllerType !== 'undefined' && sys.controllerType.toLowerCase().includes('touch')){
+/*             if (typeof sys.controllerType !== 'undefined' && sys.controllerType.toLowerCase().includes('touch')){
                 //TODO: remove when Intellibrite is migrated to light groups
-                opts['lightGroups'] = [sys.intellibrite.getExtended()];
-            }
+                opts['lightGroups'] = extend([], opts.lightGroups, sys.intellibrite.getExtended());
+            } */
             return res.status(200).send(opts);
         });
         app.get('/config/options/features', (req, res) => {
@@ -170,7 +170,7 @@ export class ConfigRoute {
             // Update a valve.
             try {
                 let valve = await sys.board.valves.setValveAsync(req.body);
-                return res.status(200).send((valve as Valve).get(true));
+                return res.status(200).send((valve).get(true));
             }
             catch (err) { next(err); }
         });
@@ -178,7 +178,7 @@ export class ConfigRoute {
             // Change the body attributes.
             try {
                 let body = await sys.board.bodies.setBodyAsync(req.body);
-                return res.status(200).send((body as Body).get(true));
+                return res.status(200).send((body).get(true));
             }
             catch (err) { next(err); }
         });
@@ -186,7 +186,7 @@ export class ConfigRoute {
             // add/update a circuit
             try {
                 let circuit = await sys.board.circuits.setCircuitAsync(req.body);
-                return res.status(200).send((circuit as ICircuit).get(true));
+                return res.status(200).send((circuit).get(true));
             }
             catch (err) { next(err); }
         });
@@ -194,7 +194,7 @@ export class ConfigRoute {
             // delete a circuit
             try {
                 let circuit = await sys.board.circuits.deleteCircuitAsync(req.body);
-                return res.status(200).send((circuit as ICircuit).get(true));
+                return res.status(200).send((circuit).get(true));
             }
             catch (err) { next(err); }
         });
@@ -202,7 +202,7 @@ export class ConfigRoute {
             // add/update a feature
             try {
                 let feature = await sys.board.features.setFeatureAsync(req.body);
-                return res.status(200).send((feature as Feature).get(true));
+                return res.status(200).send((feature).get(true));
             }
             catch (err) { next(err); }
         });
@@ -210,7 +210,7 @@ export class ConfigRoute {
             // delete a feature
             try {
                 let feature = await sys.board.features.deleteFeatureAsync(req.body);
-                return res.status(200).send((feature as Feature).get(true));
+                return res.status(200).send((feature).get(true));
             }
             catch (err) { next(err); }
         });
@@ -218,21 +218,21 @@ export class ConfigRoute {
             // add/update a circuitGroup
             try {
                 let group = await sys.board.circuits.setCircuitGroupAsync(req.body);
-                return res.status(200).send((group as CircuitGroup).get(true));
+                return res.status(200).send((group).get(true));
             }
             catch (err) { next(err); }
         });
         app.delete('/config/circuitGroup', async (req, res, next) => {
             try {
                 let group = await sys.board.circuits.deleteCircuitGroupAsync(req.body);
-                return res.status(200).send((group as CircuitGroup).get(true));
+                return res.status(200).send((group).get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/config/lightGroup', async (req, res, next) => {
             try {
                 let group = await sys.board.circuits.setLightGroupAsync(req.body);
-                return res.status(200).send((group as LightGroup).get(true));
+                return res.status(200).send((group).get(true));
             }
             catch (err) { next(err); }
         });
@@ -241,21 +241,21 @@ export class ConfigRoute {
             // any affiliated circuits and maintain all attribututes of the pump.
             try {
                 let pump = await sys.board.pumps.setPumpAsync(req.body);
-                return res.status(200).send((pump as Pump).get(true));
+                return res.status(200).send((pump).get(true));
             }
             catch (err) { next(err); }
         });
         app.delete('/config/pump', async (req, res, next) => {
             try {
                 let pump = await sys.board.pumps.deletePumpAsync(req.body);
-                return res.status(200).send((pump as Pump).get(true));
+                return res.status(200).send((pump).get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/config/customNames', async (req, res, next) => {
             try {
                 let names = await sys.board.system.setCustomNamesAsync(req.body);
-                return res.status(200).send((names as CustomNameCollection).toArray());
+                return res.status(200).send((names).toArray());
             }
             catch (err) { next(err); }
         });

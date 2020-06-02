@@ -182,6 +182,8 @@ export class byteValueMaps {
         [255, { name: 'notused', desc: 'NOT USED' }]
     ]);
     public lightThemes: byteValueMap=new byteValueMap([
+        [0, { name: 'off', desc: 'Off', type: 'intellibrite' }],
+        [1, { name: 'on', desc: 'On', type: 'intellibrite' }],
         [128, { name: 'colorsync', desc: 'Color Sync', type: 'intellibrite' }],
         [144, { name: 'colorswim', desc: 'Color Swim', type: 'intellibrite' }],
         [160, { name: 'colorset', desc: 'Color Set', type: 'intellibrite' }],
@@ -1377,7 +1379,7 @@ export class CircuitCommands extends BoardCommands {
                     if (typeof cobj.desiredStateOn !== 'undefined') c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
                     if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
                 }
-                group.circuits.length = obj.circuits.length;
+                // group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
             }
             resolve(group);
         });
@@ -1410,7 +1412,7 @@ export class CircuitCommands extends BoardCommands {
                     if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
                     if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
                 }
-                group.circuits.length = obj.circuits.length;
+                // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
             }
             resolve(group);
         });
@@ -1501,7 +1503,12 @@ export class CircuitCommands extends BoardCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             sgroup.action = nop;
-            setTimeout(function() { sgroup.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
+            sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            state.emitEquipmentChanges();
+            setTimeout(function() { 
+                sgroup.action = 0; 
+                sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
         }
         return Promise.resolve(sgroup);
     }
@@ -1510,7 +1517,7 @@ export class CircuitCommands extends BoardCommands {
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             state.intellibrite.action = nop;
-            setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges; }, 20000); // It takes 20 seconds to sequence.
+            setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
         }
     }
 }
@@ -1606,21 +1613,11 @@ export class ChlorinatorCommands extends BoardCommands {
 
     public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
         try {
-
-            // we will get here under 2 scenarios
-            // 1. instance class members call super.setChlor to set values
-            // 2. no valid board is setup or chlor is under virtualController
             let chlor = sys.chlorinators.getItemById(cstate.id);
             chlor.poolSetpoint = cstate.poolSetpoint = poolSetpoint;
             chlor.spaSetpoint = cstate.spaSetpoint = spaSetpoint;
             chlor.superChlorHours = cstate.superChlorHours = superChlorHours;
             chlor.superChlor = cstate.superChlor = superChlor;
-
-            // scenario 2; chlorinator is being controlled by this app and not a board
-            // todo: are both the same?  check against controller
-            if (chlor && chlor.isActive && chlor.isVirtual) {
-                this.setDesiredOutput(cstate);
-            }
             state.emitEquipmentChanges();
         }
         catch (err) {
@@ -1871,6 +1868,7 @@ export class ChlorinatorController extends BoardCommands {
     // this method will check to see if we have any virtual chlors we are responsible for
     // if we have any, we will see if the timer is already running or if it needs to be started
     public start() {
+        clearTimeout(this._timer);
         let chlor = sys.chlorinators.getItemById(1);
         let schlor = state.chlorinators.getItemById(1);
         if (chlor.isActive && chlor.isVirtual) {
@@ -1880,51 +1878,21 @@ export class ChlorinatorController extends BoardCommands {
                 schlor.currentOutput = 0;
             }
             schlor.virtualControllerStatus = 1;
-            // If we have a controller but it isn't controlling the chlorinator
-            // if (sys.bodies.getItemById(1).isActive) { 
+            if (chlor && chlor.isActive && chlor.isVirtual) {
+                sys.board.chlorinator.setDesiredOutput(state.chlorinators.getItemById(1));
+            }
                 if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
-                    // pool is on
-                    //sys.board.chlorinator.setChlor(schlor);
-                    this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 4000);
+                    this._timer = setTimeout(() =>{sys.board.virtualChlorinatorController.start();}, 4000);
                     return;
                 }
                 else {
-                    //sys.board.chlorinator.setChlor(schlor);
-                    this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 30000);
+                    this._timer = setTimeout(()=>{sys.board.virtualChlorinatorController.start();}, 30000);
                     return;
                 }
-            // }
-            // if we have a chlor, but not a controller, set the interval based on the setPoint of the chlor
-            /* else if (schlor.poolSetpoint > 0 && schlor.status !== 128) {
-                // setpoint > 0 and good comms
-                // this._timer = setInterval(this.chlorinatorHeartbeat, 4000);
-                let cstate = state.chlorinators.getItemById(chlor.id);
-                sys.board.chlorinator.setChlor(cstate);
-                this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 4000);
-                schlor.virtualControllerStatus = 1;
-                return;
-            } */
-/*             else if (schlor.poolSetpoint > 0 && schlor.status === 128) {
-                // setpoint > 0, but likely no power to chlorinator
-                // this._timer = setInterval(this.chlorinatorHeartbeat, 30000);
-                let cstate = state.chlorinators.getItemById(chlor.id);
-                sys.board.chlorinator.setChlor(cstate);
-                this._timer = setTimeout(sys.board.virtualChlorinatorController.start, 30000);
-                schlor.virtualControllerStatus = 1;
-                return;
-            } */
-           /*  else {
-                // no setpoint configured
-                schlor.virtualControllerStatus = 0;
-                clearInterval(this._timer);
-                // this._timer = setInterval(this.chlorinatorHeartbeat, 30000);
-                return;
-            } */
-
         }
         // if we get this far, then no virtual chlorinators are active and clear the timer
        else {
-           schlor.virtualControllerStatus = 0;
+           delete schlor.virtualControllerStatus;
            clearInterval(this._timer);
         } 
     }
@@ -1932,17 +1900,6 @@ export class ChlorinatorController extends BoardCommands {
     public stop() {
         if (typeof this._timer !== 'undefined') clearTimeout(this._timer);
     }
-
-    /*     public chlorinatorHeartbeat() {
-            for (let i = 1; i <= 8; i++) {
-                let chlor = sys.chlorinators.getItemById(i);
-                if (chlor.isActive && chlor.isVirtual) {
-                    state.chlorinators.getItemById(i).virtualControllerStatus = 1;
-                    let cstate = state.chlorinators.getItemById(chlor.id);
-                    sys.board.chlorinator.setChlorAsync(cstate);
-                }
-            }
-        } */
 
     public async search() {
         try {

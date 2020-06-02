@@ -1,11 +1,13 @@
 ﻿import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
+import { rejects } from 'assert';
+import { resolve } from 'dns';
 
 
 export class EasyTouchBoard extends SystemBoard {
@@ -157,8 +159,8 @@ export class EasyTouchBoard extends SystemBoard {
             [64, { name: 'sat', desc: 'Saturday', dow: 6 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'repeat', desc: 'Repeats' }],
-            [128, { name: 'runonce', desc: 'Run Once' }]
+            [0, { name: 'runonce', desc: 'Run Once' }],
+            [128, { name: 'repeat', desc: 'Repeats' }]
         ]);
         this.valueMaps.featureFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
@@ -302,7 +304,7 @@ export class TouchConfigQueue extends ConfigQueue {
     public queueChanges() {
         this.reset();
         if (conn.mockPort) {
-            logger.info(`Skipping Controller Init because MockPort enabled.`);
+            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
         } else {
             logger.info(`Requesting ${ sys.controllerType } configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime);
@@ -819,11 +821,13 @@ class TouchCircuitCommands extends CircuitCommands {
                 response: true,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
-                    cstate.isOn = val ? true : false;
-                    if (id === 6) { sys.board.virtualChlorinatorController.start(); }
-                    sys.board.virtualPumpControllers.start();
-                    state.emitEquipmentChanges();
-                    resolve(cstate);
+                    else {
+                        cstate.isOn = val ? true : false;
+                        if (id === 6) { sys.board.virtualChlorinatorController.start(); }
+                        sys.board.virtualPumpControllers.start();
+                        state.emitEquipmentChanges();
+                        resolve(cstate);
+                    }
                 }
             });
             conn.queueSendMessage(out);
@@ -833,89 +837,146 @@ class TouchCircuitCommands extends CircuitCommands {
         let cstate = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !cstate.isOn);
     }
-    private createLightGroupMessages(){
-        let packets:Outbound[] = [];
+    private createLightGroupMessages(group: LightGroup) {
+        let packets: Promise<any>[] = [];
         // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
-
-        const defs = {
-            numPackets: sys.equipment.maxIntelliBrites === 8 ? 1 : 2,
-            packets: [{
-                numCircuits: sys.equipment.maxIntelliBrites === 8 ? 8 : 5,
-                startCirc: 1,
-                endCirc: sys.equipment.maxIntelliBrites === 8 ? 8 : 5,
-                isValid: true,
-                padPayload: (pkt:number[])=>{
-                    if (sys.equipment.maxIntelliBrites === 8) {
-                        return pkt.fill(0,0,sys.equipment.maxIntelliBrites);
+        if (sys.equipment.maxIntelliBrites === 8) {
+            // Easytouch
+                packets.push(new Promise(function(resolve, reject){
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        response: true,
+                        onComplete: (err, msg)=>{
+                            if (err) return reject(err);
+                            else {
+                                return resolve();
+                            }
+                        }
+                    });
+                    const lgcircuits = group.circuits.get();
+                    for (let circ = 0; circ < 8; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push(0,0,0,0);
+                        else {
+                            out.payload.push(lgcirc.circuit);
+                            out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
                     }
-                    else {
-                        pkt[0] = 1;
-                        return pkt.fill(0,0,5);
-                    }
-                },
-                fillPayload: (pkt:number[]) => {
-                    let idx = pkt.length;
-                    for (let circ = 1; circ <= defs.packets[1].numCircuits; circ++){
-                        //
-                    }
-                }
-            },
-            {
-                numCircuits: 5,
-                startCirc: 6,
-                endCirc: 10,
-                isValid: sys.equipment.maxIntelliBrites === 8 ? false : true,
-                padPayload: (pkt:number[])=>{
-                        pkt[0] = 2;
-                        return pkt.fill(0,0,5);
-                    }
-
-            }]
-        };
-        for (let packet = 0; packet < 2; packet++){
-            let out = Outbound.create({
-                action: 167,
-                payload: [],
-                retries: 3,
-                response: true
-            });
-            defs.packets[packet].padPayload(out.payload);
-            const lgrp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
-            const lgrpCircs = lgrp.circuits;
-
-            
+                    conn.queueSendMessage(out);
+                }));
+        
         }
-    }
-    public async setLightGroupAsync(data: any): Promise<LightGroup> {
-
-        return {} as LightGroup;
-/*         let circuit = sys.lightGroups.getItemById(data.id);
-        let typeByte = data.type || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
-        let nameByte = 3; // set default `Aux 1`
-        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
-        else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-        return new Promise<ICircuit>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 139,
-                payload: [data.id, typeByte, nameByte],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        let circuit = sys.lightGroups.getItemById(data.id);
-                        let cstate = state.lightGroups.getItemById(data.id);
-                        circuit.nameId = cstate.nameId = nameByte;
-                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                        circuit.type = cstate.type = typeByte;
-                        state.emitEquipmentChanges();
-                        resolve(circuit);
+            else {
+                // Intellitouch
+                const lgcircuits = group.circuits.get();
+                packets.push(new Promise(function(resolve, reject){
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        payload: [1],
+                        response: true,
+                        onComplete: (err, msg)=>{
+                            if (err) return reject(err);
+                            else {
+                                return resolve();
+                            }
+                        }
+                    });
+                    for (let circ = 0; circ < 5; circ++) {
+                            const lgcirc = lgcircuits[circ];
+                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0,0,0,0]);
+                            else {
+                                out.payload.push(lgcirc.id);
+                                out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
+                                out.payload.push(lgcirc.swimDelay << 1);
+                                out.payload.push(0);
+                            }
+                        }
+                        conn.queueSendMessage(out);
+                }));
+                packets.push(new Promise(function(resolve,reject){
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        payload: [2],
+                        response: true,
+                        onComplete: (err, msg)=>{
+                            if (err) return Promise.reject(err);
+                            else {
+                                return Promise.resolve();
+                            }
+                        }
+                    });
+                    for (let circ = 5; circ < 10; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0,0,0,0]);
+                        else {
+                            out.payload.push(lgcirc.id);
+                            out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
                     }
+                    conn.queueSendMessage(out);
+                }));
+            }
+        return packets;
+    }
+    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
+        let group: LightGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+        }
+        if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'LightGroup');
+        group = sys.lightGroups.getItemById(id, true);
+
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
+            group.isActive = true;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let cobj = obj.circuits[i];
+                    let c: LightGroupCircuit;
+                    if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                    else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                    else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10); // does this belong here?
+                    if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                    if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                    if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
                 }
-            });
+                // group.circuits.length = obj.circuits.length;
+            }
+            let messages = this.createLightGroupMessages(group);
+            messages.push(new Promise(function(resolve,reject){
+                let out = Outbound.create({
+                    action: 231,
+                    payload: [0],
+                    onComplete: (err,msg)=>{
+                        if (err) reject(err);
+                        else resolve();
+                    }
+                    
+                });
             conn.queueSendMessage(out);
-        }); */
+        }));
+            
+        return new Promise<LightGroup>(async (resolve, reject) => {
+            try {
+                await Promise.all(messages).catch(err => reject(err));
+                sys.emitData('lightGroupConfig', group.get(true));
+                resolve(group);
+            }
+            catch (err) { reject(err); }
+        });
+
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
@@ -933,43 +994,41 @@ class TouchCircuitCommands extends CircuitCommands {
                 response: true,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
-                    for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                        let c = sys.intellibrite.circuits.getItemByIndex(i);
-                        let cstate = state.circuits.getItemById(c.circuit);
-                        let circuit = sys.circuits.getInterfaceById(c.circuit);
-                        cstate.lightingTheme = circuit.lightingTheme = theme;
-                        if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                    }// Let everyone know we turned these on.  The theme messages will come later.
-                    for (let i = 0; i < grp.circuits.length; i++) {
-                        let c = grp.circuits.getItemByIndex(i);
-                        let cstate = state.circuits.getItemById(c.circuit);
-                        let circuit = sys.circuits.getInterfaceById(c.circuit);
-                        cstate.lightingTheme = circuit.lightingTheme = theme;
-                        if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                    }// Let everyone know we turned these on.  The theme messages will come later.
-                    state.emitEquipmentChanges();
-                    resolve(theme);
+                    else {
+                        for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                            let c = sys.intellibrite.circuits.getItemByIndex(i);
+                            let cstate = state.circuits.getItemById(c.circuit);
+                            if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                        }// Let everyone know we turned these on.  The theme messages will come later.
+                        for (let i = 0; i < grp.circuits.length; i++) {
+                            let c = grp.circuits.getItemByIndex(i);
+                            let cstate = state.circuits.getItemById(c.circuit);
+                            if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                        }
+                        switch (theme) {
+                            case 128: // sync
+                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');
+                                break;
+                            case 144: // swim
+                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
+                                break;
+                            case 160: // swim
+                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
+                                break;
+                            case 190: // save
+                            case 191: // recall
+                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');
+                                break;
+                            default:
+                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
+                            // other themes for magicstream?
+                        }
+                        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                        state.emitEquipmentChanges();
+                        resolve(theme);
+                    }
                 }
             });
-            switch (theme) {
-                case 128: // sync
-                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');
-                    break;
-                case 144: // swim
-                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
-                    break;
-                case 160: // swim
-                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
-                    break;
-                case 190: // save
-                case 191: // recall
-                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');
-                    break;
-                default:
-                    sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
-                // other themes for magicstream?
-
-            }
             conn.queueSendMessage(out);
         });
     }

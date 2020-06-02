@@ -107,8 +107,9 @@ export class ScheduleMessage {
             if (msg.extractPayloadByte(4) !== 26)
                 schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
             else {
-                let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer || 0;
-                schedule.endTime = schedule.startTime === 0 ? 720 : schedule.startTime + _eggTimer;
+                let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer || 720;
+                schedule.endTime = (schedule.startTime + _eggTimer) % 1440; // remove days if we go past midnight
+                // TODO: if a runOnce schedule is discovered before an eggTimer we will default the runOnce to 12 hours.  When eggTimers are found we should go back and check existing schedules to see if they are referenced.
             }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
