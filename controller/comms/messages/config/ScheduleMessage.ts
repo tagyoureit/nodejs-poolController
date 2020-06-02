@@ -99,6 +99,15 @@ export class ScheduleMessage {
             eggTimer.isActive = eggTimerActive;
             const circuit = sys.circuits.getInterfaceById(circuitId);
             circuit.eggTimer = eggTimer.runTime;
+             // When eggTimers are found go back and check existing schedules to see if a runOnce schedule already exists.
+             // It is possible that the runOnce schedule will be discovered before the eggTimer so we need to adjust the endTime 
+            for (let i = 0; i < sys.schedules.length; i++){
+                const schedule: Schedule = sys.schedules.getItemByIndex(i);
+                if (schedule.scheduleType === 0 && schedule.circuit === eggTimer.circuit){
+                    const sstate = state.schedules.getItemById(schedule.id);
+                    sstate.endTime = schedule.endTime = (schedule.startTime + eggTimer.runTime) % 1440; // remove days if we go past midnight                   
+                }
+            }
         } else if (circuitId > 0) {
             const schedule: Schedule = sys.schedules.getItemById(schedId, true);
             schedule.circuit = circuitId;
@@ -109,7 +118,7 @@ export class ScheduleMessage {
             else {
                 let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer || 720;
                 schedule.endTime = (schedule.startTime + _eggTimer) % 1440; // remove days if we go past midnight
-                // TODO: if a runOnce schedule is discovered before an eggTimer we will default the runOnce to 12 hours.  When eggTimers are found we should go back and check existing schedules to see if they are referenced.
+                
             }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
