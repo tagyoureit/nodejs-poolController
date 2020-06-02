@@ -11,12 +11,13 @@ export class IntellichemMessage {
             }
         }
         else {
-            // RKS: Ask Russ what the config message looks like.
+            // RKS: Ask Russ what the config message looks like for *Touch.
 
 
         }
     }
     private static processIntelliChemConfig(msg: Inbound) {
+        // Two messages are sent by the OCP for config of IntelliChem for up to 4 total intelliChems.
         switch (msg.extractPayloadByte(1)) {
             case 0:
                 for (let i = 0; i < 4; i++) {
@@ -35,6 +36,15 @@ export class IntellichemMessage {
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
+                        if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
+                        if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;
+                        if (typeof scontroller.orpLevel === 'undefined') scontroller.orpLevel = 0;
+                        if (typeof scontroller.orpDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+                        if (typeof scontroller.pHDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+                        if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
+                        if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
+                        if (typeof scontroller.waterFlow === 'undefined') scontroller.waterFlow = 0;
+                        
                     }
                 }
                 break;

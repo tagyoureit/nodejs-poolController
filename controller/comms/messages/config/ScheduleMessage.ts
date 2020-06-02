@@ -187,7 +187,7 @@ export class ScheduleMessage {
                 state.schedules.removeItemById(schedule.id);
             else {
                 let csched = state.schedules.getItemById(schedule.id, true);
-                csched.circuit = schedule.circuit;
+                //csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
             }
             i += 2;
@@ -201,7 +201,7 @@ export class ScheduleMessage {
             schedule.endTime = time;
             if (schedule.circuit > 0) {
                 let csched = state.schedules.getItemById(schedule.id);
-                csched.circuit = schedule.circuit;
+                //csched.circuit = schedule.circuit;
                 csched.endTime = schedule.endTime;
             }
             i += 2;
@@ -237,6 +237,7 @@ export class ScheduleMessage {
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.startTimeType = schedule.startTimeType;
                 csched.endTimeType = schedule.endTimeType;
+                csched.scheduleType = schedule.scheduleType;
             }
 
         }

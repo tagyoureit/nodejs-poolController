@@ -382,8 +382,9 @@ export class ExternalMessage {
         let schedId = msg.extractPayloadByte(2) + 1;
         let startTime = msg.extractPayloadInt(3);
         let endTime = msg.extractPayloadInt(5);
-        let circuit = msg.extractPayloadInt(7) + 1;
-        let cfg = sys.schedules.getItemById(schedId, circuit < 256);
+        let circuit = msg.extractPayloadByte(7) + 1;
+        let cfg = sys.schedules.getItemById(schedId, circuit !== 256);
+        cfg.isActive = circuit !== 256;
         cfg.startTime = startTime;
         cfg.endTime = endTime;
         cfg.circuit = circuit;
@@ -404,7 +405,8 @@ export class ExternalMessage {
         cfg.heatSource = msg.extractPayloadByte(13);
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
-        if (circuit < 256) {
+        if (circuit !== 256) {
+            cfg.isActive = true;
             let s = state.schedules.getItemById(schedId, true);
             s.startTime = cfg.startTime;
             s.endTime = cfg.endTime;

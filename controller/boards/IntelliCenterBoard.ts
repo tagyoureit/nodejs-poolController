@@ -2333,7 +2333,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
             // If we make it here we can make it anywhere.
-            let runOnce = schedType !== 128 ? 0 : 1;
+            let runOnce = schedType !== 128 ? 1 : 128;
             if(startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
             if(endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
             let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
