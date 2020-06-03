@@ -1006,21 +1006,24 @@ class TouchCircuitCommands extends CircuitCommands {
                             if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                         }
                         switch (theme) {
+                            case 0: // off
+                            case 1: // on
+                                break;
                             case 128: // sync
-                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');
+                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');});
                                 break;
                             case 144: // swim
-                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
+                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');});
                                 break;
                             case 160: // swim
-                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
+                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');});
                                 break;
                             case 190: // save
                             case 191: // recall
-                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');
+                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');});
                                 break;
                             default:
-                                sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
+                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');});
                             // other themes for magicstream?
                         }
                         sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
