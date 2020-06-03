@@ -972,7 +972,7 @@ export class PumpCommands extends BoardCommands {
             if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
         }
     }
-    public async run(pump: Pump) {
+    public async runAsync(pump: Pump) {
         let pumpCircuits = pump.circuits.get();
         let _maxSpeed = 0;
         let _units;
@@ -1259,7 +1259,8 @@ export class CircuitCommands extends BoardCommands {
             state.temps.bodies.getItemById(1).isOn = circ.isOn;
             circ.isOn ?  sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
         }
-        sys.board.virtualPumpControllers.start()
+        sys.board.virtualPumpControllers.start();
+        sys.emitEquipmentChange();
         return Promise.resolve(circ);
     }
 
@@ -1979,8 +1980,8 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
-                sys.board.pumps.run(pump);
-                this._timers[i] = setInterval(function() { sys.board.pumps.run(pump); }, 8000);
+                setImmediate(function(){sys.board.pumps.runAsync(pump);});
+                this._timers[i] = setInterval(function() { sys.board.pumps.runAsync(pump); }, 8000);
                 if (!state.pumps.getItemById(i, true).virtualControllerStatus) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
                     state.pumps.getItemById(i, true).virtualControllerStatus = 1;

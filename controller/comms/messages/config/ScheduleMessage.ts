@@ -88,7 +88,7 @@ export class ScheduleMessage {
         const schedId = msg.extractPayloadByte(0);
 
         const circuitId = msg.extractPayloadByte(1) & 127;
-        const eggTimerRunTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadInt(5);
+        const eggTimerRunTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
         const eggTimerActive = msg.extractPayloadByte(2) === 25 && circuitId > 0 && eggTimerRunTime !== 256;
         const scheduleActive = !eggTimerActive && circuitId > 0;
         if (eggTimerActive) {
