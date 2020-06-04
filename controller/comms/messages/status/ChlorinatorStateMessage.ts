@@ -23,68 +23,69 @@ export class ChlorinatorStateMessage {
                 let cstate = state.chlorinators.getItemById(1, true);
                 cstate.lastComm = new Date().getTime();
             }
-            // switch (msg.extractPayloadByte(1)) {
-            switch (msg.action) {
-                case 0: // request status (0): [16,2,80,0][0][98,16,3]
-                    break;
-                case 1: // response to request status: [16,2,0,1][0,0][19,16,3]
-                    {
-                        // let chlor = sys.chlorinators.getItemById(1, true);
-                        // chlor.isActive = true;
+            if (sys.chlorinators.getItemById(1).isVirtual) {
+                switch (msg.action) {
+                    case 0: // request status (0): [16,2,80,0][0][98,16,3]
+                        break;
+                    case 1: // response to request status: [16,2,0,1][0,0][19,16,3]
+                        {
+                            // let chlor = sys.chlorinators.getItemById(1, true);
+                            // chlor.isActive = true;
+                            break;
+                        }
+                    case 3: {
+                        // Response to Get Version (20)
+                        //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
+                        //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
+                        // This is the model number of the chlorinator and the address is actually the second byte.
+                        let cstate = state.chlorinators.getItemById(1, true);
+                        let chlor = sys.chlorinators.getItemById(1, true);
+                        cstate.name = chlor.name = msg.extractPayloadString(1, 16);
+                        sys.emitEquipmentChange();
                         break;
                     }
-                case 3: {
-                    // Response to Get Version (20)
-                    //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
-                    //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
-                    // This is the model number of the chlorinator and the address is actually the second byte.
-                    let cstate = state.chlorinators.getItemById(1, true);
-                    let chlor = sys.chlorinators.getItemById(1, true);
-                    cstate.name = chlor.name = msg.extractPayloadString(1, 16);
-                    sys.emitEquipmentChange();
-                    break;
-                }
-                case 17:
-                case 21: {
-                    // Set Salt Output / 10
-                    // This packet is coming through differently on the IntelliConnect.
-                    // eg 13:42:31.304 VERBOSE Msg# 1531   Controller --> Salt cell: Set current output to 1.6 %: 16,2,80,21,0,119,16,3
-                    let cstate = state.chlorinators.getItemById(1, true);
-                    cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
-                    cstate.targetOutput = cstate.setPointForCurrentBody;
-                    state.emitEquipmentChanges();
-                    break;
-                }
-                case 18: {
-                    // Response to Set Salt Output (17 & 20)
-                    let cstate = state.chlorinators.getItemById(1, true);
-                    cstate.saltLevel = msg.extractPayloadByte(0) * 50;
-                    cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
-                    cstate.currentOutput = cstate.setPointForCurrentBody; 
-                    state.emitEquipmentChanges();
-                    break;
-                }
-                case 20: {
-                    // Get version
-                    let c = sys.chlorinators.getItemById(1, true);
-                    let chlor = state.chlorinators.getItemById(1, true);
-                    chlor.type = c.type = msg.extractPayloadByte(0);
-                    state.emitEquipmentChanges();
-                    break;
-                }
-                case 22: {
-                    // temp and output as seen from IntelliConnect.  
-                    // Issue #157 - https://github.com/tagyoureit/nodejs-poolController/issues/157
-                    // [10 02, 10, 16], [00, 0f, 49, 00,05, 10], [85,  10,03] = hex
-                    // [16, 2, 16, 22], [00, 15, 73, 00, 5, 16], [133, 16, 3]
-                    // I was at 15% and the temp was 73 F
-                    // 0f49 - 15 and 73
-                    let chlor = state.chlorinators.getItemById(1, true);
-                    chlor.currentOutput = msg.extractPayloadByte(1);
-                    const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                    tbody.temp = msg.extractPayloadByte(2);
-                    state.emitEquipmentChanges();
-                    break;
+                    case 17:
+                    case 21: {
+                        // Set Salt Output / 10
+                        // This packet is coming through differently on the IntelliConnect.
+                        // eg 13:42:31.304 VERBOSE Msg# 1531   Controller --> Salt cell: Set current output to 1.6 %: 16,2,80,21,0,119,16,3
+                        let cstate = state.chlorinators.getItemById(1, true);
+                        cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
+                        cstate.targetOutput = cstate.setPointForCurrentBody;
+                        state.emitEquipmentChanges();
+                        break;
+                    }
+                    case 18: {
+                        // Response to Set Salt Output (17 & 20)
+                        let cstate = state.chlorinators.getItemById(1, true);
+                        cstate.saltLevel = msg.extractPayloadByte(0) * 50;
+                        cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
+                        cstate.currentOutput = cstate.setPointForCurrentBody;
+                        state.emitEquipmentChanges();
+                        break;
+                    }
+                    case 20: {
+                        // Get version
+                        let c = sys.chlorinators.getItemById(1, true);
+                        let chlor = state.chlorinators.getItemById(1, true);
+                        chlor.type = c.type = msg.extractPayloadByte(0);
+                        state.emitEquipmentChanges();
+                        break;
+                    }
+                    case 22: {
+                        // temp and output as seen from IntelliConnect.  
+                        // Issue #157 - https://github.com/tagyoureit/nodejs-poolController/issues/157
+                        // [10 02, 10, 16], [00, 0f, 49, 00,05, 10], [85,  10,03] = hex
+                        // [16, 2, 16, 22], [00, 15, 73, 00, 5, 16], [133, 16, 3]
+                        // I was at 15% and the temp was 73 F
+                        // 0f49 - 15 and 73
+                        let chlor = state.chlorinators.getItemById(1, true);
+                        chlor.currentOutput = msg.extractPayloadByte(1);
+                        const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+                        tbody.temp = msg.extractPayloadByte(2);
+                        state.emitEquipmentChanges();
+                        break;
+                    }
                 }
             }
         }
@@ -97,7 +98,7 @@ export class ChlorinatorStateMessage {
             // [165,33,15,16,25,22],[1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48],[7,231]
             let chlorId = 1;
             let chlor = sys.chlorinators.getItemById(chlorId, true);
-            if (chlor.isVirtual) {return;} // shouldn't get here except for testing Chlor on *Touch system.
+            if (chlor.isVirtual) { return; } // shouldn't get here except for testing Chlor on *Touch system.
             // installed = (aaaaaaa)1 so 1 = installed
             chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
             if (chlor.isActive) {
@@ -122,8 +123,8 @@ export class ChlorinatorStateMessage {
                 schlor.superChlorHours = chlor.superChlorHours;
                 schlor.name = chlor.name;
                 schlor.body = chlor.body;
-                if (state.body === 6) schlor.targetOutput = chlor.poolSetpoint;
-                else if (state.body === 1) schlor.targetOutput = chlor.spaSetpoint;
+                if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.poolSetpoint;
+                else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.spaSetpoint;
             }
             else {
                 sys.chlorinators.removeItemById(chlorId);

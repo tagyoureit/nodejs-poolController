@@ -986,16 +986,22 @@ export class PumpCommands extends BoardCommands {
         try {
             await this.setPumpToRemoteControlAsync(pump, true);
             await this.setDriveStatePacketAsync(pump, _maxSpeed > 0);
-            if (_maxSpeed > 130) { this.runRPMAsync(pump, _maxSpeed); }
-            if (_maxSpeed > 0 && _maxSpeed <= 130) { this.runGPMAsync(pump, _maxSpeed); }
+            if (_maxSpeed > 130) { await this.runRPMAsync(pump, _maxSpeed); }
+            if (_maxSpeed > 0 && _maxSpeed <= 130) { await this.runGPMAsync(pump, _maxSpeed); }
         }
         catch (err) {
             // log something
-            logger.error(`Caught an error running virtual pumps. ${ err.message }`);
+            logger.warn(`Caught an error running virtual pumps. ${ err.message }`);
         }
         finally {
             // timeout here
-            setTimeout(() => { this.requestPumpStatusAsync(pump); }, 7 * 1000);
+            setTimeout(async () => {
+                try {
+                    await this.requestPumpStatusAsync(pump);;
+                }
+                catch (err){
+                    logger.warn(`Caught an error running virtual pumps. ${err.message}`);
+                }}, 7 * 1000);
         }
     }
 
@@ -1638,26 +1644,17 @@ export class ChlorinatorCommands extends BoardCommands {
             action: 20,
             payload: [2],
             retries: 6
-            /*                 ,response: true,
-                            onComplete: (err) => {
-                                if (err) { logger.error(`Chlorinator name not found.`); }
-                             } */
         });
         conn.queueSendMessage(out);
     }
 
     public setDesiredOutput(cstate: ChlorinatorState) {
-
-        let schlor = state.chlorinators.getItemById(cstate.id, true);
-
-        // [16,2,80,17][23][138,16,3]
-        // let out = Outbound.createChlorinatorMessage(cstate.id, 17, [chlor.setPointForCurrentBody], 3, response);
         let out = Outbound.create({
             protocol: Protocol.Chlorinator,
             dest: cstate.id,
             action: 17,
-            payload: [schlor.setPointForCurrentBody],
-            retries: 3,
+            payload: [cstate.setPointForCurrentBody],
+            retries: 2,
             response: true,
             onComplete: (err) => {
                 if (err) {
@@ -1673,13 +1670,6 @@ export class ChlorinatorCommands extends BoardCommands {
     }
 
     public ping(cstate: ChlorinatorState) {
-        // Resp: [16,2,0,1][0,0][19,16,3]
-        /*         let response = Response.create({
-                    protocol: Protocol.Chlorinator,
-                    action: 1,
-                    payload: [0, 0]
-                }); */
-        // Ping: [16,2,80,0][0][98,16,3]
         return new Promise((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Chlorinator,
@@ -1883,18 +1873,18 @@ export class ChlorinatorController extends BoardCommands {
                 sys.board.chlorinator.setDesiredOutput(state.chlorinators.getItemById(1));
             }
                 if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
-                    this._timer = setTimeout(() =>{sys.board.virtualChlorinatorController.start();}, 4000);
+                    this._timer = setTimeout(function(){sys.board.virtualChlorinatorController.start();}, 4000);
                     return;
                 }
                 else {
-                    this._timer = setTimeout(()=>{sys.board.virtualChlorinatorController.start();}, 30000);
+                    this._timer = setTimeout(function(){sys.board.virtualChlorinatorController.start();}, 30000);
                     return;
                 }
         }
         // if we get this far, then no virtual chlorinators are active and clear the timer
        else {
            delete schlor.virtualControllerStatus;
-           clearInterval(this._timer);
+           clearTimeout(this._timer);
         } 
     }
 
@@ -1979,12 +1969,12 @@ export class VirtualPumpControllerCollection extends BoardCommands {
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
-                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
+                typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
                 setImmediate(function(){sys.board.pumps.runAsync(pump);});
-                this._timers[i] = setInterval(function() { sys.board.pumps.runAsync(pump); }, 8000);
-                if (!state.pumps.getItemById(i, true).virtualControllerStatus) {
+                this._timers[i] = setInterval(async function() { await sys.board.pumps.runAsync(pump); }, 8000);
+                if (state.pumps.getItemById(i).virtualControllerStatus !== 1) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
-                    state.pumps.getItemById(i, true).virtualControllerStatus = 1;
+                    state.pumps.getItemById(i).virtualControllerStatus = 1;
                 }
 
             }

@@ -219,8 +219,8 @@ export class ExternalMessage {
                     cstate.name = circuit.name;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-                    if (cstate.isOn && circuit.type === 12) body = 6;
-                    if (cstate.isOn && circuit.type === 13) body = 1;
+/*                     if (cstate.isOn && circuit.type === 12) body = 6;
+                    if (cstate.isOn && circuit.type === 13) body = 1; */
                     switch (circuit.type) {
                         case 6: // Globrite
                         case 5: // Magicstream
@@ -239,7 +239,7 @@ export class ExternalMessage {
                 circuitId++;
             }
         }
-        state.body = body;
+        // state.body = body;
     }
     private static processScheduleState(start: number, msg: Inbound) {
         let scheduleId = 1;

@@ -173,13 +173,13 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
-    public get body(): number { return this.data.body; }
+/*     public get body(): number { return this.data.body; }
     public set body(val: number) {
         if (this.body !== val) {
             this.data.body = val;
             this.hasChanged = true;
         }
-    }
+    } */
     public get delay(): number { return this.data.delay; }
     public set delay(val: number) {
         if (this.data.delay !== val) {
@@ -1012,7 +1012,7 @@ export class ChlorinatorState extends EqState {
     public get currentOutput(): number { return this.data.currentOutput || 0; }
     public set currentOutput(val: number) { this.setDataVal('currentOutput', val); }
     public get setPointForCurrentBody() {
-        if (state.body === 1) return this.data.spaSetpoint;
+        if (state.temps.bodies.getItemById(2).isOn) return this.data.spaSetpoint;
         return this.data.poolSetpoint || 0;
         // can add 3rd/4th body for IntelliCenter when known
     }

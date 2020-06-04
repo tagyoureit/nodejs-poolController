@@ -292,7 +292,7 @@ export class EquipmentStateMessage {
     public static process(msg: Inbound) {
         //console.log(process.memoryUsage());
         if (!state.isInitialized) {
-            if (msg.action === 2) EquipmentStateMessage.initController(msg);
+           if (msg.action === 2) EquipmentStateMessage.initController(msg);
             else return;
         }
         else if (!sys.board.modulesAcquired) {
@@ -309,7 +309,6 @@ export class EquipmentStateMessage {
             }
             else return;
         }
-        var ndx = 0;
         switch (msg.action) {
             case 2:
                 {
@@ -605,7 +604,7 @@ export class EquipmentStateMessage {
         // array.
         let count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
         let circuitId = sys.board.equipmentIds.circuits.start;
-        let body = 0; // Off
+        // let body = 0; // Off
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
@@ -618,8 +617,8 @@ export class EquipmentStateMessage {
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-                    if (cstate.isOn && circuitId === 6) body = 6;
-                    if (cstate.isOn && circuitId === 1) body = 1;
+/*                     if (cstate.isOn && circuitId === 6) body = 6;
+                    if (cstate.isOn && circuitId === 1) body = 1; */
                     if (sys.controllerType === ControllerType.IntelliCenter)
                         // intellitouch sends a separate msg with themes
                         switch (circuit.type) {
@@ -637,14 +636,14 @@ export class EquipmentStateMessage {
                 circuitId++;
             }
         }
-        state.body = body;
+        // state.body = body;
         // state.emitControllerChange();
         // state.emitEquipmentChanges();
     }
     private static processTouchCircuits(msg: Inbound) {
         const count = sys.board.equipmentIds.features.end;
         let circId = 1;
-        let body = 0;
+        // let body = 0;
         for (let i = 2; i < msg.payload.length && i <= count; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
@@ -664,8 +663,8 @@ export class EquipmentStateMessage {
                         circId,
                         circ.isActive
                     );
-                    if (cstate.isOn && circId === 6) body = 6;
-                    if (cstate.isOn && circId === 1) body = 1;
+/*                     if (cstate.isOn && circId === 6) body = 6;
+                    if (cstate.isOn && circId === 1) body = 1; */
                     cstate.showInFeatures = circ.showInFeatures;
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circ.name;
@@ -675,7 +674,7 @@ export class EquipmentStateMessage {
                 circId++;
             }
         }
-        state.body = body;
+        // state.body = body;
         //state.emitControllerChange();
         state.emitEquipmentChanges();
     }
