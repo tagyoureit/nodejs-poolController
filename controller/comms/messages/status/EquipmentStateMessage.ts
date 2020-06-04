@@ -237,7 +237,6 @@ export class EquipmentStateMessage {
     public static initVirtual() {
         state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
         state.equipment.model = sys.equipment.model = 'Virtual Controller';
-        state.status = 1;
         sys.equipment.maxFeatures = 10;
         sys.equipment.maxCircuits = 0;
         sys.equipment.maxSchedules = 0;

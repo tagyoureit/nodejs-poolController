@@ -91,6 +91,12 @@ To do anything with this app, you need a client to connect to it.  A client can 
 * This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
 
 
+### Virtual Controller
+v6 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
+
+* [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
+* [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
+
 ### Home Automation Integrations
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
