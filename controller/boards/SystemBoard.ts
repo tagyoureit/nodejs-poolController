@@ -345,8 +345,8 @@ export class byteValueMaps {
     public customNames: byteValueMap=new byteValueMap();
     public circuitNames: byteValueMap=new byteValueMap();
     public scheduleTypes: byteValueMap=new byteValueMap([
-        [0, { name: 'runonce', desc: 'Run Once' }],
-        [128, { name: 'repeat', desc: 'Repeats' }]
+        [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource:true, heatSetpoint:true }],
+        [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days: 'multi', heatSource: true, heatSetpoint: true }]
     ]);
     public circuitGroupTypes: byteValueMap=new byteValueMap([
         [0, { name: 'none', desc: 'Unspecified' }],

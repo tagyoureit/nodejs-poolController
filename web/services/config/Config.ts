@@ -272,7 +272,7 @@ export class ConfigRoute {
                 return res.status(200).send((sched as Schedule).get(true));
             }
             catch (err) {
-                console.log(`Error deleting schedule... ${err}`);
+                //console.log(`Error deleting schedule... ${err}`);
                 next(err);
             }
         });

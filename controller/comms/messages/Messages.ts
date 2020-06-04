@@ -33,7 +33,8 @@ export enum Protocol {
     Pump='pump',
     Chlorinator='chlorinator',
     IntelliChem='intellichem',
-    IntelliValve='intellivalve'
+    IntelliValve = 'intellivalve',
+    Unidentified = 'unidentified'
 }
 export class Message {
     constructor() { }
@@ -229,6 +230,7 @@ export class Inbound extends Message {
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean { return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2); }
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
+    private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
     private pushBytes(target: number[], bytes: number[], ndx: number, length: number): number {
         let end = ndx + length;
@@ -260,6 +262,10 @@ export class Inbound extends Message {
                 this.protocol = Protocol.Broadcast;
                 break;
             }
+            else if (this.testUnidentifiedHeader(bytes, ndx)) {
+                this.protocol = Protocol.Unidentified;
+                break;
+            }
             this.padding.push(bytes[ndx++]);
         }
         switch (this.protocol) {
@@ -267,6 +273,7 @@ export class Inbound extends Message {
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
             case Protocol.Broadcast:
+            case Protocol.Unidentified:
                 ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
                 ndx = this.pushBytes(this.header, bytes, ndx, 6);
                 if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
@@ -291,6 +298,7 @@ export class Inbound extends Message {
             case Protocol.Pump:
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
+            case Protocol.Unidentified:
                 ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
                 break;
             case Protocol.Chlorinator:
@@ -313,6 +321,7 @@ export class Inbound extends Message {
             case Protocol.Pump:
             case Protocol.IntelliValve:
             case Protocol.IntelliChem:
+            case Protocol.Unidentified:
                 if (this.payload.length >= this.datalen) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 2);

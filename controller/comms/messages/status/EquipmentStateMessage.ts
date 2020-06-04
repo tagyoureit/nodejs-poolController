@@ -290,6 +290,7 @@ export class EquipmentStateMessage {
         }
     }
     public static process(msg: Inbound) {
+        //console.log(process.memoryUsage());
         if (!state.isInitialized) {
             if (msg.action === 2) EquipmentStateMessage.initController(msg);
             else return;

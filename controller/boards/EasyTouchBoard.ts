@@ -159,8 +159,8 @@ export class EasyTouchBoard extends SystemBoard {
             [64, { name: 'sat', desc: 'Saturday', dow: 6 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'runonce', desc: 'Run Once' }],
-            [128, { name: 'repeat', desc: 'Repeats' }]
+            [0, { name: 'runonce', desc: 'Run Once', startDate: false, startTime: true, endTime: false, days: 'single', heatSource: true, heatSetpoint: false }],
+            [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, entTime: true, days: 'multi', heatSource: true, heatSetpoint: false }]
         ]);
         this.valueMaps.featureFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],

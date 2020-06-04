@@ -158,6 +158,11 @@ export class IntelliCenterBoard extends SystemBoard {
             [96, { name: 'magenta', desc: 'Magenta' }],
             [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
+        this.valueMaps.scheduleTypes = new byteValueMap([
+            [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false }],
+            [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days:'multi' }]
+        ]);
+
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
@@ -1433,7 +1438,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
             }
-            console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
+            //console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
             out.payload[28 + byteNdx] = byte;
             return new Promise<LightGroupState>((resolve, reject) => {
                 out.onComplete = (err, msg) => {
@@ -1477,7 +1482,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
             }
-            console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
+            //console.log({ action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
             out.payload[28 + byteNdx] = byte;
             out.onComplete = (err, msg) => {
                 if (!err) {
