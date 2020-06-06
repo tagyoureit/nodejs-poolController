@@ -178,6 +178,7 @@ export class IntelliCenterBoard extends SystemBoard {
         //sys.resetSystem();
         sys.configVersion.clear();
         state.status = 0;
+        this.needsConfigChanges = true;
         console.log('RESETTING THE CONFIGURATION');
         this.modulesAcquired = false;
     }
@@ -198,6 +199,7 @@ export class IntelliCenterBoard extends SystemBoard {
             this.needsConfigChanges = false;
         }
         else {
+            logger.info(`Skipping configuration -- Just setting the versions`);
             sys.configVersion.chlorinators = ver.chlorinators;
             sys.configVersion.circuitGroups = ver.circuitGroups;
             sys.configVersion.circuits = ver.circuits;

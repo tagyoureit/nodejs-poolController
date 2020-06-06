@@ -67,8 +67,7 @@ class Config {
         this.ensurePath(baseDir + '/logs/');
         this.ensurePath(baseDir + '/data/');
         // this.ensurePath(baseDir + '/replay/');
-
-        setTimeout(function() { config.update(); }, 100);
+        setTimeout(() => { config.update(); }, 100);
     }
     private ensurePath(dir: string) {
         if (!fs.existsSync(dir)) {

@@ -10,6 +10,8 @@ export class EquipmentStateMessage {
         sys.controllerType = ControllerType.IntelliCenter;
         sys.equipment.maxSchedules = 100;
         sys.equipment.maxFeatures = 32;
+        // Always get equipment since this is volatile between loads. Everything else takes care of itself.
+        sys.configVersion.equipment = 0;
     }
     public static initDefaults() {
         // defaults; set to lowest possible values.  Each *Touch will extend this once we know the model.
@@ -462,10 +464,10 @@ export class EquipmentStateMessage {
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
                                 EquipmentStateMessage.processFeatureState(msg);
-                                let ver: ConfigVersion =
-                                    typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
-                                ver.equipment = msg.extractPayloadInt(25);
-                                sys.processVersionChanges(ver);
+                                //let ver: ConfigVersion =
+                                //    typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                                //ver.equipment = msg.extractPayloadInt(25);
+                                //sys.processVersionChanges(ver);
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.circuits.syncVirtualCircuitStates();

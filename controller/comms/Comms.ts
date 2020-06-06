@@ -328,7 +328,7 @@ export class SendRecieveBuffer {
     protected processInbound() {
         if (conn.buffer._inBuffer.length === 0) return;
         conn.buffer._inBytes.push.apply(conn.buffer._inBytes, conn.buffer._inBuffer.splice(0, conn.buffer._inBuffer.length));
-        if (conn.buffer._inBytes.length >= 1) { // Wait until we have something to process.
+        if (conn.buffer._inBytes.length >= 4) { // Wait until we have something to process.
             conn.buffer.counter.bytesReceived += conn.buffer._inBytes.length;
             var ndx: number = 0;
             var msg: Inbound = conn.buffer._msg;
