@@ -699,17 +699,17 @@ export class EquipmentStateMessage {
                     // stored.  Once the message is sent then it throws away the data.  When you turn the light
                     // on again it will be on at whatever theme happened to be set at the time it went off.  We keep this
                     // as a best guess so when the user turns on the light it will likely be the last theme observed.
-                    state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
+                    // state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                     const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     grp.lightingTheme = sgrp.lightingTheme = theme;
-                    for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+/*                     for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
                         let ib = sys.intellibrite.circuits.getItemByIndex(i);
                         const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                         let circuit = sys.circuits.getItemById(ib.circuit);
                         let cstate = state.circuits.getItemById(ib.circuit);
                         if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
-                    }
+                    } */
                     for (let i = 0; i < grp.circuits.length; i++) {
                         let c = grp.circuits.getItemByIndex(i);
                         let cstate = state.circuits.getItemById(c.circuit);

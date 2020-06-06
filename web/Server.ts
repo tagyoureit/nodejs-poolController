@@ -262,6 +262,7 @@ export class HttpServer extends ProtoServer {
                 }
             });
 
+            
             // Put in a custom replacer so that we can send error messages to the client.  If we don't do this the base properties of Error
             // are omitted from the output.
             this.app.set('json replacer', (key, value) => {

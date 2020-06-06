@@ -1550,29 +1550,39 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < arrOut.length; i++)
             conn.queueSendMessage(arrOut[i]);
     }
-    public setLightThemeAsync(id: number, theme: number) {
-        if (sys.board.equipmentIds.circuitGroups.isInRange(id))
-            // Redirect here for now as we will need to do some work
-            // on the default.
-            this.setLightGroupTheme(id, theme);
-        else {
-            let circuit = sys.circuits.getInterfaceById(id);
-            let cstate = state.circuits.getInterfaceById(id);
-            let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-                theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
-                0, undefined
-            );
-            out.onComplete = (err, msg) => {
-                if (!err) {
-                    circuit.lightingTheme = theme;
-                    cstate.lightingTheme = theme;
-                    if (!cstate.isOn) this.setCircuitStateAsync(id, true);
-                    state.emitEquipmentChanges();
+    public async setLightThemeAsync(id: number, theme: number):Promise<ICircuitState> {
+        return new Promise((resolve, reject)=>{
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id)){
+                // Redirect here for now as we will need to do some work
+                // on the default.
+                this.setLightGroupTheme(id, theme);
+                resolve(state.lightGroups.getItemById(id));
+            }
+            else {
+                    try {
+                    let circuit = sys.circuits.getInterfaceById(id);
+                    let cstate = state.circuits.getInterfaceById(id);
+                    let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+                        theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+                        0, undefined
+                    );
+                    out.onComplete = async (err, msg) => {
+                        if (!err) {
+                            circuit.lightingTheme = theme;
+                            cstate.lightingTheme = theme;
+                            if (!cstate.isOn) await this.setCircuitStateAsync(id, true);
+                            state.emitEquipmentChanges();
+                            resolve(cstate);
+                        }
+                    };
+                    out.appendPayloadString(circuit.name, 16);
+                    conn.queueSendMessage(out);
+                }
+                catch (err){
+                    reject(err);
                 }
             }
-            out.appendPayloadString(circuit.name, 16);
-            conn.queueSendMessage(out);
-        }
+            });
     }
     public createLightGroupMessages(group: ICircuitGroup): Outbound[] {
         let arr: Outbound[] = [];
@@ -1709,7 +1719,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
-    public setFeatureState(id, val) { this.board.circuits.setCircuitStateAsync(id, val); }
+    public async setFeatureStateAsync(id, val) { return this.board.circuits.setCircuitStateAsync(id, val); }
     public setGroupStates() { } // Do nothing and let IntelliCenter do it.
     public async setFeatureAsync(data: any): Promise<Feature> {
         return new Promise<Feature>((resolve, reject) => {

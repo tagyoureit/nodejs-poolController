@@ -26,33 +26,36 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/state/circuit/toggleState', (req, res, next) => {
+        app.put('/state/circuit/toggleState', async (req, res, next) => {
             try {
-                let cstate = state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
+                let cstate = await state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
                 return res.status(200).send(cstate);
             }
             catch (err) {next(err);}
         });    
-        app.put('/state/circuit/setTheme', (req, res, next) => {
+        app.put('/state/circuit/setTheme', async (req, res, next) => {
            try {
-               let theme = state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
+               let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
                return res.status(200).send(theme);
             } 
             catch (err) { next(err); }
         }); 
-        app.put('/state/intellibrite/setTheme', (req, res) => {
+/*         app.put('/state/intellibrite/setTheme', (req, res) => {
             let id = sys.board.equipmentIds.circuitGroups.start; 
             if (typeof req.body.theme !== 'undefined') id = parseInt(req.body.id, 10);
-            sys.board.circuits.setIntelliBriteThemeAsync(id ,parseInt(req.body.theme, 10));
+            sys.board.circuits.setLightGroupThemeAsync(id ,parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
-        });
+        }); */
         app.put('/state/circuit/setDimmerLevel', (req, res) => {
             state.circuits.setDimmerLevel(parseInt(req.body.id, 10), parseInt(req.body.level, 10));
             return res.status(200).send('OK');
         });
-        app.put('/state/feature/setState', (req, res) => {
-            state.features.setFeatureState(req.body.id, req.body.state);
-            return res.status(200).send('OK');
+        app.put('/state/feature/setState', async (req, res, next) => {
+            try {
+                await state.features.setFeatureStateAsync(req.body.id, req.body.state);
+                return res.status(200).send('OK');
+            }
+            catch (err){ next(err); }
         });
         app.put('/state/body/heatMode', (req, res, next) => {
             // todo: is body 0/1 as in the bodies object or should we also be able to reference this by circuit; 1=spa; 6=pool, etc.
@@ -119,7 +122,7 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/state/intellibrite/colorSync', (req, res) => {
+/*         app.put('/state/intellibrite/colorSync', (req, res) => {
             sys.board.circuits.sequenceIntelliBrite('sync');
             return res.status(200).send('OK');
         });
@@ -130,7 +133,7 @@ export class StateRoute {
         app.put('/state/intellibrite/colorSwim', (req, res) => {
             sys.board.circuits.sequenceIntelliBrite('swim');
             return res.status(200).send('OK');
-        });
+        }); */
         app.get('/state/:section', (req, res) => {
             res.status(200).send(state.getState(req.params.section));
         });

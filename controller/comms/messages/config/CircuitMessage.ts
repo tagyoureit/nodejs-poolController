@@ -79,21 +79,21 @@ export class CircuitMessage {
             The IntelliBrite Collection does that and we will wipe clean all IntelliBrite/Circuit relationships and re-establish each time the packet(s) are resent.  */
         let byte: number; // which byte are we starting with?
         msg.datalen === 25 ? byte = 1 : byte = 0;
-        sys.intellibrite.isActive = true;
+        // sys.intellibrite.isActive = true;
         let lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
         let sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
-        lg.isActive = true;
+        lg.isActive = sgrp.isActive = true;
         lg.name = sgrp.name = 'Intellibrite';
         lg.type = sgrp.type = 3;
         sgrp.action = 0;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
             // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
-            for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+/*             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                 let ibCircuit = sys.intellibrite.circuits.getItemByIndex(i);
                 // only evaluate intellibrites here; skip others
                 // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
                 ibCircuit.isActive = false;
-            }
+            } */
             for (let i = 0; i < lg.circuits.length; i++) {
                 let lgCircuit = lg.circuits.getItemByIndex(i);
                 // only evaluate intellibrites here; skip others
@@ -107,12 +107,12 @@ export class CircuitMessage {
                 let pair = msg.extractPayloadByte(byte + 1);
                 let _isActive = circuitId > 0 && pair > 0;
                 if (_isActive) {
-                    const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, _isActive);
+/*                     const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, _isActive);
                     ibCircuit.isActive = _isActive;
                     ibCircuit.circuit = circuitId;
                     ibCircuit.position = (pair >> 4) + 1;
                     ibCircuit.color = pair & 15;
-                    ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1;
+                    ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1; */
                     const lgCircuit = lg.circuits.getItemByCircuitId(circuitId, _isActive);
                     lgCircuit.isActive = _isActive;
                     lgCircuit.circuit = circuitId;
@@ -124,11 +124,11 @@ export class CircuitMessage {
         }
         // go through and clean up what is not active only if this is the last (or only) packet
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 1) || msg.datalen === 32)
-            for (let idx = 0; idx < sys.intellibrite.circuits.length; idx++) {
+/*             for (let idx = 0; idx < sys.intellibrite.circuits.length; idx++) {
                 const ibCircuit = sys.intellibrite.circuits.getItemByIndex(idx);
                 if (ibCircuit.isActive === true) continue;
                 sys.intellibrite.circuits.removeItemById(ibCircuit.circuit);
-            }
+            } */
             for (let idx = 0; idx < lg.circuits.length; idx++) {
                 const lgCircuit = lg.circuits.getItemByIndex(idx);
                 if (lgCircuit.isActive === true) continue;
@@ -233,9 +233,9 @@ export class CircuitMessage {
             circuit.isActive = _isActive;
             if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
             if ([9, 10, 16, 17].includes(circuit.type)) {
-                const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
+/*                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
                 sys.intellibrite.isActive = true;
-                ib.isActive = true;
+                ib.isActive = true; */
                 const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 sgrp.action = 0;
@@ -243,7 +243,7 @@ export class CircuitMessage {
                 lg.isActive = sgrp.isActive = true;
             }
             else {
-                sys.intellibrite.circuits.removeItemByCircuitId(id);
+                // sys.intellibrite.circuits.removeItemByCircuitId(id);
                 sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.removeItemByCircuitId(id);
             }
             if (sys.board.equipmentIds.circuits.isInRange(id)) {
@@ -276,9 +276,9 @@ export class CircuitMessage {
             }
         }
         else {
-            if (sys.intellibrite.circuits.length === 0) {
+/*             if (sys.intellibrite.circuits.length === 0) {
                 sys.intellibrite.isActive = false;
-            }
+            } */
             if (sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.length === 0) {
                 sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).isActive = false;
                 state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);

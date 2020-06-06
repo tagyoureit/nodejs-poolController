@@ -462,20 +462,20 @@ export class ConfigRoute {
         app.get('/config/lightGroups/themes', (req, res) => {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?
 
-            if (sys.controllerType === ControllerType.IntelliCenter) {
+            // if (sys.controllerType === ControllerType.IntelliCenter) {
                 let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
                 return res.status(200).send(grp.getLightThemes());
-            }
-            else
-                return res.status(200).send(sys.intellibrite.getLightThemes());
+            // }
+            // else
+            //     return res.status(200).send(sys.intellibrite.getLightThemes());
         });
         app.get('/config/lightGroup/:id', (req, res) => {
-            if (sys.controllerType === ControllerType.IntelliCenter) {
+            // if (sys.controllerType === ControllerType.IntelliCenter) {
                 let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
                 return res.status(200).send(grp.getExtended());
-            }
-            else
-                return res.status(200).send(sys.intellibrite.getExtended());
+            // }
+            // else
+            //     return res.status(200).send(sys.intellibrite.getExtended());
         });
         app.get('/config/lightGroup/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
@@ -492,7 +492,7 @@ export class ConfigRoute {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
         });
-        app.get('/config/intellibrite', (req, res) => {
+/*         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });
         app.get('/config/intellibrite/colors', (req, res) => {
@@ -502,7 +502,7 @@ export class ConfigRoute {
             let grp = extend(true, { id: 0 }, req.body);
             sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
             return res.status(200).send('OK');
-        });
+        }); */
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));
         });

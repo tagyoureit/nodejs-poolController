@@ -82,7 +82,7 @@ export class PoolSystem implements IPoolSystem {
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
         this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
-        this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
+        // this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -121,6 +121,7 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
+            if (this.data.controllerType === ControllerType.Unknown) setTimeout(()=>{this.searchForAdditionalDevices();}, 7500);
         }
     }
     public resetData() {
@@ -143,7 +144,7 @@ export class PoolSystem implements IPoolSystem {
         this.valves.clear();
         this.covers.clear();
         this.chemControllers.clear();
-        if (typeof this.data.intelliBrite !== 'undefined') this.intellibrite.clear();
+        //if (typeof this.data.intelliBrite !== 'undefined') this.intellibrite.clear();
         if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
         //this.intellichem.clear();
         //console.log(this.configVersion);
@@ -195,7 +196,7 @@ export class PoolSystem implements IPoolSystem {
     public remotes: RemoteCollection;
     public security: Security;
     public customNames: CustomNameCollection;
-    public intellibrite: LightGroup;
+    //public intellibrite: LightGroup;
     public chemControllers: ChemControllerCollection;
     //public intellichem: IntelliChem;
 /*     public virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
@@ -280,7 +281,7 @@ export class PoolSystem implements IPoolSystem {
             pumps: self.data.pumps || [],
             chlorinators: self.data.chlorinators || [],
             remotes: self.data.remotes || [],
-            intellibrite: self.data.intellibrite || [],
+            //intellibrite: self.data.intellibrite || [],
             heaters: self.data.heaters || [],
             appVersion: self.data.appVersion || '0.0.0'
         };
@@ -1213,7 +1214,7 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
         sys._hasChanged = true;
         return rem;
     }
-    public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1; }); }
+    // public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1; }); }
 }
 export class LightGroupCircuit extends EqItem {
     public dataName = 'lightGroupCircuitConfig';
@@ -1265,13 +1266,14 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get lightingTheme(): number { return this.data.lightingTheme; }
     public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
-    public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
+    public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getLightThemes() { return sys.board.valueMaps.lightThemes.toArray(); }
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
         group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
-        let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
+        // let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
+        let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;
         group.circuits = [];
@@ -1338,7 +1340,7 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
-    public setGroupState(val: boolean) { sys.board.features.setGroupState(this, val); }
+    public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getExtended() {
         /*todo:  RG - this is returning too much extended info; can't figure out why...
         {
@@ -1374,7 +1376,8 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
         group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
-        let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
+        // let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
+        let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;
         group.circuits = [];

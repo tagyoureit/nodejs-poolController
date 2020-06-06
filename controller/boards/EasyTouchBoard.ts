@@ -980,9 +980,9 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
-        return this.setIntelliBriteThemeAsync(id, theme);
-    }
-    public async setIntelliBriteThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number) {
+        return this.setLightGroupThemeAsync(id, theme);
+    } 
+    public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number):Promise<ICircuitState> {
         return new Promise((resolve, reject) => {
             const grp = sys.lightGroups.getItemById(id);
             const sgrp = state.lightGroups.getItemById(id);
@@ -992,18 +992,20 @@ class TouchCircuitCommands extends CircuitCommands {
                 payload: [theme, 0],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg) => {
+                onComplete: async (err, msg) => {
                     if (err) reject(err);
                     else {
-                        for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                        try {
+/*                         for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
                             let c = sys.intellibrite.circuits.getItemByIndex(i);
                             let cstate = state.circuits.getItemById(c.circuit);
-                            if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                        }// Let everyone know we turned these on.  The theme messages will come later.
+                            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                        } */
+                        // Let everyone know we turned these on.  The theme messages will come later.
                         for (let i = 0; i < grp.circuits.length; i++) {
                             let c = grp.circuits.getItemByIndex(i);
                             let cstate = state.circuits.getItemById(c.circuit);
-                            if (!cstate.isOn) sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                         }
                         switch (theme) {
                             case 0: // off
@@ -1028,7 +1030,12 @@ class TouchCircuitCommands extends CircuitCommands {
                         }
                         sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
                         state.emitEquipmentChanges();
-                        resolve(theme);
+                        resolve(sgrp);
+                    }
+                    catch (err){
+                        logger.error(`error setting intellibrite theme: ${err.message}`);
+                        reject(err);
+                    }
                     }
                 }
             });
@@ -1040,15 +1047,15 @@ class TouchCircuitCommands extends CircuitCommands {
 
 class TouchFeatureCommands extends FeatureCommands {
     // todo: remove this in favor of setCircuitState only?
-    public setFeatureState(id: number, val: boolean) {
+    public async setFeatureStateAsync(id: number, val: boolean) {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
-        this.board.circuits.setCircuitStateAsync(id, val);
+        return this.board.circuits.setCircuitStateAsync(id, val);
     }
-    public toggleFeatureState(id: number) {
+    public async toggleFeatureStateAsync(id: number) {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
-        this.board.circuits.toggleCircuitStateAsync(id);
+        return this.board.circuits.toggleCircuitStateAsync(id);
     }
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {

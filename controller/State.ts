@@ -79,7 +79,7 @@ export class State implements IState {
             _state.circuitGroups = this.circuitGroups.getExtended();
             _state.lightGroups = this.lightGroups.getExtended();
             _state.virtualCircuits = this.virtualCircuits.getExtended();
-            _state.intellibrite = this.intellibrite.getExtended();
+            // _state.intellibrite = this.intellibrite.getExtended();
             _state.covers = this.covers.getExtended();
             _state.schedules = this.schedules.getExtended();
             //_state.intellichem = this.intellichem.getExtended();
@@ -226,7 +226,7 @@ export class State implements IState {
         this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
-        this.intellibrite = new LightGroupState(this.data, 'intellibrite');
+        // this.intellibrite = new LightGroupState(this.data, 'intellibrite');
         this.chemControllers = new ChemControllerStateCollection(this.data, 'chemControllers');
         //this.intellichem = new IntelliChemState(this.data, 'intellichem');
         this.covers = new CoverStateCollection(this.data, 'covers');
@@ -264,7 +264,7 @@ export class State implements IState {
     public circuitGroups: CircuitGroupStateCollection;
     public lightGroups: LightGroupStateCollection;
     public virtualCircuits: VirtualCircuitStateCollection;
-    public intellibrite: LightGroupState;
+    // public intellibrite: LightGroupState;
     public covers: CoverStateCollection;
     public chemControllers: ChemControllerStateCollection;
     //public intellichem: IntelliChemState;
@@ -866,8 +866,8 @@ export class HeaterState extends EqState {
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
-    public setFeatureState(id: number, val: boolean) { sys.board.features.setFeatureState(id, val); }
-    public toggleFeatureState(id: number) { sys.board.features.toggleFeatureState(id); }
+    public setFeatureStateAsync(id: number, val: boolean) { return sys.board.features.setFeatureStateAsync(id, val); }
+    public async toggleFeatureStateAsync(id: number) { return sys.board.features.toggleFeatureStateAsync(id); }
 }
 export class FeatureState extends EqState implements ICircuitState {
     public dataName: string='feature';
@@ -914,7 +914,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
     public setCircuitState(id: number, val: boolean) { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
-    public setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
+    public async setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
     public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
     public getInterfaceById(id: number, add?: true): ICircuitState {
         let iCircuit: ICircuitState = null;

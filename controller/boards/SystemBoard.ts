@@ -968,7 +968,7 @@ export class PumpCommands extends BoardCommands {
             await this.setPumpToRemoteControlAsync(pump, false);
         }
         catch (err) {
-            logger.info(`Init pump cannot find pump: ${ err.message }.  Removing.`);
+            logger.warn(`Init pump cannot find pump: ${ err.message }.  Removing Pump.`);
             if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
         }
     }
@@ -997,7 +997,7 @@ export class PumpCommands extends BoardCommands {
             // timeout here
             setTimeout(async () => {
                 try {
-                    await this.requestPumpStatusAsync(pump);;
+                    await this.requestPumpStatusAsync(pump);
                 }
                 catch (err){
                     logger.warn(`Caught an error running virtual pumps. ${err.message}`);
@@ -1274,9 +1274,10 @@ export class CircuitCommands extends BoardCommands {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !circ.isOn);
     }
-    public setLightThemeAsync(id: number, theme: number) {
-        let circ = state.circuits.getItemById(id);
-        circ.lightingTheme = theme;
+    public async setLightThemeAsync(id: number, theme: number) {
+        let cstate = state.circuits.getItemById(id);
+        cstate.lightingTheme = theme;
+        return Promise.resolve(cstate as ICircuitState);
     }
     public setDimmerLevel(id: number, level: number) {
         let circ = state.circuits.getItemById(id);
@@ -1477,8 +1478,8 @@ export class CircuitCommands extends BoardCommands {
         else
             return sys.customNames.getItemById(id - 200).name;
     }
-    public async setIntelliBriteThemeAsync(id: number, theme: number) {
-        return sys.board.circuits.setIntelliBriteThemeAsync(id, theme);
+    public async setLightGroupThemeAsync(id: number, theme: number) {
+        return sys.board.circuits.setLightGroupThemeAsync(id, theme);
         /* state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
         for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
             let ib = sys.intellibrite.circuits.getItemByIndex(i);
@@ -1487,14 +1488,14 @@ export class CircuitCommands extends BoardCommands {
             if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
         } */
     }
-    public setIntelliBriteColors(group: LightGroup) {
+    /*     public setIntelliBriteColors(group: LightGroup) {
         sys.intellibrite.circuits.clear();
         for (let i = 0; i < group.circuits.length; i++) {
             let circuit = group.circuits.getItemByIndex(i);
             sys.intellibrite.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
         }
         state.intellibrite.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-    }
+    } */
     public setLightGroupAttribs(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         grp.circuits.clear();
@@ -1519,14 +1520,14 @@ export class CircuitCommands extends BoardCommands {
         }
         return Promise.resolve(sgroup);
     }
-    public sequenceIntelliBrite(operation: string) {
+/*     public sequenceIntelliBrite(operation: string) {
         state.intellibrite.hasChanged = true;
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
         if (nop > 0) {
             state.intellibrite.action = nop;
             setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
         }
-    }
+    } */
 }
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
@@ -1574,20 +1575,24 @@ export class FeatureCommands extends BoardCommands {
             throw new InvalidEquipmentIdError('Feature id has not been defined', obj.id, 'Feature');
     }
 
-    public setFeatureState(id: number, val: boolean) {
+    public async setFeatureStateAsync(id: number, val: boolean) {
         let feat = state.features.getItemById(id);
         feat.isOn = val;
+        return Promise.resolve(feat as ICircuitState);
     }
-    public toggleFeatureState(id: number) {
+    public async toggleFeatureStateAsync(id: number) {
         let feat = state.features.getItemById(id);
         feat.isOn = !feat.isOn;
+        return Promise.resolve(feat as ICircuitState);
     }
-    public setGroupState(grp: CircuitGroup, val: boolean) {
+    public async setGroupStateAsync(grp: CircuitGroup, val: boolean) {
         let circuits = grp.circuits.toArray();
+        let arr = [];
         for (let i = 0; i < circuits.length; i++) {
             let circuit: CircuitGroupCircuit = circuits[i];
-            sys.board.circuits.setCircuitStateAsync(circuit.circuit, val);
+            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
         }
+        return Promise.all(arr);
     }
     public syncGroupStates() {
         let arr = sys.circuitGroups.toArray();
@@ -1712,7 +1717,7 @@ export class ScheduleCommands extends BoardCommands {
                 }
             }
             return byte;
-        }
+        };
         let dayFromDow = function (dow) {
             let byte = 0;
             for (let i = 0; i < edays.length; i++) {
@@ -1723,7 +1728,7 @@ export class ScheduleCommands extends BoardCommands {
                 }
             }
             return byte;
-        }
+        };
         let bdays = 0;
         if (val.isArray) {
             for (let i in val) {
