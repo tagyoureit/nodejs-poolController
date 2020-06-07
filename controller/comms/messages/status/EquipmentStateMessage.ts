@@ -514,7 +514,7 @@ export class EquipmentStateMessage {
                 let cbody: Body = sys.bodies.getItemById(1);
                 tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
                 tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
-                tbody.temp = state.temps.waterSensor1;
+                if (tbody.isOn) tbody.temp = state.temps.waterSensor1;
 
                 cbody = sys.bodies.getItemById(2);
                 if (cbody.isActive) {
@@ -523,7 +523,7 @@ export class EquipmentStateMessage {
                     tbody.heatMode = cbody.heatMode =
                         (msg.extractPayloadByte(5) & 12) >> 2;
                     tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
-                    tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
+                    if (tbody.isOn) tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }
                 // state.emitEquipmentChanges();
                 break;
