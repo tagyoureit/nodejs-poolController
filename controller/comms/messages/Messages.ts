@@ -241,18 +241,20 @@ export class Inbound extends Message {
     // Methods
     public readPacket(bytes: number[]): number {
         var ndx = this.readHeader(bytes, 0);
-        if (this.isValid) ndx = this.readPayload(bytes, ndx);
-        if (this.isValid) ndx = this.readChecksum(bytes, ndx);
+        if (this.isValid && this.header.length > 0) ndx = this.readPayload(bytes, ndx);
+        if (this.isValid && this.header.length > 0) ndx = this.readChecksum(bytes, ndx);
         return ndx;
     }
     public mergeBytes(bytes) {
         var ndx = 0;
         if (this.header.length === 0) ndx = this.readHeader(bytes, ndx);
-        if (this.isValid) ndx = this.readPayload(bytes, ndx);
-        if (this.isValid) ndx = this.readChecksum(bytes, ndx);
+        if (this.isValid && this.header.length > 0) ndx = this.readPayload(bytes, ndx);
+        if (this.isValid && this.header.length > 0) ndx = this.readChecksum(bytes, ndx);
         return ndx;
     }
     public readHeader(bytes: number[], ndx: number): number {
+        // start over to include the padding bytes.
+        let ndxStart = ndx;
         while (ndx < bytes.length) {
             if (this.testChlorHeader(bytes, ndx)) {
                 this.protocol = Protocol.Chlorinator;
@@ -281,13 +283,25 @@ export class Inbound extends Message {
                 else if (this.dest >= 144 && this.dest <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source >= 144 && this.source <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
-                if (this.datalen > 75) this.isValid = false;
+                if (this.datalen > 75) {
+                    this.isValid = false;
+                    logger.verbose(`Protocol length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message marked as invalid ${this.header}`);
+                }
                 break;
             case Protocol.Chlorinator:
+                // RKS: 06-06-20 We occasionally get messages where the 16, 2 is interrupted.  The message below
+                // has an IntelliValve broadcast embedded within as well as a chlorinator status request. So
+                // in the instance below we have two messages being tossed because something on the bus interrupted
+                // the chlorinator.  The first 240 byte does not belong to the chlorinator nor does it belong to
+                // the IntelliValve
+                //[][16, 2, 240][255, 0, 255, 165, 1, 16, 12, 82, 8, 0, 128, 216, 128, 57, 64, 25, 166, 4, 44, 16, 2, 80, 17, 0][115, 16, 3]
                 ndx = this.pushBytes(this.header, bytes, ndx, 4);
                 break;
             default:
-                break;
+                // We didn't get a message signature. don't do anything with it.
+                logger.verbose(`Message Signature could not be found in ${bytes}. Resetting.`);
+                this.padding = [];
+                return ndxStart;
         }
         return ndx;
     }
@@ -306,6 +320,7 @@ export class Inbound extends Message {
                     this.payload.push(bytes[ndx++]);
                     if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
+                        logger.verbose(`Chlorinator message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
                         break;
                     }
                 }

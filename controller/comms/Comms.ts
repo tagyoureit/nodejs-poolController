@@ -17,6 +17,7 @@ export class Connection {
     public mockPort: boolean = false;
     private isPaused: boolean = false;
     public buffer: SendRecieveBuffer;
+    public awaitingInbound: boolean = false;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
@@ -29,14 +30,14 @@ export class Connection {
             let nc: net.Socket;
             nc = new net.Socket();
             conn._port = nc;
-            nc.connect(conn._cfg.netPort, conn._cfg.netHost, function() {
+            nc.connect(conn._cfg.netPort, conn._cfg.netHost, function () {
                 if (timeOut === 'retry_timeout' || timeOut === 'timeout')
                     logger.warn('Net connect (socat) trying to recover from lost connection.');
             });
-            nc.on('data', function(data) {
+            nc.on('data', function (data) {
                 conn.isOpen = true;
                 if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
-                    logger.info(`Net connect (socat) connected to: ${ conn._cfg.netHost }:${ conn._cfg.netPort }`);
+                    logger.info(`Net connect (socat) connected to: ${conn._cfg.netHost}:${conn._cfg.netPort}`);
                     timeOut = undefined;
                 }
                 if (data.length > 0 && !conn.isPaused) conn.emitter.emit('packetread', data);
@@ -154,7 +155,7 @@ export class SendRecieveBuffer {
     constructor() {
         this._inBuffer = [];
         this._outBuffer = [];
-        this.procTimer = setInterval(this.processPackets, 175);
+        this.procTimer = null;//setInterval(this.processPackets, 175);
     }
     public counter: Counter=new Counter();
     private procTimer: NodeJS.Timeout;
@@ -164,23 +165,46 @@ export class SendRecieveBuffer {
     private _outBuffer: Outbound[]=[];
     private _waitingPacket: Outbound;
     private _msg: Inbound;
-    public pushIn(pkt) { conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); }
-    public pushOut(msg) { conn.buffer._outBuffer.push(msg); }
+    public pushIn(pkt) {
+        conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { this.processPackets(); }, 0); }
+    public pushOut(msg) { conn.buffer._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
     public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); this._msg = undefined; }
+
+    /********************************************************************
+     * RKS: 06-06-20
+     * This used to process every 175ms.  While the processing was light
+     * when there was nothing to process this should have always been
+     * event based so the processing timer has been reworked.  
+     * 
+     * Now this method gets called only during the following conditions.
+     * 1. A packetread event comes from the serial port and has data
+     * 2. A message is placed onto the outbound queue
+     * 3. The outbound queue has messages that are waiting to send. In
+     * this instance this method is called every 200ms until the queue
+     * is empty.  If one of the above conditions are met then this method
+     * will be triggered earlier. 
+     * 
+     ****************************************************************** */
     private processPackets() {
         if (conn.buffer._processing) return;
+        if (conn.buffer.procTimer) {
+            clearTimeout(conn.buffer.procTimer);
+            conn.buffer.procTimer = null;
+        }
         conn.buffer._processing = true;
         conn.buffer.processInbound();
-        // If the port is really busy let the process continue.
-        if (conn.buffer._inBytes.length === 0 && conn.buffer._inBuffer.length === 0) conn.buffer.processOutbound();
+        conn.buffer.processOutbound();
         conn.buffer._processing = false;
     }
     private processWaitPacket(): boolean {
-        if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
-            let timeout = conn.buffer._waitingPacket.timeout || 2000;
+        if (typeof conn.buffer._waitingPacket !== 'undefined' && conn.buffer._waitingPacket) {
+            let timeout = conn.buffer._waitingPacket.timeout || 1000;
             let dt = new Date();
-            if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) conn.buffer.writeMessage(conn.buffer._waitingPacket);
+            if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) {
+                logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000}secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left.`);
+                conn.buffer.writeMessage(conn.buffer._waitingPacket);
+            }
             return true;
         }
         return false;
@@ -188,10 +212,19 @@ export class SendRecieveBuffer {
     protected processOutbound() {
         if (conn.isOpen && conn.isRTS) {
             if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
-                var msg: Outbound = conn.buffer._outBuffer.shift();
-                if (typeof msg === 'undefined' || !msg) return;
-                conn.buffer.writeMessage(msg);
+                // If the serial port is busy we don't want to process any outbound.  However, this used to
+                // not process the outbound even when the incoming bytes didn't mean anything.  Now we only delay
+                // the outbound when we actually have a message signatures to process.
+                if (!conn.awaitingInbound) {
+                    var msg: Outbound = conn.buffer._outBuffer.shift();
+                    if (typeof msg === 'undefined' || !msg) return;
+                    conn.buffer.writeMessage(msg);
+                }
             }
+        }
+        if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket) {
+            // Come back later as we still have items to send.
+            conn.buffer.procTimer = setTimeout(() => this.processPackets(), 200);
         }
     }
     /*
@@ -218,7 +251,7 @@ export class SendRecieveBuffer {
                 // we have an RTS semaphore and a waiting response might make it go here.
                 msg.failed = true;
                 conn.buffer._waitingPacket = null;
-                logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }: ${ msg.toShortPacket() }`);
+                logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ msg.toShortPacket() }`);
                 let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ msg.toShortPacket() }`);
                 if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                 if (msg.requiresResponse) {
@@ -324,12 +357,21 @@ export class SendRecieveBuffer {
         // that we also need.  This occurs when more than one panel on the bus requests a reconfig at the same time.
         if (typeof (callback) === 'function') { setTimeout(callback, 100, msgOut); }
     }
-
     protected processInbound() {
-        if (conn.buffer._inBuffer.length === 0) return;
+        if (conn.buffer._inBuffer.length === 0) {
+            // Make sure we don't have anything stuck in the queue for too long.
+            // Any buffered data that doesn't result in a message should be tossed after we
+            // have waited for 1 second.  We just aren't getting any more data.
+            if (conn.buffer._inBytes.length > 0) {
+                conn.buffer._msg = null;
+                logger.silly(`Tossed Inbound Bytes ${conn.buffer._inBytes}. They sucked anyway.`);
+                conn.buffer._inBytes.length = 0;
+            }
+            return;
+        }
+        conn.buffer.counter.bytesReceived += conn.buffer._inBuffer.length;
         conn.buffer._inBytes.push.apply(conn.buffer._inBytes, conn.buffer._inBuffer.splice(0, conn.buffer._inBuffer.length));
-        if (conn.buffer._inBytes.length >= 4) { // Wait until we have something to process.
-            conn.buffer.counter.bytesReceived += conn.buffer._inBytes.length;
+        if (conn.buffer._inBytes.length >= 1) { // Wait until we have something to process.
             var ndx: number = 0;
             var msg: Inbound = conn.buffer._msg;
             do {
@@ -341,6 +383,7 @@ export class SendRecieveBuffer {
                     ndx = msg.mergeBytes(conn.buffer._inBytes);
                 }
                 if (msg.isComplete) {
+                    conn.awaitingInbound = false;
                     logger.packet(msg);
                     if (msg.isValid) {
                         conn.buffer.counter.success++;
@@ -354,7 +397,10 @@ export class SendRecieveBuffer {
                     }
                     conn.buffer._msg = null;
                 }
-                conn.buffer._inBytes = conn.buffer._inBytes.slice(ndx);
+                else if (msg.header.length > 0)
+                    conn.awaitingInbound = true;
+                if (ndx > 0) conn.buffer._inBytes = conn.buffer._inBytes.slice(ndx);
+                else break;
                 ndx = 0;
 
             } while (ndx < conn.buffer._inBytes.length);

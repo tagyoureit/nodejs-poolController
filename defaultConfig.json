@@ -114,6 +114,13 @@
         "excludeSource": [],
         "excludeDest": []
       },
+      "unidentified": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
       "unknown": {
         "enabled": true,
         "includeSource": [],
