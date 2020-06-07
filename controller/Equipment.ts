@@ -157,7 +157,7 @@ export class PoolSystem implements IPoolSystem {
     }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
-            logger.debug("Searching for chlorinators and pumps");
+            logger.info("Searching for chlorinators and pumps");
             EquipmentStateMessage.initVirtual();
             sys.board.virtualChlorinatorController.search();
             sys.board.virtualPumpControllers.search();
