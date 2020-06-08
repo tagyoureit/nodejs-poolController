@@ -162,7 +162,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false }],
             [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days:'multi' }]
         ]);
-
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
@@ -1550,16 +1549,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < arrOut.length; i++)
             conn.queueSendMessage(arrOut[i]);
     }
-    public async setLightThemeAsync(id: number, theme: number):Promise<ICircuitState> {
-        return new Promise((resolve, reject)=>{
-            if (sys.board.equipmentIds.circuitGroups.isInRange(id)){
+    public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
+        return new Promise <ICircuitState>((resolve, reject) => {
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
                 // Redirect here for now as we will need to do some work
                 // on the default.
                 this.setLightGroupTheme(id, theme);
                 resolve(state.lightGroups.getItemById(id));
             }
             else {
-                    try {
+                try {
                     let circuit = sys.circuits.getInterfaceById(id);
                     let cstate = state.circuits.getInterfaceById(id);
                     let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
@@ -1578,11 +1577,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     out.appendPayloadString(circuit.name, 16);
                     conn.queueSendMessage(out);
                 }
-                catch (err){
+                catch (err) {
                     reject(err);
                 }
             }
-            });
+        });
     }
     public createLightGroupMessages(group: ICircuitGroup): Outbound[] {
         let arr: Outbound[] = [];

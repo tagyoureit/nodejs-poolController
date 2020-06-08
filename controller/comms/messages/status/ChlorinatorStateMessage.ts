@@ -6,7 +6,7 @@ export class ChlorinatorStateMessage {
     public static process(msg: Inbound) {
 
         if (msg.protocol === Protocol.Chlorinator) {
-            if (msg.dest >= 1) {
+            if (msg.dest >= 1 && msg.dest <= 4) {
                 let cstate = state.chlorinators.getItemById(msg.dest, true);
                 if (typeof cstate.lastComm === 'undefined') cstate.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
                 // RG: I was getting some time deltas of 25-30s and bumped this up

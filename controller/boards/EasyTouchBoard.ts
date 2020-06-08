@@ -983,7 +983,7 @@ class TouchCircuitCommands extends CircuitCommands {
         return this.setLightGroupThemeAsync(id, theme);
     } 
     public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number):Promise<ICircuitState> {
-        return new Promise((resolve, reject) => {
+        return new Promise<ICircuitState>((resolve, reject) => {
             const grp = sys.lightGroups.getItemById(id);
             const sgrp = state.lightGroups.getItemById(id);
             grp.lightingTheme = sgrp.lightingTheme = theme;
