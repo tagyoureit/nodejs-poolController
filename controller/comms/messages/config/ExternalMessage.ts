@@ -412,7 +412,7 @@ export class ExternalMessage {
             s.endTime = cfg.endTime;
             s.circuit = cfg.circuit;
             s.scheduleType = cfg.scheduleType;
-            s.scheduleDays = cfg.scheduleType === 0 ? cfg.scheduleDays : 0;
+            s.scheduleDays = cfg.scheduleType === 128 ? cfg.scheduleDays : 0;
             s.heatSetpoint = cfg.heatSetpoint;
             s.heatSource = cfg.heatSource;
             s.startDate = cfg.startDate;
