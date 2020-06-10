@@ -154,6 +154,16 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/chemController', (req, res) => {
+            let opts = {
+                types: sys.board.valueMaps.chemControllerTypes.toArray(),
+                tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
+                status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
+                waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray()
+            };
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/general', async (req, res, next) => {
@@ -491,6 +501,16 @@ export class ConfigRoute {
         app.get('/config/circuitGroup/:id', (req, res) => {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
+        });
+        app.get('/config/chemController/search', async (req, res, next) => {
+            // Change the options for the pool.
+            try {
+                let result = await sys.board.virtualChemControllers.search();
+                return res.status(200).send(result);
+            }
+            catch (err) {
+                next(err);
+            }
         });
         app.put('/config/chemController', async (req, res, next) => {
             try {

@@ -478,6 +478,7 @@ export class SystemBoard {
     public equipmentIds: EquipmentIds=new EquipmentIds();
     public virtualChlorinatorController=new VirtualChlorinatorController(this);
     public virtualPumpControllers=new VirtualPumpController(this);
+    public virtualChemControllers = new VirtualChemController(this);
 
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
@@ -1900,7 +1901,7 @@ export class ChemControllerCommands extends BoardCommands {
         */
         let arr = [];
         arr.push(new Promise((resolve, reject) => {
-            Outbound.create({
+            let out = Outbound.create({
                 dest: 16,
                 action: 19,
                 payload: [0],
@@ -1911,9 +1912,10 @@ export class ChemControllerCommands extends BoardCommands {
                     else resolve();
                 }
             });
+            conn.queueSendMessage(out);
         }));
         arr.push(new Promise((resolve, reject) => {
-            Outbound.create({
+            let out = Outbound.create({
                 dest: 15,
                 action: 147,
                 payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1924,7 +1926,10 @@ export class ChemControllerCommands extends BoardCommands {
                     else resolve();
                 }
             });
+            conn.queueSendMessage(out);
         }));
+        // TODO: if the 2nd out message comes back after the first is rejected it results in an 
+        // 'uncaught exception'.  Boo javascript.
         return new Promise<any>(async (resolve, reject) => {
             try {
                 await Promise.all(arr).catch(err => reject(err));
@@ -2018,6 +2023,8 @@ export class VirtualChlorinatorController extends BoardCommands {
 export class VirtualPumpController extends BoardCommands {
     private _timers: NodeJS.Timeout[]=[];
     public search() {
+        // TODO: If we are searching for multiple pumps this should be a promise.all array
+        // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {
             let pump = sys.pumps.getItemById(i);
             if (pump.isActive) continue;
@@ -2038,6 +2045,7 @@ export class VirtualPumpController extends BoardCommands {
                 logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
             }
         }
+        return Promise.resolve('Searching for pumps.');
     }
     public async stopAsync() {
         let promises = [];
@@ -2074,10 +2082,11 @@ export class VirtualPumpController extends BoardCommands {
 export class VirtualChemController extends BoardCommands {
     private _timers: NodeJS.Timeout[]=[];
     public async search() {
+        // TODO: If we are searching for multiple chem controllers this should be a promise.all array
+        // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
         for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
-            let chem = sys.chemControllers.getItemById(i);
+            let chem = sys.chemControllers.getItemById(i, true);
             if (chem.isActive) continue;
-            chem = sys.chemControllers.getItemById(i, true);
             chem.isActive = true;
             chem.isVirtual = true;
             chem.type = 1;
@@ -2085,13 +2094,15 @@ export class VirtualChemController extends BoardCommands {
             try {
                 await sys.board.chemControllers.initChem(chem);
                 state.chemControllers.getItemById(i, true);
-                // set other 
+                // set other vals
             }
             catch (err) {
                 logger.info(`No chemController found at address ${ chem.address }: ${ err.message }`);
                 sys.chemControllers.removeItemById(i);
+                state.chemControllers.removeItemById(i);
             }
         }
+        return Promise.resolve('Searching for chem controllers.');
     }
     // is stopping virtual chem controllers necessary?
     public async stopAsync() {
