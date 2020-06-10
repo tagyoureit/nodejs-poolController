@@ -194,6 +194,7 @@ class Logger {
                 "enabled": true,
                 "logToConsole": true,
                 "logToFile": true,
+                "invalid": true,
                 "broadcast": {
                     "enabled": true,
                     "includeActions": [],
