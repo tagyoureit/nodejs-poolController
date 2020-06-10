@@ -299,7 +299,7 @@ export class Inbound extends Message {
                 break;
             default:
                 // We didn't get a message signature. don't do anything with it.
-                logger.verbose(`Message Signature could not be found in ${bytes}. Resetting.`);
+                //logger.verbose(`Message Signature could not be found in ${bytes}. Resetting.`);
                 this.padding = [];
                 return ndxStart;
         }

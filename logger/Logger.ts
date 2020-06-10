@@ -191,9 +191,9 @@ class Logger {
         }
         logger.cfg = extend(true, {}, logger.cfg, {
             "packet": {
-                "enabled": false,
-                "logToConsole": false,
-                "logToFile": false,
+                "enabled": true,
+                "logToConsole": true,
+                "logToFile": true,
                 "broadcast": {
                     "enabled": true,
                     "includeActions": [],
