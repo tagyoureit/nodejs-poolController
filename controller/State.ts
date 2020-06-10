@@ -803,16 +803,22 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
 }
 export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     public createItem(data: any): BodyTempState { return new BodyTempState(data); }
+    public getBodyIsOn(){
+        for (let i = 0; i < this.data.length; i++){
+            if (this.data[i].isOn) return this.createItem(this.data[i]);
+        }
+        return undefined;
+    }
 }
 export class BodyTempState extends EqState {
     public dataName='bodyTempState';
     public get id(): number { return this.data.id; }
-    public set id(val: number) { this.setDataVal('circuit', val); }
+    public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get temp(): number { return this.data.id; }
+    public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
     public get heatMode(): number { return typeof (this.data.heatMode) !== 'undefined' ? this.data.heatMode.val : -1; }
     public set heatMode(val: number) {
@@ -1012,9 +1018,7 @@ export class ChlorinatorState extends EqState {
     public get currentOutput(): number { return this.data.currentOutput || 0; }
     public set currentOutput(val: number) { this.setDataVal('currentOutput', val); }
     public get setPointForCurrentBody() {
-        if (state.temps.bodies.getItemById(2).isOn) return this.data.spaSetpoint;
-        return this.data.poolSetpoint || 0;
-        // can add 3rd/4th body for IntelliCenter when known
+        return state.temps.bodies.getBodyIsOn().temp || 0;
     }
     public get targetOutput(): number { return this.data.targetOutput; }
     public set targetOutput(val: number) { this.setDataVal('targetOutput', val); }
@@ -1113,6 +1117,7 @@ export class ChlorinatorState extends EqState {
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
+    public setChemControllerAsync(data: any){ return this.getItemById(parseInt(data.id,10),true).setChemControllerAsync(data);}
 }
 
 export class ChemControllerState extends EqState {
@@ -1176,26 +1181,66 @@ export class ChemControllerState extends EqState {
     public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
-    public get tempUnits(): number { return typeof (this.data.tempUnits) !== 'undefined' ? this.data.tempUnits.val : -1; }
+    public get tempUnits(): number { 
+        if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
+        else return state.temps.units; 
+    }
     public set tempUnits(val: number) {
-        if (this.tempUnits !== val) {
+        // specific check for the data val here because we can return the body temp units if undefined
+        if (this.data.tempUnits !== val) {
             this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
             this.hasChanged = true;
         }
     }
-
-    //public get saturationIndex(): number {
-    //    // Saturation Index = SI = pH + CHF + AF + TF - TDSF
-    //    let controller = sys.chemControllers.getItemById(this.id);
-    //    return Math.round(
-    //        (this.pHLevel +
-    //            this.calculateCalciumHardnessFactor(controller) +
-    //            this.calculateTotalCarbonateAlkalinity(controller) +
-    //            this.calculateTemperatureFactor(controller) -
-    //            this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
-    //}
-    private calculateCalciumHardnessFactor(controller: ChemController) {
-        let CH = controller.calciumHardness;
+    public get virtualControllerStatus(): number {
+        return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
+    }
+    public set virtualControllerStatus(val: number) {
+        if (this.virtualControllerStatus !== val) {
+            this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    // this wouldn't be used if there is a physical chem controller;
+    // but can be used by home grown systems to populate current state
+    public async setChemControllerAsync(data: any) {
+        if (typeof data.pHLevel !== 'undefined') this.pHLevel = data.pHLevel;
+        if (typeof data.orpLevel !== 'undefined') this.orpLevel = data.orpLevel;
+        if (typeof data.saltLevel !== 'undefined') this.saltLevel = data.saltLevel;
+        // need to adjust for different bodies when we learn how
+        else if (sys.chlorinators.getItemById(1).isActive) this.saltLevel = state.chlorinators.getItemById(1).saltLevel;
+        if (typeof data.waterFlow !== 'undefined') this.waterFlow = data.waterFlow;
+        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = data.acidTankLevel;
+        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = data.orpTankLevel;
+        if (typeof data.status1 !== 'undefined') this.status1 = data.status1;
+        if (typeof data.status2 !== 'undefined') this.status2 = data.status2;
+        if (typeof data.pHDosingTime !== 'undefined') this.pHDosingTime = data.pHDosingTime;
+        if (typeof data.orpDosingTime !== 'undefined') this.orpDosingTime = data.orpDosingTime;
+        if (typeof data.temp !== 'undefined') this.temp = data.temp;
+        else {
+                let tbody = state.temps.bodies.getBodyIsOn();
+                if (typeof tbody.temp !== 'undefined') this.temp = tbody.temp;
+        }
+        if (typeof data.tempUnits !== 'undefined') {
+            if (typeof data.tempUnits === 'string') this.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
+            else this.tempUnits = data.tempUnits;
+        }
+        else this.tempUnits = state.temps.units;
+        if (typeof data.saturationIndex !== 'undefined') this.saturationIndex = data.saturationIndex;
+        else this.saturationIndex = this.calculateSaturationIndex();
+        return Promise.resolve(this);
+    }
+    private calculateSaturationIndex(): number {
+       // Saturation Index = SI = pH + CHF + AF + TF - TDSF
+       return Math.round(
+           (this.pHLevel +
+               this.calculateCalciumHardnessFactor() +
+               this.calculateTotalCarbonateAlkalinity() +
+               this.calculateTemperatureFactor() -
+               this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+    }
+    private calculateCalciumHardnessFactor() {
+        const CH = sys.chemControllers.getItemById(this.id).calciumHardness;
         if (CH <= 25) return 1.0;
         else if (CH <= 50) return 1.3;
         else if (CH <= 75) return 1.5;
@@ -1208,8 +1253,8 @@ export class ChemControllerState extends EqState {
         else if (CH <= 400) return 2.2;
         else if (CH <= 800) return 2.5;
     }
-    private calculateTotalCarbonateAlkalinity(controller: ChemController): number {
-        var ppm = this.correctedAlkalinity(controller);
+    private calculateTotalCarbonateAlkalinity(): number {
+        const ppm = this.correctedAlkalinity();
         if (ppm <= 25) return 1.4;
         else if (ppm <= 50) return 1.7;
         else if (ppm <= 75) return 1.9;
@@ -1222,15 +1267,12 @@ export class ChemControllerState extends EqState {
         else if (ppm <= 400) return 2.6;
         else if (ppm <= 800) return 2.9;
     }
-    private correctedAlkalinity(controller: ChemController): number {
-        return controller.alkalinity - (controller.cyanuricAcid / 3);
+    private correctedAlkalinity(): number {
+        return sys.chemControllers.getItemById(this.id).alkalinity - (sys.chemControllers.getItemById(this.id).cyanuricAcid / 3);
     }
-    private calculateTemperatureFactor(controller: ChemController): number {
-        // RKS: I suspect that this value is returned by what is sent in
-        // from the primary controller.  Either way we cannot rely in the temp from
-        // water sensor 1 as this my be for another body.
-        const temp = state.temps.waterSensor1;
-        const UOM = sys.board.valueMaps.tempUnits.getName(state.temps.units);
+    private calculateTemperatureFactor(): number {
+        const temp = this.temp;
+        const UOM = typeof this.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(this.tempUnits) : sys.board.valueMaps.tempUnits.getName(state.temps.units);
         if (UOM === 'F') {
             if (temp <= 32) return 0.0;
             else if (temp <= 37) return 0.1;

@@ -620,6 +620,8 @@ export class Equipment extends EqItem {
     public set model(val: string) { this.setDataVal('model', val); }
     public get maxIntelliBrites(): number { return this.data.maxIntelliBrites; }
     public set maxIntelliBrites(val: number) { this.setDataVal('maxIntelliBrites', val); }
+    public get maxChemControllers(): number { return this.data.maxChemControllers; }
+    public set maxChemControllers(val: number) { this.setDataVal('maxChemControllers', val); }
     public get expansions(): ExpansionPanelCollection { return new ExpansionPanelCollection(this.data, "expansions"); }
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
@@ -716,13 +718,13 @@ export class ConfigVersion extends EqItem {
 export class BodyCollection extends EqItemCollection<Body> {
     constructor(data: any, name?: string) { super(data, name || "bodies"); }
     public createItem(data: any): Body { return new Body(data); }
-    public setHeatMode(id: number, mode: number) {
+    public setHeatModeAsync(id: number, mode: number) {
         let body = this.getItemById(id);
-        sys.board.bodies.setHeatModeAsync(body, mode);
+        return sys.board.bodies.setHeatModeAsync(body, mode);
     }
-    public setHeatSetpoint(id: number, setPoint: number) {
+    public setHeatSetpointAsync(id: number, setPoint: number) {
         let body = this.getItemById(id);
-        sys.board.bodies.setHeatSetpointAsync(body, setPoint);
+        return sys.board.bodies.setHeatSetpointAsync(body, setPoint);
     }
 }
 export class Body extends EqItem {
@@ -1481,6 +1483,8 @@ export class ChemController extends EqItem {
     public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get isVirtual(): boolean { return this.data.isVirtual; }
+    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get pHSetpoint(): number { return this.data.pHSetpoint; }
     public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
     public get orpSetpoint(): number { return this.data.orpSetpoint; }

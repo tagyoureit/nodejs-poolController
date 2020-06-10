@@ -68,12 +68,12 @@ export class StateRoute {
                 }
                 mode = val.val;
             }
-            sys.bodies.setHeatMode(parseInt(req.body.id, 10), mode);
+            sys.bodies.setHeatModeAsync(parseInt(req.body.id, 10), mode);
             return res.status(200).send('OK');
         });
         app.put('/state/body/setPoint', (req, res) => {
              // todo: is body 0/1 as in the bodies object or should we also be able to reference this by circuit; 1=spa; 6=pool, etc.
-            sys.bodies.setHeatSetpoint(parseInt(req.body.id, 10), parseInt(req.body.setPoint, 10));
+            sys.bodies.setHeatSetpointAsync(parseInt(req.body.id, 10), parseInt(req.body.setPoint, 10));
             return res.status(200).send('OK');
         });
         app.put('/state/chlorinator/setChlor', (req, res) => {
@@ -104,21 +104,28 @@ export class StateRoute {
         app.put('/state/lightGroup/:id/colorSync', async (req, res, next) => {
             try {
                 let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'sync');
-                return res.status(200).send((sgroup as LightGroupState).get(true));
+                return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSet', async (req, res, next) => {
             try {
                 let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'set');
-                return res.status(200).send((sgroup as LightGroupState).get(true));
+                return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSwim', async (req, res, next) => {
             try {
                 let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'swim');
-                return res.status(200).send((sgroup as LightGroupState).get(true));
+                return res.status(200).send(sgroup.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemController', async (req, res, next) => {
+            try {
+                let chem = await state.chemControllers.setChemControllerAsync(req.body);
+                return res.status(200).send(chem.get(true));
             }
             catch (err) { next(err); }
         });

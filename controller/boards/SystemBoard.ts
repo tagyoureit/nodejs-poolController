@@ -1,5 +1,5 @@
 ﻿import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit } from '../Equipment';
+import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
 import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
@@ -345,7 +345,7 @@ export class byteValueMaps {
     public customNames: byteValueMap=new byteValueMap();
     public circuitNames: byteValueMap=new byteValueMap();
     public scheduleTypes: byteValueMap=new byteValueMap([
-        [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource:true, heatSetpoint:true }],
+        [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
         [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days: 'multi', heatSource: true, heatSetpoint: true }]
     ]);
     public circuitGroupTypes: byteValueMap=new byteValueMap([
@@ -376,7 +376,8 @@ export class byteValueMaps {
     ]);
     public chemControllerTypes: byteValueMap=new byteValueMap([
         [0, { name: 'unknown', desc: 'Unknown' }],
-        [1, { name: 'intellichem', desc: 'IntelliChem' }]
+        [1, { name: 'intellichem', desc: 'IntelliChem' }],
+        [2, { name: 'homegrown', desc: 'Homegrown' }]
     ]);
     public intelliChemWaterFlow: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -442,26 +443,26 @@ export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
     protected _modulesAcquired: boolean=true;
-    public needsConfigChanges: boolean = false;
+    public needsConfigChanges: boolean=false;
     public valueMaps: byteValueMaps=new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
-    public async stopAsync() { 
-        
+    public async stopAsync() {
+
         // turn off all circuits/features
-        for (let i = 0; i <= state.circuits.length; i++){
+        for (let i = 0; i <= state.circuits.length; i++) {
             state.circuits.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.features.length; i++){
+        for (let i = 0; i <= state.features.length; i++) {
             state.features.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.lightGroups.length; i++){
+        for (let i = 0; i <= state.lightGroups.length; i++) {
             state.lightGroups.getItemByIndex(i).isOn = false;
         }
         // turn off chlor
         sys.board.virtualChlorinatorController.stop();
 
-        return sys.board.virtualPumpControllers.stopAsync(); 
+        return sys.board.virtualPumpControllers.stopAsync();
     }
     public system: SystemCommands=new SystemCommands(this);
     public bodies: BodyCommands=new BodyCommands(this);
@@ -471,11 +472,13 @@ export class SystemBoard {
     public features: FeatureCommands=new FeatureCommands(this);
     public chlorinator: ChlorinatorCommands=new ChlorinatorCommands(this);
     public heaters: HeaterCommands=new HeaterCommands(this);
+    public chemControllers: ChemControllerCommands=new ChemControllerCommands(this);
 
     public schedules: ScheduleCommands=new ScheduleCommands(this);
     public equipmentIds: EquipmentIds=new EquipmentIds();
-    public virtualChlorinatorController=new ChlorinatorController(this);
-    public virtualPumpControllers=new VirtualPumpControllerCollection(this);
+    public virtualChlorinatorController=new VirtualChlorinatorController(this);
+    public virtualPumpControllers=new VirtualPumpController(this);
+
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
     // virtual controller may need to make use of it after it looks for pumps and chlorinators.
@@ -999,9 +1002,10 @@ export class PumpCommands extends BoardCommands {
                 try {
                     await this.requestPumpStatusAsync(pump);
                 }
-                catch (err){
-                    logger.warn(`Caught an error running virtual pumps. ${err.message}`);
-                }}, 7 * 1000);
+                catch (err) {
+                    logger.warn(`Caught an error running virtual pumps. ${ err.message }`);
+                }
+            }, 7 * 1000);
         }
     }
 
@@ -1023,7 +1027,7 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 response: true,
                 onComplete: (err) => {
-                    if (err)  reject(err); 
+                    if (err) reject(err);
                     else resolve();
                 }
             });
@@ -1143,7 +1147,7 @@ export class PumpCommands extends BoardCommands {
                 payload: [],
                 retries: 1,
                 onComplete: (err, msg) => {
-                    if (err) reject(err); 
+                    if (err) reject(err);
                     else logger.info(`received back run gpm.`);
                     resolve();
                 }
@@ -1170,7 +1174,7 @@ export class PumpCommands extends BoardCommands {
                 retries: 1,
                 response: true,
                 onComplete: (err, msg) => {
-                    if (err) reject(err); 
+                    if (err) reject(err);
                     else {
                         logger.info(`received back pump status.`);
                         resolve();
@@ -1261,9 +1265,9 @@ export class CircuitCommands extends BoardCommands {
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
-        if (circ.id === 6) { 
+        if (circ.id === 6) {
             state.temps.bodies.getItemById(1).isOn = circ.isOn;
-            circ.isOn ?  sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
+            circ.isOn ? sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
         }
         sys.board.virtualPumpControllers.start();
         sys.emitEquipmentChange();
@@ -1513,21 +1517,22 @@ export class CircuitCommands extends BoardCommands {
             sgroup.action = nop;
             sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
             state.emitEquipmentChanges();
-            setTimeout(function() { 
-                sgroup.action = 0; 
+            setTimeout(function() {
+                sgroup.action = 0;
                 sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-                state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
+                state.emitEquipmentChanges();
+            }, 20000); // It takes 20 seconds to sequence.
         }
         return Promise.resolve(sgroup);
     }
-/*     public sequenceIntelliBrite(operation: string) {
-        state.intellibrite.hasChanged = true;
-        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-        if (nop > 0) {
-            state.intellibrite.action = nop;
-            setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
-        }
-    } */
+    /*     public sequenceIntelliBrite(operation: string) {
+            state.intellibrite.hasChanged = true;
+            let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+            if (nop > 0) {
+                state.intellibrite.action = nop;
+                setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
+            }
+        } */
 }
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
@@ -1684,8 +1689,8 @@ export class ChlorinatorCommands extends BoardCommands {
                 retries: 3,
                 response: true,
                 onComplete: (err) => {
-                    if (err) reject(err); 
-                    else resolve(); 
+                    if (err) reject(err);
+                    else resolve();
                 }
             });
 
@@ -1697,7 +1702,7 @@ export class ScheduleCommands extends BoardCommands {
     public transformDays(val: any): number {
         if (typeof val === 'number') return val;
         let edays = sys.board.valueMaps.scheduleDays.toArray();
-        let dayFromString = function (str) {
+        let dayFromString = function(str) {
             let lstr = str.toLowerCase();
             let byte = 0;
             for (let i = 0; i < edays.length; i++) {
@@ -1718,7 +1723,7 @@ export class ScheduleCommands extends BoardCommands {
             }
             return byte;
         };
-        let dayFromDow = function (dow) {
+        let dayFromDow = function(dow) {
             let byte = 0;
             for (let i = 0; i < edays.length; i++) {
                 let eday = edays[i];
@@ -1755,7 +1760,7 @@ export class ScheduleCommands extends BoardCommands {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${ data.id }`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id, data.id <= 0);
             let ssched = state.schedules.getItemById(id, data.id <= 0);
             let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
@@ -1780,14 +1785,14 @@ export class ScheduleCommands extends BoardCommands {
             if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
 
             // At this point we should have all the data.  Validate it.
-            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
-            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${ schedType }`, 'Schedule', schedType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${ startTimeType }`, 'Schedule', startTimeType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${ endTimeType }`, 'Schedule', endTimeType));
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${ heatSource }`, 'Schedule', heatSource));
+            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${ heatSetpoint }`, 'Schedule', heatSetpoint));
             if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
-            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${ circuit }`, 'Schedule', circuit));
+            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${ schedDays }. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
 
             sched.circuit = ssched.circuit = circuit;
@@ -1809,7 +1814,7 @@ export class ScheduleCommands extends BoardCommands {
     public deleteScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${ data.id }`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id, false);
             let ssched = state.schedules.getItemById(id, false);
             sys.schedules.removeItemById(id);
@@ -1857,8 +1862,89 @@ export class ValveCommands extends BoardCommands {
         });
     }
 }
+export class ChemControllerCommands extends BoardCommands {
+    public async setChemControllerAsync(data: any) {
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${ data.id }`, data.id, 'ChemController'));
+        let chem = sys.chemControllers.getItemById(id, true);
 
-export class ChlorinatorController extends BoardCommands {
+        chem.isActive = data.isActive || true;
+        if (typeof data.isVirtual !== 'undefined') chem.isVirtual = data.isVirtual;
+        if (typeof data.type !== 'undefined') chem.type = data.type;
+        if (typeof data.name !== 'undefined') chem.name = data.name;
+        if (typeof data.body !== 'undefined') chem.body = data.body;
+        if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = data.pHSetpoint;
+        if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = data.orpSetpoint;
+        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = data.calciumHardness;
+        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = data.cyanuricAcid;
+        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = data.alkalinity;
+        return Promise.resolve(chem);
+    }
+
+    public async initChem(chem: ChemController) {
+        // init chem controller here
+        /* on EasyTouch2 8p
+        See these two packets first:
+        debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
+        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,152
+
+        Followed shortly by the same two packets but 128 is towards the end of the payload on the 147 packet;
+        Guessing 128 is status=Not Found or Lost Comms
+        debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
+        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
+
+        And then the 217/19 pair (both a get and a set packet)
+        debug: Packet not processed: 255,0,255,165,23,16,34,217,1,0,1,200
+        debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
+        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
+        */
+        let arr = [];
+        arr.push(new Promise((resolve, reject) => {
+            Outbound.create({
+                dest: 16,
+                action: 19,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            });
+        }));
+        arr.push(new Promise((resolve, reject) => {
+            Outbound.create({
+                dest: 15,
+                action: 147,
+                payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                retries: 1,
+                response: true,
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            });
+        }));
+        return new Promise<any>(async (resolve, reject) => {
+            try {
+                await Promise.all(arr).catch(err => reject(err));
+                resolve();
+            }
+            catch (err) { reject(err); }
+        });
+    }
+
+    public async stopAsync(chem: ChemController) {
+        // stop commands
+        return Promise.resolve(chem);
+    }
+    public async runAsync(chem: ChemController) {
+        // run commands
+        return Promise.resolve(chem);
+    }
+
+}
+export class VirtualChlorinatorController extends BoardCommands {
     private _timer: NodeJS.Timeout;
 
     // this method will check to see if we have any virtual chlors we are responsible for
@@ -1877,20 +1963,20 @@ export class ChlorinatorController extends BoardCommands {
             if (chlor && chlor.isActive && chlor.isVirtual) {
                 sys.board.chlorinator.setDesiredOutput(state.chlorinators.getItemById(1));
             }
-                if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
-                    this._timer = setTimeout(function(){sys.board.virtualChlorinatorController.start();}, 4000);
-                    return;
-                }
-                else {
-                    this._timer = setTimeout(function(){sys.board.virtualChlorinatorController.start();}, 30000);
-                    return;
-                }
+            if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
+                this._timer = setTimeout(function() { sys.board.virtualChlorinatorController.start(); }, 4000);
+                return;
+            }
+            else {
+                this._timer = setTimeout(function() { sys.board.virtualChlorinatorController.start(); }, 30000);
+                return;
+            }
         }
         // if we get this far, then no virtual chlorinators are active and clear the timer
-       else {
-           delete schlor.virtualControllerStatus;
-           clearTimeout(this._timer);
-        } 
+        else {
+            delete schlor.virtualControllerStatus;
+            clearTimeout(this._timer);
+        }
     }
 
     public stop() {
@@ -1929,11 +2015,10 @@ export class ChlorinatorController extends BoardCommands {
         }
     }
 }
-export class VirtualPumpControllerCollection extends BoardCommands {
+export class VirtualPumpController extends BoardCommands {
     private _timers: NodeJS.Timeout[]=[];
     public search() {
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {
-            // let veqpump = sys.virtualPumpControllers.getItemById(i);
             let pump = sys.pumps.getItemById(i);
             if (pump.isActive) continue;
             pump = sys.pumps.getItemById(i, true);
@@ -1950,7 +2035,7 @@ export class VirtualPumpControllerCollection extends BoardCommands {
                 }
             }
             catch (err) {
-                logger.info(`No pump found at address ${pump.address}: ${ err.message }`);
+                logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
             }
         }
     }
@@ -1975,11 +2060,66 @@ export class VirtualPumpControllerCollection extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
-                setImmediate(function(){sys.board.pumps.runAsync(pump);});
+                setImmediate(function() { sys.board.pumps.runAsync(pump); });
                 this._timers[i] = setInterval(async function() { await sys.board.pumps.runAsync(pump); }, 8000);
                 if (state.pumps.getItemById(i).virtualControllerStatus !== 1) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
                     state.pumps.getItemById(i).virtualControllerStatus = 1;
+                }
+
+            }
+        }
+    }
+}
+export class VirtualChemController extends BoardCommands {
+    private _timers: NodeJS.Timeout[]=[];
+    public async search() {
+        for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
+            let chem = sys.chemControllers.getItemById(i);
+            if (chem.isActive) continue;
+            chem = sys.chemControllers.getItemById(i, true);
+            chem.isActive = true;
+            chem.isVirtual = true;
+            chem.type = 1;
+            logger.info(`Searching for a chem controller at address... ${ chem.address }`);
+            try {
+                await sys.board.chemControllers.initChem(chem);
+                state.chemControllers.getItemById(i, true);
+                // set other 
+            }
+            catch (err) {
+                logger.info(`No chemController found at address ${ chem.address }: ${ err.message }`);
+                sys.chemControllers.removeItemById(i);
+            }
+        }
+    }
+    // is stopping virtual chem controllers necessary?
+    public async stopAsync() {
+        let promises = [];
+        // turn off all chem controllers
+        for (let i = 1; i <= sys.chemControllers.length; i++) {
+            let chem = sys.chemControllers.getItemById(i);
+            let schem = state.chemControllers.getItemById(i);
+            if (chem.isVirtual && chem.isActive) {
+                logger.info(`Queueing chemController ${ i } to stop.`);
+                promises.push(sys.board.chemControllers.stopAsync(chem));
+                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
+                state.chemControllers.getItemById(i, true).virtualControllerStatus = 0;
+            }
+        }
+        return Promise.all(promises);
+    }
+
+    public start() {
+        for (let i = 1; i <= sys.pumps.length; i++) {
+            let chem = sys.chemControllers.getItemById(i);
+            if (chem.isVirtual && chem.isActive) {
+                typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
+                setImmediate(function() { sys.board.chemControllers.runAsync(chem); });
+                this._timers[i] = setInterval(async function() { await sys.board.chemControllers.runAsync(chem); }, 8000);
+                if (state.chemControllers.getItemById(i).virtualControllerStatus !== 1) {
+                    logger.info(`Starting Virtual Pump Controller: Pump ${ chem.id }`);
+                    state.chemControllers.getItemById(i).virtualControllerStatus = 1;
                 }
 
             }

@@ -492,6 +492,13 @@ export class ConfigRoute {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
         });
+        app.put('/config/chemController', async (req, res, next) => {
+            try {
+                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
+                return res.status(200).send(chem.get(true));
+            }
+            catch (err) { next(err); }
+        });
 /*         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());
         });

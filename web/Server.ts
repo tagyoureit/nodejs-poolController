@@ -161,7 +161,7 @@ export class HttpServer extends ProtoServer {
             logger.error('Failed to reconnect with socket %s', err.message);
         });
         this.sockServer.on('connection', (sock: socketio.Socket) => {
-            logger.info('New socket client connected %s -- %s', sock.id, sock.client.conn.remoteAddress);
+            logger.info(`New socket client connected ${sock.id} -- ${sock.client.conn.remoteAddress}`);
             this.socketHandler(sock);
             this.sockServer.emit('controller', state.controllerState);
             sock.conn.emit('controller', state.controllerState);
