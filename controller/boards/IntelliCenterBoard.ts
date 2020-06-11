@@ -1896,10 +1896,10 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);  // 8
         outc.appendPayloadByte(parseInt(data.minFlow, 10), pump.minFlow);   // 10
         outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);   // 11
-        outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize); // 12
-        outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed);  // 13
-        outc.appendPayloadInt(parseInt(data.speedStepSize, 10), pump.speedStepSize);   // 15
-        outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime);   // 17
+        outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize || 1); // 12
+        outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
+        outc.appendPayloadByte(parseInt(data.speedStepSize, 10) / 10, pump.speedStepSize / 10 || 10); // 15
+        outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime || 0); // 17
         outc.appendPayloadBytes(255, 8);    // 18
         outc.appendPayloadBytes(0, 8);      // 26
         let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
@@ -2070,10 +2070,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                     let flow = parseInt(c.flow, 10);
                                     if (isNaN(speed)) speed = type.minSpeed || 0;
                                     if (isNaN(flow)) flow = type.minFlow || 0;
+                                    //console.log({ flow: flow, speed: speed, type: JSON.stringify(type) });
                                     if (circ.units === 1 && typeof type.minFlow !== 'undefined')
-                                        circ.flow = Math.max(flow, circ.flow);
+                                        circ.flow = Math.max(flow, type.minFlow);
                                     else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
-                                        circ.speed = Math.max(speed, circ.speed);
+                                        circ.speed = Math.max(speed, type.minSpeed);
                                 }
                             }
                         }

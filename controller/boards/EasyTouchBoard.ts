@@ -1120,27 +1120,27 @@ class TouchPumpCommands extends PumpCommands {
             // We are adding a new pump
             ntype = parseInt(data.type, 10);
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
-            if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') throw new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data);
+            if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') return Promise.reject(new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data));
             if (type.name === 'ds') {
                 id = 9;
-                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${ type.desc } pump`, 'Pump', data);
+                if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
             }
             else if (type.name === 'ss') {
                 id = 10;
-                if (sys.pumps.find(elem => elem.type === ntype)) throw new InvalidEquipmentDataError(`You may add only one ${ type.desc } pump`, 'Pump', data);
+                if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
             }
-            else if (type.name === 'none') throw new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data);
+            else if (type.name === 'none') return Promise.reject(new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data));
             else {
                 // Under most circumstances the id will = the address minus 95.
                 if (typeof data.address !== 'undefined') {
                     data.address = parseInt(data.address, 10);
-                    if (isNaN(data.address)) throw new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${ type.desc } pump.`, 'Pump', data);
+                    if (isNaN(data.address)) return Promise.reject(new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data));
                     id = data.address - 95;
                     // Make sure it doesn't already exist.
-                    if (sys.pumps.find(elem => elem.address === data.address)) throw new InvalidEquipmentDataError(`A pump already exists at address ${ data.address - 95 }`, 'Pump', data);
+                    if (sys.pumps.find(elem => elem.address === data.address)) return Promise.reject(new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data));
                 }
                 else {
-                    if (typeof id === 'undefined') throw new InvalidEquipmentDataError(`You may not add another ${ type.desc } pump.  Max number of pumps exceeded.`, 'Pump', data);
+                    if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data));
                     id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
                     data.address = id + 95;
                 }
@@ -1150,15 +1150,15 @@ class TouchPumpCommands extends PumpCommands {
         else {
             pump = sys.pumps.getItemById(id, false);
             ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
-            if (isNaN(ntype)) throw new InvalidEquipmentDataError(`Pump type ${ data.type } is not valid`, 'Pump', data);
+            if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
         }
         // Validate all the ids since in *Touch the address is determined from the id.
         if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) !== undefined;
         // Now lets validate the ids related to the type.
-        if (id === 9 && type.name !== 'ds') throw new InvalidEquipmentDataError(`The id for a ${ type.desc } pump must be 9`, 'Pump', data);
-        else if (id === 10 && type.name !== 'ss') throw new InvalidEquipmentDataError(`The id for a ${ type.desc } pump must be 10`, 'Pump', data);
-        else if (id > sys.equipment.maxPumps) throw new InvalidEquipmentDataError(`The id for a ${ type.desc } must be less than ${ sys.equipment.maxPumps }`, 'Pump', data);
+        if (id === 9 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data));
+        else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
+        else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
 
 
         if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
@@ -1229,8 +1229,10 @@ class TouchPumpCommands extends PumpCommands {
                     if (i < data.circuits.length && i < type.maxCircuits) {
                         let circ = pump.circuits.getItemByIndex(i, false);
                         let c = data.circuits[i];
-                        let speed = parseInt(c.speed, 10) || circ.speed || type.minSpeed;
-                        let flow = parseInt(c.flow, 10) || circ.speed || type.minFlow;
+                        let speed = parseInt(c.speed, 10);
+                        let flow = parseInt(c.flow, 10);
+                        if (isNaN(speed)) speed = type.minSpeed;
+                        if (isNaN(flow)) flow = type.minFlow;
                         outc.setPayloadByte(i * 2 + 3, parseInt(data.circuit, 10), 0);
                         if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
                             outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
