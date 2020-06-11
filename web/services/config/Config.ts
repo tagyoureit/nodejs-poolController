@@ -530,6 +530,11 @@ export class ConfigRoute {
             sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
             return res.status(200).send('OK');
         }); */
+        app.get('/config/reloadConfiguration', (req,res) => {
+            sys.board.needsConfigChanges = true;
+            sys.board.checkConfiguration();
+            return res.status(200);
+        });
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));
         });

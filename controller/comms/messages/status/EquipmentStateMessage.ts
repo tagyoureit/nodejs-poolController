@@ -491,6 +491,9 @@ export class EquipmentStateMessage {
                 break;
             case 5: // Intellitouch only.  Date/Time packet
                 // [255,0,255][165,1,15,16,5,8][15,10,8,1,8,18,0,1][1,15]
+                state.time.hours = msg.extractPayloadByte(0);
+                state.time.minutes = msg.extractPayloadByte(1);
+                // state.time.dayOfWeek = msg.extractPayloadByte(2);
                 state.time.date = msg.extractPayloadByte(3);
                 state.time.month = msg.extractPayloadByte(4);
                 state.time.year = msg.extractPayloadByte(5);
@@ -499,7 +502,8 @@ export class EquipmentStateMessage {
                 // defaults
                 sys.general.options.clockMode = 12;
                 sys.general.options.clockSource = 'manual';
-                state.emitControllerChange();
+                setTimeout(function(){sys.board.checkConfiguration();},100);
+                // state.emitControllerChange();
                 state.emitEquipmentChanges();
                 break;
             case 8: {
@@ -526,7 +530,7 @@ export class EquipmentStateMessage {
                     tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
                     if (tbody.isOn) tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }
-                // state.emitEquipmentChanges();
+                state.emitEquipmentChanges();
                 break;
             }
             case 96:
@@ -535,14 +539,11 @@ export class EquipmentStateMessage {
             case 197: {
                 // request for date/time on *Touch.  Use this as an indicator
                 // that SL has requested config and update lastUpdated date/time
-                if (msg.dest === 16) {
-                    if (sys.controllerType !== ControllerType.IntelliCenter) {
-                        let ver: ConfigVersion =
-                            typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
-                        ver.lastUpdated = new Date();
-                        sys.processVersionChanges(ver);
-                    }
-                }
+                    /* let ver: ConfigVersion =
+                        typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                    ver.lastUpdated = new Date();
+                    sys.processVersionChanges(ver); */
+                    sys.configVersion.lastUpdated = new Date();
                 break;
             }
             case 204: // IntelliCenter only.

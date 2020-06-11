@@ -259,24 +259,25 @@ export class EasyTouchBoard extends SystemBoard {
     public schedules: TouchScheduleCommands=new TouchScheduleCommands(this);
     protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
 
-    /* AKA processVersionChanges */
-    public requestConfiguration(ver?: ConfigVersion) {
-        if (ver && ver.lastUpdated && sys.configVersion.lastUpdated !== ver.lastUpdated) {
-            sys.configVersion.lastUpdated = new Date(ver.lastUpdated);
-        }
-        if (ver && ver.equipment && sys.configVersion.equipment !== ver.equipment) sys.configVersion.equipment = ver.equipment;
-
-        //this.needsConfigChanges = true;
-        this.checkConfiguration();
-    }
     public checkConfiguration() {
-        if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 15)) {
-            this._configQueue.clearTimer();
+        if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 20)) { 
+            //this._configQueue.clearTimer();
             sys.configVersion.lastUpdated = new Date();
             this.needsConfigChanges = false;
             this._configQueue.queueChanges();
         }
     }
+
+    public requestConfiguration(ver?: ConfigVersion) {
+        // if (ver && ver.lastUpdated && sys.configVersion.lastUpdated !== ver.lastUpdated) {
+        //     sys.configVersion.lastUpdated = new Date(ver.lastUpdated);
+        // }
+        // if (ver && ver.equipment && sys.configVersion.equipment !== ver.equipment) sys.configVersion.equipment = ver.equipment;
+
+        //this.needsConfigChanges = true;
+        this.checkConfiguration();
+    }
+
     public async stopAsync() { this._configQueue.close(); return Promise.resolve([]); }
 }
 export class TouchConfigRequest extends ConfigRequest {
@@ -293,8 +294,8 @@ export class TouchConfigRequest extends ConfigRequest {
     public setcategory: GetTouchConfigCategories;
 }
 export class TouchConfigQueue extends ConfigQueue {
-    protected _configQueueTimer: NodeJS.Timeout;
-    public clearTimer(): void { clearTimeout(this._configQueueTimer); }
+    //protected _configQueueTimer: NodeJS.Timeout;
+    //public clearTimer(): void { clearTimeout(this._configQueueTimer); }
     protected queueRange(cat: number, start: number, end: number) {
         let req = new TouchConfigRequest(cat, []);
         req.fillRange(start, end);
@@ -393,7 +394,7 @@ export class TouchConfigQueue extends ConfigQueue {
             this.curr = null;
             sys.configVersion.lastUpdated = new Date();
             // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
-            this._configQueueTimer = setTimeout(() => sys.board.checkConfiguration(), 20 * 60 * 1000);
+            // this._configQueueTimer = setTimeout(()=>{sys.board.checkConfiguration();}, 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
             sys.board.virtualChlorinatorController.search();
         }

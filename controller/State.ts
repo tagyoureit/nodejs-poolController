@@ -1221,7 +1221,7 @@ export class ChemControllerState extends EqState {
         if (typeof data.temp !== 'undefined') this.temp = data.temp;
         else {
                 let tbody = state.temps.bodies.getBodyIsOn();
-                if (typeof tbody.temp !== 'undefined') this.temp = tbody.temp;
+                if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') this.temp = tbody.temp;
         }
         if (typeof data.tempUnits !== 'undefined') {
             if (typeof data.tempUnits === 'string') this.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
