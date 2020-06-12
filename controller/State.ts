@@ -539,6 +539,8 @@ export class PumpState extends EqState {
     public set ppc(val: number) { this.setDataVal('ppc', val); }
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
+        // quick fix for #172
+        if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vsf' && val === 0) val++;
         if (this.status !== val) {
             this.data.status = sys.board.valueMaps.pumpStatus.transform(val);
             this.hasChanged = true;
@@ -1206,6 +1208,7 @@ export class ChemControllerState extends EqState {
     // this wouldn't be used if there is a physical chem controller;
     // but can be used by home grown systems to populate current state
     public async setChemControllerAsync(data: any) {
+        if (typeof data.id === 'undefined') return;
         if (typeof data.pHLevel !== 'undefined') this.pHLevel = data.pHLevel;
         if (typeof data.orpLevel !== 'undefined') this.orpLevel = data.orpLevel;
         if (typeof data.saltLevel !== 'undefined') this.saltLevel = data.saltLevel;

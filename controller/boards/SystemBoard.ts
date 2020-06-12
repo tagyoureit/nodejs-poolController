@@ -1099,47 +1099,9 @@ export class PumpCommands extends BoardCommands {
             });
             conn.queueSendMessage(out);
         });
-        /*
-            var type = container.pump.getCurrentPumpStatus().pump[address-95].type
-        if (type==='VS'){
-            runPrg[0] = 1
-            runPrg[3] = 196
-        }
-        else if (type==='VSF') // VSF
-        {
-            runPrg[0] = 10
-            runPrg[3] = 196
-        }
-        else if (type==='VF'){
-            container.logger.error('Cannot set RPM on VF Pump')
-        }
-        runPrg[1]=4
-        runPrg[2]=2
-        //run program
-        //var runPrg = [1, 4, 2, 196]
-        runPrg.push(Math.floor(rpm/256))
-        runPrg.push(rpm%256)
-
-        var runProgramPacket = [165, 0, address, container.settings.get('appAddress')];
-        Array.prototype.push.apply(runProgramPacket, runPrg);
-        */
     }
 
     private runGPMAsync(pump: Pump, speed: number) {
-        // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
-
-        /*         const msg = Outbound.createPumpMessage(pump.address, 4, [pump.type === 128 ? 1 : 10, 4, 2, 196, Math.floor(speed / 256), speed % 256], 1);
-                if (pump.type === 1) {
-                    // vf
-                    msg.payload[0] = 1;
-                    msg.payload[3] = 228;
-                }
-                else {
-                    // vsf
-                    msg.payload[0] = 9;
-                    msg.payload[3] = 196;
-                }
-                conn.queueSendMessage(msg); */
         return new Promise((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,

@@ -500,8 +500,8 @@ export class EquipmentStateMessage {
                 sys.general.options.adjustDST = state.adjustDST =
                     msg.extractPayloadByte(7) === 0x01;
                 // defaults
-                sys.general.options.clockMode = 12;
-                sys.general.options.clockSource = 'manual';
+                if (typeof sys.general.options.clockMode === 'undefined') sys.general.options.clockMode = 12;
+                if (typeof sys.general.options.clockSource === 'undefined') sys.general.options.clockSource = 'manual';
                 setTimeout(function(){sys.board.checkConfiguration();},100);
                 // state.emitControllerChange();
                 state.emitEquipmentChanges();
@@ -510,7 +510,6 @@ export class EquipmentStateMessage {
                 // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
-
                 state.temps.air = msg.extractPayloadByte(2);
                 let solar: Heater = sys.heaters.getItemById(2);
                 if (solar.isActive) state.temps.solar = msg.extractPayloadByte(8);
@@ -520,7 +519,6 @@ export class EquipmentStateMessage {
                 tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
                 tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
                 if (tbody.isOn) tbody.temp = state.temps.waterSensor1;
-
                 cbody = sys.bodies.getItemById(2);
                 if (cbody.isActive) {
                     // spa
