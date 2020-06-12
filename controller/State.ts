@@ -540,9 +540,11 @@ export class PumpState extends EqState {
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
         // quick fix for #172
-        if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vsf' && val === 0) val++;
         if (this.status !== val) {
-            this.data.status = sys.board.valueMaps.pumpStatus.transform(val);
+            if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vsf' && val === 0) {
+                this.data.status = { name: 'ok', desc: 'Ok', val };
+            }
+            else this.data.status = sys.board.valueMaps.pumpStatus.transform(val);
             this.hasChanged = true;
         }
     }
