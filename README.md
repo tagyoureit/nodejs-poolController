@@ -607,7 +607,7 @@ The app will check to see if you have the latest published release.
 * `dismissUntilNextRemoteVersionBump`: Silence the notifications until version/tag_name changes again.
 
 
-###log
+### log
 Settings for the console, UI and file logs.
 
 * `logLevel` is the console output level (see below for valid levels)
