@@ -1,7 +1,5 @@
 ﻿# nodejs-poolController - Version 6.0.0
 
-
-
 ## What is nodejs-poolController
 
 nodejs-poolController is an application to communicate and control your Pentair compatible pool equipment.
@@ -12,10 +10,12 @@ nodejs-poolController is an application to communicate and control your Pentair 
  Want to have your home automation system talk to your pool?
  Want to control your pumps or chlorinator without a pool controller?
 
- Controllers:  IntelliCenter, Intellitouch, EasyTouch, Intermatic, SunTouch, IntellicomII
- Pumps: Intelliflow, older models
- Chlorinator: Intellichlor, Aqua-Rite and OEM brands
- Home Automation:  ISY.  (Soon to include Siri, Echo, more?)
+## Supported Hardware
+
+* Controllers: IntelliCenter, Intellitouch, EasyTouch, Intermatic, SunTouch, IntelliComm II
+* Pumps: IntelliFlo, older models
+* Chlorinator: Intellichlor, Hayward/Goldline Aqua-Rite, and OEM brands
+* Home Automation: ISY.  (Soon to include Siri, Echo, more?)
 
 ## What's new in 6.0?
 
@@ -29,27 +29,7 @@ In short, everything!  6.0 is a complete re-write of the application.  Huge prop
 1. Sockets - Now more granular to make the web app more responsive
 1. Web app - Now a separate installion for a true client/server metaphore.
 
-# License
-
-nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
- <a name="module_nodejs-poolController--install"></a>
-
-
+<a name="module_nodejs-poolController--install" />
 ## Installation Instructions
 
 **This code requires a physical [RS485](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) adapter to work.**
@@ -57,6 +37,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **This is only the server code.  See [clients](#module_nodejs-poolController--clients) below for web or other ways to read/control the pool equipment.** 
 
 ### Prerequisites
+
 If you don't know anything about NodeJS, these directions might be helpful.
 
 1. Install Nodejs. (https://nodejs.org/en/download/)
@@ -80,11 +61,13 @@ If you don't know anything about NodeJS, these directions might be helpful.
 For support you can open a [github issue](https://github.com/tagyoureit/nodejs-poolController/issues/new),
 for discussions, designs, and clarifications, we recommend you join our [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
 
- <a name="module_nodejs-poolController--clients"></a>
+<a name="module_nodejs-poolController--clients" />
 ## Clients
+
 To do anything with this app, you need a client to connect to it.  A client can be a web application or Home Automation system.
 
 ### Web Clients
+
 1. [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
 1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
 
@@ -92,7 +75,7 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 
 ### Virtual Controller
-v6 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
+6.0 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
 
 * [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
