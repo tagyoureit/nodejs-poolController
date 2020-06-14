@@ -20,6 +20,8 @@ nodejs-poolController is an application to communicate and control Pentair compa
 * Chlorinator: Intellichlor, Hayward/Goldline Aqua-Rite, and OEM brands
 * Home Automation: ISY.  (Soon to include Siri, Echo, more?)
 
+See [full supported hardware details](https://github.com/tagyoureit/nodejs-poolController/wiki/Supported-Hardware).
+
 ## What's new in 6.0?
 
 In short, everything!  6.0 is a complete re-write of the application.  Huge props to @rstrouse for his wisdom and guidance in refactoring the code.
@@ -81,7 +83,7 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 ### Virtual Controller
 
-6.0 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
+6.0 adds all new configuration and support for virtual control of pumps, chlorinators (and soon, IntelliChem)
 
 * [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
@@ -90,19 +92,20 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
-Ready for 6.0;
+Ready for 6.0:
+
 * [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
 * Alpha - SmartThings integration script.  Run [this](https://github.com/tagyoureit/nodejs-poolController-webClient/tree/master/scripts) file directly from the command line.  Check the IP inside the script.
 * [SmartThings](https://github.com/tagyoureit/nodejs-poolController/tree/next) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
 
-Need to be updated:
+Needs to be updated:
 
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
-* [Home Assistant](https://github.com/rsnodgrass/hassio-addons/tree/master/rs485-pool-controller)
+* [Home Assistant Add-On](https://github.com/rsnodgrass/hassio-addons/tree/master/rs485-pool-controller)
 * InfluxDB
 
 # Changed/dropped since 5.3
