@@ -301,15 +301,15 @@ export class Inbound extends Message {
                 // We didn't get a message signature. don't do anything with it.
                 //logger.verbose(`Message Signature could not be found in ${bytes}. Resetting.`);
                 ndx = ndxStart;
-                if (bytes.length > 4) {
+                if (bytes.length > 24) {
                     // 255, 255, 255, 0, 255
                     ndx = bytes.length - 3;
                     let arr = bytes.slice(0, ndx);
                     // Remove all but the last 4 bytes.  This will result in nothing anyway.
-                    logger.silly(`Tossed Inbound Bytes ${arr}. They sucked anyway.`);
+                    logger.silly(`Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
                 }
                 this.padding = [];
-                return ndxStart;
+                break;
         }
         return ndx;
     }
