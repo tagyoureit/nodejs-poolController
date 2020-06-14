@@ -585,6 +585,7 @@ export class Outbound extends Message {
             obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false);
         out.onComplete = obj.onComplete;
         out.onResponseProcessed = obj.onResponseProcessed;
+        out.timeout = obj.timeout;
         return out;
     }
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response|boolean|Function): Outbound {

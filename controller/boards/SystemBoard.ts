@@ -976,6 +976,20 @@ export class PumpCommands extends BoardCommands {
             if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
         }
     }
+
+    public runWrapper(pump: Pump){
+        async function runAsyncWrapper(pump){
+            try {
+                await sys.board.pumps.runAsync(pump);
+            }
+            catch (err){ 
+                // shouldn't ever get to this code
+                logger.error(`Running pump sequence generated an error. ${err.message}`);
+            }
+        }
+        runAsyncWrapper(pump);
+    }
+
     public async runAsync(pump: Pump) {
         let pumpCircuits = pump.circuits.get();
         let _maxSpeed = 0;
@@ -989,7 +1003,17 @@ export class PumpCommands extends BoardCommands {
         }
         try {
             await this.setPumpToRemoteControlAsync(pump, true);
+        }
+        catch (err){
+            logger.error(err);
+        }
+        try {
             await this.setDriveStatePacketAsync(pump, _maxSpeed > 0);
+        }
+        catch (err){
+            logger.error(err);
+        }
+        try {
             if (_maxSpeed > 130) { await this.runRPMAsync(pump, _maxSpeed); }
             if (_maxSpeed > 0 && _maxSpeed <= 130) { await this.runGPMAsync(pump, _maxSpeed); }
         }
@@ -1088,6 +1112,7 @@ export class PumpCommands extends BoardCommands {
                 action: pump.type === 128 ? 1 : 10,
                 payload: [2, 196, Math.floor(speed / 256), speed % 256],
                 retries: 1,
+                // timeout: 250,
                 response: true,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
@@ -2030,8 +2055,8 @@ export class VirtualPumpController extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
-                setImmediate(function() { sys.board.pumps.runAsync(pump); });
-                this._timers[i] = setInterval(async function() { await sys.board.pumps.runAsync(pump); }, 8000);
+                setImmediate(function(){sys.board.pumps.runWrapper(pump);});
+                this._timers[i] = setInterval(function() {sys.board.pumps.runWrapper(pump); }, 8000);
                 if (state.pumps.getItemById(i).virtualControllerStatus !== 1) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
                     state.pumps.getItemById(i).virtualControllerStatus = 1;
@@ -2089,6 +2114,8 @@ export class VirtualChemController extends BoardCommands {
             if (chem.isVirtual && chem.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
                 setImmediate(function() { sys.board.chemControllers.runAsync(chem); });
+                // TODO: refactor into a wrapper like pumps
+                // this won't work with async inside setTimeout/setInterval
                 this._timers[i] = setInterval(async function() { await sys.board.chemControllers.runAsync(chem); }, 8000);
                 if (state.chemControllers.getItemById(i).virtualControllerStatus !== 1) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ chem.id }`);

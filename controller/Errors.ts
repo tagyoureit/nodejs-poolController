@@ -130,3 +130,4 @@ export class InboundMessageError extends MessageError {
         this.code = code || 502;
     }
 }
+

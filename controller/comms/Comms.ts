@@ -209,7 +209,7 @@ export class SendRecieveBuffer {
             let timeout = conn.buffer._waitingPacket.timeout || 1000;
             let dt = new Date();
             if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) {
-                logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000}secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left.`);
+                logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000}secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left. - ${conn.buffer._waitingPacket.toShortPacket()}`);
                 conn.buffer.writeMessage(conn.buffer._waitingPacket);
             }
             return true;
