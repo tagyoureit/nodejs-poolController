@@ -7,6 +7,7 @@ import { Timestamp, ControllerType } from './Constants';
 import { webApp } from '../web/Server';
 import { sys, ChemController } from './Equipment';
 import { isArray } from 'util';
+import { InvalidEquipmentIdError } from './Errors';
 export class State implements IState {
     statePath: string;
     data: any;
@@ -1126,7 +1127,9 @@ export class ChlorinatorState extends EqState {
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
-    public setChemControllerAsync(data: any){ return this.getItemById(parseInt(data.id,10),true).setChemControllerAsync(data);}
+    public setChemControllerAsync(data: any){ 
+        if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid equipment id provided.`, data.id, 'chemController'));
+        return this.getItemById(parseInt(data.id,10),true).setChemControllerAsync(data);}
 }
 
 export class ChemControllerState extends EqState {
@@ -1168,17 +1171,17 @@ export class ChemControllerState extends EqState {
     public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
     public get orpTankLevel(): number { return this.data.orpTankLevel; }
     public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
-    public get status1(): number { return this.data.mode1; }
+    public get status1(): number { return this.data.status1; }
     public set status1(val: number) {
         if (this.status1 !== val) {
-            this.data.mode1 = sys.board.valueMaps.intelliChemStatus1.transform(val);
+            this.data.status1 = sys.board.valueMaps.intelliChemStatus1.transform(val);
             this.hasChanged = true;
         }
     }
-    public get status2(): number { return this.data.mode2; }
+    public get status2(): number { return this.data.status2; }
     public set status2(val: number) {
         if (this.status2 !== val) {
-            this.data.mode2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
+            this.data.status2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1213,7 +1216,6 @@ export class ChemControllerState extends EqState {
     // this wouldn't be used if there is a physical chem controller;
     // but can be used by home grown systems to populate current state
     public async setChemControllerAsync(data: any) {
-        if (typeof data.id === 'undefined') return;
         if (typeof data.pHLevel !== 'undefined') this.pHLevel = data.pHLevel;
         if (typeof data.orpLevel !== 'undefined') this.orpLevel = data.orpLevel;
         if (typeof data.saltLevel !== 'undefined') this.saltLevel = data.saltLevel;
@@ -1242,12 +1244,13 @@ export class ChemControllerState extends EqState {
     }
     private calculateSaturationIndex(): number {
        // Saturation Index = SI = pH + CHF + AF + TF - TDSF
-       return Math.round(
+       let SI = Math.round(
            (this.pHLevel +
                this.calculateCalciumHardnessFactor() +
                this.calculateTotalCarbonateAlkalinity() +
                this.calculateTemperatureFactor() -
                this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+        if (isNaN(SI)) {return undefined;} else {return SI;}
     }
     private calculateCalciumHardnessFactor() {
         const CH = sys.chemControllers.getItemById(this.id).calciumHardness;
