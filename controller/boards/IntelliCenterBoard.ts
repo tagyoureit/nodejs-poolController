@@ -94,8 +94,9 @@ export class IntelliCenterBoard extends SystemBoard {
             // we do not have in the wild and cannot verify as of (03-25-2020) as to whether their id values are correct.  I feel more confident
             // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
             // MUX and A/D modules don't seem to fit the pattern.
-            [0, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies:2, valves: 4, circuits: 6, shared: true, dual: false }],
-            [1, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 6, circuits: 10, shared: false, dual: true }], // This is a guess
+            //[0, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 6, circuits: 10, shared: false, dual: true }], // This is a guess
+            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies:1, valves: 6, circuits: 10, shared: false, dual: false }],
+            [1, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false }],
             [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false, dual: false }], // This is a guess
             [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true, dual: false }],
             [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies:1, valves: 4, circuits: 10, shared: false, dual: false }], // This is a guess
