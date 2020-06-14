@@ -358,17 +358,6 @@ export class SendRecieveBuffer {
         if (typeof (callback) === 'function') { setTimeout(callback, 100, msgOut); }
     }
     protected processInbound() {
-        if (conn.buffer._inBuffer.length === 0) {
-            // Make sure we don't have anything stuck in the queue for too long.
-            // Any buffered data that doesn't result in a message should be tossed after we
-            // have waited for 1 second.  We just aren't getting any more data.
-            if (conn.buffer._inBytes.length > 0) {
-                conn.buffer._msg = null;
-                logger.silly(`Tossed Inbound Bytes ${conn.buffer._inBytes}. They sucked anyway.`);
-                conn.buffer._inBytes.length = 0;
-            }
-            return;
-        }
         conn.buffer.counter.bytesReceived += conn.buffer._inBuffer.length;
         conn.buffer._inBytes.push.apply(conn.buffer._inBytes, conn.buffer._inBuffer.splice(0, conn.buffer._inBuffer.length));
         if (conn.buffer._inBytes.length >= 1) { // Wait until we have something to process.
