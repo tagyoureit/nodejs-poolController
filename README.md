@@ -1,14 +1,17 @@
 ﻿# nodejs-poolController - Version 6.0.0
 
-## What is nodejs-poolController
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Join the chat at https://gitter.im/nodejs-poolController/Lobby](https://badges.gitter.im/nodejs-poolController/Lobby.svg)](https://gitter.im/nodejs-poolController/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) 
 
-nodejs-poolController is an application to communicate and control your Pentair compatible pool equipment.
+## What is nodejs-poolController?
 
- Want to include a low cost controller for your pool?
- Want a web interface for your system?
- Want to turn your pumps on remotely?
- Want to have your home automation system talk to your pool?
- Want to control your pumps or chlorinator without a pool controller?
+nodejs-poolController is an application to communicate and control Pentair compatible pool equipment.
+
+* Want to include a low cost controller for your pool?
+* Want a web interface for your system?
+* Want to turn your pumps on remotely?
+* Want to have your home automation system talk to your pool?
+* Want to control your pumps or chlorinator without a pool controller?
 
 ## Supported Hardware
 
@@ -30,6 +33,7 @@ In short, everything!  6.0 is a complete re-write of the application.  Huge prop
 1. Web app - Now a separate installion for a true client/server metaphore.
 
 <a name="module_nodejs-poolController--install" />
+
 ## Installation Instructions
 
 **This code requires a physical [RS485](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) adapter to work.**
@@ -62,6 +66,7 @@ For support you can open a [github issue](https://github.com/tagyoureit/nodejs-p
 for discussions, designs, and clarifications, we recommend you join our [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
 
 <a name="module_nodejs-poolController--clients" />
+
 ## Clients
 
 To do anything with this app, you need a client to connect to it.  A client can be a web application or Home Automation system.
@@ -75,12 +80,14 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 
 ### Virtual Controller
+
 6.0 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
 
 * [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
 
 ### Home Automation Integrations
+
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
 Ready for 6.0;
@@ -89,14 +96,17 @@ Ready for 6.0;
 * [SmartThings](https://github.com/tagyoureit/nodejs-poolController/tree/next) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
 
 Need to be updated:
+
 * [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
+* [Home Assistant](https://github.com/rsnodgrass/hassio-addons/tree/master/rs485-pool-controller)
 * InfluxDB
 
 # Changed/dropped since 5.3
+
 1. Ability to load different config.json files
 1. Automatic upgrade of config.json files (tbd)
 1. Automatic version notification of newer releases available (tbd)
@@ -104,9 +114,11 @@ Need to be updated:
 
 
 <a name="module_nodejs-poolController--config.json"></a>
+
 # Config.json changes
 
 ## Controller section - changes to the communications for the app
+
 * `rs485Port` - set to the name of you rs485 controller.  See [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) for details and testing.
 * `portSettings` - should not need to be changed for RS485
 * `mockPort` - opens a "fake" port for this app to communicate on.  Can be used with [packet captures/replays](https://github.com/tagyoureit/nodejs-poolController/wiki/How-to-capture-all-packets-for-issue-resolution).
@@ -115,6 +127,7 @@ Need to be updated:
 * `inactivityRetry` - # of seconds the app should wait before trying to reopen the port after no communications.  If your equipment isn't on all the time or you are running a virtual controller you may want to dramatically increase the timeout so you don't get console warnings.
 
 ## Web section - controls various aspects of external communications
+
 * `servers` - setting for different servers/services
  * `http2` - not used currently
  * `http` - primary server used for api connections without secure communications
