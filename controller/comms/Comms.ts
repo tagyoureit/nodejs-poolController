@@ -75,16 +75,24 @@ export class Connection {
                     logger.info(`Serial port: ${ this.path } opened`);
                 conn.isOpen = true;
             });
-            sp.on('readable', function() {
+            // RKS: 06-16-20 -- Unsure why we are using a stream event here.  The data
+            // is being sent via the data event and I can find no reference to the readable event.
+            sp.on('data', function (data) {
                 if (!this.mockPort) {
-                    // If we are paused just read the port and do nothing with it.
-                    if (conn.isPaused)
-                        sp.read();
-                    else
-                        conn.emitter.emit('packetread', sp.read());
-                    conn.resetConnTimer();
+                    if (!conn.isPaused) conn.emitter.emit('packetread', data);
                 }
+                conn.resetConnTimer();
             });
+            //sp.on('readable', function () {
+            //    if (!this.mockPort) {
+            //        // If we are paused just read the port and do nothing with it.
+            //        if (conn.isPaused)
+            //            sp.read();
+            //        else
+            //            conn.emitter.emit('packetread', sp.read());
+            //        conn.resetConnTimer();
+            //    }
+            //});
 
         }
         if (typeof (conn.buffer) === 'undefined') {

@@ -276,8 +276,18 @@ export class Inbound extends Message {
             case Protocol.IntelliValve:
             case Protocol.Broadcast:
             case Protocol.Unidentified:
+                let ndxHeader = ndx;
                 ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
                 ndx = this.pushBytes(this.header, bytes, ndx, 6);
+                if (this.header.length < 6) {
+                    // We actually don't have a complete header yet so just return.
+                    // we will pick it up next go around.
+                    logger.info(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${ this.header }]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+
                 if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
                 else if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
                 else if (this.dest >= 144 && this.dest <= 158) this.protocol = Protocol.IntelliChem;
