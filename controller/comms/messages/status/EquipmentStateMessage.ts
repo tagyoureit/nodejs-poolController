@@ -278,7 +278,9 @@ export class EquipmentStateMessage {
         Message.headerSubByte = msg.header[1];
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
-        if (model2 === 0 && (model1 === 23 || model1 === 40)) {
+        // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
+        // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047 beta.
+        if (model2 === 0 && (model1 === 23 || model1 >= 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
             logger.info(`Found Controller Board ${state.equipment.model || 'IntelliCenter'}, awaiting installed modules.`);
