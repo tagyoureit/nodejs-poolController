@@ -1023,8 +1023,11 @@ export class ChlorinatorState extends EqState {
     public set currentOutput(val: number) { this.setDataVal('currentOutput', val); }
     public get setPointForCurrentBody() {
         let body = state.temps.bodies.getBodyIsOn();
-        if (body.circuit === 0) return this.spaSetpoint;
-        return this.poolSetpoint;
+        if (typeof body !== 'undefined') {
+            if (body.circuit === 0) return this.spaSetpoint;
+            return this.poolSetpoint;
+        }
+        return 0;
     }
     public get targetOutput(): number { return this.data.targetOutput; }
     public set targetOutput(val: number) { this.setDataVal('targetOutput', val); }
