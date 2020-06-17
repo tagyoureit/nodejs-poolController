@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
@@ -435,6 +435,11 @@ export class byteValueMaps {
         [0, { name: 'stopped', desc: 'Stopped' }],
         [1, { name: 'running', desc: 'Running' }]
     ]);
+    public delay: byteValueMap=new byteValueMap([
+        [32, { name: 'nodelay', desc: 'No Delay' }],
+        [34, { name: 'cleanerdelay', desc: 'Cleaner Delay' }],
+        [36, { name: 'heaterdelay', desc: 'Header Delay' }]
+    ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
 // managed by the personality board.  This also provides a way to override specific functions for
@@ -478,7 +483,7 @@ export class SystemBoard {
     public equipmentIds: EquipmentIds=new EquipmentIds();
     public virtualChlorinatorController=new VirtualChlorinatorController(this);
     public virtualPumpControllers=new VirtualPumpController(this);
-    public virtualChemControllers = new VirtualChemController(this);
+    public virtualChemControllers=new VirtualChemController(this);
 
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
@@ -560,7 +565,7 @@ export class BoardCommands {
     constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    public cancelDelay() { state.delay = 0; }
+    public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
@@ -701,6 +706,10 @@ export class BodyCommands extends BoardCommands {
         }
         return arrSpas;
     }
+}
+export interface CallbackStack {
+    fn: () => void,
+    timeout: number;
 }
 export class PumpCommands extends BoardCommands {
     public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
@@ -907,6 +916,7 @@ export class PumpCommands extends BoardCommands {
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
         sys.emitEquipmentChange();
+        sys.board.virtualPumpControllers.setTargetSpeed();
         return { result: 'OK' };
 
     }
@@ -961,216 +971,221 @@ export class PumpCommands extends BoardCommands {
         return _availCircuits;
     }
     // ping the pump and see if we get a response
-    public async initPump(pump: Pump) {
-        try {
-            await this.setPumpToRemoteControlAsync(pump, true);
-            await this.requestPumpStatusAsync(pump);
-            logger.info(`found pump ${ pump.id }`);
-            let spump = sys.pumps.getItemById(pump.id, true);
-            spump.type = pump.type;
-            pump.circuits.clear();
-            await this.setPumpToRemoteControlAsync(pump, false);
-        }
-        catch (err) {
-            logger.warn(`Init pump cannot find pump: ${ err.message }.  Removing Pump.`);
-            if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
-        }
-    }
-
-    public runWrapper(pump: Pump){
-        async function runAsyncWrapper(pump){
+    /*     public async initPump(pump: Pump) {
             try {
-                await sys.board.pumps.runAsync(pump);
+                await this.setPumpToRemoteControl(pump, true);
+                await this.requestPumpStatus(pump);
+                logger.info(`found pump ${ pump.id }`);
+                let spump = sys.pumps.getItemById(pump.id, true);
+                spump.type = pump.type;
+                pump.circuits.clear();
+                await this.setPumpToRemoteControl(pump, false);
             }
-            catch (err){ 
-                // shouldn't ever get to this code
-                logger.error(`Running pump sequence generated an error. ${err.message}`);
+            catch (err) {
+                logger.warn(`Init pump cannot find pump: ${ err.message }.  Removing Pump.`);
+                if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
             }
-        }
-        runAsyncWrapper(pump);
+        } */
+
+    public run(pump: Pump) {
+        logger.warn(`STARTING PUMP ${pump.id} RUN`)
+        let spump = state.pumps.getItemById(pump.id);
+        // if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) sys.board.pumps.stop(pump);
+        let callbackStack: CallbackStack[] = [
+            { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
+            {
+                fn: () => {
+                    if (spump.targetSpeed > 130) { sys.board.pumps.runRPM(pump, spump, callbackStack); }
+                    if (spump.targetSpeed > 0 && spump.targetSpeed <= 130) { sys.board.pumps.runGPM(pump, spump, callbackStack); }
+                }, timeout: 7000
+            },
+            { fn: () => { sys.board.pumps.requestPumpStatus(pump, spump, callbackStack); }, timeout: 8000 },
+            { fn: () => { sys.board.pumps.run(pump); }, timeout: 500 }
+        ];
+
+        sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack);
     }
 
-    public async runAsync(pump: Pump) {
-        let pumpCircuits = pump.circuits.get();
-        let _maxSpeed = 0;
-        let _units;
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            if (circ.isOn) {
-                if (typeof _units === 'undefined') _units = pumpCircuits[i].units;
-                if (_units === pumpCircuits[i].units && pumpCircuits[i].speed > _maxSpeed) { _maxSpeed = pumpCircuits[i].speed; }
-            }
-        }
-        try {
-            await this.setPumpToRemoteControlAsync(pump, true);
-        }
-        catch (err){
-            logger.error(err);
-        }
-        try {
-            await this.setDriveStatePacketAsync(pump, _maxSpeed > 0);
-        }
-        catch (err){
-            logger.error(err);
-        }
-        try {
-            if (_maxSpeed > 130) { await this.runRPMAsync(pump, _maxSpeed); }
-            if (_maxSpeed > 0 && _maxSpeed <= 130) { await this.runGPMAsync(pump, _maxSpeed); }
-        }
-        catch (err) {
-            // log something
-            logger.warn(`Caught an error running virtual pumps. ${ err.message }`);
-        }
-        finally {
-            // timeout here
-            setTimeout(async () => {
-                try {
-                    await this.requestPumpStatusAsync(pump);
-                }
-                catch (err) {
-                    logger.warn(`Caught an error running virtual pumps. ${ err.message }`);
-                }
-            }, 7 * 1000);
-        }
-    }
+    public stop(pump: Pump) {
+        logger.warn(`STOPPING PUMP ${pump.id}`)
+        let callbackStack: CallbackStack[] = [
+            { fn: () => { sys.board.pumps.setPumpManual(pump, spump, callbackStack); }, timeout: 500 },
+            { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
+            { fn: () => { sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack); }, timeout: 500 }
+        ];
+        let spump = state.pumps.getItemById(pump.id);
+        sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack);
 
-    public async stopAsync(pump: Pump) {
-        let p = [];
-        p.push(this.setDriveStatePacketAsync(pump, false));
-        p.push(this.setPumpManualAsync(pump));
-        p.push(this.setDriveStatePacketAsync(pump, true));
-        p.push(this.setPumpToRemoteControlAsync(pump, false));
-        return Promise.all(p);
     }
-    private async setPumpToRemoteControlAsync(pump: Pump, isRemotControl: boolean) {
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: 4,
-                payload: isRemotControl ? [255] : [0],
-                retries: 1,
-                response: true,
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else resolve();
+    public setPumpToRemoteControl(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: 4,
+            payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+            retries: 1,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
                 }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
-
-    private setPumpManualAsync(pump: Pump) {
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: 5,
-                payload: [],
-                retries: 1,
-                onComplete: (err, msg: Outbound) => {
-                    if (err) reject(err);
-                    else {
-                        logger.info(`received back pump power packet.`);
-                        resolve();
-                    }
-                    // logger.info(msg);
-                }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
-    private setDriveStatePacketAsync(pump: Pump, driveState: boolean) {
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: 6,
-                payload: driveState ? [10] : [4],
-                retries: 1,
-                onComplete: (err, msg: Outbound) => {
-                    if (err) reject(err);
-                    else {
-                        logger.info(`received back pump drivestate packet.`);
-                        resolve();
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
                     }
                 }
-            });
-            conn.queueSendMessage(out);
+            }
         });
+        conn.queueSendMessage(out);
     }
 
-    private async runRPMAsync(pump: Pump, speed: number) {
+    public setPumpManual(pump: Pump, spump: PumpState, callbackStack: any[]) {
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: 5,
+            payload: [],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
+                }
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
+                    }
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+    }
+    public setDriveStatePacket(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: 6,
+            payload: sys.board.valueMaps.virtualControllerStatus.getValue('running') && spump.targetSpeed > 0 ? [10] : [4],
+            retries: 1,
+            onComplete: (err, msg: Outbound) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
+                }
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
+                    }
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+    }
+
+    private runRPM(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
         /*
                 const msg = Outbound.createPumpMessage(pump.address, pump.type === 128 ? 1 : 10, [2, 196, Math.floor(speed / 256), speed % 256], 1);
                 conn.queueSendMessage(msg); */
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: pump.type === 128 ? 1 : 10,
-                payload: [2, 196, Math.floor(speed / 256), speed % 256],
-                retries: 1,
-                // timeout: 250,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        logger.info(`received back run rpm.`);
-                        resolve();
+
+
+        let speed = spump.targetSpeed;
+        if (speed === 0 && callbackStack.length > 0) {
+            let cb = callbackStack.shift();
+            if (typeof cb.fn === 'function') {
+                setTimeout(cb.fn, cb.timeout);
+            }
+        }
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: pump.type === 128 ? 1 : 10,
+            payload: [2, 196, Math.floor(speed / 256), speed % 256],
+            retries: 1,
+            // timeout: 250,
+            response: true,
+            onComplete: (err, msg) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
+                }
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
                     }
                 }
-            });
-            conn.queueSendMessage(out);
+            }
         });
+        conn.queueSendMessage(out);
     }
 
-    private runGPMAsync(pump: Pump, speed: number) {
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: pump.type === 128 ? 1 : 10,
-                payload: [],
-                retries: 1,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else logger.info(`received back run gpm.`);
-                    resolve();
+    private runGPM(pump: Pump, spump: PumpState, callbackStack?: any[]) {
+        // return new Promise((resolve, reject) => {
+        let speed = spump.targetSpeed;
+        if (speed === 0 && callbackStack.length > 0) {
+            let cb = callbackStack.shift();
+            if (typeof cb.fn === 'function') {
+                setTimeout(cb.fn, cb.timeout);
+            }
+        }
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: pump.type === 128 ? 1 : 10,
+            payload: [],
+            retries: 1,
+            onComplete: (err, msg) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
                 }
-            });
-
-            if (pump.type === 1) {
-                // vf
-                out.payload = [1, 4, 2, 228, speed, 0];
-            }
-            else {
-                out.payload = [1, 4, 2, 196, speed, 0];
-            }
-            conn.queueSendMessage(out);
-        });
-    }
-
-    private async requestPumpStatusAsync(pump: Pump) {
-        return new Promise((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Pump,
-                dest: pump.address,
-                action: 7,
-                payload: [],
-                retries: 1,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        logger.info(`received back pump status.`);
-                        resolve();
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
                     }
                 }
-            });
-            conn.queueSendMessage(out);
+            }
         });
+
+        if (pump.type === 1) {
+            // vf
+            out.payload = [1, 4, 2, 228, speed, 0];
+        }
+        else {
+            out.payload = [1, 4, 2, 196, speed, 0];
+        }
+        conn.queueSendMessage(out);
+        // });
+    }
+
+    public requestPumpStatus(pump: Pump, spump: PumpState, callbackStack: any[]) {
+        let out = Outbound.create({
+            protocol: Protocol.Pump,
+            dest: pump.address,
+            action: 7,
+            payload: [],
+            retries: 1,
+            response: true,
+            onComplete: (err, msg) => {
+                if (err) {
+                    logger.error(err);
+                    setTimeout(this.run, 500, pump);
+                }
+                else if (callbackStack.length > 0) {
+                    let cb = callbackStack.shift();
+                    if (typeof cb.fn === 'function') {
+                        setTimeout(cb.fn, cb.timeout);
+                    }
+                }
+            }
+        });
+        conn.queueSendMessage(out);
     }
 }
 export class CircuitCommands extends BoardCommands {
@@ -1257,7 +1272,8 @@ export class CircuitCommands extends BoardCommands {
             state.temps.bodies.getItemById(1).isOn = circ.isOn;
             circ.isOn ? sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
         }
-        sys.board.virtualPumpControllers.start();
+        // sys.board.virtualPumpControllers.start();
+        sys.board.virtualPumpControllers.setTargetSpeed();
         sys.emitEquipmentChange();
         return Promise.resolve(circ);
     }
@@ -1606,7 +1622,7 @@ export class FeatureCommands extends BoardCommands {
         }
     }
 
-}
+}  // tacowaco93915212
 export class ChlorinatorCommands extends BoardCommands {
     public setChlorProps(chlor: Chlorinator, obj?: any) {
         if (typeof obj !== 'undefined') {
@@ -2008,60 +2024,123 @@ export class VirtualChlorinatorController extends BoardCommands {
     }
 }
 export class VirtualPumpController extends BoardCommands {
-    private _timers: NodeJS.Timeout[]=[];
     public search() {
-        // TODO: If we are searching for multiple pumps this should be a promise.all array
-        // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {
             let pump = sys.pumps.getItemById(i);
             if (pump.isActive) continue;
+            let spump = state.pumps.getItemById(i, true);
             pump = sys.pumps.getItemById(i, true);
-            pump.isActive = true;
-            pump.isVirtual = true;
-            pump.type = 0;
+            pump.isActive = pump.isVirtual = true;
+            pump.type = spump.type = 0;
             logger.info(`Searching for a pump at address... ${ pump.address }`);
-            try {
-                sys.board.pumps.initPump(pump);
-                let c = config.getSection('controller');
-                if (c.comms.inactivityRetry > 0) {
-                    c.comms.inactivityRetry = -1;
-                    config.setSection('controller', c);
+            spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+            // nested calls here; could do away with this but would have to otherwise send in an onComplete function
+            // and that's a bunch of additional logic
+            let setPumpToRemoteControlPacket = Outbound.create({
+                protocol: Protocol.Pump,
+                dest: pump.address,
+                action: 4,
+                payload: [255],
+                retries: 1,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
+                        sys.pumps.removeItemById(pump.id);
+                        state.pumps.removeItemById(pump.id);
+                    }
+                    else {
+                        let requestPumpStatusPacket = Outbound.create({
+                            protocol: Protocol.Pump,
+                            dest: pump.address,
+                            action: 7,
+                            payload: [],
+                            retries: 1,
+                            response: true,
+                            onComplete: (err, msg) => {
+                                if (err) {
+                                    logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
+                                    sys.pumps.removeItemById(pump.id);
+                                    state.pumps.removeItemById(pump.id);
+                                }
+                                else {
+                                    logger.info(`Found pump at ${pump.id} address ${ pump.address }`);
+                                    sys.board.virtualPumpControllers.start();
+                                }
+                            }
+                        });
+                        conn.queueSendMessage(requestPumpStatusPacket);
+                    }
                 }
-            }
-            catch (err) {
-                logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
-            }
+            });
+            conn.queueSendMessage(setPumpToRemoteControlPacket);
         }
-        return Promise.resolve('Searching for pumps.');
     }
-    public async stopAsync() {
-        let promises = [];
-        // turn off all pumps
+    public setTargetSpeed() {
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
-            if (pump.isVirtual && pump.isActive && (spump.watts > 0 || spump.rpm > 0 || spump.flow > 0)) {
-                logger.info(`Queueing pump ${ i } to stop.`);
-                promises.push(sys.board.pumps.stopAsync(pump));
-                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
-                state.pumps.getItemById(i, true).virtualControllerStatus = 0;
+            let _newSpeed = 0;
+            if (pump.isVirtual) {
+                let pumpCircuits = pump.circuits.get();
+                let _units;
+                for (let i = 0; i < pumpCircuits.length; i++) {
+                    let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                    if (circ.isOn) {
+                        if (typeof _units === 'undefined') _units = pumpCircuits[i].units;
+                        if (_units === pumpCircuits[i].units && pumpCircuits[i].speed > _newSpeed) { _newSpeed = pumpCircuits[i].speed; }
+                    }
+                }
+                spump.targetSpeed = _newSpeed;
+                if (spump.targetSpeed > 0) sys.board.virtualPumpControllers.start();
+                else {
+                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')){
+                        spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                        sys.board.pumps.stop(pump);
+                    }
+                }
             }
         }
-        return Promise.all(promises);
+    }
+    public async stopAsync() {
+        // this is faux async just so we give pumps time to stop.
+        // maybe a better way to do this without having individual
+        // pump async calls
+        return new Promise((resolve, reject) => {
+            // turn off all pumps
+            let bAnyVirtual = false;
+            for (let i = 1; i <= sys.pumps.length; i++) {
+                let pump = sys.pumps.getItemById(i);
+                let spump = state.pumps.getItemById(i);
+                if (pump.isVirtual) {
+                    bAnyVirtual = true;
+                    logger.info(`Queueing pump ${ i } to stop.`);
+                    spump.targetSpeed = 0;
+                    state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                    sys.board.pumps.stop(pump);
+                }
+            }
+            if (!bAnyVirtual) resolve();
+            else setTimeout(resolve, 2500);
+        });
     }
 
     public start() {
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
+            let spump = state.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
-                typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
-                setImmediate(function(){sys.board.pumps.runWrapper(pump);});
-                this._timers[i] = setInterval(function() {sys.board.pumps.runWrapper(pump); }, 8000);
-                if (state.pumps.getItemById(i).virtualControllerStatus !== 1) {
+                if (state.pumps.getItemById(i).virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running') && spump.targetSpeed > 0) {
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
-                    state.pumps.getItemById(i).virtualControllerStatus = 1;
+                    state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+                    setTimeout(sys.board.pumps.run,500,pump);
                 }
-
+                else {
+                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')){
+                        spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                        sys.board.pumps.stop(pump);
+                    }
+                }
             }
         }
     }

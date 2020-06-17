@@ -625,7 +625,7 @@ class TouchSystemCommands extends SystemCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     // todo: track delay status?
-                    state.delay = 0;
+                    state.delay = sys.board.valueMaps.delay.getValue('nodelay');
                     resolve();
                 }
             });
@@ -825,7 +825,8 @@ class TouchCircuitCommands extends CircuitCommands {
                     else {
                         cstate.isOn = val ? true : false;
                         if (id === 6) { sys.board.virtualChlorinatorController.start(); }
-                        sys.board.virtualPumpControllers.start();
+                        // sys.board.virtualPumpControllers.start();
+                        sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
                         resolve(cstate);
                     }

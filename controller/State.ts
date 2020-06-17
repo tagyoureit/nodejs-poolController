@@ -104,6 +104,17 @@ export class State implements IState {
     public async stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
+        if (sys.controllerType === ControllerType.Virtual){
+            for (let i = 0; i < state.temps.bodies.length; i++) {
+                state.temps.bodies.getItemByIndex(i).isOn = false;
+            }
+            for (let i = 0; i < state.circuits.length; i++){
+                state.circuits.getItemByIndex(i).isOn = false;
+            }
+            for (let i = 0; i < state.features.length; i++){
+                state.features.getItemByIndex(i).isOn = false;
+            }
+        }
         return Promise.resolve();
     }
     protected hasChanged=false;
@@ -113,7 +124,7 @@ export class State implements IState {
             time: self.data.time || '',
             body: self.data.body || {},
             valve: self.data.valve || 0,
-            delay: self.data.delay || 0,
+            delay: self.data.delay,
             adjustDST: self.data.adjustDST || false,
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
@@ -181,10 +192,10 @@ export class State implements IState {
             this.hasChanged = true;
         }
     } */
-    public get delay(): number { return this.data.delay; }
+    public get delay(): number { return typeof this.data.delay.val !== 'undefined' ? this.data.delay.val : 0; }
     public set delay(val: number) {
         if (this.data.delay !== val) {
-            this.data.delay = val;
+            this.data.delay = sys.board.valueMaps.delay.transform(val);
             this.hasChanged = true;
         }
     }
@@ -558,6 +569,8 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get targetSpeed(): number { return this.data.targetSpeed; } // used for virtual controller
+    public set targetSpeed(val: number) { this.setDataVal('targetSpeed', val); }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {

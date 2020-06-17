@@ -485,8 +485,8 @@ export class EquipmentStateMessage {
                             // This will toggle the group states depending on the state of the individual circuits.
                             sys.board.features.syncGroupStates();
                             sys.board.circuits.syncVirtualCircuitStates();
-                            //state.emitControllerChange();
-                            //state.emitEquipmentChanges();
+                            state.emitControllerChange();
+                            state.emitEquipmentChanges();
                             break;
                     }
                 }
