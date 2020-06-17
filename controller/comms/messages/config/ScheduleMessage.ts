@@ -86,7 +86,6 @@ export class ScheduleMessage {
         // Sample packet
         // [165,33,15,16,17,7][6,12,25,0,6,30,0][1,76]
         const schedId = msg.extractPayloadByte(0);
-
         const circuitId = msg.extractPayloadByte(1) & 127;
         const eggTimerRunTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
         const eggTimerActive = msg.extractPayloadByte(2) === 25 && circuitId > 0 && eggTimerRunTime !== 256;
@@ -196,7 +195,6 @@ export class ScheduleMessage {
                 state.schedules.removeItemById(schedule.id);
             else {
                 let csched = state.schedules.getItemById(schedule.id, true);
-                //csched.circuit = schedule.circuit;
                 csched.startTime = schedule.startTime;
             }
             i += 2;
@@ -208,9 +206,8 @@ export class ScheduleMessage {
             const time = msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.endTime = time;
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
                 let csched = state.schedules.getItemById(schedule.id);
-                //csched.circuit = schedule.circuit;
                 csched.endTime = schedule.endTime;
             }
             i += 2;
@@ -220,8 +217,8 @@ export class ScheduleMessage {
         let schedId = (msg.extractPayloadByte(1) - 5) * 40 + 1;
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             let schedule: Schedule = sys.schedules.getItemById(schedId++);
-            schedule.circuit = msg.extractPayloadByte(i + 1) + 1;
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
+                schedule.circuit = msg.extractPayloadByte(i + 1) + 1;
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.circuit = schedule.circuit;
             }
@@ -242,13 +239,12 @@ export class ScheduleMessage {
             else if ((byte & 32 & 0xFF) === 32) schedule.endTimeType = 2;
             else schedule.endTimeType = 0;
             
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.startTimeType = schedule.startTimeType;
                 csched.endTimeType = schedule.endTimeType;
                 csched.scheduleType = schedule.scheduleType;
             }
-
         }
        
     }
@@ -257,7 +253,7 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.scheduleDays = msg.extractPayloadByte(i + 1);
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.scheduleDays = csched.scheduleType === 128 ? schedule.scheduleDays : 0;
             }
@@ -268,7 +264,7 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSource = msg.extractPayloadByte(i + 1);
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.heatSource = schedule.heatSource;
             }
@@ -279,7 +275,7 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length && i <= sys.equipment.maxSchedules && i <= sys.schedules.length; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++);
             schedule.heatSetpoint = msg.extractPayloadByte(i + 1);
-            if (schedule.circuit > 0) {
+            if (schedule.isActive) {
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.heatSetpoint = schedule.heatSetpoint;
             }

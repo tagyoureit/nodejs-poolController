@@ -2449,49 +2449,49 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
         // We are going to extract the properties from
         // the object then send a related message to set it
         // on the controller.
-        if (typeof obj.startTime === 'number') sched.startTime = obj.startTime;
-        if (typeof obj.endTime === 'number') sched.endTime = obj.endTime;
-        if (typeof obj.scheduleType === 'number') sched.runOnce = (sched.runOnce & 0x007f) + (obj.scheduleType > 0 ? 128 : 0);
-        if (typeof obj.scheduleDays === 'number')
-            if ((sched.runOnce & 128) > 0) {
-                sched.runOnce = sched.runOnce & 0x00ff & obj.scheduleDays;
-            } else sched.scheduleDays = obj.scheduleDays & 0x00ff;
+        //if (typeof obj.startTime === 'number') sched.startTime = obj.startTime;
+        //if (typeof obj.endTime === 'number') sched.endTime = obj.endTime;
+        //if (typeof obj.scheduleType === 'number') sched.runOnce = (sched.runOnce & 0x007f) + (obj.scheduleType > 0 ? 128 : 0);
+        //if (typeof obj.scheduleDays === 'number')
+        //    if ((sched.runOnce & 128) > 0) {
+        //        sched.runOnce = sched.runOnce & 0x00ff & obj.scheduleDays;
+        //    } else sched.scheduleDays = obj.scheduleDays & 0x00ff;
 
-        if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
-        let csched = state.schedules.getItemById(sched.id, true);
-        let out = Outbound.createMessage(168, [
-            3
-            , 0
-            , sched.id - 1
-            , sched.startTime - Math.floor(sched.startTime / 256) * 256
-            , Math.floor(sched.startTime / 256)
-            , sched.endTime - Math.floor(sched.endTime / 256) * 256
-            , Math.floor(sched.endTime / 256)
-            , sched.circuit - 1
-            , sched.runOnce
-            , sched.scheduleDays
-            , sched.startMonth
-            , sched.startDay
-            , sched.startYear - 2000
-            , sched.heatSource
-            , sched.heatSetpoint
-            , sched.flags
-            ],
-            0
-        );
-        out.onComplete = (err, msg) => {
-            if (!err){
-                csched.startTime = sched.startTime;
-                csched.endTime = sched.endTime;
-                csched.circuit = sched.circuit;
-                csched.heatSetpoint = sched.heatSetpoint;
-                csched.heatSource = sched.heatSource;
-                csched.scheduleDays = (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
-                csched.scheduleType = sched.runOnce;
-                state.emitEquipmentChanges();
-            }
-        };
-        conn.queueSendMessage(out); // Send it off in a letter to yourself.
+        //if (typeof obj.circuit === 'number') sched.circuit = obj.circiut;
+        //let csched = state.schedules.getItemById(sched.id, true);
+        //let out = Outbound.createMessage(168, [
+        //    3
+        //    , 0
+        //    , sched.id - 1
+        //    , sched.startTime - Math.floor(sched.startTime / 256) * 256
+        //    , Math.floor(sched.startTime / 256)
+        //    , sched.endTime - Math.floor(sched.endTime / 256) * 256
+        //    , Math.floor(sched.endTime / 256)
+        //    , sched.circuit - 1
+        //    , sched.runOnce
+        //    , sched.scheduleDays
+        //    , sched.startMonth
+        //    , sched.startDay
+        //    , sched.startYear - 2000
+        //    , sched.heatSource
+        //    , sched.heatSetpoint
+        //    , sched.flags
+        //    ],
+        //    0
+        //);
+        //out.onComplete = (err, msg) => {
+        //    if (!err){
+        //        csched.startTime = sched.startTime;
+        //        csched.endTime = sched.endTime;
+        //        csched.circuit = sched.circuit;
+        //        csched.heatSetpoint = sched.heatSetpoint;
+        //        csched.heatSource = sched.heatSource;
+        //        csched.scheduleDays = (sched.runOnce & 128) > 0 ? sched.runOnce : sched.scheduleDays;
+        //        csched.scheduleType = sched.runOnce;
+        //        state.emitEquipmentChanges();
+        //    }
+        //};
+        //conn.queueSendMessage(out); // Send it off in a letter to yourself.
     }
 }
 class IntelliCenterHeaterCommands extends HeaterCommands {

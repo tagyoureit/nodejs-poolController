@@ -17,7 +17,6 @@ export class Connection {
     public mockPort: boolean = false;
     private isPaused: boolean = false;
     public buffer: SendRecieveBuffer;
-    public awaitingInbound: boolean = false;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
@@ -139,7 +138,7 @@ export class Connection {
     public init() {
         conn._cfg = config.getSection('controller.comms', {
             rs485Port: "/dev/ttyUSB0",
-            portSettings: { "baudRate": 9600, "dataBits": 8, "parity": "none", "stopBits": 1, "flowControl": false, "autoOpen": false, "lock": false },
+            portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
             mockPort: false,
             netConnect: false,
             netHost: "raspberrypi",
@@ -223,16 +222,14 @@ export class SendRecieveBuffer {
                 // If the serial port is busy we don't want to process any outbound.  However, this used to
                 // not process the outbound even when the incoming bytes didn't mean anything.  Now we only delay
                 // the outbound when we actually have a message signatures to process.
-                if (!conn.awaitingInbound) {
-                    var msg: Outbound = conn.buffer._outBuffer.shift();
-                    if (typeof msg === 'undefined' || !msg) return;
-                    conn.buffer.writeMessage(msg);
-                }
+                var msg: Outbound = conn.buffer._outBuffer.shift();
+                if (typeof msg === 'undefined' || !msg) return;
+                conn.buffer.writeMessage(msg);
             }
         }
         if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket) {
             // Come back later as we still have items to send.
-            conn.buffer.procTimer = setTimeout(() => this.processPackets(), 200);
+            conn.buffer.procTimer = setTimeout(() => this.processPackets(), 100);
         }
     }
     /*
@@ -380,7 +377,6 @@ export class SendRecieveBuffer {
                     ndx = msg.mergeBytes(conn.buffer._inBytes);
                 }
                 if (msg.isComplete) {
-                    conn.awaitingInbound = false;
                     logger.packet(msg);
                     if (msg.isValid) {
                         conn.buffer.counter.success++;
@@ -394,12 +390,9 @@ export class SendRecieveBuffer {
                     }
                     conn.buffer._msg = null;
                 }
-                else if (msg.header.length > 0)
-                    conn.awaitingInbound = true;
                 if (ndx > 0) conn.buffer._inBytes = conn.buffer._inBytes.slice(ndx);
                 else break;
                 ndx = 0;
-
             } while (ndx < conn.buffer._inBytes.length);
         }
     }

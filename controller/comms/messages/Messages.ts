@@ -270,19 +270,19 @@ export class Inbound extends Message {
             }
             this.padding.push(bytes[ndx++]);
         }
+        let ndxHeader = ndx;
         switch (this.protocol) {
             case Protocol.Pump:
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
             case Protocol.Broadcast:
             case Protocol.Unidentified:
-                let ndxHeader = ndx;
                 ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
                 ndx = this.pushBytes(this.header, bytes, ndx, 6);
                 if (this.header.length < 6) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.info(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${ this.header }]`);
+                    logger.verbose(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -305,7 +305,16 @@ export class Inbound extends Message {
                 // the chlorinator.  The first 240 byte does not belong to the chlorinator nor does it belong to
                 // the IntelliValve
                 //[][16, 2, 240][255, 0, 255, 165, 1, 16, 12, 82, 8, 0, 128, 216, 128, 57, 64, 25, 166, 4, 44, 16, 2, 80, 17, 0][115, 16, 3]
+                //[][16, 2, 80, 17][0][115, 16, 3]
                 ndx = this.pushBytes(this.header, bytes, ndx, 4);
+                if (this.header.length < 4) {
+                    // We actually don't have a complete header yet so just return.
+                    // we will pick it up next go around.
+                    logger.verbose(`We have an incoming chlorinator message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
                 break;
             default:
                 // We didn't get a message signature. don't do anything with it.
@@ -324,17 +333,21 @@ export class Inbound extends Message {
         return ndx;
     }
     public readPayload(bytes: number[], ndx: number): number {
-        if (!this.isValid) return bytes.length;
+        //if (!this.isValid) return bytes.length;
+        if (!this.isValid) return ndx;
         switch (this.protocol) {
             case Protocol.Broadcast:
             case Protocol.Pump:
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
             case Protocol.Unidentified:
+                if (this.datalen - this.payload.length <= 0) return ndx; // We don't need any more payload.
                 ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
                 break;
             case Protocol.Chlorinator:
-                while (ndx < bytes.length && !this.testChlorTerm(bytes, ndx)) {
+                // We need to deal with chlorinator packets where the terminator is actually split meaning only the first byte or
+                // two of the total payload is provided for the term.  We need at least 3 bytes to make this determination.
+                while (ndx + 3 < bytes.length && !this.testChlorTerm(bytes, ndx)) {
                     this.payload.push(bytes[ndx++]);
                     if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
@@ -355,14 +368,16 @@ export class Inbound extends Message {
             case Protocol.IntelliValve:
             case Protocol.IntelliChem:
             case Protocol.Unidentified:
-                if (this.payload.length >= this.datalen) {
+                // If we don't have enough bytes to make the terminator then continue on and
+                // hope we get them on the next go around.
+                if (this.payload.length >= this.datalen && ndx + 2 < bytes.length) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 2);
                     this.isValid = this.isValidChecksum();
                 }
                 break;
             case Protocol.Chlorinator:
-                if (this.testChlorTerm(bytes, ndx)) {
+                if (ndx + 3 < bytes.length && this.testChlorTerm(bytes, ndx)) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 3);
                     this.isValid = this.isValidChecksum();

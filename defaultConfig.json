@@ -6,7 +6,16 @@
       "netConnect": false,
       "netHost": "raspberrypi",
       "netPort": 9801,
-      "inactivityRetry": 10
+      "inactivityRetry": 10,
+      "portSettings": {
+        "baudRate": 9600,
+        "dataBits": 8,
+        "parity": "none",
+        "stopBits": 1,
+        "flowControl": false,
+        "autoOpen": false,
+        "lock": false
+      }
     }
   },
   "web": {
