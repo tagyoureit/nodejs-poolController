@@ -616,6 +616,9 @@ export class Outbound extends Message {
         switch (this.protocol) {
             case Protocol.Pump:
             case Protocol.Broadcast:
+            case Protocol.IntelliValve:
+            case Protocol.Unidentified:
+            case Protocol.IntelliChem:
                 this.chkHi = Math.floor(sum / 256);
                 this.chkLo = (sum - (super.chkHi * 256));
                 break;

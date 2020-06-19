@@ -191,8 +191,9 @@ export class ScheduleMessage {
             if (schedule.isActive && schedule.startTime === 0)
                 sys.schedules.removeItemById(schedule.id);
             schedule.isActive = schedule.startTime !== 0;
-            if (!schedule.isActive)
+            if (!schedule.isActive || schedule.startTime === 0) {
                 state.schedules.removeItemById(schedule.id);
+            }
             else {
                 let csched = state.schedules.getItemById(schedule.id, true);
                 csched.startTime = schedule.startTime;

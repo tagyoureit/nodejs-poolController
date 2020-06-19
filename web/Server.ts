@@ -224,6 +224,7 @@ export class HttpServer extends ProtoServer {
         sock.on('sendOutboundMessage', (mdata) => {
             let msg: Outbound = Outbound.create({});
             Object.assign(msg, mdata);
+            msg.calcChecksum();
             logger.silly(`sendOutboundMessage ${msg.toLog()}`);
             conn.queueSendMessage(msg);
         });
