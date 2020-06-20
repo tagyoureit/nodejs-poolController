@@ -78,7 +78,7 @@ export class StateRoute {
         });
         app.put('/state/chlorinator/setChlor', (req, res) => {
             state.chlorinators.setChlor(parseInt(req.body.id, 10), parseInt(req.body.poolSetpoint, 10), parseInt(req.body.spaSetpoint, 10) || 0, parseInt(req.body.superChlorHours, 10) || 0);
-            if (sys.chlorinators.getItemById(1).isVirtual) sys.board.virtualChlorinatorController.start();
+            // if (sys.chlorinators.getItemById(1).isVirtual) sys.board.virtualChlorinatorController.start();
             return res.status(200).send('OK');
         });
         app.put('/state/chlorinator/poolSetpoint', (req, res) => {

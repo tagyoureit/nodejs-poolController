@@ -256,7 +256,7 @@ export class CircuitMessage {
                         body.name = "Pool";
                         body.type = 1;
                         circuit.type === 2 ? body.isActive = true : body.isActive = false;
-                        sys.board.virtualChlorinatorController.start();
+                        // sys.board.virtualChlorinatorController.start();
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);

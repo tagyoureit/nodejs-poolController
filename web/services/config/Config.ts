@@ -321,7 +321,7 @@ export class ConfigRoute {
         app.put('/config/chlorinator', (req, res) => {
             let chlor = sys.chlorinators.getItemById(parseInt(req.body.id, 10), true);
             sys.board.chlorinator.setChlorProps(chlor, req.body);
-            if (chlor.isVirtual) { sys.board.virtualChlorinatorController.start(); }
+            // if (chlor.isVirtual) { sys.board.virtualChlorinatorController.start(); }
             return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });
         app.get('/config/chlorinators/search', async (req, res, next) => {
