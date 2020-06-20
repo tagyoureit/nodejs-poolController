@@ -43,11 +43,12 @@ export async function stopPacketCaptureAsync() {
 export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
-        await sys.board.virtualPumpControllers.stopAsync();
+        // await sys.board.virtualPumpControllers.stopAsync();
         await logger.stopAsync();
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();
+        config.update();
     }
     catch (err) {
         console.error(`Error stopping processes: ${ err.message }`);

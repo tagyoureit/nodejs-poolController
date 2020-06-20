@@ -357,7 +357,7 @@ export class Inbound extends Message {
             case Protocol.Chlorinator:
                 // We need to deal with chlorinator packets where the terminator is actually split meaning only the first byte or
                 // two of the total payload is provided for the term.  We need at least 3 bytes to make this determination.
-                while (ndx + 3 < bytes.length && !this.testChlorTerm(bytes, ndx)) {
+                while (ndx + 3 <= bytes.length && !this.testChlorTerm(bytes, ndx)) {
                     this.payload.push(bytes[ndx++]);
                     if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
@@ -380,14 +380,14 @@ export class Inbound extends Message {
             case Protocol.Unidentified:
                 // If we don't have enough bytes to make the terminator then continue on and
                 // hope we get them on the next go around.
-                if (this.payload.length >= this.datalen && ndx + 2 < bytes.length) {
+                if (this.payload.length >= this.datalen && ndx + 2 <= bytes.length) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 2);
                     this.isValid = this.isValidChecksum();
                 }
                 break;
             case Protocol.Chlorinator:
-                if (ndx + 3 < bytes.length && this.testChlorTerm(bytes, ndx)) {
+                if (ndx + 3 <= bytes.length && this.testChlorTerm(bytes, ndx)) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 3);
                     this.isValid = this.isValidChecksum();

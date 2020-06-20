@@ -453,7 +453,15 @@ export class SystemBoard {
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
     public async stopAsync() {
-
+        this.turnOffAllCircuits();
+        // turn off chlor
+        sys.board.virtualChlorinatorController.stop();
+        let p = [];
+        p.push(sys.board.virtualChemControllers.stopAsync());
+        p.push(sys.board.virtualPumpControllers.stopAsync());
+        return Promise.all(p)
+    }
+    public turnOffAllCircuits(){
         // turn off all circuits/features
         for (let i = 0; i <= state.circuits.length; i++) {
             state.circuits.getItemByIndex(i).isOn = false;
@@ -464,10 +472,11 @@ export class SystemBoard {
         for (let i = 0; i <= state.lightGroups.length; i++) {
             state.lightGroups.getItemByIndex(i).isOn = false;
         }
-        // turn off chlor
-        sys.board.virtualChlorinatorController.stop();
-
-        return sys.board.virtualPumpControllers.stopAsync();
+        for (let i = 0; i <= state.temps.bodies.length; i++){
+            state.temps.bodies.getItemByIndex(i).isOn = false;
+        }
+        sys.board.virtualPumpControllers.setTargetSpeed();
+        state.emitEquipmentChanges();
     }
     public system: SystemCommands=new SystemCommands(this);
     public bodies: BodyCommands=new BodyCommands(this);
@@ -1006,8 +1015,7 @@ export class PumpCommands extends BoardCommands {
         sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack);
     }
 
-    public stop(pump: Pump) {
-        logger.warn(`STOPPING PUMP ${pump.id}`)
+    public stopPumpRemoteContol(pump: Pump) {
         let callbackStack: CallbackStack[] = [
             { fn: () => { sys.board.pumps.setPumpManual(pump, spump, callbackStack); }, timeout: 500 },
             { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
@@ -1670,7 +1678,6 @@ export class ChlorinatorCommands extends BoardCommands {
     }
 
     public run(chlor: Chlorinator, cstate: ChlorinatorState){
-        logger.warn(`RUNNING VIRTUAL CHLOR`);
         if (cstate.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running') ) return;
         if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
             // We have not talked to the chlorinator in 30 seconds so we have lost communication.
@@ -1679,12 +1686,10 @@ export class ChlorinatorCommands extends BoardCommands {
         }
         setTimeout(sys.board.chlorinator.setDesiredOutput,100,cstate);
         setTimeout(sys.board.chlorinator.run,4000,chlor,cstate);
-
-
     }
 
     public setDesiredOutput(cstate: ChlorinatorState) {
-        console.log(`targetOutput: ${cstate.targetOutput} compared to setPointForCurrentBody: ${cstate.setPointForCurrentBody}`)
+        // console.log(`targetOutput: ${cstate.targetOutput} compared to setPointForCurrentBody: ${cstate.setPointForCurrentBody}`)
         let out = Outbound.create({
             protocol: Protocol.Chlorinator,
             dest: cstate.id,
@@ -1702,7 +1707,6 @@ export class ChlorinatorCommands extends BoardCommands {
             }
         });
         conn.queueSendMessage(out);
-
     }
 
     public ping(cstate: ChlorinatorState) {
@@ -2004,17 +2008,19 @@ export class VirtualChlorinatorController extends BoardCommands {
             // }
         }
         // if we get this far, then no virtual chlorinators are active and clear the timer
-        else {
-            delete schlor.virtualControllerStatus;
+        // else {
+        //     delete schlor.virtualControllerStatus;
             
             // clearTimeout(this._timer);
-        }
+        // }
     }
 
     public stop() {
         // if (typeof this._timer !== 'undefined') clearTimeout(this._timer);
         let schlor = state.chlorinators.getItemById(1);
+        schlor.currentOutput = 0; // alias for off
         schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+
     }
 
     public async search() {
@@ -2118,13 +2124,7 @@ export class VirtualPumpController extends BoardCommands {
                     }
                 }
                 spump.targetSpeed = _newSpeed;
-                if (spump.targetSpeed > 0) sys.board.virtualPumpControllers.start();
-                else {
-                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')){
-                        spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                        sys.board.pumps.stop(pump);
-                    }
-                }
+                sys.board.virtualPumpControllers.start();
             }
         }
     }
@@ -2140,17 +2140,12 @@ export class VirtualPumpController extends BoardCommands {
                 let spump = state.pumps.getItemById(i);
                 if (pump.isVirtual) {
                     bAnyVirtual = true;
-                    logger.info(`Queueing pump ${ i } to stop.`);
+                    logger.info(`Queueing pump ${ i } to return to manual control.`);
                     spump.targetSpeed = 0;
-                    state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                    sys.board.pumps.stop(pump);
+                    // if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) continue;
+                    spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                    sys.board.pumps.stopPumpRemoteContol(pump);
                 }
-            }
-            let chlor = sys.chlorinators.getItemById(1);
-            if (chlor.isVirtual) {
-                let schlor = state.chlorinators.getItemById(1);
-                schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                schlor.currentOutput = 0; // alias for off
             }
             if (!bAnyVirtual) resolve();
             else setTimeout(resolve, 2500);
@@ -2162,7 +2157,8 @@ export class VirtualPumpController extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
             if (pump.isVirtual && pump.isActive) {
-                if (state.pumps.getItemById(i).virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running') && spump.targetSpeed > 0) {
+                if (spump.targetSpeed > 0) {
+                    if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
                     logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
                     state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
                     setTimeout(sys.board.pumps.run,500,pump);
@@ -2170,7 +2166,7 @@ export class VirtualPumpController extends BoardCommands {
                 else {
                     if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')){
                         spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                        sys.board.pumps.stop(pump);
+                        sys.board.pumps.stopPumpRemoteContol(pump);
                     }
                 }
             }

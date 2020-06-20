@@ -326,7 +326,7 @@ export class EquipmentStateMessage {
                     state.valve = msg.extractPayloadByte(10);
                     // EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
                     // state.heatMode = msg.extractPayloadByte(11);
-                    state.delay = msg.extractPayloadByte(12);
+                    state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;

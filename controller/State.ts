@@ -192,7 +192,7 @@ export class State implements IState {
             this.hasChanged = true;
         }
     } */
-    public get delay(): number { return typeof this.data.delay.val !== 'undefined' ? this.data.delay.val : 0; }
+    public get delay(): number { return typeof this.data.delay.val !== 'undefined' ? this.data.delay.val : -1; }
     public set delay(val: number) {
         if (this.data.delay !== val) {
             this.data.delay = sys.board.valueMaps.delay.transform(val);
