@@ -43,8 +43,11 @@ export class Message {
     protected _complete: boolean=false;
     public static headerSubByte: number=33;
     public static pluginAddress: number=config.getSection('controller', { address: 33 }).address;
-
+    private _id: number = -1;
     // Fields
+    private static _messageId: number = 0;
+    public static get nextMessageId(): number { return this._messageId < 80000 ? ++this._messageId : this._messageId = 0; }
+
     public timestamp: Date=new Date();
     public direction: Direction=Direction.In;
     public protocol: Protocol=Protocol.Unknown;
@@ -54,7 +57,8 @@ export class Message {
     public payload: number[]=[];
     public term: number[]=[];
     public packetCount: number=0;
-
+    public get id(): number { return this._id; }
+    public set id(val: number) { this._id = val; }
     public isValid: boolean=true;
     // Properties
     public get isComplete(): boolean { return this._complete; }
@@ -111,7 +115,7 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"valid":${ this.isValid },"dir":"${ this.direction }","proto":"${ this.protocol }","pkt":[${ JSON.stringify(this.padding) },${ JSON.stringify(this.preamble) },${ JSON.stringify(this.header) },${ JSON.stringify(this.payload) },${ JSON.stringify(this.term) }],"ts":"${ Timestamp.toISOLocal(this.timestamp) }"}`;
+        return `{"id":${this.id},"valid":${ this.isValid },"dir":"${ this.direction }","proto":"${ this.protocol }","pkt":[${ JSON.stringify(this.padding) },${ JSON.stringify(this.preamble) },${ JSON.stringify(this.header) },${ JSON.stringify(this.payload) },${ JSON.stringify(this.term) }],"ts":"${ Timestamp.toISOLocal(this.timestamp) }"}`;
     }
     public generateResponse(resp: boolean|Response|Function): ((msgIn: Inbound, msgOut: Outbound) => boolean)|boolean|Response {
         if (typeof resp === 'undefined') { return false; }
@@ -223,10 +227,16 @@ export class Inbound extends Message {
         inbound.readChecksum(obj.term, 0);
         inbound.process();
     }
+    public responseFor: number[] = [];
     // Private methods
     private isValidChecksum(): boolean {
         if (this.protocol === Protocol.Chlorinator) return this.checksum % 256 === this.chkLo;
         return (this.chkHi * 256) + this.chkLo === this.checksum;
+    }
+    public toLog() {
+        if (this.responseFor.length > 0)
+            return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}}`;
+        return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}}`;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean { return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2); }
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
@@ -540,6 +550,7 @@ export class Inbound extends Message {
 export class Outbound extends Message {
     constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response|boolean|Function) {
         super();
+        this.id = Message.nextMessageId;
         this.protocol = proto;
         this.direction = Direction.Out;
         this.retries = retries || 0;
@@ -821,11 +832,16 @@ export class Response extends Message {
                 //console.log({ msg: 'Checking response', p1: msgIn.payload[i], pd: this.payload[i] });
                 if (msgIn.payload[i] !== this.payload[i]) return false;
             }
+            if (typeof msgOut !== 'undefined') {
+                msgIn.responseFor.push(msgOut.id);
+            }
             return true;
         }
         else {
             let resp = msgOut.generateResponse(true) as (msgIn: Inbound, msgOut: Outbound) => boolean;
-            return resp(msgIn, msgOut);
+            let bresp = resp(msgIn, msgOut);
+            if (bresp === true && typeof msgOut !== 'undefined') msgIn.responseFor.push(msgOut.id);
+            return bresp;
         }
     }
 }

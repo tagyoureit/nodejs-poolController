@@ -5,7 +5,7 @@ import { config } from '../../config/Config';
 import { logger } from '../../logger/Logger';
 import * as net from 'net';
 import { setTimeout, setInterval } from 'timers';
-import { Outbound, Inbound, Response } from './messages/Messages';
+import { Message, Outbound, Inbound, Response } from './messages/Messages';
 import { OutboundMessageError } from '../Errors';
 export class Connection {
     constructor() {
@@ -345,7 +345,7 @@ export class SendRecieveBuffer {
             if (typeof out === 'undefined') continue;
             let resp = out.response;
             if (out.requiresResponse) {
-                if (resp instanceof Response && resp.isResponse(msgIn)) {
+                if (resp instanceof Response && resp.isResponse(msgIn, out)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                     conn.buffer._outBuffer.splice(i, 1);
@@ -377,7 +377,8 @@ export class SendRecieveBuffer {
                     ndx = msg.mergeBytes(conn.buffer._inBytes);
                 }
                 if (msg.isComplete) {
-                    logger.packet(msg);
+                    msg.timestamp = new Date();
+                    msg.id = Message.nextMessageId;
                     if (msg.isValid) {
                         conn.buffer.counter.success++;
                         msg.process();
@@ -388,6 +389,7 @@ export class SendRecieveBuffer {
                         console.log('Failed:' + JSON.stringify(conn.buffer.counter));
                         //console.log(JSON.stringify(conn.buffer._inBytes));
                     }
+                    logger.packet(msg);
                     conn.buffer._msg = null;
                 }
                 if (ndx > 0) conn.buffer._inBytes = conn.buffer._inBytes.slice(ndx);
