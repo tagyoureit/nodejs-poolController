@@ -99,6 +99,7 @@ export class ConfigRoute {
                 circuits: sys.board.circuits.getCircuitReferences(true, true, true),
                 valves: sys.valves.get()
             };
+            opts.circuits.unshift({ id: 256, name: 'Unassigned', type: 0, equipmentType: 'circuit' });
             return res.status(200).send(opts);
         });
         app.get('/config/options/pumps', (req, res) => {
@@ -157,13 +158,24 @@ export class ConfigRoute {
         app.get('/config/options/chemController', (req, res) => {
             let opts = {
                 types: sys.board.valueMaps.chemControllerTypes.toArray(),
+                bodies: sys.board.bodies.getBodyAssociations(),
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
                 status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
                 status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
-                waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray()
+                waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray(),
+                controllers: sys.chemControllers.get()
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/chlorinators', (req, res) => {
+            let opts = {
+                types: sys.board.valueMaps.chlorinatorType.toArray(),
+                bodies: sys.board.bodies.getBodyAssociations(),
+                chlorinators: sys.chlorinators.get()
+            };
+            return res.status(200).send(opts);
+        });
+
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/general', async (req, res, next) => {

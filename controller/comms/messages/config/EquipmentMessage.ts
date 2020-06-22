@@ -17,14 +17,13 @@ export class EquipmentMessage {
                         pnl = sys.equipment.expansions.getItemById(1, true);
                         pnl.type = msg.extractPayloadByte(36);
                         pnl.name = msg.extractPayloadString(18, 16);
-                        pnl.isActive = pnl.type !== 0;
+                        pnl.isActive = pnl.type !== 0 && pnl.type !== 255;
                         pnl = sys.equipment.expansions.getItemById(2, true);
                         pnl.type = msg.extractPayloadByte(37);
-                        pnl.isActive = pnl.type !== 0;
+                        pnl.isActive = pnl.type !== 0 && pnl.type !== 255;
                         pnl = sys.equipment.expansions.getItemById(3, true);
                         pnl.type = msg.extractPayloadByte(38);
-                        pnl.isActive = pnl.type !== 0;
-                        //EquipmentMessage.calcModel(sys.equipment);
+                        pnl.isActive = pnl.type !== 0 && pnl.type !== 255;
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
                         body.type = msg.extractPayloadByte(39);
                         body.capacity = msg.extractPayloadByte(34) * 1000;

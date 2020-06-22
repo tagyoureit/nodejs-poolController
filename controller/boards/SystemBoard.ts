@@ -671,8 +671,43 @@ export class BodyCommands extends BoardCommands {
             for (let s in body) body[s] = obj[s];
             resolve(body);
         });
-
-
+    }
+    // This method provides a list of enumerated values for configuring associations
+    // tied to the current configuration.  It is used to supply only the valid values
+    // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within
+    // the plumbing.
+    public getBodyAssociations() {
+        let ass = [];
+        let assoc = sys.board.valueMaps.bodies.toArray();
+        for (let i = 0; i < assoc.length; i++) {
+            let code = assoc[i];
+            
+            switch (code.name) {
+                case 'body1':
+                case 'pool':
+                    if (sys.equipment.dual) code.desc = 'Body 1';
+                    ass.push(code);
+                    break;
+                case 'body2':
+                case 'spa':
+                    if (sys.equipment.maxBodies >= 2) {
+                        if (sys.equipment.dual) code.desc = 'Body 2';
+                        else if (sys.equipment.shared) code.desc = 'Spa';
+                        ass.push(code);
+                    }
+                    break;
+                case 'body3':
+                    if (sys.equipment.maxBodies >= 3) ass.push(code);
+                    break;
+                case 'body4':
+                    if (sys.equipment.maxBodies >= 4) ass.push(code);
+                    break;
+                case 'poolspa':
+                    if (sys.equipment.shared) ass.push(code);
+                    break;
+            }
+        }
+        return ass;
     }
     public setHeatModeAsync(body: Body, mode: number) { }
     public setHeatSetpointAsync(body: Body, setPoint: number) { }
