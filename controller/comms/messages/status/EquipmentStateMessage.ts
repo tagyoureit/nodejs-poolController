@@ -318,6 +318,12 @@ export class EquipmentStateMessage {
                 {
                     // Shared
                     let dt = new Date();
+                    if (state.chemControllers.length > 0) {
+                        for (let i = 0; i < state.chemControllers.length; i++) {
+                            let ccontroller = state.chemControllers.getItemByIndex(i);
+                            if (dt.getTime() - ccontroller.lastComm > 60000) ccontroller.status = 1;
+                        }
+                    }
                     state.time.hours = msg.extractPayloadByte(0);
                     state.time.minutes = msg.extractPayloadByte(1);
                     state.time.seconds = dt.getSeconds();
@@ -396,9 +402,7 @@ export class EquipmentStateMessage {
                         }
                         state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
                         state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
-                        // todo: do not think this is correct - at least not for IntelliTouch
                         state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
-
                     }
                     else {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);
@@ -467,10 +471,6 @@ export class EquipmentStateMessage {
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
                                 EquipmentStateMessage.processFeatureState(msg);
-                                //let ver: ConfigVersion =
-                                //    typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
-                                //ver.equipment = msg.extractPayloadInt(25);
-                                //sys.processVersionChanges(ver);
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.circuits.syncVirtualCircuitStates();

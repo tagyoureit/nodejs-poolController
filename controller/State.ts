@@ -11,7 +11,7 @@ import { InvalidEquipmentIdError } from './Errors';
 export class State implements IState {
     statePath: string;
     data: any;
-    _dirtyList: DirtyStateCollection=new DirtyStateCollection();
+    _dirtyList: DirtyStateCollection = new DirtyStateCollection();
     protected _lastUpdated: Date;
     private _isDirty: boolean;
     private _timerDirty: NodeJS.Timeout;
@@ -21,6 +21,7 @@ export class State implements IState {
         const handler = {
             get(target, property, receiver) {
                 const val = Reflect.get(target, property, receiver);
+                if (typeof val === 'function') return val.bind(target);
                 if (typeof (val) === 'object' && val !== null) return new Proxy(val, handler);
                 return val;
             },
@@ -194,7 +195,7 @@ export class State implements IState {
     } */
     public get delay(): number { return typeof this.data.delay.val !== 'undefined' ? this.data.delay.val : -1; }
     public set delay(val: number) {
-        if (this.data.delay !== val) {
+        if (this.delay !== val) {
             this.data.delay = sys.board.valueMaps.delay.transform(val);
             this.hasChanged = true;
         }
@@ -939,7 +940,6 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public setCircuitState(id: number, val: boolean) { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public async setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
-    public setDimmerLevel(id: number, level: number) { sys.board.circuits.setDimmerLevel(id, level); }
     public getInterfaceById(id: number, add?: true): ICircuitState {
         let iCircuit: ICircuitState = null;
         if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
@@ -1015,11 +1015,6 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
     public superChlorReference: number=0;
     public lastDispatchSuperChlor: number=0;
-    public setChlor(id: number, poolSetpoint: number, spaSetpoint?: number, superChlorHours?: number) { this.getItemById(id).setChlor(poolSetpoint, spaSetpoint, superChlorHours); }
-    public setPoolSetpoint(id: number, setpoint: number) { this.getItemById(id).setPoolSetpoint(setpoint); }
-    public setSpaSetpoint(id: number, setpoint: number) { this.getItemById(id).setSpaSetpoint(setpoint); }
-    public setSuperChlorHours(id: number, hours: number) { this.getItemById(id).setSuperChlorHours(hours); }
-    public superChlorinate(id: number, bSet: boolean) { this.getItemById(id).superChlorinate(bSet); }
 }
 export class ChlorinatorState extends EqState {
     public dataName: string='chlorinator';
@@ -1132,11 +1127,6 @@ export class ChlorinatorState extends EqState {
         else
             this.setDataVal('superChlor', false);
     }
-    public setChlor(poolSetpoint: number, spaSetpoint = this.spaSetpoint, superChlorHours = this.superChlorHours) { sys.board.chlorinator.setChlor(this, poolSetpoint, spaSetpoint || 0, superChlorHours || 0); }
-    public setPoolSetpoint(setpoint: number) { sys.board.chlorinator.setPoolSetpoint(this, setpoint); }
-    public setSpaSetpoint(setpoint: number) { sys.board.chlorinator.setSpaSetpoint(this, setpoint); }
-    public setSuperChlorHours(hours: number) { sys.board.chlorinator.setSuperChlorHours(this, hours); }
-    public superChlorinate(bSet: boolean, hours: number = this.superChlorHours) { sys.board.chlorinator.superChlorinate(this, bSet, hours); }
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
@@ -1146,12 +1136,23 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
 }
 
 export class ChemControllerState extends EqState {
+    public get lastComm(): number { return this.data.lastComm || 0; }
+    public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
+    public get status(): number {
+        return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1;
+    }
+    public set status(val: number) {
+        if (this.status !== val) {
+            this.data.status = sys.board.valueMaps.chemControllerStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
     public set body(val: number) {
         if (this.body !== val) {
@@ -1333,7 +1334,7 @@ export class ChemControllerState extends EqState {
     public getExtended(): any {
         let obj = this.get(true);
         obj.saturationIndex = this.saturationIndex;
-        return this.get(true);
+        return obj;
     }
 }
 export class CommsState {

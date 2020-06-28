@@ -184,9 +184,7 @@ export class ConfigRoute {
                 await sys.board.system.setGeneralAsync(req.body);
                 return res.status(200).send(sys.general.get());
             }
-            catch (err) {
-                next(err);
-            }
+            catch (err) { next(err); }
         });
         app.put('/config/valve', async (req, res, next) => {
             // Update a valve.
@@ -258,6 +256,13 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.delete('/config/lightGroup', async (req, res, next) => {
+            try {
+                let group = await sys.board.circuits.deleteLightGroupAsync(req.body);
+                return res.status(200).send((group).get(true));
+            }
+            catch (err) { next(err); }
+        });
         app.put('/config/pump', async (req, res, next) => {
             // Change the pump attributes.  This will add the pump if it doesn't exist, set
             // any affiliated circuits and maintain all attribututes of the pump.
@@ -297,6 +302,20 @@ export class ConfigRoute {
                 //console.log(`Error deleting schedule... ${err}`);
                 next(err);
             }
+        });
+        app.put('/config/chlorinator', async (req, res, next) => {
+            try {
+                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
+                return res.status(200).send(sys.chlorinators.getItemById(chlor.id).get());
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/chlorinator', async (req, res, next) => {
+            try {
+                let chlor = await sys.board.chlorinator.deleteChlorAsync(req.body);
+                return res.status(200).send(chlor.get());
+            }
+            catch (err) { next(err); }
         });
 
 
@@ -459,8 +478,8 @@ export class ConfigRoute {
             let schedId = parseInt(req.params.id || '0', 10);
             let eggTimer = sys.eggTimers.getItemById(schedId);
             let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.set(req.body);
-            else if (sched.circuit) sched.set(req.body);
+            if (eggTimer.circuit) eggTimer.setEggTimer(req.body);
+            else if (sched.circuit) sched.setSchedule(req.body);
             else return res.status(500).send('Not a valid id');
             return res.status(200).send('OK');
         });
@@ -468,8 +487,8 @@ export class ConfigRoute {
             let schedId = parseInt(req.params.id || '0', 10);
             let eggTimer = sys.eggTimers.getItemById(schedId);
             let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.delete();
-            else if (sched.circuit) sched.delete();
+            if (eggTimer.circuit) eggTimer.deleteEggTimer();
+            else if (sched.circuit) sched.deleteSchedule();
             else return res.status(500).send('Not a valid id');
             return res.status(200).send('OK');
         });
@@ -553,7 +572,7 @@ export class ConfigRoute {
         /******* ENDPOINTS FOR MANAGING THE poolController APPLICATION *********/
         app.put('/app/logger/setOptions', (req, res) => {
             logger.setOptions(req.body);
-            return res.status(200).send('OK');
+            return res.status(200).send(logger.options);
         });
         app.put('/app/logger/clearMessages', (req, res) => {
             logger.clearMessages();

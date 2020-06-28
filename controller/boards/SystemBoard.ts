@@ -379,6 +379,11 @@ export class byteValueMaps {
         [1, { name: 'intellichem', desc: 'IntelliChem' }],
         [2, { name: 'homegrown', desc: 'Homegrown' }]
     ]);
+    public chemControllerStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok' }],
+        [1, { name: 'nocomms', desc: 'No Communication' }]
+    ]);
+    // RKS: TODO -- Make these chemController not intelliChem.
     public intelliChemWaterFlow: byteValueMap=new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
@@ -395,6 +400,7 @@ export class byteValueMaps {
         [20, { name: 'ok', desc: 'Ok' }],
         [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
     ]);
+
     public timeZones: byteValueMap=new byteValueMap([
         [128, { name: 'Samoa Standard Time', loc: 'Pacific', abbrev: 'SST', utcOffset: -11 }],
         [129, { name: 'Tahiti Time', loc: 'Pacific', abbrev: 'TAHT', utcOffset: -10 }],
@@ -664,13 +670,27 @@ export class SystemCommands extends BoardCommands {
 }
 export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
-        return new Promise<Body>(function(resolve, reject) {
+        return new Promise<Body>(function (resolve, reject) {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
             let body = sys.bodies.getItemById(id, false);
             for (let s in body) body[s] = obj[s];
             resolve(body);
         });
+    }
+    public mapBodyAssociation(val: any): any {
+        if (typeof val === 'undefined') return;
+        let ass = sys.board.bodies.getBodyAssociations();
+        let nval = parseInt(val, 10);
+        if (!isNaN(nval)) {
+            return ass.find(elem => elem.val === nval);
+        }
+        else if (typeof val === 'string') return ass.find(elem => elem.name === val);
+        else if (typeof val.val !== 'undefined') {
+            nval = parseInt(val.val);
+            return ass.find(elem => elem.val === val) !== undefined;
+        }
+        else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
     }
     // This method provides a list of enumerated values for configuring associations
     // tied to the current configuration.  It is used to supply only the valid values
@@ -681,7 +701,7 @@ export class BodyCommands extends BoardCommands {
         let assoc = sys.board.valueMaps.bodies.toArray();
         for (let i = 0; i < assoc.length; i++) {
             let code = assoc[i];
-            
+
             switch (code.name) {
                 case 'body1':
                 case 'pool':
@@ -709,8 +729,20 @@ export class BodyCommands extends BoardCommands {
         }
         return ass;
     }
-    public setHeatModeAsync(body: Body, mode: number) { }
-    public setHeatSetpointAsync(body: Body, setPoint: number) { }
+    public setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.heatMode = bstate.heatMode = mode;
+        state.emitEquipmentChanges();
+        return Promise.resolve(bstate);
+    }
+    public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.setPoint = bstate.setPoint = setPoint;
+        state.emitEquipmentChanges();
+        return Promise.resolve(bstate);
+    }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         heatModes.push(this.board.valueMaps.heatModes.transform(0));
@@ -1327,7 +1359,7 @@ export class CircuitCommands extends BoardCommands {
         return Promise.resolve(circ);
     }
 
-    public toggleCircuitStateAsync(id: number) {
+    public toggleCircuitStateAsync(id: number) : Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !circ.isOn);
     }
@@ -1336,9 +1368,10 @@ export class CircuitCommands extends BoardCommands {
         cstate.lightingTheme = theme;
         return Promise.resolve(cstate as ICircuitState);
     }
-    public setDimmerLevel(id: number, level: number) {
+    public setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
         let circ = state.circuits.getItemById(id);
         circ.level = level;
+        return Promise.resolve(circ as ICircuitState);
     }
     public getCircuitReferences(includeCircuits?: boolean, includeFeatures?: boolean, includeVirtual?: boolean, includeGroups?: boolean) {
         let arrRefs = [];
@@ -1489,8 +1522,8 @@ export class CircuitCommands extends BoardCommands {
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
             let sgroup = state.circuitGroups.getItemById(id, false);
-            sys.features.removeItemById(id);
-            state.features.removeItemById(id);
+            sys.circuitGroups.removeItemById(id);
+            state.circuitGroups.removeItemById(id);
             group.isActive = false;
             sgroup.isOn = false;
             sgroup.isActive = false;
@@ -1499,8 +1532,26 @@ export class CircuitCommands extends BoardCommands {
         }
         else
             throw new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup');
-
     }
+    public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'LightGroup');
+        if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let group = sys.lightGroups.getItemById(id, false);
+            let sgroup = state.lightGroups.getItemById(id, false);
+            sys.lightGroups.removeItemById(id);
+            state.lightGroups.removeItemById(id);
+            group.isActive = false;
+            sgroup.isOn = false;
+            sgroup.isActive = false;
+            sgroup.emitEquipmentChange();
+            return new Promise<LightGroup>((resolve, reject) => { resolve(group); });
+        }
+        else
+            throw new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup');
+    }
+
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         if (typeof data.id === 'undefined') throw new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit');
         let circuit = sys.circuits.getInterfaceById(data.id);
@@ -1633,15 +1684,15 @@ export class FeatureCommands extends BoardCommands {
             throw new InvalidEquipmentIdError('Feature id has not been defined', obj.id, 'Feature');
     }
 
-    public async setFeatureStateAsync(id: number, val: boolean) {
+    public async setFeatureStateAsync(id: number, val: boolean) : Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = val;
-        return Promise.resolve(feat as ICircuitState);
+        return Promise.resolve(feat);
     }
-    public async toggleFeatureStateAsync(id: number) {
+    public async toggleFeatureStateAsync(id: number) : Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = !feat.isOn;
-        return Promise.resolve(feat as ICircuitState);
+        return Promise.resolve(feat);
     }
     public async setGroupStateAsync(grp: CircuitGroup, val: boolean) {
         let circuits = grp.circuits.toArray();
@@ -1673,6 +1724,36 @@ export class FeatureCommands extends BoardCommands {
 
 }  // tacowaco93915212
 export class ChlorinatorCommands extends BoardCommands {
+    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) obj.id = 1;
+        // Merge all the information.
+        let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
+        // Verify the data.
+        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+        if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
+        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        let schlor = state.chlorinators.getItemById(id, true);
+        let cchlor = sys.chlorinators.getItemById(id, true);
+        for (let prop in chlor) {
+            if (prop in schlor) schlor[prop] = chlor[prop];
+            if (prop in cchlor) cchlor[prop] = chlor[prop];
+        }
+        state.emitEquipmentChanges();
+        return Promise.resolve(chlor);
+    }
+    public deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) obj.id = 1;
+        // Merge all the information.
+        let chlor = state.chlorinators.getItemById(id);
+        state.chlorinators.removeItemById(id);
+        sys.chlorinators.removeItemById(id);
+        state.emitEquipmentChanges();
+        return Promise.resolve(chlor);
+    }
+
     public setChlorProps(chlor: Chlorinator, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -1680,26 +1761,6 @@ export class ChlorinatorCommands extends BoardCommands {
             }
         }
     }
-
-    public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
-        try {
-            let chlor = sys.chlorinators.getItemById(cstate.id);
-            chlor.poolSetpoint = cstate.poolSetpoint = poolSetpoint;
-            chlor.spaSetpoint = cstate.spaSetpoint = spaSetpoint;
-            chlor.superChlorHours = cstate.superChlorHours = superChlorHours;
-            chlor.superChlor = cstate.superChlor = superChlor;
-            state.emitEquipmentChanges();
-            sys.board.virtualChlorinatorController.start();
-        }
-        catch (err) {
-            logger.error(`Error setting chlorinator desired output: ${ err.message }`);
-        }
-    }
-    public setPoolSetpoint(cstate: ChlorinatorState, poolSetpoint: number) { this.setChlor(cstate, poolSetpoint); }
-    public setSpaSetpoint(cstate: ChlorinatorState, spaSetpoint: number) { this.setChlor(cstate, cstate.poolSetpoint, spaSetpoint); }
-    public setSuperChlorHours(cstate: ChlorinatorState, hours: number) { this.setChlor(cstate, cstate.poolSetpoint, cstate.spaSetpoint, hours); }
-    public superChlorinate(cstate: ChlorinatorState, bSet: boolean, hours: number) { this.setChlor(cstate, cstate.poolSetpoint, cstate.spaSetpoint, typeof hours !== 'undefined' ? hours : cstate.superChlorHours, bSet); }
-
     // Chlorinator direct control methods
     public requestName(cstate: ChlorinatorState) {
         let out = Outbound.create({

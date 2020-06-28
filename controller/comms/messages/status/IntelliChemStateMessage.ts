@@ -84,6 +84,7 @@ export class IntelliChemStateMessage {
         // The address is king here.  The id is not.
         let controller = sys.chemControllers.getItemByAddress(address, true);
         let scontroller = state.chemControllers.getItemById(controller.id, true);
+        scontroller.lastComm = new Date().getTime();
         scontroller.address = controller.address;
         scontroller.pHLevel = msg.extractPayloadInt(0) / 100;
         scontroller.orpLevel = msg.extractPayloadInt(2);

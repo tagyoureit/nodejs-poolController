@@ -179,7 +179,7 @@ export class CircuitGroupMessage {
             var group: ICircuitGroup = sys.circuitGroups.getInterfaceById(groupId++);
             if (group.isActive) {
                 let sgroup: ICircuitGroupState = group.type === 1 ? state.lightGroups.getItemById(group.id) : state.circuitGroups.getItemById(group.id);
-                group.eggTimer = (msg.extractPayloadByte(i + 1) * 60) + msg.extractPayloadByte(i + 16);
+                group.eggTimer = (msg.extractPayloadByte(i) * 60) + msg.extractPayloadByte(i + 16);
                 sgroup.eggTimer = group.eggTimer;
             }
         }

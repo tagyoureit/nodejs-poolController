@@ -33,6 +33,7 @@ export class IntellichemMessage {
                         let scontroller = state.chemControllers.getItemById(controller.id, true);
                         scontroller.address = controller.address = msg.extractPayloadByte(i + 10);
                         scontroller.type = controller.type = 1;
+                        scontroller.body = controller.body = msg.extractPayloadByte(i + 2);
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
@@ -44,7 +45,6 @@ export class IntellichemMessage {
                         if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
                         if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
                         if (typeof scontroller.waterFlow === 'undefined') scontroller.waterFlow = 0;
-                        
                     }
                 }
                 break;

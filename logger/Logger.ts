@@ -57,6 +57,7 @@ class Logger {
             return this.stopCaptureForReplayAsync();
         }
     }
+    public get options(): any { return this.cfg; }
     public info(...args: any[]) { logger._logger.info.apply(logger._logger, arguments); }
     public debug(...args: any[]) { logger._logger.debug.apply(logger._logger, arguments); }
     public warn(...args: any[]) { logger._logger.warn.apply(logger._logger, arguments); }

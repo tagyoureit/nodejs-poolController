@@ -232,10 +232,8 @@ export class PoolSystem implements IPoolSystem {
         const handler = {
             get(target, property, receiver) {
                 // console.log(`getting prop: ${property} -- dataName? ${target.length}`)
-                if (typeof target[property] === 'function') {
-                    return Reflect.get(target, property, receiver);
-                }
                 const val = Reflect.get(target, property, receiver);
+                if (typeof val === 'function') return val.bind(target);
                 if (typeof val === 'object' && val !== null) return new Proxy(val, handler);
                 return val;
             },
@@ -246,7 +244,7 @@ export class PoolSystem implements IPoolSystem {
                 return Reflect.set(target, property, value, receiver);
             },
             deleteProperty(target, property) {
-                if (property in target) delete target[property];
+                if (property in target) Reflect.deleteProperty(target, property);
                 return true;
             }
         };
@@ -388,7 +386,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     }
     public removeItemById(id: number): T {
         let rem: T = null;
-        for (let i = 0; i < this.data.length; i++)
+        for (let i = this.data.length - 1; i >= 0; i--)
             if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 rem = this.data.splice(i, 1);
                 return rem;
@@ -718,13 +716,19 @@ export class ConfigVersion extends EqItem {
 export class BodyCollection extends EqItemCollection<Body> {
     constructor(data: any, name?: string) { super(data, name || "bodies"); }
     public createItem(data: any): Body { return new Body(data); }
-    public setHeatModeAsync(id: number, mode: number) {
-        let body = this.getItemById(id);
-        return sys.board.bodies.setHeatModeAsync(body, mode);
-    }
-    public setHeatSetpointAsync(id: number, setPoint: number) {
-        let body = this.getItemById(id);
-        return sys.board.bodies.setHeatSetpointAsync(body, setPoint);
+    // RKS: This finds a body by any of it's identifying factors.
+    public findByObject(obj: any): Body {
+        // This has a priority weigh to the supplied object values.
+        // 1. If the id is provided it will search by id.
+        // 2. If the id is not provided and the circuit id is provided it will search by the circuit id.
+        // 3. Finally if nothing else is provided it will search by name.
+        let body = this.find(elem => {
+            if (typeof obj.id !== 'undefined') return obj.id === elem.id;
+            else if(typeof obj.circuit !== 'undefined') return obj.circuit === elem.circuit;
+            else if (typeof obj.name !== 'undefined') return obj.name === body.name;
+            else return false;
+        });
+        return body;
     }
 }
 export class Body extends EqItem {
@@ -750,8 +754,8 @@ export class Body extends EqItem {
     public get heatMode(): number { return this.data.heatMode; }
     public set heatMode(val: number) { this.setDataVal('heatMode', val); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
-    public async setHeatModeAsync(mode: number) { return sys.board.bodies.setHeatModeAsync(this, mode); }
-    public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpointAsync(this, setPoint); }
+    //public async setHeatModeAsync(mode: number) { return sys.board.bodies.setHeatModeAsync(this, mode); }
+    //public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpointAsync(this, setPoint); }
 }
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }
@@ -803,8 +807,10 @@ export class Schedule extends EqItem {
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.data.startDate = Timestamp.toISOLocal(this.startDate); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }
-    public set(obj: any) { sys.board.schedules.setSchedule(this, obj); }
-    public delete() {
+    // RKS: Talk to Russ about these. The method below was originally set.  Unfortunately, this interacts with proxy and delete should be
+    // replaced by the corresponding deleteAsync call.
+    public setSchedule(obj: any) { sys.board.schedules.setSchedule(this, obj); }
+    public deleteSchedule() {
         this.circuit = 0;
         sys.board.schedules.setSchedule(this);
     }
@@ -832,8 +838,8 @@ export class EggTimer extends EqItem {
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public set(obj?: any) { sys.board.schedules.setSchedule(this, obj); }
-    public delete() {
+    public setEggTimer(obj?: any) { sys.board.schedules.setSchedule(this, obj); }
+    public deleteEggTimer() {
         const circuit = sys.circuits.getInterfaceById(this.circuit);
         circuit.eggTimer = 720;
         this.circuit = 0;

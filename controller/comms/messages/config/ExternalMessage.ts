@@ -58,6 +58,13 @@ export class ExternalMessage {
     }
     public static processIntelliChem(msg: Inbound) {
         let controller = sys.chemControllers.getItemById(msg.extractPayloadByte(2) + 1);
+        controller.body = msg.extractPayloadByte(3);
+        controller.address = msg.extractPayloadByte(5);
+        controller.pHSetpoint = msg.extractPayloadInt(7) / 100;
+        controller.orpSetpoint = msg.extractPayloadInt(9);
+        controller.calciumHardness = msg.extractPayloadInt(13);
+        controller.cyanuricAcid = msg.extractPayloadInt(15);
+        controller.alkalinity = msg.extractPayloadInt(17);
     }
     public static processValve(msg: Inbound) {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);
@@ -304,12 +311,13 @@ export class ExternalMessage {
                     gstate.name = group.name;
                     gstate.type = group.type;
                     // Now calculate out the sync/set/swim operations.
-                    if (gstate.dataName === 'lightGroup') {
+                    if (gstate.dataName === 'lightGroup' && start === 13) {
                         let lg = gstate as LightGroupState;
                         let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
                         let byteNdx = Math.floor(ndx / 4);
-                        let bitNdx = (ndx * 2);
+                        let bitNdx = (ndx * 2) - (byteNdx * 8);
                         let byte = msg.extractPayloadByte(start + 15 + byteNdx, 255);
+                        //console.log(`ndx:${start + 15 + byteNdx} byte: ${byte}, bit: ${bitNdx}`);
                         byte = ((byte >> bitNdx) & 0x0003);
                         // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
                         // does acutall send 4 so all are represented there.
@@ -384,8 +392,8 @@ export class ExternalMessage {
         let startTime = msg.extractPayloadInt(3);
         let endTime = msg.extractPayloadInt(5);
         let circuit = msg.extractPayloadByte(7) + 1;
-        let cfg = sys.schedules.getItemById(schedId, circuit !== 256);
-        cfg.isActive = circuit !== 256;
+        let cfg = sys.schedules.getItemById(schedId, circuit !== 256 && startTime !== 0 && endTime !== 0);
+        cfg.isActive = (circuit !== 256 && startTime !== 0 && endTime !== 0);
         cfg.startTime = startTime;
         cfg.endTime = endTime;
         cfg.circuit = circuit;
@@ -406,7 +414,7 @@ export class ExternalMessage {
         cfg.heatSource = msg.extractPayloadByte(13);
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
-        if (circuit !== 256) {
+        if (circuit !== 256 && startTime !== 0 && endTime !== 0) {
             cfg.isActive = true;
             let s = state.schedules.getItemById(schedId, true);
             s.startTime = cfg.startTime;
@@ -429,18 +437,28 @@ export class ExternalMessage {
     }
 
     private static processChlorinator(msg: Inbound) {
+        let isActive = msg.extractPayloadByte(10) > 0;
         let chlorId = msg.extractPayloadByte(2) + 1;
-        let cfg = sys.chlorinators.getItemById(chlorId);
-        let s = state.chlorinators.getItemById(chlorId);
-        cfg.body = msg.extractPayloadByte(3);
-        cfg.poolSetpoint = msg.extractPayloadByte(5);
-        cfg.spaSetpoint = msg.extractPayloadByte(6);
-        cfg.superChlor = msg.extractPayloadByte(7) > 0;
-        cfg.superChlorHours = msg.extractPayloadByte(8);
-        s.poolSetpoint = cfg.poolSetpoint;
-        s.spaSetpoint = cfg.spaSetpoint;
-        s.superChlorHours = cfg.superChlorHours;
-        s.body = cfg.body;
+        let cfg = sys.chlorinators.getItemById(chlorId, isActive);
+        let s = state.chlorinators.getItemById(chlorId, isActive);
+        if (!isActive) {
+            sys.chlorinators.removeItemById(chlorId);
+            state.chlorinators.removeItemById(chlorId);
+            s.emitEquipmentChange();
+            return;
+        }
+        else {
+
+            cfg.body = msg.extractPayloadByte(3);
+            cfg.poolSetpoint = msg.extractPayloadByte(5);
+            cfg.spaSetpoint = msg.extractPayloadByte(6);
+            cfg.superChlor = msg.extractPayloadByte(7) > 0;
+            cfg.superChlorHours = msg.extractPayloadByte(8);
+            s.poolSetpoint = cfg.poolSetpoint;
+            s.spaSetpoint = cfg.spaSetpoint;
+            s.superChlorHours = cfg.superChlorHours;
+            s.body = cfg.body;
+        }
         state.emitEquipmentChanges();
     }
     private static processPump(msg: Inbound) {

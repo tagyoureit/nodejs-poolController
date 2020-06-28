@@ -775,16 +775,19 @@ export class Response extends Message {
     }
 
     // Factory
-    public static createResponse(action: number, payload: number[]): Response {
-        return new Response(Protocol.Broadcast, 15, Message.pluginAddress, action, payload);
-    }
-    public static createChlorinatorResponse(action: number, callback?: (err, msg) => void) {
-        // source, payload, ack are` not used
-        return new Response(Protocol.Chlorinator, 80, 0, action, undefined, undefined, callback);
-    }
-    public static createPumpResponse(action: number, pumpAddress: number, payload?: number[], callback?: (err, msg?: Outbound) => void) {
-        return new Response(Protocol.Pump, pumpAddress, 0, action, payload, undefined, callback);
-    }
+    // RKS: 06-24-20 Deprecated as this is no longer used.
+    //public static createResponse(action: number, payload: number[]): Response {
+    //    return new Response(Protocol.Broadcast, 15, Message.pluginAddress, action, payload);
+    //}
+    // RKS: 06-24-20 Deprecated as this is no longer used.
+    //public static createChlorinatorResponse(action: number, callback?: (err, msg) => void) {
+    //    // source, payload, ack are` not used
+    //    return new Response(Protocol.Chlorinator, 80, 0, action, undefined, undefined, callback);
+    //}
+    // RKS: 06-24-20 Deprecated as this is no longer used.
+    //public static createPumpResponse(action: number, pumpAddress: number, payload?: number[], callback?: (err, msg?: Outbound) => void) {
+    //    return new Response(Protocol.Pump, pumpAddress, 0, action, payload, undefined, callback);
+    //}
     // Fields
     public ack: Ack;
     public callback: (err, msg?: Outbound) => void;
@@ -827,6 +830,7 @@ export class Response extends Message {
             return false;
         if (sys.controllerType === ControllerType.IntelliCenter) {
             // intellicenter packets
+            if (this.dest >= 0 && msgIn.dest !== this.dest) return false;
             for (let i = 0; i < this.payload.length; i++) {
                 if (i > msgIn.payload.length - 1)
                     return false;

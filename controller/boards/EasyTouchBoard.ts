@@ -2,7 +2,7 @@
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState } from '../State';
+import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState, BodyTempState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
@@ -687,8 +687,8 @@ class TouchSystemCommands extends SystemCommands {
     }
 }
 class TouchBodyCommands extends BodyCommands {
-    public async setHeatModeAsync(body: Body, mode: number) {
-        return new Promise((resolve, reject) => {
+    public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+        return new Promise<BodyTempState>((resolve, reject) => {
             //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
@@ -706,16 +706,17 @@ class TouchBodyCommands extends BodyCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     body.heatMode = mode;
-                    state.temps.bodies.getItemById(body.id).heatMode = mode;
+                    let bstate = state.temps.bodies.getItemById(body.id);
+                    bstate.heatMode = mode;
                     state.emitEquipmentChanges();
-                    resolve();
+                    resolve(bstate);
                 }
             });
             conn.queueSendMessage(out);
         });
     }
-    public setHeatSetpointAsync(body: Body, setPoint: number) {
-        return new Promise((resolve, reject) => {
+    public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        return new Promise<BodyTempState>((resolve, reject) => {
             // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
             // 165,33,16,34,136,4,89,99,7,0,2,71  Request
             // 165,33,34,16,1,1,136,1,130  Controller Response
@@ -752,9 +753,10 @@ class TouchBodyCommands extends BodyCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     body.setPoint = setPoint;
-                    state.temps.bodies.getItemById(body.id).setPoint = setPoint;
+                    let bstate = state.temps.bodies.getItemById(body.id);
+                    bstate.setPoint = setPoint;
                     state.temps.emitEquipmentChange();
-                    resolve();
+                    resolve(bstate);
                 }
 
             });
@@ -1049,7 +1051,7 @@ class TouchCircuitCommands extends CircuitCommands {
 
 class TouchFeatureCommands extends FeatureCommands {
     // todo: remove this in favor of setCircuitState only?
-    public async setFeatureStateAsync(id: number, val: boolean) {
+    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         // Route this to the circuit state since this is the same call
         // and the interface takes care of it all.
         return this.board.circuits.setCircuitStateAsync(id, val);
@@ -1061,34 +1063,70 @@ class TouchFeatureCommands extends FeatureCommands {
     }
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public async setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
-        return new Promise((resolve, reject) => {
-
-
-            // if chlorinator is controlled by thas app; call super();
-            let vc = sys.chlorinators.getItemById(1);
-            if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-            // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
-            // all map here unless overridden.
+    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) obj.id = 1;
+        // Merge all the information.
+        let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
+        if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
+        // Verify the data.
+        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+        if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
+        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 dest: 16,
                 action: 153,
-                payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
+                payload: [(chlor.spaSetpoint << 1) + 1, chlor.poolSetpoint, chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
                 retries: 3,
                 response: true,
                 onComplete: (err) => {
                     if (err) {
-                        logger.error(`Error with setChlor: ${ err.message }`
-                        );
+                        logger.error(`Error setting Chlorinator values: ${err.message}` );
                         reject(err);
                     }
-                    sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-                    resolve();
+                    let schlor = state.chlorinators.getItemById(id, true);
+                    let cchlor = sys.chlorinators.getItemById(id, true);
+                    for (let prop in chlor) {
+                        if (prop in schlor) schlor[prop] = chlor[prop];
+                        if (prop in cchlor) cchlor[prop] = chlor[prop];
+                    }
+                    state.emitEquipmentChanges();
+                    resolve(schlor);
                 }
             });
             conn.queueSendMessage(out);
         });
     }
+
+
+    //public async setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
+    //    return new Promise((resolve, reject) => {
+    //        // if chlorinator is controlled by thas app; call super();
+    //        let vc = sys.chlorinators.getItemById(1);
+    //        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+    //        // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
+    //        // all map here unless overridden.
+    //        let out = Outbound.create({
+    //            dest: 16,
+    //            action: 153,
+    //            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
+    //            retries: 3,
+    //            response: true,
+    //            onComplete: (err) => {
+    //                if (err) {
+    //                    logger.error(`Error with setChlor: ${ err.message }`
+    //                    );
+    //                    reject(err);
+    //                }
+    //                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
+    //                resolve();
+    //            }
+    //        });
+    //        conn.queueSendMessage(out);
+    //    });
+    //}
 }
 class TouchPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
