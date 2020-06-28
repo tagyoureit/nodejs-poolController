@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState, BodyTempState } from '../State';
 import { logger } from '../../logger/Logger';
@@ -1061,6 +1061,35 @@ class TouchFeatureCommands extends FeatureCommands {
         // and the interface takes care of it all.
         return this.board.circuits.toggleCircuitStateAsync(id);
     }
+    public async setFeatureAsync(data: any): Promise<Feature>{
+        let feature = sys.features.getItemById(data.id);
+        let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+        let nameByte = 3; // set default `Aux 1`
+        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+        else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
+        return new Promise<Feature>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 139,
+                payload: [data.id, typeByte, nameByte],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    else {
+                        let circuit = sys.features.getItemById(data.id);
+                        let cstate = state.features.getItemById(data.id);
+                        circuit.nameId = cstate.nameId = nameByte;
+                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                        circuit.type = cstate.type = typeByte;
+                        state.emitEquipmentChanges();
+                        resolve(circuit);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlorAsync(obj: any): Promise<ChlorinatorState> {
@@ -1202,7 +1231,7 @@ class TouchPumpCommands extends PumpCommands {
 
         if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
         else data = extend(false, {}, data, { id: id, type: ntype });
-        data.name = data.name || pump.name || type.desc;
+        pump.name = data.name || pump.name || type.desc;
         // We will not be sending message for ss type pumps.
         if (type.name === 'ss') {
             // The OCP doesn't deal with single speed pumps.  Simply add it to the config.

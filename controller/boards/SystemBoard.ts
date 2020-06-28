@@ -375,9 +375,10 @@ export class byteValueMaps {
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
     public chemControllerTypes: byteValueMap=new byteValueMap([
-        [0, { name: 'unknown', desc: 'Unknown' }],
-        [1, { name: 'intellichem', desc: 'IntelliChem' }],
-        [2, { name: 'homegrown', desc: 'Homegrown' }]
+        [0, { name: 'none', desc: 'None' }],
+        [1, { name: 'unknown', desc: 'Unknown' }],
+        [2, { name: 'intellichem', desc: 'IntelliChem' }],
+        [3, { name: 'homegrown', desc: 'Homegrown' }]
     ]);
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -441,10 +442,12 @@ export class byteValueMaps {
         [0, { name: 'stopped', desc: 'Stopped' }],
         [1, { name: 'running', desc: 'Running' }]
     ]);
+    // need to validate these...
     public delay: byteValueMap=new byteValueMap([
+        [0, { name: 'nodelay', desc: 'No Delay' }],
         [32, { name: 'nodelay', desc: 'No Delay' }],
-        [34, { name: 'cleanerdelay', desc: 'Cleaner Delay' }],
-        [36, { name: 'heaterdelay', desc: 'Header Delay' }]
+        [34, { name: 'heaterdelay', desc: 'Header Delay' }],
+        [36, { name: 'cleanerdelay', desc: 'Cleaner Delay' }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
@@ -465,7 +468,7 @@ export class SystemBoard {
         let p = [];
         p.push(sys.board.virtualChemControllers.stopAsync());
         p.push(sys.board.virtualPumpControllers.stopAsync());
-        return Promise.all(p)
+        return Promise.all(p);
     }
     public turnOffAllCircuits(){
         // turn off all circuits/features
@@ -1351,9 +1354,7 @@ export class CircuitCommands extends BoardCommands {
         circ.isOn = utils.makeBool(val);
         if (circ.id === 6) {
             state.temps.bodies.getItemById(1).isOn = circ.isOn;
-            // circ.isOn ? sys.board.virtualChlorinatorController.start() : sys.board.virtualChlorinatorController.stop();
         }
-        // sys.board.virtualPumpControllers.start();
         sys.board.virtualPumpControllers.setTargetSpeed();
         sys.emitEquipmentChange();
         return Promise.resolve(circ);
@@ -1779,6 +1780,7 @@ export class ChlorinatorCommands extends BoardCommands {
             // We have not talked to the chlorinator in 30 seconds so we have lost communication.
             cstate.status = 128;
             cstate.currentOutput = 0;
+            state.emitEquipmentChanges();
         }
         setTimeout(sys.board.chlorinator.setDesiredOutput,100,cstate);
         setTimeout(sys.board.chlorinator.run,4000,chlor,cstate);
@@ -1990,20 +1992,35 @@ export class ValveCommands extends BoardCommands {
 }
 export class ChemControllerCommands extends BoardCommands {
     public async setChemControllerAsync(data: any) {
-        let id = parseInt(data.id, 10);
+        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+        if (id <= 0) {
+            // adding a chem controller
+            id = sys.chemControllers.nextAvailableChemController();
+        }
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${ data.id }`, data.id, 'ChemController'));
         let chem = sys.chemControllers.getItemById(id, true);
-
+        let schem = state.chemControllers.getItemById(id, true);
+        if (typeof data.type !== 'undefined' && data.type === 0) {
+            // remove
+            sys.chemControllers.removeItemById(data.id);
+            state.chemControllers.removeItemById(data.id);
+            let chem = sys.chemControllers.getItemById(data.id);
+            chem.isActive = false;
+            sys.emitEquipmentChange();
+            return Promise.resolve(chem);
+        }
+        schem.type = chem.type = parseInt(data.type,10) || chem.type ||  1;
         chem.isActive = data.isActive || true;
-        if (typeof data.isVirtual !== 'undefined') chem.isVirtual = data.isVirtual;
-        if (typeof data.type !== 'undefined') chem.type = data.type;
-        if (typeof data.name !== 'undefined') chem.name = data.name;
-        if (typeof data.body !== 'undefined') chem.body = data.body;
-        if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = data.pHSetpoint;
-        if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = data.orpSetpoint;
-        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = data.calciumHardness;
-        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = data.cyanuricAcid;
-        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = data.alkalinity;
+        chem.isVirtual = data.isVirtual || true;
+        schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
+        if (typeof data.body !== 'undefined') chem.body = data.body || 32;
+        if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
+        if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint,10);
+        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness,10);
+        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid,10);
+        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity,10);
+        sys.emitEquipmentChange();
         return Promise.resolve(chem);
     }
 
@@ -2075,48 +2092,24 @@ export class ChemControllerCommands extends BoardCommands {
 
 }
 export class VirtualChlorinatorController extends BoardCommands {
-    // private _timer: NodeJS.Timeout;
-
     // this method will check to see if we have any virtual chlors we are responsible for
     // if we have any, we will see if the timer is already running or if it needs to be started
     public start() {
-        // clearTimeout(this._timer);
         let chlor = sys.chlorinators.getItemById(1);
         let schlor = state.chlorinators.getItemById(1);
         if (chlor.isActive && chlor.isVirtual) {
-
-            // schlor.virtualControllerStatus = 1;
-            // if (chlor && chlor.isActive && chlor.isVirtual) {
-            //     sys.board.chlorinator.setDesiredOutput(state.chlorinators.getItemById(1));
-            // }
-            // if (schlor.poolSetpoint > 0 || schlor.spaSetpoint > 0) {
-                if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')){
-                    schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
-                    // this._timer = setTimeout(function() { sys.board.virtualChlorinatorController.start(); }, 4000);
-                    sys.board.chlorinator.run(chlor,schlor);
-                } 
-                
-                // return;
-            // }
-            // else {
-            //     this._timer = setTimeout(function() { sys.board.virtualChlorinatorController.start(); }, 30000);
-            //     return;
-            // }
+            if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')){
+                schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+                if (typeof (chlor.name) === 'undefined') sys.board.chlorinator.requestName(schlor);
+                sys.board.chlorinator.run(chlor,schlor);
+            } 
         }
-        // if we get this far, then no virtual chlorinators are active and clear the timer
-        // else {
-        //     delete schlor.virtualControllerStatus;
-            
-            // clearTimeout(this._timer);
-        // }
     }
 
     public stop() {
-        // if (typeof this._timer !== 'undefined') clearTimeout(this._timer);
         let schlor = state.chlorinators.getItemById(1);
         schlor.currentOutput = 0; // alias for off
         schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-
     }
 
     public async search() {
@@ -2140,7 +2133,6 @@ export class VirtualChlorinatorController extends BoardCommands {
             cstate.superChlor = chlor.superChlor;
             cstate.superChlorHours = chlor.superChlorHours;
             sys.board.chlorinator.requestName(cstate);
-            // sys.board.virtualChlorinatorController.chlorinatorHeartbeat();
             sys.board.virtualChlorinatorController.start();
         }
         catch (err) {

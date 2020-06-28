@@ -104,9 +104,9 @@ Ready for 6.0;
 * [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
 * Alpha - SmartThings integration script.  Run [this](https://github.com/tagyoureit/nodejs-poolController-webClient/tree/master/scripts) file directly from the command line.  Check the IP inside the script.
 * [SmartThings](https://github.com/tagyoureit/nodejs-poolController/tree/next) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
+* [Homebridge/Sire](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
 
 Need to be updated:
-* [Homebridge/Siri](https://github.com/leftyfl1p/homebridge-poolcontroller) by @leftyfl1p
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese

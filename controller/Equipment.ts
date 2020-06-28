@@ -196,12 +196,7 @@ export class PoolSystem implements IPoolSystem {
     public remotes: RemoteCollection;
     public security: Security;
     public customNames: CustomNameCollection;
-    //public intellibrite: LightGroup;
     public chemControllers: ChemControllerCollection;
-    //public intellichem: IntelliChem;
-/*     public virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
-    public virtualPumpControllers: VirtualPumpControllerCollection;
- */    //public get intellibrite(): LightGroup { return this.lightGroups.getItemById(0, true, { id: 0, isActive: true, name: 'IntelliBrite', type: 3 }); } 
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
@@ -1476,6 +1471,13 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
         return this.createItem(data || { id:this.data.length + 1, address: address });
     }
+    public nextAvailableChemController(): number {
+        for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
+            let chem = sys.chemControllers.getItemById(i);
+                if (!chem.isActive) return i;
+        }
+        return undefined;
+    }
 }
 export class ChemController extends EqItem {
     public dataName='chemControllerConfig';
@@ -1504,9 +1506,9 @@ export class ChemController extends EqItem {
     public get alkalinity(): number { return this.data.alkalinity; }
     public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
     public getExtended() {
-        let circ = this.get(true);
-        circ.circuit = state.circuits.getInterfaceById(circ.circuit);
-        return circ;
+        let chem = this.get(true);
+        chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+        return chem;
     }
 }
 export let sys = new PoolSystem();

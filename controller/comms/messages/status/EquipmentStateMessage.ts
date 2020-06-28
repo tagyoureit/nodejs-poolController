@@ -26,7 +26,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxIntelliBrites = 8;
         sys.equipment.maxChlorinators = 1;
         sys.equipment.maxCustomNames = 10;
-        sys.equipment.maxChemControllers = 1; // can this be more?
+        sys.equipment.maxChemControllers = 4; 
     }
     private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {

@@ -30,7 +30,6 @@ export class PumpMessage {
         pump.isActive = pump.type !== 0;
         switch (pump.type) {
             case 0: // none
-                pump.name = "none";
                 pump.isActive = false;
                 break;
             case 64: // vsf
@@ -45,6 +44,7 @@ export class PumpMessage {
                 PumpMessage.processVF_IT(msg);
                 break;
         }
+        if (typeof pump.name === 'undefined') pump.name = sys.board.valueMaps.pumpTypes.get(pump.type).desc;
         const spump = state.pumps.getItemById(pump.id, pumpId <= sys.equipment.maxPumps);
         spump.type = pump.type;
         spump.status = 0;

@@ -9,7 +9,11 @@
             "problemMatcher": [
                 "$tsc"
             ],
-            "group": "build"
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "label": "tsc: build - tsconfig.json"
         },
         {
             "type": "typescript",
@@ -18,23 +22,22 @@
             "problemMatcher": [
                 "$tsc-watch"
             ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }, 
+            "group": "build",
             "runOptions": {
                 "runOn": "folderOpen"
-            }
+            },
+            "label": "tsc: watch - tsconfig.json"
         },
         {
             "label": "clean data",
-            "type":"shell",
+            "type": "shell",
             "command": "rm -rf logs; cd data; rm pool*.json; echo '{}' > poolConfig.json; echo '{}' > poolState.json; "
         },
         {
             "label": "copy to remote",
             "type": "shell",
-            "command": "rsync -avzh * pi@10.0.0.170:/home/pi/nodejs-poolController --exclude='logs' --exclude='node_modules' --exclude='config.json' --exclude='dist' --exclude='.cache' --exclude='data'"
+            "command": "rsync -avzh * pi@10.0.0.170:/home/pi/nodejs-poolController --exclude='logs' --exclude='node_modules' --exclude='config.json' --exclude='dist' --exclude='.cache' --exclude='data'",
+            "problemMatcher": []
         }
     ]
 }

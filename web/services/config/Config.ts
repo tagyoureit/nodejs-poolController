@@ -155,7 +155,7 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/chemController', (req, res) => {
+        app.get('/config/options/chemControllers', (req, res) => {
             let opts = {
                 types: sys.board.valueMaps.chemControllerTypes.toArray(),
                 bodies: sys.board.bodies.getBodyAssociations(),
@@ -163,7 +163,8 @@ export class ConfigRoute {
                 status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
                 status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
                 waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray(),
-                controllers: sys.chemControllers.get()
+                controllers: sys.chemControllers.get(),
+                maxChemControllers: sys.equipment.maxChemControllers
             };
             return res.status(200).send(opts);
         });
@@ -286,6 +287,11 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.get('/config/schedule/:id', (req, res) => {
+            let schedId = parseInt(req.params.id || '0', 10);
+            let sched = sys.schedules.getItemById(schedId).get(true);
+            return res.status(200).send(sched);
+        });
         app.put('/config/schedule', async (req, res, next) => {
             try {
                 let sched = await sys.board.schedules.setScheduleAsync(req.body);
@@ -303,21 +309,26 @@ export class ConfigRoute {
                 next(err);
             }
         });
-        app.put('/config/chlorinator', async (req, res, next) => {
-            try {
-                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
-                return res.status(200).send(sys.chlorinators.getItemById(chlor.id).get());
-            }
-            catch (err) { next(err); }
+        /*
+        app.put('/config/schedule/:id', (req, res) => {
+            let schedId = parseInt(req.params.id || '0', 10);
+            let eggTimer = sys.eggTimers.getItemById(schedId);
+            let sched = sys.schedules.getItemById(schedId);
+            if (eggTimer.circuit) eggTimer.set(req.body);
+            else if (sched.circuit) sched.set(req.body);
+            else return res.status(500).send('Not a valid id');
+            return res.status(200).send('OK');
         });
-        app.delete('/config/chlorinator', async (req, res, next) => {
-            try {
-                let chlor = await sys.board.chlorinator.deleteChlorAsync(req.body);
-                return res.status(200).send(chlor.get());
-            }
-            catch (err) { next(err); }
+        app.delete('/config/schedule/:id', (req, res) => {
+            let schedId = parseInt(req.params.id || '0', 10);
+            let eggTimer = sys.eggTimers.getItemById(schedId);
+            let sched = sys.schedules.getItemById(schedId);
+            if (eggTimer.circuit) eggTimer.delete();
+            else if (sched.circuit) sched.delete();
+            else return res.status(500).send('Not a valid id');
+            return res.status(200).send('OK');
         });
-
+        */
 
 
         /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
@@ -469,29 +480,6 @@ export class ConfigRoute {
             pump.setType(0);
             return res.status(200).send('OK');
         });
-        app.get('/config/schedule/:id', (req, res) => {
-            let schedId = parseInt(req.params.id || '0', 10);
-            let sched = sys.schedules.getItemById(schedId).get(true);
-            return res.status(200).send(sched);
-        });
-        app.put('/config/schedule/:id', (req, res) => {
-            let schedId = parseInt(req.params.id || '0', 10);
-            let eggTimer = sys.eggTimers.getItemById(schedId);
-            let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.setEggTimer(req.body);
-            else if (sched.circuit) sched.setSchedule(req.body);
-            else return res.status(500).send('Not a valid id');
-            return res.status(200).send('OK');
-        });
-        app.delete('/config/schedule/:id', (req, res) => {
-            let schedId = parseInt(req.params.id || '0', 10);
-            let eggTimer = sys.eggTimers.getItemById(schedId);
-            let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.deleteEggTimer();
-            else if (sched.circuit) sched.deleteSchedule();
-            else return res.status(500).send('Not a valid id');
-            return res.status(200).send('OK');
-        });
         app.put('/config/dateTime', (req, res) => {
             sys.updateControllerDateTime(req.body);
             return res.status(200).send('OK');
@@ -546,7 +534,7 @@ export class ConfigRoute {
         app.put('/config/chemController', async (req, res, next) => {
             try {
                 let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
-                return res.status(200).send(chem.get(true));
+                return res.status(200).send(chem.get());
             }
             catch (err) { next(err); }
         });

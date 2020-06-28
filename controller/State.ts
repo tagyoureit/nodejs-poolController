@@ -123,14 +123,14 @@ export class State implements IState {
         var self = this;
         return {
             time: self.data.time || '',
-            body: self.data.body || {},
+            // body: self.data.body || {},
             valve: self.data.valve || 0,
             delay: self.data.delay,
             adjustDST: self.data.adjustDST || false,
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
             mode: self.data.mode || {},
-            freeze: self.data.freeze || false,
+            // freeze: self.data.freeze || false,
             appVersion: sys.appVersion || ''
         };
     }
@@ -155,14 +155,14 @@ export class State implements IState {
             this.data.mode = m;
             this.hasChanged = true;
         }
-    }
+    } 
     public get freeze(): boolean { return this.data.freeze === true; }
     public set freeze(val: boolean) {
         if (this.data.freeze !== val) {
             this.data.freeze = val;
             this.hasChanged = true;
         }
-    }
+    } 
     public get status() { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val) {
         if (typeof (val) === 'number') {
@@ -193,7 +193,7 @@ export class State implements IState {
             this.hasChanged = true;
         }
     } */
-    public get delay(): number { return typeof this.data.delay.val !== 'undefined' ? this.data.delay.val : -1; }
+    public get delay(): number { return typeof this.data.delay !== 'undefined' ? this.data.delay.val : -1; }
     public set delay(val: number) {
         if (this.delay !== val) {
             this.data.delay = sys.board.valueMaps.delay.transform(val);
@@ -239,9 +239,7 @@ export class State implements IState {
         this.circuitGroups = new CircuitGroupStateCollection(this.data, 'circuitGroups');
         this.lightGroups = new LightGroupStateCollection(this.data, 'lightGroups');
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
-        // this.intellibrite = new LightGroupState(this.data, 'intellibrite');
         this.chemControllers = new ChemControllerStateCollection(this.data, 'chemControllers');
-        //this.intellichem = new IntelliChemState(this.data, 'intellichem');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
     }
@@ -1137,6 +1135,7 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
 }
 
 export class ChemControllerState extends EqState {
+    public dataName: string='chemController';
     public get lastComm(): number { return this.data.lastComm || 0; }
     public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get id(): number { return this.data.id; }
