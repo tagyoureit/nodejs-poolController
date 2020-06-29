@@ -718,7 +718,7 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
     public createItem(data: any): CircuitGroupState { return new CircuitGroupState(data); }
     public getInterfaceById(id: number) {
         let iGroup: ICircuitGroupState = this.getItemById(id, false, { id: id, isActive: false });
-        if (!iGroup.isActive) iGroup = state.lightGroups.getItemById(id, false, { id: id, isActive: false });
+        if (iGroup.isActive === false) iGroup = state.lightGroups.getItemById(id, false, { id: id, isActive: false });
         return iGroup;
     }
 }
@@ -944,8 +944,9 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
         let iCircuit: ICircuitState = null;
         if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
             iCircuit = state.virtualCircuits.getItemById(id, add);
-        else if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+        else if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
             iCircuit = state.circuitGroups.getInterfaceById(id);
+        }
         else if (sys.board.equipmentIds.features.isInRange(id))
             iCircuit = state.features.getItemById(id, add);
         else
