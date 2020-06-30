@@ -1491,7 +1491,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
                 }
                 let sgrp = state.lightGroups.getItemById(group.id);
-                sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                //sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
                 state.emitEquipmentChanges();
             }
         };
@@ -1603,6 +1603,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
                         0, undefined
                     );
+                    out.response = IntelliCenterBoard.getAckResponse(168);
+                    out.retries = 3;
                     out.onComplete = async (err, msg) => {
                         if (!err) {
                             circuit.lightingTheme = theme;
@@ -1770,7 +1772,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public board: IntelliCenterBoard;
     public async setFeatureStateAsync(id, val): Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleFeatureStateAsync(id): Promise<ICircuitState> { return sys.board.circuits.toggleCircuitStateAsync(id); }
-    public setGroupStates() { } // Do nothing and let IntelliCenter do it.
+    public syncGroupStates() { } // Do nothing and let IntelliCenter do it.
     public async setFeatureAsync(data: any): Promise<Feature> {
         return new Promise<Feature>((resolve, reject) => {
             let id = parseInt(data.id, 10);
@@ -1789,6 +1791,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             let eggMins = eggTimer - (eggHrs * 60);
             let out = Outbound.create({
                 action: 168,
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3,
                 payload: [2, 0, id - sys.board.equipmentIds.features.start,
                     typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type,
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
@@ -1824,6 +1828,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
                 payload: [2, 0, id - sys.board.equipmentIds.features.start,
                     255, // Delete the feature
                     0, 0, 12, 0, 0],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries:3,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {

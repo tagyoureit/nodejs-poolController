@@ -21,7 +21,7 @@ export class State implements IState {
         const handler = {
             get(target, property, receiver) {
                 const val = Reflect.get(target, property, receiver);
-                if (typeof val === 'function') return val.bind(target);
+                if (typeof val === 'function') return val.bind(receiver);
                 if (typeof (val) === 'object' && val !== null) return new Proxy(val, handler);
                 return val;
             },
@@ -730,7 +730,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
-    public get type(): number { return this.data.type; }
+    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type.val : 0; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.circuitGroupTypes.transform(val);

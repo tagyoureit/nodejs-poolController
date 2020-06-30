@@ -147,6 +147,8 @@ export class CircuitGroupMessage {
             else {
                 state.lightGroups.removeItemById(group.id);
                 sys.lightGroups.removeItemById(group.id);
+                state.circuitGroups.removeItemById(group.id);
+                sys.circuitGroups.removeItemById(group.id);
             }
         }
         for (let i = 0; i < arrlightGrps.length; i++) {

@@ -233,8 +233,10 @@ export class PoolSystem implements IPoolSystem {
             get(target, property, receiver) {
                 // console.log(`getting prop: ${property} -- dataName? ${target.length}`)
                 const val = Reflect.get(target, property, receiver);
-                if (typeof val === 'function') return val.bind(target);
-                if (typeof val === 'object' && val !== null) return new Proxy(val, handler);
+                if (typeof val === 'function') return val.bind(receiver);
+                if (typeof val === 'object' && val !== null) {
+                    return new Proxy(val, handler);
+                }
                 return val;
             },
             set(target, property, value, receiver) {
