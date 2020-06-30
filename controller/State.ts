@@ -1230,19 +1230,19 @@ export class ChemControllerState extends EqState {
     // this wouldn't be used if there is a physical chem controller;
     // but can be used by home grown systems to populate current state
     public async setChemControllerAsync(data: any) {
-        if (typeof data.pHLevel !== 'undefined') this.pHLevel = data.pHLevel;
-        if (typeof data.orpLevel !== 'undefined') this.orpLevel = data.orpLevel;
-        if (typeof data.saltLevel !== 'undefined') this.saltLevel = data.saltLevel;
+        if (typeof data.pHLevel !== 'undefined') this.pHLevel = parseFloat(data.pHLevel);
+        if (typeof data.orpLevel !== 'undefined') this.orpLevel = parseFloat(data.orpLevel);
+        if (typeof data.saltLevel !== 'undefined') this.saltLevel = parseInt(data.saltLevel,10);
         // need to adjust for different bodies when we learn how
         else if (sys.chlorinators.getItemById(1).isActive) this.saltLevel = state.chlorinators.getItemById(1).saltLevel;
-        if (typeof data.waterFlow !== 'undefined') this.waterFlow = data.waterFlow;
-        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = data.acidTankLevel;
-        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = data.orpTankLevel;
-        if (typeof data.status1 !== 'undefined') this.status1 = data.status1;
-        if (typeof data.status2 !== 'undefined') this.status2 = data.status2;
-        if (typeof data.pHDosingTime !== 'undefined') this.pHDosingTime = data.pHDosingTime;
-        if (typeof data.orpDosingTime !== 'undefined') this.orpDosingTime = data.orpDosingTime;
-        if (typeof data.temp !== 'undefined') this.temp = data.temp;
+        if (typeof data.waterFlow !== 'undefined') this.waterFlow = parseInt(data.waterFlow);
+        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = parseInt(data.acidTankLevel,10);
+        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = parseInt(data.orpTankLevel,10);
+        if (typeof data.status1 !== 'undefined') this.status1 = parseInt(data.status1,10);
+        if (typeof data.status2 !== 'undefined') this.status2 = parseInt(data.status2,10);
+        if (typeof data.pHDosingTime !== 'undefined') this.pHDosingTime = parseInt(data.pHDosingTime,10);
+        if (typeof data.orpDosingTime !== 'undefined') this.orpDosingTime = parseInt(data.orpDosingTime,10);
+        if (typeof data.temp !== 'undefined') this.temp = parseInt(data.temp,10);
         else {
                 let tbody = state.temps.bodies.getBodyIsOn();
                 if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') this.temp = tbody.temp;
@@ -1253,18 +1253,20 @@ export class ChemControllerState extends EqState {
         }
         else this.tempUnits = state.temps.units;
         if (typeof data.saturationIndex !== 'undefined') this.saturationIndex = data.saturationIndex;
-        else this.saturationIndex = this.calculateSaturationIndex();
+        else this.calculateSaturationIndex();
+        this.emitEquipmentChange();
         return Promise.resolve(this);
     }
-    private calculateSaturationIndex(): number {
-       // Saturation Index = SI = pH + CHF + AF + TF - TDSF
+    public calculateSaturationIndex(): void {
+       // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
        let SI = Math.round(
            (this.pHLevel +
-               this.calculateCalciumHardnessFactor() +
-               this.calculateTotalCarbonateAlkalinity() +
-               this.calculateTemperatureFactor() -
-               this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
-        if (isNaN(SI)) {return undefined;} else {return SI;}
+            this.calculateCalciumHardnessFactor() +
+            this.calculateTotalCarbonateAlkalinity() +
+            this.calculateTemperatureFactor() -
+            this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+       if (isNaN(SI)) {this.saturationIndex = undefined} else {this.saturationIndex = SI;}
+       this.emitEquipmentChange();
     }
     private calculateCalciumHardnessFactor() {
         const CH = sys.chemControllers.getItemById(this.id).calciumHardness;

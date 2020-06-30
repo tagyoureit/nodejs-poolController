@@ -2020,6 +2020,7 @@ export class ChemControllerCommands extends BoardCommands {
         if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness,10);
         if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid,10);
         if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity,10);
+        state.chemControllers.getItemById(id).calculateSaturationIndex();
         sys.emitEquipmentChange();
         return Promise.resolve(chem);
     }
