@@ -396,7 +396,7 @@ export class TouchConfigQueue extends ConfigQueue {
             // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
             // this._configQueueTimer = setTimeout(()=>{sys.board.checkConfiguration();}, 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
-            sys.board.virtualChlorinatorController.search();
+            // sys.board.virtualChlorinatorController.search();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
@@ -1322,7 +1322,7 @@ class TouchPumpCommands extends PumpCommands {
                         spump.name = pump.name;
                         spump.type = pump.type;
                         spump.emitEquipmentChange();
-                        resolve();
+                        resolve(pump);
                     }
                 };
                 conn.queueSendMessage(outc);
