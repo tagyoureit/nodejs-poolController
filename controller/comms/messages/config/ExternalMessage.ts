@@ -414,9 +414,10 @@ export class ExternalMessage {
         cfg.heatSource = msg.extractPayloadByte(13);
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
-        if (circuit !== 256 && startTime !== 0 && endTime !== 0) {
-            cfg.isActive = true;
-            let s = state.schedules.getItemById(schedId, true);
+        let s = state.schedules.getItemById(schedId, cfg.isActive);
+        if (cfg.isActive) {
+            let s = state.schedules.getItemById(schedId, cfg.isActive);
+            s.isActive = cfg.isActive = true;
             s.startTime = cfg.startTime;
             s.endTime = cfg.endTime;
             s.circuit = cfg.circuit;
@@ -429,9 +430,10 @@ export class ExternalMessage {
             s.endTimeType = cfg.endTimeType;
         }
         else {
-            cfg.isActive = false;
+            s.isActive = cfg.isActive = false;
             sys.schedules.removeItemById(cfg.id);
             state.schedules.removeItemById(cfg.id);
+            s.emitEquipmentChange();
         }
         state.emitEquipmentChanges();
     }

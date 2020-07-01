@@ -449,6 +449,26 @@ class EqItemCollection<T> implements IEqItemCollection {
             if (typeof eq === 'undefined') return i;
         }
     }
+    public getMaxId(activeOnly?: boolean, defId?:number) {
+        let maxId;
+        for (let i = 0; i < this.data.length; i++) {
+            if (typeof this.data[i].id !== 'undefined') {
+                if (typeof activeOnly !== 'undefined' && this.data[i].isActive === false) continue;
+                maxId = Math.max(maxId || 0, this.data[i].id);
+            }
+        }
+        return typeof maxId !== 'undefined' ? maxId : defId;
+    }
+    public getMinId(activeOnly?: boolean, defId?:number) {
+        let minId;
+        for (let i = 0; i < this.data.length; i++) {
+            if (typeof this.data[i].id !== 'undefined') {
+                if (typeof activeOnly !== 'undefined' && this.data[i].isActive === false) continue;
+                minId = Math.min(minId || this.data[i].id, this.data[i].id);
+            }
+        }
+        return typeof minId !== 'undefined' ? minId : defId;
+    }
 }
 export class General extends EqItem {
     ctor(data): General { return new General(data, name || 'pool'); }

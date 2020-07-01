@@ -590,10 +590,12 @@ export class EquipmentStateMessage {
                 case 3:
                 case 4: {
                     const byte = msg.extractPayloadByte(7);
-                    const feature = sys.features.getItemById(featureId);
-                    const fstate = state.features.getItemById(featureId, feature.isActive);
-                    fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
-                    fstate.name = feature.name;
+                    const feature = sys.features.getItemById(featureId, false, { isActive: false });
+                    if (feature.isActive !== false) {
+                        const fstate = state.features.getItemById(featureId, feature.isActive);
+                        fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
+                        fstate.name = feature.name;
+                    }
                     break;
                 }
             }

@@ -638,6 +638,8 @@ export class ScheduleState extends EqState {
     public dataName: string='schedule';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get startTime(): number { return this.data.startTime; }
     public set startTime(val: number) { this.setDataVal('startTime', val); }
     public get endTime(): number { return this.data.endTime; }
@@ -867,7 +869,7 @@ export class TemperatureState extends EqState {
     public set air(val: number) { this.setDataVal('air', val); }
     public get solar(): number { return this.data.solar; }
     public set solar(val: number) { this.setDataVal('solar', val); }
-    public get units(): number { return typeof (this.data.units) !== 'undefined' ? this.data.units.val : -1; }
+    public get units(): number { return typeof this.data.units !== 'undefined' ? this.data.units.val : -1; }
     public set units(val: number) {
         if (this.units !== val) {
             this.data.units = sys.board.valueMaps.tempUnits.transform(val);

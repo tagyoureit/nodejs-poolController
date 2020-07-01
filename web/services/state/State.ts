@@ -50,6 +50,13 @@ export class StateRoute {
             sys.board.circuits.setLightGroupThemeAsync(id ,parseInt(req.body.theme, 10));
             return res.status(200).send('OK');
         }); */
+        app.put('/state/temps', async (req, res, next) => {
+            try {
+                let controller = await sys.board.system.setTempsAsync(req.body);
+                return res.status(200).send(controller.get(true));
+            }
+            catch (err) { next(err); }
+        });
         app.put('/state/circuit/setDimmerLevel', async (req, res, next) => {
             try {
                 let circuit = await sys.board.circuits.setDimmerLevelAsync(parseInt(req.body.id, 10), parseInt(req.body.level, 10));

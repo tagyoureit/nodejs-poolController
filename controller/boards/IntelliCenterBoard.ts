@@ -473,8 +473,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // Only add in the items that we need for now.  We will queue the optional packets later.  The first 6 packets
             // are required but we can reduce the number of names returned by only requesting the data after the names have been processed.
             req.oncomplete = function (req: IntelliCenterConfigRequest) {
+                let maxId = sys.features.getMaxId(true, 0) - sys.board.equipmentIds.features.start + 1;
                 // We only need to get the feature names required.  This will fill these after we know we have them.
-                req.fillRange(6, Math.min(Math.ceil(sys.features.length / 2) + 5, 21));
+                if(maxId > 0) req.fillRange(6, Math.min(Math.ceil(maxId / 2) + 6, 21));
             };
             this.push(req);
         }
@@ -483,11 +484,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 function (req: IntelliCenterConfigRequest) {
                     // Get the pump names after we have acquire the active pumps.  We only need
                     // the names of the active pumps.
-                    let pumpCount = 0;
-                    let arr = sys.pumps.toArray();
-                    for (let i = 0; i < arr.length; i++)
-                        if (arr[i].isActive) pumpCount++;
-                    if (pumpCount > 0) req.fillRange(19, Math.min(Math.ceil(pumpCount / 2) + 18, 26));
+                    let maxPumpId = sys.pumps.getMaxId(true, 0) - sys.board.equipmentIds.pumps.start + 1;
+                    if (maxPumpId > 0) req.fillRange(19, Math.min(Math.ceil(maxPumpId / 2) + 19, 26));
                 });
             req.fillRange(0, 3);
             req.fillRange(5, 18);
@@ -505,11 +503,11 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             let req = new IntelliCenterConfigRequest(ConfigCategories.circuitGroups, ver.circuitGroups, [32,33], function (req: IntelliCenterConfigRequest) {
                 // Only get group attributes for the ones we have defined.  The total number of message for all potential groups exceeds 50.
                 if (sys.circuitGroups.length + sys.lightGroups.length > 0) {
-                    let len = sys.circuitGroups.length + sys.lightGroups.length;
-                    req.fillRange(0, len); // Circuits
-                    req.fillRange(16, len + 16); // Group names and delay
-                    if (len > 0) req.fillRange(34, 35);  // Egg timer and colors
-                    if (len > 1) req.fillRange(36, Math.min(36 + len, 50)); // Colors
+                    let maxId = (Math.max(sys.circuitGroups.getMaxId(true, 0), sys.lightGroups.getMaxId(true, 0)) - sys.board.equipmentIds.circuitGroups.start) + 1;
+                    req.fillRange(0, maxId); // Associated Circuits
+                    req.fillRange(16, maxId + 16); // Group names and delay
+                    req.fillRange(34, 35);  // Egg timer and colors
+                    req.fillRange(36, Math.min(36 + maxId, 50)); // Colors
                 }
 
             });
@@ -528,7 +526,10 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr.heaters, ver.heaters)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.heaters, ver.heaters, [0, 1, 2, 3, 4],
                 function (req: IntelliCenterConfigRequest) {
-                    if (sys.heaters.length > 0) req.fillRange(5, Math.min(Math.ceil(sys.heaters.length / 2) + 5, 12)); // Heater names
+                    if (sys.heaters.length > 0) {
+                        let maxId = sys.heaters.getMaxId(true, 0);
+                        req.fillRange(5, Math.min(Math.ceil(sys.heaters.getMaxId(true, 0) / 2) + 5, 12)); // Heater names
+                    }
                     req.fillRange(13, 14);
                 });
             this.push(req);
@@ -537,16 +538,17 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.maybeQueueItems(curr.covers, ver.covers, ConfigCategories.covers, [0, 1]);
         if (this.compareVersions(curr.schedules, ver.schedules)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.schedules, ver.schedules, [0, 1, 2, 3, 4], function (req: IntelliCenterConfigRequest) {
-                req.fillRange(5, 4 + Math.min(Math.ceil(sys.schedules.length / 40), 7)); // Circuits
-                req.fillRange(8, 7 + Math.min(Math.ceil(sys.schedules.length / 40), 10)); // Flags
-                req.fillRange(11, 10 + Math.min(Math.ceil(sys.schedules.length / 40), 13)); // Schedule days bitmask
-                req.fillRange(14, 13 + Math.min(Math.ceil(sys.schedules.length / 40), 16)); // Unknown (one byte per schedule)
-                req.fillRange(17, 16 + Math.min(Math.ceil(sys.schedules.length / 40), 19)); // Unknown (one byte per schedule)
-                req.fillRange(20, 19 + Math.min(Math.ceil(sys.schedules.length / 40), 22)); // Unknown (one byte per schedule)
-                req.fillRange(23, 22 + Math.min(Math.ceil(sys.schedules.length / 20), 26)); // End Time
-                req.fillRange(28, 27 + Math.min(Math.ceil(sys.schedules.length / 40), 30)); // Heat Mode
-                req.fillRange(31, 30 + Math.min(Math.ceil(sys.schedules.length / 40), 33)); // Heat Mode
-                req.fillRange(34, 33 + Math.min(Math.ceil(sys.schedules.length / 40), 36)); // Heat Mode
+                let maxSchedId = sys.schedules.getMaxId();
+                req.fillRange(5, 5 + Math.min(Math.ceil(maxSchedId / 40), 7)); // Circuits
+                req.fillRange(8, 8 + Math.min(Math.ceil(maxSchedId / 40), 10)); // Flags
+                req.fillRange(11, 11 + Math.min(Math.ceil(maxSchedId / 40), 13)); // Schedule days bitmask
+                req.fillRange(14, 14 + Math.min(Math.ceil(maxSchedId / 40), 16)); // Unknown (one byte per schedule)
+                req.fillRange(17, 17 + Math.min(Math.ceil(maxSchedId / 40), 19)); // Unknown (one byte per schedule)
+                req.fillRange(20, 20 + Math.min(Math.ceil(maxSchedId / 40), 22)); // Unknown (one byte per schedule)
+                req.fillRange(23, 23 + Math.min(Math.ceil(maxSchedId / 20), 26)); // End Time
+                req.fillRange(28, 28 + Math.min(Math.ceil(maxSchedId / 40), 30)); // Heat Mode
+                req.fillRange(31, 31 + Math.min(Math.ceil(maxSchedId / 40), 33)); // Heat Mode
+                req.fillRange(34, 34 + Math.min(Math.ceil(maxSchedId / 40), 36)); // Heat Mode
             });
             this.push(req);
         }
@@ -1671,6 +1673,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             255, 255, 0, 1, 1, 0], // 30-35
             3);
         let circuitId = sys.board.equipmentIds.circuits.start;
+        // Circuits are always contiguous so we don't have to worry about
+        // them having a strange offset like features and groups.
         for (let i = 1; i <= state.data.circuits.length; i++) {
             let circuit = state.circuits.getItemById(circuitId++);
             let ndx = Math.floor((i - 1) / 8);
@@ -1680,56 +1684,72 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             else if (circuit.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
-        let featureId = sys.board.equipmentIds.features.start;
-        for (let i = 1; i <= state.data.features.length; i++) {
-            let feature = state.features.getItemById(featureId++);
-            let ndx = Math.floor((i - 1) / 8);
+        // Set the bits for the features.
+        for (let i = 0; i <= state.data.features.length; i++) {
+            let feature = state.features.getItemByIndex(i);
+            let ordinal = feature.id - sys.board.equipmentIds.features.start;
+            let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 9];
-            let bit = (i - 1) - (ndx * 8);
+            let bit = ordinal - (ndx * 8);
             if (feature.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
             else if (feature.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 9] = byte;
         }
-        let groupId = sys.board.equipmentIds.circuitGroups.start;
-        for (let i = 1; i <= state.circuitGroups.length + state.lightGroups.length; i++) {
-            let grp = state.circuitGroups.getInterfaceById(groupId++);
-            let ndx = Math.floor((i - 1) / 8);
+        // Set the bits for the circuit groups.
+        for (let i = 0; i <= state.data.circuitGroups.length; i++) {
+            let group = state.circuitGroups.getItemByIndex(i);
+            let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
-            let bit = (i - 1) - (ndx * 8);
-            //console.log(`Setting group State: ${grp.id}:${id} bit:${bit} val: ${(1 << bit)}`);
-            if (grp.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (grp.isOn) byte = byte | (1 << bit);
+            let bit = ordinal - (ndx * 8);
+            if (group.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (group.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 13] = byte;
-
-            // Now calculate out the sync/set/swim operations.
-            if (grp.dataName === 'lightGroup') {
-                let lg = grp as LightGroupState;
-                if (lg.action !== 0) {
-                    let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
-                    let byteNdx = Math.floor(ndx / 4);
-                    let bitNdx = (ndx * 2);
-                    let byte = out.payload[28 + byteNdx];
-                    // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
-                    // does acutally send 4 so all are represented there.
-                    // [10] = Set
-                    // [01] = Swim
-                    // [00] = Sync
-                    // [11] = No sequencing underway.
-                    // Only affect the 2 bits related to the light group.
-                    switch (lg.action) {
-                        case 1: // Sync
-                            byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
-                            break;
-                        case 2: // Color Set
-                            byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
-                            break;
-                        case 3: // Color Swim
-                            byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
-                            break;
-                    }
-                    out.payload[28 + byteNdx] = byte;
+        }
+        // Set the bits for the light groups.
+        for (let i = 0; i <= state.data.lightGroups.length; i++) {
+            let group = state.lightGroups.getItemByIndex(i);
+            let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            let ndx = Math.floor(ordinal / 8);
+            let byte = out.payload[ndx + 13];
+            let bit = ordinal - (ndx * 8);
+            if (group.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (group.isOn) byte = byte | (1 << bit);
+            out.payload[ndx + 13] = byte;
+            if (group.action !== 0) {
+                let byteNdx = Math.floor(ordinal / 4);
+                let bitNdx = (ndx * 2);
+                let byte = out.payload[28 + byteNdx];
+                // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+                // does acutally send 4 so all are represented there.
+                // [10] = Set
+                // [01] = Swim
+                // [00] = Sync
+                // [11] = No sequencing underway.
+                // Only affect the 2 bits related to the light group.
+                switch (group.action) {
+                    case 1: // Sync
+                        byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
+                        break;
+                    case 2: // Color Set
+                        byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
+                        break;
+                    case 3: // Color Swim
+                        byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
+                        break;
                 }
+                out.payload[28 + byteNdx] = byte;
             }
+        }
+        // Set the bits for the schedules.
+        for (let i = 0; i <= state.data.schedules.length; i++) {
+            let sched = state.schedules.getItemByIndex(i);
+            let ordinal = sched.id - 1;
+            let ndx = Math.floor(ordinal / 8);
+            let byte = out.payload[ndx + 15];
+            let bit = ordinal - (ndx * 8);
+            if (sched.isOn) byte = byte | (1 << bit);
+            out.payload[ndx + 15] = byte;
         }
         return out;
     }
@@ -2564,7 +2584,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                         sys.schedules.removeItemById(id);
                         state.schedules.removeItemById(id);
                         ssched.emitEquipmentChange();
-                        sched.isActive = false;
+                        ssched.isActive = sched.isActive = false;
                         resolve(sched);
                     }
                     else reject(err);

@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
@@ -525,9 +525,7 @@ export class ConfigRequest {
     public name: string;
     public category: number;
     public setcategory: number;
-    public fillRange(start: number, end: number) {
-        for (let i = start; i <= end; i++) this.items.push(i);
-    }
+    public fillRange(start: number, end: number) { for (let i = start; i <= end; i++) this.items.push(i); }
     public get isComplete(): boolean {
         return this.items.length === 0;
     }
@@ -586,6 +584,50 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
+    public async setTempsAsync(obj: any): Promise<TemperatureState> {
+        for (let prop in obj) {
+            switch (prop) {
+                case 'air':
+                case 'airSensor1':
+                    {
+                        let temp = parseInt(obj[prop], 10);
+                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        state.temps.air = temp + (sys.general.options.airTempAdj || 0);
+                    }
+                    break;
+                case 'waterSensor1':
+                    {
+                        let temp = parseInt(obj[prop], 10);
+                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        state.temps.waterSensor1 = temp + (sys.general.options.waterTempAdj1 || 0);
+                        let body = state.temps.bodies.getItemById(1);
+                        if (body.isOn) body.temp = state.temps.waterSensor1;
+
+                    }
+                    break;
+                case 'waterSensor2':
+                    {
+                        let temp = parseInt(obj[prop], 10);
+                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        state.temps.waterSensor2 = temp + (sys.general.options.waterTempAdj2 || 0);
+                        if (!state.equipment.shared) {
+                            let body = state.temps.bodies.getItemById(2);
+                            if (body.isOn) body.temp = state.temps.waterSensor2;
+                        }
+                    }
+                    break;
+                case 'solarSensor1':
+                case 'solar':
+                    {
+                        let temp = parseInt(obj[prop], 10);
+                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        state.temps.solar = temp + (sys.general.options.solarTempAdj1);
+                    }
+                    break;
+            }
+        }
+        return Promise.resolve(state.temps);
+    }
     public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
         if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
