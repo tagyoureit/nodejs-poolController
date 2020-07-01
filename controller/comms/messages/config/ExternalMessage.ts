@@ -281,13 +281,14 @@ export class ExternalMessage {
     }
     private static processFeatureState(start: number, msg: Inbound) {
         let featureId = sys.board.equipmentIds.features.start;
-        for (let i = start; i < msg.payload.length && sys.board.equipmentIds.features.isInRange(featureId); i++) {
+        let maxFeatureId = sys.features.getMaxId(true, 0);
+        for (let i = start; i < msg.payload.length && featureId <= maxFeatureId; i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the feature identified by each value.
             for (let j = 0; j < 8; j++) {
-                let feature = sys.features.getItemById(featureId);
-                let fstate = state.features.getItemById(featureId, feature.isActive);
-                if (feature.isActive) {
+                let feature = sys.features.getItemById(featureId, false, { isActive: false });
+                if (feature.isActive !== false) {
+                    let fstate = state.features.getItemById(featureId, true);
                     fstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                     fstate.name = feature.name;
                 }
@@ -300,13 +301,14 @@ export class ExternalMessage {
     }
     private static processCircuitGroupState(start: number, msg: Inbound) {
         let groupId = sys.board.equipmentIds.circuitGroups.start;
-        for (let i = start; i < msg.payload.length && sys.board.equipmentIds.circuitGroups.isInRange(groupId); i++) {
+        let maxGroupId = Math.max(sys.lightGroups.getMaxId(true, 0), sys.circuitGroups.getMaxId(true, 0));
+        for (let i = start; i < msg.payload.length && groupId <= maxGroupId; i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the group identified by each value.
             for (let j = 0; j < 8; j++) {
                 let group = sys.circuitGroups.getInterfaceById(groupId);
                 let gstate = group.type === 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
-                if (group.isActive) {
+                if (group.isActive !== false) {
                     gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                     gstate.name = group.name;
                     gstate.type = group.type;
@@ -411,6 +413,8 @@ export class ExternalMessage {
         cfg.startMonth = msg.extractPayloadByte(10);
         cfg.startDay = msg.extractPayloadByte(11);
         cfg.startYear = msg.extractPayloadByte(12);
+        let hs = msg.extractPayloadByte(13);
+        if (hs === 1) hs = 0; // Shim for 1.047
         cfg.heatSource = msg.extractPayloadByte(13);
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);

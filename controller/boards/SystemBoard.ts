@@ -1905,7 +1905,7 @@ export class ScheduleCommands extends BoardCommands {
             return byte;
         };
         let bdays = 0;
-        if (val.isArray) {
+        if (Array.isArray(val)) {
             for (let i in val) {
                 let v = val[i];
                 if (typeof v === 'string') bdays |= dayFromString(v);

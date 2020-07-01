@@ -214,7 +214,9 @@ export class Message {
     }
 }
 export class Inbound extends Message {
-    // usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyB0,b9600,raw
+    // /usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyUSB0,b9600,raw
+    // /usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyUSB0,b9600,cs8,cstopb=1,parenb=0,raw
+    // /usr/bin / socat TCP - LISTEN: 9801,fork,reuseaddr FILE:/dev/ttyUSB0, b9600, cs8, cstopb = 1, parenb = 0, raw
     constructor() {
         super();
         this.direction = Direction.In;

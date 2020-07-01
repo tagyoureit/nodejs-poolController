@@ -2473,7 +2473,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
             let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
             if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource || 0;
             let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
             let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
@@ -2555,6 +2555,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id);
             let ssched = state.schedules.getItemById(id);
+            let startDate = sched.startDate;
+            if (typeof startDate === 'undefined' || isNaN(startDate.getTime())) startDate = new Date();
             let out = Outbound.create({
                 action: 168,
                 payload: [
@@ -2568,12 +2570,12 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                     , 255
                     , 0
                     , 0
-                    , sched.startDate.getMonth() + 1
-                    , sched.startDate.getDay()
-                    , sched.startDate.getFullYear() - 2000
+                    , startDate.getMonth() + 1
+                    , startDate.getDay() || 0
+                    , startDate.getFullYear() - 2000
                     , 32
                     , 78
-                    , sched.flags
+                    , 100
                 ],
                 retries: 3,
                 response: IntelliCenterBoard.getAckResponse(168)
@@ -2591,6 +2593,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                 };
                 conn.queueSendMessage(out);
             });
+
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
