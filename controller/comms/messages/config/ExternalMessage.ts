@@ -415,7 +415,7 @@ export class ExternalMessage {
         cfg.startYear = msg.extractPayloadByte(12);
         let hs = msg.extractPayloadByte(13);
         if (hs === 1) hs = 0; // Shim for 1.047
-        cfg.heatSource = msg.extractPayloadByte(13);
+        cfg.heatSource = hs;
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
         let s = state.schedules.getItemById(schedId, cfg.isActive);

@@ -6,7 +6,6 @@ import { Protocol, Outbound, Inbound, Message, Response } from '../comms/message
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState } from '../State';
-import { REPLServer } from 'repl';
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError } from '../Errors';
 export class IntelliCenterBoard extends SystemBoard {
@@ -95,7 +94,7 @@ export class IntelliCenterBoard extends SystemBoard {
             // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
             // MUX and A/D modules don't seem to fit the pattern.
             //[0, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 6, circuits: 10, shared: false, dual: true }], // This is a guess
-            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies:1, valves: 6, circuits: 10, shared: false, dual: false }],
+            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies:1, valves: 4, circuits: 5, shared: false, dual: false }],
             [1, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false }],
             [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false, dual: false }], // This is a guess
             [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true, dual: false }],
@@ -222,7 +221,9 @@ export class IntelliCenterBoard extends SystemBoard {
     public async stopAsync() { this._configQueue.close(); return Promise.resolve([]);}
     public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp2A: number, ocp3A: number) {
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 1 };
-        this.processExpansionModules(sys.equipment.modules, ocp0A, ocp0B, inv);
+        this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);
+        // Here we need to set the start id should we have a single body system.
+        if (!inv.shared && !inv.dual) { sys.board.equipmentIds.circuits.start = 2; } // We are a single body system.
         this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0, inv);
         this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0, inv);
         this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0, inv);
@@ -267,6 +268,92 @@ export class IntelliCenterBoard extends SystemBoard {
         this.modulesAcquired = true;
         this.checkConfiguration();
     }
+    public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
+        // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
+        // we need to determine if anything needs to be removed or added before actually doing it.
+        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0 };
+        let slot0 = ocpA & 0x0F;
+        let slot1 = (ocpA & 0xF0) >> 4;
+        let slot2 = (ocpB & 0xF0) >> 4;
+        let slot3 = ocpB & 0xF;
+        // Slot 0 always has to have a personality card.
+        // This is an i5P.  There is nothing here so the MB is the personality board.
+        let mod = modules.getItemById(0, true);
+        let mt = this.valueMaps.expansionBoards.transform(slot0);
+        mod.name = mt.name;
+        mod.desc = mt.desc;
+        mod.type = slot0;
+        mod.part = mt.part;
+        mod.get().bodies = mt.bodies;
+        mod.get().circuits = mt.circuits;
+        mod.get().valves = mt.valves;
+        mod.get().covers = mt.covers;
+        mod.get().chlorinators = mt.chlorinators;
+        if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+        if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+        if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+        if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+        if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
+        if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
+        if (slot1 === 0) modules.removeItemById(1);
+        else {
+            let mod = modules.getItemById(1, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot1);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot1;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+        if (slot2 === 0) modules.removeItemById(2);
+        else {
+            let mod = modules.getItemById(2, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot2);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot2;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+        if (slot3 === 0) modules.removeItemById(3);
+        else {
+            let mod = modules.getItemById(3, true);
+            let mt = this.valueMaps.expansionBoards.transform(slot3);
+            mod.name = mt.name;
+            mod.desc = mt.desc;
+            mod.type = slot3;
+            mod.part = mt.part;
+            mod.get().bodies = mt.bodies;
+            mod.get().circuits = mt.circuits;
+            mod.get().valves = mt.valves;
+            mod.get().covers = mt.covers;
+            mod.get().chlorinators = mt.chlorinators;
+            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
+            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
+            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
+            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
+            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        }
+    }
     public processExpansionModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
@@ -276,8 +363,11 @@ export class IntelliCenterBoard extends SystemBoard {
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card.
-        if (slot0 === 0) modules.removeItemById(0);
+        if (slot0 === 0 && inv.bodies !== 0) {
+            modules.removeItemById(0);
+        }
         else {
+            // This is an i5P.  There is nothing here so the MB is the personality board.
             let mod = modules.getItemById(0, true);
             let mt = this.valueMaps.expansionBoards.transform(slot0);
             mod.name = mt.name;
@@ -1674,8 +1764,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             3);
         let circuitId = sys.board.equipmentIds.circuits.start;
         // Circuits are always contiguous so we don't have to worry about
-        // them having a strange offset like features and groups.
-        for (let i = 1; i <= state.data.circuits.length; i++) {
+        // them having a strange offset like features and groups. However, in
+        // single body systems they start with 2.
+        for (let i = circuitId; i <= state.data.circuits.length; i++) {
             let circuit = state.circuits.getItemById(circuitId++);
             let ndx = Math.floor((i - 1) / 8);
             let byte = out.payload[ndx + 3];
@@ -2473,7 +2564,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
             let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
             if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource || 0;
+            let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 0;
             let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
             let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;

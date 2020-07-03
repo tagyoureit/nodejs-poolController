@@ -139,8 +139,11 @@ export class CircuitMessage {
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
+
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
@@ -163,14 +166,18 @@ export class CircuitMessage {
     }
     private static processFreezeProtect(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.freeze = msg.extractPayloadByte(i) > 0;
         }
     }
     private static processShowInFeatures(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.showInFeatures = msg.extractPayloadByte(i) > 0;
         }
@@ -182,7 +189,9 @@ export class CircuitMessage {
     }
     private static processLightingTheme(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             if (circuit.type === 9)
                 circuit.level = msg.extractPayloadByte(i);
@@ -192,21 +201,27 @@ export class CircuitMessage {
     }
     private static processEggTimerHours(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.eggTimer = msg.extractPayloadByte(i) * 60 + (circuit.eggTimer || 0) % 60;
         }
     }
     private static processEggTimerMinutes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             const circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.eggTimer = Math.floor(circuit.eggTimer / 60) * 60 + msg.extractPayloadByte(i);
         }
     }
     private static processShowInCircuits(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        for (let i = 2; i < msg.payload.length && i <= sys.equipment.maxCircuits + 1; i++) {
+        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.showInCircuits = msg.extractPayloadByte(i) > 0;
         }

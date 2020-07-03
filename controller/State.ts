@@ -1,6 +1,7 @@
 ﻿import * as path from 'path';
 import * as fs from 'fs';
 import * as extend from 'extend';
+import * as util from 'util';
 import { setTimeout } from 'timers';
 import { logger } from '../logger/Logger';
 import { Timestamp, ControllerType } from './Constants';
@@ -22,7 +23,10 @@ export class State implements IState {
             get(target, property, receiver) {
                 const val = Reflect.get(target, property, receiver);
                 if (typeof val === 'function') return val.bind(receiver);
-                if (typeof (val) === 'object' && val !== null) return new Proxy(val, handler);
+                if (typeof (val) === 'object' && val !== null) {
+                    if (util.types.isProxy(val)) return val;
+                    return new Proxy(val, handler);
+                }
                 return val;
             },
             set(target, property, value, receiver) {

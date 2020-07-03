@@ -607,15 +607,14 @@ export class EquipmentStateMessage {
         // configuration already determined how many available circuits we have by querying the model of the panel
         // and any installed expansion panel models.  Only the number of available circuits will appear in this
         // array.
-        let count = Math.min(Math.floor(sys.circuits.length / 8), 5) + 2;
         let circuitId = sys.board.equipmentIds.circuits.start;
-        // let body = 0; // Off
-        for (let i = 2; i < msg.payload.length && i <= count; i++) {
+        let maxCircuitId = sys.board.equipmentIds.circuits.end;
+        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
-                let circuit = sys.circuits.getItemById(circuitId);
-                if (circuit.isActive) {
+                let circuit = sys.circuits.getItemById(circuitId, false, { isActive: false });
+                if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circuit.name;
@@ -641,9 +640,6 @@ export class EquipmentStateMessage {
                 circuitId++;
             }
         }
-        // state.body = body;
-        // state.emitControllerChange();
-        // state.emitEquipmentChanges();
     }
     private static processTouchCircuits(msg: Inbound) {
         const count = sys.board.equipmentIds.features.end;
