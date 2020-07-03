@@ -170,16 +170,16 @@ export class byteValueMaps {
     public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
     public heaterTypes: byteValueMap=new byteValueMap();
     public virtualCircuits: byteValueMap=new byteValueMap([
-        [128, { name: 'solar', desc: 'Solar' }],
-        [129, { name: 'heater', desc: 'Either Heater' }],
-        [130, { name: 'poolHeater', desc: 'Pool Heater' }],
-        [131, { name: 'spaHeater', desc: 'Spa Heater' }],
-        [132, { name: 'freeze', desc: 'Freeze' }],
-        [133, { name: 'heatBoost', desc: 'Heat Boost' }],
-        [134, { name: 'heatEnable', desc: 'Heat Enable' }],
-        [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +' }],
-        [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -' }],
-        [255, { name: 'notused', desc: 'NOT USED' }]
+        [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+        [129, { name: 'heater', desc: 'Either Heater' , assignableToPumpCircuit: true}],
+        [130, { name: 'poolHeater', desc: 'Pool Heater' , assignableToPumpCircuit: true}],
+        [131, { name: 'spaHeater', desc: 'Spa Heater' , assignableToPumpCircuit: true}],
+        [132, { name: 'freeze', desc: 'Freeze' , assignableToPumpCircuit: true}],
+        [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
+        [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
+        [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
+        [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
+        [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true  }]
     ]);
     public lightThemes: byteValueMap=new byteValueMap([
         [0, { name: 'off', desc: 'Off', type: 'intellibrite' }],
@@ -1056,7 +1056,18 @@ export class PumpCommands extends BoardCommands {
             }
             state.pumps.removeItemById(pump.id);
             pump.type = pumpType;
-            this.setPump(pump, sys.board.valueMaps.pumpTypes.get(pumpType));
+            let type = sys.board.valueMaps.pumpTypes.transform(pumpType);
+
+            if (type.name === 'vs' || type.name === 'vsf'){
+                pump.speedStepSize = 100;
+                pump.minSpeed = type.minSpeed;
+                pump.maxSpeed = type.maxSpeed;
+            }
+            if (type.name === 'vf' || type.name === 'vsf'){
+                pump.flowStepSize = 1;
+                pump.minFlow = type.minFlow;
+                pump.maxFlow = type.maxFlow;
+            }
             let spump = state.pumps.getItemById(pump.id, true);
             spump.type = pump.type;
             spump.status = 0;
@@ -1436,7 +1447,7 @@ export class CircuitCommands extends BoardCommands {
             let vcs = sys.board.valueMaps.virtualCircuits.toArray();
             for (let i = 0; i < vcs.length; i++) {
                 let c = vcs[i];
-                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual' });
+                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual', assignableToPumpCircuit: c.assignableToPumpCircuit});
             }
         }
         if (includeGroups) {

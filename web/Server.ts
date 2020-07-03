@@ -6,6 +6,7 @@ import { logger } from "../logger/Logger";
 import socketio=require("socket.io");
 import { ConfigRoute } from "./services/config/Config";
 import { StateRoute } from "./services/state/State";
+import { StateSocket } from "./services/state/StateSocket";
 import { UtilitiesRoute } from "./services/utilities/Utilities";
 import * as http2 from "http2";
 import * as http from "http";
@@ -233,6 +234,7 @@ export class HttpServer extends ProtoServer {
             if (!sendMessages) sock.leave('msgLogger');
             else sock.join('msgLogger');
         });
+        StateSocket.initSockets(sock);
     }
     public init(cfg) {
         if (cfg.enabled) {

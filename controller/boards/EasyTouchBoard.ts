@@ -26,7 +26,7 @@ export class EasyTouchBoard extends SystemBoard {
             })
         );
         this.valueMaps.circuitNames = new byteValueMap([
-            [0, { name: 'notused', desc: 'Not Used' }],
+            // [0, { name: 'notused', desc: 'Not Used' }],
             [1, { name: 'aerator', desc: 'Aerator' }],
             [2, { name: 'airblower', desc: 'Air Blower' }],
             [3, { name: 'aux1', desc: 'AUX 1' }],
@@ -1220,18 +1220,29 @@ class TouchPumpCommands extends PumpCommands {
             ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
             if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
+            // changing type?  clear out all props and add as new
+            if (ntype !== pump.type) {
+                isAdd = true;
+                super.setType(pump, ntype);
+                pump = sys.pumps.getItemById(id, false); // refetch pump with new value
+            }
         }
         // Validate all the ids since in *Touch the address is determined from the id.
-        if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) !== undefined;
+        if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) === undefined;
         // Now lets validate the ids related to the type.
         if (id === 9 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data));
         else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
         else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
 
+        
+        // Need to do a check here if we are clearing out the circuits; id data.circuits === []
+        // extend will keep the original array
+        let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length ===0;
 
         if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
         else data = extend(false, {}, data, { id: id, type: ntype });
-        pump.name = data.name || pump.name || type.desc;
+        if (!isAdd && bClearPumpCircuits) data.circuits = [];
+        data.name = data.name || pump.name || type.desc;
         // We will not be sending message for ss type pumps.
         if (type.name === 'ss') {
             // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
@@ -1261,14 +1272,14 @@ class TouchPumpCommands extends PumpCommands {
         }
         else {
             let arr = [];
-            data.name = data.name || type.desc;
+
             let outc = Outbound.create({
                 action: 155,
                 payload: [id, ntype],
                 retries: 2,
                 response: Response.create({ action: 1, payload: [155] })
             });
-            outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime);
+            outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime | 0);
             outc.appendPayloadBytes(0, 44);
             if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
                 let primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
@@ -1292,24 +1303,24 @@ class TouchPumpCommands extends PumpCommands {
                 outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
                 outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
             }
-            else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0) { // This pump type supports circuits
-                for (let i = 1; i <= 8; i++) {
-                    if (i < data.circuits.length && i < type.maxCircuits) {
-                        let circ = pump.circuits.getItemByIndex(i, false);
-                        let c = data.circuits[i];
+            if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                        let c = data.circuits[i - 1];
                         let speed = parseInt(c.speed, 10);
                         let flow = parseInt(c.flow, 10);
                         if (isNaN(speed)) speed = type.minSpeed;
                         if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte(i * 2 + 3, parseInt(data.circuit, 10), 0);
-                        if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
+                        outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
+                        c.units = parseInt(c.units,10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm'); 
+                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                             outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
                             outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                            c.speed = speed;
                         }
-                        else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
+                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                             outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                            c.flow = flow;
                         }
-                    }
                 }
             }
             return new Promise<Pump>((resolve, reject) => {
@@ -1323,6 +1334,13 @@ class TouchPumpCommands extends PumpCommands {
                         spump.type = pump.type;
                         spump.emitEquipmentChange();
                         resolve(pump);
+                        const pumpConfigRequest = Outbound.create({
+                            action: 216,
+                            payload: [pump.id],
+                            retries: 2,
+                            response: true
+                        });
+                        conn.queueSendMessage(pumpConfigRequest);
                     }
                 };
                 conn.queueSendMessage(outc);

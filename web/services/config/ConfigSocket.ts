@@ -6,9 +6,20 @@ import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
 import {stopPacketCaptureAsync, startPacketCapture} from '../../../app';
-export class ConfigRoute {
-    public static initRoutes(app: express.Application) {
-        app.get('/config/body/:body/heatModes', (req, res) => {
+export class ConfigSocket {
+    public static initSockets(sock: SocketIO.Socket) {
+        sock.on('/config/lightGroup', async (data: any) => {
+            try {
+                await sys.board.circuits.setLightGroupAsync(data.body);
+                // return res.status(200).send((group).get(true));
+            }
+            catch (err) { console.error(err); }
+        });
+
+        
+        
+        
+/*         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
         app.get('/config/circuit/names', (req, res) => {
@@ -21,11 +32,11 @@ export class ConfigRoute {
             let groups = typeof req.query.features === 'undefined' || utils.makeBool(req.query.groups);
             let virtual = typeof req.query.virtual === 'undefined' || utils.makeBool(req.query.virtual);
             return res.status(200).send(sys.board.circuits.getCircuitReferences(circuits, features, virtual, groups));
-        });
+        }); */
 
         /******* CONFIGURATION PICK LISTS/REFERENCES and VALIDATION PARAMETERS *********/
         /// Returns an object that contains the general options for setting up the panel.
-        app.get('/config/options/general', (req, res) => {
+        /* app.get('/config/options/general', (req, res) => {
             let opts = {
                 countries: [{ id: 1, name: 'United States' }, { id: 2, name: 'Mexico' }, { id: 3, name: 'Canada' }],
                 tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
@@ -67,10 +78,6 @@ export class ConfigRoute {
                 lightGroups: sys.lightGroups.get(),
                 functions: sys.board.circuits.getCircuitFunctions()
             };
-/*             if (typeof sys.controllerType !== 'undefined' && sys.controllerType.toLowerCase().includes('touch')){
-                //TODO: remove when Intellibrite is migrated to light groups
-                opts['lightGroups'] = extend([], opts.lightGroups, sys.intellibrite.getExtended());
-            } */
             return res.status(200).send(opts);
         });
         app.get('/config/options/features', (req, res) => {
@@ -121,10 +128,8 @@ export class ConfigRoute {
             // RKS: Why do we need the circuit names?  We have the circuits.  Is this so
             // that we can name the pump.  I thought that *Touch uses the pump type as the name
             // plus a number.
-            // RG: because I need the name/val of the Not Used circuit for displaying pumpCircuits that are
-            // empty.  EG A pump circuit can be not used even if all the circuits are used.
             if (sys.controllerType !== ControllerType.IntelliCenter) {
-                opts.circuitNames = sys.board.circuits.getCircuitNames().filter(c=>c.name==='notused');
+                opts.circuitNames = sys.board.circuits.getCircuitNames();
             }
             return res.status(200).send(opts);
         });
@@ -177,11 +182,11 @@ export class ConfigRoute {
                 chlorinators: sys.chlorinators.get()
             };
             return res.status(200).send(opts);
-        });
+        }); */
 
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
-        app.put('/config/general', async (req, res, next) => {
+        /* app.put('/config/general', async (req, res, next) => {
             // Change the options for the pool.
             try {
                 await sys.board.system.setGeneralAsync(req.body);
@@ -197,14 +202,7 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/config/body', async (req, res, next) => {
-            // Change the body attributes.
-            try {
-                let body = await sys.board.bodies.setBodyAsync(req.body);
-                return res.status(200).send((body).get(true));
-            }
-            catch (err) { next(err); }
-        });
+
         app.put('/config/circuit', async (req, res, next) => {
             // add/update a circuit
             try {
@@ -269,8 +267,6 @@ export class ConfigRoute {
         app.put('/config/pump', async (req, res, next) => {
             // Change the pump attributes.  This will add the pump if it doesn't exist, set
             // any affiliated circuits and maintain all attribututes of the pump.
-            // RSG: Caveat - you have to send none or all of the pump circuits or any not included be deleted.
-            
             try {
                 let pump = await sys.board.pumps.setPumpAsync(req.body);
                 return res.status(200).send((pump).get(true));
@@ -312,7 +308,7 @@ export class ConfigRoute {
                 //console.log(`Error deleting schedule... ${err}`);
                 next(err);
             }
-        });
+        }); */
         /*
         app.put('/config/schedule/:id', (req, res) => {
             let schedId = parseInt(req.params.id || '0', 10);
@@ -339,7 +335,7 @@ export class ConfigRoute {
 
 
 
-        app.get('/config/circuits/names', (req, res) => {
+        /*app.get('/config/circuits/names', (req, res) => {
             let circuitNames = sys.board.circuits.getCircuitNames();
             return res.status(200).send(circuitNames);
         });
@@ -541,28 +537,18 @@ export class ConfigRoute {
                 return res.status(200).send(chem.get());
             }
             catch (err) { next(err); }
-        });
-/*         app.get('/config/intellibrite', (req, res) => {
-            return res.status(200).send(sys.intellibrite.getExtended());
-        });
-        app.get('/config/intellibrite/colors', (req, res) => {
-            return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
-        });
-        app.put('/config/intellibrite/setColors', (req, res) => {
-            let grp = extend(true, { id: 0 }, req.body);
-            sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
-            return res.status(200).send('OK');
-        }); */
+        }); 
+
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));
         });
         app.get('/config/:section', (req, res) => {
             return res.status(200).send(sys.getSection(req.params.section));
         });
-
+        */
 
         /******* ENDPOINTS FOR MANAGING THE poolController APPLICATION *********/
-        app.put('/app/logger/setOptions', (req, res) => {
+        /* app.put('/app/logger/setOptions', (req, res) => {
             logger.setOptions(req.body);
             return res.status(200).send(logger.options);
         });
@@ -594,7 +580,7 @@ export class ConfigRoute {
         });
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
-        });
+        }); */
 
 
     }

@@ -1,12 +1,56 @@
-﻿import * as express from "express";
-import { state, ICircuitState, LightGroupState } from "../../../controller/State";
+﻿import { state, ICircuitState, LightGroupState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
 import { ServiceParameterError } from "../../../controller/Errors";
 
-export class StateRoute {
-    public static initRoutes(app: express.Application) {
+export class StateSocket {
+    public static initSockets(sock: SocketIO.Socket) {
+        sock.on('/state/circuit/toggleState', async (data: any) => {
+            try {
+                await state.circuits.toggleCircuitStateAsync(parseInt(data.id, 10));
+                // return res.status(200).send(cstate);
+            }
+            catch (err) {logger.error(err);}
+        });  
+        sock.on('/state/body/heatMode', async (data: any) => {
+            // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
+            try {
+                // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
+                let mode = parseInt(data.body.mode, 10);
+                let val;
+                if (isNaN(mode)) mode = parseInt(data.body.heatMode, 10);
+                if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
+                else val = sys.board.valueMaps.heatModes.transformByName(data.body.mode || data.body.heatMode);
+                if (typeof val.val === 'undefined') {
+                    logger.error(new ServiceParameterError(`Invalid value for heatMode: ${data.body.mode}`, 'body', 'heatMode', mode));
+                    return;
+                }
+                mode = val.val;
+                let body = sys.bodies.findByObject(data.body);
+                if (typeof body === 'undefined') {
+                    logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.body.id));
+                    return;
+                }
+                await sys.board.bodies.setHeatModeAsync(body, mode);
+                // return res.status(200).send(tbody);
+            } catch (err) { logger.error(err); }
+        });
+        sock.on('/state/body/setPoint', async (data: any) => {
+            // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
+            try {
+                let body = sys.bodies.findByObject(data.body);
+                if (typeof body === 'undefined') {
+                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.body.id));
+                    return;
+                }
+                await sys.board.bodies.setHeatSetpointAsync(body, parseInt(data.body.setPoint, 10));
+                // return res.status(200).send(tbody);
+            } catch (err) { logger.error(err); }
+        });
+        
+
+        /*
         app.get('/state/chemController/:id', (req, res) => {
             res.status(200).send(state.chemControllers.getItemById(parseInt(req.params.id, 10)).getExtended());
         });
@@ -30,13 +74,7 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/state/circuit/toggleState', async (req, res, next) => {
-            try {
-                let cstate = await state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
-                return res.status(200).send(cstate);
-            }
-            catch (err) {next(err);}
-        });    
+  
         app.put('/state/circuit/setTheme', async (req, res, next) => {
            try {
                let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
@@ -44,19 +82,7 @@ export class StateRoute {
             } 
             catch (err) { next(err); }
         }); 
-/*         app.put('/state/intellibrite/setTheme', (req, res) => {
-            let id = sys.board.equipmentIds.circuitGroups.start; 
-            if (typeof req.body.theme !== 'undefined') id = parseInt(req.body.id, 10);
-            sys.board.circuits.setLightGroupThemeAsync(id ,parseInt(req.body.theme, 10));
-            return res.status(200).send('OK');
-        }); */
-        app.put('/state/temps', async (req, res, next) => {
-            try {
-                let controller = await sys.board.system.setTempsAsync(req.body);
-                return res.status(200).send(controller.get(true));
-            }
-            catch (err) { next(err); }
-        });
+
         app.put('/state/circuit/setDimmerLevel', async (req, res, next) => {
             try {
                 let circuit = await sys.board.circuits.setDimmerLevelAsync(parseInt(req.body.id, 10), parseInt(req.body.level, 10));
@@ -71,34 +97,8 @@ export class StateRoute {
             }
             catch (err){ next(err); }
         });
-        app.put('/state/body/heatMode', async (req, res, next) => {
-            // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
-            try {
-                // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
-                let mode = parseInt(req.body.mode, 10);
-                let val;
-                if (isNaN(mode)) mode = parseInt(req.body.heatMode, 10);
-                if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                else val = sys.board.valueMaps.heatModes.transformByName(req.body.mode || req.body.heatMode);
-                if (typeof val.val === 'undefined') {
-                    return next(new ServiceParameterError(`Invalid value for heatMode: ${req.body.mode}`, 'body', 'heatMode', mode));
-                }
-                mode = val.val;
-                let body = sys.bodies.findByObject(req.body);
-                if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
-                let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
-                return res.status(200).send(tbody);
-            } catch (err) { next(err); }
-        });
-        app.put('/state/body/setPoint', async (req, res, next) => {
-            // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
-            try {
-                let body = sys.bodies.findByObject(req.body);
-                if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
-                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.setPoint, 10));
-                return res.status(200).send(tbody);
-            } catch (err) { next(err); }
-        });
+        
+
         app.put('/state/chlorinator/setChlor', async (req, res, next) => {
             try {
                 let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
@@ -169,8 +169,10 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+
         app.get('/state/:section', (req, res) => {
             res.status(200).send(state.getState(req.params.section));
         });
+        */
     }
 }

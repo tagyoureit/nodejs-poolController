@@ -13,7 +13,7 @@ import { SystemBoard, EquipmentIdRange } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
-
+const util = require('util');
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -230,6 +230,10 @@ export class PoolSystem implements IPoolSystem {
             get(target, property, receiver) {
                 // console.log(`getting prop: ${property} -- dataName? ${target.length}`)
                 const val = Reflect.get(target, property, receiver);
+                if (util.types.isProxy(val)) 
+                {
+                    return val;
+                }
                 if (typeof val === 'function') return val.bind(receiver);
                 if (typeof val === 'object' && val !== null) {
                     if (util.types.isProxy(val)) return val;
@@ -320,7 +324,9 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
         } else this.data = data;
     }
     public get(bCopy?: boolean): any {
-        return bCopy ? extend(true, {}, this.data) : this.data;
+        // RSG: 7/2/20 - extend was deep copying arrays (eg pump circuits) by reference
+        // return bCopy ? extend(true, {}, this.data) : this.data;
+        return bCopy ? JSON.parse(JSON.stringify(this.data)) : this.data;
     }
     public clear() {
         for (let prop in this.data) {
@@ -329,9 +335,11 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
         }
     }
     // This is a tricky endeavor.  If we run into a collection then we need to obliterate the existing data and add in our data.
-    public set(data: any) {
-        let d = this.data;
-        for (let prop in this) {
+     public set(data: any) {
+        let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
+        for (let i in op) {
+            let prop = op[i];
+            if (typeof this[prop] === 'function') continue;
             if (typeof data[prop] !== 'undefined') {
                 if (this[prop] instanceof EqItemCollection) {
                     ((this[prop] as unknown) as IEqItemCollection).set(data[prop]);
@@ -339,9 +347,9 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
                 else if (this[prop] instanceof EqItem)
                     ((this[prop] as unknown) as IEqItem).set(data[prop]);
                 else this[prop] = data[prop];
-            }
+             }
         }
-    }
+    } 
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             // console.log(`Changing equipment: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
@@ -376,13 +384,6 @@ class EqItemCollection<T> implements IEqItemCollection {
         if (typeof add !== 'undefined' && add) return this.add(data || { id: id });
         return this.createItem(data || { id: id });
 
-        //for (let i = 0; i < this.data.length; i++)
-        //    if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
-        //        return this.createItem(this.data[i]);
-        //    }
-        //if (typeof add !== 'undefined' && add)
-        //    return this.add(data || { id: id });
-        //return this.createItem(data || { id: id });
     }
     public removeItemById(id: number): T {
         let rem: T = null;
