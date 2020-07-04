@@ -577,29 +577,31 @@ export class EquipmentStateMessage {
         // unaccounted for when it comes to a total of 32 features.
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
+        if (sys.equipment.controllerFirmware !== '1.047') {
 
-        // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
-        // Not exactly sure why we are hardcoding byte 7 here.
-        // I combined the *touch circuits and features in processTouchCircuits below.
-        let featureId = sys.board.equipmentIds.features.start;
-        for (let i = 1; i <= sys.features.length; i++) {
-            // Use a case statement here since we don't know where to go after 4.
-            switch (i) {
-                case 1:
-                case 2:
-                case 3:
-                case 4: {
-                    const byte = msg.extractPayloadByte(7);
-                    const feature = sys.features.getItemById(featureId, false, { isActive: false });
-                    if (feature.isActive !== false) {
-                        const fstate = state.features.getItemById(featureId, feature.isActive);
-                        fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
-                        fstate.name = feature.name;
+            // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
+            // Not exactly sure why we are hardcoding byte 7 here.
+            // I combined the *touch circuits and features in processTouchCircuits below.
+            let featureId = sys.board.equipmentIds.features.start;
+            for (let i = 1; i <= sys.features.length; i++) {
+                // Use a case statement here since we don't know where to go after 4.
+                switch (i) {
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4: {
+                        const byte = msg.extractPayloadByte(7);
+                        const feature = sys.features.getItemById(featureId, false, { isActive: false });
+                        if (feature.isActive !== false) {
+                            const fstate = state.features.getItemById(featureId, feature.isActive);
+                            fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
+                            fstate.name = feature.name;
+                        }
+                        break;
                     }
-                    break;
                 }
+                featureId++;
             }
-            featureId++;
         }
     }
     private static processCircuitState(msg: Inbound) {
