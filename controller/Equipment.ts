@@ -13,7 +13,6 @@ import { SystemBoard, EquipmentIdRange } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
-const util = require('util');
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -230,10 +229,6 @@ export class PoolSystem implements IPoolSystem {
             get(target, property, receiver) {
                 // console.log(`getting prop: ${property} -- dataName? ${target.length}`)
                 const val = Reflect.get(target, property, receiver);
-                if (util.types.isProxy(val)) 
-                {
-                    return val;
-                }
                 if (typeof val === 'function') return val.bind(receiver);
                 if (typeof val === 'object' && val !== null) {
                     if (util.types.isProxy(val)) return val;
