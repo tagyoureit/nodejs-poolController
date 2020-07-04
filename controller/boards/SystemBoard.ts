@@ -590,6 +590,18 @@ export class BoardCommands {
 export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
+    public keepManualTime() {
+        if (sys.general.options.clockSource !== 'manual') return;
+        state.time.setTimeFromSystemClock();
+        setTimeout(function() {
+            // state.time.hours = dt.getHours();
+            // state.time.minutes = dt.getMinutes();
+            // state.time.seconds = dt.getSeconds();
+            // state.time.month = dt.getMonth();
+            // state.time.year = dt.getFullYear
+            sys.board.system.keepManualTime();
+        }, (60 - new Date().getSeconds()) * 1000);
+    }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
@@ -670,7 +682,6 @@ export class SystemCommands extends BoardCommands {
         }
         return Promise.resolve(state.temps);
     }
-
     public getSensors() {
         let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
         if (sys.equipment.shared) {

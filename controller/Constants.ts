@@ -73,6 +73,10 @@ export class Timestamp {
         };
         return new Date(dt.getTime() - (tzo * 60000)).toISOString().slice(0, -1) + (tzo > 0 ? '-' : '+') + pad(tzo / 60) + pad(tzo % 60)
     }
+    public setTimeFromSystemClock(){
+        this._dt = new Date();
+        this.emitter.emit('change');
+    }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',

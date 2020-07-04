@@ -7,7 +7,6 @@ import { logger } from '../logger/Logger';
 import { Timestamp, ControllerType } from './Constants';
 import { webApp } from '../web/Server';
 import { sys, ChemController } from './Equipment';
-import { isArray } from 'util';
 import { InvalidEquipmentIdError } from './Errors';
 export class State implements IState {
     statePath: string;
@@ -99,7 +98,7 @@ export class State implements IState {
                 if (typeof this.data[section] !== 'object')
                     // return object so browsers don't complain
                     return { [section]: this.data[section] };
-                else if (isArray(this.data[section]))
+                else if (Array.isArray(this.data[section]))
                     return extend(true, [], this.data[section] || []);
                 else
                     return extend(true, {}, this.data[section] || {});

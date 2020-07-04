@@ -265,6 +265,7 @@ export class EquipmentStateMessage {
         tbody.isOn = false;
         sys.general.options.clockMode = 12;
         sys.general.options.clockSource = "manual";
+        sys.board.system.keepManualTime();
         state.equipment.maxBodies = sys.equipment.maxBodies;
         state.mode = 0;
         state.status = 1;
