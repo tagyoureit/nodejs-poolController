@@ -23,6 +23,7 @@ import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import {Timestamp} from '../controller/Constants';
 import extend = require("extend");
+import { ConfigSocket } from "./services/config/ConfigSocket";
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -235,6 +236,7 @@ export class HttpServer extends ProtoServer {
             else sock.join('msgLogger');
         });
         StateSocket.initSockets(sock);
+        ConfigSocket.initSockets(sock);
     }
     public init(cfg) {
         if (cfg.enabled) {
