@@ -146,7 +146,8 @@ export class ConfigRoute {
             let opts = {
                 maxHeaters: sys.equipment.maxHeaters,
                 heaters: sys.heaters.get(),
-                heaterTypes: sys.board.valueMaps.heaterTypes.toArray()
+                heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
+                heatModes: sys.board.valueMaps.heatModes.toArray()
             };
             return res.status(200).send(opts);
         });

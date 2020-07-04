@@ -70,6 +70,7 @@ export class HeaterMessage {
                     sys.heaters.removeItemById(2);
                     sys.heaters.removeItemById(3);
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
+                    sys.board.heaters.updateHeaterServices();
                     return;
                 }
                 if ((msg.extractPayloadByte(2) & 0x30) === 0) {
@@ -100,7 +101,7 @@ export class HeaterMessage {
                     let heater = sys.heaters.getItemByIndex(i);
                     if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
                 }
-
+                sys.board.heaters.updateHeaterServices();
                 break;
             case 114:
                 // something to do with heat pumps... need equipment or other packets to decipher

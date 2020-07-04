@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
@@ -36,12 +36,12 @@ export class byteValueMap extends Map<number, any> {
     }
 }
 export class EquipmentIdRange {
-    constructor(start: number|Function, end: number|Function) {
+    constructor(start: number | Function, end: number | Function) {
         this._start = start;
         this._end = end;
     }
-    private _start: any=0;
-    private _end: any=0;
+    private _start: any = 0;
+    private _end: any = 0;
     public get start(): number { return typeof this._start === 'function' ? this._start() : this._start; }
     public set start(val: number) { this._start = val; }
     public get end(): number { return typeof this._end === 'function' ? this._end() : this._end; }
@@ -68,16 +68,16 @@ export class InvalidEquipmentIdArray {
     }
 }
 export class EquipmentIds {
-    public circuits: EquipmentIdRange=new EquipmentIdRange(6, 6);
-    public features: EquipmentIdRange=new EquipmentIdRange(7, function() { return this.start + sys.equipment.maxFeatures; });
-    public pumps: EquipmentIdRange=new EquipmentIdRange(1, function() { return this.start + sys.equipment.maxPumps; });
-    public circuitGroups: EquipmentIdRange=new EquipmentIdRange(0, 0);
-    public virtualCircuits: EquipmentIdRange=new EquipmentIdRange(128, 136);
-    public invalidIds: InvalidEquipmentIdArray=new InvalidEquipmentIdArray([]);
+    public circuits: EquipmentIdRange = new EquipmentIdRange(6, 6);
+    public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
+    public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
+    public circuitGroups: EquipmentIdRange = new EquipmentIdRange(0, 0);
+    public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(128, 136);
+    public invalidIds: InvalidEquipmentIdArray = new InvalidEquipmentIdArray([]);
 }
 export class byteValueMaps {
     constructor() {
-        this.pumpStatus.transform = function(byte) {
+        this.pumpStatus.transform = function (byte) {
             // if (byte === 0) return this.get(0);
             if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
             for (let b = 16; b > 0; b--) {
@@ -91,7 +91,7 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
         };
-        this.chlorinatorStatus.transform = function(byte) {
+        this.chlorinatorStatus.transform = function (byte) {
             if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
             else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
             for (let b = 8; b > 0; b--) {
@@ -105,10 +105,10 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
         };
-        this.scheduleTypes.transform = function(byte) {
+        this.scheduleTypes.transform = function (byte) {
             return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
-        this.scheduleDays.transform = function(byte) {
+        this.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
@@ -116,39 +116,39 @@ export class byteValueMaps {
             }
             return { val: b, days: days };
         };
-        this.scheduleDays.toArray = function() {
+        this.scheduleDays.toArray = function () {
             let arrKeys = Array.from(this.keys());
             let arr = [];
             for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
             return arr;
         };
-        this.virtualCircuits.transform = function(byte) {
+        this.virtualCircuits.transform = function (byte) {
             return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
         };
-        this.tempUnits.transform = function(byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
-        this.panelModes.transform = function(byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
-        this.controllerStatus.transform = function(byte: number, percent?: number) {
+        this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
+        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
+        this.controllerStatus.transform = function (byte: number, percent?: number) {
             let v = extend(true, {}, this.get(byte) || this.get(0));
             if (typeof percent !== 'undefined') v.percent = percent;
             return v;
         };
-        this.lightThemes.transform = function(byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
     }
-    public expansionBoards: byteValueMap=new byteValueMap();
-    public panelModes: byteValueMap=new byteValueMap([
+    public expansionBoards: byteValueMap = new byteValueMap();
+    public panelModes: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
         [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
         [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
         [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
     ]);
-    public controllerStatus: byteValueMap=new byteValueMap([
+    public controllerStatus: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
         [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
     ]);
 
-    public circuitFunctions: byteValueMap=new byteValueMap([
+    public circuitFunctions: byteValueMap = new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [2, { name: 'pool', desc: 'Pool' }],
@@ -167,21 +167,20 @@ export class byteValueMaps {
     ]);
 
     // Feature functions are used as the available options to define a circuit.
-    public featureFunctions: byteValueMap=new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-    public heaterTypes: byteValueMap=new byteValueMap();
-    public virtualCircuits: byteValueMap=new byteValueMap([
+    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
+    public virtualCircuits: byteValueMap = new byteValueMap([
         [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
-        [129, { name: 'heater', desc: 'Either Heater' , assignableToPumpCircuit: true}],
-        [130, { name: 'poolHeater', desc: 'Pool Heater' , assignableToPumpCircuit: true}],
-        [131, { name: 'spaHeater', desc: 'Spa Heater' , assignableToPumpCircuit: true}],
-        [132, { name: 'freeze', desc: 'Freeze' , assignableToPumpCircuit: true}],
+        [129, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
+        [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
+        [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
+        [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
         [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
         [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
         [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
         [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-        [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true  }]
+        [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
     ]);
-    public lightThemes: byteValueMap=new byteValueMap([
+    public lightThemes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off', type: 'intellibrite' }],
         [1, { name: 'on', desc: 'On', type: 'intellibrite' }],
         [128, { name: 'colorsync', desc: 'Color Sync', type: 'intellibrite' }],
@@ -207,7 +206,7 @@ export class byteValueMaps {
         [254, { name: 'unknown', desc: 'unknown' }],
         [255, { name: 'none', desc: 'None' }]
     ]);
-    public lightColors: byteValueMap=new byteValueMap([
+    public lightColors: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [2, { name: 'lightgreen', desc: 'Light Green' }],
         [4, { name: 'green', desc: 'Green' }],
@@ -217,7 +216,7 @@ export class byteValueMaps {
         [12, { name: 'magenta', desc: 'Magenta' }],
         [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
     ]);
-    public scheduleDays: byteValueMap=new byteValueMap([
+    public scheduleDays: byteValueMap = new byteValueMap([
         [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
         [2, { name: 'fri', desc: 'Friday', dow: 5 }],
         [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
@@ -226,11 +225,11 @@ export class byteValueMaps {
         [6, { name: 'mon', desc: 'Monday', dow: 1 }],
         [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
     ]);
-    public scheduleTimeTypes: byteValueMap=new byteValueMap([
+    public scheduleTimeTypes: byteValueMap = new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
 
-    public pumpTypes: byteValueMap=new byteValueMap([
+    public pumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
@@ -238,7 +237,7 @@ export class byteValueMaps {
         [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
         [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }]
     ]);
-    public pumpSSModels: byteValueMap=new byteValueMap([
+    public pumpSSModels: byteValueMap = new byteValueMap([
         [0, { name: 'unspecified', desc: 'Unspecified', amps: 0, pf: 0, volts: 0, watts: 0 }],
         [1, { name: 'wf1hpE', desc: '1hp WhisperFlo E+', amps: 7.4, pf: .9, volts: 230, watts: 1532 }],
         [2, { name: 'wf1hpMax', desc: '1hp WhisperFlo Max', amps: 9, pf: .87, volts: 230, watts: 1600 }],
@@ -247,7 +246,7 @@ export class byteValueMaps {
         [5, { name: 'generic25hp', desc: '2.5hp Pump', amps: 12.5, pf: .9, volts: 230, watts: 2587 }],
         [6, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf: .9, volts: 230, watts: 2794 }]
     ]);
-    public pumpDSModels: byteValueMap=new byteValueMap([
+    public pumpDSModels: byteValueMap = new byteValueMap([
         [0, { name: 'unspecified', desc: 'Unspecified', loAmps: 0, hiAmps: 0, pf: 0, volts: 0, loWatts: 0, hiWatts: 0 }],
         [1, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps: 6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
         [2, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps: 9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
@@ -255,44 +254,50 @@ export class byteValueMaps {
         [4, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts: 642, hiWatts: 2587 }],
         [5, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts: 683, hiWatts: 2794 }]
     ]);
-    public pumpVSModels: byteValueMap=new byteValueMap([
+    public pumpVSModels: byteValueMap = new byteValueMap([
         [0, { name: 'intelliflovs', desc: 'IntelliFlo VS' }]
     ]);
-    public pumpVSFModels: byteValueMap=new byteValueMap([
+    public pumpVSFModels: byteValueMap = new byteValueMap([
         [0, { name: 'intelliflovsf', desc: 'IntelliFlo VSF' }]
     ]);
-    public pumpVSSVRSModels: byteValueMap=new byteValueMap([
+    public pumpVSSVRSModels: byteValueMap = new byteValueMap([
         [0, { name: 'intelliflovssvrs', desc: 'IntelliFlo VS+SVRS' }]
     ]);
     // These are used for single-speed pump definitions.  Essentially the way this works is that when
     // the body circuit is running the single speed pump is on.
-    public pumpBodies: byteValueMap=new byteValueMap([
+    public pumpBodies: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [101, { name: 'spa', desc: 'Spa' }],
         [255, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
-
-
-    public heatModes: byteValueMap=new byteValueMap([
+    public heaterTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Heater' }],
+        [1, { name: 'gas', desc: 'Gas Heater' }],
+        [2, { name: 'solar', desc: 'Solar Heater' }],
+        [3, { name: 'heatpump', desc: 'Heat Pump' }],
+        [4, { name: 'ultratemp', desc: 'Ultratemp' }],
+        [5, { name: 'hybrid', desc: 'hybrid' }]
+    ]);
+    public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [12, { name: 'solarpref', desc: 'Solar Preferred' }]
     ]);
-    public heatSources: byteValueMap=new byteValueMap([
+    public heatSources: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'No Heater' }],
         [3, { name: 'heater', desc: 'Heater' }],
         [5, { name: 'solar', desc: 'Solar Only' }],
         [21, { name: 'solarpref', desc: 'Solar Preferred' }],
         [32, { name: 'nochange', desc: 'No Change' }]
     ]);
-    public heatStatus: byteValueMap=new byteValueMap([
+    public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
         [2, { name: 'solar', desc: 'Solar' }],
         [3, { name: 'cooling', desc: 'Cooling' }]
     ]);
-    public pumpStatus: byteValueMap=new byteValueMap([
+    public pumpStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
         // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
         [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
@@ -314,18 +319,18 @@ export class byteValueMaps {
         [15, { name: 'error15', desc: 'Unspecified Error 15' }],
         [16, { name: 'commfailure', desc: 'Communication failure' }]
     ]);
-    public pumpUnits: byteValueMap=new byteValueMap([
+    public pumpUnits: byteValueMap = new byteValueMap([
         [0, { name: 'rpm', desc: 'RPM' }],
         [1, { name: 'gpm', desc: 'GPM' }]
     ]);
-    public bodies: byteValueMap=new byteValueMap([
+    public bodies: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [1, { name: 'spa', desc: 'Spa' }],
         [2, { name: 'body3', desc: 'Body 3' }],
         [3, { name: 'body4', desc: 'Body 4' }],
         [32, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
-    public chlorinatorStatus: byteValueMap=new byteValueMap([
+    public chlorinatorStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'lowflow', desc: 'Low Flow' }],
         [2, { name: 'lowsalt', desc: 'Low Salt' }],
@@ -336,33 +341,33 @@ export class byteValueMaps {
         [7, { name: 'lowtemp', dest: 'Water Temp Low' }],
         [8, { name: 'commlost', desc: 'Communication Lost' }]
     ]);
-    public chlorinatorType: byteValueMap=new byteValueMap([
+    public chlorinatorType: byteValueMap = new byteValueMap([
         [0, { name: 'pentair', desc: 'Pentair' }],
         [1, { name: 'unknown', desc: 'unknown' }],
         [2, { name: 'aquarite', desc: 'Aquarite' }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
-    public customNames: byteValueMap=new byteValueMap();
-    public circuitNames: byteValueMap=new byteValueMap();
-    public scheduleTypes: byteValueMap=new byteValueMap([
+    public customNames: byteValueMap = new byteValueMap();
+    public circuitNames: byteValueMap = new byteValueMap();
+    public scheduleTypes: byteValueMap = new byteValueMap([
         [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
         [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days: 'multi', heatSource: true, heatSetpoint: true }]
     ]);
-    public circuitGroupTypes: byteValueMap=new byteValueMap([
+    public circuitGroupTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'Unspecified' }],
         [1, { name: 'light', desc: 'Light' }],
         [2, { name: 'circuit', desc: 'Circuit' }],
         [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
-    public tempUnits: byteValueMap=new byteValueMap([
+    public tempUnits: byteValueMap = new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
         [4, { name: 'C', desc: 'Celcius' }]
     ]);
-    public valveTypes: byteValueMap=new byteValueMap([
+    public valveTypes: byteValueMap = new byteValueMap([
         [0, { name: 'standard', desc: 'Standard' }],
         [1, { name: 'intellivalve', desc: 'IntelliValve' }]
     ]);
-    public intellibriteActions: byteValueMap=new byteValueMap([
+    public intellibriteActions: byteValueMap = new byteValueMap([
         [0, { name: 'ready', desc: 'Ready' }],
         [1, { name: 'sync', desc: 'Synchronizing' }],
         [2, { name: 'set', desc: 'Sequencing Set Operation' }],
@@ -370,11 +375,11 @@ export class byteValueMaps {
         [4, { name: 'color', desc: 'Sequencing Theme/Color Operation' }],
         [5, { name: 'other', desc: 'Sequencing Save/Recall Operation' }]
     ]);
-    public msgBroadcastActions: byteValueMap=new byteValueMap([
+    public msgBroadcastActions: byteValueMap = new byteValueMap([
         [2, { name: 'status', desc: 'Equipment Status' }],
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
-    public chemControllerTypes: byteValueMap=new byteValueMap([
+    public chemControllerTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'None' }],
         [1, { name: 'unknown', desc: 'Unknown' }],
         [2, { name: 'intellichem', desc: 'IntelliChem' }],
@@ -385,24 +390,24 @@ export class byteValueMaps {
         [1, { name: 'nocomms', desc: 'No Communication' }]
     ]);
     // RKS: TODO -- Make these chemController not intelliChem.
-    public intelliChemWaterFlow: byteValueMap=new byteValueMap([
+    public intelliChemWaterFlow: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
     ]);
-    public intelliChemStatus1: byteValueMap=new byteValueMap([
+    public intelliChemStatus1: byteValueMap = new byteValueMap([
         // need to be verified - and combined with below?
         [37, { name: 'dosingAuto', desc: 'Dosing - Auto' }],
         [69, { name: 'dosingManual', desc: 'Dosing Acid - Manual' }],
         [85, { name: 'mixing', desc: 'Mixing' }],
         [101, { name: 'monitoring', desc: 'Monitoring' }]
     ]);
-    public intelliChemStatus2: byteValueMap=new byteValueMap([
+    public intelliChemStatus2: byteValueMap = new byteValueMap([
         // need to be verified
         [20, { name: 'ok', desc: 'Ok' }],
         [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
     ]);
 
-    public timeZones: byteValueMap=new byteValueMap([
+    public timeZones: byteValueMap = new byteValueMap([
         [128, { name: 'Samoa Standard Time', loc: 'Pacific', abbrev: 'SST', utcOffset: -11 }],
         [129, { name: 'Tahiti Time', loc: 'Pacific', abbrev: 'TAHT', utcOffset: -10 }],
         [130, { name: 'Alaska Standard Time', loc: 'North America', abbrev: 'AKST', utcOffset: -9 }],
@@ -429,21 +434,21 @@ export class byteValueMaps {
         [151, { name: 'Marshall Islands Time', loc: 'Pacific', abbrev: 'MHT', utcOffset: 12 }],
         [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
     ]);
-    public clockSources: byteValueMap=new byteValueMap([
+    public clockSources: byteValueMap = new byteValueMap([
         [1, { name: 'manual', desc: 'Manual' }],
         [2, { name: 'server', desc: 'Server' }]
     ]);
-    public clockModes: byteValueMap=new byteValueMap([
+    public clockModes: byteValueMap = new byteValueMap([
         [12, { name: '12 Hour' }],
         [24, { name: '24 Hour' }]
     ]);
-    public virtualControllerStatus: byteValueMap=new byteValueMap([
+    public virtualControllerStatus: byteValueMap = new byteValueMap([
         [-1, { name: 'notapplicable', desc: 'Not Applicable' }],
         [0, { name: 'stopped', desc: 'Stopped' }],
         [1, { name: 'running', desc: 'Running' }]
     ]);
     // need to validate these...
-    public delay: byteValueMap=new byteValueMap([
+    public delay: byteValueMap = new byteValueMap([
         [0, { name: 'nodelay', desc: 'No Delay' }],
         [32, { name: 'nodelay', desc: 'No Delay' }],
         [34, { name: 'heaterdelay', desc: 'Header Delay' }],
@@ -456,9 +461,9 @@ export class byteValueMaps {
 export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
-    protected _modulesAcquired: boolean=true;
-    public needsConfigChanges: boolean=false;
-    public valueMaps: byteValueMaps=new byteValueMaps();
+    protected _modulesAcquired: boolean = true;
+    public needsConfigChanges: boolean = false;
+    public valueMaps: byteValueMaps = new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
     public async stopAsync() {
@@ -470,7 +475,7 @@ export class SystemBoard {
         p.push(sys.board.virtualPumpControllers.stopAsync());
         return Promise.all(p);
     }
-    public turnOffAllCircuits(){
+    public turnOffAllCircuits() {
         // turn off all circuits/features
         for (let i = 0; i <= state.circuits.length; i++) {
             state.circuits.getItemByIndex(i).isOn = false;
@@ -481,27 +486,27 @@ export class SystemBoard {
         for (let i = 0; i <= state.lightGroups.length; i++) {
             state.lightGroups.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.temps.bodies.length; i++){
+        for (let i = 0; i <= state.temps.bodies.length; i++) {
             state.temps.bodies.getItemByIndex(i).isOn = false;
         }
         sys.board.virtualPumpControllers.setTargetSpeed();
         state.emitEquipmentChanges();
     }
-    public system: SystemCommands=new SystemCommands(this);
-    public bodies: BodyCommands=new BodyCommands(this);
-    public pumps: PumpCommands=new PumpCommands(this);
-    public circuits: CircuitCommands=new CircuitCommands(this);
-    public valves: ValveCommands=new ValveCommands(this);
-    public features: FeatureCommands=new FeatureCommands(this);
-    public chlorinator: ChlorinatorCommands=new ChlorinatorCommands(this);
-    public heaters: HeaterCommands=new HeaterCommands(this);
-    public chemControllers: ChemControllerCommands=new ChemControllerCommands(this);
+    public system: SystemCommands = new SystemCommands(this);
+    public bodies: BodyCommands = new BodyCommands(this);
+    public pumps: PumpCommands = new PumpCommands(this);
+    public circuits: CircuitCommands = new CircuitCommands(this);
+    public valves: ValveCommands = new ValveCommands(this);
+    public features: FeatureCommands = new FeatureCommands(this);
+    public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
+    public heaters: HeaterCommands = new HeaterCommands(this);
+    public chemControllers: ChemControllerCommands = new ChemControllerCommands(this);
 
-    public schedules: ScheduleCommands=new ScheduleCommands(this);
-    public equipmentIds: EquipmentIds=new EquipmentIds();
-    public virtualChlorinatorController=new VirtualChlorinatorController(this);
-    public virtualPumpControllers=new VirtualPumpController(this);
-    public virtualChemControllers=new VirtualChemController(this);
+    public schedules: ScheduleCommands = new ScheduleCommands(this);
+    public equipmentIds: EquipmentIds = new EquipmentIds();
+    public virtualChlorinatorController = new VirtualChlorinatorController(this);
+    public virtualPumpControllers = new VirtualPumpController(this);
+    public virtualChemControllers = new VirtualChemController(this);
 
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
@@ -517,15 +522,17 @@ export class SystemBoard {
     public get commandDestAddress(): number { return 16; }
 }
 export class ConfigRequest {
-    public failed: boolean=false;
-    public version: number=0; // maybe not used for intellitouch
-    public items: number[]=[];
-    public acquired: number[]=[]; // used?
+    public failed: boolean = false;
+    public version: number = 0; // maybe not used for intellitouch
+    public items: number[] = [];
+    public acquired: number[] = []; // used?
     public oncomplete: Function;
     public name: string;
     public category: number;
     public setcategory: number;
-    public fillRange(start: number, end: number) { for (let i = start; i <= end; i++) this.items.push(i); }
+    public fillRange(start: number, end: number) {
+        for (let i = start; i <= end; i++) this.items.push(i);
+    }
     public get isComplete(): boolean {
         return this.items.length === 0;
     }
@@ -536,9 +543,9 @@ export class ConfigRequest {
     }
 }
 export class ConfigQueue {
-    public queue: ConfigRequest[]=[];
-    public curr: ConfigRequest=null;
-    public closed: boolean=false;
+    public queue: ConfigRequest[] = [];
+    public curr: ConfigRequest = null;
+    public closed: boolean = false;
     public close() {
         this.closed = true;
         this.queue.length = 0;
@@ -554,7 +561,7 @@ export class ConfigQueue {
             if (this.queue[i].isComplete) this.queue.splice(i, 1);
         }
     }
-    public totalItems: number=0;
+    public totalItems: number = 0;
     public get remainingItems(): number {
         let c = this.queue.reduce((prev: number, curr: ConfigRequest): number => {
             return prev += curr.items.length;
@@ -577,64 +584,20 @@ export class ConfigQueue {
     protected queueRange(cat: number, start: number, end: number) { }
 }
 export class BoardCommands {
-    protected board: SystemBoard=null;
+    protected board: SystemBoard = null;
     constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-    public async setTempsAsync(obj: any): Promise<TemperatureState> {
-        for (let prop in obj) {
-            switch (prop) {
-                case 'air':
-                case 'airSensor1':
-                    {
-                        let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                        state.temps.air = temp + (sys.general.options.airTempAdj || 0);
-                    }
-                    break;
-                case 'waterSensor1':
-                    {
-                        let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                        state.temps.waterSensor1 = temp + (sys.general.options.waterTempAdj1 || 0);
-                        let body = state.temps.bodies.getItemById(1);
-                        if (body.isOn) body.temp = state.temps.waterSensor1;
-
-                    }
-                    break;
-                case 'waterSensor2':
-                    {
-                        let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                        state.temps.waterSensor2 = temp + (sys.general.options.waterTempAdj2 || 0);
-                        if (!state.equipment.shared) {
-                            let body = state.temps.bodies.getItemById(2);
-                            if (body.isOn) body.temp = state.temps.waterSensor2;
-                        }
-                    }
-                    break;
-                case 'solarSensor1':
-                case 'solar':
-                    {
-                        let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                        state.temps.solar = temp + (sys.general.options.solarTempAdj1);
-                    }
-                    break;
-            }
-        }
-        return Promise.resolve(state.temps);
-    }
     public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
         if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
         if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
         if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-        return new Promise<General>(function(resolve, reject) { resolve(sys.general); });
+        return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
     }
     public async setOptionsAsync(obj: any): Promise<Options> {
         let opts = sys.general.options;
@@ -643,7 +606,7 @@ export class SystemCommands extends BoardCommands {
                 if (typeof obj[s] !== 'undefined')
                     opts[s] = obj[s];
         }
-        return new Promise<Options>(function(resolve, reject) { resolve(sys.general.options); });
+        return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
     }
     public async setLocationAsync(obj: any): Promise<Location> {
         let loc = sys.general.location;
@@ -652,7 +615,7 @@ export class SystemCommands extends BoardCommands {
                 if (typeof obj[s] !== 'undefined')
                     loc[s] = obj[s];
         }
-        return new Promise<Location>(function(resolve, reject) { resolve(sys.general.location); });
+        return new Promise<Location>(function (resolve, reject) { resolve(sys.general.location); });
     }
     public async setOwnerAsync(obj: any): Promise<Owner> {
         let owner = sys.general.owner;
@@ -661,7 +624,7 @@ export class SystemCommands extends BoardCommands {
                 if (typeof obj[s] !== 'undefined')
                     owner[s] = obj[s];
         }
-        return new Promise<Owner>(function(resolve, reject) { resolve(sys.general.owner); });
+        return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
     }
     public getSensors() {
         let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
@@ -859,7 +822,7 @@ export class PumpCommands extends BoardCommands {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${ data.id }`, data.id, 'Pump');
+            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             let spump = state.pumps.getItemById(id, data.id <= 0);
             for (let prop in data) {
@@ -889,7 +852,7 @@ export class PumpCommands extends BoardCommands {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${ data.id }`, data.id, 'Pump');
+            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
             let pump = sys.pumps.getItemById(id, false);
             let spump = state.pumps.getItemById(id, false);
             sys.pumps.removeItemById(id);
@@ -1058,12 +1021,12 @@ export class PumpCommands extends BoardCommands {
             pump.type = pumpType;
             let type = sys.board.valueMaps.pumpTypes.transform(pumpType);
 
-            if (type.name === 'vs' || type.name === 'vsf'){
+            if (type.name === 'vs' || type.name === 'vsf') {
                 pump.speedStepSize = 100;
                 pump.minSpeed = type.minSpeed;
                 pump.maxSpeed = type.maxSpeed;
             }
-            if (type.name === 'vf' || type.name === 'vsf'){
+            if (type.name === 'vf' || type.name === 'vsf') {
                 pump.flowStepSize = 1;
                 pump.minFlow = type.minFlow;
                 pump.maxFlow = type.maxFlow;
@@ -1413,7 +1376,7 @@ export class CircuitCommands extends BoardCommands {
         return Promise.resolve(circ);
     }
 
-    public toggleCircuitStateAsync(id: number) : Promise<ICircuitState> {
+    public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !circ.isOn);
     }
@@ -1447,7 +1410,7 @@ export class CircuitCommands extends BoardCommands {
             let vcs = sys.board.valueMaps.virtualCircuits.toArray();
             for (let i = 0; i < vcs.length; i++) {
                 let c = vcs[i];
-                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual', assignableToPumpCircuit: c.assignableToPumpCircuit});
+                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual', assignableToPumpCircuit: c.assignableToPumpCircuit });
             }
         }
         if (includeGroups) {
@@ -1482,7 +1445,7 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${ data.id }`, data.id, 'Circuit');
+        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit');
         if (id === 6) throw new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id);
 
         if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
@@ -1496,7 +1459,7 @@ export class CircuitCommands extends BoardCommands {
                 circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId);
             }
             else if (data.name) circuit.name = scircuit.name = data.name;
-            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${ data.id }`;
+            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
             if (typeof data.type !== 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10);
             else circuit.type = scircuit.type = 0;
             if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
@@ -1517,7 +1480,7 @@ export class CircuitCommands extends BoardCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'CircuitGroup');
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup');
         group = sys.circuitGroups.getItemById(id, true);
         return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
@@ -1545,7 +1508,7 @@ export class CircuitCommands extends BoardCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'LightGroup');
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup');
         group = sys.lightGroups.getItemById(id, true);
         return new Promise<LightGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
@@ -1571,7 +1534,7 @@ export class CircuitCommands extends BoardCommands {
     }
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${ obj.id }`, 'CircuitGroup');
+        if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup');
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
@@ -1675,7 +1638,7 @@ export class CircuitCommands extends BoardCommands {
             sgroup.action = nop;
             sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
             state.emitEquipmentChanges();
-            setTimeout(function() {
+            setTimeout(function () {
                 sgroup.action = 0;
                 sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
                 state.emitEquipmentChanges();
@@ -1695,7 +1658,7 @@ export class CircuitCommands extends BoardCommands {
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${ obj.id }`, obj.id, 'Feature');
+        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature');
         if (!sys.board.equipmentIds.features.isInRange(obj.id)) return;
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(obj.id, true);
@@ -1707,7 +1670,7 @@ export class FeatureCommands extends BoardCommands {
                 feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
             }
             else if (obj.name) feature.name = sfeature.name = obj.name;
-            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${ obj.id }`;
+            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
             if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
             else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
             if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
@@ -1721,7 +1684,7 @@ export class FeatureCommands extends BoardCommands {
     }
     public async deleteFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${ obj.id }`, obj.id, 'Feature');
+        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature');
         if (!sys.board.equipmentIds.features.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(id, false);
@@ -1738,12 +1701,12 @@ export class FeatureCommands extends BoardCommands {
             throw new InvalidEquipmentIdError('Feature id has not been defined', obj.id, 'Feature');
     }
 
-    public async setFeatureStateAsync(id: number, val: boolean) : Promise<ICircuitState> {
+    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = val;
         return Promise.resolve(feat);
     }
-    public async toggleFeatureStateAsync(id: number) : Promise<ICircuitState> {
+    public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = !feat.isOn;
         return Promise.resolve(feat);
@@ -1827,16 +1790,16 @@ export class ChlorinatorCommands extends BoardCommands {
         conn.queueSendMessage(out);
     }
 
-    public run(chlor: Chlorinator, cstate: ChlorinatorState){
-        if (cstate.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running') ) return;
+    public run(chlor: Chlorinator, cstate: ChlorinatorState) {
+        if (cstate.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
         if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
             // We have not talked to the chlorinator in 30 seconds so we have lost communication.
             cstate.status = 128;
             cstate.currentOutput = 0;
             state.emitEquipmentChanges();
         }
-        setTimeout(sys.board.chlorinator.setDesiredOutput,100,cstate);
-        setTimeout(sys.board.chlorinator.run,4000,chlor,cstate);
+        setTimeout(sys.board.chlorinator.setDesiredOutput, 100, cstate);
+        setTimeout(sys.board.chlorinator.run, 4000, chlor, cstate);
     }
 
     public setDesiredOutput(cstate: ChlorinatorState) {
@@ -1850,7 +1813,7 @@ export class ChlorinatorCommands extends BoardCommands {
             response: true,
             onComplete: (err) => {
                 if (err) {
-                    logger.warn(`error with chlorinator: ${ err.message }`);
+                    logger.warn(`error with chlorinator: ${err.message}`);
                 }
                 else {
                     cstate.currentOutput = cstate.setPointForCurrentBody;
@@ -1883,7 +1846,7 @@ export class ScheduleCommands extends BoardCommands {
     public transformDays(val: any): number {
         if (typeof val === 'number') return val;
         let edays = sys.board.valueMaps.scheduleDays.toArray();
-        let dayFromString = function(str) {
+        let dayFromString = function (str) {
             let lstr = str.toLowerCase();
             let byte = 0;
             for (let i = 0; i < edays.length; i++) {
@@ -1904,7 +1867,7 @@ export class ScheduleCommands extends BoardCommands {
             }
             return byte;
         };
-        let dayFromDow = function(dow) {
+        let dayFromDow = function (dow) {
             let byte = 0;
             for (let i = 0; i < edays.length; i++) {
                 let eday = edays[i];
@@ -1916,7 +1879,7 @@ export class ScheduleCommands extends BoardCommands {
             return byte;
         };
         let bdays = 0;
-        if (Array.isArray(val)) {
+        if (val.isArray) {
             for (let i in val) {
                 let v = val[i];
                 if (typeof v === 'string') bdays |= dayFromString(v);
@@ -1931,7 +1894,7 @@ export class ScheduleCommands extends BoardCommands {
         return bdays;
     }
 
-    public setSchedule(sched: Schedule|EggTimer, obj?: any) {
+    public setSchedule(sched: Schedule | EggTimer, obj?: any) {
         if (typeof obj !== undefined) {
             for (var s in obj)
                 sched[s] = obj[s];
@@ -1941,7 +1904,7 @@ export class ScheduleCommands extends BoardCommands {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${ data.id }`, data.id, 'Schedule'));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id, data.id <= 0);
             let ssched = state.schedules.getItemById(id, data.id <= 0);
             let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
@@ -1966,14 +1929,14 @@ export class ScheduleCommands extends BoardCommands {
             if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
 
             // At this point we should have all the data.  Validate it.
-            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${ schedType }`, 'Schedule', schedType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${ startTimeType }`, 'Schedule', startTimeType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${ endTimeType }`, 'Schedule', endTimeType));
-            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${ heatSource }`, 'Schedule', heatSource));
-            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${ heatSetpoint }`, 'Schedule', heatSetpoint));
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
             if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${ circuit }`, 'Schedule', circuit));
-            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${ schedDays }. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
 
             sched.circuit = ssched.circuit = circuit;
@@ -1995,7 +1958,7 @@ export class ScheduleCommands extends BoardCommands {
     public deleteScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${ data.id }`, data.id, 'Schedule'));
+            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id, false);
             let ssched = state.schedules.getItemById(id, false);
             sys.schedules.removeItemById(id);
@@ -2023,6 +1986,21 @@ export class HeaterCommands extends BoardCommands {
             }
         }
     }
+    public isHeatPumpInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'heatpump':
+                        return true;
+                }
+            }
+        }
+    }
     public setHeater(heater: Heater, obj?: any) {
         if (typeof obj !== undefined) {
             for (var s in obj)
@@ -2030,11 +2008,68 @@ export class HeaterCommands extends BoardCommands {
         }
     }
 
-    public updateHeaterServices(heater: Heater) { }
+    public updateHeaterServices() {
+        let solarInstalled = sys.board.heaters.isSolarInstalled();
+        let heatPumpInstalled = sys.board.heaters.isHeatPumpInstalled();
+        let gasHeaterInstalled = sys.heaters.getItemById(1).isActive;
+        if (gasHeaterInstalled && solarInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [1, { name: 'heater', desc: 'Heater' }],
+                [2, { name: 'solarpref', desc: 'Solar Preferred' }],
+                [3, { name: 'solar', desc: 'Solar Only' }]
+            ]);
+            // todo = verify these; don't think they are correct.
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'solar', desc: 'Solar Only' }],
+                [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else if (gasHeaterInstalled && heatPumpInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [1, { name: 'heater', desc: 'Heater' }],
+                [2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
+                [3, { name: 'heatpump', desc: 'Heat Pump Only' }]
+            ]);
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else if (gasHeaterInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [1, { name: 'heater', desc: 'Heater' }]
+            ]);
+            // todo = verify these; don't think they are correct.
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }]
+            ]);
+            // todo = verify these; don't think they are correct.
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+    }
 }
 export class ValveCommands extends BoardCommands {
     public async setValveAsync(obj: any): Promise<Valve> {
-        return new Promise<Valve>(function(resolve, reject) {
+        return new Promise<Valve>(function (resolve, reject) {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
             let valve = sys.valves.getItemById(id, false);
@@ -2051,7 +2086,7 @@ export class ChemControllerCommands extends BoardCommands {
             id = sys.chemControllers.nextAvailableChemController();
         }
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${ data.id }`, data.id, 'ChemController'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
         let chem = sys.chemControllers.getItemById(id, true);
         let schem = state.chemControllers.getItemById(id, true);
         if (typeof data.type !== 'undefined' && data.type === 0) {
@@ -2063,16 +2098,16 @@ export class ChemControllerCommands extends BoardCommands {
             sys.emitEquipmentChange();
             return Promise.resolve(chem);
         }
-        schem.type = chem.type = parseInt(data.type,10) || chem.type ||  1;
+        schem.type = chem.type = parseInt(data.type, 10) || chem.type || 1;
         chem.isActive = data.isActive || true;
         chem.isVirtual = data.isVirtual || true;
         schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
         if (typeof data.body !== 'undefined') chem.body = data.body || 32;
         if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
-        if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint,10);
-        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness,10);
-        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid,10);
-        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity,10);
+        if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint, 10);
+        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
+        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
+        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
         state.chemControllers.getItemById(id).calculateSaturationIndex();
         sys.emitEquipmentChange();
         return Promise.resolve(chem);
@@ -2152,11 +2187,11 @@ export class VirtualChlorinatorController extends BoardCommands {
         let chlor = sys.chlorinators.getItemById(1);
         let schlor = state.chlorinators.getItemById(1);
         if (chlor.isActive && chlor.isVirtual) {
-            if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')){
+            if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
                 schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
                 if (typeof (chlor.name) === 'undefined') sys.board.chlorinator.requestName(schlor);
-                sys.board.chlorinator.run(chlor,schlor);
-            } 
+                sys.board.chlorinator.run(chlor, schlor);
+            }
         }
     }
 
@@ -2206,7 +2241,7 @@ export class VirtualPumpController extends BoardCommands {
             pump = sys.pumps.getItemById(i, true);
             pump.isActive = pump.isVirtual = true;
             pump.type = spump.type = 0;
-            logger.info(`Searching for a pump at address... ${ pump.address }`);
+            logger.info(`Searching for a pump at address... ${pump.address}`);
             spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
             // nested calls here; could do away with this but would have to otherwise send in an onComplete function
             // and that's a bunch of additional logic
@@ -2219,7 +2254,7 @@ export class VirtualPumpController extends BoardCommands {
                 response: true,
                 onComplete: (err) => {
                     if (err) {
-                        logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
+                        logger.info(`No pump found at address ${pump.address}: ${err.message}`);
                         sys.pumps.removeItemById(pump.id);
                         state.pumps.removeItemById(pump.id);
                     }
@@ -2233,12 +2268,12 @@ export class VirtualPumpController extends BoardCommands {
                             response: true,
                             onComplete: (err, msg) => {
                                 if (err) {
-                                    logger.info(`No pump found at address ${ pump.address }: ${ err.message }`);
+                                    logger.info(`No pump found at address ${pump.address}: ${err.message}`);
                                     sys.pumps.removeItemById(pump.id);
                                     state.pumps.removeItemById(pump.id);
                                 }
                                 else {
-                                    logger.info(`Found pump at ${pump.id} address ${ pump.address }`);
+                                    logger.info(`Found pump at ${pump.id} address ${pump.address}`);
                                     sys.board.virtualPumpControllers.start();
                                 }
                             }
@@ -2282,7 +2317,7 @@ export class VirtualPumpController extends BoardCommands {
                 let spump = state.pumps.getItemById(i);
                 if (pump.isVirtual) {
                     bAnyVirtual = true;
-                    logger.info(`Queueing pump ${ i } to return to manual control.`);
+                    logger.info(`Queueing pump ${i} to return to manual control.`);
                     spump.targetSpeed = 0;
                     // if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) continue;
                     spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
@@ -2301,12 +2336,12 @@ export class VirtualPumpController extends BoardCommands {
             if (pump.isVirtual && pump.isActive) {
                 if (spump.targetSpeed > 0) {
                     if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
-                    logger.info(`Starting Virtual Pump Controller: Pump ${ pump.id }`);
+                    logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
                     state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
-                    setTimeout(sys.board.pumps.run,500,pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else {
-                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')){
+                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
                         spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
                         sys.board.pumps.stopPumpRemoteContol(pump);
                     }
@@ -2316,7 +2351,7 @@ export class VirtualPumpController extends BoardCommands {
     }
 }
 export class VirtualChemController extends BoardCommands {
-    private _timers: NodeJS.Timeout[]=[];
+    private _timers: NodeJS.Timeout[] = [];
     public async search() {
         // TODO: If we are searching for multiple chem controllers this should be a promise.all array
         // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
@@ -2326,14 +2361,14 @@ export class VirtualChemController extends BoardCommands {
             chem.isActive = true;
             chem.isVirtual = true;
             chem.type = 1;
-            logger.info(`Searching for a chem controller at address... ${ chem.address }`);
+            logger.info(`Searching for a chem controller at address... ${chem.address}`);
             try {
                 await sys.board.chemControllers.initChem(chem);
                 state.chemControllers.getItemById(i, true);
                 // set other vals
             }
             catch (err) {
-                logger.info(`No chemController found at address ${ chem.address }: ${ err.message }`);
+                logger.info(`No chemController found at address ${chem.address}: ${err.message}`);
                 sys.chemControllers.removeItemById(i);
                 state.chemControllers.removeItemById(i);
             }
@@ -2348,7 +2383,7 @@ export class VirtualChemController extends BoardCommands {
             let chem = sys.chemControllers.getItemById(i);
             let schem = state.chemControllers.getItemById(i);
             if (chem.isVirtual && chem.isActive) {
-                logger.info(`Queueing chemController ${ i } to stop.`);
+                logger.info(`Queueing chemController ${i} to stop.`);
                 promises.push(sys.board.chemControllers.stopAsync(chem));
                 typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
                 state.chemControllers.getItemById(i, true).virtualControllerStatus = 0;
@@ -2362,12 +2397,12 @@ export class VirtualChemController extends BoardCommands {
             let chem = sys.chemControllers.getItemById(i);
             if (chem.isVirtual && chem.isActive) {
                 typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
-                setImmediate(function() { sys.board.chemControllers.runAsync(chem); });
+                setImmediate(function () { sys.board.chemControllers.runAsync(chem); });
                 // TODO: refactor into a wrapper like pumps
                 // this won't work with async inside setTimeout/setInterval
-                this._timers[i] = setInterval(async function() { await sys.board.chemControllers.runAsync(chem); }, 8000);
+                this._timers[i] = setInterval(async function () { await sys.board.chemControllers.runAsync(chem); }, 8000);
                 if (state.chemControllers.getItemById(i).virtualControllerStatus !== 1) {
-                    logger.info(`Starting Virtual Pump Controller: Pump ${ chem.id }`);
+                    logger.info(`Starting Virtual Pump Controller: Pump ${chem.id}`);
                     state.chemControllers.getItemById(i).virtualControllerStatus = 1;
                 }
 

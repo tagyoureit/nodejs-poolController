@@ -36,14 +36,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [12, { name: 'pool', desc: 'Pool' }],
             [13, { name: 'spa', desc: 'Spa' }]
         ]);
-        this.valueMaps.heaterTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No Heater' }],
-            [1, { name: 'gas', desc: 'Gas Heater' }],
-            [2, { name: 'solar', desc: 'Solar Heater' }],
-            [3, { name: 'heatpump', desc: 'Heat Pump' }],
-            [4, { name: 'ultratemp', desc: 'UltraTemp' }],
-            [5, { name: 'hybrid', desc: 'hybrid' }]
-        ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody:false }],
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody:true }],

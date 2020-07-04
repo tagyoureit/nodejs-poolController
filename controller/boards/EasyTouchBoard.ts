@@ -255,7 +255,6 @@ export class EasyTouchBoard extends SystemBoard {
     public features: TouchFeatureCommands=new TouchFeatureCommands(this);
     public chlorinator: TouchChlorinatorCommands=new TouchChlorinatorCommands(this);
     public pumps: TouchPumpCommands=new TouchPumpCommands(this);
-    public heaters: TouchHeaterCommands=new TouchHeaterCommands(this);
     public schedules: TouchScheduleCommands=new TouchScheduleCommands(this);
     protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
 
@@ -1424,53 +1423,4 @@ class TouchPumpCommands extends PumpCommands {
             spump.type = pump.type;
             spump.status = 0;
         } */
-}
-class TouchHeaterCommands extends HeaterCommands {
-    public updateHeaterServices(heater: Heater) {
-        if (heater.isActive || heater.type !== 1) {
-            if (heater.type === 3) {
-                this.board.valueMaps.heatModes = new byteValueMap([
-                    [0, { name: 'off', desc: 'Off' }],
-                    [1, { name: 'heater', desc: 'Heater' }],
-                    [2, { name: 'heatpump', desc: 'Heat Pump Only' }],
-                    [3, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]
-                ]);
-                this.board.valueMaps.heatSources = new byteValueMap([
-                    [0, { name: 'off', desc: 'No Heater' }],
-                    [3, { name: 'heater', desc: 'Heater' }],
-                    [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
-                    [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
-                    [32, { name: 'nochange', desc: 'No Change' }]
-                ]);
-            }
-            else if (heater.type === 2) {
-                this.board.valueMaps.heatModes = new byteValueMap([
-                    [0, { name: 'off', desc: 'Off' }],
-                    [1, { name: 'heater', desc: 'Heater' }],
-                    [2, { name: 'solar', desc: 'Solar Only' }],
-                    [3, { name: 'solarpref', desc: 'Solar Preferred' }]
-                ]);
-                // todo = verify these; don't think they are correct.
-                this.board.valueMaps.heatSources = new byteValueMap([
-                    [0, { name: 'off', desc: 'No Heater' }],
-                    [3, { name: 'heater', desc: 'Heater' }],
-                    [5, { name: 'solar', desc: 'Solar Only' }],
-                    [21, { name: 'solarpref', desc: 'Solar Preferred' }],
-                    [32, { name: 'nochange', desc: 'No Change' }]
-                ]);
-            }
-        }
-        else {
-            this.board.valueMaps.heatModes = new byteValueMap([
-                [0, { name: 'off', desc: 'Off' }],
-                [1, { name: 'heater', desc: 'Heater' }]
-            ]);
-            // todo = verify these; don't think they are correct.
-            this.board.valueMaps.heatSources = new byteValueMap([
-                [0, { name: 'off', desc: 'No Heater' }],
-                [3, { name: 'heater', desc: 'Heater' }],
-                [32, { name: 'nochange', desc: 'No Change' }]
-            ]);
-        }
-    }
 }

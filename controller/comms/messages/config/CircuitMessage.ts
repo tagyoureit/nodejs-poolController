@@ -136,6 +136,11 @@ export class CircuitMessage {
             }
         // Now that we are done.  Lets sort the array by position.
         //  sys.intellibrite.circuits.sortByPosition();
+        if (lg.circuits.length === 0){
+            lg.isActive = false;
+            sys.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
+            state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
+        }
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -298,6 +303,7 @@ export class CircuitMessage {
             } */
             if (sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.length === 0) {
                 sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).isActive = false;
+                sys.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
                 state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
             }
             sys.features.removeItemById(id);
