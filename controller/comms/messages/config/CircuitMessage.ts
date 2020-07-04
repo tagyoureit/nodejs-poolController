@@ -183,17 +183,19 @@ export class CircuitMessage {
         }
     }
     private static processCircuitNames(msg: Inbound) {
-        let circuitId = ((msg.extractPayloadByte(1) - 3) * 2) + sys.board.equipmentIds.circuits.start;
+        let circuitId = ((msg.extractPayloadByte(1) - 3) * 2) + 1;  // In single body systems the very first circuit name is spa.  We used to start at the id start
+                                                                    // but it should always start at the 1 and the start id in single bodies is 2 and isInRange
+                                                                    // will filter our the first one.
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(2, 16);
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(18, 16);
     }
     private static processLightingTheme(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
-        // With single body systems we have a funny scenario where circuit 1 is just ignored.
+        // With single body systems circuit 1 is ignored.
         let maxCircuitId = sys.board.equipmentIds.circuits.end;
         for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
-            if (circuit.type === 9)
+            if (circuit.type === 9) // We are a dimmer.
                 circuit.level = msg.extractPayloadByte(i);
             else
                 circuit.lightingTheme = msg.extractPayloadByte(i);

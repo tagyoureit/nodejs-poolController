@@ -260,7 +260,7 @@ export class IntelliCenterBoard extends SystemBoard {
         state.equipment.shared = sys.equipment.shared;
         let pb = sys.equipment.modules.getItemById(0);
         if (pb.type === 0 || pb.type > 5)
-            sys.equipment.model = 'IntelliCenter i5PS';
+            sys.equipment.model = 'IntelliCenter i5P';
         else
             sys.equipment.model = 'IntelliCenter ' + pb.name;
         state.equipment.model = sys.equipment.model;
@@ -362,12 +362,9 @@ export class IntelliCenterBoard extends SystemBoard {
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
-        // Slot 0 always has to have a personality card.
-        if (slot0 === 0 && inv.bodies !== 0) {
-            modules.removeItemById(0);
-        }
+        // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.
+        if (slot0 === 0) modules.removeItemById(0);
         else {
-            // This is an i5P.  There is nothing here so the MB is the personality board.
             let mod = modules.getItemById(0, true);
             let mt = this.valueMaps.expansionBoards.transform(slot0);
             mod.name = mt.name;
