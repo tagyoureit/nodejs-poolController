@@ -10,7 +10,8 @@ export class ConfigSocket {
     public static initSockets(sock: SocketIO.Socket) {
         sock.on('/config/lightGroup', async (data: any) => {
             try {
-                await sys.board.circuits.setLightGroupAsync(data.body);
+                data = JSON.parse(data);
+                await sys.board.circuits.setLightGroupAsync(data);
                 // return res.status(200).send((group).get(true));
             }
             catch (err) { console.error(err); }

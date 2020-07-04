@@ -8,6 +8,7 @@ export class StateSocket {
     public static initSockets(sock: SocketIO.Socket) {
         sock.on('/state/circuit/toggleState', async (data: any) => {
             try {
+                data = JSON.parse(data);
                 await state.circuits.toggleCircuitStateAsync(parseInt(data.id, 10));
                 // return res.status(200).send(cstate);
             }
@@ -16,20 +17,21 @@ export class StateSocket {
         sock.on('/state/body/heatMode', async (data: any) => {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
             try {
+                data = JSON.parse(data);
                 // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
-                let mode = parseInt(data.body.mode, 10);
+                let mode = parseInt(data.mode, 10);
                 let val;
-                if (isNaN(mode)) mode = parseInt(data.body.heatMode, 10);
+                if (isNaN(mode)) mode = parseInt(data.heatMode, 10);
                 if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                else val = sys.board.valueMaps.heatModes.transformByName(data.body.mode || data.body.heatMode);
+                else val = sys.board.valueMaps.heatModes.transformByName(data.mode || data.heatMode);
                 if (typeof val.val === 'undefined') {
-                    logger.error(new ServiceParameterError(`Invalid value for heatMode: ${data.body.mode}`, 'body', 'heatMode', mode));
+                    logger.error(new ServiceParameterError(`Invalid value for heatMode: ${data.mode}`, 'body', 'heatMode', mode));
                     return;
                 }
                 mode = val.val;
-                let body = sys.bodies.findByObject(data.body);
+                let body = sys.bodies.findByObject(data);
                 if (typeof body === 'undefined') {
-                    logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.body.id));
+                    logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.id));
                     return;
                 }
                 await sys.board.bodies.setHeatModeAsync(body, mode);
@@ -39,12 +41,13 @@ export class StateSocket {
         sock.on('/state/body/setPoint', async (data: any) => {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
             try {
-                let body = sys.bodies.findByObject(data.body);
+                data = JSON.parse(data);
+                let body = sys.bodies.findByObject(data);
                 if (typeof body === 'undefined') {
-                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.body.id));
+                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', data.id));
                     return;
                 }
-                await sys.board.bodies.setHeatSetpointAsync(body, parseInt(data.body.setPoint, 10));
+                await sys.board.bodies.setHeatSetpointAsync(body, parseInt(data.setPoint, 10));
                 // return res.status(200).send(tbody);
             } catch (err) { logger.error(err); }
         });
