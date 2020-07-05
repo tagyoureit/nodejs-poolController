@@ -121,7 +121,21 @@ export class State implements IState {
         }
         return Promise.resolve();
     }
-    protected hasChanged=false;
+    private _emitTimerDirty: NodeJS.Timeout;
+    private _hasChanged = false;
+    private get hasChanged() { return this._hasChanged;}
+    private set hasChanged(val:boolean){ 
+        // RSG: 7/4/2020 - added this because it is now a "lazy" emit.  
+        // If emitControllerChange isn't called right away this will call the emit fn after 3s.
+        // Previously, this would not happen every minute when the time changed.
+        this._hasChanged = val;
+        var self = this;
+        if (val !== this._hasChanged){
+            clearTimeout(this._emitTimerDirty);
+            this._emitTimerDirty = null;
+        }
+        if (this._hasChanged) {this._emitTimerDirty = setTimeout(function() { self.emitControllerChange();}, 3000)}
+    }
     public get controllerState() {
         var self = this;
         return {
@@ -148,7 +162,6 @@ export class State implements IState {
                 webApp.emitToClients('controller', self.controllerState);
             }
         }
-
     }
     public get time(): Timestamp { return this._dt; }
     public get mode(): number { return typeof (this.data.mode) !== 'undefined' ? this.data.mode.val : -1; }
@@ -336,7 +349,7 @@ class EqState implements IEqStateCreator<EqState> {
     private _hasChanged: boolean=false;
     public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
-        // If we are not already on the dirty list add us.
+        // If we are not already on the dirty list add us.        
         if (!this._hasChanged && val) {
             state._dirtyList.maybeAddEqState(this);
         }

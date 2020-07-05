@@ -278,7 +278,6 @@ export class PoolSystem implements IPoolSystem {
             pumps: self.data.pumps || [],
             chlorinators: self.data.chlorinators || [],
             remotes: self.data.remotes || [],
-            //intellibrite: self.data.intellibrite || [],
             heaters: self.data.heaters || [],
             appVersion: self.data.appVersion || '0.0.0'
         };

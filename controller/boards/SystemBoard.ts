@@ -591,14 +591,11 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
     public keepManualTime() {
+        // every minute, updated the time from the system clock in manual mode
+        // but only for Virtual.  Likely 'manual' on *Center means OCP time
         if (sys.general.options.clockSource !== 'manual') return;
         state.time.setTimeFromSystemClock();
         setTimeout(function() {
-            // state.time.hours = dt.getHours();
-            // state.time.minutes = dt.getMinutes();
-            // state.time.seconds = dt.getSeconds();
-            // state.time.month = dt.getMonth();
-            // state.time.year = dt.getFullYear
             sys.board.system.keepManualTime();
         }, (60 - new Date().getSeconds()) * 1000);
     }
