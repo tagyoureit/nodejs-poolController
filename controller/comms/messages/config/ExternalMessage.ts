@@ -279,7 +279,7 @@ export class ExternalMessage {
         }
         state.emitEquipmentChanges();
     }
-    private static processFeatureState(start: number, msg: Inbound) {
+    public static processFeatureState(start: number, msg: Inbound) {
         let featureId = sys.board.equipmentIds.features.start;
         let maxFeatureId = sys.features.getMaxId(true, 0);
         for (let i = start; i < msg.payload.length && featureId <= maxFeatureId; i++) {

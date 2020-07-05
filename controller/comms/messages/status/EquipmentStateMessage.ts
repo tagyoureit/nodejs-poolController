@@ -4,6 +4,7 @@ import { state, BodyTempState } from '../../../State';
 import { sys, Body, ExpansionPanel, Heater, ConfigVersion, Circuit, Feature } from '../../../Equipment';
 import { logger } from '../../../../logger/Logger';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
+import { ExternalMessage } from '../config/ExternalMessage'
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -471,7 +472,11 @@ export class EquipmentStateMessage {
                         case ControllerType.IntelliCenter:
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
-                                EquipmentStateMessage.processFeatureState(msg);
+                                // RKS: As of 1.04 the entire feature state is emitted on 204.  This message
+                                // used to contain the first 4 feature states starting in byte 8 upper 4 bits
+                                // and as of 1.047 beta this was no longer reliable.  Macro circuits onl appear
+                                // to be available on message 30-15 and 168-15.
+                                //EquipmentStateMessage.processFeatureState(msg);
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.circuits.syncVirtualCircuitStates();
@@ -565,6 +570,7 @@ export class EquipmentStateMessage {
                         chlor.superChlor = false;
                     }
                 }
+                ExternalMessage.processFeatureState(9, msg);
                 // state.emitControllerChange();
                 // state.emitEquipmentChanges();
                 break;
