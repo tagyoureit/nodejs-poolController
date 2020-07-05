@@ -797,8 +797,10 @@ class TouchCircuitCommands extends CircuitCommands {
                         let circuit = sys.circuits.getInterfaceById(data.id);
                         let cstate = state.circuits.getInterfaceById(data.id);
                         circuit.nameId = cstate.nameId = nameByte;
-                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
                         circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                        circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures;
+                        circuit.showInCircuits = typeof data.showInCircuits !== 'undefined' ? data.showInCircuits : circuit.showInCircuits; // cstate.showInCircuits?
+                        circuit.freeze  = typeof data.freeze !== 'undefined' ? data.freeze : circuit.freeze;
                         circuit.type = cstate.type = typeByte;
                         state.emitEquipmentChanges();
                         resolve(circuit);

@@ -81,14 +81,15 @@ export class CircuitGroupMessage {
         // bytes 8-14 = on circuits
         
         // start circuitGroup range at 192; same as IntelliCenter
-        let groupId = msg.extractPayloadByte(0) + 192;
+        let groupId = msg.extractPayloadByte(0) + sys.board.equipmentIds.circuitGroups.start + 1;
         let _isActive = msg.payload.slice(1).reduce((accumulator, currentValue) => accumulator + currentValue) > 0;
         if (_isActive){
             let group = sys.circuitGroups.getItemById(groupId, _isActive);
-            let feature = sys.circuits.getInterfaceById(groupId);
-            group.name = feature.name;
-            group.nameId = feature.nameId;
-            group.type = 2; 
+            let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
+            let feature = sys.circuits.getInterfaceById(msg.extractPayloadByte(0) + 41);
+            group.name = sgroup.name = feature.name;
+            group.nameId = sgroup.nameId = feature.nameId;
+            group.type = sgroup.type = sys.board.valueMaps.circuitGroupTypes.getValue('circuit'); 
             group.isActive = _isActive;
             let circuits: CircuitGroupCircuitCollection = group.circuits;
             for (let byte = 1; byte <= 7; byte++){
@@ -111,10 +112,6 @@ export class CircuitGroupMessage {
                     onByte = onByte >> 1;
                 }
             }
-            let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
-            sgroup.type = group.type;
-            sgroup.name = group.name;
-            sgroup.nameId = group.nameId;
         }
         else {
             sys.circuitGroups.removeItemById(groupId);

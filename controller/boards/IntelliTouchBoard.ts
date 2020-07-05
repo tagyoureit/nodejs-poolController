@@ -11,7 +11,7 @@ import {conn} from '../comms/Comms';
 export class IntelliTouchBoard extends EasyTouchBoard {
     constructor (system: PoolSystem){
         super(system);
-        this.equipmentIds.features.start = 40;
+        this.equipmentIds.features.start = 41;
         this.equipmentIds.features.end = 50;
         this._configQueue = new ITTouchConfigQueue();
     }

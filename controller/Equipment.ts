@@ -955,8 +955,8 @@ export interface ICircuit {
     freeze?: boolean;
     isActive: boolean;
     lightingTheme?: number;
+    showInCircuits?: boolean;
     showInFeatures?: boolean;
-    // RG - remove this after I figure out what macros are
     macro?: boolean;
     getLightThemes?: () => {};
     get(copy?: boolean);

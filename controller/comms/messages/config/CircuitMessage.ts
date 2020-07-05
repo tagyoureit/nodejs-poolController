@@ -251,7 +251,7 @@ export class CircuitMessage {
             circuit.type = type;
             circuit.isActive = _isActive;
             circuit.freeze = (functionId & 64) === 64;
-            circuit.showInFeatures = true;
+            circuit.showInFeatures = typeof circuit.showInFeatures === 'undefined' ? true : circuit.showInFeatures;
             circuit.isActive = _isActive;
             if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
             if ([9, 10, 16, 17].includes(circuit.type)) {
@@ -291,8 +291,6 @@ export class CircuitMessage {
                 }
             }
             else {
-                // RKS: TODO this is likely a feature that is promoted to a circuit group/macro.
-
                 // feature specific logic
                 circuit.macro = (functionId & 128) === 128;
             }
