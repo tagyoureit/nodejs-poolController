@@ -437,7 +437,6 @@ export class byteValueMaps {
         [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
     ]);
     public clockSources: byteValueMap = new byteValueMap([
-        [1, { name: 'manual', desc: 'Manual' }],
         [2, { name: 'server', desc: 'Server' }]
     ]);
     public clockModes: byteValueMap = new byteValueMap([
@@ -596,9 +595,9 @@ export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
     public setDateTime(obj: any) { }
     public keepManualTime() {
-        // every minute, updated the time from the system clock in manual mode
+        // every minute, updated the time from the system clock in server mode
         // but only for Virtual.  Likely 'manual' on *Center means OCP time
-        if (sys.general.options.clockSource !== 'manual') return;
+        if (sys.general.options.clockSource !== 'server') return;
         state.time.setTimeFromSystemClock();
         setTimeout(function () {
             sys.board.system.keepManualTime();
@@ -2429,7 +2428,7 @@ export class VirtualPumpController extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
             sys.board.virtualPumpControllers.setTargetSpeed();
-            if (pump.isVirtual && pump.isActive && ['vs','vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type))) {
+            if (pump.isVirtual && pump.isActive && ['vs','vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type).substring(0,2))) {
                 if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
                 logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
                 state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');

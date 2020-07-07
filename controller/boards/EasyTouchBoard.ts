@@ -25,6 +25,10 @@ export class EasyTouchBoard extends SystemBoard {
                 return [idx + 200, { name: el.name, desc: el.name }];
             })
         );
+        this.valueMaps.clockSources = new byteValueMap([
+            [1, { name: 'manual', desc: 'Manual' }],
+            [2, { name: 'server', desc: 'Server' }]
+        ]);
         this.valueMaps.circuitNames = new byteValueMap([
             // [0, { name: 'notused', desc: 'Not Used' }],
             [1, { name: 'aerator', desc: 'Aerator' }],
@@ -132,14 +136,10 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }]
-/*             ,[2, { name: 'solarpref', desc: 'Solar Preferred' }],
-            [3, { name: 'solar', desc: 'Solar Only' }] */
         ]);
         this.valueMaps.heatStatus = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }]
-/*             ,[2, { name: 'cooling', desc: 'Cooling' }],
-            [3, { name: 'solar', desc: 'Solar' }] */
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater' }],
