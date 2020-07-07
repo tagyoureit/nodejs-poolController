@@ -1,5 +1,6 @@
 ﻿import { Inbound } from "../Messages";
-import { sys, General } from"../../../Equipment";
+import { sys, General } from "../../../Equipment";
+import { logger } from "../../../../logger/Logger";
 export class GeneralMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(1)) {
@@ -32,6 +33,9 @@ export class GeneralMessage {
                 break;
             case 7:
                 sys.general.location.state = msg.extractPayloadString(2, 32);
+                break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                 break;
         }
     }

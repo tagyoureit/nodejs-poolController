@@ -1,6 +1,7 @@
 ﻿import { sys, Chlorinator } from "../../../Equipment";
 import { Inbound } from "../Messages";
 import { state } from "../../../State";
+import { logger } from "../../../../logger/Logger"
 export class ChlorinatorMessage {
     public static process(msg: Inbound): void {
         var chlorinatorId;
@@ -26,6 +27,9 @@ export class ChlorinatorMessage {
                     schlor.superChlorHours = chlor.superChlorHours;
                     state.emitEquipmentChanges();
                 }
+                break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                 break;
         }
     }

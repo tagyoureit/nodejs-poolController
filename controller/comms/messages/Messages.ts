@@ -545,6 +545,7 @@ export class Inbound extends Message {
                 ChlorinatorStateMessage.process(this);
                 break;
             default:
+                logger.debug(`Unprocessed Message ${this.toPacket()}`)
                 break;
         }
     }

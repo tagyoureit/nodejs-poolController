@@ -353,7 +353,7 @@ export class EquipmentStateMessage {
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 6;
-                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0F;
                             if ((msg.extractPayloadByte(2) & 0x20) === 32) {
                                 tbody.temp = state.temps.waterSensor1;
                                 tbody.isOn = true;
@@ -366,9 +366,9 @@ export class EquipmentStateMessage {
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
-                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xF0) >> 4;
                             if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-                                tbody.temp = state.temps.waterSensor1;
+                                tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                         }
@@ -379,7 +379,7 @@ export class EquipmentStateMessage {
                             tbody.name = cbody.name;
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
-                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0f;
+                            tbody.heatStatus = msg.extractPayloadByte(11) & 0x0F;
                             tbody.circuit = cbody.circuit = 12;
                             if ((msg.extractPayloadByte(3) & 0x08) === 8) {
                                 // This is the first circuit on the second body.
@@ -394,7 +394,7 @@ export class EquipmentStateMessage {
                             tbody.name = cbody.name;
                             tbody.heatMode = cbody.heatMode;
                             tbody.setPoint = cbody.setPoint;
-                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xf0) >> 4;
+                            tbody.heatStatus = (msg.extractPayloadByte(11) & 0xF0) >> 4;
                             tbody.circuit = cbody.circuit = 22;
                             if ((msg.extractPayloadByte(5) & 0x20) === 32) {
                                 // This is the first circuit on the third body or the first circuit on the second expansion.
@@ -477,9 +477,9 @@ export class EquipmentStateMessage {
                                 // and as of 1.047 beta this was no longer reliable.  Macro circuits onl appear
                                 // to be available on message 30-15 and 168-15.
                                 //EquipmentStateMessage.processFeatureState(msg);
+                                sys.board.circuits.syncVirtualCircuitStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
-                                sys.board.circuits.syncVirtualCircuitStates();
                                 break;
                             }
                         case ControllerType.IntelliCom:
@@ -576,6 +576,9 @@ export class EquipmentStateMessage {
                 break;
         }
     }
+    // RKS: 07-06-20 I am deprecating this from processing in IntelliCenter.  This was a throwback from *Touch but
+    // not all the features are represented and I am unsure if it actually processes correctly in all situations.  The
+    // bytes may be set but it may also be coincidental.  This is wholly unreliable in 1.047+.  Message 204 contains the complete set.
     private static processFeatureState(msg: Inbound) {
         // Somewhere in this packet we need to find support for 32 bits of features.
         // Turning on the first defined feature set by 7 to 16
@@ -625,13 +628,11 @@ export class EquipmentStateMessage {
                 let circuit = sys.circuits.getItemById(circuitId, false, { isActive: false });
                 if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-                    cstate.isOn = (byte & 1 << j) >> j > 0;
+                    cstate.isOn = (byte & (1 << j)) > 0;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-/*                     if (cstate.isOn && circuitId === 6) body = 6;
-                    if (cstate.isOn && circuitId === 1) body = 1; */
                     if (sys.controllerType === ControllerType.IntelliCenter)
                         // intellitouch sends a separate msg with themes
                         switch (circuit.type) {

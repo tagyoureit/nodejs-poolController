@@ -1,7 +1,7 @@
 import { Inbound } from "../Messages";
 import { sys, Body, Circuit, ICircuit } from "../../../Equipment";
 import { state } from "../../../State";
-import { getPriority } from "os";
+import { logger } from "../../../../logger/Logger";
 
 export class CircuitMessage {
     public static process(msg: Inbound): void {
@@ -58,11 +58,17 @@ export class CircuitMessage {
                     case 29:
                         CircuitMessage.processShowInCircuits(msg);
                         break;
+                    default:
+                        logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
+                        break;
                 }
                 break;
             case 39: // IntelliTouch Light Groups
             case 167:
                 CircuitMessage.processIntelliBrite(msg);
+                break;
+            default:
+                logger.debug(`Unprocessed Message ${msg.toPacket()}`)
                 break;
         }
     }

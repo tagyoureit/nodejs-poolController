@@ -1,6 +1,7 @@
 ﻿import {Inbound} from "../Messages";
 import {sys, Valve} from "../../../Equipment";
-import {ControllerType} from "../../../Constants";
+import { ControllerType } from "../../../Constants";
+import { logger } from "../../../../logger/Logger";
 export class ValveMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -28,6 +29,10 @@ export class ValveMessage {
                     case 14:
                         ValveMessage.processValveNames(msg);
                         break;
+                    default:
+                        logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
+                        break;
+
                 }
                 break;
             case ControllerType.IntelliCom:

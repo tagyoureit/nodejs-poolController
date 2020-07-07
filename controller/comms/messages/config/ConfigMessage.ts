@@ -17,6 +17,7 @@ import { IntellichemMessage } from "./IntellichemMessage";
 import { ControllerType } from "../../../Constants";
 import { sys } from '../../../Equipment';
 import { ExternalMessage } from "./ExternalMessage";
+import { logger } from "../../../../logger/Logger";
 
 export class ConfigMessage {
     // Firing up the mobi after changing settings.
@@ -79,6 +80,9 @@ export class ConfigMessage {
                         // since it knows all that it needs to know to process the config.  This
                         // is a replica of the external 15 message.
                         ExternalMessage.processIntelliCenterState(msg);
+                        break;
+                    default:
+                        logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                         break;
                 }
                 break;

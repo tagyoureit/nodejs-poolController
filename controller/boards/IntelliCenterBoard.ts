@@ -224,7 +224,7 @@ export class IntelliCenterBoard extends SystemBoard {
             inv.chlorinators !== sys.equipment.maxChlorinators ||
             inv.valves !== sys.equipment.maxValves) {
             sys.resetData();
-            this.processExpansionModules(sys.equipment.modules, ocp0A, ocp0B);
+            this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B);
             this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0);
             this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0);
             this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0);
@@ -1766,6 +1766,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
         // Set the bits for the features.
         for (let i = 0; i <= state.data.features.length; i++) {
+            // We are using the index and setting the features based upon
+            // the index.  This way it doesn't matter what the sort happens to
+            // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
             let feature = state.features.getItemByIndex(i);
             let ordinal = feature.id - sys.board.equipmentIds.features.start;
             let ndx = Math.floor(ordinal / 8);
@@ -2583,8 +2586,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
 
             // If we make it here we can make it anywhere.
             let runOnce = schedType !== 128 ? 1 : 128;
-            if(startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
-            if(endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
+            if (startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
+            if (endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
             let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
             let out = Outbound.createMessage(168, [
                 3
@@ -2684,6 +2687,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
     // RKS: 06-24-20 - Need to talk to Russ.  This needs to go away and reconstituted in the async.
     public setSchedule(sched: Schedule, obj: any) { }
 }
+
 class IntelliCenterHeaterCommands extends HeaterCommands {
     private createHeaterConfigMessage(heater: Heater): Outbound {
         let out = Outbound.createMessage(

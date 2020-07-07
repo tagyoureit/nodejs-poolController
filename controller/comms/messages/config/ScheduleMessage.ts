@@ -2,6 +2,7 @@
 import { sys, Schedule, EggTimer } from "../../../Equipment";
 import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
+import { logger } from "../../../../logger/Logger";
 export class ScheduleMessage {
     // [165, 63, 15, 16, 30, 42][3, 28, 5, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][1, 143]
     //
@@ -78,6 +79,10 @@ export class ScheduleMessage {
                 case 36:
                     ScheduleMessage.processFlags(msg);
                     break;
+                default:
+                    logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
+                    break;
+
             }
         else if (sys.controllerType !== ControllerType.Unknown)
             ScheduleMessage.processScheduleDetails(msg);

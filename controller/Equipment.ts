@@ -1343,6 +1343,8 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
         }
         if (typeof add !== 'undefined' && add)
             return this.add(data || { id: id });
+        // RKS: This finds its way to the light groups if we aren't adding a circuit group so calling getItemById will first
+        // look for the group in circuit groups then look for it in the light groups.
         return sys.lightGroups.getItemById(id, add, data);
     }
 

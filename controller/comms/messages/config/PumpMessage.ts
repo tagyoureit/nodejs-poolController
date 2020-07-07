@@ -2,7 +2,7 @@
 import {sys, Pump, PumpCircuit} from "../../../Equipment";
 import {state, CircuitState} from "../../../State";
 import {ControllerType} from "../../../Constants";
-
+import { logger } from "../../../../logger/Logger";
 export class PumpMessage {
     private static maxCircuits: number=8;
     public static process(msg: Inbound): void {
@@ -95,6 +95,8 @@ export class PumpMessage {
             }
         }
         switch (msgId) {
+            case 0:
+                break;
             case 1:
                 PumpMessage.processFlowStepSize(msg);
                 break;
@@ -141,6 +143,10 @@ export class PumpMessage {
             case 26:
                 PumpMessage.processPumpNames(msg);
                 break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
+                break;
+
         }
     }
     private static processFlowStepSize(msg: Inbound) {

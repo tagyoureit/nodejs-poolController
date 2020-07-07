@@ -1,6 +1,7 @@
 ﻿import { Inbound } from "../Messages";
 import { sys, Feature } from "../../../Equipment";
 import { state } from "../../../State";
+import { logger } from "../../../../logger/Logger";
 export class FeatureMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(1)) {
@@ -41,6 +42,9 @@ export class FeatureMessage {
                 FeatureMessage.processFeatureNames(msg);
                 break;
             case 22: // Not sure what this is.
+                break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                 break;
         }
     }

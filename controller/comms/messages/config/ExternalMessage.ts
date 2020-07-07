@@ -1,8 +1,9 @@
 ﻿import {Inbound} from "../Messages";
 import {sys, Feature, Body, ICircuitGroup, LightGroup} from "../../../Equipment";
 import {state, BodyTempState, ICircuitGroupState, LightGroupState} from "../../../State";
-import {setTimeout} from "timers";
-import { exceptions, ExceptionHandler } from "winston";
+//import {setTimeout} from "timers";
+//import { exceptions, ExceptionHandler } from "winston";
+import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(0)) {
@@ -53,6 +54,9 @@ export class ExternalMessage {
                 ExternalMessage.processFeatureState(9, msg);
                 ExternalMessage.processScheduleState(15, msg);
                 ExternalMessage.processCircuitGroupState(13, msg);
+                break;
+            default:
+                logger.debug(`Unprocessed Message ${msg.toPacket()}`)
                 break;
         }
     }
@@ -114,6 +118,9 @@ export class ExternalMessage {
                 break;
             case 13: // Timezone
                 sys.general.location.timeZone = msg.extractPayloadByte(3);
+                break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                 break;
         }
     }
@@ -282,17 +289,19 @@ export class ExternalMessage {
     public static processFeatureState(start: number, msg: Inbound) {
         let featureId = sys.board.equipmentIds.features.start;
         let maxFeatureId = sys.features.getMaxId(true, 0);
+        //console.log(`Max Feature Id = ${maxFeatureId}`);
         for (let i = start; i < msg.payload.length && featureId <= maxFeatureId; i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the feature identified by each value.
-            for (let j = 0; j < 8; j++) {
+            for (let j = 0; j < 8 && featureId <= maxFeatureId; j++) {
                 let feature = sys.features.getItemById(featureId, false, { isActive: false });
                 if (feature.isActive !== false) {
                     let fstate = state.features.getItemById(featureId, true);
-                    fstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    fstate.isOn = (byte & (1 << j)) > 0;
                     fstate.name = feature.name;
                 }
                 else
+                    // Just a little insurance to remove the feature from the state.
                     state.features.removeItemById(featureId);
                 featureId++;
             }
@@ -441,7 +450,6 @@ export class ExternalMessage {
         }
         state.emitEquipmentChanges();
     }
-
     private static processChlorinator(msg: Inbound) {
         let isActive = msg.extractPayloadByte(10) > 0;
         let chlorId = msg.extractPayloadByte(2) + 1;

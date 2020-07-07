@@ -23,7 +23,8 @@ export class State implements IState {
                 const val = Reflect.get(target, property, receiver);
                 if (typeof val === 'function') return val.bind(receiver);
                 if (typeof (val) === 'object' && val !== null) {
-                    if (util.types.isProxy(val)) return val;
+                    if (util.types.isProxy(val))
+                        return val;
                     return new Proxy(val, handler);
                 }
                 return val;
@@ -1050,7 +1051,7 @@ export class ChlorinatorState extends EqState {
     public get setPointForCurrentBody() {
         let body = state.temps.bodies.getBodyIsOn();
         if (typeof body !== 'undefined') {
-            if (body.circuit === 0) return this.spaSetpoint;
+            if (body.circuit === 1) return this.spaSetpoint;
             return this.poolSetpoint;
         }
         return 0;

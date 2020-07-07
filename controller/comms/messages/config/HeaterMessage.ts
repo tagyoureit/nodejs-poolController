@@ -1,7 +1,7 @@
 ﻿import {Inbound} from "../Messages";
 import {sys, Heater} from "../../../Equipment";
-import {ControllerType} from "../../../Constants";
-import {BoardCommands} from "controller/boards/SystemBoard";
+import { ControllerType } from "../../../Constants";
+import { logger } from "../../../../logger/Logger";
 export class HeaterMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -34,6 +34,9 @@ export class HeaterMessage {
                         break;
                     case 13:
                         HeaterMessage.processEfficiencyMode(msg);
+                        break;
+                    default:
+                        logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                         break;
                 }
                 break;
