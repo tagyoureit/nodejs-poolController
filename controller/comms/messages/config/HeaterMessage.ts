@@ -56,6 +56,9 @@ export class HeaterMessage {
                 // 21 = solar or heat pump disabled
                 // 23 = solar or heat pump enabled
                 // probably a mask here, but not sure of the other values
+                // #179 - seeing a value of 5; RSG always has a value of 21.  
+                // 5 = 00101; 21 = 10101.  Possibly 5 is the mask?
+                // 23 (no solar) = 10111.  Or maybe 10 (2) is the mask?
 
                 // byte 1
                 // bit 1 = heating
@@ -69,7 +72,7 @@ export class HeaterMessage {
                 //             on/off (16) = solar as a heat pump
                 // bits 7,8 = stop temp delta
 
-                if (msg.extractPayloadByte(0) === 21) {
+                if ((msg.extractPayloadByte(0) & 0x2) === 0) {
                     sys.heaters.removeItemById(2);
                     sys.heaters.removeItemById(3);
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
