@@ -154,7 +154,7 @@ export class PoolSystem implements IPoolSystem {
     public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
         if (this._timerDirty) clearTimeout(this._timerDirty);
-        await this.board.stopAsync();
+        return this.board.stopAsync();
     }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
@@ -1367,41 +1367,9 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
     public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getExtended() {
-        /*todo:  RG - this is returning too much extended info; can't figure out why...
-        {
-            "id": 192,
-            "type": {
-                "val": 2,
-                "name": "circuit",
-                "desc": "Circuit"
-            },
-            "isActive": true,
-            "circuits": [
-                {
-                    "id": 1,
-                    "circuit": {
-                        "_hasChanged": false,     <-- should only be returning children of "data" here
-                        "data": {
-                            "id": 1,
-                            "isOn": true,
-                            "name": "SpaPUMP",
-                            "showInFeatures": true,
-                            "type": {
-                                "val": 1,
-                                "name": "spa",
-                                "desc": "SPA"
-                            }
-                        },
-                        "dataName": "circuit"
-                    },
-                    "desiredStateOn": true
-                }]
-        }
-        */
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
         group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
-        // let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
         let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;

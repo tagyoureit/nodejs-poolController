@@ -273,7 +273,7 @@ export class EquipmentStateMessage {
         state.temps.units = 0;
         sys.equipment.setEquipmentIds();
         state.emitControllerChange();
-
+        sys.board.virtualPumpControllers.start();
     }
     private static initController(msg: Inbound) {
         state.status = 1;

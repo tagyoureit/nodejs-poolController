@@ -85,10 +85,8 @@ export class State implements IState {
             _state.circuitGroups = this.circuitGroups.getExtended();
             _state.lightGroups = this.lightGroups.getExtended();
             _state.virtualCircuits = this.virtualCircuits.getExtended();
-            // _state.intellibrite = this.intellibrite.getExtended();
             _state.covers = this.covers.getExtended();
             _state.schedules = this.schedules.getExtended();
-            //_state.intellichem = this.intellichem.getExtended();
             _state.chemControllers = this.chemControllers.getExtended();
             return _state;
         }
@@ -437,10 +435,14 @@ class EqStateCollection<T> {
     public get length(): number { return typeof (this.data) !== 'undefined' ? this.data.length : 0; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
     public sortByName() {
-        this.sort((a, b) => { return a.data.name > b.data.name ? 1 : -1; });
+        this.sort((a, b) => {
+            return a.name > b.name ? 1 : a.name !== b.name ? -1 : 0;
+        });
     }
     public sortById() {
-        this.sort((a, b) => { return a.data.id > b.data.id ? 1 : -1; });
+        this.sort((a, b) => {
+            return a.id > b.id ? 1 : a.id !== b.id ? -1 : 0;
+        });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : extend(true, {}, this.data); }

@@ -131,15 +131,15 @@ export class EasyTouchBoard extends SystemBoard {
         ]);
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
-            [1, { name: 'heater', desc: 'Heater' }],
-            [2, { name: 'solarpref', desc: 'Solar Preferred' }],
-            [3, { name: 'solar', desc: 'Solar Only' }]
+            [1, { name: 'heater', desc: 'Heater' }]
+/*             ,[2, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [3, { name: 'solar', desc: 'Solar Only' }] */
         ]);
         this.valueMaps.heatStatus = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
-            [1, { name: 'heater', desc: 'Heater' }],
-            [2, { name: 'cooling', desc: 'Cooling' }],
-            [3, { name: 'solar', desc: 'Solar' }]
+            [1, { name: 'heater', desc: 'Heater' }]
+/*             ,[2, { name: 'cooling', desc: 'Cooling' }],
+            [3, { name: 'solar', desc: 'Solar' }] */
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater' }],
@@ -828,8 +828,8 @@ class TouchCircuitCommands extends CircuitCommands {
                     else {
                         cstate.isOn = val ? true : false;
                         if (id === 6) { sys.board.virtualChlorinatorController.start(); }
-                        // sys.board.virtualPumpControllers.start();
-                        sys.board.virtualPumpControllers.setTargetSpeed();
+                        sys.board.virtualPumpControllers.start();
+                        // sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
                         resolve(cstate);
                     }

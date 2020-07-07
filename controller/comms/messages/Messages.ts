@@ -166,6 +166,7 @@ export class Message {
                             return msgOut.action === 20 ? true : false;
                         case 18:
                         case 21:
+                        case 22:
                             return msgOut.action === 17 ? true : false;
                         default:
                             return false;

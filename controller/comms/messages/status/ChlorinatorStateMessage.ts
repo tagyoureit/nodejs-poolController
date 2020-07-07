@@ -80,8 +80,8 @@ export class ChlorinatorStateMessage {
                     // 0f49 - 15 and 73
                     let chlor = state.chlorinators.getItemById(1, true);
                     chlor.currentOutput = msg.extractPayloadByte(1);
-                    const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-                    tbody.temp = msg.extractPayloadByte(2);
+                    const tbody: BodyTempState = state.temps.bodies.getBodyIsOn();
+                    if (msg.extractPayloadByte(2) >=40) tbody.temp = msg.extractPayloadByte(2);
                     state.emitEquipmentChanges();
                     break;
                 }

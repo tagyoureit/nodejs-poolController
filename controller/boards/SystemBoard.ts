@@ -278,19 +278,21 @@ export class byteValueMaps {
         [4, { name: 'ultratemp', desc: 'Ultratemp' }],
         [5, { name: 'hybrid', desc: 'hybrid' }]
     ]);
-    public heatModes: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'Off' }],
-        [3, { name: 'heater', desc: 'Heater' }],
-        [5, { name: 'solar', desc: 'Solar Only' }],
-        [12, { name: 'solarpref', desc: 'Solar Preferred' }]
-    ]);
-    public heatSources: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'No Heater' }],
-        [3, { name: 'heater', desc: 'Heater' }],
-        [5, { name: 'solar', desc: 'Solar Only' }],
-        [21, { name: 'solarpref', desc: 'Solar Preferred' }],
-        [32, { name: 'nochange', desc: 'No Change' }]
-    ]);
+    public heatModes: byteValueMap = new byteValueMap([]);
+    // RSG: virtual controllers typically don't have heat
+    /*         [0, { name: 'off', desc: 'Off' }],
+            [3, { name: 'heater', desc: 'Heater' }],
+            [5, { name: 'solar', desc: 'Solar Only' }],
+            [12, { name: 'solarpref', desc: 'Solar Preferred' }]
+        ]); */
+    public heatSources: byteValueMap = new byteValueMap([]);
+    // RSG: virtual controllers typically don't have heat
+    /*         [0, { name: 'off', desc: 'No Heater' }],
+            [3, { name: 'heater', desc: 'Heater' }],
+            [5, { name: 'solar', desc: 'Solar Only' }],
+            [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [32, { name: 'nochange', desc: 'No Change' }]
+        ]); */
     public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
@@ -467,30 +469,33 @@ export class SystemBoard {
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
     public async stopAsync() {
-        this.turnOffAllCircuits();
         // turn off chlor
         sys.board.virtualChlorinatorController.stop();
         let p = [];
+        p.push(this.turnOffAllCircuits());
         p.push(sys.board.virtualChemControllers.stopAsync());
         p.push(sys.board.virtualPumpControllers.stopAsync());
         return Promise.all(p);
     }
-    public turnOffAllCircuits() {
+    public async turnOffAllCircuits() {
         // turn off all circuits/features
-        for (let i = 0; i <= state.circuits.length; i++) {
+        console.log(`start turn off all circs`);
+        for (let i = 0; i < state.circuits.length; i++) {
             state.circuits.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.features.length; i++) {
+        for (let i = 0; i < state.features.length; i++) {
             state.features.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.lightGroups.length; i++) {
+        for (let i = 0; i < state.lightGroups.length; i++) {
             state.lightGroups.getItemByIndex(i).isOn = false;
         }
-        for (let i = 0; i <= state.temps.bodies.length; i++) {
+        for (let i = 0; i < state.temps.bodies.length; i++) {
             state.temps.bodies.getItemByIndex(i).isOn = false;
         }
         sys.board.virtualPumpControllers.setTargetSpeed();
         state.emitEquipmentChanges();
+        console.log(`end turn off all circs`);
+        return Promise.resolve();
     }
     public system: SystemCommands = new SystemCommands(this);
     public bodies: BodyCommands = new BodyCommands(this);
@@ -595,7 +600,7 @@ export class SystemCommands extends BoardCommands {
         // but only for Virtual.  Likely 'manual' on *Center means OCP time
         if (sys.general.options.clockSource !== 'manual') return;
         state.time.setTimeFromSystemClock();
-        setTimeout(function() {
+        setTimeout(function () {
             sys.board.system.keepManualTime();
         }, (60 - new Date().getSeconds()) * 1000);
     }
@@ -878,24 +883,57 @@ export class PumpCommands extends BoardCommands {
             if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             let spump = state.pumps.getItemById(id, data.id <= 0);
-            for (let prop in data) {
-                if (prop in pump) pump[prop] = data[prop];
-                if (prop in spump) spump[prop] = data[prop];
+            if (typeof data.type !== 'undefined' && data.type !== pump.type) {
+                sys.board.pumps.setType(pump, data.type);
+                pump = sys.pumps.getItemById(id, true);
+                spump = state.pumps.getItemById(id, true);
             }
-            if (typeof data.circuits !== 'undefined') {
-                // We are setting the circuits as well.
-                let c = Math.max(pump.circuits.length, data.circuits.length);
-                for (let i = 0; i < c; i++) {
-                    if (i > data.circuits.length) pump.circuits.removeItemByIndex(i);
-                    else {
-                        let circ = pump.circuits.getItemByIndex(i, true, { id: i + 1 });
-                        for (let prop in data) {
-                            if (prop in circ) circ[prop] = data[prop];
-                        }
+            let type = sys.board.valueMaps.pumpTypes.transform(pump.type);
+            /*             for (let prop in data) {
+                            if (prop in pump) pump[prop] = data[prop];
+                            if (prop in spump) spump[prop] = data[prop];
+                        } */
+            data.name = data.name || pump.name || type.desc;
+
+            /*             if (typeof data.circuits !== 'undefined') {
+                            // We are setting the circuits as well.
+                            let c = Math.max(pump.circuits.length, data.circuits.length);
+                            for (let i = 0; i < c; i++) {
+                                if (i > data.circuits.length) pump.circuits.removeItemByIndex(i);
+                                else {
+                                    let circ = pump.circuits.getItemByIndex(i, true, { id: i + 1 });
+                                    for (let prop in data) {
+                                        if (prop in circ) circ[prop] = data[prop];
+                                    }
+                                }
+                            }
+                        } */
+            if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                    let c = data.circuits[i - 1];
+                    let speed = parseInt(c.speed, 10);
+                    let flow = parseInt(c.flow, 10);
+                    if (isNaN(speed)) speed = type.minSpeed;
+                    if (isNaN(flow)) flow = type.minFlow;
+                    // outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
+                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                        // outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
+                        // outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                        c.speed = speed;
+                    }
+                    else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                        // outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                        c.flow = flow;
                     }
                 }
             }
+            pump.set(data); // Sets all the data back to the pump.
+            // sys.board.virtualPumpControllers.setTargetSpeed();
+            sys.pumps.sortById();
+            state.pumps.sortById();
             spump.emitEquipmentChange();
+            sys.board.virtualPumpControllers.start();
             return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
         else
@@ -1053,7 +1091,7 @@ export class PumpCommands extends BoardCommands {
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
         sys.emitEquipmentChange();
-        sys.board.virtualPumpControllers.setTargetSpeed();
+        // sys.board.virtualPumpControllers.setTargetSpeed();
         return { result: 'OK' };
 
     }
@@ -1138,16 +1176,17 @@ export class PumpCommands extends BoardCommands {
     public run(pump: Pump) {
         logger.warn(`STARTING PUMP ${pump.id} RUN`)
         let spump = state.pumps.getItemById(pump.id);
-        // if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) sys.board.pumps.stop(pump);
+        if (typeof spump.targetSpeed === 'undefined') sys.board.virtualPumpControllers.setTargetSpeed();
+        if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) sys.board.pumps.stopPumpRemoteContol(pump);
         let callbackStack: CallbackStack[] = [
             { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
             {
                 fn: () => {
                     if (spump.targetSpeed > 130) { sys.board.pumps.runRPM(pump, spump, callbackStack); }
                     if (spump.targetSpeed > 0 && spump.targetSpeed <= 130) { sys.board.pumps.runGPM(pump, spump, callbackStack); }
-                }, timeout: 7000
+                }, timeout: 2000
             },
-            { fn: () => { sys.board.pumps.requestPumpStatus(pump, spump, callbackStack); }, timeout: 8000 },
+            { fn: () => { sys.board.pumps.requestPumpStatus(pump, spump, callbackStack); }, timeout: 2000 },
             { fn: () => { sys.board.pumps.run(pump); }, timeout: 500 }
         ];
 
@@ -1241,7 +1280,7 @@ export class PumpCommands extends BoardCommands {
                 const msg = Outbound.createPumpMessage(pump.address, pump.type === 128 ? 1 : 10, [2, 196, Math.floor(speed / 256), speed % 256], 1);
                 conn.queueSendMessage(msg); */
 
-
+        sys.board.virtualPumpControllers.setTargetSpeed();
         let speed = spump.targetSpeed;
         if (speed === 0 && callbackStack.length > 0) {
             let cb = callbackStack.shift();
@@ -1277,6 +1316,7 @@ export class PumpCommands extends BoardCommands {
 
     private runGPM(pump: Pump, spump: PumpState, callbackStack?: any[]) {
         // return new Promise((resolve, reject) => {
+        sys.board.virtualPumpControllers.setTargetSpeed();
         let speed = spump.targetSpeed;
         if (speed === 0 && callbackStack.length > 0) {
             let cb = callbackStack.shift();
@@ -1421,10 +1461,15 @@ export class CircuitCommands extends BoardCommands {
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
-        if (circ.id === 6) {
-            state.temps.bodies.getItemById(1).isOn = circ.isOn;
+        if (circ.id === 6 || circ.id === 1) {
+            for (let i = 0; i < state.temps.bodies.length; i++) {
+                if (state.temps.bodies.getItemByIndex(i).circuit === circ.id) {
+                    state.temps.bodies.getItemByIndex(i).isOn = circ.isOn;
+                    break;
+                }
+            }
         }
-        sys.board.virtualPumpControllers.setTargetSpeed();
+        sys.board.virtualPumpControllers.start();
         sys.emitEquipmentChange();
         return Promise.resolve(circ);
     }
@@ -1513,11 +1558,10 @@ export class CircuitCommands extends BoardCommands {
             }
             else if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
-            if (typeof data.type !== 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10);
-            else circuit.type = scircuit.type = 0;
-            if (typeof data.freeze !== 'undefined') circuit.freeze = utils.makeBool(data.freeze);
-            if (typeof data.showInFeatures !== 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
-            if (typeof data.eggTimer !== 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10);
+            if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+            if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
+            if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+            if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
             return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
@@ -2354,7 +2398,6 @@ export class VirtualPumpController extends BoardCommands {
                     }
                 }
                 spump.targetSpeed = _newSpeed;
-                sys.board.virtualPumpControllers.start();
             }
         }
     }
@@ -2372,7 +2415,6 @@ export class VirtualPumpController extends BoardCommands {
                     bAnyVirtual = true;
                     logger.info(`Queueing pump ${i} to return to manual control.`);
                     spump.targetSpeed = 0;
-                    // if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) continue;
                     spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
                     sys.board.pumps.stopPumpRemoteContol(pump);
                 }
@@ -2386,18 +2428,17 @@ export class VirtualPumpController extends BoardCommands {
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
-            if (pump.isVirtual && pump.isActive) {
-                if (spump.targetSpeed > 0) {
-                    if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
-                    logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
-                    state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
-                    setTimeout(sys.board.pumps.run, 500, pump);
-                }
-                else {
-                    if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
-                        spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                        sys.board.pumps.stopPumpRemoteContol(pump);
-                    }
+            sys.board.virtualPumpControllers.setTargetSpeed();
+            if (pump.isVirtual && pump.isActive && ['vs','vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type))) {
+                if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
+                logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
+                state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+                setTimeout(sys.board.pumps.run, 100, pump);
+            }
+            else {
+                if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+                    spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                    sys.board.pumps.stopPumpRemoteContol(pump);
                 }
             }
         }
