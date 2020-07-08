@@ -2064,14 +2064,13 @@ export class HeaterCommands extends BoardCommands {
             let heater = heaters[i];
             if (typeof body !== 'undefined') {
                 if ((heater.body !== 32 && body !== heater.body) || (heater.body === 32 && body > 2)) continue;
-                let type = types.find(elem => elem.val === heater.type);
-                if (typeof type !== 'undefined') {
-                    if (inst[type.name] === 'undefined') inst[type.name] = 0;
-                    inst[type.name] = inst[type.name] + 1;
-                    inst.total++;
-                }
             }
-
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                if (inst[type.name] === 'undefined') inst[type.name] = 0;
+                inst[type.name] = inst[type.name] + 1;
+                inst.total++;
+            }
         }
         return inst;
     }

@@ -2725,39 +2725,38 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
-
         // RKS: This is a hack to get us by the heater type changes in 1.047.
         if (sys.equipment.controllerFirmware === '1.047') {
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar' }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heatpump Only' }], [6, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heat Pump' }]]);
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
             sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
         }
         else {
             sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            else if(solarInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[32, { name: 'nochange', desc: 'No Change' }]]);
 
             sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
         }
     }
 
