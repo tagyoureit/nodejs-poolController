@@ -222,6 +222,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves += 3;
             }
         }
+        if (typeof sys.equipment.model === 'undefined') sys.equipment.model = `Unknown OCP[${model1},${model2}]`;
         state.equipment.model = sys.equipment.model;
         state.equipment.controllerType = sys.controllerType;
         ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
