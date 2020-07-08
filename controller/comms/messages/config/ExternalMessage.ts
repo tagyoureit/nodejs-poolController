@@ -215,6 +215,7 @@ export class ExternalMessage {
         heater.coolingEnabled = msg.extractPayloadByte(8) > 0;
         heater.economyTime = msg.extractPayloadByte(29);
         if (heater.type === 0) sys.heaters.removeItemById(heater.id);
+        sys.board.heaters.updateHeaterServices();
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);
     }

@@ -126,6 +126,7 @@ export class HeaterMessage {
             heater.isActive = heater.type > 0;
             heater.body = msg.extractPayloadByte(i + 17);
         }
+        sys.board.heaters.updateHeaterServices();
     }
     private static processMaxBoostTemp(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {

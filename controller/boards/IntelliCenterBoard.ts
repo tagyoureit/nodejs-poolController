@@ -153,6 +153,13 @@ export class IntelliCenterBoard extends SystemBoard {
             [96, { name: 'magenta', desc: 'Magenta' }],
             [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
+        this.valueMaps.heatSources = new byteValueMap([
+            [0, { name: 'off', desc: 'No Heater' }],
+            [3, { name: 'heater', desc: 'Heater' }],
+            [5, { name: 'solar', desc: 'Solar Only' }],
+            [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [32, { name: 'nochange', desc: 'No Change' }]
+        ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false }],
             [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days:'multi' }]
@@ -518,6 +525,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this._processing = false;
             if (this._failed) setTimeout(function () { sys.checkConfiguration(); }, 100);
             logger.info(`Configuration Complete`);
+            sys.board.heaters.updateHeaterServices();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
@@ -2709,6 +2717,64 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let out = this.createHeaterConfigMessage(heater);
         conn.queueSendMessage(out);
     }
+    public updateHeaterServices() {
+        // RKS: Refactor this.  In IntelliCenter you can have multiple types of heaters installed including
+        // a solar and heatpump installed at the same time.  There is also a hybrid heater that includes gas and heatpump.
+        let solarInstalled = sys.board.heaters.isSolarInstalled();
+        let heatPumpInstalled = sys.board.heaters.isHeatPumpInstalled();
+        let gasHeaterInstalled = sys.heaters.getItemById(1).isActive;
+        if (gasHeaterInstalled && solarInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'solar', desc: 'Solar Only' }],
+                [21, { name: 'solarpref', desc: 'Solar Preferred' }]
+            ]);
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'solar', desc: 'Solar Only' }],
+                [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else if (gasHeaterInstalled && heatPumpInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]
+            ]);
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else if (gasHeaterInstalled) {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }],
+                [3, { name: 'heater', desc: 'Heater' }]
+            ]);
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+        else {
+            this.board.valueMaps.heatModes = new byteValueMap([
+                [0, { name: 'off', desc: 'Off' }]
+            ]);
+            this.board.valueMaps.heatSources = new byteValueMap([
+                [0, { name: 'off', desc: 'No Heater' }],
+                [32, { name: 'nochange', desc: 'No Change' }]
+            ]);
+        }
+    }
+
 }
 class IntelliCenterValveCommands extends ValveCommands {
     public async setValveAsync(obj?: any) : Promise<Valve> {
