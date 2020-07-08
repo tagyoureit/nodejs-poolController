@@ -619,7 +619,7 @@ export class EquipmentStateMessage {
         // configuration already determined how many available circuits we have by querying the model of the panel
         // and any installed expansion panel models.  Only the number of available circuits will appear in this
         // array.
-        let circuitId = sys.board.equipmentIds.circuits.start;
+        let circuitId = 1;
         let maxCircuitId = sys.board.equipmentIds.circuits.end;
         for (let i = 2; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             const byte = msg.extractPayloadByte(i);
