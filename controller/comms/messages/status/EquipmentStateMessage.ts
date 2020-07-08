@@ -621,7 +621,7 @@ export class EquipmentStateMessage {
         // array.
         let circuitId = sys.board.equipmentIds.circuits.start;
         let maxCircuitId = sys.board.equipmentIds.circuits.end;
-        for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
+        for (let i = 2; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
@@ -633,7 +633,7 @@ export class EquipmentStateMessage {
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-                    if (sys.controllerType === ControllerType.IntelliCenter)
+                    if (sys.controllerType === ControllerType.IntelliCenter) {
                         // intellitouch sends a separate msg with themes
                         switch (circuit.type) {
                             case 6: // Globrite
@@ -646,6 +646,7 @@ export class EquipmentStateMessage {
                                 cstate.level = circuit.level || 0;
                                 break;
                         }
+                    }
                 }
                 circuitId++;
             }

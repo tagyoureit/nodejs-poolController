@@ -601,7 +601,10 @@ export class ExternalMessage {
                 sys.general.options.clockMode = (msg.extractPayloadByte(14) & 0x0001) == 1 ? 24 : 12;
                 break;
             case 14: // Clock source
-                sys.general.options.clockSource = (msg.extractPayloadByte(17) & 0x0040) === 1 ? 'internet' : 'manual';
+                if ((msg.extractPayloadByte(17) & 0x0040) === 1)
+                    sys.general.options.clockSource = 'internet';
+                else if (sys.general.options.clockSource !== 'server')
+                    sys.general.options.clockSource = 'manual';
                 break;
             case 18: // Body 1 Setpoint
                 body = sys.bodies.getItemById(1, false);

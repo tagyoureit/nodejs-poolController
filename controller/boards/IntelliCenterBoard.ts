@@ -120,7 +120,9 @@ export class IntelliCenterBoard extends SystemBoard {
             [228, {name: 'getversions', desc: 'Get Versions'}]
         ]);
         this.valueMaps.clockSources.merge([
-            [2, {name: 'internet', desc: 'Internet'}]
+            [1, { name: 'manual', desc: 'Manual' }],
+            [2, { name: 'server', desc: 'Server' }],
+            [3, { name: 'internet', desc: 'Internet' }]
         ]);
         this.valueMaps.scheduleTimeTypes.merge([
             [1, { name: 'sunrise', desc: 'Sunrise' }],
@@ -697,7 +699,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             0, 0, 0, 0, 0,
             0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00), // 14
             0, 0,
-            sys.general.options.clockSource === 'manual' ? 0 : 1, // 17
+            sys.general.options.clockSource === 'internet' ? 1 : 0, // 17
             3, 0, 0,
             sys.bodies.getItemById(1, false).setPoint || 100, // 21
             sys.bodies.getItemById(3, false).setPoint || 100,
@@ -830,7 +832,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.clockSource = obj.clockMode === 'internet' ? 'internet' : 'manual'; resolve(); }
+                        else {
+                            if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
+                                sys.general.options.clockSource = obj.clockSource;
+                            resolve();
+                        }
                     }
                 });
                 conn.queueSendMessage(out);
