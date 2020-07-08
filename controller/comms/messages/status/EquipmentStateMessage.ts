@@ -338,7 +338,7 @@ export class EquipmentStateMessage {
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
                     // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)
                     // 3. clock source is "server" isn't an OCP option but can be enabled on the clients 
-                    if (true || dt.getMinutes() % 15 === 0){
+                    if (dt.getMinutes() % 15 === 0){
                         if (sys.general.options.adjustDST && sys.general.options.clockSource === 'manual' && sys.controllerType.toLowerCase().includes('touch')){
                             if (Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000 ){
                                 // if we don't set time before we get a successful ACK we would try to set
