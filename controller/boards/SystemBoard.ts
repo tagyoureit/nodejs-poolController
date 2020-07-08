@@ -143,7 +143,7 @@ export class byteValueMaps {
         [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
     ]);
     public controllerStatus: byteValueMap = new byteValueMap([
-        [0, { val: 0, name: 'initializing', percent: 0 }],
+        [0, { val: 0, name: 'initializing', desc: 'Initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
         [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
     ]);
@@ -478,7 +478,6 @@ export class SystemBoard {
     }
     public async turnOffAllCircuits() {
         // turn off all circuits/features
-        console.log(`start turn off all circs`);
         for (let i = 0; i < state.circuits.length; i++) {
             state.circuits.getItemByIndex(i).isOn = false;
         }
@@ -493,7 +492,6 @@ export class SystemBoard {
         }
         sys.board.virtualPumpControllers.setTargetSpeed();
         state.emitEquipmentChanges();
-        console.log(`end turn off all circs`);
         return Promise.resolve();
     }
     public system: SystemCommands = new SystemCommands(this);
@@ -1112,7 +1110,7 @@ export class PumpCommands extends BoardCommands {
             let type = sys.board.valueMaps.pumpTypes.transform(pumpType);
 
             if (type.name === 'vs' || type.name === 'vsf') {
-                pump.speedStepSize = 100;
+                pump.speedStepSize = 10;
                 pump.minSpeed = type.minSpeed;
                 pump.maxSpeed = type.maxSpeed;
             }
@@ -1173,34 +1171,34 @@ export class PumpCommands extends BoardCommands {
         } */
 
     public run(pump: Pump) {
-        logger.warn(`STARTING PUMP ${pump.id} RUN`)
         let spump = state.pumps.getItemById(pump.id);
         if (typeof spump.targetSpeed === 'undefined') sys.board.virtualPumpControllers.setTargetSpeed();
-        if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) sys.board.pumps.stopPumpRemoteContol(pump);
-        let callbackStack: CallbackStack[] = [
-            { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
-            {
-                fn: () => {
-                    if (spump.targetSpeed > 130) { sys.board.pumps.runRPM(pump, spump, callbackStack); }
-                    if (spump.targetSpeed > 0 && spump.targetSpeed <= 130) { sys.board.pumps.runGPM(pump, spump, callbackStack); }
-                }, timeout: 2000
-            },
-            { fn: () => { sys.board.pumps.requestPumpStatus(pump, spump, callbackStack); }, timeout: 2000 },
-            { fn: () => { sys.board.pumps.run(pump); }, timeout: 500 }
-        ];
-
-        sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack);
+        if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) {
+            spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+            sys.board.pumps.stopPumpRemoteContol(pump);
+        }
+        else {
+            let callbackStack: CallbackStack[] = [
+                { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
+                undefined,
+                { fn: () => { sys.board.pumps.requestPumpStatus(pump, spump, callbackStack); }, timeout: 2000 },
+                { fn: () => { sys.board.pumps.run(pump); }, timeout: 500 }
+            ];
+            if (spump.targetSpeed === 0) callbackStack.splice(1,1);
+            else if (spump.targetSpeed > 0 && spump.targetSpeed <= 130) callbackStack[1] = {fn: () => { sys.board.pumps.runGPM(pump, spump, callbackStack); }, timeout: 2000}
+            else if (spump.targetSpeed > 130) callbackStack[1] = {fn: () => { sys.board.pumps.runRPM(pump, spump, callbackStack); }, timeout: 2000}    
+            sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack);
+        }
     }
 
     public stopPumpRemoteContol(pump: Pump) {
         let callbackStack: CallbackStack[] = [
             { fn: () => { sys.board.pumps.setPumpManual(pump, spump, callbackStack); }, timeout: 500 },
             { fn: () => { sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack); }, timeout: 500 },
-            { fn: () => { sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack); }, timeout: 500 }
+            { fn: () => { sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack); }, timeout: 500}
         ];
         let spump = state.pumps.getItemById(pump.id);
         sys.board.pumps.setDriveStatePacket(pump, spump, callbackStack);
-
     }
     public setPumpToRemoteControl(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
         let out = Outbound.create({
@@ -1223,7 +1221,6 @@ export class PumpCommands extends BoardCommands {
                 }
             }
         });
-        logger.debug(`Queueing Pump ${pump.id} - setPumpToRemoteControl`);
         conn.queueSendMessage(out);
     }
 
@@ -1269,16 +1266,11 @@ export class PumpCommands extends BoardCommands {
                 }
             }
         });
-        logger.debug(`Queueing Pump ${pump.id} - setDriveState`);
         conn.queueSendMessage(out);
     }
 
     private runRPM(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
-        /*
-                const msg = Outbound.createPumpMessage(pump.address, pump.type === 128 ? 1 : 10, [2, 196, Math.floor(speed / 256), speed % 256], 1);
-                conn.queueSendMessage(msg); */
-
         sys.board.virtualPumpControllers.setTargetSpeed();
         let speed = spump.targetSpeed;
         if (speed === 0 && callbackStack.length > 0) {
@@ -1308,8 +1300,6 @@ export class PumpCommands extends BoardCommands {
                 }
             }
         });
-        logger.debug(`Queueing Pump ${pump.id} - runRPM`);
-
         conn.queueSendMessage(out);
     }
 
@@ -1375,8 +1365,6 @@ export class PumpCommands extends BoardCommands {
                 }
             }
         });
-        logger.debug(`Queueing Pump ${pump.id} - setPumpToRemoteControl`);
-
         conn.queueSendMessage(out);
     }
 }
@@ -1895,11 +1883,11 @@ export class ChlorinatorCommands extends BoardCommands {
             state.emitEquipmentChanges();
         }
         setTimeout(sys.board.chlorinator.setDesiredOutput, 100, cstate);
+        if (typeof (chlor.name) === 'undefined') setTimeout(sys.board.chlorinator.requestName, 1000, cstate);
         setTimeout(sys.board.chlorinator.run, 4000, chlor, cstate);
     }
 
     public setDesiredOutput(cstate: ChlorinatorState) {
-        // console.log(`targetOutput: ${cstate.targetOutput} compared to setPointForCurrentBody: ${cstate.setPointForCurrentBody}`)
         let out = Outbound.create({
             protocol: Protocol.Chlorinator,
             dest: cstate.id,
@@ -2428,7 +2416,7 @@ export class VirtualPumpController extends BoardCommands {
             let pump = sys.pumps.getItemById(i);
             let spump = state.pumps.getItemById(i);
             sys.board.virtualPumpControllers.setTargetSpeed();
-            if (pump.isVirtual && pump.isActive && ['vs','vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type).substring(0,2))) {
+            if (pump.isVirtual && pump.isActive && ['vs', 'vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type).substring(0, 2))) {
                 if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
                 logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
                 state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');

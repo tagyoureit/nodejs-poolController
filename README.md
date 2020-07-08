@@ -102,9 +102,8 @@ v6 adds all new configuration and support for virtual pumps, chlorinators (and s
 
 Ready for 6.0;
 * [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
-* Alpha - SmartThings integration script.  Run [this](https://github.com/tagyoureit/nodejs-poolController-webClient/tree/master/scripts) file directly from the command line.  Check the IP inside the script.
 * [SmartThings/Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
-* [Homebridge/Sire](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
+* [Homebridge/Siri/EVE](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
 
 Need to be updated:
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
