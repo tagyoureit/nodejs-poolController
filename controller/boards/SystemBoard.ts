@@ -437,7 +437,7 @@ export class byteValueMaps {
         [191, { name: 'Fiji Time', loc: 'Pacific', abbrev: 'FJT', utcOffset: 12 }]
     ]);
     public clockSources: byteValueMap = new byteValueMap([
-        [2, { name: 'server', desc: 'Server' }]
+        [3, { name: 'server', desc: 'Server' }]
     ]);
     public clockModes: byteValueMap = new byteValueMap([
         [12, { name: '12 Hour' }],
@@ -591,7 +591,7 @@ export class BoardCommands {
 }
 export class SystemCommands extends BoardCommands {
     public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
-    public setDateTime(obj: any) { }
+    public setDateTimeAsync(obj: any):Promise<any> {return Promise.resolve(); }
     public keepManualTime() {
         // every minute, updated the time from the system clock in server mode
         // but only for Virtual.  Likely 'manual' on *Center means OCP time

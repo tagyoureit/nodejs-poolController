@@ -27,7 +27,7 @@ export class EasyTouchBoard extends SystemBoard {
         );
         this.valueMaps.clockSources = new byteValueMap([
             [1, { name: 'manual', desc: 'Manual' }],
-            [2, { name: 'server', desc: 'Server' }]
+            [3, { name: 'server', desc: 'Server' }]
         ]);
         this.valueMaps.circuitNames = new byteValueMap([
             // [0, { name: 'notused', desc: 'Not Used' }],
@@ -631,16 +631,27 @@ class TouchSystemCommands extends SystemCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setDateTime(obj: any) {
+    public async setDateTimeAsync(obj: any):Promise<any> {
         return new Promise((resolve, reject) => {
-            let id = 1;
             let { hour = state.time.hours,
                 min = state.time.minutes,
                 date = state.time.date,
                 month = state.time.month,
-                year = state.time.year,
+                year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
                 dst = sys.general.options.adjustDST ? 1 : 0,
                 dow = state.time.dayOfWeek } = obj;
+            if (obj.dt instanceof Date){
+                let _dt: Date = obj.dt;
+                hour = _dt.getHours();
+                min = _dt.getMinutes();
+                date = _dt.getDate();
+                month = _dt.getMonth() + 1;
+                year = _dt.getFullYear() - 2000;
+                let dates = sys.board.valueMaps.scheduleDays.toArray();
+                dates.forEach(d => {
+                    if (d.dow === _dt.getDay()) dow = d.dow;
+                })
+            }
             // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
             // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
             // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
@@ -653,8 +664,12 @@ class TouchSystemCommands extends SystemCommands {
                 retries: 3,
                 response: true,
                 onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    resolve();
+                    if (err) reject(err)
+                    else {
+                        resolve({time: state.time.format(),
+                                 adjustDST: sys.general.options.adjustDST
+                        });
+                    }
                 }
             });
             conn.queueSendMessage(out);

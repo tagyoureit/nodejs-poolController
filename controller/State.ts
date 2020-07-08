@@ -142,7 +142,7 @@ export class State implements IState {
             // body: self.data.body || {},
             valve: self.data.valve || 0,
             delay: self.data.delay,
-            adjustDST: self.data.adjustDST || false,
+            // adjustDST: self.data.adjustDST || false,
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
             mode: self.data.mode || {},
@@ -215,12 +215,12 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
-    public get adjustDST(): boolean { return this.data.adjustDST; }
-    public set adjustDST(val: boolean) {
-        if (this.data.adjustDST !== val) {
-            this.data.adjustDST = val;
-        }
-    }
+    // public get adjustDST(): boolean { return this.data.adjustDST; }
+    // public set adjustDST(val: boolean) {
+    //     if (this.data.adjustDST !== val) {
+    //         this.data.adjustDST = val;
+    //     }
+    // }
     public get batteryVoltage(): number { return this.data.batteryVoltage; }
     public set batteryVoltage(val: number) {
         if (this.data.batteryVoltage !== val) {

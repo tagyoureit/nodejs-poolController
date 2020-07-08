@@ -333,8 +333,36 @@ export class EquipmentStateMessage {
                     state.mode = msg.extractPayloadByte(9) & 0x81;
                     state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
-                    // EquipmentStateMessage.processHeatStatus(msg.extractPayloadByte(11));
-                    // state.heatMode = msg.extractPayloadByte(11);
+                    // RSG - added 7/8/2020
+                    // Check and update clock when it is off by >5 mins (just for a small buffer) and:
+                    // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
+                    // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)
+                    // 3. clock source is "server" isn't an OCP option but can be enabled on the clients 
+                    if (true || dt.getMinutes() % 15 === 0){
+                        if (sys.general.options.adjustDST && sys.general.options.clockSource === 'manual' && sys.controllerType.toLowerCase().includes('touch')){
+                            if (Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000 ){
+                                // if we don't set time before we get a successful ACK we would try to set
+                                // the clock N times before the message queue was exhausted if we are in the
+                                // middle of getting the configuration this would be a lotta N.
+                                // it sometimes may still send 2+ if there is a delay in processing pkts
+                                // or the outbound takes 2+ seconds R.T. and another status packet comes in first
+                                state.time.setTimeFromSystemClock();
+                                sys.board.system.setDateTimeAsync({dt, dst: sys.general.options.adjustDST || 0, })
+                                .then(()=>{
+                                    // don't have hanging Async
+                                    logger.info(`njsPC automatically updated OCP time.  You're welcome.`);
+                                    
+                                })
+                                .catch((err)=>{
+                                    logger.error(`Error automatically setting system time. ${JSON.stringify(err)}`)
+                                })
+                                ;
+                            }
+                        }
+                        else if (sys.general.options.clockSource === 'manual' && sys.controllerType.toLowerCase().includes('center')){
+                            // call IntelliCenter set date here
+                        }
+                    }
                     state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
@@ -405,7 +433,7 @@ export class EquipmentStateMessage {
                         }
                         state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
                         state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
-                        state.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
+                        sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
                     }
                     else {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);
@@ -506,14 +534,11 @@ export class EquipmentStateMessage {
                 state.time.date = msg.extractPayloadByte(3);
                 state.time.month = msg.extractPayloadByte(4);
                 state.time.year = msg.extractPayloadByte(5);
-                sys.general.options.adjustDST = state.adjustDST =
-                    msg.extractPayloadByte(7) === 0x01;
+                sys.general.options.adjustDST = msg.extractPayloadByte(7) === 0x01;
                 // defaults
                 if (typeof sys.general.options.clockMode === 'undefined') sys.general.options.clockMode = 12;
                 if (typeof sys.general.options.clockSource === 'undefined') sys.general.options.clockSource = 'manual';
                 setTimeout(function(){sys.board.checkConfiguration();},100);
-                // state.emitControllerChange();
-                state.emitEquipmentChanges();
                 break;
             case 8: {
                 // IntelliTouch only.  Heat status

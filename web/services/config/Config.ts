@@ -28,7 +28,7 @@ export class ConfigRoute {
         app.get('/config/options/general', (req, res) => {
             let opts = {
                 countries: [{ id: 1, name: 'United States' }, { id: 2, name: 'Mexico' }, { id: 3, name: 'Canada' }],
-                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
+                tempUnits: sys.board.valueMaps.tempUnits.toArray(),
                 timeZones: sys.board.valueMaps.timeZones.toArray(),
                 clockSources: sys.board.valueMaps.clockSources.toArray(),
                 clockModes: sys.board.valueMaps.clockModes.toArray(),
@@ -485,9 +485,12 @@ export class ConfigRoute {
             pump.setType(0);
             return res.status(200).send('OK');
         });
-        app.put('/config/dateTime', (req, res) => {
-            sys.updateControllerDateTime(req.body);
-            return res.status(200).send('OK');
+        app.put('/config/dateTime', async (req, res, next) => {
+            try {
+                let time = await sys.updateControllerDateTimeAsync(req.body);
+                return res.status(200).send(time);
+            }
+            catch (err) { next(err); }
         });
         app.get('/config/DaysOfWeek', (req, res) => {
             let dow = sys.board.system.getDOW();

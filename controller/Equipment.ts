@@ -39,7 +39,7 @@ interface IPoolSystem {
     board: SystemBoard;
     // virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
     // virtualPumpControllers: VirtualPumpControllerCollection;
-    updateControllerDateTime(
+    updateControllerDateTimeAsync(
         hour: number,
         min: number,
         date: number,
@@ -87,7 +87,7 @@ export class PoolSystem implements IPoolSystem {
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
-    public updateControllerDateTime(obj: any) { sys.board.system.setDateTime(obj); }
+    public async updateControllerDateTimeAsync(obj: any) { return sys.board.system.setDateTimeAsync(obj); }
     private loadConfigFile(path: string, def: any) {
         let cfg = def;
         if (fs.existsSync(path)) {
