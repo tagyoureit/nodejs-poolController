@@ -848,6 +848,14 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
         return undefined;
     }
 }
+export class BodyHeaterTypeStateCollection extends EqStateCollection <BodyHeaterTypeState> {
+    public createItem(data: any): BodyHeaterTypeState { return new BodyHeaterTypeState(data); }
+}
+export class BodyHeaterTypeState extends EqState {
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+
+}
 export class BodyTempState extends EqState {
     public dataName='bodyTempState';
     public get id(): number { return this.data.id; }

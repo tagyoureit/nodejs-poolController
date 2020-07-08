@@ -2055,6 +2055,26 @@ export class ScheduleCommands extends BoardCommands {
     }
 }
 export class HeaterCommands extends BoardCommands {
+    public getInstalledHeaterTypes(body?: number) : any {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        let inst = { total: 0 };
+        for (let i = 0; i < types.length; i++) if(types[i].name !== 'none') inst[types[i].name] = 0;
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined') {
+                if ((heater.body !== 32 && body !== heater.body) || (heater.body === 32 && body > 2)) continue;
+                let type = types.find(elem => elem.val === heater.type);
+                if (typeof type !== 'undefined') {
+                    if (inst[type.name] === 'undefined') inst[type.name] = 0;
+                    inst[type.name] = inst[type.name] + 1;
+                    inst.total++;
+                }
+            }
+
+        }
+        return inst;
+    }
     public isSolarInstalled(body?: number): boolean {
         let heaters = sys.heaters.get();
         let types = sys.board.valueMaps.heaterTypes.toArray();
