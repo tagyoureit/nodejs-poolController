@@ -137,10 +137,6 @@ export class EasyTouchBoard extends SystemBoard {
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }]
         ]);
-        this.valueMaps.heatStatus = new byteValueMap([
-            [0, { name: 'off', desc: 'Off' }],
-            [1, { name: 'heater', desc: 'Heater' }]
-        ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater' }],
             [1, { name: 'gas', desc: 'Gas Heater' }],

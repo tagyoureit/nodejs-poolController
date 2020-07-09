@@ -296,8 +296,8 @@ export class byteValueMaps {
     public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
-        [2, { name: 'solar', desc: 'Solar' }],
-        [3, { name: 'cooling', desc: 'Cooling' }]
+        [2, { name: 'cooling', desc: 'Cooling' }],
+        [3, { name: 'solar', desc: 'Solar' }]
     ]);
     public pumpStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
@@ -2125,7 +2125,7 @@ export class HeaterCommands extends BoardCommands {
             // todo = verify these; don't think they are correct.
             this.board.valueMaps.heatSources = new byteValueMap([
                 [0, { name: 'off', desc: 'No Heater' }],
-                [3, { name: 'heater', desc: 'Heater' }],
+                [2, { name: 'heater', desc: 'Heater' }],
                 [5, { name: 'solar', desc: 'Solar Only' }],
                 [21, { name: 'solarpref', desc: 'Solar Preferred' }],
                 [32, { name: 'nochange', desc: 'No Change' }]
