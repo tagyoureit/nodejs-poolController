@@ -669,6 +669,12 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     }
 }
 class IntelliCenterSystemCommands extends SystemCommands {
+    public async setDateTimeAsync(obj: any): Promise<any> {
+        Promise.resolve({
+            time: state.time.format(),
+            adjustDST: sys.general.options.adjustDST
+        });
+    }
     public async setGeneralAsync(obj?: any): Promise<General> {
         return new Promise<General>(async (resolve, reject) => {
             try {
