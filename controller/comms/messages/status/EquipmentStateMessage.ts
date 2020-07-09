@@ -1,10 +1,11 @@
-﻿import { Inbound, Message } from '../Messages';
-import { ControllerType } from '../../../Constants';
-import { state, BodyTempState } from '../../../State';
-import { sys, Body, ExpansionPanel, Heater, ConfigVersion, Circuit, Feature } from '../../../Equipment';
+﻿import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
+
 import { logger } from '../../../../logger/Logger';
-import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
-import { ExternalMessage } from '../config/ExternalMessage'
+import { ControllerType } from '../../../Constants';
+import { Body, Circuit, ExpansionPanel, Feature, Heater, sys } from '../../../Equipment';
+import { BodyTempState, state } from '../../../State';
+import { ExternalMessage } from '../config/ExternalMessage';
+import { Inbound, Message } from '../Messages';
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -28,6 +29,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxChlorinators = 1;
         sys.equipment.maxCustomNames = 10;
         sys.equipment.maxChemControllers = 4; 
+        sys.equipment.maxFeatures = 8;
     }
     private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {
@@ -126,38 +128,20 @@ export class EquipmentStateMessage {
                         sys.equipment.model = 'EasyTouch2 8';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 8;
-                        sys.equipment.maxFeatures = 8;
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch2 8P';
                         sys.equipment.maxCircuits = 8;
-                        sys.equipment.maxBodies = 1; // All Ps are single body
-                        sys.equipment.maxFeatures = 8;
-                        sys.board.equipmentIds.invalidIds.add(1); // exclude spa
                         break;
                     case 2:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 6;
-                        sys.equipment.maxFeatures = 2;
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
                         break;
                     case 3:
-                        /*  RG 5/2020
-                        Per #167, updated the number of maxCircuits for EasyTouch2 4*.
-                        It was originally set as 4 (with Id's 1-4) but with pool id=6
-                        that clearly was wrong.  Not sure if they go 2-6 or 2-7 or something else.
-                        */
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 6;
-                        sys.equipment.maxBodies = 1; // All Ps are single body
-                        sys.equipment.maxFeatures = 2;
-                        sys.board.equipmentIds.invalidIds.add(1); // exclude spa
-                        // sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+                        // sys.equipment.maxFeatures = 2;
                         break;
                 }
                 break;
@@ -177,7 +161,6 @@ export class EquipmentStateMessage {
                         break;
                     case 1:
                         sys.equipment.model = 'EasyTouch1 8P';
-                        sys.equipment.maxBodies = 1;
                         sys.equipment.maxCircuits = 8;
                         break;
                     case 2: // check...
@@ -192,6 +175,25 @@ export class EquipmentStateMessage {
                 }
                 break;
         }
+        // For EasyTouch addendums
+        if (sys.equipment.model.includes('4')){
+            // sys.equipment.maxFeatures = 2; 
+            // AuxExtra (20) is valid if not used with solar
+            // Thus, valid features can be 11,12,13,14 and 20
+            // See #113
+             sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
+            sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+            sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+            sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+            sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
+            sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
+            sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
+            sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+        }
+        if (sys.equipment.model.includes('p')){
+            sys.equipment.maxBodies = 1; // All Ps are single body; exclude Spa
+        }
+        // End EasyTouch addendums
         if (sys.controllerType === ControllerType.IntelliTouch) {
             sys.equipment.maxCustomNames = 20;
             sys.equipment.maxCircuitGroups = 10;
@@ -333,6 +335,8 @@ export class EquipmentStateMessage {
                     state.mode = msg.extractPayloadByte(9) & 0x81;
                     state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
+
+
                     // RSG - added 7/8/2020
                     // Check and update clock when it is off by >5 mins (just for a small buffer) and:
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
@@ -433,7 +437,7 @@ export class EquipmentStateMessage {
                         }
                         state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
                         state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
-                        sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x01; // 23
+                        sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
                     }
                     else {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);

@@ -2,6 +2,7 @@
 import {sys, Heater} from "../../../Equipment";
 import { ControllerType } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
+import { state } from "../../../State";
 export class HeaterMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -57,8 +58,9 @@ export class HeaterMessage {
                 // 23 = solar or heat pump enabled
                 // probably a mask here, but not sure of the other values
                 // #179 - seeing a value of 5; RSG always has a value of 21.  
-                // 5 = 00101; 21 = 10101.  Possibly 5 is the mask?
-                // 23 (no solar) = 10111.  Or maybe 10 (2) is the mask?
+                // 5 = 00101; 21 = 10101.
+                // 23 (no solar) = 10111.  
+                // 10 (2) seems to be the mask.  See issue.
 
                 // byte 1
                 // bit 1 = heating
@@ -77,6 +79,7 @@ export class HeaterMessage {
                     sys.heaters.removeItemById(3);
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
                     sys.board.heaters.updateHeaterServices();
+                    sys.equipment.setEquipmentIds();
                     return;
                 }
                 if ((msg.extractPayloadByte(2) & 0x30) === 0) {
@@ -86,6 +89,8 @@ export class HeaterMessage {
                     solar.type = 2;
                     solar.isActive = true;
                     sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    sys.features.removeItemById(20); // if present
+                    state.features.removeItemById(20); // if present
                     sys.board.circuits.deleteCircuit(20); 
                     solar.body = 32;
                     solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1; 
@@ -108,6 +113,7 @@ export class HeaterMessage {
                     if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
                 }
                 sys.board.heaters.updateHeaterServices();
+                sys.equipment.setEquipmentIds();
                 break;
             case 114:
                 // something to do with heat pumps... need equipment or other packets to decipher

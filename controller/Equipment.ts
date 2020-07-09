@@ -653,6 +653,7 @@ export class Equipment extends EqItem {
             virtualCircuits: { start: sys.board.equipmentIds.virtualCircuits.start, end: sys.board.equipmentIds.virtualCircuits.end },
             invalidIds: sys.board.equipmentIds.invalidIds.get()
         };
+        this.hasChanged = true;
     }
     public get equipmentIds(): any {
         return this.data.equipmentIds;
