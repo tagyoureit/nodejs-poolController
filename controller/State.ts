@@ -386,7 +386,8 @@ class EqState implements IEqStateCreator<EqState> {
         if (typeof bCopy === 'undefined' || !bCopy) return this.data;
         let copy = extend(true, {}, this.data);
         if (typeof this.dataName !== 'undefined') copy.equipmentType = this.dataName;
-        return copy;
+        // RSG 7/10/2020 - nested object were still being returned as proxy; changed to parse/stringify
+        return JSON.parse(JSON.stringify(copy));
     }
     public clear() {
         for (let prop in this.data) {

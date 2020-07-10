@@ -15,7 +15,6 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         this.equipmentIds.features.end = 50;
         this._configQueue = new ITTouchConfigQueue();
     }
-    public features: TouchFeatureCommands=new TouchFeatureCommands(this);
 }
 class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
@@ -51,26 +50,4 @@ class ITTouchConfigQueue extends TouchConfigQueue {
         } else state.status = 1;
         state.emitControllerChange();
     }
-}
-// TODO: is this needed?  Should be in EasyTouch and not overridden here?
-class TouchFeatureCommands extends FeatureCommands {
-    public syncGroupStates() {
-        let arr = sys.circuitGroups.toArray();
-        for (let i = 0; i < arr.length; i++) {
-            let grp: CircuitGroup = arr[i];
-            let circuits = grp.circuits.toArray();
-            let bIsOn = true;
-            if (grp.isActive) {
-                for (let j = 0; j < circuits.length; j++) {
-                    let circuit: CircuitGroupCircuit = circuits[j];
-                    let cstate = state.circuits.getInterfaceById(circuit.circuit);
-                    if (cstate.isOn !== circuit.desiredStateOn ) bIsOn = false;
-                }
-            }
-            let sgrp = state.circuitGroups.getItemById(grp.id);
-            sgrp.isOn = bIsOn && grp.isActive;
-            state.emitEquipmentChanges();
-        }
-    }
-
 }

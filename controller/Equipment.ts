@@ -1325,7 +1325,6 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
         group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
-        // let gstate = this.id !== 0 ? state.lightGroups.getItemById(this.id).getExtended() : state.intellibrite.getExtended();
         let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;
@@ -1399,7 +1398,7 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);
-        group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
+        // group.lightingTheme = sys.board.valueMaps.lightThemes.transform(group.lightingTheme || 0);
         let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;

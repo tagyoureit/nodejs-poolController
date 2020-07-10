@@ -298,7 +298,9 @@ export class CircuitMessage {
             }
             else {
                 // feature specific logic
-                circuit.macro = (functionId & 128) === 128;
+                // RSG - 7/8/2020 i5+3s did not have this function byte set;
+                // now setting it from circuitGroup
+                // circuit.macro = (functionId & 128) === 128;
             }
         }
         else {

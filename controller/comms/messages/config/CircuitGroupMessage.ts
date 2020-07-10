@@ -91,7 +91,9 @@ export class CircuitGroupMessage {
         if (_isActive){
             let group = sys.circuitGroups.getItemById(groupId, _isActive);
             let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
-            let feature = sys.circuits.getInterfaceById(msg.extractPayloadByte(0) + 41);
+            let feature = sys.circuits.getInterfaceById(msg.extractPayloadByte(0) + sys.board.equipmentIds.features.start, true);
+            feature.isActive = true;
+            feature.macro = true;
             group.name = sgroup.name = feature.name;
             group.nameId = sgroup.nameId = feature.nameId;
             group.type = sgroup.type = sys.board.valueMaps.circuitGroupTypes.getValue('circuit'); 
@@ -119,10 +121,12 @@ export class CircuitGroupMessage {
             }
         }
         else {
+            let feature = sys.circuits.getInterfaceById(msg.extractPayloadByte(0) + sys.board.equipmentIds.features.start);
+            feature.macro = true;
             sys.circuitGroups.removeItemById(groupId);
             state.circuitGroups.removeItemById(groupId);
         }
-
+        state.emitEquipmentChanges();
     }
     private static processGroupType(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 32) * 16) + sys.board.equipmentIds.circuitGroups.start;

@@ -1840,21 +1840,20 @@ export class FeatureCommands extends BoardCommands {
         return Promise.all(arr);
     }
     public syncGroupStates() {
-        let arr = sys.circuitGroups.toArray();
-        for (let i = 0; i < arr.length; i++) {
-            let grp: CircuitGroup = arr[i];
+        for (let i = 0; i < sys.circuitGroups.length; i++) {
+            let grp: CircuitGroup = sys.circuitGroups.getItemByIndex(i);
             let circuits = grp.circuits.toArray();
             let bIsOn = true;
             if (grp.isActive) {
                 for (let j = 0; j < circuits.length; j++) {
-                    let circuit: CircuitGroupCircuit = circuits[j];
+                    let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
-                    if (!cstate.isOn) bIsOn = false;
+                    if (cstate.isOn !== circuit.desiredStateOn ) bIsOn = false;
                 }
             }
             let sgrp = state.circuitGroups.getItemById(grp.id);
             sgrp.isOn = bIsOn && grp.isActive;
-
+            state.emitEquipmentChanges();
         }
     }
 
@@ -2565,13 +2564,14 @@ export class VirtualChemController extends BoardCommands {
             try {
                 await sys.board.chemControllers.initChem(chem);
                 state.chemControllers.getItemById(i, true);
-                // set other vals
             }
             catch (err) {
                 logger.info(`No chemController found at address ${chem.address}: ${err.message}`);
                 sys.chemControllers.removeItemById(i);
                 state.chemControllers.removeItemById(i);
+                state.emitEquipmentChanges(); // emit destroyed chlor if we fail
             }
+            state.emitEquipmentChanges(); // emit success if we get this far
         }
         return Promise.resolve('Searching for chem controllers.');
     }

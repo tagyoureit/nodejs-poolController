@@ -521,13 +521,13 @@ export class EquipmentStateMessage {
                         case ControllerType.IntelliTouch:
                             {
                                 this.processTouchCircuits(msg);
+                                // This will toggle the group states depending on the state of the individual circuits.
+                                sys.board.features.syncGroupStates();
+                                sys.board.circuits.syncVirtualCircuitStates();
+                                state.emitControllerChange();
+                                state.emitEquipmentChanges();
+                                break;
                             }
-                            // This will toggle the group states depending on the state of the individual circuits.
-                            sys.board.features.syncGroupStates();
-                            sys.board.circuits.syncVirtualCircuitStates();
-                            state.emitControllerChange();
-                            state.emitEquipmentChanges();
-                            break;
                     }
                 }
                 break;
@@ -684,26 +684,25 @@ export class EquipmentStateMessage {
         }
     }
     private static processTouchCircuits(msg: Inbound) {
-        const count = sys.board.equipmentIds.features.end;
-        let circId = 1;
-        // let body = 0;
-        for (let i = 2; i < msg.payload.length && i <= count; i++) {
+        let circuitId = 1;
+        let maxCircuitId = sys.board.equipmentIds.features.end;
+        for (let i = 2; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
-                const circ = sys.circuits.getInterfaceById(circId);
-                if (!sys.board.equipmentIds.invalidIds.isValidId(circId)) {
+                const circ = sys.circuits.getInterfaceById(circuitId);
+                if (!sys.board.equipmentIds.invalidIds.isValidId(circuitId)) {
                     circ.isActive = false;
                     if (circ instanceof Circuit) {
-                        sys.circuits.removeItemById(circId);
+                        sys.circuits.removeItemById(circuitId);
                     }
                     else if (circ instanceof Feature) {
-                        sys.features.removeItemById(circId);
+                        sys.features.removeItemById(circuitId);
                     }
                 }
                 if (circ.isActive) {
                     const cstate = state.circuits.getInterfaceById(
-                        circId,
+                        circuitId,
                         circ.isActive
                     );
 /*                     if (cstate.isOn && circId === 6) body = 6;
@@ -714,7 +713,7 @@ export class EquipmentStateMessage {
                     cstate.type = circ.type;
                     cstate.nameId = circ.nameId;
                 }
-                circId++;
+                circuitId++;
             }
         }
         // state.body = body;
