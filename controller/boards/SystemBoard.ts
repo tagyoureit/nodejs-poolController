@@ -2146,24 +2146,48 @@ export class HeaterCommands extends BoardCommands {
         }
     }
     public updateHeaterServices() {
-        let solarInstalled = sys.board.heaters.isSolarInstalled();
-        let heatPumpInstalled = sys.board.heaters.isHeatPumpInstalled();
-        let gasHeaterInstalled = sys.heaters.getItemById(1).isActive;
-        if (gasHeaterInstalled && solarInstalled) {
-            this.board.valueMaps.heatModes = new byteValueMap([
-                [0, { name: 'off', desc: 'Off' }],
-                [1, { name: 'heater', desc: 'Heater' }],
-                [2, { name: 'solarpref', desc: 'Solar Preferred' }],
-                [3, { name: 'solar', desc: 'Solar Only' }]
-            ]);
-            // todo = verify these; don't think they are correct.
-            this.board.valueMaps.heatSources = new byteValueMap([
-                [0, { name: 'off', desc: 'No Heater' }],
-                [3, { name: 'heater', desc: 'Heater' }],
-                [5, { name: 'solar', desc: 'Solar Only' }],
-                [21, { name: 'solarpref', desc: 'Solar Preferred' }],
-                [32, { name: 'nochange', desc: 'No Change' }]
-            ]);
+        let htypes = sys.board.heaters.getInstalledHeaterTypes();
+        let solarInstalled = htypes.solar > 0;
+        let heatPumpInstalled = htypes.heatpump > 0;
+        let gasHeaterInstalled = htypes.gas > 0;
+        sys.board.valueMaps.heatModes[0] = { name: 'off', desc: 'Off' };
+        sys.board.valueMaps.heatSources[0] = { name: 'off', desc: 'Off' };
+        if (gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
+            sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
+        }
+        if (solarInstalled && gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(2, { name: 'solarpref', desc: 'Solar Preferred' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'solar', desc: 'Solar Only' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'solarpref', desc: 'Solar Preferred' });
+            sys.board.valueMaps.heatSources.set(21, { name: 'solar', desc: 'Solar Only' });
+        }
+        else if (heatPumpInstalled && gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+            sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
+        }
+        sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+        this.setActiveTempSensors();
+    }
+    public initTempSensors() {
+        // Add in the potential sensors and delete the ones that shouldn't exist.
+        let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
+        sys.equipment.tempSensors.getItemByName('air', true, { isActive: true, calibration: 0 });
+        sys.equipment.tempSensors.getItemByName('water1', true, { isActive: true, calibration: 0 });
+        sys.equipment.tempSensors.getItemByName('solar1', true, { isActive: false, calibration: 0 });
+        if (maxPairs > 1) {
+            sys.equipment.tempSensors.getItemByName('water2', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemByName('solar2', true, { isActive: false, calibration: 0 });
+        }
+        else {
+            sys.equipment.tempSensors.removeItemByName('water2');
+            sys.equipment.tempSensors.removeItemByName('solar2');
+        }
+        if (maxPairs > 2) {
+            sys.equipment.tempSensors.getItemByName('water3', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemByName('solar3', true, { isActive: false, calibration: 0 });
         }
         else {
             sys.equipment.tempSensors.removeItemByName('water3');
