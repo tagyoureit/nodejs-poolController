@@ -28,11 +28,25 @@ export class OptionsMessage {
                             sys.general.options.cooldownDelay = msg.extractPayloadByte(37) === 1;
                             sys.general.options.manualPriority = msg.extractPayloadByte(38) === 1;
                             sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;
+
+                            sys.equipment.tempSensors.setCalibration('air', (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('water1', (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('water2', (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('water3', (msg.extractPayloadByte(9) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('water4', (msg.extractPayloadByte(10) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('solar1', (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('solar2', (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('solar3', (msg.extractPayloadByte(7) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
+                            sys.equipment.tempSensors.setCalibration('solar4', (msg.extractPayloadByte(8) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
+
+                            // When we complete our transition for the calibration make this go away.
                             sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.waterTempAdj1 = (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.solarTempAdj1 = (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.airTempAdj = (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
+                            // There are follow on bits for the remaining potential sensors from expansion boards.  There are a total of 6 leftover bytes.
+
                             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                             body.heatMode = msg.extractPayloadByte(24);
                             body.setPoint = msg.extractPayloadByte(20);

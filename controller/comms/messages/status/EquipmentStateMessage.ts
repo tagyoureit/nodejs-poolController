@@ -238,6 +238,7 @@ export class EquipmentStateMessage {
         heater.name = "Gas Heater";
         sys.equipment.shared ? heater.body = 32 : heater.body = 0;
         sys.equipment.setEquipmentIds();
+        sys.board.heaters.initTempSensors();
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
     }

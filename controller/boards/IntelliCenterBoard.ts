@@ -272,6 +272,7 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.equipment.model = 'IntelliCenter ' + pb.name;
         state.equipment.model = sys.equipment.model;
         state.equipment.controllerType = 'intellicenter';
+        sys.board.heaters.initTempSensors();
         this.modulesAcquired = true;
         this.checkConfiguration();
     }
@@ -2737,7 +2738,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
-        // RKS: This is a hack to get us by the heater type changes in 1.047.
+        // RKS: This is a hack to get us by the heater type changes in 1.047.  Sadly, this is what it has come to for the time being
+        // as 1.047 rearranges the type identifiers.
         if (sys.equipment.controllerFirmware === '1.047') {
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
@@ -2756,20 +2758,28 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         }
         else {
             sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-            if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'heater', desc: 'Heater' }]]);
+            if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if(solarInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            else if(solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
-            if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[32, { name: 'nochange', desc: 'No Change' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+            if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
 
             sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-            if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'heater', desc: 'Heater' }]]);
+            if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-            else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
         }
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
+        this.setActiveTempSensors();
     }
 
 }

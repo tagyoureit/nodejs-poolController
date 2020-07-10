@@ -1375,35 +1375,46 @@ export class CircuitCommands extends BoardCommands {
         let spaStates = sys.board.bodies.getSpaStates();
         // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
         // different as well as the descriptions but these should have common names since they are all derived from existing states.
+
+        // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
+        // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
+        // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
         for (let i = 0; i < arrCircuits.length; i++) {
             let vc = arrCircuits[i];
+            let remove = false;
             let bState = false;
             let cstate: VirtualCircuitState = null;
             switch (vc.name) {
                 case 'poolHeater':
                     // If any pool is heating up.
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
-                    // Determine whether the pool heater is on.
+                    remove = true;
                     for (let j = 0; j < poolStates.length; j++) {
-                        if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
+                        if (poolStates[j].heaterOptions.total > 0) remove = false;
+                    }
+                    if (!remove) {
+                        // Determine whether the pool heater is on.
+                        for (let j = 0; j < poolStates.length; j++)
+                            if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
                     }
                     break;
                 case 'spaHeater':
-                    // If any spa is heating up.
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
-                    // Determine whether the spa heater is on.
+                    remove = true;
                     for (let j = 0; j < spaStates.length; j++) {
-                        if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+                        if (spaStates[j].heaterOptions.total > 0) remove = false;
+                    }
+                    if (!remove) {
+                        // Determine whether the spa heater is on.
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+                        }
                     }
                     break;
                 case 'freeze':
                     // If freeze protection has been turned on.
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
                     bState = state.freeze;
                     break;
                 case 'poolSpa':
                     // If any pool or spa is on
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
                     for (let j = 0; j < poolStates.length && !bState; j++) {
                         if (poolStates[j].isOn) bState = true;
                     }
@@ -1414,37 +1425,61 @@ export class CircuitCommands extends BoardCommands {
                 case 'solarHeat':
                 case 'solar':
                     // If solar is on for any body
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
-                    for (let j = 0; j < poolStates.length && !bState; j++) {
-                        if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+                    remove = true;
+                    for (let j = 0; j < poolStates.length; j++) {
+                        if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
                     }
-                    for (let j = 0; j < spaStates.length && !bState; j++) {
-                        if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                    if (remove) {
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
+                        }
+                    }
+                    if (!remove) {
+                        for (let j = 0; j < poolStates.length && !bState; j++) {
+                            if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+                        }
+                        for (let j = 0; j < spaStates.length && !bState; j++) {
+                            if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                        }
                     }
                     break;
                 case 'heater':
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
-                    for (let j = 0; j < poolStates.length && !bState; j++) {
-                        let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                        if (heat === 'solar' || heat === 'heater') bState = true;
+                    remove = true;
+                    for (let j = 0; j < poolStates.length; j++) {
+                        if (poolStates[j].heaterOptions.total > 0) remove = false;
                     }
-                    for (let j = 0; j < spaStates.length && !bState; j++) {
-                        let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
-                        if (heat === 'solar' || heat === 'heater') bState = true;
+                    if (remove) {
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                    }
+                    if (!remove) {
+                        for (let j = 0; j < poolStates.length && !bState; j++) {
+                            let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                            if (heat !== 'off') bState = true;
+                        }
+                        for (let j = 0; j < spaStates.length && !bState; j++) {
+                            let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                            if (heat !== 'off') bState = true;
+                        }
                     }
                     break;
                 default:
-                    state.virtualCircuits.removeItemById(vc.val);
+                    remove = true;
                     break;
             }
-            if (cstate !== null) {
-                cstate.isOn = bState;
-                cstate.type = vc.val;
-                cstate.name = vc.desc;
+            if (remove)
+                state.virtualCircuits.removeItemById(vc.val);
+            else {
+                cstate = state.virtualCircuits.getItemById(vc.val, true);
+                if (cstate !== null) {
+                    cstate.isOn = bState;
+                    cstate.type = vc.val;
+                    cstate.name = vc.desc;
+                }
             }
         }
     }
-
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         circ.isOn = utils.makeBool(val);
@@ -2062,8 +2097,8 @@ export class HeaterCommands extends BoardCommands {
         for (let i = 0; i < types.length; i++) if(types[i].name !== 'none') inst[types[i].name] = 0;
         for (let i = 0; i < heaters.length; i++) {
             let heater = heaters[i];
-            if (typeof body !== 'undefined') {
-                if ((heater.body !== 32 && body !== heater.body) || (heater.body === 32 && body > 2)) continue;
+            if (typeof body !== 'undefined' && heater.body !== 'undefined') {
+                if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
             }
             let type = types.find(elem => elem.val === heater.type);
             if (typeof type !== 'undefined') {
@@ -2110,7 +2145,6 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
-
     public updateHeaterServices() {
         let solarInstalled = sys.board.heaters.isSolarInstalled();
         let heatPumpInstalled = sys.board.heaters.isHeatPumpInstalled();
@@ -2125,50 +2159,92 @@ export class HeaterCommands extends BoardCommands {
             // todo = verify these; don't think they are correct.
             this.board.valueMaps.heatSources = new byteValueMap([
                 [0, { name: 'off', desc: 'No Heater' }],
-                [2, { name: 'heater', desc: 'Heater' }],
+                [3, { name: 'heater', desc: 'Heater' }],
                 [5, { name: 'solar', desc: 'Solar Only' }],
                 [21, { name: 'solarpref', desc: 'Solar Preferred' }],
                 [32, { name: 'nochange', desc: 'No Change' }]
             ]);
         }
-        else if (gasHeaterInstalled && heatPumpInstalled) {
-            this.board.valueMaps.heatModes = new byteValueMap([
-                [0, { name: 'off', desc: 'Off' }],
-                [1, { name: 'heater', desc: 'Heater' }],
-                [2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
-                [3, { name: 'heatpump', desc: 'Heat Pump Only' }]
-            ]);
-            this.board.valueMaps.heatSources = new byteValueMap([
-                [0, { name: 'off', desc: 'No Heater' }],
-                [3, { name: 'heater', desc: 'Heater' }],
-                [5, { name: 'heatpump', desc: 'Heat Pump Only' }],
-                [21, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }],
-                [32, { name: 'nochange', desc: 'No Change' }]
-            ]);
+        else {
+            sys.equipment.tempSensors.removeItemByName('water3');
+            sys.equipment.tempSensors.removeItemByName('solar3');
         }
-        else if (gasHeaterInstalled) {
-            this.board.valueMaps.heatModes = new byteValueMap([
-                [0, { name: 'off', desc: 'Off' }],
-                [1, { name: 'heater', desc: 'Heater' }]
-            ]);
-            // todo = verify these; don't think they are correct.
-            this.board.valueMaps.heatSources = new byteValueMap([
-                [0, { name: 'off', desc: 'No Heater' }],
-                [3, { name: 'heater', desc: 'Heater' }],
-                [32, { name: 'nochange', desc: 'No Change' }]
-            ]);
+        if (maxPairs > 3) {
+            sys.equipment.tempSensors.getItemByName('water4', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemByName('solar4', true, { isActive: false, calibration: 0 });
         }
         else {
-            this.board.valueMaps.heatModes = new byteValueMap([
-                [0, { name: 'off', desc: 'Off' }]
-            ]);
-            // todo = verify these; don't think they are correct.
-            this.board.valueMaps.heatSources = new byteValueMap([
-                [0, { name: 'off', desc: 'No Heater' }],
-                [32, { name: 'nochange', desc: 'No Change' }]
-            ]);
+            sys.equipment.tempSensors.removeItemByName('water4');
+            sys.equipment.tempSensors.removeItemByName('solar4');
+        }
+
+    }
+    // Sets the active temp sensors based upon the installed equipment.  At this point all
+    // detectable temp sensors should exist.
+    public setActiveTempSensors() {
+        let htypes;
+        for (let i = 0; i < sys.equipment.tempSensors.length; i++) {
+            let sensor = sys.equipment.tempSensors.getItemByIndex(i);
+            // The names are normalized in this array.
+            switch (sensor.name) {
+                case 'air':
+                    sensor.isActive = true;
+                    break;
+                case 'water1':
+                    sensor.isActive = sys.equipment.maxBodies > 0;
+                    break;
+                case 'water2':
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 2 : sys.equipment.maxBodies > 1;
+                    break;
+                case 'water3':
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 3 : sys.equipment.maxBodies > 2;
+                    break;
+                case 'water4':
+                    // It's a little weird but technically you should be able to install 3 expansions and a i10D personality
+                    // board.  If this situation ever comes up we will see if it works. Whether it reports is another story
+                    // since the 2 message is short a byte for this.
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 4 : sys.equipment.maxBodies > 3;
+                    break;
+                // Solar sensors are funny ducks. This is because they are for both heatpumps and solar and the equipment
+                // can be installed on specific bodies.  This will be true for heaters installed in expansion panels for *Touch, dual body systems,
+                // and any IntelliCenter with more than one body.  At some point simply implementing the multi-body functions for touch will make
+                // this all work. This will only be with i10D or expansion panels.
+                case 'solar1':
+                    // The first solar sensor is a funny duck in that it should be active for shared systems
+                    // if either body has an active solar heater or heatpump.
+                    htypes = sys.board.heaters.getInstalledHeaterTypes(1);
+                    if ('solar' in htypes || 'heatpump' in htypes) sensor.isActive = true;
+                    else if (sys.equipment.shared) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(2);
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar2':
+                    if (sys.equipment.maxBodies > 1 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(2 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar3':
+                    if (sys.equipment.maxBodies > 2 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(3 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar4':
+                    if (sys.equipment.maxBodies > 3 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(4 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+            }
         }
     }
+
 }
 export class ValveCommands extends BoardCommands {
     public async setValveAsync(obj: any): Promise<Valve> {

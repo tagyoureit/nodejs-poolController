@@ -372,13 +372,15 @@ class EqState implements IEqStateCreator<EqState> {
         }
     }
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
-    protected setDataVal(name, val, persist?: boolean) {
+    protected setDataVal(name, val, persist?: boolean): any {
         if (this.data[name] !== val) {
             // console.log(`Changing state: ${ this.dataName } ${ this.data.id } ${ name }:${ this.data[name] } --> ${ val }`);
             this.data[name] = val;
             if (typeof persist === 'undefined' || persist) this.hasChanged = true;
         }
         else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
+        // Added for chaining.
+        return this.data[name];
     }
     public get(bCopy?: boolean): any {
         if (typeof bCopy === 'undefined' || !bCopy) return this.data;
@@ -848,12 +850,17 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
         return undefined;
     }
 }
+// RKS: This is an interesting object.  We are doing some gymnastics with it to comply
+// with type safety.
 export class BodyHeaterTypeStateCollection extends EqStateCollection <BodyHeaterTypeState> {
     public createItem(data: any): BodyHeaterTypeState { return new BodyHeaterTypeState(data); }
 }
 export class BodyHeaterTypeState extends EqState {
+    public get typeId(): number { return this.data.typeId; }
+    public set typeId(val: number) { this.setDataVal('typeId', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+
 
 }
 export class BodyTempState extends EqState {
@@ -885,6 +892,28 @@ export class BodyTempState extends EqState {
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
+    // RKS: This is a very interesting object because we have a varied object.  Type safety rules should not apply
+    // here as the heater types are specific to the installed equipment.  The reason is because it has no meaning without the body and the calculation of it should
+    // be performed when the body or heater options change.  However, it shouldn't emit unless
+    // there truly is a change but the emit needs to occur at the body temp state level.
+    public get heaterOptions(): any { return typeof this.data.heaterOptions === 'undefined' ? this.setDataVal('heaterOptions', {}) : this.data.heaterOptions; }
+    public set heaterOptions(val: any) {
+        // We are doing this simply to maintain the proper automatic emits. We don't want the emit to happen unnecessarily so lets
+        // get creative on the object and dirty up the body only when needed.
+        let opts = this.heaterOptions;  // Calling this here will make sure we have a data object.  The getter adds it if it doesn't exist.
+        for (let s in val) {
+            if (opts[s] !== val[s]) {
+                opts[s] = val[s];
+                this.hasChanged = true;
+            }
+        }
+        // Spin it around and run it the other way and remove properties that are not in the incoming. Theorhetically we could
+        // simply set the attribute but we have more control this way.  This also expects that we are doing counts in the
+        // output and the setting object must coordinate with this code.
+        for (let s in opts) {
+            if (typeof val[s] === 'undefined') delete opts[s];
+        }
+    }
 }
 export class TemperatureState extends EqState {
     public get waterSensor1(): number { return this.data.waterSensor1; }

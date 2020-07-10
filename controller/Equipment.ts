@@ -504,14 +504,43 @@ export class Owner extends EqItem {
     public get phone2(): string { return this.data.phone2; }
     public set phone2(val: string) { this.setDataVal('phone2', val); }
 }
-export class SensorCollection extends EqItemCollection<Sensor> {
-    constructor(data: any, name?: string) { super(data, name || "sensors"); }
-    public createItem(data: any): Sensor { return new Sensor(data); }
+export class TempSensorCollection extends EqItemCollection<TempSensor> {
+    constructor(data: any, name?: string) { super(data, name || "tempSensors"); }
+    public createItem(data: any): TempSensor { return new TempSensor(data); }
+    public getItemByName(name: string, add?: boolean, data?: any) {
+        for (let i = 0; i < this.data.length; i++)
+            if (typeof this.data[i].name !== 'undefined' && this.data[i].name === name) {
+                return this.createItem(this.data[i]);
+            }
+        if (typeof add !== 'undefined' && add)
+            return this.add(data || { name: name });
+        return this.createItem(data || { name: name });
+    }
+    public removeItemByName(name: string) {
+        let rem = null;
+        for (let i = this.data.length - 1; i >= 0; i--)
+            if (typeof this.data[i].name !== 'undefined' && this.data[i].name === name) {
+                rem = this.data.splice(i, 1);
+                return rem;
+            }
+        return rem;
+    }
+    public setCalibration(name: string, cal: number): TempSensor {
+        let sensor = this.getItemByName(name);
+        sensor.calibration = cal;
+        return sensor;
+    }
 }
-export class Sensor extends EqItem {
+export class TempSensor extends EqItem {
     public dataName='sensorConfig';
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get id(): number { return this.data.id; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
     public get calibration(): number { return this.data.calibration; }
     public set calibration(val: number) { this.setDataVal('calibration', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class Options extends EqItem {
     public dataName='optionsConfig';
@@ -533,7 +562,6 @@ export class Options extends EqItem {
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
-    public get sensors(): SensorCollection { return new SensorCollection(this.data); }
     public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
     public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
     public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
@@ -639,6 +667,7 @@ export class Equipment extends EqItem {
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.setDataVal('maxCustomNames', val); }
+    public get tempSensors(): TempSensorCollection { return new TempSensorCollection(this.data); }
 
     // Looking for IntelliCenter 1.029
     public set controllerFirmware(val: string) { this.setDataVal('softwareVersion', val); }
