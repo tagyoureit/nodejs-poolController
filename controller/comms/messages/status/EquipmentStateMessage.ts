@@ -19,7 +19,7 @@ export class EquipmentStateMessage {
     public static initDefaults() {
         // defaults; set to lowest possible values.  Each *Touch will extend this once we know the model.
         sys.equipment.maxBodies = 1;
-        sys.equipment.maxCircuits = 4;
+        sys.equipment.maxCircuits = 6;
         sys.equipment.maxSchedules = 12;
         sys.equipment.maxPumps = 2;
         sys.equipment.maxSchedules = 12;
@@ -42,7 +42,8 @@ export class EquipmentStateMessage {
                 sys.equipment.maxFeatures = 4;
                 sys.equipment.maxValves = 2;
                 sys.equipment.maxSchedules = 4;
-                sys.equipment.maxCircuits = 4; // 2 filter + 2 aux
+                sys.equipment.maxCircuits = 6; // 2 filter + 2 aux
+                sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
                 sys.equipment.maxCircuitGroups = 0;
                 break;
             case 0:
@@ -54,6 +55,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
+                sys.board.equipmentIds.invalidIds.merge([5,7,8,9,16,17,18]) 
                 sys.equipment.maxCircuitGroups = 3;
                 break;
             case 1: // IntelliTouch i7+3
@@ -138,33 +140,19 @@ export class EquipmentStateMessage {
                     case 2:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
-                        sys.equipment.maxCircuits = 6;
                         // AuxExtra (20) is valid if not used with solar
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
-                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
-                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
-                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
-                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
-                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+                        // exclude Aux4-Aux7, Feature 5-8
+                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,15,16,17,18])
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
-                        sys.equipment.maxCircuits = 6;
                         // AuxExtra (20) is valid if not used with solar
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
-                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
-                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
-                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
-                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
-                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+                        // exclude Aux4-Aux7, Feature 5-8
+                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,15,16,17,18]) 
                         break;
                     case 5: // EasyTouch PL4?? Complete guess.  If we see it; change the case.
                         sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
@@ -172,16 +160,8 @@ export class EquipmentStateMessage {
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
-                        sys.board.equipmentIds.invalidIds.add(3); // exclude Aux2
-                        sys.board.equipmentIds.invalidIds.add(4); // exclude Aux3
-                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
-                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
-                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
-                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
-                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+                        // exclude Aux4-Aux7, Feature 3-8
+                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
                         break;
                     case 6:
                         sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
@@ -189,17 +169,10 @@ export class EquipmentStateMessage {
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
-                        sys.board.equipmentIds.invalidIds.add(3); // exclude Aux2
-                        sys.board.equipmentIds.invalidIds.add(4); // exclude Aux3
-                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
-                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
-                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
-                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
-                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
-                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
-                }
+                        // exclude Aux4-Aux7, Feature 3-8
+                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
+                        break;
+                    }
                 break;
 
             case 14: // EasyTouch1 Models
@@ -222,11 +195,9 @@ export class EquipmentStateMessage {
                     case 2: // check...
                         sys.equipment.model = 'EasyTouch1 4';
                         sys.equipment.maxBodies = 2;
-                        sys.equipment.maxCircuits = 6;
                         break;
                     case 3: // check...
                         sys.equipment.model = 'EasyTouch1 4P';
-                        sys.equipment.maxCircuits = 6;
                         break;
                 }
                 break;
@@ -505,6 +476,7 @@ export class EquipmentStateMessage {
                             const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                             if (tbody.isOn && (heaterActive || solarActive)) {
                                 switch (heatMode) {
+                                    // TODO: clean this up RSG.
                                     // todo: add cooling in here if it ever shows up
                                     case 1: // heater
                                     case 3: // solar

@@ -57,8 +57,14 @@ export class InvalidEquipmentIdArray {
     public add(val: number) {
         if (!this._data.includes(val)) {
             this._data.push(val);
-            this._data.sort();
+            this._data.sort(((a,b)=> a - b);
         }
+    }
+    public merge(arr: number[]){
+        for (let i = 0; i < arr.length; i++){
+            if (!this._data.includes(arr[i])) this._data.push(arr[i]);
+        }
+        this._data.sort((a,b)=> a - b);
     }
     public remove(val: number) {
         this._data = this._data.filter(el => el !== val);
