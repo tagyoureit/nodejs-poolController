@@ -6,6 +6,7 @@ import { Body, Circuit, ExpansionPanel, Feature, Heater, sys } from '../../../Eq
 import { BodyTempState, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message } from '../Messages';
+import { SystemBoard } from 'controller/boards/SystemBoard';
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -135,15 +136,69 @@ export class EquipmentStateMessage {
                         sys.equipment.maxCircuits = 8;
                         break;
                     case 2:
-                    case 6:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 6;
+                        // AuxExtra (20) is valid if not used with solar
+                        // Thus, valid features can be 11,12,13,14 and 20
+                        // See #113
+                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
+                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
+                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
+                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 6;
+                        // AuxExtra (20) is valid if not used with solar
+                        // Thus, valid features can be 11,12,13,14 and 20
+                        // See #113
+                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
+                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
+                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
+                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
                         break;
+                    case 5: // EasyTouch PL4?? Complete guess.  If we see it; change the case.
+                        sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
+                        sys.equipment.maxBodies = 1;
+                        sys.equipment.maxPumps = 1;
+                        sys.equipment.maxSchedules = 4;
+                        sys.equipment.maxFeatures = 2;
+                        sys.board.equipmentIds.invalidIds.add(3); // exclude Aux2
+                        sys.board.equipmentIds.invalidIds.add(4); // exclude Aux3
+                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
+                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
+                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
+                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+                        break;
+                    case 6:
+                        sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
+                        sys.equipment.maxBodies = 2;
+                        sys.equipment.maxPumps = 1;
+                        sys.equipment.maxSchedules = 4;
+                        sys.equipment.maxFeatures = 2;
+                        sys.board.equipmentIds.invalidIds.add(3); // exclude Aux2
+                        sys.board.equipmentIds.invalidIds.add(4); // exclude Aux3
+                        sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
+                        sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
+                        sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
+                        sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
+                        sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
+                        sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
+                        sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
+                        sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
                 }
                 break;
 
@@ -178,18 +233,7 @@ export class EquipmentStateMessage {
         }
         // For EasyTouch addendums
         if (sys.equipment.model.includes('4')){
-            // sys.equipment.maxFeatures = 2; 
-            // AuxExtra (20) is valid if not used with solar
-            // Thus, valid features can be 11,12,13,14 and 20
-            // See #113
-             sys.board.equipmentIds.invalidIds.add(5); // exclude Aux4
-            sys.board.equipmentIds.invalidIds.add(7); // exclude Aux5
-            sys.board.equipmentIds.invalidIds.add(8); // exclude Aux6
-            sys.board.equipmentIds.invalidIds.add(9); // exclude Aux7
-            sys.board.equipmentIds.invalidIds.add(15); // exclude Feature5
-            sys.board.equipmentIds.invalidIds.add(16); // exclude Feature6
-            sys.board.equipmentIds.invalidIds.add(17); // exclude Feature7
-            sys.board.equipmentIds.invalidIds.add(18); // exclude Feature8 
+
         }
         if (sys.equipment.model.includes('p')){
             sys.equipment.maxBodies = 1; // All Ps are single body; exclude Spa
