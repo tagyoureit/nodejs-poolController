@@ -30,6 +30,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxCustomNames = 10;
         sys.equipment.maxChemControllers = 4; 
         sys.equipment.maxFeatures = 8;
+        sys.equipment.model = 'Unknown';
     }
     private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {
@@ -113,7 +114,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxIntelliBrites = 10;
                 sys.equipment.dual = true;
                 sys.equipment.shared = false;
-                break;
+                break;           
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;
                 // sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
@@ -134,6 +135,7 @@ export class EquipmentStateMessage {
                         sys.equipment.maxCircuits = 8;
                         break;
                     case 2:
+                    case 6:
                         sys.equipment.model = 'EasyTouch2 4';
                         sys.equipment.maxBodies = 2;
                         sys.equipment.maxCircuits = 6;
@@ -141,7 +143,6 @@ export class EquipmentStateMessage {
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
                         sys.equipment.maxCircuits = 6;
-                        // sys.equipment.maxFeatures = 2;
                         break;
                 }
                 break;
