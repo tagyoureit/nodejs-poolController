@@ -80,6 +80,12 @@ export class HeaterMessage {
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
                     sys.board.heaters.updateHeaterServices();
                     sys.equipment.setEquipmentIds();
+                    for (let i = 0; i < sys.bodies.length; i++) {
+                        let body = sys.bodies.getItemByIndex(i);
+                        let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+                        let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+                        btemp.heaterOptions = opts;
+                    }
                     return;
                 }
                 if ((msg.extractPayloadByte(2) & 0x30) === 0) {
@@ -113,6 +119,12 @@ export class HeaterMessage {
                     if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
                 }
                 sys.board.heaters.updateHeaterServices();
+                for (let i = 0; i < sys.bodies.length; i++) {
+                    let body = sys.bodies.getItemByIndex(i);
+                    let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+                    let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+                    btemp.heaterOptions = opts;
+                }
                 sys.equipment.setEquipmentIds();
                 break;
             case 114:

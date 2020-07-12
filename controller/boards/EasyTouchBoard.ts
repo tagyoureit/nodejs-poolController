@@ -11,13 +11,13 @@ import { resolve } from 'dns';
 
 
 export class EasyTouchBoard extends SystemBoard {
-    public needsConfigChanges: boolean=false;
+    public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
-        this.equipmentIds.circuits = new EquipmentIdRange(function() { return this.start; }, function() { return this.start + sys.equipment.maxCircuits - 1; });
+        this.equipmentIds.circuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
-        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function() { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
         this.equipmentIds.circuits.start = sys.equipment.shared ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.customNames = new byteValueMap(
@@ -137,14 +137,7 @@ export class EasyTouchBoard extends SystemBoard {
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }]
         ]);
-        this.valueMaps.heaterTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No Heater' }],
-            [1, { name: 'gas', desc: 'Gas Heater' }],
-            [2, { name: 'solar', desc: 'Solar Heater' }],
-            [3, { name: 'heatpump', desc: 'Heat Pump' }],
-            [4, { name: 'ultratemp', desc: 'Ultratemp' }],
-            [5, { name: 'hybrid', desc: 'hybrid' }]
-        ]);
+
         this.valueMaps.scheduleDays = new byteValueMap([
             [1, { name: 'sun', desc: 'Sunday', dow: 0 }],
             [2, { name: 'mon', desc: 'Monday', dow: 1 }],
@@ -226,7 +219,7 @@ export class EasyTouchBoard extends SystemBoard {
             [253, { name: 'version', desc: 'Get Versions' }]
         ]);
         // TODO: RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
-        this.valueMaps.scheduleDays.transform = function(byte) {
+        this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
@@ -234,8 +227,8 @@ export class EasyTouchBoard extends SystemBoard {
             }
             return { val: b, days: days };
         };
-        this.valueMaps.lightThemes.transform = function(byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
-        this.valueMaps.circuitNames.transform = function(byte) {
+        this.valueMaps.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.valueMaps.circuitNames.transform = function (byte) {
             if (byte < 200) {
                 return extend(true, {}, { val: byte }, this.get(byte));
             }
@@ -245,17 +238,17 @@ export class EasyTouchBoard extends SystemBoard {
             }
         };
     }
-    public bodies: TouchBodyCommands=new TouchBodyCommands(this);
-    public system: TouchSystemCommands=new TouchSystemCommands(this);
-    public circuits: TouchCircuitCommands=new TouchCircuitCommands(this);
-    public features: TouchFeatureCommands=new TouchFeatureCommands(this);
-    public chlorinator: TouchChlorinatorCommands=new TouchChlorinatorCommands(this);
-    public pumps: TouchPumpCommands=new TouchPumpCommands(this);
-    public schedules: TouchScheduleCommands=new TouchScheduleCommands(this);
-    protected _configQueue: TouchConfigQueue=new TouchConfigQueue();
+    public bodies: TouchBodyCommands = new TouchBodyCommands(this);
+    public system: TouchSystemCommands = new TouchSystemCommands(this);
+    public circuits: TouchCircuitCommands = new TouchCircuitCommands(this);
+    public features: TouchFeatureCommands = new TouchFeatureCommands(this);
+    public chlorinator: TouchChlorinatorCommands = new TouchChlorinatorCommands(this);
+    public pumps: TouchPumpCommands = new TouchPumpCommands(this);
+    public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
+    protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
 
     public checkConfiguration() {
-        if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 20)) { 
+        if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 20)) {
             //this._configQueue.clearTimer();
             sys.configVersion.lastUpdated = new Date();
             this.needsConfigChanges = false;
@@ -302,7 +295,7 @@ export class TouchConfigQueue extends ConfigQueue {
         if (conn.mockPort) {
             logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
         } else {
-            logger.info(`Requesting ${ sys.controllerType } configuration`);
+            logger.info(`Requesting ${sys.controllerType} configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime);
             this.queueItems(GetTouchConfigCategories.heatTemperature);
             this.queueItems(GetTouchConfigCategories.solarHeatPump);
@@ -356,7 +349,7 @@ export class TouchConfigQueue extends ConfigQueue {
         }
         // Shift to the next config queue item.
         logger.verbose(
-            `Config Queue Completed... ${ this.percent }% (${ this.remainingItems } remaining)`
+            `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
         );
         while (
             this.queue.length > 0 && this.curr.isComplete
@@ -374,7 +367,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 payload: [itm],
                 retries: 3,
                 response: true,
-                onResponseProcessed: function() { self.processNext(out); }
+                onResponseProcessed: function () { self.processNext(out); }
                 /*                 response: Response.create({
                                     action: this.curr.category,
                                     payload: [itm],
@@ -398,7 +391,7 @@ export class TouchConfigQueue extends ConfigQueue {
     }
 }
 export class TouchScheduleCommands extends ScheduleCommands {
-    public setSchedule(sched: Schedule|EggTimer, obj?: any) {
+    public setSchedule(sched: Schedule | EggTimer, obj?: any) {
         super.setSchedule(sched, obj);
         let msgs: Outbound[] = this.createSchedConfigMessages(sched);
         for (let i = 0; i <= msgs.length; i++) {
@@ -406,7 +399,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
         }
     }
 
-    public createSchedConfigMessages(sched: Schedule|EggTimer): Outbound[] {
+    public createSchedConfigMessages(sched: Schedule | EggTimer): Outbound[] {
         // delete sched 1
         // [ 255, 0, 255], [165, 33, 16, 33, 145, 7], [1, 0, 0, 0, 0, 0, 0], [1, 144]
 
@@ -565,49 +558,49 @@ export class TouchScheduleCommands extends ScheduleCommands {
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
     }
-
 }
+
 // todo: this can be implemented as a bytevaluemap
 export enum TouchConfigCategories {
-    dateTime=5,
-    heatTemperature=8,
-    customNames=10,
-    circuits=11,
-    schedules=17,
-    spaSideRemote=22,
-    pumpStatus=23,
-    pumpConfig=24,
-    intellichlor=25,
-    valves=29,
-    highSpeedCircuits=30,
-    is4is10=32,
-    solarHeatPump=34,
-    delays=35,
-    lightGroupPositions=39,
-    circuitGroups=41,
-    settings=40,
-    version=252
+    dateTime = 5,
+    heatTemperature = 8,
+    customNames = 10,
+    circuits = 11,
+    schedules = 17,
+    spaSideRemote = 22,
+    pumpStatus = 23,
+    pumpConfig = 24,
+    intellichlor = 25,
+    valves = 29,
+    highSpeedCircuits = 30,
+    is4is10 = 32,
+    solarHeatPump = 34,
+    delays = 35,
+    lightGroupPositions = 39,
+    circuitGroups = 41,
+    settings = 40,
+    version = 252
 }
 export enum GetTouchConfigCategories {
-    dateTime=197,
-    heatTemperature=200,
-    customNames=202,
-    circuits=203,
-    schedules=209,
-    spaSideRemote=214,
-    pumpStatus=215,
-    pumpConfig=216,
-    intellichlor=217,
-    valves=221,
-    highSpeedCircuits=222,
-    is4is10=224,
-    intellifloSpaSideRemotes=225,
-    solarHeatPump=226,
-    delays=227,
-    lightGroupPositions=231,
-    settings=232,
-    circuitGroups=233,
-    version=253
+    dateTime = 197,
+    heatTemperature = 200,
+    customNames = 202,
+    circuits = 203,
+    schedules = 209,
+    spaSideRemote = 214,
+    pumpStatus = 215,
+    pumpConfig = 216,
+    intellichlor = 217,
+    valves = 221,
+    highSpeedCircuits = 222,
+    is4is10 = 224,
+    intellifloSpaSideRemotes = 225,
+    solarHeatPump = 226,
+    delays = 227,
+    lightGroupPositions = 231,
+    settings = 232,
+    circuitGroups = 233,
+    version = 253
 }
 class TouchSystemCommands extends SystemCommands {
     public async cancelDelay() {
@@ -627,7 +620,7 @@ class TouchSystemCommands extends SystemCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setDateTimeAsync(obj: any):Promise<any> {
+    public async setDateTimeAsync(obj: any): Promise<any> {
         return new Promise((resolve, reject) => {
             let { hour = state.time.hours,
                 min = state.time.minutes,
@@ -636,7 +629,7 @@ class TouchSystemCommands extends SystemCommands {
                 year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
                 dst = sys.general.options.adjustDST ? 1 : 0,
                 dow = state.time.dayOfWeek } = obj;
-            if (obj.dt instanceof Date){
+            if (obj.dt instanceof Date) {
                 let _dt: Date = obj.dt;
                 hour = _dt.getHours();
                 min = _dt.getMinutes();
@@ -662,8 +655,9 @@ class TouchSystemCommands extends SystemCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err)
                     else {
-                        resolve({time: state.time.format(),
-                                 adjustDST: sys.general.options.adjustDST
+                        resolve({
+                            time: state.time.format(),
+                            adjustDST: sys.general.options.adjustDST
                         });
                     }
                 }
@@ -734,14 +728,14 @@ class TouchBodyCommands extends BodyCommands {
             switch (tempUnits) {
                 case 0: // fahrenheit
                     if (setPoint < 40 || setPoint > 104) {
-                        logger.warn(`Setpoint of ${ setPoint } is outside acceptable range.`);
+                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
                         return;
                     }
                     break;
                 case 1: // celcius
                     if (setPoint < 4 || setPoint > 40) {
                         logger.warn(
-                            `Setpoint of ${ setPoint } is outside of acceptable range.`
+                            `Setpoint of ${setPoint} is outside of acceptable range.`
                         );
                         return;
                     }
@@ -811,7 +805,7 @@ class TouchCircuitCommands extends CircuitCommands {
                         circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
                         circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures;
                         circuit.showInCircuits = typeof data.showInCircuits !== 'undefined' ? data.showInCircuits : circuit.showInCircuits; // cstate.showInCircuits?
-                        circuit.freeze  = typeof data.freeze !== 'undefined' ? data.freeze : circuit.freeze;
+                        circuit.freeze = typeof data.freeze !== 'undefined' ? data.freeze : circuit.freeze;
                         circuit.type = cstate.type = typeByte;
                         state.emitEquipmentChanges();
                         resolve(circuit);
@@ -858,87 +852,87 @@ class TouchCircuitCommands extends CircuitCommands {
         // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
         if (sys.equipment.maxIntelliBrites === 8) {
             // Easytouch
-                packets.push(new Promise(function(resolve, reject){
-                    let out = Outbound.create({
-                        action: 167,
-                        retries: 3,
-                        response: true,
-                        onComplete: (err, msg)=>{
-                            if (err) return reject(err);
-                            else {
-                                return resolve();
-                            }
-                        }
-                    });
-                    const lgcircuits = group.circuits.get();
-                    for (let circ = 0; circ < 8; circ++) {
-                        const lgcirc = lgcircuits[circ];
-                        if (typeof lgcirc === 'undefined') out.payload.push(0,0,0,0);
+            packets.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 167,
+                    retries: 3,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) return reject(err);
                         else {
-                            out.payload.push(lgcirc.circuit);
-                            out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
-                            out.payload.push(lgcirc.swimDelay << 1);
-                            out.payload.push(0);
+                            return resolve();
                         }
                     }
-                    conn.queueSendMessage(out);
-                }));
-        
-        }
-            else {
-                // Intellitouch
+                });
                 const lgcircuits = group.circuits.get();
-                packets.push(new Promise(function(resolve, reject){
-                    let out = Outbound.create({
-                        action: 167,
-                        retries: 3,
-                        payload: [1],
-                        response: true,
-                        onComplete: (err, msg)=>{
-                            if (err) return reject(err);
-                            else {
-                                return resolve();
-                            }
-                        }
-                    });
-                    for (let circ = 0; circ < 5; circ++) {
-                            const lgcirc = lgcircuits[circ];
-                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0,0,0,0]);
-                            else {
-                                out.payload.push(lgcirc.id);
-                                out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
-                                out.payload.push(lgcirc.swimDelay << 1);
-                                out.payload.push(0);
-                            }
-                        }
-                        conn.queueSendMessage(out);
-                }));
-                packets.push(new Promise(function(resolve,reject){
-                    let out = Outbound.create({
-                        action: 167,
-                        retries: 3,
-                        payload: [2],
-                        response: true,
-                        onComplete: (err, msg)=>{
-                            if (err) return Promise.reject(err);
-                            else {
-                                return Promise.resolve();
-                            }
-                        }
-                    });
-                    for (let circ = 5; circ < 10; circ++) {
-                        const lgcirc = lgcircuits[circ];
-                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0,0,0,0]);
+                for (let circ = 0; circ < 8; circ++) {
+                    const lgcirc = lgcircuits[circ];
+                    if (typeof lgcirc === 'undefined') out.payload.push(0, 0, 0, 0);
+                    else {
+                        out.payload.push(lgcirc.circuit);
+                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                        out.payload.push(lgcirc.swimDelay << 1);
+                        out.payload.push(0);
+                    }
+                }
+                conn.queueSendMessage(out);
+            }));
+
+        }
+        else {
+            // Intellitouch
+            const lgcircuits = group.circuits.get();
+            packets.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 167,
+                    retries: 3,
+                    payload: [1],
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) return reject(err);
                         else {
-                            out.payload.push(lgcirc.id);
-                            out.payload.push(((lgcirc.position - 1 ) << 4) + lgcirc.color);
-                            out.payload.push(lgcirc.swimDelay << 1);
-                            out.payload.push(0);
+                            return resolve();
                         }
                     }
-                    conn.queueSendMessage(out);
-                }));
-            }
+                });
+                for (let circ = 0; circ < 5; circ++) {
+                    const lgcirc = lgcircuits[circ];
+                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                    else {
+                        out.payload.push(lgcirc.id);
+                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                        out.payload.push(lgcirc.swimDelay << 1);
+                        out.payload.push(0);
+                    }
+                }
+                conn.queueSendMessage(out);
+            }));
+            packets.push(new Promise(function (resolve, reject) {
+                let out = Outbound.create({
+                    action: 167,
+                    retries: 3,
+                    payload: [2],
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) return Promise.reject(err);
+                        else {
+                            return Promise.resolve();
+                        }
+                    }
+                });
+                for (let circ = 5; circ < 10; circ++) {
+                    const lgcirc = lgcircuits[circ];
+                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                    else {
+                        out.payload.push(lgcirc.id);
+                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                        out.payload.push(lgcirc.swimDelay << 1);
+                        out.payload.push(0);
+                    }
+                }
+                conn.queueSendMessage(out);
+            }));
+        }
         return packets;
     }
     public async setLightGroupAsync(obj: any): Promise<LightGroup> {
@@ -949,41 +943,41 @@ class TouchCircuitCommands extends CircuitCommands {
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
         if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${ obj.id }`, obj.id, 'LightGroup');
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup');
         group = sys.lightGroups.getItemById(id, true);
 
-            if (typeof obj.name !== 'undefined') group.name = obj.name;
-            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
-            group.isActive = true;
-            if (typeof obj.circuits !== 'undefined') {
-                for (let i = 0; i < obj.circuits.length; i++) {
-                    let cobj = obj.circuits[i];
-                    let c: LightGroupCircuit;
-                    if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
-                    else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
-                    else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
-                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10); // does this belong here?
-                    if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
-                    if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
-                    if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
-                }
-                // group.circuits.length = obj.circuits.length;
+        if (typeof obj.name !== 'undefined') group.name = obj.name;
+        if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
+        group.isActive = true;
+        if (typeof obj.circuits !== 'undefined') {
+            for (let i = 0; i < obj.circuits.length; i++) {
+                let cobj = obj.circuits[i];
+                let c: LightGroupCircuit;
+                if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10); // does this belong here?
+                if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
             }
-            let messages = this.createLightGroupMessages(group);
-            messages.push(new Promise(function(resolve,reject){
-                let out = Outbound.create({
-                    action: 231,
-                    payload: [0],
-                    onComplete: (err,msg)=>{
-                        if (err) reject(err);
-                        else resolve();
-                    }
-                    
-                });
+            // group.circuits.length = obj.circuits.length;
+        }
+        let messages = this.createLightGroupMessages(group);
+        messages.push(new Promise(function (resolve, reject) {
+            let out = Outbound.create({
+                action: 231,
+                payload: [0],
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+
+            });
             conn.queueSendMessage(out);
         }));
-            
+
         return new Promise<LightGroup>(async (resolve, reject) => {
             try {
                 await Promise.all(messages).catch(err => reject(err));
@@ -997,8 +991,8 @@ class TouchCircuitCommands extends CircuitCommands {
     public async setLightThemeAsync(id: number, theme: number) {
         // Re-route this as we cannot set individual circuit themes in *Touch.
         return this.setLightGroupThemeAsync(id, theme);
-    } 
-    public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number):Promise<ICircuitState> {
+    }
+    public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number): Promise<ICircuitState> {
         return new Promise<ICircuitState>((resolve, reject) => {
             const grp = sys.lightGroups.getItemById(id);
             const sgrp = state.lightGroups.getItemById(id);
@@ -1012,46 +1006,46 @@ class TouchCircuitCommands extends CircuitCommands {
                     if (err) reject(err);
                     else {
                         try {
-/*                         for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                            let c = sys.intellibrite.circuits.getItemByIndex(i);
-                            let cstate = state.circuits.getItemById(c.circuit);
-                            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                        } */
-                        // Let everyone know we turned these on.  The theme messages will come later.
-                        for (let i = 0; i < grp.circuits.length; i++) {
-                            let c = grp.circuits.getItemByIndex(i);
-                            let cstate = state.circuits.getItemById(c.circuit);
-                            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                            /*                         for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
+                                                        let c = sys.intellibrite.circuits.getItemByIndex(i);
+                                                        let cstate = state.circuits.getItemById(c.circuit);
+                                                        if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                                                    } */
+                            // Let everyone know we turned these on.  The theme messages will come later.
+                            for (let i = 0; i < grp.circuits.length; i++) {
+                                let c = grp.circuits.getItemByIndex(i);
+                                let cstate = state.circuits.getItemById(c.circuit);
+                                if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                            }
+                            switch (theme) {
+                                case 0: // off
+                                case 1: // on
+                                    break;
+                                case 128: // sync
+                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync'); });
+                                    break;
+                                case 144: // swim
+                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim'); });
+                                    break;
+                                case 160: // swim
+                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set'); });
+                                    break;
+                                case 190: // save
+                                case 191: // recall
+                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
+                                    break;
+                                default:
+                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
+                                // other themes for magicstream?
+                            }
+                            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                            state.emitEquipmentChanges();
+                            resolve(sgrp);
                         }
-                        switch (theme) {
-                            case 0: // off
-                            case 1: // on
-                                break;
-                            case 128: // sync
-                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync');});
-                                break;
-                            case 144: // swim
-                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');});
-                                break;
-                            case 160: // swim
-                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');});
-                                break;
-                            case 190: // save
-                            case 191: // recall
-                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other');});
-                                break;
-                            default:
-                                setImmediate(function(){sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');});
-                            // other themes for magicstream?
+                        catch (err) {
+                            logger.error(`error setting intellibrite theme: ${err.message}`);
+                            reject(err);
                         }
-                        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-                        state.emitEquipmentChanges();
-                        resolve(sgrp);
-                    }
-                    catch (err){
-                        logger.error(`error setting intellibrite theme: ${err.message}`);
-                        reject(err);
-                    }
                     }
                 }
             });
@@ -1073,7 +1067,7 @@ class TouchFeatureCommands extends FeatureCommands {
         // and the interface takes care of it all.
         return this.board.circuits.toggleCircuitStateAsync(id);
     }
-    public async setFeatureAsync(data: any): Promise<Feature>{
+    public async setFeatureAsync(data: any): Promise<Feature> {
         let feature = sys.features.getItemById(data.id);
         let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
         let nameByte = 3; // set default `Aux 1`
@@ -1124,7 +1118,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                 response: true,
                 onComplete: (err) => {
                     if (err) {
-                        logger.error(`Error setting Chlorinator values: ${err.message}` );
+                        logger.error(`Error setting Chlorinator values: ${err.message}`);
                         reject(err);
                     }
                     let schlor = state.chlorinators.getItemById(id, true);
@@ -1246,10 +1240,10 @@ class TouchPumpCommands extends PumpCommands {
         else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
         else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
 
-        
+
         // Need to do a check here if we are clearing out the circuits; id data.circuits === []
         // extend will keep the original array
-        let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length ===0;
+        let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length === 0;
 
         if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
         else data = extend(false, {}, data, { id: id, type: ntype });
@@ -1317,22 +1311,22 @@ class TouchPumpCommands extends PumpCommands {
             }
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                        let c = data.circuits[i - 1];
-                        let speed = parseInt(c.speed, 10);
-                        let flow = parseInt(c.flow, 10);
-                        if (isNaN(speed)) speed = type.minSpeed;
-                        if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
-                        c.units = parseInt(c.units,10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm'); 
-                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                            outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
-                            outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
-                            c.speed = speed;
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                            outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
-                            c.flow = flow;
-                        }
+                    let c = data.circuits[i - 1];
+                    let speed = parseInt(c.speed, 10);
+                    let flow = parseInt(c.flow, 10);
+                    if (isNaN(speed)) speed = type.minSpeed;
+                    if (isNaN(flow)) flow = type.minFlow;
+                    outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
+                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                        outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
+                        outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                        c.speed = speed;
+                    }
+                    else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                        outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                        c.flow = flow;
+                    }
                 }
             }
             return new Promise<Pump>((resolve, reject) => {

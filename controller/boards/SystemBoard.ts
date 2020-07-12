@@ -2151,6 +2151,7 @@ export class HeaterCommands extends BoardCommands {
         }
     }
     public updateHeaterServices() {
+        // RSG: these heater types are for IC.  Overwriting with *Touch types in EasyTouchBoard.
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
@@ -2160,6 +2161,11 @@ export class HeaterCommands extends BoardCommands {
         if (gasHeaterInstalled) {
             sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
             sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
+        }
+        else {
+            // no heaters (virtual controller)
+            sys.board.valueMaps.heatModes.delete(1);
+            sys.board.valueMaps.heatSources.delete(2);
         }
         if (solarInstalled && gasHeaterInstalled) {
             sys.board.valueMaps.heatModes.set(2, { name: 'solarpref', desc: 'Solar Preferred' });
@@ -2172,6 +2178,13 @@ export class HeaterCommands extends BoardCommands {
             sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
             sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
             sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
+        }
+        else {
+            // only gas
+            sys.board.valueMaps.heatModes.delete(2);
+            sys.board.valueMaps.heatModes.delete(3);
+            sys.board.valueMaps.heatSources.delete(5);
+            sys.board.valueMaps.heatSources.delete(21);
         }
         sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
         this.setActiveTempSensors();

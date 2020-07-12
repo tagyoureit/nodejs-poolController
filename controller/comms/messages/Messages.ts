@@ -437,6 +437,7 @@ export class Inbound extends Message {
                 CircuitMessage.process(this);
                 break;
             case 17:
+            case 145: 
                 ScheduleMessage.process(this);
                 break;
             case 18:
