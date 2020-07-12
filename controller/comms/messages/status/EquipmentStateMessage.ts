@@ -349,7 +349,7 @@ export class EquipmentStateMessage {
                     state.time.minutes = msg.extractPayloadByte(1);
                     state.time.seconds = dt.getSeconds();
                     state.mode = msg.extractPayloadByte(9) & 0x81;
-                    state.temps.units = msg.extractPayloadByte(9) & 0x04;
+                    sys.general.options.units = state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
 
                     // RSG - added 7/8/2020
@@ -380,9 +380,10 @@ export class EquipmentStateMessage {
                     state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
-                        state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.general.options.waterTempAdj1;
+                        let sensor = sys.equipment.tempSensors.getItemById('water1');
+                        state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.equipment.tempSensors.getCalibration('water1');
                         if (sys.bodies.length > 2)
-                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.general.options.waterTempAdj2;
+                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.equipment.tempSensors.getCalibration('water2');
                         // We are making an assumption here in that the circuits are always labeled the same.
                         // 1=Spa
                         // 6=Pool
@@ -445,8 +446,8 @@ export class EquipmentStateMessage {
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                         }
-                        state.temps.air = msg.extractPayloadByte(18) + sys.general.options.airTempAdj; // 18
-                        state.temps.solar = msg.extractPayloadByte(19) + sys.general.options.solarTempAdj1; // 19
+                        state.temps.air = msg.extractPayloadByte(18) + sys.equipment.tempSensors.getCalibration('air'); // 18
+                        state.temps.solar = msg.extractPayloadByte(19) + sys.equipment.tempSensors.getCalibration('solar1'); // 19
                         sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
                     }
                     else {

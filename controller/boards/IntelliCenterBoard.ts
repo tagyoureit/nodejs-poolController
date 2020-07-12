@@ -717,8 +717,10 @@ class IntelliCenterSystemCommands extends SystemCommands {
             fnToByte(sys.general.options.waterTempAdj1),
             fnToByte(sys.general.options.solarTempAdj1),
             fnToByte(sys.general.options.airTempAdj),
-            fnToByte(sys.general.options.waterTempAdj2),
+            fnToByte(sys.general.options.waterTempAdj2), // This might actually be a secondary air sensor but it is not ever set on a shared body.
             fnToByte(sys.general.options.solarTempAdj2), // 8
+            // The following contains the bytes for water3&4 and solar3&4.  The reason for 5 bytes may be that
+            // the software jumps over a fake airTemp byte in the sensor arrays.
             0, 0, 0, 0, 0,
             0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00), // 14
             0, 0,

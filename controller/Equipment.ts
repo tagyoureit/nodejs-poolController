@@ -372,14 +372,14 @@ class EqItemCollection<T> implements IEqItemCollection {
             return this.add(extend({}, { id: ndx + 1 }, data));
         return this.createItem(extend({}, { id: ndx + 1 }, data));
     }
-    public getItemById(id: number, add?: boolean, data?: any): T {
+    public getItemById(id: number | string, add?: boolean, data?: any): T {
         let itm = this.find(elem => elem.id === id && typeof elem.id !== 'undefined');
         if (typeof itm !== 'undefined') return itm;
         if (typeof add !== 'undefined' && add) return this.add(data || { id: id });
         return this.createItem(data || { id: id });
 
     }
-    public removeItemById(id: number): T {
+    public removeItemById(id: number | string): T {
         let rem: T = null;
         for (let i = this.data.length - 1; i >= 0; i--)
             if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
@@ -504,37 +504,29 @@ export class Owner extends EqItem {
     public get phone2(): string { return this.data.phone2; }
     public set phone2(val: string) { this.setDataVal('phone2', val); }
 }
+// Temp sensors are a bit different than other equipment items in that the collection does
+// not use numeric ids.  This could have been implemented where each potential sensor is identified
+// on a tempSensors object and would have been more straight forward but would have limited the potential sensors
+// to known items.  This approach will allow the ability to include temperature sensors outside that list without
+// having to modify external temperature feeds.  Think of binding as the id of the sensor which must be unique for
+// all defined sensors.
 export class TempSensorCollection extends EqItemCollection<TempSensor> {
     constructor(data: any, name?: string) { super(data, name || "tempSensors"); }
     public createItem(data: any): TempSensor { return new TempSensor(data); }
-    public getItemByName(name: string, add?: boolean, data?: any) {
-        for (let i = 0; i < this.data.length; i++)
-            if (typeof this.data[i].name !== 'undefined' && this.data[i].name === name) {
-                return this.createItem(this.data[i]);
-            }
-        if (typeof add !== 'undefined' && add)
-            return this.add(data || { name: name });
-        return this.createItem(data || { name: name });
-    }
-    public removeItemByName(name: string) {
-        let rem = null;
-        for (let i = this.data.length - 1; i >= 0; i--)
-            if (typeof this.data[i].name !== 'undefined' && this.data[i].name === name) {
-                rem = this.data.splice(i, 1);
-                return rem;
-            }
-        return rem;
-    }
-    public setCalibration(name: string, cal: number): TempSensor {
-        let sensor = this.getItemByName(name);
+    public setCalibration(id: string, cal: number): TempSensor {
+        let sensor = this.getItemById(id);
         sensor.calibration = cal;
         return sensor;
+    }
+    public getCalibration(id: string): number {
+        let sensor = this.getItemById(id);
+        return sensor.calibration || 0;
     }
 }
 export class TempSensor extends EqItem {
     public dataName='sensorConfig';
-    public set id(val: number) { this.setDataVal('id', val); }
-    public get id(): number { return this.data.id; }
+    public set id(val: string) { this.setDataVal('id', val); }
+    public get id(): string { return this.data.id; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get calibration(): number { return this.data.calibration; }
@@ -546,8 +538,8 @@ export class Options extends EqItem {
     public dataName='optionsConfig';
     public get clockMode(): number { return this.data.clockMode; }
     public set clockMode(val: number) { this.setDataVal('clockMode', val); }
-    public get units(): string { return this.data.units; }
-    public set units(val: string) { this.setDataVal('units', val); }
+    public get units(): number { return this.data.units; }
+    public set units(val: number) { this.setDataVal('units', val); }
     public get clockSource(): string { return this.data.clockSource; }
     public set clockSource(val: string) { this.setDataVal('clockSource', val); }
     public get adjustDST(): boolean { return this.data.adjustDST; }

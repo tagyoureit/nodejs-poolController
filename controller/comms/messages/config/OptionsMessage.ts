@@ -47,7 +47,8 @@ export class OptionsMessage {
                             sys.general.options.solarTempAdj1 = (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.airTempAdj = (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1);
                             sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
-                            // There are follow on bits for the remaining potential sensors from expansion boards.  There are a total of 6 leftover bytes.
+
+                            // Somewhere in here are the units.
 
                             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                             body.heatMode = msg.extractPayloadByte(24);

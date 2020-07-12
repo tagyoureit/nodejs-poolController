@@ -2192,32 +2192,32 @@ export class HeaterCommands extends BoardCommands {
     public initTempSensors() {
         // Add in the potential sensors and delete the ones that shouldn't exist.
         let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
-        sys.equipment.tempSensors.getItemByName('air', true, { isActive: true, calibration: 0 });
-        sys.equipment.tempSensors.getItemByName('water1', true, { isActive: true, calibration: 0 });
-        sys.equipment.tempSensors.getItemByName('solar1', true, { isActive: false, calibration: 0 });
+        sys.equipment.tempSensors.getItemById('air', true, {id:'air', isActive: true, calibration: 0 }).name = 'Air';
+        sys.equipment.tempSensors.getItemById('water1', true, {id:'water1', isActive: true, calibration: 0 }).name = maxPairs == 1 ? 'Water' : 'Body 1';
+        sys.equipment.tempSensors.getItemById('solar1', true, { id:'solar1', isActive: false, calibration: 0 }).name = maxPairs == 1 ? 'Solar' : 'Solar 1';
         if (maxPairs > 1) {
-            sys.equipment.tempSensors.getItemByName('water2', true, { isActive: false, calibration: 0 });
-            sys.equipment.tempSensors.getItemByName('solar2', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemById('water2', true, { id:'water2', isActive: false, calibration: 0 }).name = 'Body 2';
+            sys.equipment.tempSensors.getItemById('solar2', true, { id:'solar2', isActive: false, calibration: 0 }).name = 'Solar 2';
         }
         else {
-            sys.equipment.tempSensors.removeItemByName('water2');
-            sys.equipment.tempSensors.removeItemByName('solar2');
+            sys.equipment.tempSensors.removeItemById('water2');
+            sys.equipment.tempSensors.removeItemById('solar2');
         }
         if (maxPairs > 2) {
-            sys.equipment.tempSensors.getItemByName('water3', true, { isActive: false, calibration: 0 });
-            sys.equipment.tempSensors.getItemByName('solar3', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemById('water3', true, { id:'water3', isActive: false, calibration: 0 }).name = 'Body 3';
+            sys.equipment.tempSensors.getItemById('solar3', true, { id:'solar3', isActive: false, calibration: 0 }).name = 'Solar 3';
         }
         else {
-            sys.equipment.tempSensors.removeItemByName('water3');
-            sys.equipment.tempSensors.removeItemByName('solar3');
+            sys.equipment.tempSensors.removeItemById('water3');
+            sys.equipment.tempSensors.removeItemById('solar3');
         }
         if (maxPairs > 3) {
-            sys.equipment.tempSensors.getItemByName('water4', true, { isActive: false, calibration: 0 });
-            sys.equipment.tempSensors.getItemByName('solar4', true, { isActive: false, calibration: 0 });
+            sys.equipment.tempSensors.getItemById('water4', true, { id:'water4', isActive: false, calibration: 0 }).name = 'Body 4';
+            sys.equipment.tempSensors.getItemById('solar4', true, { id:'solar4', isActive: false, calibration: 0 }).name = 'Solar 4';
         }
         else {
-            sys.equipment.tempSensors.removeItemByName('water4');
-            sys.equipment.tempSensors.removeItemByName('solar4');
+            sys.equipment.tempSensors.removeItemById('water4');
+            sys.equipment.tempSensors.removeItemById('solar4');
         }
 
     }
@@ -2225,10 +2225,13 @@ export class HeaterCommands extends BoardCommands {
     // detectable temp sensors should exist.
     public setActiveTempSensors() {
         let htypes;
-        for (let i = 0; i < sys.equipment.tempSensors.length; i++) {
+        // We are iterating backwards through the sensors array on purpose.  We do this just in case we need
+        // to remove a sensor during the iteration.  This way the index values will not be impacted and we can
+        // safely remove from the array we are iterating.
+        for (let i = sys.equipment.tempSensors.length - 1; i >= 0; i--) {
             let sensor = sys.equipment.tempSensors.getItemByIndex(i);
             // The names are normalized in this array.
-            switch (sensor.name) {
+            switch (sensor.id) {
                 case 'air':
                     sensor.isActive = true;
                     break;
@@ -2282,6 +2285,9 @@ export class HeaterCommands extends BoardCommands {
                         sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
                     }
                     else sensor.isActive = false;
+                    break;
+                default:
+                    if (typeof sensor.id === 'undefined') sys.equipment.tempSensors.removeItemByIndex(i);
                     break;
             }
         }
