@@ -29,7 +29,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxIntelliBrites = 8;
         sys.equipment.maxChlorinators = 1;
         sys.equipment.maxCustomNames = 10;
-        sys.equipment.maxChemControllers = 4; 
+        sys.equipment.maxChemControllers = 4;
         sys.equipment.maxFeatures = 8;
         sys.equipment.model = 'Unknown';
     }
@@ -43,7 +43,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 2;
                 sys.equipment.maxSchedules = 4;
                 sys.equipment.maxCircuits = 6; // 2 filter + 2 aux
-                sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
+                sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
                 sys.equipment.maxCircuitGroups = 0;
                 break;
             case 0:
@@ -55,7 +55,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
-                sys.board.equipmentIds.invalidIds.merge([5,7,8,9,16,17,18]) 
+                sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 16, 17, 18])
                 sys.equipment.maxCircuitGroups = 3;
                 break;
             case 1: // IntelliTouch i7+3
@@ -117,7 +117,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxIntelliBrites = 10;
                 sys.equipment.dual = true;
                 sys.equipment.shared = false;
-                break;           
+                break;
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;
                 // sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
@@ -144,7 +144,7 @@ export class EquipmentStateMessage {
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
                         // exclude Aux4-Aux7, Feature 5-8
-                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,15,16,17,18])
+                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 15, 16, 17, 18])
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
@@ -152,7 +152,7 @@ export class EquipmentStateMessage {
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
                         // exclude Aux4-Aux7, Feature 5-8
-                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,15,16,17,18]) 
+                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 15, 16, 17, 18])
                         break;
                     case 5: // EasyTouch PL4?? Complete guess.  If we see it; change the case.
                         sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
@@ -161,7 +161,7 @@ export class EquipmentStateMessage {
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
                         // exclude Aux4-Aux7, Feature 3-8
-                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
+                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
                         break;
                     case 6:
                         sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
@@ -170,9 +170,9 @@ export class EquipmentStateMessage {
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
                         // exclude Aux4-Aux7, Feature 3-8
-                        sys.board.equipmentIds.invalidIds.merge([5,7,8,9,13,14,15,16,17,18]) 
+                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
                         break;
-                    }
+                }
                 break;
 
             case 14: // EasyTouch1 Models
@@ -191,6 +191,7 @@ export class EquipmentStateMessage {
                     case 1:
                         sys.equipment.model = 'EasyTouch1 8P';
                         sys.equipment.maxCircuits = 8;
+                        sys.equipment.maxBodies = 1;
                         break;
                     case 2: // check...
                         sys.equipment.model = 'EasyTouch1 4';
@@ -198,18 +199,11 @@ export class EquipmentStateMessage {
                         break;
                     case 3: // check...
                         sys.equipment.model = 'EasyTouch1 4P';
+                        sys.equipment.maxBodies = 1;
                         break;
                 }
                 break;
         }
-        // For EasyTouch addendums
-        if (sys.equipment.model.includes('4')){
-
-        }
-        if (sys.equipment.model.includes('p')){
-            sys.equipment.maxBodies = 1; // All Ps are single body; exclude Spa
-        }
-        // End EasyTouch addendums
         if (sys.controllerType === ControllerType.IntelliTouch) {
             sys.equipment.maxCustomNames = 20;
             sys.equipment.maxCircuitGroups = 10;
@@ -255,6 +249,9 @@ export class EquipmentStateMessage {
         sys.equipment.shared ? heater.body = 32 : heater.body = 0;
         sys.equipment.setEquipmentIds();
         sys.board.heaters.initTempSensors();
+        // time defaults
+        sys.general.options.clockMode = sys.general.options.clockMode || 12;
+        sys.general.options.clockSource = sys.general.options.clockSource || 'manual';
         // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
         state.emitControllerChange();
     }
@@ -296,8 +293,8 @@ export class EquipmentStateMessage {
         sys.board.virtualPumpControllers.start();
     }
     private static initController(msg: Inbound) {
+
         state.status = 1;
-        Message.headerSubByte = msg.header[1];
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
@@ -310,15 +307,16 @@ export class EquipmentStateMessage {
         }
         else {
             EquipmentStateMessage.initTouch(msg, model1, model2);
-            logger.info(`Found Controller Board ${ state.equipment.model }`);
+            logger.info(`Found Controller Board ${state.equipment.model}`);
             sys.board.needsConfigChanges = true;
-            setTimeout(function() { sys.checkConfiguration(); }, 300);
+            setTimeout(function () { sys.checkConfiguration(); }, 300);
         }
     }
     public static process(msg: Inbound) {
+        Message.headerSubByte = msg.header[1];
         //console.log(process.memoryUsage());
         if (!state.isInitialized) {
-           if (msg.action === 2) EquipmentStateMessage.initController(msg);
+            if (msg.action === 2) EquipmentStateMessage.initController(msg);
             else return;
         }
         else if (!sys.board.modulesAcquired) {
@@ -341,6 +339,7 @@ export class EquipmentStateMessage {
                     // Shared
                     let dt = new Date();
                     if (state.chemControllers.length > 0) {
+                        // TODO: move this to chemController when we understand the packets better
                         for (let i = 0; i < state.chemControllers.length; i++) {
                             let ccontroller = state.chemControllers.getItemByIndex(i);
                             if (dt.getTime() - ccontroller.lastComm > 60000) ccontroller.status = 1;
@@ -353,35 +352,29 @@ export class EquipmentStateMessage {
                     state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
 
-
                     // RSG - added 7/8/2020
                     // Check and update clock when it is off by >5 mins (just for a small buffer) and:
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
                     // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)
                     // 3. clock source is "server" isn't an OCP option but can be enabled on the clients 
-                    if (dt.getMinutes() % 15 === 0){
-                        if (sys.general.options.adjustDST && sys.general.options.clockSource === 'manual' && sys.controllerType.toLowerCase().includes('touch')){
-                            if (Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000 ){
-                                // if we don't set time before we get a successful ACK we would try to set
-                                // the clock N times before the message queue was exhausted if we are in the
-                                // middle of getting the configuration this would be a lotta N.
-                                // it sometimes may still send 2+ if there is a delay in processing pkts
-                                // or the outbound takes 2+ seconds R.T. and another status packet comes in first
-                                state.time.setTimeFromSystemClock();
-                                sys.board.system.setDateTimeAsync({dt, dst: sys.general.options.adjustDST || 0, })
-                                .then(()=>{
-                                    // don't have hanging Async
+                    if (dt.getMinutes() % 2 === 0 && sys.general.options.clockSource === 'server') {
+                        if ((Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000) && !state.time.isUpdating) {
+                            // if we don't set time before we get a successful ACK we would try to set
+                            // the clock N times before the message queue was exhausted if we are in the
+                            // middle of getting the configuration this would be a lotta N.
+                            // it sometimes may still send 2+ if there is a delay in processing pkts
+                            // or the outbound takes 2+ seconds R.T. and another status packet comes in first
+                            state.time.isUpdating = true;
+                            sys.board.system.setDateTimeAsync({ dt, dst: sys.general.options.adjustDST || 0, })
+                                .then(() => {
                                     logger.info(`njsPC automatically updated OCP time.  You're welcome.`);
-                                    
                                 })
-                                .catch((err)=>{
+                                .catch((err) => {
                                     logger.error(`Error automatically setting system time. ${JSON.stringify(err)}`)
                                 })
-                                ;
-                            }
-                        }
-                        else if (sys.general.options.clockSource === 'manual' && sys.controllerType.toLowerCase().includes('center')){
-                            // call IntelliCenter set date here
+                                .finally(()=>{
+                                    state.time.isUpdating = false;
+                                })
                         }
                     }
                     state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
@@ -557,10 +550,7 @@ export class EquipmentStateMessage {
                 state.time.month = msg.extractPayloadByte(4);
                 state.time.year = msg.extractPayloadByte(5);
                 sys.general.options.adjustDST = msg.extractPayloadByte(7) === 0x01;
-                // defaults
-                if (typeof sys.general.options.clockMode === 'undefined') sys.general.options.clockMode = 12;
-                if (typeof sys.general.options.clockSource === 'undefined') sys.general.options.clockSource = 'manual';
-                setTimeout(function(){sys.board.checkConfiguration();},100);
+                setTimeout(function () { sys.board.checkConfiguration(); }, 100);
                 break;
             case 8: {
                 // IntelliTouch only.  Heat status
@@ -593,11 +583,11 @@ export class EquipmentStateMessage {
             case 197: {
                 // request for date/time on *Touch.  Use this as an indicator
                 // that SL has requested config and update lastUpdated date/time
-                    /* let ver: ConfigVersion =
-                        typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
-                    ver.lastUpdated = new Date();
-                    sys.processVersionChanges(ver); */
-                    sys.configVersion.lastUpdated = new Date();
+                /* let ver: ConfigVersion =
+                    typeof (sys.configVersion) === 'undefined' ? new ConfigVersion({}) : sys.configVersion;
+                ver.lastUpdated = new Date();
+                sys.processVersionChanges(ver); */
+                sys.configVersion.lastUpdated = new Date();
                 break;
             }
             case 204: // IntelliCenter only.
@@ -722,8 +712,8 @@ export class EquipmentStateMessage {
                         circuitId,
                         circ.isActive
                     );
-/*                     if (cstate.isOn && circId === 6) body = 6;
-                    if (cstate.isOn && circId === 1) body = 1; */
+                    /*                     if (cstate.isOn && circId === 6) body = 6;
+                                        if (cstate.isOn && circId === 1) body = 1; */
                     cstate.showInFeatures = circ.showInFeatures;
                     cstate.isOn = (byte & 1 << j) >> j > 0;
                     cstate.name = circ.name;
@@ -761,13 +751,13 @@ export class EquipmentStateMessage {
                     const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     grp.lightingTheme = sgrp.lightingTheme = theme;
-/*                     for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-                        let ib = sys.intellibrite.circuits.getItemByIndex(i);
-                        const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
-                        let circuit = sys.circuits.getItemById(ib.circuit);
-                        let cstate = state.circuits.getItemById(ib.circuit);
-                        if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
-                    } */
+                    /*                     for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
+                                            let ib = sys.intellibrite.circuits.getItemByIndex(i);
+                                            const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+                                            let circuit = sys.circuits.getItemById(ib.circuit);
+                                            let cstate = state.circuits.getItemById(ib.circuit);
+                                            if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
+                                        } */
                     for (let i = 0; i < grp.circuits.length; i++) {
                         let c = grp.circuits.getItemByIndex(i);
                         let cstate = state.circuits.getItemById(c.circuit);
@@ -791,7 +781,7 @@ export class EquipmentStateMessage {
                         default:
                             sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
                         // other themes for magicstream?
-        
+
                     }
                     break;
                 }

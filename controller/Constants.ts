@@ -7,6 +7,9 @@ export class Timestamp {
         this._dt = dt || new Date();
         this.emitter = new EventEmitter();
     }
+    private _isUpdating: boolean = false;
+    public set isUpdating(val:boolean) {this._isUpdating = val;}
+    public get isUpdating(): boolean { return this._isUpdating;}
     public get hours(): number { return this._dt.getHours(); }
     public set hours(val: number) {
         if (this.hours !== val) {

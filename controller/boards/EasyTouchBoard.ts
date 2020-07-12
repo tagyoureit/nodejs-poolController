@@ -6,8 +6,7 @@ import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupSt
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
-import { rejects } from 'assert';
-import { resolve } from 'dns';
+import { utils } from '../Constants';
 
 
 export class EasyTouchBoard extends SystemBoard {
@@ -622,12 +621,13 @@ class TouchSystemCommands extends SystemCommands {
     }
     public async setDateTimeAsync(obj: any): Promise<any> {
         return new Promise((resolve, reject) => {
+            let dst = sys.general.options.adjustDST ? 1 : 0;
+            if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
             let { hour = state.time.hours,
                 min = state.time.minutes,
                 date = state.time.date,
                 month = state.time.month,
                 year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
-                dst = sys.general.options.adjustDST ? 1 : 0,
                 dow = state.time.dayOfWeek } = obj;
             if (obj.dt instanceof Date) {
                 let _dt: Date = obj.dt;
@@ -638,12 +638,13 @@ class TouchSystemCommands extends SystemCommands {
                 year = _dt.getFullYear() - 2000;
                 let dates = sys.board.valueMaps.scheduleDays.toArray();
                 dates.forEach(d => {
-                    if (d.dow === _dt.getDay()) dow = d.dow;
+                    if (d.dow === _dt.getDay()) dow = d.val;
                 })
             }
-            // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
+            if (obj.clockSource === 'manual' || obj.clockSource === 'server') sys.general.options.clockSource = obj.clockSource;
+            // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] 
+            // and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
             // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
-            // [165,33,16,33,133,6],[1,30,16,1,2,2019,9,151
             // [165,33,34,16,1,1],[133],[1,127]
             const out = Outbound.create({
                 source: Message.pluginAddress,
@@ -655,9 +656,17 @@ class TouchSystemCommands extends SystemCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err)
                     else {
+                        state.time.hours = hour;
+                        state.time.minutes = min;
+                        state.time.date = date;
+                        state.time.month = month;
+                        state.time.year = year;
+                        sys.general.options.adjustDST = dst === 1 ? true : false;
+                        logger.info(`state.time before resolve: ${state.time.format()}`)
                         resolve({
                             time: state.time.format(),
-                            adjustDST: sys.general.options.adjustDST
+                            adjustDST: sys.general.options.adjustDST,
+                            clockSource: sys.general.options.clockSource
                         });
                     }
                 }

@@ -677,9 +677,11 @@ class IntelliCenterConfigQueue extends ConfigQueue {
 }
 class IntelliCenterSystemCommands extends SystemCommands {
     public async setDateTimeAsync(obj: any): Promise<any> {
+        if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual') sys.general.options.clockSource = obj.clockSource;
         Promise.resolve({
             time: state.time.format(),
-            adjustDST: sys.general.options.adjustDST
+            adjustDST: sys.general.options.adjustDST,
+            clockSource: sys.general.options.clockSource
         });
     }
     public async setGeneralAsync(obj?: any): Promise<General> {

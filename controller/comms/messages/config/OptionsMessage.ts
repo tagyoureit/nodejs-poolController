@@ -20,8 +20,10 @@ export class OptionsMessage {
                 switch (msg.extractPayloadByte(1)) {
                     case 0:
                         {
-                            sys.general.options.clockSource = (msg.extractPayloadByte(13) & 32) === 32 ? 'internet' : 'manual';
-
+                            if ((msg.extractPayloadByte(13) & 32) === 32)
+                                sys.general.options.clockSource = 'internet';
+                            else if (sys.general.options.clockSource !== 'server')
+                                sys.general.options.clockSource = 'manual';
                             sys.general.options.clockMode = (msg.extractPayloadByte(13) & 64) === 64 ? 24 : 12;
                             sys.general.options.adjustDST = (msg.extractPayloadByte(13) & 128) === 128;
                             sys.general.options.pumpDelay = msg.extractPayloadByte(29) === 1;
