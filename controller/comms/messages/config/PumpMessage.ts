@@ -4,7 +4,6 @@ import {state, CircuitState} from "../../../State";
 import {ControllerType} from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 export class PumpMessage {
-    private static maxCircuits: number=8;
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
@@ -66,7 +65,7 @@ export class PumpMessage {
                 pump.circuits.clear();
             }
             else {
-                for (let i = 34; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
+                for (let i = 34; i < msg.payload.length && circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; i++) {
                     let circuit = msg.extractPayloadByte(i);
                     if (circuit !== 255) pump.circuits.getItemById(circuitId++, true).circuit = circuit + 1;
                     else pump.circuits.removeItemById(circuitId++);
@@ -76,7 +75,7 @@ export class PumpMessage {
             if (pump.type > 2) {
                 // Filter out the single speed and dual speed pumps.  We have no flow or speed for these.
                 circuitId = 1;
-                for (let i = 18; i < msg.payload.length && circuitId <= this.maxCircuits;) {
+                for (let i = 18; i < msg.payload.length && circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits;) {
                     let circuit: PumpCircuit = pump.circuits.getItemById(circuitId);
                     let rate = msg.extractPayloadInt(i);
                     // If the rate is < 450 then this must be a flow based value.
@@ -249,7 +248,7 @@ export class PumpMessage {
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
         if (typeof pump.model === 'undefined') pump.model = 0;
-        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+        for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3); 
             if (_circuit !== 0) {
                 let circuit = pump.circuits.getItemById(circuitId, true);
@@ -263,12 +262,11 @@ export class PumpMessage {
                 pump.circuits.removeItemById(circuitId);
             }
         }
-        pump.primingSpeed =
-            msg.extractPayloadByte(21) * 256 + msg.extractPayloadByte(30);
+        pump.primingSpeed = msg.extractPayloadByte(21) * 256 + msg.extractPayloadByte(30);
         pump.primingTime = msg.extractPayloadByte(2);
-        pump.minSpeed = 450;
-        pump.maxSpeed = 3450;
-        pump.speedStepSize = 100;
+        pump.minSpeed = sys.board.valueMaps.pumpTypes.get(pump.type).minSpeed;
+        pump.maxSpeed = sys.board.valueMaps.pumpTypes.get(pump.type).maxSpeed;
+        pump.speedStepSize = sys.board.valueMaps.pumpTypes.get(pump.type).speedStepSize;
     }
     private static processVF_IT(msg: Inbound) {
         // Sample Packet
@@ -276,7 +274,7 @@ export class PumpMessage {
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
         if (typeof pump.model === 'undefined') pump.model = 0;
-        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+        for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3);
             if (_circuit !== 0) {
                 const circuit: PumpCircuit = pump.circuits.getItemById(circuitId, true);
@@ -309,9 +307,9 @@ export class PumpMessage {
         pump.turnovers = msg.extractPayloadByte(3);
         pump.primingSpeed = msg.extractPayloadByte(22);
         pump.primingTime = (msg.extractPayloadByte(23) & 0xf);
-        pump.minFlow = 15;
-        pump.maxFlow = 130;
-        pump.flowStepSize = 1;
+        pump.minFlow = sys.board.valueMaps.pumpTypes.get(pump.type).minFlow;
+        pump.maxFlow = sys.board.valueMaps.pumpTypes.get(pump.type).maxFlow;
+        pump.flowStepSize = sys.board.valueMaps.pumpTypes.get(pump.type).flowStepSize;
         pump.manualFilterGPM = msg.extractPayloadByte(21);
         pump.maxSystemTime = msg.extractPayloadByte(23) >> 4;
         pump.maxPressureIncrease = msg.extractPayloadByte(24);
@@ -327,7 +325,7 @@ export class PumpMessage {
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
         if (typeof pump.model === 'undefined') pump.model = 0;
-        for (let circuitId = 1; circuitId <= this.maxCircuits; circuitId++) {
+        for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3);
             if (_circuit !== 0){
                 const circuit: PumpCircuit = pump.circuits.getItemById(circuitId, true);
@@ -345,11 +343,11 @@ export class PumpMessage {
                 pump.circuits.removeItemById(_circuit);
             }
         }
-        pump.speedStepSize = 100;
-        pump.flowStepSize = 1;
-        pump.minFlow = 15;
-        pump.maxFlow = 130;
-        pump.minSpeed = 450;
-        pump.maxSpeed = 3450;
+        pump.speedStepSize = sys.board.valueMaps.pumpTypes.get(pump.type).speedStepSize;
+        pump.flowStepSize = sys.board.valueMaps.pumpTypes.get(pump.type).flowStepSize;
+        pump.minFlow = sys.board.valueMaps.pumpTypes.get(pump.type).minFlow;
+        pump.maxFlow = sys.board.valueMaps.pumpTypes.get(pump.type).maxFlow;
+        pump.minSpeed = sys.board.valueMaps.pumpTypes.get(pump.type).minSpeed;
+        pump.maxSpeed = sys.board.valueMaps.pumpTypes.get(pump.type).maxSpeed;
     }
 }

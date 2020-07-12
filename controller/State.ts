@@ -324,10 +324,7 @@ interface IState {
     circuitGroups: CircuitGroupStateCollection;
     virtualCircuits: VirtualCircuitStateCollection;
     chemControllers: ChemControllerStateCollection;
-    //intellichem: IntelliChemState;
     comms: CommsState;
-    //createCircuitStateMessage(): Outbound;
-    //cancelDelay(): void;
 }
 export interface ICircuitState {
     id: number;
