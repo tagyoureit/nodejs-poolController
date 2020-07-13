@@ -1390,8 +1390,16 @@ export class ChemControllerState extends EqState {
         return chlorInstalled ? 12.2 : 12.1;
     }
     public getExtended(): any {
+        let chem = sys.chemControllers.getItemById(this.id);
         let obj = this.get(true);
-        obj.saturationIndex = this.saturationIndex;
+        obj.saturationIndex = this.saturationIndex || 0;
+        obj.alkalinty = chem.alkalinity;
+        obj.body = sys.board.valueMaps.bodies.transform(chem.body);
+        obj.calciumHardness = chem.calciumHardness;
+        obj.cyanuricAcid = chem.cyanuricAcid;
+        obj.orpSetpoint = chem.orpSetpoint;
+        obj.pHSetpoint = chem.pHSetpoint;
+        obj.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
         return obj;
     }
 }

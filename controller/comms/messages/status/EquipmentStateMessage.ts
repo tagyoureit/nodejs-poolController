@@ -351,6 +351,30 @@ export class EquipmentStateMessage {
                     state.mode = msg.extractPayloadByte(9) & 0x81;
                     sys.general.options.units = state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
+                    // Setting the time on the panel "server" option.
+                    // 1. Determine the standard tz for the server.  These will always be in Standard Dime
+                    // 2. Determine whether we are in dst. (put this code in timestamp).
+                    // 3. Calculate what the time should be given the DST setting.
+                    // 4. If there is a variance set the time back to the server.
+
+                    // On the config side of the board.
+                    // 1. For *Touch map the tz offset for standard time to one of the enums.
+                    // 2. Set the timezone to the config.
+                    //let dt = new Date();
+                    //let dtJan = new Date(dt.getFullYear(), 0, 1);
+                    //let dst = dtJan.getTimezoneOffset();
+                    //// dst = 8.
+
+
+                    //let dstNow = dt.getTimezoneOffset();
+                    //let dtJul = new Date(dt.getFullYear(), 6, 1);
+                    //dstDST = dtJul.getTimezoneOffset();
+                    //if (dstNow !== sys.board.valueMaps.timeZones.find(elem => elem.val === sys.general.location.timeZone).utcOffset)
+
+                    //// dstNow = 7.
+                    //if (autoDST && inDST)
+                    //    sys.board.system.setDateTimeAsync(dt.addHours(dstNow - dst));
+
 
                     // RSG - added 7/8/2020
                     // Check and update clock when it is off by >5 mins (just for a small buffer) and:

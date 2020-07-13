@@ -64,7 +64,7 @@ export class PumpMessage {
                 // Clear the circuits as there should be none.
                 pump.circuits.clear();
             }
-            else {
+            else if (pump.type !== 0 && typeof pump.type !== 'undefined') {
                 for (let i = 34; i < msg.payload.length && circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; i++) {
                     let circuit = msg.extractPayloadByte(i);
                     if (circuit !== 255) pump.circuits.getItemById(circuitId++, true).circuit = circuit + 1;
