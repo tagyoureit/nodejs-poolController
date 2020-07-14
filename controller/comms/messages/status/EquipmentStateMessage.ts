@@ -6,7 +6,7 @@ import { Body, Circuit, ExpansionPanel, Feature, Heater, sys } from '../../../Eq
 import { BodyTempState, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message } from '../Messages';
-import { SystemBoard } from 'controller/boards/SystemBoard';
+
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -109,7 +109,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
                 sys.equipment.model = 'IntelliTouch i10+3D';
                 sys.equipment.maxBodies = 2;
-                sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
+                sys.equipment.maxValves = 6; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
                 sys.equipment.maxSchedules = 99;
                 sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
                 sys.equipment.maxFeatures = 10;
@@ -126,6 +126,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuitGroups = 0;
                 sys.board.equipmentIds.invalidIds.add(10); // exclude invalid circuit
                 sys.board.equipmentIds.invalidIds.add(19); // exclude invalid circuit
+                sys.equipment.maxValves = 4; // need to check for Single bodies
                 // will exclude AUX EXTRA 
                 switch (model1) {
                     case 0:
@@ -177,7 +178,7 @@ export class EquipmentStateMessage {
 
             case 14: // EasyTouch1 Models
                 sys.controllerType = ControllerType.EasyTouch;
-                sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
+                sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
                 sys.equipment.maxSchedules = 12;
                 sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
                 sys.equipment.maxCircuitGroups = 0;
@@ -273,7 +274,6 @@ export class EquipmentStateMessage {
         pool.type = spool.type = 6;
         pool.isActive = true;
         spool.isOn = false;
-        pool.type = spool.type = 6;
         const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
         const tbody = state.temps.bodies.getItemById(1, true);
         tbody.heatMode = cbody.heatMode = 0;
@@ -293,7 +293,6 @@ export class EquipmentStateMessage {
         sys.board.virtualPumpControllers.start();
     }
     private static initController(msg: Inbound) {
-
         state.status = 1;
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
@@ -377,17 +376,14 @@ export class EquipmentStateMessage {
 
 
                     // RSG - added 7/8/2020
+                    // Every 30 mins, check the timezone and adjust DST settings
+                    if (dt.getMinutes() % 30 === 0) sys.board.system.setTZ();
                     // Check and update clock when it is off by >5 mins (just for a small buffer) and:
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
                     // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)
                     // 3. clock source is "server" isn't an OCP option but can be enabled on the clients 
-                    if (dt.getMinutes() % 2 === 0 && sys.general.options.clockSource === 'server') {
+                    if (dt.getMinutes() % 5 === 0 && sys.general.options.clockSource === 'server') {
                         if ((Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000) && !state.time.isUpdating) {
-                            // if we don't set time before we get a successful ACK we would try to set
-                            // the clock N times before the message queue was exhausted if we are in the
-                            // middle of getting the configuration this would be a lotta N.
-                            // it sometimes may still send 2+ if there is a delay in processing pkts
-                            // or the outbound takes 2+ seconds R.T. and another status packet comes in first
                             state.time.isUpdating = true;
                             sys.board.system.setDateTimeAsync({ dt, dst: sys.general.options.adjustDST || 0, })
                                 .then(() => {
@@ -396,7 +392,7 @@ export class EquipmentStateMessage {
                                 .catch((err) => {
                                     logger.error(`Error automatically setting system time. ${JSON.stringify(err)}`)
                                 })
-                                .finally(()=>{
+                                .finally(() => {
                                     state.time.isUpdating = false;
                                 })
                         }
@@ -472,7 +468,7 @@ export class EquipmentStateMessage {
                         }
                         state.temps.air = msg.extractPayloadByte(18) + sys.equipment.tempSensors.getCalibration('air'); // 18
                         state.temps.solar = msg.extractPayloadByte(19) + sys.equipment.tempSensors.getCalibration('solar1'); // 19
-                        sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
+                        if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
                     }
                     else {
                         state.temps.waterSensor1 = msg.extractPayloadByte(14);
@@ -574,7 +570,7 @@ export class EquipmentStateMessage {
                 state.time.date = msg.extractPayloadByte(3);
                 state.time.month = msg.extractPayloadByte(4);
                 state.time.year = msg.extractPayloadByte(5);
-                sys.general.options.adjustDST = msg.extractPayloadByte(7) === 0x01;
+                if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = msg.extractPayloadByte(7) === 0x01;
                 setTimeout(function () { sys.board.checkConfiguration(); }, 100);
                 break;
             case 8: {

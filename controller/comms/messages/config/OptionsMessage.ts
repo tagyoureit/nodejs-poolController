@@ -25,7 +25,7 @@ export class OptionsMessage {
                             else if (sys.general.options.clockSource !== 'server')
                                 sys.general.options.clockSource = 'manual';
                             sys.general.options.clockMode = (msg.extractPayloadByte(13) & 64) === 64 ? 24 : 12;
-                            sys.general.options.adjustDST = (msg.extractPayloadByte(13) & 128) === 128;
+                            if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = (msg.extractPayloadByte(13) & 128) === 128;
                             sys.general.options.pumpDelay = msg.extractPayloadByte(29) === 1;
                             sys.general.options.cooldownDelay = msg.extractPayloadByte(37) === 1;
                             sys.general.options.manualPriority = msg.extractPayloadByte(38) === 1;

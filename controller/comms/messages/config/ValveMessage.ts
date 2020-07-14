@@ -59,21 +59,47 @@ export class ValveMessage {
         // 165,33,16,34,157,6,0,0,1,255,255,255,4,153  [set]
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
         // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
-
-        for (let i = 1; i <= sys.equipment.maxValves; i++) {
-            let valve = sys.valves.getItemById(i, true);
-            valve.circuit = msg.extractPayloadByte(i + 3);
-            valve.isActive = valve.circuit > 0 && valve.circuit < 255;
-            valve.name = ValveMessage.getName(valve.circuit);
+        // what is payload[0]?
+        for (let ndx  = 4, id = 1; id <= sys.equipment.maxValves;) {
+            let valve = sys.valves.getItemById(id, true);
+            valve.type = 0;
+            if (id === 3){
+                valve.circuit = 6; // pool/spa -- fix
+                valve.name = 'Intake';
+                valve.isIntake = true;
+                valve.isReturn = false;
+                valve.isActive = true; 
+                id++;
+                continue;
+            }
+            else if (id === 4){
+                valve.circuit = 6; // pool/spa -- fix
+                valve.name = 'Return';
+                valve.isIntake = false;
+                valve.isReturn = true;
+                valve.isActive = true; 
+                id++;
+                continue;
+            }
+            else {
+                valve.circuit = msg.extractPayloadByte(ndx);
+                valve.isActive = valve.circuit > 0 && valve.circuit < 255;
+                valve.isReturn = false; 
+                valve.isIntake = false;
+                valve.name = ValveMessage.getName(valve.circuit);
+            }
+            if (!valve.isActive) sys.valves.removeItemById(ndx);
+            id++;
+            ndx++;
         }
     }
     private static getName(cir: number) {
-        if (cir < 64)
+        if (cir <= 50)
         {
             return sys.circuits.getInterfaceById(cir).name;
         }
         else
-            return sys.board.valueMaps.circuitFunctions.transform(cir).desc;
+            return sys.board.valueMaps.virtualCircuits.transform(cir).desc;
 
     }
     private static processCircuit(msg: Inbound) {

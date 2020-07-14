@@ -607,6 +607,16 @@ export class SystemCommands extends BoardCommands {
             sys.board.system.keepManualTime();
         }, (60 - new Date().getSeconds()) * 1000);
     }
+    public setTZ() {
+        let tzOffsetObj = state.time.calcTZOffset();
+        if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
+            let tzs = sys.board.valueMaps.timeZones.toArray();
+            sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
+        }
+        if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
+            sys.general.options.adjustDST = tzOffsetObj.adjustDST;
+        }
+    }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
@@ -617,30 +627,16 @@ export class SystemCommands extends BoardCommands {
         return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
     }
     public async setOptionsAsync(obj: any): Promise<Options> {
-        let opts = sys.general.options;
-        if (typeof obj !== 'undefined') {
-            for (var s in opts)
-                if (typeof obj[s] !== 'undefined')
-                    opts[s] = obj[s];
-        }
+        if (obj.clockSource === 'server') sys.board.system.setTZ();
+        sys.general.options.set(obj);
         return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
     }
     public async setLocationAsync(obj: any): Promise<Location> {
-        let loc = sys.general.location;
-        if (typeof obj !== 'undefined') {
-            for (var s in loc)
-                if (typeof obj[s] !== 'undefined')
-                    loc[s] = obj[s];
-        }
+        sys.general.location.set(obj);
         return new Promise<Location>(function (resolve, reject) { resolve(sys.general.location); });
     }
     public async setOwnerAsync(obj: any): Promise<Owner> {
-        let owner = sys.general.owner;
-        if (typeof obj !== 'undefined') {
-            for (var s in owner)
-                if (typeof obj[s] !== 'undefined')
-                    owner[s] = obj[s];
-        }
+        sys.general.owner.set(obj);
         return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
     }
     public async setTempsAsync(obj: any): Promise<TemperatureState> {

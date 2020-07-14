@@ -80,6 +80,14 @@ export class Timestamp {
         this._dt = new Date();
         this.emitter.emit('change');
     }
+    public calcTZOffset(): {tzOffset:number, adjustDST:boolean}{
+        let obj = {tzOffset: 0, adjustDST: false};
+        let dateJan = new Date(this._dt.getFullYear(), 0, 1, 2);
+        let dateJul = new Date(this._dt.getFullYear(), 6, 1, 2);
+        obj.tzOffset = dateJan.getTimezoneOffset() / 60 * -1;
+        obj.adjustDST = dateJan.getTimezoneOffset() - dateJul.getTimezoneOffset() > 0; 
+        return obj;
+    }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',

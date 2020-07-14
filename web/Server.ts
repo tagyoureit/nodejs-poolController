@@ -211,7 +211,7 @@ export class HttpServer extends ProtoServer {
 
             do {
                 let bytesToProcess: number[] = bytesToProcessArr.shift();
-
+                
                 // todo: logic for chlor packets
                 let out = Outbound.create({
                     source: bytesToProcess.shift(),

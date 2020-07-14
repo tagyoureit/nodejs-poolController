@@ -839,7 +839,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                         if (err) reject(err);
                         else {
                             if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
-                            if (typeof obj.adjustDST !== 'undefined') sys.general.options.adjustDST = obj.adjustDST ? true : false;
+                            if (typeof obj.adjustDST !== 'undefined' || sys.general.options.clockSource !== 'server') sys.general.options.adjustDST = obj.adjustDST ? true : false;
                             resolve();
                         }
                     }
@@ -860,6 +860,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                         else {
                             if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
                                 sys.general.options.clockSource = obj.clockSource;
+                            sys.board.system.setTZ();
                             resolve();
                         }
                     }

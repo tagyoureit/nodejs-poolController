@@ -661,8 +661,8 @@ class TouchSystemCommands extends SystemCommands {
                         state.time.date = date;
                         state.time.month = month;
                         state.time.year = year;
-                        sys.general.options.adjustDST = dst === 1 ? true : false;
-                        logger.info(`state.time before resolve: ${state.time.format()}`)
+                        if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = dst === 1 ? true : false;
+                        sys.board.system.setTZ();
                         resolve({
                             time: state.time.format(),
                             adjustDST: sys.general.options.adjustDST,
