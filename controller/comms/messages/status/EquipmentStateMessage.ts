@@ -238,7 +238,9 @@ export class EquipmentStateMessage {
         if (typeof sys.equipment.model === 'undefined') sys.equipment.model = `Unknown OCP[${model1},${model2}]`;
         state.equipment.model = sys.equipment.model;
         state.equipment.controllerType = sys.controllerType;
-        ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
+        if (sys.equipment.model.includes('PL')) state.equipment.shared = sys.equipment.shared = false;
+        else if (sys.equipment.model.includes('PSL')) state.equipment.shared = sys.equipment.shared = true;
+        else ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         // shared equipment frees up one physical circuit
         sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
