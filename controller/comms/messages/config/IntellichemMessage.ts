@@ -38,6 +38,7 @@ export class IntellichemMessage {
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
                         if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
+                        if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
                         if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;
                         if (typeof scontroller.orpLevel === 'undefined') scontroller.orpLevel = 0;
                         if (typeof scontroller.orpDosingTime === 'undefined') scontroller.orpDosingTime = 0;

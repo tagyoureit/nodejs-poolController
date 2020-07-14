@@ -10,6 +10,14 @@ export class StateRoute {
         app.get('/state/chemController/:id', (req, res) => {
             res.status(200).send(state.chemControllers.getItemById(parseInt(req.params.id, 10)).getExtended());
         });
+        app.put('/state/chemController', async (req, res, next) => {
+            try {
+                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
+                return res.status(200).send(state.chemControllers.getItemById(chem.id).getExtended());
+            }
+            catch (err) { next(err); }
+        });
+
         app.get('/state/chlorinator/:id', (req, res) => {
             res.status(200).send(state.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });

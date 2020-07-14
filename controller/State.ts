@@ -1292,8 +1292,8 @@ export class ChemControllerState extends EqState {
         // need to adjust for different bodies when we learn how
         else if (sys.chlorinators.getItemById(1).isActive) this.saltLevel = state.chlorinators.getItemById(1).saltLevel;
         if (typeof data.waterFlow !== 'undefined') this.waterFlow = parseInt(data.waterFlow);
-        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = parseInt(data.acidTankLevel,10);
-        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = parseInt(data.orpTankLevel,10);
+        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = parseInt(data.acidTankLevel, 10);
+        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = parseInt(data.orpTankLevel, 10);
         if (typeof data.status1 !== 'undefined') this.status1 = parseInt(data.status1,10);
         if (typeof data.status2 !== 'undefined') this.status2 = parseInt(data.status2,10);
         if (typeof data.pHDosingTime !== 'undefined') this.pHDosingTime = parseInt(data.pHDosingTime,10);
@@ -1400,6 +1400,10 @@ export class ChemControllerState extends EqState {
         obj.orpSetpoint = chem.orpSetpoint;
         obj.pHSetpoint = chem.pHSetpoint;
         obj.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+        obj.orpTankLevel = this.orpTankLevel || 0;
+        obj.acidTankLevel = this.acidTankLevel || 0;
+        obj.pHLevel = this.pHLevel || 0;
+        obj.orpLevel = this.orpLevel || 0;
         return obj;
     }
 }
