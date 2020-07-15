@@ -603,6 +603,7 @@ export class SystemCommands extends BoardCommands {
         // but only for Virtual.  Likely 'manual' on *Center means OCP time
         if (sys.general.options.clockSource !== 'server') return;
         state.time.setTimeFromSystemClock();
+        sys.board.system.setTZ();
         setTimeout(function () {
             sys.board.system.keepManualTime();
         }, (60 - new Date().getSeconds()) * 1000);
@@ -1494,7 +1495,7 @@ export class CircuitCommands extends BoardCommands {
             }
         }
         sys.board.virtualPumpControllers.start();
-        sys.emitEquipmentChange();
+        state.emitEquipmentChanges();
         return Promise.resolve(circ);
     }
 
