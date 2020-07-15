@@ -34,6 +34,23 @@ export class byteValueMap extends Map<number, any> {
         let arrKeys = Array.from(this.keys());
         return typeof arrKeys.find(elem => elem === val) !== 'undefined';
     }
+    public encode(val: string | number | { val: any, name: string }, def?: number) {
+        let v = this.findItem(val);
+        return typeof val === 'undefined' ? def : v.val;
+    }
+    public findItem(val: string | number | { val: any, name: string }) {
+        if (typeof val === null || typeof val === 'undefined') return;
+        else if (typeof val === 'number') this.transform(val);
+        else if (typeof val === 'string') {
+            let v = parseInt(val, 10);
+            if (!isNaN(v)) return this.transform(v);
+            else return this.transformByName(val);
+        }
+        else if (typeof val === 'object') {
+            if (typeof val.val !== 'undefined') return this.transform(parseInt(val.val, 10));
+            else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
+        }
+    }
 }
 export class EquipmentIdRange {
     constructor(start: number | Function, end: number | Function) {

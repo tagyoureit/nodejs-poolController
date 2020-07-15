@@ -85,6 +85,7 @@ export class PoolSystem implements IPoolSystem {
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         // this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
     }
+
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
     public async updateControllerDateTimeAsync(obj: any) { return sys.board.system.setDateTimeAsync(obj); }
@@ -1416,13 +1417,13 @@ export class RemoteCollection extends EqItemCollection<Remote> {
     public createItem(data: any): Remote { return new Remote(data); }
 }
 export class Remote extends EqItem {
-    public dataName='remoteConfig';
+    public dataName = 'remoteConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get hardwired(): boolean { return this.data.hardwired; }
