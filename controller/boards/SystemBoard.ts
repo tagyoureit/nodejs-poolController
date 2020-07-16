@@ -36,11 +36,12 @@ export class byteValueMap extends Map<number, any> {
     }
     public encode(val: string | number | { val: any, name: string }, def?: number) {
         let v = this.findItem(val);
-        return typeof val === 'undefined' ? def : v.val;
+        if (typeof v === 'undefined') logger.debug(`Invalid enumeration: val = ${val} map = ${JSON.stringify(this)}`);
+        return typeof v === 'undefined' ? def : v.val;
     }
     public findItem(val: string | number | { val: any, name: string }) {
         if (typeof val === null || typeof val === 'undefined') return;
-        else if (typeof val === 'number') this.transform(val);
+        else if (typeof val === 'number') return this.transform(val);
         else if (typeof val === 'string') {
             let v = parseInt(val, 10);
             if (!isNaN(v)) return this.transform(v);
@@ -156,6 +157,37 @@ export class byteValueMaps {
             return v;
         };
         this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.timeZones.findItem = function(val: string | number | { val: any, name: string }) {
+            if (typeof val === null || typeof val === 'undefined') return;
+            else if (typeof val === 'number') {
+                if (val <= 12) {  // We are looking for timezones based upon the utcOffset.
+                    let arr = this.toArray();
+                    let tz = arr.find(elem => elem.utcOffset === val);
+                    return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                }
+                return this.transform(val);
+            }
+            else if (typeof val === 'string') {
+                let v = parseInt(val, 10);
+                if (!isNaN(v)) {
+                    if (v <= 12) {
+                        let arr = this.toArray();
+                        let tz = arr.find(elem => elem.utcOffset === val);
+                        return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                    }
+                    return this.transform(v);
+                }
+                else {
+                    let arr = this.toArray();
+                    let tz = arr.find(elem => elem.abbrev === val || elem.name === val);
+                    return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                }
+            }
+            else if (typeof val === 'object') {
+                if (typeof val.val !== 'undefined') return this.transform(parseInt(val.val, 10));
+                else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
+            }
+        }
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -477,6 +509,13 @@ export class byteValueMaps {
         [32, { name: 'nodelay', desc: 'No Delay' }],
         [34, { name: 'heaterdelay', desc: 'Header Delay' }],
         [36, { name: 'cleanerdelay', desc: 'Cleaner Delay' }]
+    ]);
+    public remoteTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'Not Installed', maxButtons: 0 }],
+        [1, { name: 'is4', desc: 'iS4 Spa-Side Remote', maxButtons: 4 }],
+        [2, { name: 'is10', desc: 'iS10 Spa-Side Remote', maxButtons: 10 }],
+        [6, { name: 'quickTouch', desc: 'Quick Touch Remote', maxButtons: 4 }],
+        [7, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
@@ -1843,11 +1882,13 @@ export class FeatureCommands extends BoardCommands {
     public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = val;
+        state.emitEquipmentChanges();
         return Promise.resolve(feat);
     }
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         feat.isOn = !feat.isOn;
+        state.emitEquipmentChanges();
         return Promise.resolve(feat);
     }
     public async setGroupStateAsync(grp: CircuitGroup, val: boolean) {

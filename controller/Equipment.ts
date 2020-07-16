@@ -292,7 +292,6 @@ export class PoolSystem implements IPoolSystem {
     public emitData(name: string, data: any) {
         webApp.emitToClients(name, data);
     }
-
 }
 interface IEqItemCreator<T> { ctor(data: any, name: string): T; }
 interface IEqItem {
@@ -501,7 +500,6 @@ export class CustomName extends EqItem {
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
-
 export class Owner extends EqItem {
     public dataName='ownerConfig';
     public get name(): string { return this.data.name; }
@@ -520,7 +518,7 @@ export class Owner extends EqItem {
 // on a tempSensors object and would have been more straight forward but would have limited the potential sensors
 // to known items.  This approach will allow the ability to include temperature sensors outside that list without
 // having to modify external temperature feeds.  Think of binding as the id of the sensor which must be unique for
-// all defined sensors.
+// all defined sensors.  The get/set calibration methods resolve the sensors and maintain the data from a single point.
 export class TempSensorCollection extends EqItemCollection<TempSensor> {
     constructor(data: any, name?: string) { super(data, name || "tempSensors"); }
     public createItem(data: any): TempSensor { return new TempSensor(data); }
@@ -547,10 +545,10 @@ export class TempSensor extends EqItem {
 }
 export class Options extends EqItem {
     public dataName='optionsConfig';
-    public get clockMode(): number { return this.data.clockMode; }
-    public set clockMode(val: number) { this.setDataVal('clockMode', val); }
-    public get units(): number { return this.data.units; }
-    public set units(val: number) { this.setDataVal('units', val); }
+    public get clockMode(): number | any { return this.data.clockMode; }
+    public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
+    public get units(): number | any { return this.data.units; }
+    public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.tempUnits.encode(val)); }
     public get clockSource(): string { return this.data.clockSource; }
     public set clockSource(val: string) { this.setDataVal('clockSource', val); }
     public get adjustDST(): boolean { return this.data.adjustDST; }
@@ -592,8 +590,8 @@ export class Location extends EqItem {
     public set latitude(val: number) { this.setDataVal('latitude', val); }
     public get longitude(): number { return this.data.longitude; }
     public set longitude(val: number) { this.setDataVal('longitude', val); }
-    public get timeZone(): number { return this.data.timeZone; }
-    public set timeZone(val: number) { this.setDataVal('timeZone', val); }
+    public get timeZone(): number | any { return this.data.timeZone; }
+    public set timeZone(val: number | any) { this.setDataVal('timeZone', sys.board.valueMaps.timeZones.encode(val)); }
 }
 export class ExpansionModuleCollection extends EqItemCollection<ExpansionModule> {
     constructor(data: any, name?: string) { super(data, name || "modules"); }
@@ -608,7 +606,7 @@ export class ExpansionModule extends EqItem {
     public get desc(): string { return this.data.desc; }
     public set desc(val: string) { this.setDataVal('desc', val); }
     public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public set type(val: number) { this.setDataVal('type', sys.board.valueMaps.expansionBoards.encode(val)); }
     public get part(): string { return this.data.part; }
     public set part(val: string) { this.setDataVal('part', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -766,7 +764,7 @@ export class BodyCollection extends EqItemCollection<Body> {
     public createItem(data: any): Body { return new Body(data); }
     // RKS: This finds a body by any of it's identifying factors.
     public findByObject(obj: any): Body {
-        // This has a priority weigh to the supplied object values.
+        // This has a priority weight to the supplied object values.
         // 1. If the id is provided it will search by id.
         // 2. If the id is not provided and the circuit id is provided it will search by the circuit id.
         // 3. Finally if nothing else is provided it will search by name.
@@ -787,8 +785,8 @@ export class Body extends EqItem {
     public set name(val: string) { this.setDataVal('name', val); }
     public get alias(): string { return this.data.alias; }
     public set alias(val: string) { this.setDataVal('alias', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.bodies.encode(val)); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get capacity(): number { return this.data.capacity; }
@@ -829,8 +827,8 @@ export class Schedule extends EqItem {
     public set scheduleDays(val: number) { this.setDataVal('scheduleDays', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
-    public get heatSource(): number { return this.data.heatSource; }
-    public set heatSource(val: number) { this.setDataVal('heatSource', val); }
+    public get heatSource(): number | any { return this.data.heatSource; }
+    public set heatSource(val: number | any) { this.setDataVal('heatSource', sys.board.valueMaps.heatSources.encode(val)); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -845,12 +843,12 @@ export class Schedule extends EqItem {
     public set startYear(val: number) { this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; }
-    public get scheduleType(): number { return this.data.scheduleType; }
-    public set scheduleType(val: number) { this.setDataVal('scheduleType', val); }
-    public get startTimeType(): number { return this.data.startTimeType; }
-    public set startTimeType(val: number) { this.setDataVal('startTimeType', val); }
-    public get endTimeType(): number { return this.data.endTimeType; }
-    public set endTimeType(val: number) { this.setDataVal('endTimeType', val); }
+    public get scheduleType(): number | any { return this.data.scheduleType; }
+    public set scheduleType(val: number | any) { this.setDataVal('scheduleType', sys.board.valueMaps.scheduleTypes.encode(val)); }
+    public get startTimeType(): number | any { return this.data.startTimeType; }
+    public set startTimeType(val: number | any) { this.setDataVal('startTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
+    public get endTimeType(): number | any { return this.data.endTimeType; }
+    public set endTimeType(val: number | any) { this.setDataVal('endTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
 
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.data.startDate = Timestamp.toISOLocal(this.startDate); }
     public get flags(): number { return this.data.flags; }
@@ -921,8 +919,8 @@ export class Circuit extends EqItem implements ICircuit {
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.circuitFunctions.encode(val)); }
     // RG - remove this after I figure out what a macro means
     public get macro(): boolean { return this.data.macro; }
     public set macro(val: boolean) { this.setDataVal('macro', val); }
@@ -935,8 +933,8 @@ export class Circuit extends EqItem implements ICircuit {
     public set showInCircuits(val: boolean) { this.setDataVal('showInCircuits', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
-    public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
+    public get lightingTheme(): number | any { return this.data.lightingTheme; }
+    public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -963,8 +961,8 @@ export class Feature extends EqItem implements ICircuit {
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.featureFunctions.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get freeze(): boolean { return this.data.freeze; }
@@ -1015,8 +1013,8 @@ export class Pump extends EqItem {
     public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.pumpTypes.encode(val)); }
     public get minSpeed(): number { return this.data.minSpeed; }
     public set minSpeed(val: number) { this.setDataVal('minSpeed', val); }
     public get maxSpeed(): number { return this.data.maxSpeed; }
@@ -1065,8 +1063,8 @@ export class Pump extends EqItem {
         }
     // This is relevant only for single speed pumps.  All other pumps are driven from the circuits.  You cannot
     // identify a single speed pump in *Touch but the definition can be stored and the wattage is acquired by the model.
-    public get body() { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.pumpBodies.encode(val)); }
     public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
@@ -1119,8 +1117,8 @@ export class PumpCircuit extends EqItem {
     public set flow(val: number) { this.setDataVal('flow', val); }
     public get speed(): number { return this.data.speed; }
     public set speed(val: number) { this.setDataVal('speed', val); }
-    public get units(): number { return this.data.units; }
-    public set units(val: number) { this.setDataVal('units', val); }
+    public get units(): number | any { return this.data.units; }
+    public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.pumpUnits.encode(val)); }
     public get maxPressure(): number { return this.data.maxPressure; }
     public set maxPressure(val: number) { this.setDataVal('maxPressure', val); }
 }
@@ -1132,10 +1130,10 @@ export class Chlorinator extends EqItem {
     public dataName='chlorinatorConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
-    public get body(): number { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chlorinatorType.encode(val)); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get poolSetpoint(): number { return this.data.poolSetpoint; }
     public set poolSetpoint(val: number) { this.setDataVal('poolSetpoint', val); }
     public get spaSetpoint(): number { return this.data.spaSetpoint; }
@@ -1161,8 +1159,8 @@ export class Valve extends EqItem {
     public dataName='valveConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.valveTypes.encode(val)); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -1182,12 +1180,12 @@ export class Heater extends EqItem {
     public dataName='heaterConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.heaterTypes.encode(val)); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get body(): number { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get maxBoostTemp(): number { return this.data.maxBoostTemp; }
     public set maxBoostTemp(val: number) { this.setDataVal('maxBoostTemp', val); }
     public get startTempDelta(): number { return this.data.startTempDelta; }
@@ -1225,8 +1223,8 @@ export class Cover extends EqItem {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get body(): number { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get normallyOn(): boolean { return this.data.normallyOn; }
@@ -1283,12 +1281,12 @@ export class LightGroupCircuit extends EqItem {
     public set desiredStateOn(val: boolean) { this.setDataVal('desiredStateOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val, false); }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
-    public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
+    public get lightingTheme(): number | any { return this.data.lightingTheme; }
+    public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get position(): number { return this.data.position; }
     public set position(val: number) { this.setDataVal('position', val); }
-    public get color(): number { return this.data.color; }
-    public set color(val: number) { this.setDataVal('color', val); }
+    public get color(): number | any { return this.data.color; }
+    public set color(val: number | any) { this.setDataVal('color', sys.board.valueMaps.lightColors.encode(val)); }
     public get swimDelay(): number { return this.data.swimDelay; }
     public set swimDelay(val: number) { this.setDataVal('swimDelay', val); }
     public getExtended() {
@@ -1313,14 +1311,14 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.circuitGroupTypes.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
-    public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
+    public get lightingTheme(): number | any { return this.data.lightingTheme; }
+    public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
     public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getLightThemes() { return sys.board.valueMaps.lightThemes.toArray(); }
@@ -1381,7 +1379,6 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
     }
 
 }
-
 export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public dataName='circuitGroupConfig';
     public get id(): number { return this.data.id; }
@@ -1390,8 +1387,8 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.circuitGroupTypes.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
@@ -1423,7 +1420,7 @@ export class Remote extends EqItem {
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get type(): number | any { return this.data.type; }
-    public set type(val: number | any) { this.setDataVal('type', val); }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.remoteTypes.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get hardwired(): boolean { return this.data.hardwired; }
@@ -1505,10 +1502,10 @@ export class ChemController extends EqItem {
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return this.data.type; }
-    public set type(val: number) { this.setDataVal('type', val); }
-    public get body(): number { return this.data.body; }
-    public set body(val: number) { this.setDataVal('body', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemControllerTypes.encode(val)); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }

@@ -858,8 +858,6 @@ export class BodyHeaterTypeState extends EqState {
     public set typeId(val: number) { this.setDataVal('typeId', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-
-
 }
 export class BodyTempState extends EqState {
     public dataName='bodyTempState';

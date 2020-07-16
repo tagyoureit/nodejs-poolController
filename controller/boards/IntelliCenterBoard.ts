@@ -170,6 +170,14 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false }],
             [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days:'multi' }]
         ]);
+        this.valueMaps.remoteTypes = new byteValueMap([
+            [0, { name: 'none', desc: 'Not Installed', maxButtons: 0 }],
+            [1, { name: 'is4', desc: 'iS4 Spa-Side Remote', maxButtons: 4 }],
+            [2, { name: 'is10', desc: 'iS10 Spa-Side Remote', maxButtons: 10 }],
+            [3, { name: 'quickTouch', desc: 'Quick Touch Remote', maxButtons: 4 }],
+            [4, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
+        ]);
+
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);

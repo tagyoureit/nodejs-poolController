@@ -175,7 +175,8 @@ export class ConfigRoute {
             let opts = {
                 types: sys.board.valueMaps.chlorinatorType.toArray(),
                 bodies: sys.board.bodies.getBodyAssociations(),
-                chlorinators: sys.chlorinators.get()
+                chlorinators: sys.chlorinators.get(),
+                maxChlorinators: sys.equipment.maxChlorinators
             };
             return res.status(200).send(opts);
         });

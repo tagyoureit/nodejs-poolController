@@ -115,6 +115,7 @@ export class RemoteMessage {
                     const remote: Remote = sys.remotes.getItemById(remoteId, true);
                     remote.pumpId = msg.extractPayloadByte(5);
                     remote.stepSize = msg.extractPayloadByte(6);
+                    remote.type = 7;
                     break;
                 }
         }
@@ -137,31 +138,37 @@ export class RemoteMessage {
     private static processPumpId(msg: Inbound) {
         let remoteId = 1;
         for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
-            const remote: Remote = sys.remotes.getItemById(remoteId++);
+            const remote: Remote = sys.remotes.getItemById(remoteId++, false, { isActive: false });
+            if (remote.isActive === false) continue;
             remote.pumpId = msg.extractPayloadByte(i);
         }
     }
     private static processAddress(msg: Inbound) {
         let remoteId = 1;
         for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
-            const remote: Remote = sys.remotes.getItemById(remoteId++);
+            const remote: Remote = sys.remotes.getItemById(remoteId++, false, { isActive: false });
+            if (remote.isActive === false) continue;
             remote.address = Math.max(msg.extractPayloadByte(i) - 63, 0);
         }
     }
     private static processBody(msg: Inbound) {
         let remoteId = 1;
         for (let i = 28; i < msg.payload.length && remoteId <= sys.equipment.maxRemotes; i++) {
-            const remote: Remote = sys.remotes.getItemById(remoteId++);
+            const remote: Remote = sys.remotes.getItemById(remoteId++, false, { isActive: false });
+            if (remote.isActive === false) continue;
             remote.body = msg.extractPayloadByte(i);
         }
     }
     private static processRemoteName(msg: Inbound) {
         const remoteId = msg.extractPayloadByte(1) + 1;
-        const remote: Remote = sys.remotes.getItemById(remoteId);
-        if (typeof remote === "undefined") return;
+        const remote: Remote = sys.remotes.getItemById(remoteId, false, { isActive: false });
         remote.name = msg.extractPayloadString(12, 16);
+        let type = sys.board.valueMaps.remoteTypes.transform(remote.type);
         for (let i = 0; i < msg.payload.length && i < 10; i++) {
-            if (i > 3 && (remote.type === 1 || remote.type === 3)) continue;
+            if (i >= type.maxButtons) {
+                remote['button' + (i + 1)] = undefined;
+                continue;
+            }
             remote["button" + (i + 1)] = msg.extractPayloadByte(i + 2);
         }
     }
