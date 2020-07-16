@@ -341,13 +341,15 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
                 else if (this[prop] instanceof EqItem)
                     ((this[prop] as unknown) as IEqItem).set(data[prop]);
                 else{
-                    if (typeof this[prop] === typeof data[prop]) this[prop] = data[prop];
+                    if (typeof this[prop] === null || typeof data[prop] === null) continue;
+                    this[prop] = data[prop];
                     // RSG 7/13/2020 - type safety against a user sending the wrong type
                     // (eg clockSource=3 or clockSource=manual)
                     // Would be nice to convert types here, but we would need a mapping 
                     // of objects to valueMaps and it isn't worth it (we would still be guessing)
                     // for something like "type" anyway 
-                    continue;
+                    // RSG 7/16/2020 Rstrouse pointed out to me this would exclude us setting
+                    // that was already undefined so relaxed the restriction a bit
                 } 
              }
         }
