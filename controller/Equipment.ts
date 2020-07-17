@@ -167,6 +167,10 @@ export class PoolSystem implements IPoolSystem {
         else if (this.controllerType === ControllerType.Virtual){
             sys.board.virtualPumpControllers.start();
             sys.board.virtualChlorinatorController.start();
+            state.mode = 0;
+            state.status = 1;
+            sys.equipment.setEquipmentIds();
+            state.emitControllerChange();
         }  
      }
     public board: SystemBoard=new SystemBoard(this);
