@@ -1517,8 +1517,8 @@ export class CircuitCommands extends BoardCommands {
                 }
             }
         }
-        sys.board.virtualPumpControllers.start();
         state.emitEquipmentChanges();
+        sys.board.virtualPumpControllers.start();
         return Promise.resolve(circ);
     }
 

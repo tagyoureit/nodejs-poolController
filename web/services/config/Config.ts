@@ -405,12 +405,13 @@ export class ConfigRoute {
             let _id = sys.pumps.getItemById(parseInt(req.params.id, 10)).nextAvailablePumpCircuit();
             return res.status(200).send(_id.toString());
         }); */
+        /*
         app.put('/config/pump/:id/pumpCircuit', (req, res) => {
             // if no pumpCircuitId is specified, set it as 0 and take the next available one
             req.url = `${ req.url }/0`;
             req.next();
         });
-/*         app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+         app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
             // RSG - do we want a /config/pump/:id/pumpCircuit/ that will just assume the next circuit?
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);

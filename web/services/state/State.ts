@@ -17,7 +17,6 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-
         app.get('/state/chlorinator/:id', (req, res) => {
             res.status(200).send(state.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });
@@ -32,15 +31,19 @@ export class StateRoute {
         app.put('/state/circuit/setState', async (req, res, next) => {
             try {
                 console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`);
+                // Do some work to allow the legacy state calls to work.  For some reason the state value is generic while all of the
+                // circuits are actually binary states.  While this may need to change in the future it seems like a distant plan
+                // that circuits would have more than 2 states.  Not true for other equipment but certainly true for individual circuits/features/groups.
+                let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
                 //state.circuits.setCircuitState(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
-                let circuit = await sys.board.circuits.setCircuitStateAsync(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
+                let circuit = await sys.board.circuits.setCircuitStateAsync(parseInt(req.body.id, 10), isOn);
                 return res.status(200).send((circuit as ICircuitState).get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/circuit/toggleState', async (req, res, next) => {
             try {
-                let cstate = await state.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
+                let cstate = await sys.board.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
                 return res.status(200).send(cstate);
             }
             catch (err) {next(err);}
