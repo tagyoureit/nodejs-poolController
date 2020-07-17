@@ -2127,7 +2127,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outName.appendPayloadString(pump.name, 16);
         return [outSettings, outName];
     }
-    public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
+/*     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
         let { result, reason } = super.setPumpCircuit(pump, pumpCircuitDeltas);
         if (result === 'OK') this.setPump(pump);
         return { result: result, reason: reason };
@@ -2138,7 +2138,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         for (let i = 0; i < msgs.length; i++){
             conn.queueSendMessage(msgs[i]);
         }
-    }
+    } */
     public async setPumpAsync(data: any): Promise<Pump> {
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));

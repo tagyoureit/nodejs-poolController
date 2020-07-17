@@ -924,14 +924,6 @@ export class PumpCommands extends BoardCommands {
             return this.board.valueMaps.pumpUnits.transform(val);
         }
     }
-
-    public setPump(pump: Pump, obj?: any) {
-        if (typeof obj !== 'undefined') {
-            for (var prop in obj) {
-                if (prop in pump) pump[prop] = obj[prop];
-            }
-        }
-    }
     public async setPumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
@@ -945,25 +937,7 @@ export class PumpCommands extends BoardCommands {
                 spump = state.pumps.getItemById(id, true);
             }
             let type = sys.board.valueMaps.pumpTypes.transform(pump.type);
-            /*             for (let prop in data) {
-                            if (prop in pump) pump[prop] = data[prop];
-                            if (prop in spump) spump[prop] = data[prop];
-                        } */
             data.name = data.name || pump.name || type.desc;
-
-            /*             if (typeof data.circuits !== 'undefined') {
-                            // We are setting the circuits as well.
-                            let c = Math.max(pump.circuits.length, data.circuits.length);
-                            for (let i = 0; i < c; i++) {
-                                if (i > data.circuits.length) pump.circuits.removeItemByIndex(i);
-                                else {
-                                    let circ = pump.circuits.getItemByIndex(i, true, { id: i + 1 });
-                                    for (let prop in data) {
-                                        if (prop in circ) circ[prop] = data[prop];
-                                    }
-                                }
-                            }
-                        } */
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     let c = data.circuits[i - 1];
@@ -985,7 +959,6 @@ export class PumpCommands extends BoardCommands {
                 }
             }
             pump.set(data); // Sets all the data back to the pump.
-            // sys.board.virtualPumpControllers.setTargetSpeed();
             sys.pumps.sortById();
             state.pumps.sortById();
             spump.emitEquipmentChange();
@@ -1025,11 +998,10 @@ export class PumpCommands extends BoardCommands {
     }
     public deletePumpCircuit(pump: Pump, pumpCircuitId: number) {
         pump.circuits.removeItemById(pumpCircuitId);
-        this.setPump(pump);
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
     }
-    public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
+    /* public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
         const origValues = extend(true, {}, pumpCircuitDeltas);
         let { pumpCircuitId, circuit, rate, units } = pumpCircuitDeltas;
 
@@ -1138,19 +1110,13 @@ export class PumpCommands extends BoardCommands {
         pumpCircuit.units = shadowPumpCircuit.units;
         pumpCircuit.speed = shadowPumpCircuit.speed;
         pumpCircuit.flow = shadowPumpCircuit.flow;
-
-        // todo: emit pumpCircuit changes here somehow
-        // can't use this becasue it doesn't emit "extended" info
-        // sys.pumps.emitEquipmentChange();
-
-        this.setPump(pump);
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
         sys.emitEquipmentChange();
         // sys.board.virtualPumpControllers.setTargetSpeed();
         return { result: 'OK' };
 
-    }
+    } */
 
     public setType(pump: Pump, pumpType: number) {
         // if we are changing pump types, need to clear out circuits
@@ -2361,7 +2327,7 @@ export class ValveCommands extends BoardCommands {
     }
 }
 export class ChemControllerCommands extends BoardCommands {
-    public async setChemControllerAsync(data: any) {
+    public async setChemControllerAsync(data: any):Promise<ChemController> {
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (id <= 0) {
             // adding a chem controller

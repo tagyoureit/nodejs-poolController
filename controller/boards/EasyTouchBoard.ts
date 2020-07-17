@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
-import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, HeaterCommands, ScheduleCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature } from '../Equipment';
+import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState, BodyTempState } from '../State';
 import { logger } from '../../logger/Logger';
@@ -244,6 +244,7 @@ export class EasyTouchBoard extends SystemBoard {
     public chlorinator: TouchChlorinatorCommands = new TouchChlorinatorCommands(this);
     public pumps: TouchPumpCommands = new TouchPumpCommands(this);
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
+    public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
 
     public checkConfiguration() {
@@ -1174,7 +1175,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
 }
 class TouchPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {
-        super.setPump(pump, obj);
+        pump.set(obj);
         let msgs: Outbound[] = this.createPumpConfigMessages(pump);
         for (let i = 0; i <= msgs.length; i++) {
             conn.queueSendMessage(msgs[i]);
@@ -1439,4 +1440,23 @@ class TouchPumpCommands extends PumpCommands {
             spump.type = pump.type;
             spump.status = 0;
         } */
+}
+
+class TouchChemControllerCommands extends ChemControllerCommands {
+    public async setChemControllerAsync(data: any):Promise<ChemController> {
+        let chem = sys.chemControllers.getItemById(data.id);
+    
+        // we aren't setting an IntelliChem or changing TO an IntelliChem
+        if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
+            typeof data.type === 'undefined' && typeof data.type === 'undefined')
+            return super.setChemControllerAsync(data);  
+
+        else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
+            return super.setChemControllerAsync(data);  
+
+        
+        // do stuff here to set IntelliChem on *Touch
+        chem.set(data);
+        return Promise.resolve(chem);
+    }
 }

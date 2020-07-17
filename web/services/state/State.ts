@@ -172,7 +172,7 @@ export class StateRoute {
         });
         app.put('/state/chemController', async (req, res, next) => {
             try {
-                let chem = await state.chemControllers.setChemControllerAsync(req.body);
+                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
                 return res.status(200).send(chem.get(true));
             }
             catch (err) { next(err); }

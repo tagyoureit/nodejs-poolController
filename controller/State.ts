@@ -1183,9 +1183,6 @@ export class ChlorinatorState extends EqState {
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
-    public setChemControllerAsync(data: any){ 
-        if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid equipment id provided.`, data.id, 'chemController'));
-        return this.getItemById(parseInt(data.id,10),true).setChemControllerAsync(data);}
 }
 
 export class ChemControllerState extends EqState {

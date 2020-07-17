@@ -382,7 +382,7 @@ export class ConfigRoute {
                 next(err);
             }
         });
-        app.get('/config/pump/:id/circuits', (req, res) => {
+/*         app.get('/config/pump/:id/circuits', (req, res) => {
             return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
         });
         app.get('/config/pump/availableCircuits', (req, res) => {
@@ -395,13 +395,13 @@ export class ConfigRoute {
             // if no pumpCircuitId is available, 0 will be returned
             let _id = sys.pumps.getItemById(parseInt(req.params.id, 10)).nextAvailablePumpCircuit();
             return res.status(200).send(_id.toString());
-        });
+        }); */
         app.put('/config/pump/:id/pumpCircuit', (req, res) => {
             // if no pumpCircuitId is specified, set it as 0 and take the next available one
             req.url = `${ req.url }/0`;
             req.next();
         });
-        app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+/*         app.put('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
             // RSG - do we want a /config/pump/:id/pumpCircuit/ that will just assume the next circuit?
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             let _pumpCircuitId = parseInt(req.params.pumpCircuitId, 10);
@@ -420,14 +420,14 @@ export class ConfigRoute {
                 return res.status(200).send({ result: result, reason: reason });
             else
                 return res.status(500).send({ result: result, reason: reason });
-        });
-        app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+        }); */
+/*         app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
             // pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
             pump.deletePumpCircuit(parseInt(req.params.pumpCircuitId, 10));
             return res.status(200).send('OK');
-        });
-        app.get('/config/pump/types', (req, res) => {
+        }); */
+/*         app.get('/config/pump/types', (req, res) => {
             let pumpTypes = sys.board.pumps.getPumpTypes();
             return res.status(200).send(pumpTypes);
         });
@@ -457,8 +457,8 @@ export class ConfigRoute {
                 pump.setType(_type);
             }
             return res.status(200).send('OK');
-        });
-        app.get('/config/pump/:pumpId', (req, res) => {
+        }); */
+  /*       app.get('/config/pump/:pumpId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).get(true);
             return res.status(200).send(pump);
         });
@@ -477,7 +477,7 @@ export class ConfigRoute {
             // get a new instance of the pump here because setType will remove/add a new instance
             if (Object.keys(req.body).length) sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).setPump(req.body);
             return res.status(200).send('OK');
-        });
+        }); */
         app.delete('/config/pump/:pumpId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
             if (pump.type === 0) {

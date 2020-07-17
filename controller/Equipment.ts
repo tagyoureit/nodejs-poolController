@@ -1068,10 +1068,10 @@ export class Pump extends EqItem {
     public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
-    public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
+/*     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
     public setPumpCircuit(pumpCircuit: any) {
         return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
-    }
+    } */
     public deletePumpCircuit(pumpCircuitId: number) {
         return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }

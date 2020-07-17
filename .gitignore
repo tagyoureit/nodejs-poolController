@@ -28,4 +28,5 @@ data/
 obj/
 bin/
 .vs/
+.vscode/
 # end
