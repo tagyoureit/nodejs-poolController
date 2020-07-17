@@ -5,7 +5,7 @@ import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitG
 import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState } from '../State';
+import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState } from '../State';
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError } from '../Errors';
 export class IntelliCenterBoard extends SystemBoard {
@@ -1693,6 +1693,18 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            try {
+                await sys.board.circuits.setCircuitStateAsync(id, val);
+                resolve(state.circuitGroups.getInterfaceById(id));
+            }
+            catch (err) { reject(err); }
+        });
+    }
+    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     private setLightGroupTheme(id: number, theme: number) {
         let group = sys.lightGroups.getItemById(id);
         let sgroup = state.lightGroups.getItemById(id);

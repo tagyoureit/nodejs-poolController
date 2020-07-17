@@ -2,7 +2,7 @@
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State, ICircuitState, LightGroupState, BodyTempState } from '../State';
+import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
@@ -853,6 +853,18 @@ class TouchCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            try {
+                await sys.board.circuits.setCircuitStateAsync(id, val);
+                resolve(state.circuitGroups.getInterfaceById(id));
+            }
+            catch (err) { reject(err); }
+        });
+    }
+    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !cstate.isOn);

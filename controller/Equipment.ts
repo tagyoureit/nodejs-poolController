@@ -1324,7 +1324,6 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
     public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
-    public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getLightThemes() { return sys.board.valueMaps.lightThemes.toArray(); }
     public getExtended() {
         let group = this.get(true);
@@ -1398,7 +1397,6 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
-    public setGroupState(val: boolean) { sys.board.features.setGroupStateAsync(this, val); }
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);

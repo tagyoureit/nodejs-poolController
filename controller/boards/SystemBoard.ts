@@ -1,6 +1,6 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState, ICircuitGroupState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
@@ -1791,6 +1791,25 @@ export class CircuitCommands extends BoardCommands {
         }
         return Promise.resolve(sgroup);
     }
+    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        let circuits = grp.circuits.toArray();
+        gstate.isOn = val;
+        let arr = [];
+        for (let i = 0; i < circuits.length; i++) {
+            let circuit = circuits[i];
+            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
+        }
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            await Promise.all(arr).catch((err) => { reject(err) });
+            resolve(gstate);
+        });
+    }
+    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        return sys.board.circuits.setCircuitGroupStateAsync(id, val);
+    }
+
     /*     public sequenceIntelliBrite(operation: string) {
             state.intellibrite.hasChanged = true;
             let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
@@ -1856,15 +1875,6 @@ export class FeatureCommands extends BoardCommands {
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         return this.setFeatureStateAsync(id, !(feat.isOn || false));
-    }
-    public async setGroupStateAsync(grp: CircuitGroup, val: boolean) {
-        let circuits = grp.circuits.toArray();
-        let arr = [];
-        for (let i = 0; i < circuits.length; i++) {
-            let circuit: CircuitGroupCircuit = circuits[i];
-            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
-        }
-        return Promise.all(arr);
     }
     public syncGroupStates() {
         for (let i = 0; i < sys.circuitGroups.length; i++) {

@@ -1,5 +1,5 @@
 ﻿import * as express from "express";
-import { state, ICircuitState, LightGroupState } from "../../../controller/State";
+import { state, ICircuitState, LightGroupState, ICircuitGroupState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
@@ -30,7 +30,7 @@ export class StateRoute {
         });
         app.put('/state/circuit/setState', async (req, res, next) => {
             try {
-                console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state}`);
+                console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
                 // Do some work to allow the legacy state calls to work.  For some reason the state value is generic while all of the
                 // circuits are actually binary states.  While this may need to change in the future it seems like a distant plan
                 // that circuits would have more than 2 states.  Not true for other equipment but certainly true for individual circuits/features/groups.
@@ -40,6 +40,18 @@ export class StateRoute {
                 return res.status(200).send((circuit as ICircuitState).get(true));
             }
             catch (err) { next(err); }
+        });
+        app.put('/state/circuitGroup/setState', async (req, res, next) => {
+            console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
+            let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
+            let circuit = await sys.board.circuits.setCircuitGroupStateAsync(parseInt(req.body.id, 10), isOn);
+            return res.status(200).send((circuit as ICircuitGroupState).get(true));
+        });
+        app.put('/state/lightGroup/setState', async (req, res, next) => {
+            console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
+            let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
+            let circuit = await sys.board.circuits.setLightGroupStateAsync(parseInt(req.body.id, 10), isOn);
+            return res.status(200).send((circuit as ICircuitGroupState).get(true));
         });
         app.put('/state/circuit/toggleState', async (req, res, next) => {
             try {
