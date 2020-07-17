@@ -33,14 +33,19 @@ export class ChlorinatorStateMessage {
                         break;
                     }
                 case 3: {
+                    // RKS: 07-16-20 -- It appears that this message doesn't always come.  It is very likely that the newer versions of IntelliChlor
+                    // do not respond to the 20 message.  There have been multiple instances of this with recent versions of IntelliChlor. As a result,
+                    // don't overwrite the name should the user set it.
                     // Response to Get Version (20)
                     //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
                     //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
                     // This is the model number of the chlorinator and the address is actually the second byte.
                     let cstate = state.chlorinators.getItemById(1, true);
                     let chlor = sys.chlorinators.getItemById(1, true);
-                    cstate.name = chlor.name = msg.extractPayloadString(1, 16);
-                    sys.emitEquipmentChange();
+                    if (typeof chlor.name === 'undefined' || chlor.name === '')
+                        chlor.name = msg.extractPayloadString(1, 16);
+                    cstate.name = chlor.name;
+                    state.emitEquipmentChanges();
                     break;
                 }
                 case 17:
@@ -49,7 +54,8 @@ export class ChlorinatorStateMessage {
                     // This packet is coming through differently on the IntelliConnect.
                     // eg 13:42:31.304 VERBOSE Msg# 1531   Controller --> Salt cell: Set current output to 1.6 %: 16,2,80,21,0,119,16,3
                     let cstate = state.chlorinators.getItemById(1, true);
-                    cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
+                    // The current output here is not correct.  The reason that is is because this is a request from the OCP to the Chlorinator.
+                    //cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
                     cstate.targetOutput = cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();
                     break;

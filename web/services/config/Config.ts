@@ -1,6 +1,6 @@
 ﻿import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -272,7 +272,6 @@ export class ConfigRoute {
             // Change the pump attributes.  This will add the pump if it doesn't exist, set
             // any affiliated circuits and maintain all attribututes of the pump.
             // RSG: Caveat - you have to send none or all of the pump circuits or any not included be deleted.
-            
             try {
                 let pump = await sys.board.pumps.setPumpAsync(req.body);
                 return res.status(200).send((pump).get(true));
@@ -315,6 +314,16 @@ export class ConfigRoute {
                 next(err);
             }
         });
+        app.put('/config/chlorinator', async (req, res, next) => {
+            try {
+                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
+                return res.status(200).send(sys.chlorinators.getItemById(chlor.id).get(true));
+            }
+            catch (err) {
+                next(err);
+            }
+        });
+
         /*
         app.put('/config/schedule/:id', (req, res) => {
             let schedId = parseInt(req.params.id || '0', 10);
@@ -366,12 +375,12 @@ export class ConfigRoute {
         app.get('/config/chlorinator/:id', (req, res) => {
             return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });
-        app.put('/config/chlorinator', (req, res) => {
-            let chlor = sys.chlorinators.getItemById(parseInt(req.body.id, 10), true);
-            sys.board.chlorinator.setChlorProps(chlor, req.body);
-            // if (chlor.isVirtual) { sys.board.virtualChlorinatorController.start(); }
-            return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
-        });
+        //app.put('/config/chlorinator', (req, res) => {
+        //    let chlor = sys.chlorinators.getItemById(parseInt(req.body.id, 10), true);
+        //    sys.board.chlorinator.setChlorProps(chlor, req.body);
+        //    // if (chlor.isVirtual) { sys.board.virtualChlorinatorController.start(); }
+        //    return res.status(200).send(sys.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
+        //});
         app.get('/config/chlorinators/search', async (req, res, next) => {
             // Change the options for the pool.
             try {

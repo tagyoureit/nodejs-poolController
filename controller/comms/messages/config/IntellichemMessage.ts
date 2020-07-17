@@ -32,11 +32,12 @@ export class IntellichemMessage {
                     else {
                         let scontroller = state.chemControllers.getItemById(controller.id, true);
                         scontroller.address = controller.address = msg.extractPayloadByte(i + 10);
-                        scontroller.type = controller.type = 1;
+                        scontroller.type = controller.type = 2;
                         scontroller.body = controller.body = msg.extractPayloadByte(i + 2);
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
+                        
                         if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
                         if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
                         if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;

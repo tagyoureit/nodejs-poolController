@@ -2011,7 +2011,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
         // Verify the data.
         let body = sys.board.bodies.mapBodyAssociation(chlor.body);
-        if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body ));
+        if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
         if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         return new Promise<ChlorinatorState>((resolve, reject) => {

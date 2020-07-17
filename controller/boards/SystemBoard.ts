@@ -1506,7 +1506,8 @@ export class CircuitCommands extends BoardCommands {
         }
     }
     public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        let circ = state.circuits.getInterfaceById(id);
+        let circuit: ICircuit = sys.circuits.getInterfaceById(id);
+        let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
         circ.isOn = utils.makeBool(val);
         if (circ.id === 6 || circ.id === 1) {
             for (let i = 0; i < state.temps.bodies.length; i++) {
@@ -1523,7 +1524,7 @@ export class CircuitCommands extends BoardCommands {
 
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
-        return this.setCircuitStateAsync(id, !circ.isOn);
+        return this.setCircuitStateAsync(id, !(circ.isOn || false));
     }
     public async setLightThemeAsync(id: number, theme: number) {
         let cstate = state.circuits.getItemById(id);
@@ -1802,8 +1803,8 @@ export class CircuitCommands extends BoardCommands {
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature');
-        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return;
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(obj.id, true);
             let sfeature = state.features.getItemById(obj.id, true);
@@ -1823,13 +1824,12 @@ export class FeatureCommands extends BoardCommands {
             return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }
         else
-            throw new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature');
-
+            Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
     }
     public async deleteFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature');
-        if (!sys.board.equipmentIds.features.isInRange(id)) return;
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
         if (typeof obj.id !== 'undefined') {
             let feature = sys.features.getItemById(id, false);
             let sfeature = state.features.getItemById(id, false);
@@ -1842,20 +1842,20 @@ export class FeatureCommands extends BoardCommands {
             return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }
         else
-            throw new InvalidEquipmentIdError('Feature id has not been defined', obj.id, 'Feature');
+            Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
     }
-
     public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        let feat = state.features.getItemById(id);
-        feat.isOn = val;
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        let feature = sys.features.getItemById(id);
+        let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+        fstate.isOn = val;
         state.emitEquipmentChanges();
-        return Promise.resolve(feat);
+        return Promise.resolve(fstate);
     }
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
-        feat.isOn = !feat.isOn;
-        state.emitEquipmentChanges();
-        return Promise.resolve(feat);
+        return this.setFeatureStateAsync(id, !(feat.isOn || false));
     }
     public async setGroupStateAsync(grp: CircuitGroup, val: boolean) {
         let circuits = grp.circuits.toArray();

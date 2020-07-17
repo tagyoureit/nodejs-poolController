@@ -992,7 +992,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public setCircuitState(id: number, val: boolean) { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public async setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
-    public getInterfaceById(id: number, add?: true): ICircuitState {
+    public getInterfaceById(id: number, add?: boolean): ICircuitState {
         let iCircuit: ICircuitState = null;
         if (sys.board.equipmentIds.virtualCircuits.isInRange(id))
             iCircuit = state.virtualCircuits.getItemById(id, add);
