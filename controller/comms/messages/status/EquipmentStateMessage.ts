@@ -27,7 +27,7 @@ export class EquipmentStateMessage {
         sys.equipment.maxCircuitGroups = 0;
         sys.equipment.maxLightGroups = 1;
         sys.equipment.maxIntelliBrites = 8;
-        sys.equipment.maxChlorinators = 1;
+        sys.equipment.maxChemControllers = sys.equipment.maxChlorinators = 1;
         sys.equipment.maxCustomNames = 10;
         sys.equipment.maxChemControllers = 4;
         sys.equipment.maxFeatures = 8;
@@ -117,6 +117,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxIntelliBrites = 10;
                 sys.equipment.dual = true;
                 sys.equipment.shared = false;
+                sys.equipment.maxChemControllers = sys.equipment.maxChlorinators = 2;
                 break;
             case 13: // EasyTouch2 Models
                 sys.controllerType = ControllerType.EasyTouch;

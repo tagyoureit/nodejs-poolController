@@ -507,7 +507,7 @@ export class byteValueMaps {
     public delay: byteValueMap = new byteValueMap([
         [0, { name: 'nodelay', desc: 'No Delay' }],
         [32, { name: 'nodelay', desc: 'No Delay' }],
-        [34, { name: 'heaterdelay', desc: 'Header Delay' }],
+        [34, { name: 'heaterdelay', desc: 'Heater Delay' }],
         [36, { name: 'cleanerdelay', desc: 'Cleaner Delay' }]
     ]);
     public remoteTypes: byteValueMap = new byteValueMap([

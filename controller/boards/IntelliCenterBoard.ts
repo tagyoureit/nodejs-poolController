@@ -84,14 +84,15 @@ export class IntelliCenterBoard extends SystemBoard {
             // There are just enough slots for accommodate all the supported hardware for the expansion modules.  However, there are several that
             // we do not have in the wild and cannot verify as of (03-25-2020) as to whether their id values are correct.  I feel more confident
             // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
-            // MUX and A/D modules don't seem to fit the pattern.
+            // MUX and A/D modules don't seem to fit the pattern.  If we ever see an i10D then this may be bit 3&4 set to 1.  The theory here is that
+            // the first 5 bits indicate up to 16 potential personality cards with 0 being i5P.
             //[0, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies:2, valves: 6, circuits: 10, shared: false, dual: true }], // This is a guess
-            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies:1, valves: 4, circuits: 5, shared: false, dual: false }],
-            [1, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false }],
-            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies:1, valves: 4, circuits: 8, shared: false, dual: false }], // This is a guess
-            [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies:2, valves: 4, circuits: 9, shared: true, dual: false }],
-            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies:1, valves: 4, circuits: 10, shared: false, dual: false }], // This is a guess
-            [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies:2, valves: 4, circuits: 11, shared: true, dual: false }],
+            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies: 1, valves: 4, circuits: 5, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [1, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies: 1, valves: 4, circuits: 8, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
+            [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 4, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
+            [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [6, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
             [7, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // This is a guess
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
@@ -235,7 +236,7 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public async stopAsync() { this._configQueue.close(); return Promise.resolve([]);}
     public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp2A: number, ocp3A: number) {
-        let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 1 };
+        let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);
         // Here we need to set the start id should we have a single body system.
         if (!inv.shared && !inv.dual) { sys.board.equipmentIds.circuits.start = 2; } // We are a single body system.
@@ -245,6 +246,7 @@ export class IntelliCenterBoard extends SystemBoard {
         if (inv.bodies !== sys.equipment.maxBodies ||
             inv.circuits !== sys.equipment.maxCircuits ||
             inv.chlorinators !== sys.equipment.maxChlorinators ||
+            inv.chemControllers !== sys.equipment.maxChemControllers ||
             inv.valves !== sys.equipment.maxValves) {
             sys.resetData();
             this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B);
@@ -256,6 +258,7 @@ export class IntelliCenterBoard extends SystemBoard {
         sys.equipment.maxValves = inv.valves;
         sys.equipment.maxCircuits = inv.circuits;
         sys.equipment.maxChlorinators = inv.chlorinators;
+        sys.equipment.maxChemControllers = inv.chemControllers;
         sys.equipment.shared = inv.shared;
         sys.equipment.dual = inv.dual;
         sys.equipment.maxPumps = 16;
@@ -287,7 +290,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
-        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0 };
+        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0};
         let slot0 = ocpA & 0x0F;
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
@@ -305,11 +308,13 @@ export class IntelliCenterBoard extends SystemBoard {
         mod.get().valves = mt.valves;
         mod.get().covers = mt.covers;
         mod.get().chlorinators = mt.chlorinators;
+        mod.get().chemControllers = mt.chemControllers;
         if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
         if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
         if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
         if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
         if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+        if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
         if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
         if (slot1 === 0) modules.removeItemById(1);
@@ -325,11 +330,13 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
         if (slot2 === 0) modules.removeItemById(2);
         else {
@@ -344,11 +351,13 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
         if (slot3 === 0) modules.removeItemById(3);
         else {
@@ -363,17 +372,19 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
     }
     public processExpansionModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
-        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0 };
+        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         let slot0 = ocpA & 0x0F;
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
@@ -392,6 +403,7 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
@@ -399,6 +411,7 @@ export class IntelliCenterBoard extends SystemBoard {
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
             if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
             if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
         if (slot1 === 0) modules.removeItemById(1);
         else {
@@ -413,11 +426,13 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
         if (slot2 === 0) modules.removeItemById(2);
         else {
@@ -432,11 +447,13 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
         if (slot3 === 0) modules.removeItemById(3);
         else {
@@ -451,11 +468,13 @@ export class IntelliCenterBoard extends SystemBoard {
             mod.get().valves = mt.valves;
             mod.get().covers = mt.covers;
             mod.get().chlorinators = mt.chlorinators;
+            mod.get().chemControllers = mt.chemControllers;
             if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
             if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
     }
     public get commandSourceAddress(): number { return Message.pluginAddress; }
