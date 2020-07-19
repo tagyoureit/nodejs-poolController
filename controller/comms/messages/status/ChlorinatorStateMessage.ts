@@ -48,7 +48,14 @@ export class ChlorinatorStateMessage {
                     state.emitEquipmentChanges();
                     break;
                 }
-                case 17:
+                case 17: {
+                    let cstate = state.chlorinators.getItemById(1);
+                    // If the chlorinator is no longer talking to us then clear the current output.
+                    if (cstate.status === 128) cstate.currentOutput = 0;
+                    cstate.targetOutput = msg.extractPayloadByte(0);
+                    state.emitEquipmentChanges();
+                    break;
+                }
                 case 21: {
                     // Set Salt Output / 10
                     // This packet is coming through differently on the IntelliConnect.
@@ -56,6 +63,7 @@ export class ChlorinatorStateMessage {
                     let cstate = state.chlorinators.getItemById(1, true);
                     // The current output here is not correct.  The reason that is is because this is a request from the OCP to the Chlorinator.
                     //cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
+                    cstate.currentOutput = msg.extractPayloadByte(0) / 10;
                     cstate.targetOutput = cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();
                     break;

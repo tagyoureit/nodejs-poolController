@@ -148,7 +148,9 @@ export class State implements IState {
             status: self.data.status || {},
             mode: self.data.mode || {},
             // freeze: self.data.freeze || false,
-            appVersion: sys.appVersion || ''
+            appVersion: sys.appVersion || '',
+            clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
+            clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {}
         };
     }
     public emitEquipmentChanges() {
