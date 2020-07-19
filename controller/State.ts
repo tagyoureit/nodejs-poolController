@@ -946,7 +946,7 @@ export class HeaterState extends EqState {
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
-    public setFeatureStateAsync(id: number, val: boolean) { return sys.board.features.setFeatureStateAsync(id, val); }
+    public async setFeatureStateAsync(id: number, val: boolean) { return sys.board.features.setFeatureStateAsync(id, val); }
     public async toggleFeatureStateAsync(id: number) { return sys.board.features.toggleFeatureStateAsync(id); }
 }
 export class FeatureState extends EqState implements ICircuitState {
@@ -1280,112 +1280,6 @@ export class ChemControllerState extends EqState {
             this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
             this.hasChanged = true;
         }
-    }
-    // this wouldn't be used if there is a physical chem controller;
-    // but can be used by home grown systems to populate current state
-    public async setChemControllerAsync(data: any) {
-        if (typeof data.pHLevel !== 'undefined') this.pHLevel = parseFloat(data.pHLevel);
-        if (typeof data.orpLevel !== 'undefined') this.orpLevel = parseFloat(data.orpLevel);
-        if (typeof data.saltLevel !== 'undefined') this.saltLevel = parseInt(data.saltLevel,10);
-        // need to adjust for different bodies when we learn how
-        else if (sys.chlorinators.getItemById(1).isActive) this.saltLevel = state.chlorinators.getItemById(1).saltLevel;
-        if (typeof data.waterFlow !== 'undefined') this.waterFlow = parseInt(data.waterFlow);
-        if (typeof data.acidTankLevel !== 'undefined') this.acidTankLevel = parseInt(data.acidTankLevel, 10);
-        if (typeof data.orpTankLevel !== 'undefined') this.orpTankLevel = parseInt(data.orpTankLevel, 10);
-        if (typeof data.status1 !== 'undefined') this.status1 = parseInt(data.status1,10);
-        if (typeof data.status2 !== 'undefined') this.status2 = parseInt(data.status2,10);
-        if (typeof data.pHDosingTime !== 'undefined') this.pHDosingTime = parseInt(data.pHDosingTime,10);
-        if (typeof data.orpDosingTime !== 'undefined') this.orpDosingTime = parseInt(data.orpDosingTime,10);
-        if (typeof data.temp !== 'undefined') this.temp = parseInt(data.temp,10);
-        else {
-                let tbody = state.temps.bodies.getBodyIsOn();
-                if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') this.temp = tbody.temp;
-        }
-        if (typeof data.tempUnits !== 'undefined') {
-            if (typeof data.tempUnits === 'string') this.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
-            else this.tempUnits = data.tempUnits;
-        }
-        else this.tempUnits = state.temps.units;
-        if (typeof data.saturationIndex !== 'undefined') this.saturationIndex = data.saturationIndex;
-        else this.calculateSaturationIndex();
-        this.emitEquipmentChange();
-        return Promise.resolve(this);
-    }
-    public calculateSaturationIndex(): void {
-       // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
-       let SI = Math.round(
-           (this.pHLevel +
-            this.calculateCalciumHardnessFactor() +
-            this.calculateTotalCarbonateAlkalinity() +
-            this.calculateTemperatureFactor() -
-            this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
-       if (isNaN(SI)) {this.saturationIndex = undefined} else {this.saturationIndex = SI;}
-       this.emitEquipmentChange();
-    }
-    private calculateCalciumHardnessFactor() {
-        const CH = sys.chemControllers.getItemById(this.id).calciumHardness;
-        if (CH <= 25) return 1.0;
-        else if (CH <= 50) return 1.3;
-        else if (CH <= 75) return 1.5;
-        else if (CH <= 100) return 1.6;
-        else if (CH <= 125) return 1.7;
-        else if (CH <= 150) return 1.8;
-        else if (CH <= 200) return 1.9;
-        else if (CH <= 250) return 2.0;
-        else if (CH <= 300) return 2.1;
-        else if (CH <= 400) return 2.2;
-        else if (CH <= 800) return 2.5;
-    }
-    private calculateTotalCarbonateAlkalinity(): number {
-        const ppm = this.correctedAlkalinity();
-        if (ppm <= 25) return 1.4;
-        else if (ppm <= 50) return 1.7;
-        else if (ppm <= 75) return 1.9;
-        else if (ppm <= 100) return 2.0;
-        else if (ppm <= 125) return 2.1;
-        else if (ppm <= 150) return 2.2;
-        else if (ppm <= 200) return 2.3;
-        else if (ppm <= 250) return 2.4;
-        else if (ppm <= 300) return 2.5;
-        else if (ppm <= 400) return 2.6;
-        else if (ppm <= 800) return 2.9;
-    }
-    private correctedAlkalinity(): number {
-        return sys.chemControllers.getItemById(this.id).alkalinity - (sys.chemControllers.getItemById(this.id).cyanuricAcid / 3);
-    }
-    private calculateTemperatureFactor(): number {
-        const temp = this.temp;
-        const UOM = typeof this.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(this.tempUnits) : sys.board.valueMaps.tempUnits.getName(state.temps.units);
-        if (UOM === 'F') {
-            if (temp <= 32) return 0.0;
-            else if (temp <= 37) return 0.1;
-            else if (temp <= 46) return 0.2;
-            else if (temp <= 53) return 0.3;
-            else if (temp <= 60) return 0.4;
-            else if (temp <= 66) return 0.5;
-            else if (temp <= 76) return 0.6;
-            else if (temp <= 84) return 0.7;
-            else if (temp <= 94) return 0.8;
-            else if (temp <= 105) return 0.9;
-        } else {
-            if (temp <= 0) return 0.0;
-            else if (temp <= 2.8) return 0.1;
-            else if (temp <= 7.8) return 0.2;
-            else if (temp <= 11.7) return 0.3;
-            else if (temp <= 15.6) return 0.4;
-            else if (temp <= 18.9) return 0.5;
-            else if (temp <= 24.4) return 0.6;
-            else if (temp <= 28.9) return 0.7;
-            else if (temp <= 34.4) return 0.8;
-            else if (temp <= 40.6) return 0.9;
-        }
-    }
-    private calculateTotalDisolvedSolidsFactor(): number {
-        // RKS: This needs to match with the target body of the chlorinator if it exists.
-        // 12.1 for non-salt pools; 12.2 for salt pools
-        let chlorInstalled = false;
-        if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
-        return chlorInstalled ? 12.2 : 12.1;
     }
     public getExtended(): any {
         let chem = sys.chemControllers.getItemById(this.id);

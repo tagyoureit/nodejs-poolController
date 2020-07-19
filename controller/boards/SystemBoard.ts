@@ -1,12 +1,12 @@
 ﻿import * as extend from 'extend';
 import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState, ICircuitGroupState } from '../State';
+import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState, ICircuitGroupState, ChemControllerState } from '../State';
 import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { utils } from '../Constants';
 import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError, InvalidEquipmentDataError } from '../Errors';
 import { logger } from '../../logger/Logger';
-import { config } from '../../config/Config'; // TODO: RG - we shouldn't import this in here but I want to set the inactivityRetry from here.  What's the best way?
+import { webApp } from '../../web/Server';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
@@ -2338,6 +2338,7 @@ export class ValveCommands extends BoardCommands {
 }
 export class ChemControllerCommands extends BoardCommands {
     public async setChemControllerAsync(data: any):Promise<ChemController> {
+        // this is a combined chem config/state setter.  
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (id <= 0) {
             // adding a chem controller
@@ -2360,15 +2361,117 @@ export class ChemControllerCommands extends BoardCommands {
         chem.isActive = data.isActive || true;
         chem.isVirtual = data.isVirtual || true;
         schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
+        // config data
         if (typeof data.body !== 'undefined') chem.body = data.body || 32;
         if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
         if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint, 10);
         if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
         if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
         if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
-        state.chemControllers.getItemById(id).calculateSaturationIndex();
+        // state data
+        if (typeof data.pHLevel !== 'undefined') schem.pHLevel = parseFloat(data.pHLevel);
+        if (typeof data.orpLevel !== 'undefined') schem.orpLevel = parseFloat(data.orpLevel);
+        if (typeof data.saltLevel !== 'undefined') schem.saltLevel = parseInt(data.saltLevel,10);
+        else if (sys.chlorinators.getItemById(1).isActive) schem.saltLevel = state.chlorinators.getItemById(1).saltLevel;
+        if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
+        if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = parseInt(data.acidTankLevel, 10);
+        if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = parseInt(data.orpTankLevel, 10);
+        if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1,10);
+        if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2,10);
+        if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime,10);
+        if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime,10);
+        if (typeof data.temp !== 'undefined') schem.temp = parseInt(data.temp,10);
+        else {
+                let tbody = state.temps.bodies.getBodyIsOn();
+                if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') schem.temp = tbody.temp;
+        }
+        if (typeof data.tempUnits !== 'undefined') {
+            if (typeof data.tempUnits === 'string') schem.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
+            else schem.tempUnits = data.tempUnits;
+        }
+        else schem.tempUnits = state.temps.units;
+        if (typeof data.saturationIndex !== 'undefined') schem.saturationIndex = data.saturationIndex;
+        else sys.board.chemControllers.calculateSaturationIndex(chem, schem)
         sys.emitEquipmentChange();
+        webApp.emitToClients('chemController',schem.getExtended()); // emit extended data
+        schem.hasChanged = false; // try to avoid duplicate emits
         return Promise.resolve(chem);
+    }
+    public calculateSaturationIndex(chem: ChemController, schem:ChemControllerState): void {
+       // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
+       let SI = Math.round(
+           (schem.pHLevel +
+            this.calculateCalciumHardnessFactor(chem) +
+            this.calculateTotalCarbonateAlkalinity(chem) +
+            this.calculateTemperatureFactor(schem) -
+            this.calculateTotalDisolvedSolidsFactor()) * 1000) / 1000;
+       if (isNaN(SI)) {schem.saturationIndex = undefined} else {schem.saturationIndex = SI;}
+       schem.emitEquipmentChange();
+    }
+    private calculateCalciumHardnessFactor(chem:ChemController) {
+        const CH = chem.calciumHardness;
+        if (CH <= 25) return 1.0;
+        else if (CH <= 50) return 1.3;
+        else if (CH <= 75) return 1.5;
+        else if (CH <= 100) return 1.6;
+        else if (CH <= 125) return 1.7;
+        else if (CH <= 150) return 1.8;
+        else if (CH <= 200) return 1.9;
+        else if (CH <= 250) return 2.0;
+        else if (CH <= 300) return 2.1;
+        else if (CH <= 400) return 2.2;
+        else if (CH <= 800) return 2.5;
+    }
+    private calculateTotalCarbonateAlkalinity(chem:ChemController): number {
+        const ppm = this.correctedAlkalinity(chem);
+        if (ppm <= 25) return 1.4;
+        else if (ppm <= 50) return 1.7;
+        else if (ppm <= 75) return 1.9;
+        else if (ppm <= 100) return 2.0;
+        else if (ppm <= 125) return 2.1;
+        else if (ppm <= 150) return 2.2;
+        else if (ppm <= 200) return 2.3;
+        else if (ppm <= 250) return 2.4;
+        else if (ppm <= 300) return 2.5;
+        else if (ppm <= 400) return 2.6;
+        else if (ppm <= 800) return 2.9;
+    }
+    private correctedAlkalinity(chem:ChemController): number {
+        return chem.alkalinity - (chem.cyanuricAcid / 3);
+    }
+    private calculateTemperatureFactor(schem:ChemControllerState): number {
+        const temp = schem.temp;
+        const UOM = typeof schem.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(schem.tempUnits) : sys.board.valueMaps.tempUnits.getName(state.temps.units);
+        if (UOM === 'F') {
+            if (temp <= 32) return 0.0;
+            else if (temp <= 37) return 0.1;
+            else if (temp <= 46) return 0.2;
+            else if (temp <= 53) return 0.3;
+            else if (temp <= 60) return 0.4;
+            else if (temp <= 66) return 0.5;
+            else if (temp <= 76) return 0.6;
+            else if (temp <= 84) return 0.7;
+            else if (temp <= 94) return 0.8;
+            else if (temp <= 105) return 0.9;
+        } else {
+            if (temp <= 0) return 0.0;
+            else if (temp <= 2.8) return 0.1;
+            else if (temp <= 7.8) return 0.2;
+            else if (temp <= 11.7) return 0.3;
+            else if (temp <= 15.6) return 0.4;
+            else if (temp <= 18.9) return 0.5;
+            else if (temp <= 24.4) return 0.6;
+            else if (temp <= 28.9) return 0.7;
+            else if (temp <= 34.4) return 0.8;
+            else if (temp <= 40.6) return 0.9;
+        }
+    }
+    private calculateTotalDisolvedSolidsFactor(): number {
+        // RKS: This needs to match with the target body of the chlorinator if it exists.
+        // 12.1 for non-salt pools; 12.2 for salt pools
+        let chlorInstalled = false;
+        if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
+        return chlorInstalled ? 12.2 : 12.1;
     }
 
     public async initChem(chem: ChemController) {

@@ -60,6 +60,13 @@ export class StateRoute {
             }
             catch (err) {next(err);}
         });    
+        app.put('/state/feature/toggleState', async (req, res, next) => {
+            try {
+                let cstate = await sys.board.features.toggleFeatureStateAsync(parseInt(req.body.id, 10));
+                return res.status(200).send(cstate);
+            }
+            catch (err) {next(err);}
+        });    
         app.put('/state/circuit/setTheme', async (req, res, next) => {
            try {
                let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
@@ -89,7 +96,8 @@ export class StateRoute {
         });
         app.put('/state/feature/setState', async (req, res, next) => {
             try {
-                await state.features.setFeatureStateAsync(req.body.id, req.body.state);
+                let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
+                await state.features.setFeatureStateAsync(req.body.id, isOn);
                 return res.status(200).send('OK');
             }
             catch (err){ next(err); }
