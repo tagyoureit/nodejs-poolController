@@ -1870,7 +1870,7 @@ export class FeatureCommands extends BoardCommands {
         let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
         fstate.isOn = val;
         state.emitEquipmentChanges();
-        return Promise.resolve(fstate);
+        return Promise.resolve(fstate.get(true));
     }
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);

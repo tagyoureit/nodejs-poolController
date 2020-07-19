@@ -846,7 +846,7 @@ class TouchCircuitCommands extends CircuitCommands {
                         sys.board.virtualPumpControllers.start();
                         // sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
-                        resolve(cstate);
+                        resolve(cstate.get(true));
                     }
                 }
             });
