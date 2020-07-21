@@ -14,6 +14,7 @@ export class PumpStateMessage {
         let pumpId = msg.source - 96 + 1;
         let pump = state.pumps.getItemById(pumpId, true);
         let pumpCfg = sys.pumps.getItemById(pumpId);
+        let ptype = sys.board.valueMaps.pumpTypes.transform(pumpCfg.type);
         // let pump2 = state.pumps.getPumpByAddress(msg.source, true);
         // let pumpCfg2 = sys.pumps.getPumpByAddress(msg.source);
         switch (msg.action) {
@@ -26,8 +27,8 @@ export class PumpStateMessage {
                 pump.mode = msg.extractPayloadByte(1);
                 pump.driveState = msg.extractPayloadByte(2);
                 pump.watts = (msg.extractPayloadByte(3) * 256) + msg.extractPayloadByte(4);
-                pump.rpm = (msg.extractPayloadByte(5) * 256) + msg.extractPayloadByte(6);
-                pump.flow = msg.extractPayloadByte(7);
+                pump.rpm = (typeof ptype !== 'undefined' && ptype.maxSpeed > 0) ? (msg.extractPayloadByte(5) * 256) + msg.extractPayloadByte(6) : 0;
+                pump.flow = (typeof ptype !== 'undefined' && ptype.maxFlow > 0) ? msg.extractPayloadByte(7) : 0;
                 pump.ppc = msg.extractPayloadByte(8);
                 pump.status = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12); // 16-bits of error codes.
                 pump.name = pumpCfg.name;
