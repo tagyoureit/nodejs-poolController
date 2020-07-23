@@ -61,6 +61,7 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Run the app with `npm start`.
    * `npm start` will compile the Typescript code.  You should use this every time you download/clone/pull the latest code.
    * `npm run start:cached` will run the app without compiling the code which can be much faster.
+1. Running `npm start` will also create a `config.json` file for your installation.  If you need to modify any properties (e.g. the path to your serialport adapter, enabling socat, etc) then stop the app, edit the `config.json` per the [instructions](module_nodejs-poolController--config.json) below, and start the app again.
 1. Verify your pool equipment is correctly identified by inspecting the `/data/*.json` files.  
 1. Install a [webclient](module_nodejs-poolController--clients) for a browser experience and/or a [binding](module_nodejs-poolController--bindings) to have two way control with Home Automation systems.
 
