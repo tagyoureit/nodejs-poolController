@@ -1,4 +1,20 @@
-﻿import * as express from "express";
+/*  nodejs-poolController.  An application to control pool equipment.
+Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+import * as express from "express";
 import { state, ICircuitState, LightGroupState, ICircuitGroupState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
@@ -130,6 +146,13 @@ export class StateRoute {
                 return res.status(200).send(tbody);
             } catch (err) { next(err); }
         });
+        app.put('/state/chlorinator', async (req, res, next) => {
+            try {
+                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
+                return res.status(200).send(chlor);
+            } catch (err) { next(err); }
+        });
+        // this ../setChlor should really be EOL for PUT /state/chlorinator above
         app.put('/state/chlorinator/setChlor', async (req, res, next) => {
             try {
                 let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
@@ -190,13 +213,6 @@ export class StateRoute {
             try {
                 let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'swim');
                 return res.status(200).send(sgroup.get(true));
-            }
-            catch (err) { next(err); }
-        });
-        app.put('/state/chemController', async (req, res, next) => {
-            try {
-                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
-                return res.status(200).send(chem.get(true));
             }
             catch (err) { next(err); }
         });

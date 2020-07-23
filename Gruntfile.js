@@ -1,4 +1,11 @@
-/*  nodejs-poolController.  An application to control pool equipment.
+module.exports = function(grunt) {
+
+  grunt.initConfig({
+    usebanner: {
+      taskName: {
+        options: {
+          position: 'top',
+          banner:    `/*  nodejs-poolController.  An application to control pool equipment.
 Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
@@ -13,10 +20,22 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
-import * as extend from 'extend';
-import { EventEmitter } from 'events';
-import { EasyTouchBoard } from './EasyTouchBoard';
-export class IntelliComBoard extends EasyTouchBoard {
+*/`,
+          linebreak: true,
+          replace: false
+        },
+        files: {
+          src: [ 'config/*.ts', 'controller/**/*.ts', 'logger/*.ts', 'web/**/*.ts', 'app.ts' ]
+        }
+      }
+    }
+  })
+
+  grunt.loadNpmTasks('grunt-banner');
 
 }
+
+
+
+
+ 

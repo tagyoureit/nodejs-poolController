@@ -1,4 +1,20 @@
-﻿import * as express from "express";
+/*  nodejs-poolController.  An application to control pool equipment.
+Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+import * as express from "express";
 import * as extend from 'extend';
 import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
@@ -163,6 +179,7 @@ export class ConfigRoute {
                 types: sys.board.valueMaps.chemControllerTypes.toArray(),
                 bodies: sys.board.bodies.getBodyAssociations(),
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                status: sys.board.valueMaps.chemControllerStatus.toArray(),
                 status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
                 status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
                 waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray(),
