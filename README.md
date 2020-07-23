@@ -34,9 +34,11 @@ In short, everything!  6.0 is a complete re-write of the application.  Huge prop
  <a name="module_nodejs-poolController--install"></a>
 
 Dashpanel Client Screenshot
+
 <img src="https://tagyoureit.github.io/nodejs-poolController/images/v6/clients/dashPanel.png?raw=true" height="300">
 
 Webclient Client Screenshot
+
 <img src="https://tagyoureit.github.io/nodejs-poolController/images/v6/clients/webClient-top.png?raw=true" height="300">
 
 
