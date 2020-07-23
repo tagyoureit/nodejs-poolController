@@ -1,0 +1,138 @@
+# Changelog
+
+
+## 1.0.0 -
+ * Much of the code reworked and refactored
+ * Added Bootstrap UI by @arrmo
+ * Better standalone pump control (@bluemantwo was super-helpful here, too!)
+ * More accurate recognition of packets
+ * Super fast speed improvements
+ * Outgoing packets are now sent based on a timer (previously number of incoming packets)
+ * Added ISY support (@bluemantwo was super-helpful here, too!)
+
+## 2.0.0 -
+ * https, Authentication
+ * Completely refactored code.  Integrated BottleJS (https://github.com/young-steveo/bottlejs) for dependency injection and service locator functions
+ * Integrations to loosely couple add-ons
+
+## 3.0.0 -
+ * Upgraded pump logic
+
+## 3.1.x -
+ * Added unit testing for certain areas
+ * Added setDateTime API/Socket
+ * Bootstrap panel states are now persistent
+
+## 4.0.0 -
+ * Changed much in the config.json file
+ * Save pump programs and chlorinator level to config.json
+ * Added support for GPM with pumps
+ * Check for newer versions of the app on github, and dismiss notifications until next release
+ * Bootstrap configuration is automatically saved in clientConfig.json via UI actions
+ * Started to introduce some promises into the workflow (mostly with read/write operations)
+ * Added log-to-file option
+ * Added capture for Ctrl-C/SIGINT to have a clean exit
+ * Added InfluxDB database capabilities
+ * Added support for reading the data from up to 16 pumps.  (You can still only control two.)
+ * Support for up to 50 circuits, 8 pumps
+ * Delay and Cancel Delay for circuits
+
+## 5.0.0 -
+Make sure to run `npm upgrade`.  There are many package updates and changes.
+
+ * Added add/delete/edit schedule
+ * All sockets/API now singular (`circuits`->`circuit`)
+ * All sockets/API data now returned with a JSON qualifier. EG `{pump:...}`, `{circuit:...}`
+ * Intellichem decoding and display
+ * Changes to `/config` endpoint.  It's now included with the `/all` end point since there would be quite a bit of duplication.  It still exists standalone (for now) but has much less information in it.
+ * Moved `hideAux` setting from `configClient.json` (web UI settings) to `config.json` template.  In `config.json` template, moved
+    ```
+    {equipment: {controller: {circuitFriendlyNames:{1..20}}}}
+
+     // to
+
+    {equipment: {circuit: friendlyName:{1..20},
+                              hideAux: boolean
+                              },
+    }
+    ```
+    to be in line with the other equipment in the pool setup and accomodate the `hideAux` setting.
+
+ * Fixed issue #82
+ * Extra info from `/config` was being added to the circuit section in `config.json`
+ * This release includes a new mechanism for updating config.json files. See notes in [config.json](#module_nodejs-poolController--config) section.
+ * mDNS server.  Currently included for SmartThings integration, but in the future can be used for autodiscovery by other applications/devices.
+ * New `/config` endpoint (beta) to allow applications to get a high level summary of the system.
+ * Support for two separate (http/https) web servers, each/both with Auth, and also the option to redirect all http to https traffic.  Thanks to @arrmo for driving this with #65 and #68.
+ * A UI for standalone pumps
+ * All sockets and API's renamed to be SINGULAR.  Circuits -> circuit, Schedules->schedule, etc.
+ * All returned JSON data (API/socket) now has the type qualifier per [#57](https://github.com/tagyoureit/nodejs-poolController/issues/57)
+ * Make sure to run `npm upgrade`.  There are many package updates and changes.
+ * Intellichem initial support.
+ * Inactivity timer for both internal connections and web page connections.  If a connection is broken, it should re-establish itself automatically now.
+ * SSDP for auto-discovery by SmartThings or other services
+
+## 5.0.1 -
+1. Fixed Influx error on startup #90
+1. Fixed bad characters in custom names
+
+## 5.1.0 -
+1. Intellibrite support - API's, Sockets and a WebUI.  Lights should have the 'Intellbrite' an their circuit function (set this up at the controller) to show up in this section.
+Will document more later, but...
+/light/mode/:mode
+/light/circuit/:circuit/setColor/:color
+/light/circuit/:circuit/setSwimDelay/:delay
+/light/circuit/:circuit/setPosition/:position
+
+See the constants.js file and the sections:
+  strIntellibriteModes (for modes)
+  lightColors (for setColor)
+
+## 5.1.1 -
+1.  Renamed all 'valves' items to valve to be in line with singular renaming of items
+1.  InfluxDB - moved some items that were in tag fields to field keys; added valves
+1.  Added days of week (with editing) back to the schedules.  Not sure when they disappeared, but they are back now.  #92
+1.  Added MySQL integration to log all packets to a DB
+1.  Fixed PR #95 to allow sub-hour egg timers
+1.  Fixed Intellibrite bugs
+1.  Started to move some of the inter-communications to emitter events for better micro-services and shorter call stacks (easier debugging; loosely coupled code).
+1.  Changed some Influx tags/queries.
+
+## 5.2.0
+1. Node 6+ is supported.  This app no longer supports Node 4.
+1. Update of modules.  Make sure to run `npm i` or `npm upgrade` to get the latest.
+1. Much better support of multiple Intellibrite controllers.  We can read both controllers now.  There are still some issues with sending changes and help is needed to debug these.
+1. Chlorinator API calls (and UI) will now make changes through Intellitouch when available, or directly to the Intellichlor if it is standalone (aka using the virtual controller)
+1. Decoupled serial port and processing of packets.  Should help recovery upon packet errors.
+1. Implementation of #89.  Expansion boards are now (better) supported by setting variables in your config.json.  See the [config.json](#module_nodejs-poolController--config) section below.
+1. Fix for #95
+1. Fix for #99
+1. Fix for #100
+
+
+## 5.3.0
+Fix for #106
+Fix for "Error 60" messages
+Improved caching of files on browsers. Thanks @arrmo! Now files will be loaded once in the browser and kept in cache instead of reloaded each time.
+Improved handling of sessions and graceful closing of the HTTP(s) servers.
+
+## 5.3.1
+#132
+
+## 5.3.3
+#134
+
+## 6.0
+What's new in 6.0?
+
+In short, everything!  6.0 is a complete re-write of the application.  Huge props to @rstrouse for his wisdom and guidance in refactoring the code.
+
+1. IntelliCenter - now supported
+1. Configuring and running the app - all new.  Start over with the Installation instructions.
+1. Automatic detection of your pool equipment.  Previous versions of the app would detect the configuration of your pool but you still had to tell the app if you had IntelliTouch/EasyTouch/IntelliCom.  This is now done automatically.
+1. Configuration and state information.  Config.json now only stores information related to the configuration of the app.  There are separate files in the /data directory that store (and persist) pool configuration and state information.
+1. API's - completely changed.  See separate API documentation (*link here)
+1. Outbound Sockets - Now more granular to make the web app more responsive
+1. Web app - Now a separate installion for a true client/server metaphore.
+1. Node v12+
+1. `Integrations` are now called `Bindings`.  Any integration built on 5.3 need to be upgraded to the binding format.  See Readme for a list of currently upgraded bindings.
