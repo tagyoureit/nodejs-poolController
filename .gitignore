@@ -1,6 +1,32 @@
+/nbproject/private/
+/logs
+*.log
+.coveralls*
+.idea/
+.cache
+.snyk
+.travis.yml
 node_modules/
-config.json
+docs/
+out/
+# ignore coverage output
+.nyc_output
+coverage/
+# ignore dist, it is for production files created by npm scripts
 dist/
+# ignore any replay files
+replay/
+# ignore the config.json; it will get recreated
+config.json
+# data files
 data/
+# ignore visual studio
+*.csproj
+*.njsproj
+*.sln
+*.njsproj.user
+obj/
+bin/
 .vs/
 .vscode/
+# end

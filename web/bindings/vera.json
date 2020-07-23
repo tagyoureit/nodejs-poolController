@@ -1,0 +1,25 @@
+{
+  "context": {
+    "name": "Vera",
+    "options": {
+      "method": "POST",
+      "path": "/data_request?id=action&DeviceNum=@bind=vars.deviceId;&serviceId=urn:rstrouse-com:serviceId:PoolController1&action=SetEventData&targetData=@bind=eventName;",
+      "headers": {
+        "CONTENT-TYPE": "application/json"
+      }
+    },
+    "vars": {} 
+  },
+  "events": [
+    {
+      "name": "config",
+      "description": "Vera doesn't use this payload.",
+      "enabled": false
+    },
+    {
+      "name": "*",
+      "description": "This will be the UPnP version when I get the services built in Vera and the only binding required.  Sends the entire emitted response.",
+      "body": "@bind=data;"
+    }
+  ]
+}

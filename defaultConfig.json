@@ -1,0 +1,148 @@
+﻿{
+  "controller": {
+    "comms": {
+      "rs485Port": "/dev/ttyUSB0",
+      "mockPort": false,
+      "netConnect": false,
+      "netHost": "raspberrypi",
+      "netPort": 9801,
+      "inactivityRetry": 10,
+      "portSettings": {
+        "baudRate": 9600,
+        "dataBits": 8,
+        "parity": "none",
+        "stopBits": 1,
+        "flowControl": false,
+        "autoOpen": false,
+        "lock": false
+      }
+    }
+  },
+  "web": {
+    "servers": {
+      "http2": {
+        "enabled": false
+      },
+      "http": {
+        "enabled": true,
+        "ip": "0.0.0.0",
+        "port": 4200,
+        "httpsRedirect": false,
+        "authentication": "none",
+        "authFile": "/users.htpasswd"
+      },
+      "https": {
+        "enabled": true,
+        "ip": "0.0.0.0",
+        "port": 4201,
+        "authentication": "none",
+        "authFile": "/users.htpasswd",
+        "sslKeyFile": "",
+        "sslCertFile": ""
+      },
+      "mdns": {
+        "enabled": false
+      },
+      "ssdp": {
+        "enabled": false
+      }
+    },
+    "services": {},
+    "interfaces": {
+      "smartThings": {
+        "name": "SmartThings/Hubitat",
+        "enabled": false,
+        "fileName": "smartThings-Hubitat.json",
+        "globals": {},
+        "options": {
+          "host": "0.0.0.0",
+          "port": 39500
+        }
+      },
+      "vera": {
+        "name": "Vera",
+        "enabled": false,
+        "fileName": "vera.json",
+        "vars": {
+          "deviceId": 0
+        },
+        "options": {
+          "host": "",
+          "port": 3480
+        }
+      }
+    }
+  },
+  "log": {
+    "packet": {
+      "enabled": false,
+      "logToConsole": false,
+      "logToFile": false,
+      "filename": "packetLog",
+      "invalid": true,
+      "broadcast": {
+        "enabled": true,
+        "includeActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeActions": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "pump": {
+        "enabled": true,
+        "includeActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeActions": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "chlorinator": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "intellichem": {
+        "enabled": true,
+        "includeActions": [],
+        "exclueActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "intellivalve": {
+        "enabled": true,
+        "includeActions": [],
+        "exclueActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "unidentified": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
+      "unknown": {
+        "enabled": true,
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      }
+    },
+    "app": {
+      "enabled": true,
+      "level": "info",
+      "captureForReplay": false
+    }
+  },
+  "appVersion": "0.0.1"
+}

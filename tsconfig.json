@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "baseUrl": ".",
+       // "paths": { "*": [ "@types/*" ] },
+        "target":"esnext",
+        "module":"commonjs",
+        "noImplicitAny": false,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "outDir": "dist",
+        "moduleResolution": "node",
+        "allowJs": false,
+        "allowSyntheticDefaultImports": false,
+        "esModuleInterop": false,
+        "jsx": "react"
+    },
+    "include": [
+        "web/**/*",
+        "logger/**/*",
+        "controller/**/*",
+        "config/**/*", 
+        "**/*.ts", "smartthings.js"
+
+    ]
+}

@@ -1,0 +1,32 @@
+{
+  "context": {
+    "name":  "SmartThings",
+    "vars": {},
+    "options": {
+      "method": "NOTIFY",
+      "path": "/notify",
+      "headers": {
+        "CONTENT-TYPE": "application/json",
+        "X-EVENT-TYPE": "@bind=eventName;"
+      }
+    }
+  },
+  "events": [
+    {
+      "name": "justAnExample",
+      "description":  "Shows how the binding can be used to send variable data to SmartThings.  This can be any combination of data.",
+      "body": "{\"air\":\"@bind=data.air;@bind=data.units.name.substring(0, 1);\", \"total\":@bind=data.solar + data.waterSensor1;, \"status\":\"@bind=state.equipment.model;\"}",
+      "options": {
+        "headers": {
+          "X-EVENT2": ""
+        }
+      }
+    },
+    {
+        "name": "config",
+        "description": "Not used for updates",
+        "enabled": false
+    },
+    { "name": "*", "description": "All events that are not trapped by other event names.  Sends the entire emitted response.", "body": "@bind=data;" }
+  ]
+}
