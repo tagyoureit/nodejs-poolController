@@ -20,6 +20,8 @@ replay/
 config.json
 # data files
 data/
+poolConfig.json
+poolState.json
 # ignore visual studio
 *.csproj
 *.njsproj
