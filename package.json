@@ -7,6 +7,11 @@
         "name": "Russell Goldin",
         "name2": "Robert Strouse"
     },
+    "license": "GNU Affero General Public License v3.0",
+    "repository": {
+        "type" : "git",
+        "url" : "https://github.com/tagyoureit/nodejs-poolController.git"
+      },
     "scripts": {
         "start": "npm run build && node dist/app.js",
         "start:cached": "node dist/app.js",
