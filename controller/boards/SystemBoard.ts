@@ -2436,7 +2436,7 @@ export class ChemControllerCommands extends BoardCommands {
         else if (CH <= 250) return 2.0;
         else if (CH <= 300) return 2.1;
         else if (CH <= 400) return 2.2;
-        else if (CH <= 800) return 2.5;
+        return 2.5;
     }
     private calculateTotalCarbonateAlkalinity(chem:ChemController): number {
         const ppm = this.correctedAlkalinity(chem);
@@ -2450,7 +2450,7 @@ export class ChemControllerCommands extends BoardCommands {
         else if (ppm <= 250) return 2.4;
         else if (ppm <= 300) return 2.5;
         else if (ppm <= 400) return 2.6;
-        else if (ppm <= 800) return 2.9;
+        return 2.9;
     }
     private correctedAlkalinity(chem:ChemController): number {
         return chem.alkalinity - (chem.cyanuricAcid / 3);
@@ -2468,7 +2468,7 @@ export class ChemControllerCommands extends BoardCommands {
             else if (temp <= 76) return 0.6;
             else if (temp <= 84) return 0.7;
             else if (temp <= 94) return 0.8;
-            else if (temp <= 105) return 0.9;
+            return 0.9;
         } else {
             if (temp <= 0) return 0.0;
             else if (temp <= 2.8) return 0.1;
@@ -2479,7 +2479,7 @@ export class ChemControllerCommands extends BoardCommands {
             else if (temp <= 24.4) return 0.6;
             else if (temp <= 28.9) return 0.7;
             else if (temp <= 34.4) return 0.8;
-            else if (temp <= 40.6) return 0.9;
+            return 0.9;
         }
     }
     private calculateTotalDisolvedSolidsFactor(): number {
