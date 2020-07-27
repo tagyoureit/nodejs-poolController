@@ -1,0 +1,512 @@
+{
+  "context": {
+    "name": "InfluxDB",
+    "options": {
+      "tags": [
+        {
+          "name": "sourceIP",
+          "value": "@bind=Server_1.webApp.ip();"
+        },
+        {
+          "name": "sourceApp",
+          "value": "njspc"
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "name": "temps",
+      "description": "Bind temperatures to measurements",
+      "points": [
+        {
+          "measurement": "ambientTemps",
+          "tags": [
+            {
+              "name": "units",
+              "value": "@bind=data.units.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "airTemp",
+              "value": "@bind=data.air;",
+              "type": "int"
+            },
+            {
+              "name": "solarTemp",
+              "value": "@bind=data.solar;",
+              "type": "int"
+            }
+          ]
+        },
+        {
+          "measurement": "bodyTemps",
+          "tags": [
+            {
+              "name": "units",
+              "value": "@bind=data.units.desc;"
+            },
+            {
+              "name": "heatMode",
+              "value": "@bind=data.bodies[0].heatMode.desc;"
+            },
+            {
+              "name": "heatStatus",
+              "value": "@bind=data.bodies[0].heatStatus.desc;"
+            },
+            {
+              "name": "body",
+              "value": "@bind=data.bodies[0].name;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "@bind=data.bodies[0].name;",
+              "value": "@bind=data.bodies[0].temp;",
+              "type": "int"
+            }
+          ]
+        },
+        {
+          "measurement": "bodyTemps",
+          "tags": [
+            {
+              "name": "units",
+              "value": "@bind=data.units.desc;"
+            },
+            {
+              "name": "heatMode",
+              "value": "@bind=data.bodies[1].heatMode.desc;"
+            },
+            {
+              "name": "heatStatus",
+              "value": "@bind=data.bodies[1].heatStatus.desc;"
+            },
+            {
+              "name": "body",
+              "value": "@bind=data.bodies[1].name;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "@bind=data.bodies[1].name;",
+              "value": "@bind=data.bodies[1].temp;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "body",
+      "description": "Bind bodies to measurements",
+      "points": [
+        {
+          "measurement": "bodyTemps",
+          "tags": [
+            {
+              "name": "heatMode",
+              "value": "@bind=data.heatMode.desc;"
+            },
+            {
+              "name": "heatStatus",
+              "value": "@bind=data.heatStatus.desc;"
+            },
+            {
+              "name": "body",
+              "value": "@bind=data.name;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "@bind=data.name;",
+              "value": "@bind=data.temp;",
+              "type": "int"
+            },
+            {
+              "name": "@bind=data.name+'Setpoint';",
+              "value": "@bind=data.setPoint;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "chemController",
+      "description": "Bind chemController emit",
+      "points": [
+        {
+          "measurement": "chemControllers",
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            },
+            {
+              "name": "status",
+              "value": "@bind=data.status.desc;"
+            },
+            {
+              "name": "status1",
+              "value": "@bind=data.status1.desc;"
+            },
+            {
+              "name": "status2",
+              "value": "@bind=data.status2.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "pHLevel",
+              "value": "@bind=data.pHLevel;",
+              "type": "float"
+            },
+            {
+              "name": "pHSetpoint",
+              "value": "@bind=data.pHSetpoint;",
+              "type": "float"
+            },
+            {
+              "name": "orpLevel",
+              "value": "@bind=data.orpLevel;",
+              "type": "float"
+            },
+            {
+              "name": "orpSetpoint",
+              "value": "@bind=data.orpSetpoint;",
+              "type": "float"
+            },
+            {
+              "name": "acidTankLevel",
+              "value": "@bind=data.acidTankLevel;",
+              "type": "int"
+            },
+            {
+              "name": "orpTankLevel",
+              "value": "@bind=data.orpTankLevel;",
+              "type": "int"
+            },
+            {
+              "name": "saturationIndex",
+              "value": "@bind=data.saturationIndex;",
+              "type": "float"
+            },
+            {
+              "name": "CYA",
+              "value": "@bind=data.cyanuricAcid;",
+              "type": "int"
+            },
+            {
+              "name": "CH",
+              "value": "@bind=data.calciumHardness;",
+              "type": "int"
+            },
+            {
+              "name": "Alk",
+              "value": "@bind=data.alkalinity;",
+              "type": "int"
+            },
+            {
+              "name": "phDosingTime",
+              "value": "@bind=data.pHDosingTime;",
+              "type": "float"
+            },
+            {
+              "name": "orpDosingTime",
+              "value": "@bind=data.orpDosingTime;",
+              "type": "float"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "circuit",
+      "description": "Bind circuit emit",
+      "points": [
+        {
+          "measurement": "circuits",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "integer"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "feature",
+      "description": "Bind feature emit",
+      "points": [
+        {
+          "measurement": "circuits",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "virtualCircuit",
+      "description": "Bind virtualCircuit emit",
+      "points": [
+        {
+          "measurement": "circuits",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "lightGroup",
+      "description": "Bind lightGroup emit",
+      "points": [
+        {
+          "measurement": "circuits",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "circuitGroup",
+      "description": "Bind circuitGroup emit",
+      "points": [
+        {
+          "measurement": "circuits",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pump",
+      "description": "Bind circuit emit",
+      "points": [
+        {
+          "measurement": "pumps",
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "type",
+              "value": "@bind=data.type.desc;"
+            },
+            {
+              "name": "status",
+              "value": "@bind=data.status.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "rpm",
+              "value": "@bind=data.rpm;",
+              "type": "int"
+            },
+            {
+              "name": "gpm",
+              "value": "@bind=data.gpm;",
+              "type": "int"
+            },
+            {
+              "name": "watts",
+              "value": "@bind=data.watts;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "chlorinator",
+      "description": "Bind circuit emit",
+      "points": [
+        {
+          "measurement": "chlorinators",
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "status",
+              "value": "@bind=data.status.desc;"
+            },
+            {
+              "name": "superChlor",
+              "value": "@bind=data.superChlor;"
+            },
+            {
+              "name": "superChlorHours",
+              "value": "@bind=data.superChlorHours;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "currentOutput",
+              "value": "@bind=data.currentOutput;",
+              "type": "int"
+            },
+            {
+              "name": "poolSetpoint",
+              "value": "@bind=data.poolSetpoint;",
+              "type": "int"
+            },
+            {
+              "name": "saltLevel",
+              "value": "@bind=data.saltLevel;",
+              "type": "int"
+            },
+            {
+              "name": "spaSetpoint",
+              "value": "@bind=data.spaSetpoint;",
+              "type": "int"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "config",
+      "description": "Not used for updates",
+      "enabled": false
+    }
+  ]
+}

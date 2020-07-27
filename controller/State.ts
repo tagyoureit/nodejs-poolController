@@ -1008,7 +1008,7 @@ export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCirc
 }
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
-    public setCircuitState(id: number, val: boolean) { return sys.board.circuits.setCircuitStateAsync(id, val); }
+    public setCircuitStateAsync(id: number, val: boolean):Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public async setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
     public getInterfaceById(id: number, add?: boolean): ICircuitState {
@@ -1301,7 +1301,7 @@ export class ChemControllerState extends EqState {
         let chem = sys.chemControllers.getItemById(this.id);
         let obj = this.get(true);
         obj.saturationIndex = this.saturationIndex || 0;
-        obj.alkalinty = chem.alkalinity;
+        obj.alkalinity = chem.alkalinity;
         obj.body = sys.board.valueMaps.bodies.transform(chem.body);
         obj.calciumHardness = chem.calciumHardness;
         obj.cyanuricAcid = chem.cyanuricAcid;

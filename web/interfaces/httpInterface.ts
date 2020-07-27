@@ -22,16 +22,15 @@ import extend=require("extend");
 import { logger } from "../../logger/Logger";
 import { sys } from "../../controller/Equipment";
 import { state } from "../../controller/State";
+import { InterfaceContext, InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
 
-export class HttpInterfaceBindings {
+export class HttpInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
-        this.cfg = cfg;
+        super(cfg);
     }
-    public context: HttpInterfaceContext;
-    public cfg;
-    public events: HttpInterfaceEvent[];
     public bindEvent(evt: string, ...data: any) {
-        // Find the binding by first looking for the specific event name.  If that doesn't exist then look for the "*" (all events).
+        // Find the binding by first looking for the specific event name.  
+        // If that doesn't exist then look for the "*" (all events).
         if (typeof this.events !== 'undefined') {
             let evts = this.events.filter(elem => elem.name === evt);
             // If we don't have an explicitly defined event then see if there is a default.
@@ -114,50 +113,5 @@ export class HttpInterfaceBindings {
             }
         }
     }
-    private buildTokens(input: string, eventName: string, toks: any, e: HttpInterfaceEvent, data): any {
-        toks = toks || [];
-        let s = input;
-        let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
-        let match;
-        let vars = extend(true, {}, this.cfg.vars, this.context.vars, e.vars);
-        // Map all the returns to the token list.  We are being very basic
-        // here an the object graph is simply based upon the first object occurrence.
-        // We simply want to eval against that object reference.
-        while (match = regx.exec(s)) {
-            let bind = match[0];
-            if (typeof toks[bind] !== 'undefined') continue;
-            let tok: any = {};
-            toks[bind] = tok;
-            tok.value = eval(bind);
-            tok.reg = new RegExp("@bind=" + this.escapeRegex(bind) + ";", "g");
-        }
-        return toks;
-    }
-    private escapeRegex(reg: string) {
-        return reg.replace(/[-[\]{}()*+?.,\\^$]/g, '\\$&');
-    }
-    private replaceTokens(input: string, toks: any) {
-        let s = input;
-        for (let exp in toks) {
-            let tok = toks[exp];
-            tok.reg.lastIndex = 0; // Start over if we used this before.
-            if (typeof tok.value === 'string') s = s.replace(tok.reg, tok.value);
-            else if (typeof tok.value === 'undefined') s = s.replace(tok.reg, 'null');
-            else s = s.replace(tok.reg, JSON.stringify(tok.value));
-        }
-        return s;
-    }
 }
-export class HttpInterfaceEvent {
-    public name: string;
-    public enabled: boolean=true;
-    public options: any={};
-    public body: any={};
-    public vars: any={};
-}
-export class HttpInterfaceContext {
-    public mdnsDiscovery: any;
-    public upnpDevice: any;
-    public options: any={};
-    public vars: any={};
-}
+

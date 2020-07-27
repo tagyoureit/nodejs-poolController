@@ -862,7 +862,7 @@ class TouchCircuitCommands extends CircuitCommands {
                         sys.board.virtualPumpControllers.start();
                         // sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
-                        resolve(cstate.get(true));
+                        resolve(cstate);
                     }
                 }
             });
@@ -883,6 +883,9 @@ class TouchCircuitCommands extends CircuitCommands {
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
+        if (cstate instanceof LightGroupState) {
+            return this.setLightGroupThemeAsync(id, sys.board.valueMaps.lightThemes.getValue(cstate.isOn?'off':'on'));
+        }
         return this.setCircuitStateAsync(id, !cstate.isOn);
     }
     private createLightGroupMessages(group: LightGroup) {
@@ -1044,17 +1047,16 @@ class TouchCircuitCommands extends CircuitCommands {
                     if (err) reject(err);
                     else {
                         try {
-                            /*                         for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                                                        let c = sys.intellibrite.circuits.getItemByIndex(i);
-                                                        let cstate = state.circuits.getItemById(c.circuit);
-                                                        if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                                                    } */
                             // Let everyone know we turned these on.  The theme messages will come later.
                             for (let i = 0; i < grp.circuits.length; i++) {
                                 let c = grp.circuits.getItemByIndex(i);
                                 let cstate = state.circuits.getItemById(c.circuit);
-                                if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                                // if theme is 'off' light groups should not turn on
+                                if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off') 
+                                    await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
+                                else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true); 
                             }
+                            sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false: true;
                             switch (theme) {
                                 case 0: // off
                                 case 1: // on

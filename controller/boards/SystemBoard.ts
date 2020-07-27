@@ -1535,7 +1535,7 @@ export class CircuitCommands extends BoardCommands {
         }
         state.emitEquipmentChanges();
         sys.board.virtualPumpControllers.start();
-        return Promise.resolve(circ);
+        return Promise.resolve(state.circuits.getInterfaceById(circ.id));
     }
 
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {

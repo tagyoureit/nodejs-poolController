@@ -37,6 +37,7 @@ import * as ssdp from 'node-ssdp';
 import * as os from 'os';
 import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
+import { InfluxInterfaceBindings } from './interfaces/influxInterface';
 import {Timestamp} from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
@@ -45,6 +46,7 @@ import { ConfigSocket } from "./services/config/ConfigSocket";
 // external interfaces as well as an internal dashboard.
 export class WebServer {
     private _servers: ProtoServer[]=[];
+    private family='IPv4';
     constructor() { }
     public init() {
         let cfg = config.getSection('web');
@@ -83,6 +85,11 @@ export class WebServer {
                     int.init(c);
                     this._servers.push(int);
                     break;
+                case 'influx':
+                    int = new InfluxInterfaceServer();
+                    int.init(c);
+                    this._servers.push(int);
+                    break;
             }
         }
     }
@@ -103,16 +110,6 @@ export class WebServer {
             if (typeof this._servers[s].stop() === 'function') this._servers[s].stop();
         }
     }
-}
-class ProtoServer {
-    // base class for all servers.
-    public isRunning: boolean=false;
-    public emitToClients(evt: string, ...data: any) { }
-    public emitToChannel(channel: string, evt: string, ...data: any) { }
-    public stop() { }
-    protected _dev: boolean=process.env.NODE_ENV !== 'production';
-    // todo: how do we know if the client is using IPv4/IPv6?
-    private family='IPv4';
     private getInterface() {
         const networkInterfaces = os.networkInterfaces();
         // RKS: We need to get the scope-local nic. This has nothing to do with IP4/6 and is not necessarily named en0 or specific to a particular nic.  We are
@@ -130,12 +127,21 @@ class ProtoServer {
             }
         }
     }
-    protected ip() {
+    public ip() {
         return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address;
     }
-    protected mac() {
+    public mac() {
         return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac;
     }
+}
+class ProtoServer {
+    // base class for all servers.
+    public isRunning: boolean=false;
+    public emitToClients(evt: string, ...data: any) { }
+    public emitToChannel(channel: string, evt: string, ...data: any) { }
+    public stop() { }
+    protected _dev: boolean=process.env.NODE_ENV !== 'production';
+    // todo: how do we know if the client is using IPv4/IPv6?
 }
 export class Http2Server extends ProtoServer {
     public server: http2.Http2Server;
@@ -326,11 +332,11 @@ export class SsdpServer extends ProtoServer {
             let self = this;
 
             logger.info('Starting up SSDP server');
-            var udn = 'uuid:806f52f4-1f35-4e33-9299-' + this.mac();
+            var udn = 'uuid:806f52f4-1f35-4e33-9299-' + webApp.mac();
             // todo: should probably check if http/https is enabled at this point
             var port = config.getSection('web').servers.http.port || 4200;
             //console.log(port);
-            let location = 'http://' + this.ip() + ':' + port + '/device';
+            let location = 'http://' + webApp.ip() + ':' + port + '/device';
             var SSDP = ssdp.Server;
             this.server = new SSDP({
                 logLevel: 'INFO',
@@ -368,7 +374,7 @@ export class SsdpServer extends ProtoServer {
                                 <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
                                 <modelDescription>An application to control pool equipment.</modelDescription>
                                 <serialNumber>0</serialNumber>
-                    			<UDN>uuid:806f52f4-1f35-4e33-9299-${this.mac() }</UDN>
+                    			<UDN>uuid:806f52f4-1f35-4e33-9299-${webApp.mac() }</UDN>
                                 <serviceList></serviceList>
                             </device>
                         </root>`;
@@ -419,7 +425,7 @@ export class MdnsServer extends ProtoServer {
                                 name: '_poolcontroller._tcp.local',
                                 type: 'A',
                                 ttl: 300,
-                                data: self.ip()
+                                data: webApp.ip()
                             },
                             {
                                 name: 'api._poolcontroller._tcp.local',
@@ -507,7 +513,6 @@ export class HttpInterfaceServer extends ProtoServer {
                     });
                 }
             }
-
             return true;
         }
         catch (err) {
@@ -522,4 +527,65 @@ export class HttpInterfaceServer extends ProtoServer {
         }
     }
 }
+
+export class InfluxInterfaceServer extends ProtoServer {
+    public bindingsPath: string;
+    public bindings: InfluxInterfaceBindings;
+    private _fileTime: Date = new Date(0);
+    private _isLoading: boolean = false;
+    public init(cfg) {
+        if (cfg.enabled) {
+            if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
+        }
+    }
+    public loadBindings(cfg): boolean {
+        this._isLoading = true;
+        if (fs.existsSync(this.bindingsPath)) {
+            try {
+                let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
+                let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
+                this.bindings = Object.assign<InfluxInterfaceBindings, any>(new InfluxInterfaceBindings(cfg), ext);
+                this.isRunning = true;
+                this._isLoading = false;
+                const stats = fs.statSync(this.bindingsPath);
+                this._fileTime = stats.mtime;
+                return true;
+            }
+            catch (err) {
+                logger.error(`Error reading interface bindings file: ${this.bindingsPath}. ${err}`);
+                this.isRunning = false;
+                this._isLoading = false;
+            }
+        }
+        return false;
+    }
+    public initBindings(cfg): boolean {
+        let self = this;
+        try {
+            this.bindingsPath = path.posix.join(process.cwd(), "/web/bindings") + '/' + cfg.fileName;
+            fs.watch(this.bindingsPath, (event, fileName) => {
+                if (fileName && event === 'change') {
+                    if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                    const stats = fs.statSync(self.bindingsPath);
+                    if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
+                    self.loadBindings(cfg);
+                    logger.info(`Reloading ${cfg.name || ''} interface config: ${fileName}`);
+                }
+            });
+            this.loadBindings(cfg);
+            return true;
+        }
+        catch (err) {
+            logger.error(`Error initializing interface bindings: ${err}`);
+        }
+        return false;
+    }
+    public emitToClients(evt: string, ...data: any) {
+        if (this.isRunning) {
+            // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
+            this.bindings.bindEvent(evt, ...data);
+        }
+    }
+}
+
 export const webApp = new WebServer();
