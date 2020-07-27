@@ -30,7 +30,6 @@ class Logger {
         this.pktPath = path.join(process.cwd(), '/logs', this.getPacketPath());
         this.captureForReplayBaseDir = path.join(process.cwd(), '/logs/', this.getLogTimestamp());
         /*         this.captureForReplayPath = path.join(this.captureForReplayBaseDir, '/packetCapture.json'); */
-        this.cfg = config.getSection('log');
         this.pkts = [];
     }
     private cfg;
@@ -61,6 +60,7 @@ class Logger {
 
     private _logger: winston.Logger;
     public init() {
+        this.cfg = config.getSection('log');
         logger._logger = winston.createLogger({
             format: winston.format.combine(winston.format.colorize(), winston.format.splat(), winston.format.simple()),
             transports: [this.transports.console]

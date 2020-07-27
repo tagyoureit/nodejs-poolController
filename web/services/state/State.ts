@@ -28,8 +28,8 @@ export class StateRoute {
         });
         app.put('/state/chemController', async (req, res, next) => {
             try {
-                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
-                return res.status(200).send(state.chemControllers.getItemById(chem.id).getExtended());
+                let schem = await sys.board.chemControllers.setChemControllerAsync(req.body);
+                return res.status(200).send(state.chemControllers.getItemById(schem.id).getExtended());
             }
             catch (err) { next(err); }
         });
@@ -46,47 +46,46 @@ export class StateRoute {
         });
         app.put('/state/circuit/setState', async (req, res, next) => {
             try {
-                console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
                 // Do some work to allow the legacy state calls to work.  For some reason the state value is generic while all of the
                 // circuits are actually binary states.  While this may need to change in the future it seems like a distant plan
                 // that circuits would have more than 2 states.  Not true for other equipment but certainly true for individual circuits/features/groups.
                 let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
                 //state.circuits.setCircuitState(parseInt(req.body.id, 10), utils.makeBool(req.body.state));
-                let circuit = await sys.board.circuits.setCircuitStateAsync(parseInt(req.body.id, 10), isOn);
-                return res.status(200).send((circuit as ICircuitState).get(true));
+                let cstate = await sys.board.circuits.setCircuitStateAsync(parseInt(req.body.id, 10), isOn);
+                return res.status(200).send(cstate.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/circuitGroup/setState', async (req, res, next) => {
             console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
             let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
-            let circuit = await sys.board.circuits.setCircuitGroupStateAsync(parseInt(req.body.id, 10), isOn);
-            return res.status(200).send((circuit as ICircuitGroupState).get(true));
+            let cstate = await sys.board.circuits.setCircuitGroupStateAsync(parseInt(req.body.id, 10), isOn);
+            return res.status(200).send(cstate.get(true));
         });
         app.put('/state/lightGroup/setState', async (req, res, next) => {
             console.log(`request:  ${JSON.stringify(req.body)}... id: ${req.body.id}  state: ${req.body.state} isOn: ${req.body.isOn}`);
             let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
-            let circuit = await sys.board.circuits.setLightGroupStateAsync(parseInt(req.body.id, 10), isOn);
-            return res.status(200).send((circuit as ICircuitGroupState).get(true));
+            let cstate = await sys.board.circuits.setLightGroupStateAsync(parseInt(req.body.id, 10), isOn);
+            return res.status(200).send(cstate.get(true));
         });
         app.put('/state/circuit/toggleState', async (req, res, next) => {
             try {
                 let cstate = await sys.board.circuits.toggleCircuitStateAsync(parseInt(req.body.id, 10));
-                return res.status(200).send(cstate);
+                return res.status(200).send(cstate.get(true));
             }
             catch (err) {next(err);}
         });    
         app.put('/state/feature/toggleState', async (req, res, next) => {
             try {
                 let fstate = await sys.board.features.toggleFeatureStateAsync(parseInt(req.body.id, 10));
-                return res.status(200).send(fstate);
+                return res.status(200).send(fstate.get(true));
             }
             catch (err) {next(err);}
         });    
         app.put('/state/circuit/setTheme', async (req, res, next) => {
            try {
                let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
-               return res.status(200).send(theme);
+               return res.status(200).send(theme.get(true));
             } 
             catch (err) { next(err); }
         }); 
@@ -105,8 +104,8 @@ export class StateRoute {
         });
         app.put('/state/circuit/setDimmerLevel', async (req, res, next) => {
             try {
-                let circuit = await sys.board.circuits.setDimmerLevelAsync(parseInt(req.body.id, 10), parseInt(req.body.level, 10));
-                return res.status(200).send(circuit);
+                let cstate = await sys.board.circuits.setDimmerLevelAsync(parseInt(req.body.id, 10), parseInt(req.body.level, 10));
+                return res.status(200).send(cstate.get(true));
             }
             catch (err) { next(err); }
         });
@@ -114,7 +113,7 @@ export class StateRoute {
             try {
                 let isOn = utils.makeBool(typeof req.body.isOn !== 'undefined' ? req.body.isOn : req.body.state);
                 let fstate = await state.features.setFeatureStateAsync(req.body.id, isOn);
-                return res.status(200).send(fstate);
+                return res.status(200).send(fstate.get(true));
             }
             catch (err){ next(err); }
         });
@@ -134,7 +133,7 @@ export class StateRoute {
                 let body = sys.bodies.findByObject(req.body);
                 if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
                 let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
-                return res.status(200).send(tbody);
+                return res.status(200).send(tbody.get(true));
             } catch (err) { next(err); }
         });
         app.put('/state/body/setPoint', async (req, res, next) => {
@@ -143,51 +142,51 @@ export class StateRoute {
                 let body = sys.bodies.findByObject(req.body);
                 if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
                 let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.setPoint, 10));
-                return res.status(200).send(tbody);
+                return res.status(200).send(tbody.get(true));
             } catch (err) { next(err); }
         });
         app.put('/state/chlorinator', async (req, res, next) => {
             try {
-                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(req.body);
+                return res.status(200).send(schlor.get(true));
             } catch (err) { next(err); }
         });
         // this ../setChlor should really be EOL for PUT /state/chlorinator above
         app.put('/state/chlorinator/setChlor', async (req, res, next) => {
             try {
-                let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(req.body);
+                return res.status(200).send(schlor.get(true));
             } catch (err) { next(err); }
         });
         app.put('/state/chlorinator/poolSetpoint', async (req, res, next) => {
             try {
                 let obj = { id: req.body.id, poolSetpoint: parseInt(req.body.setPoint, 10) }
-                let chlor = await sys.board.chlorinator.setChlorAsync(obj);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(obj);
+                return res.status(200).send(schlor.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/chlorinator/spaSetpoint', async (req, res, next) => {
             try {
                 let obj = { id: req.body.id, spaSetpoint: parseInt(req.body.setPoint, 10) }
-                let chlor = await sys.board.chlorinator.setChlorAsync(obj);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(obj);
+                return res.status(200).send(schlor.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/chlorinator/superChlorHours', async (req, res, next) => {
             try {
                 let obj = { id: req.body.id, superChlorHours: parseInt(req.body.hours, 10) }
-                let chlor = await sys.board.chlorinator.setChlorAsync(obj);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(obj);
+                return res.status(200).send(schlor.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/chlorinator/superChlorinate', async (req, res, next) => {
             try {
                 let obj = { id: req.body.id, superChlorinate: utils.makeBool(req.body.superChlorinate) }
-                let chlor = await sys.board.chlorinator.setChlorAsync(obj);
-                return res.status(200).send(chlor);
+                let schlor = await sys.board.chlorinator.setChlorAsync(obj);
+                return res.status(200).send(schlor.get(true));
             }
             catch (err) { next(err); }
         });
