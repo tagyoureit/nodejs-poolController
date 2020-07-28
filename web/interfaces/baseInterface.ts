@@ -1,8 +1,8 @@
 import extend = require("extend");
 import { logger } from "../../logger/Logger";
-import { sys } from "../../controller/Equipment";
-import { state } from "../../controller/State";
-import { webApp } from '../Server';
+import { sys as sysAlias } from "../../controller/Equipment";
+import { state as stateAlias} from "../../controller/State";
+import { webApp as webAppAlias} from '../Server';
 
 export class BaseInterfaceBindings {
     constructor(cfg) {
@@ -18,9 +18,9 @@ export class BaseInterfaceBindings {
         let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
         let match;
         let vars = extend(true, {}, this.cfg.vars, this.context.vars, typeof e !== 'undefined' && e.vars);
-        let sys1 = sys;
-        let state1 = state;
-        let webApp1 = webApp;
+        let sys = sysAlias;
+        let state = stateAlias;
+        let webApp = webAppAlias;
         // Map all the returns to the token list.  We are being very basic
         // here an the object graph is simply based upon the first object occurrence.
         // We simply want to eval against that object reference.
@@ -57,6 +57,10 @@ export class BaseInterfaceBindings {
             else s = s.replace(tok.reg, JSON.stringify(tok.value));
         }
         return s;
+    }
+    protected tokensReplacer(input: string, eventName: string, toks: any, e: InterfaceEvent, data): any{
+        this.buildTokens(input, eventName, toks, e, data);
+        return this.replaceTokens(input, toks);
     }
 }
 

@@ -16,12 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import extend = require("extend");
-import { logger } from "../../logger/Logger";
-import { InfluxDB, Point, HttpError, WritePrecision, ClientOptions } from '@influxdata/influxdb-client';
-import { InterfaceEvent, InterfaceContext, BaseInterfaceBindings } from "./baseInterface";
+import { ClientOptions, InfluxDB, Point, WritePrecision } from '@influxdata/influxdb-client';
 import { utils } from '../../controller/Constants';
-import { state } from '../../controller/State';
-import { sys } from "../../controller/Equipment";
+import { logger } from "../../logger/Logger";
+import { BaseInterfaceBindings, InterfaceContext, InterfaceEvent } from "./baseInterface";
 
 
 export class InfluxInterfaceBindings extends BaseInterfaceBindings {
@@ -59,12 +57,14 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
         let baseTags = {}
         baseOpts.tags.forEach(tag=> {
             let toks = {};
-            let sname = tag.name;
+            let sname = this.tokensReplacer(tag.name, undefined, toks, undefined, {})
+            /* let sname = tag.name;
             this.buildTokens(sname, undefined, toks, undefined, {});
-            sname = this.replaceTokens(sname, toks);
-            let svalue = tag.value;
+            sname = this.replaceTokens(sname, toks); */
+            let svalue = this.tokensReplacer(tag.value, undefined, toks, {vars:{}} as any, {});
+            /* let svalue = tag.value;
             this.buildTokens(svalue, undefined, toks, {vars:{}} as any, {});
-            svalue = this.replaceTokens(svalue, toks);
+            svalue = this.replaceTokens(svalue, toks); */
             if (typeof sname !== 'undefined' && typeof svalue !== 'undefined' && !sname.includes('@bind') && !svalue.includes('@bind'))
             baseTags[sname] = svalue;
         })
@@ -135,20 +135,26 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                             }
                         })
                         point.timestamp(new Date());
-                        if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState){
-                            // copy the point and subtract a second and keep inverse value
-                            let ts = new Date();
-                            let sec = ts.getSeconds() - 1;
-                            ts.setSeconds(sec);
-                            point2.timestamp(ts);
-                            this.writeApi.writePoint(point2);
-                       }
-                        if (typeof point.toLineProtocol() !== 'undefined'){
-                            this.writeApi.writePoint(point);
-                            logger.info(`INFLUX: ${point.toLineProtocol()}`)
+                        try {
+
+                            if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState){
+                                // copy the point and subtract a second and keep inverse value
+                                let ts = new Date();
+                                let sec = ts.getSeconds() - 1;
+                                ts.setSeconds(sec);
+                                point2.timestamp(ts);
+                                this.writeApi.writePoint(point2);
+                            }
+                            if (typeof point.toLineProtocol() !== 'undefined'){
+                                this.writeApi.writePoint(point);
+                                logger.info(`INFLUX: ${point.toLineProtocol()}`)
+                            }
+                            else {
+                                logger.silly(`Skipping INFLUX write because some data is missing with ${e.name} event on measurement ${_point.measurement}.`)
+                            }
                         }
-                        else {
-                            logger.silly(`Skipping INFLUX write because some data is missing with ${e.name} event on measurement ${_point.measurement}.`)
+                        catch (err){
+                            logger.error(`Error writing to Influx: ${err.message}`)
                         }
                     })
                 }

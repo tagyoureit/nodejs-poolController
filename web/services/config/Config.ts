@@ -43,7 +43,7 @@ export class ConfigRoute {
         /// Returns an object that contains the general options for setting up the panel.
         app.get('/config/options/general', (req, res) => {
             let opts = {
-                countries: [{ id: 1, name: 'United States' }, { id: 2, name: 'Mexico' }, { id: 3, name: 'Canada' }],
+                countries: sys.board.valueMaps.countries.toArray(),
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
                 timeZones: sys.board.valueMaps.timeZones.toArray(),
                 clockSources: sys.board.valueMaps.clockSources.toArray(),
@@ -305,7 +305,14 @@ export class ConfigRoute {
         app.put('/config/customNames', async (req, res, next) => {
             try {
                 let names = await sys.board.system.setCustomNamesAsync(req.body);
-                return res.status(200).send((names).toArray());
+                return res.status(200).send(names.get());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/customName', async (req, res, next) => {
+            try {
+                let name = await sys.board.system.setCustomNameAsync(req.body);
+                return res.status(200).send(name.get(true));
             }
             catch (err) { next(err); }
         });
