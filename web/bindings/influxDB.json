@@ -5,7 +5,7 @@
       "tags": [
         {
           "name": "sourceIP",
-          "value": "@bind=Server_1.webApp.ip();"
+          "value": "@bind=webApp.ip();"
         },
         {
           "name": "sourceApp",
