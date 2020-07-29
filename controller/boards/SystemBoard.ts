@@ -1913,6 +1913,7 @@ export class FeatureCommands extends BoardCommands {
         let feature = sys.features.getItemById(id);
         let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
         fstate.isOn = val;
+        sys.board.virtualPumpControllers.start();
         state.emitEquipmentChanges();
         return Promise.resolve(fstate.get(true));
     }
