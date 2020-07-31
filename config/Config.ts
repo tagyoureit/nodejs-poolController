@@ -35,16 +35,21 @@ class Config {
             const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
             this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
             this._isInitialized = true;
-            fs.watch(this.cfgPath, (event, fileName) => {
-                if (fileName && event === 'change') {
-                    if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
-                    const stats = fs.statSync(self.cfgPath);
-                    if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
-                    this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
-                    this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
-                    logger.init(); // only reload logger for now; possibly expand to other areas of app
-                    logger.info(`Reloading app config: ${fileName}`);
+            this.update((err) => {
+                if (typeof err === 'undefined') {
+                    fs.watch(this.cfgPath, (event, fileName) => {
+                        if (fileName && event === 'change') {
+                            if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                            const stats = fs.statSync(self.cfgPath);
+                            if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
+                            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
+                            this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
+                            logger.init(); // only reload logger for now; possibly expand to other areas of app
+                            logger.info(`Reloading app config: ${fileName}`);
+                        }
+                    });
                 }
+                else throw err;
             });
             this._isLoading = false;
         } catch (err) {
@@ -53,19 +58,25 @@ class Config {
             throw err;
         }
     }
-    public update() {
+    public update(callback?: (err?) => void) {
         // Don't overwrite the configuration if we failed during the initialization.
         try {
-            if (!this._isInitialized) return;
+            if (!this._isInitialized) {
+                if (typeof callback === 'function') callback(new Error('njsPC has not been initialized.'));
+                return;
+            }
             this._isLoading = true;
             fs.writeFileSync(
                 this.cfgPath,
                 JSON.stringify(this._cfg, undefined, 2)
             );
+            if (typeof callback === 'function') callback();
             setTimeout(()=>{this._isLoading = false;}, 2000);
         }
         catch (err) {
             logger.error("Error writing configuration file %s", err);
+            if (typeof callback === 'function') callback(err);
+
         }
     }
     public setSection(section: string, val) {
