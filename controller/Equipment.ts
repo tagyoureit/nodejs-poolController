@@ -160,7 +160,6 @@ export class PoolSystem implements IPoolSystem {
         this.schedules.clear();
         this.security.clear();
         this.valves.clear();
-        this.covers.clear();
         this.chemControllers.clear();
         //if (typeof this.data.intelliBrite !== 'undefined') this.intellibrite.clear();
         if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
@@ -300,6 +299,7 @@ export class PoolSystem implements IPoolSystem {
             chlorinators: self.data.chlorinators || [],
             remotes: self.data.remotes || [],
             heaters: self.data.heaters || [],
+            covers: self.data.covers || [],
             appVersion: self.data.appVersion || '0.0.0'
         };
     }

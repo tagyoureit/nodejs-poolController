@@ -83,10 +83,6 @@ export class ConfigRoute {
                 lightGroups: sys.lightGroups.get(),
                 functions: sys.board.circuits.getCircuitFunctions()
             };
-/*             if (typeof sys.controllerType !== 'undefined' && sys.controllerType.toLowerCase().includes('touch')){
-                //TODO: remove when Intellibrite is migrated to light groups
-                opts['lightGroups'] = extend([], opts.lightGroups, sys.intellibrite.getExtended());
-            } */
             return res.status(200).send(opts);
         });
         app.get('/config/options/features', (req, res) => {
@@ -127,6 +123,7 @@ export class ConfigRoute {
                     ss: sys.board.valueMaps.pumpSSModels.toArray(),
                     ds: sys.board.valueMaps.pumpDSModels.toArray(),
                     vs: sys.board.valueMaps.pumpVSModels.toArray(),
+                    vf: sys.board.valueMaps.pumpVSModels.toArray(),
                     vsf: sys.board.valueMaps.pumpVSFModels.toArray(),
                     vssvrs: sys.board.valueMaps.pumpVSSVRSModels.toArray()
                 },
@@ -182,7 +179,7 @@ export class ConfigRoute {
                 status: sys.board.valueMaps.chemControllerStatus.toArray(),
                 status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
                 status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
-                waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray(),
+                waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(),
                 controllers: sys.chemControllers.get(),
                 maxChemControllers: sys.equipment.maxChemControllers
             };
@@ -197,7 +194,18 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-
+        app.get('/config/options/dateTime', (req, res) => {
+            let opts = {
+                dow: sys.board.system.getDOW()
+            }
+            return res.status(200).send(opts);
+        });
+        app.get('/app/options/logger', (req, res) => {
+            let opts = {
+                logger: config.getSection('log')
+            }
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/general', async (req, res, next) => {
@@ -526,10 +534,6 @@ export class ConfigRoute {
                 return res.status(200).send(time);
             }
             catch (err) { next(err); }
-        });
-        app.get('/config/DaysOfWeek', (req, res) => {
-            let dow = sys.board.system.getDOW();
-            return res.status(200).send(dow);
         });
         app.get('/config/lightGroups/themes', (req, res) => {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?

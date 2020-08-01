@@ -33,7 +33,7 @@ export class BaseInterfaceBindings {
             try {
                 // we may error out if data can't be found (eg during init)
                 tok.reg = new RegExp("@bind=" + this.escapeRegex(bind) + ";", "g");
-                tok.value = eval(bind.replace(/sys./g, 'Equipment_1.sys.').replace(/state./g, 'State_1.state.'));
+                tok.value = eval(bind);
             }
             catch (err) {
                 // leave value undefined so it isn't sent to bindings

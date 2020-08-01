@@ -186,7 +186,7 @@ export class ConfigSocket {
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
                 status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
                 status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
-                waterFlow: sys.board.valueMaps.intelliChemWaterFlow.toArray(),
+                waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(),
                 controllers: sys.chemControllers.get(),
                 maxChemControllers: sys.equipment.maxChemControllers
             };
