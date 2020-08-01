@@ -184,7 +184,7 @@ export class ExternalMessage {
                         }
                     }
                     group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
-                    sgroup.eggTimer = group.eggTimer;
+                    // sgroup.eggTimer = group.eggTimer;
                     if (type === 1) {
                         let g = group as LightGroup;
                         for (let i = 0; i < 16; i++) {

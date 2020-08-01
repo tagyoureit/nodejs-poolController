@@ -744,7 +744,7 @@ export interface ICircuitGroupState {
     type: number;
     name: string;
     nameId?: number;
-    eggTimer: number;
+    // eggTimer: number;
     isOn: boolean;
     isActive: boolean;
     dataName: string;
@@ -775,8 +775,8 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
             this.hasChanged = true;
         }
     }
-    public get eggTimer(): number { return this.data.eggTimer; }
-    public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    // public get eggTimer(): number { return this.data.eggTimer; }
+    // public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -830,8 +830,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
             this.hasChanged = true;
         }
     }
-    public get eggTimer(): number { return this.data.eggTimer; }
-    public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    // public get eggTimer(): number { return this.data.eggTimer; }
+    // public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1247,7 +1247,7 @@ export class ChemControllerState extends EqState {
     public get waterFlow(): number { return this.data.waterFlow; }
     public set waterFlow(val: number) {
         if (this.waterFlow !== val) {
-            this.data.waterFlow = sys.board.valueMaps.intelliChemWaterFlow.transform(val);
+            this.data.waterFlow = sys.board.valueMaps.chemControllerWaterFlow.transform(val);
             this.hasChanged = true;
         }
     }

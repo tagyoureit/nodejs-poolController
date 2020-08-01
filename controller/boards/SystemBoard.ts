@@ -25,7 +25,7 @@ import { logger } from '../../logger/Logger';
 import { webApp } from '../../web/Server';
 
 export class byteValueMap extends Map<number, any> {
-    public transform(byte: number, ext?: number) { return extend(true, { val: byte }, this.get(byte) || this.get(0)); }
+    public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
     public toArray(): any[] {
         let arrKeys = Array.from(this.keys());
         let arr = [];
@@ -328,6 +328,9 @@ export class byteValueMaps {
     public pumpVSModels: byteValueMap = new byteValueMap([
         [0, { name: 'intelliflovs', desc: 'IntelliFlo VS' }]
     ]);
+    public pumpVFModels: byteValueMap = new byteValueMap([
+        [0, { name: 'intelliflovf', desc: 'IntelliFlo VF' }]
+    ]);
     public pumpVSFModels: byteValueMap = new byteValueMap([
         [0, { name: 'intelliflovsf', desc: 'IntelliFlo VSF' }]
     ]);
@@ -462,8 +465,7 @@ export class byteValueMaps {
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'nocomms', desc: 'No Communication' }]
     ]);
-    // RKS: TODO -- Make these chemController not intelliChem.
-    public intelliChemWaterFlow: byteValueMap = new byteValueMap([
+    public chemControllerWaterFlow: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
     ]);
@@ -949,7 +951,7 @@ export class PumpCommands extends BoardCommands {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             let spump = state.pumps.getItemById(id, data.id <= 0);
             if (typeof data.type !== 'undefined' && data.type !== pump.type) {
@@ -987,13 +989,13 @@ export class PumpCommands extends BoardCommands {
             return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
         else
-            throw new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump');
+            return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
     }
     public deletePumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump');
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, false);
             let spump = state.pumps.getItemById(id, false);
             sys.pumps.removeItemById(id);
@@ -1612,8 +1614,8 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit');
-        if (id === 6) throw new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+        if (id === 6) return Promise.reject(new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id));
 
         if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
         if (typeof data.id !== 'undefined') {
@@ -1636,7 +1638,7 @@ export class CircuitCommands extends BoardCommands {
             return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
         }
         else
-            throw new Error('Circuit id has not been defined');
+            return Promise.reject(new Error('Circuit id has not been defined'));
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
@@ -1645,8 +1647,8 @@ export class CircuitCommands extends BoardCommands {
             // We are adding a circuit group.
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
-        if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup');
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id, true);
         return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
@@ -1673,8 +1675,8 @@ export class CircuitCommands extends BoardCommands {
             // We are adding a circuit group.
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
-        if (typeof id === 'undefined') throw new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup');
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) throw new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup');
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
         group = sys.lightGroups.getItemById(id, true);
         return new Promise<LightGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
@@ -1700,7 +1702,7 @@ export class CircuitCommands extends BoardCommands {
     }
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup');
+        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
@@ -1714,11 +1716,11 @@ export class CircuitCommands extends BoardCommands {
             return new Promise<CircuitGroup>((resolve, reject) => { resolve(group); });
         }
         else
-            throw new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup');
+            return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup'));
     }
     public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'LightGroup');
+        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'LightGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.lightGroups.getItemById(id, false);
@@ -1732,11 +1734,11 @@ export class CircuitCommands extends BoardCommands {
             return new Promise<LightGroup>((resolve, reject) => { resolve(group); });
         }
         else
-            throw new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup');
+            return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup'));
     }
 
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
-        if (typeof data.id === 'undefined') throw new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit');
+        if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit'));
         let circuit = sys.circuits.getInterfaceById(data.id);
         if (circuit instanceof Circuit) {
             sys.circuits.removeItemById(data.id);
@@ -2407,7 +2409,7 @@ export class ChemControllerCommands extends BoardCommands {
         chem.isVirtual = data.isVirtual || true;
         schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
         // config data
-        if (typeof data.body !== 'undefined') chem.body = data.body || 32;
+        chem.body = data.body || chem.body || 32;
         if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
         if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint, 10);
         if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);

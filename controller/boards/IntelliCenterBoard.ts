@@ -23,7 +23,7 @@ import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState } from '../State';
 import { utils } from '../../controller/Constants';
-import { InvalidEquipmentIdError, InvalidEquipmentDataError } from '../Errors';
+import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError } from '../Errors';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -737,7 +737,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                             payload: [12, 0, 0],
                             retries: 1,
                             onComplete: (err, msg) => {
-                                if (err) throw new Error(err);
+                                if (err) return Promise.reject(new Error(err));
                                 else { sys.general.alias = obj.alias; resolve(); }
                             }
                         }).appendPayloadString(obj.alias, 16);
@@ -1210,8 +1210,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         return new Promise<ICircuit>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             let circuit = sys.circuits.getItemById(id, false);
-            if (isNaN(id)) throw new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit');
-            if (!sys.board.equipmentIds.circuits.isInRange(id)) throw new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit');
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit'));
+            if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = circuit.eggTimer;
             let eggHrs = Math.floor(eggTimer / 60);
@@ -1284,7 +1284,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else {
-                            sgroup.eggTimer = group.eggTimer = eggTimer;
+                            // sgroup.eggTimer = group.eggTimer = eggTimer;
+                            group.eggTimer = eggTimer;
                             sgroup.type = group.type = 2;
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
@@ -1353,7 +1354,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
         let id = parseInt(obj.id, 10);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) Promise.reject(new Error(`Invalid circuit group id: ${obj.id}`));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id);
         try {
             await new Promise((resolve, reject) => {
@@ -1433,7 +1434,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         else {
             group = sys.lightGroups.getItemById(id, false);
         }
-        if (typeof id === 'undefined') throw new Error(`Max light group ids exceeded`);
+        if (typeof id === 'undefined') return Promise.reject(new Error(`Max light group ids exceeded`));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         try {
             await new Promise((resolve, reject) => {
@@ -1976,8 +1977,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             }
             else
                 feature = sys.features.getItemById(id, false);
-            if (isNaN(id)) throw new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature');
-            if (!sys.board.equipmentIds.features.isInRange(id)) throw new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature');
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
+            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
             let eggHrs = Math.floor(eggTimer / 60);
@@ -2014,7 +2015,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public async deleteFeatureAsync(data: any): Promise<Feature> {
         return new Promise<Feature>((resolve, reject) => {
             let id = parseInt(data.id, 10);
-            if (isNaN(id)) throw new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature');
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
             let feature = sys.features.getItemById(id, false);
             let out = Outbound.create({
                 action: 168,
@@ -2409,7 +2410,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
         // get it from the current pump configuration.
         let pump = sys.pumps.getItemById(id, false);
-        if (typeof pump.type === 'undefined') return Promise.reject(new Error(`Pump #${data.id} does not exist in configuration`));
+        if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Pump #${data.id} does not exist in configuration`, data.id, 'Schedule'));
         let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, 0, 0, id + 95] });
         outc.appendPayloadInt(450);  // 6
         outc.appendPayloadInt(3450);  // 8
@@ -2461,7 +2462,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         let arr = [];
         let byte = 0;
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) throw new InvalidEquipmentIdError('Body Id is not defined', obj.id, 'Body');
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Body Id is not defined', obj.id, 'Body'));
         let body = sys.bodies.getItemById(id, false);
         switch (body.id) {
             case 1:
