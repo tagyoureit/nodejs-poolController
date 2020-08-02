@@ -40,15 +40,15 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 export enum Direction {
-    In='in',
-    Out='out'
+    In = 'in',
+    Out = 'out'
 }
 export enum Protocol {
-    Unknown='unknown',
-    Broadcast='broadcast',
-    Pump='pump',
-    Chlorinator='chlorinator',
-    IntelliChem='intellichem',
+    Unknown = 'unknown',
+    Broadcast = 'broadcast',
+    Pump = 'pump',
+    Chlorinator = 'chlorinator',
+    IntelliChem = 'intellichem',
     IntelliValve = 'intellivalve',
     Unidentified = 'unidentified'
 }
@@ -56,26 +56,26 @@ export class Message {
     constructor() { }
 
     // Internal Storage
-    protected _complete: boolean=false;
-    public static headerSubByte: number=33;
-    public static pluginAddress: number=config.getSection('controller', { address: 33 }).address;
+    protected _complete: boolean = false;
+    public static headerSubByte: number = 33;
+    public static pluginAddress: number = config.getSection('controller', { address: 33 }).address;
     private _id: number = -1;
     // Fields
     private static _messageId: number = 0;
     public static get nextMessageId(): number { return this._messageId < 80000 ? ++this._messageId : this._messageId = 0; }
 
-    public timestamp: Date=new Date();
-    public direction: Direction=Direction.In;
-    public protocol: Protocol=Protocol.Unknown;
-    public padding: number[]=[];
-    public preamble: number[]=[];
-    public header: number[]=[];
-    public payload: number[]=[];
-    public term: number[]=[];
-    public packetCount: number=0;
+    public timestamp: Date = new Date();
+    public direction: Direction = Direction.In;
+    public protocol: Protocol = Protocol.Unknown;
+    public padding: number[] = [];
+    public preamble: number[] = [];
+    public header: number[] = [];
+    public payload: number[] = [];
+    public term: number[] = [];
+    public packetCount: number = 0;
     public get id(): number { return this._id; }
     public set id(val: number) { this._id = val; }
-    public isValid: boolean=true;
+    public isValid: boolean = true;
     // Properties
     public get isComplete(): boolean { return this._complete; }
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
@@ -131,9 +131,9 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"id":${this.id},"valid":${ this.isValid },"dir":"${ this.direction }","proto":"${ this.protocol }","pkt":[${ JSON.stringify(this.padding) },${ JSON.stringify(this.preamble) },${ JSON.stringify(this.header) },${ JSON.stringify(this.payload) },${ JSON.stringify(this.term) }],"ts":"${ Timestamp.toISOLocal(this.timestamp) }"}`;
+        return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
-    public generateResponse(resp: boolean|Response|Function): ((msgIn: Inbound, msgOut: Outbound) => boolean)|boolean|Response {
+    public generateResponse(resp: boolean | Response | Function): ((msgIn: Inbound, msgOut: Outbound) => boolean) | boolean | Response {
         if (typeof resp === 'undefined') { return false; }
         else if (typeof resp === 'function') {
             return resp as (msgIn: Inbound, msgOut: Outbound) => boolean;
@@ -172,61 +172,61 @@ export class Message {
                     }
                 }
                 else if (this.protocol === Protocol.Chlorinator) {
-                return (msgIn, msgOut) => {
-                    if (msgIn.protocol !== msgOut.protocol) { return false; }
-                    if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
-                    switch (msgIn.action) {
-                        case 1:
-                            return msgOut.action === 0 ? true : false;
-                        case 3:
-                            return msgOut.action === 20 ? true : false;
-                        case 18:
-                        case 21:
-                        case 22:
-                            return msgOut.action === 17 ? true : false;
-                        default:
-                            return false;
-                    }
-                };
-            }
-            else if (sys.controllerType !== ControllerType.IntelliCenter) {
-                return (msgIn, msgOut) => {
-                    if (msgIn.protocol !== msgOut.protocol) { return false; }
-                    if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
-                    switch (msgIn.action) {
-                        // these responses have multiple items so match the 1st payload byte
-                        case 1: // ack
-                            if (msgIn.payload[0] === msgOut.action) return true;
-                            break;
-                        case 10:
-                        case 11:
-                        case 17:
-                            if (msgIn.action === (msgOut.action & 63) && msgIn.payload[0] === msgOut.payload[0]) return true;
-                            break;
-                        case 252:
-                            if (msgOut.action === 253) return true;
-                            break;
-                        default:
-                            if (msgIn.action === (msgOut.action & 63)) return true;
-                    }
-                    return false;
-                };
-            }
-            else if (sys.controllerType === ControllerType.IntelliCenter) {
-                // intellicenter packets
-                return (msgIn, msgOut) => {
-                    if (msgIn.protocol !== msgOut.protocol) { return false; }
-                    if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
-                    for (let i = 0; i < msgIn.payload.length; i++) {
-                        if (i > msgOut.payload.length - 1)
-                            return false;
-                        if (msgOut.payload[i] !== msgIn.payload[i]) return false;
-                        return true;
-                    }
-                };
+                    return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) { return false; }
+                        if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
+                        switch (msgIn.action) {
+                            case 1:
+                                return msgOut.action === 0 ? true : false;
+                            case 3:
+                                return msgOut.action === 20 ? true : false;
+                            case 18:
+                            case 21:
+                            case 22:
+                                return msgOut.action === 17 ? true : false;
+                            default:
+                                return false;
+                        }
+                    };
+                }
+                else if (sys.controllerType !== ControllerType.IntelliCenter) {
+                    return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) { return false; }
+                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
+                        switch (msgIn.action) {
+                            // these responses have multiple items so match the 1st payload byte
+                            case 1: // ack
+                                if (msgIn.payload[0] === msgOut.action) return true;
+                                break;
+                            case 10:
+                            case 11:
+                            case 17:
+                                if (msgIn.action === (msgOut.action & 63) && msgIn.payload[0] === msgOut.payload[0]) return true;
+                                break;
+                            case 252:
+                                if (msgOut.action === 253) return true;
+                                break;
+                            default:
+                                if (msgIn.action === (msgOut.action & 63)) return true;
+                        }
+                        return false;
+                    };
+                }
+                else if (sys.controllerType === ControllerType.IntelliCenter) {
+                    // intellicenter packets
+                    return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) { return false; }
+                        if (typeof msgIn === 'undefined') { return; } // getting here on msg send failure
+                        for (let i = 0; i < msgIn.payload.length; i++) {
+                            if (i > msgOut.payload.length - 1)
+                                return false;
+                            if (msgOut.payload[i] !== msgIn.payload[i]) return false;
+                            return true;
+                        }
+                    };
+                }
             }
         }
-    }
         else return resp;
     }
 }
@@ -453,7 +453,7 @@ export class Inbound extends Message {
                 CircuitMessage.process(this);
                 break;
             case 17:
-            case 145: 
+            case 145:
                 ScheduleMessage.process(this);
                 break;
             case 18:
@@ -503,19 +503,29 @@ export class Inbound extends Message {
             case 164:  //IntelliCenter
                 VersionMessage.process(this);
                 break;
-            case 168: // Some other turd is setting a value.
-                // This appears to be like the config packet where the dispatching is dependent upon the byte 0 of the payload.
-                // 7 = Intellichlor and this looks like the correct data.
-                // Change pool level from 50 to 51%
-                // [165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 10, 0, 13, 0, 1][2, 41]
-                // Set cleaner on.
-                // [165, 63, 16, 36, 168, 35][15, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0][6, 14] // Later on.
-                //console.log(this.toLog());
-                // We are going to catch some of these as this will reflect some of the state information much more rapidly.  For instance, when another controller
-                // selects a new light theme a message will come across the wire with an action of 168 and a byte 0 of 1.  In order to get this change more rapidly
-                // we will capture it and reflect the change.  If a failure occurs the request will either be sent again or a 164 will be sent on the wire.  At that point
-                // all configuration changes will be picked up.
-                ExternalMessage.process(this);
+            case 168:
+                switch (sys.controllerType) {
+                    case ControllerType.IntelliCenter:
+                        // Some other turd is setting a value.
+                        // This appears to be like the config packet where the dispatching is dependent upon the byte 0 of the payload.
+                        // 7 = Intellichlor and this looks like the correct data.
+                        // Change pool level from 50 to 51%
+                        // [165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 10, 0, 13, 0, 1][2, 41]
+                        // Set cleaner on.
+                        // [165, 63, 16, 36, 168, 35][15, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0][6, 14] // Later on.
+                        //console.log(this.toLog());
+                        // We are going to catch some of these as this will reflect some of the state information much more rapidly.  For instance, when another controller
+                        // selects a new light theme a message will come across the wire with an action of 168 and a byte 0 of 1.  In order to get this change more rapidly
+                        // we will capture it and reflect the change.  If a failure occurs the request will either be sent again or a 164 will be sent on the wire.  At that point
+                        // all configuration changes will be picked up.
+                        ExternalMessage.process(this);
+                        break;
+                    case ControllerType.Unknown:
+                        break;
+                    default:
+                        HeaterMessage.process(this);
+                        break;
+                }
                 break;
             case 197:
                 EquipmentStateMessage.process(this);    // Date/Time request
@@ -538,7 +548,7 @@ export class Inbound extends Message {
                 if (this.action === 109 && this.payload[1] === 3) break;
                 if (this.source === 17 && this.payload[0] === 109) break;
                 if (sys.controllerType === ControllerType.IntelliCenter && (this.action === 222 || this.action === 228)) break; // These are config requests from another controller (100s of them).
-                logger.debug(`Packet not processed: ${ this.toPacket() }`);
+                logger.debug(`Packet not processed: ${this.toPacket()}`);
                 break;
         }
     }
@@ -569,7 +579,7 @@ export class Inbound extends Message {
     }
 }
 export class Outbound extends Message {
-    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response|boolean|Function) {
+    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response | boolean | Function) {
         super();
         this.id = Message.nextMessageId;
         this.protocol = proto;
@@ -609,16 +619,16 @@ export class Outbound extends Message {
         out.timeout = obj.timeout;
         return out;
     }
-    public static createMessage(action: number, payload: number[], retries?: number, response?: Response|boolean|Function): Outbound {
+    public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean | Function): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
 
     // Fields
-    public retries: number=0;
-    public tries: number=0;
-    public timeout: number=1000;
-    public response: ((msgIn: Inbound, msgOut: Outbound) => boolean)|Response|boolean;
-    public failed: boolean=false;
+    public retries: number = 0;
+    public tries: number = 0;
+    public timeout: number = 1000;
+    public response: ((msgIn: Inbound, msgOut: Outbound) => boolean) | Response | boolean;
+    public failed: boolean = false;
     public onComplete: (error: Error, msg: Inbound) => void;
     public onResponseProcessed: () => void;
     // Properties

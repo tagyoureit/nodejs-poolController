@@ -902,7 +902,7 @@ export class BodyTempState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get setPoint(): number { return this.data.poolSetpoint; }
+    public get setPoint(): number { return this.data.setPoint; }
     public set setPoint(val: number) { this.setDataVal('setPoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
