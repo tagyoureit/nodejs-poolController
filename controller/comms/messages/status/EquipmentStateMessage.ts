@@ -484,10 +484,11 @@ export class EquipmentStateMessage {
                                 const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
-                                if (heaterActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                if (cooling) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                else if (solarActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                                if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                tbody.heatStatus = heatStatus;
                             }
                         }
                         if (sys.bodies.length > 1) {
@@ -506,10 +507,11 @@ export class EquipmentStateMessage {
                                 const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
-                                if (heaterActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                if (cooling) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                else if (solarActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                                if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                tbody.heatStatus = heatStatus;
                             }
                         }
                     }
