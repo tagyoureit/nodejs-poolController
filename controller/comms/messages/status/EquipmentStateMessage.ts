@@ -257,7 +257,7 @@ export class EquipmentStateMessage {
         state.equipment.controllerType = sys.controllerType;
         if (sys.equipment.model.includes('PL')) state.equipment.shared = sys.equipment.shared = false;
         else if (sys.equipment.model.includes('PSL')) state.equipment.shared = sys.equipment.shared = true;
-        else ['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
+        else['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         // shared equipment frees up one physical circuit
         sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
@@ -479,24 +479,16 @@ export class EquipmentStateMessage {
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 6;
-                            const heatMode = msg.extractPayloadByte(22) & 0x03;
-                            tbody.heatMode = cbody.heatMode = heatMode;
-                            const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                            const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                            if (tbody.isOn && (heaterActive || solarActive)) {
-                                switch (heatMode) {
-                                    // TODO: clean this up RSG.
-                                    // todo: add cooling in here if it ever shows up
-                                    case 1: // heater
-                                    case 3: // solar
-                                        tbody.heatStatus = heatMode;
-                                        break;
-                                    case 2: // solarpref
-                                        if (heaterActive) tbody.heatStatus = 1; else if (solarActive) tbody.heatStatus = 3;
-                                        break;
-                                }
-                            } else
-                                tbody.heatStatus = 0; // Off
+                            tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x03;
+                            if (tbody.isOn) {
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                const cooling = solarActive && tbody.temp > tbody.setPoint;
+                                tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                                if (heaterActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                if (cooling) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                else if (solarActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                            }
                         }
                         if (sys.bodies.length > 1) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -506,26 +498,19 @@ export class EquipmentStateMessage {
                                 tbody.temp = state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
-                            const heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
-                            tbody.heatMode = cbody.heatMode = heatMode;
+                            tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
-                            const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                            const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                            if (tbody.isOn && (heaterActive || solarActive)) {
-                                switch (heatMode) {
-                                    // todo: add cooling in here if it ever shows up
-                                    case 1: // heater
-                                    case 3: // solar
-                                        tbody.heatStatus = heatMode;
-                                        break;
-                                    case 2: // solarpref
-                                        if (heaterActive) tbody.heatStatus = 1; else if (solarActive) tbody.heatStatus = 3;
-                                        break;
-                                }
-                            } else
-                                tbody.heatStatus = 0; // Off
+                            if (tbody.isOn) {
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                const cooling = solarActive && tbody.temp > tbody.setPoint;
+                                tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                                if (heaterActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                if (cooling) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                else if (solarActive) tbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                            }
                         }
                     }
                     switch (sys.controllerType) {
