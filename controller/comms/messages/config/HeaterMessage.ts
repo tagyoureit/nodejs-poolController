@@ -150,6 +150,11 @@ export class HeaterMessage {
                 // [165,0,112,16,114,10][144,2,0,0,0,0,0,0,0,0][2,51] == no heat, cooling
                 // this might be heatStatus not heatMode?
                 break;
+            case 168:
+                {
+                    // Spa Manual Heat on/off
+                    sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1 ? true : false;
+                }
         }
     }
     private static processHeaterTypes(msg: Inbound) {
