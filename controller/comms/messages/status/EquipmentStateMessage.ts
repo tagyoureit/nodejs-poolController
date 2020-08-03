@@ -480,16 +480,16 @@ export class EquipmentStateMessage {
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 6;
                             tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x03;
+                            let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
                                 const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                                tbody.heatStatus = heatStatus;
                             }
+                            tbody.heatStatus = heatStatus; 
                         }
                         if (sys.bodies.length > 1) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -503,16 +503,16 @@ export class EquipmentStateMessage {
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
+                            let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
                                 const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                                tbody.heatStatus = heatStatus;
                             }
+                            tbody.heatStatus = heatStatus; 
                         }
                     }
                     switch (sys.controllerType) {
