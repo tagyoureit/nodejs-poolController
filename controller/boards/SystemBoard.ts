@@ -725,14 +725,14 @@ export class SystemCommands extends BoardCommands {
                 case 'airSensor1':
                     {
                         let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        if (isNaN(temp)) return Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                         state.temps.air = temp + (sys.general.options.airTempAdj || 0);
                     }
                     break;
                 case 'waterSensor1':
                     {
                         let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        if (isNaN(temp)) return Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                         state.temps.waterSensor1 = temp + (sys.general.options.waterTempAdj1 || 0);
                         let body = state.temps.bodies.getItemById(1);
                         if (body.isOn) body.temp = state.temps.waterSensor1;
@@ -742,7 +742,7 @@ export class SystemCommands extends BoardCommands {
                 case 'waterSensor2':
                     {
                         let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        if (isNaN(temp)) return Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                         state.temps.waterSensor2 = temp + (sys.general.options.waterTempAdj2 || 0);
                         if (!state.equipment.shared) {
                             let body = state.temps.bodies.getItemById(2);
@@ -754,7 +754,7 @@ export class SystemCommands extends BoardCommands {
                 case 'solar':
                     {
                         let temp = parseInt(obj[prop], 10);
-                        if (isNaN(temp)) Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                        if (isNaN(temp)) return Promise.reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                         state.temps.solar = temp + (sys.general.options.solarTempAdj1);
                     }
                     break;
