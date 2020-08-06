@@ -2057,11 +2057,12 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
+        if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
         // Verify the data.
         let body = sys.board.bodies.mapBodyAssociation(chlor.body);
-        if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
-        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
-        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
+        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
