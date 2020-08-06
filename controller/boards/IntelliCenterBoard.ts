@@ -1267,8 +1267,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             sgroup = state.circuitGroups.getItemById(id, false);
             type = group.type;
         }
-        if (typeof id === 'undefined') Promise.reject(new InvalidEquipmentIdError(`Max circuit group ids exceeded: ${id}`, id, 'circuitGroup'));
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'circuitGroup'));
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group ids exceeded: ${id}`, id, 'circuitGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'circuitGroup'));
         try {
             await new Promise((resolve, reject) => {
                 let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
@@ -1571,7 +1571,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
         let group: LightGroup = null;
         let id = parseInt(obj.id, 10);
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         group = sys.lightGroups.getItemById(id);
         try {
             await new Promise((resolve, reject) => {
