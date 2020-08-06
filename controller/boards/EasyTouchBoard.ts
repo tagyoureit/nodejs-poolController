@@ -1144,6 +1144,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
+        if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
         // Verify the data.
         let body = sys.board.bodies.mapBodyAssociation(chlor.body);
         if (typeof body === 'undefined') Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
