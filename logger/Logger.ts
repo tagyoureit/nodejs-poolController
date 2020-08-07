@@ -56,13 +56,17 @@ class Logger {
         function pad(n) { return (n < 10 ? '0' : '') + n; }
         this.currentTimestamp = ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds());
         return this.currentTimestamp;
-    }
+    } 
+
+    private myFormat = winston.format.printf(({ level, message, label }) => {
+        return `[${new Date().toLocaleString()}] ${level}: ${message}`;
+    });
 
     private _logger: winston.Logger;
     public init() {
         this.cfg = config.getSection('log');
         logger._logger = winston.createLogger({
-            format: winston.format.combine(winston.format.colorize(), winston.format.splat(), winston.format.simple()),
+            format: winston.format.combine(winston.format.timestamp({format: 'MMMM DD YYYY'}), winston.format.colorize(), winston.format.splat(), this.myFormat),
             transports: [this.transports.console]
         });
         this.transports.console.level = this.cfg.app.level;
@@ -280,7 +284,7 @@ class Logger {
         this.transports.file = new winston.transports.File({
             filename: this.consoleToFilePath,
             level: 'silly',
-            format: winston.format.combine(winston.format.splat(), winston.format.simple(), winston.format.uncolorize())
+            format: winston.format.combine(winston.format.splat(), winston.format.uncolorize(), this.myFormat)
         });
         logger._logger.add(this.transports.file);
         this.transports.console.level = 'silly';
