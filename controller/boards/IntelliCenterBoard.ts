@@ -2846,15 +2846,16 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
 
 }
 class IntelliCenterValveCommands extends ValveCommands {
-    public async setValveAsync(obj?: any) : Promise<Valve> {
+    public async setValveAsync(obj?: any): Promise<Valve> {
+        if (obj.isVirtual) return super.setValveAsync(obj);
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+        let valve = sys.valves.getItemById(id);
         // [255, 0, 255][165, 63, 15, 16, 168, 20][9, 0, 9, 2, 86, 97, 108, 118, 101, 32, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 55]
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
         // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
         return new Promise<Valve>(function (resolve, reject) {
-            let id = parseInt(obj.id, 10);
-            if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
-            let valve = sys.valves.getItemById(id);
             let v = extend(true, valve.get(true), obj);
             let out = Outbound.create({
                 action: 168,

@@ -70,6 +70,18 @@
           "host": "",
           "port": 3480
         }
+      },
+      "valveRelay": {
+        "name": "Valve Relays",
+        "enabled": false,
+        "fileName": "valveRelays.json",
+        "vars": {
+          "valveIds": []
+        },
+        "options": {
+          "host": "0.0.0.0",
+          "port":  8081
+        }
       }
     }
   },

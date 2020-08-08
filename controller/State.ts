@@ -20,7 +20,7 @@ import * as extend from 'extend';
 import * as util from 'util';
 import { setTimeout } from 'timers';
 import { logger } from '../logger/Logger';
-import { Timestamp, ControllerType } from './Constants';
+import { Timestamp, ControllerType, utils } from './Constants';
 import { webApp } from '../web/Server';
 import { sys, ChemController } from './Equipment';
 import { InvalidEquipmentIdError } from './Errors';
@@ -1063,11 +1063,31 @@ export class ValveState extends EqState {
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type : -1; }
+    public get type(): number { return typeof this.data.type !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.valveTypes.transform(val);
             this.hasChanged = true;
+        }
+    }
+    public get isDiverted(): boolean { return utils.makeBool(this.data.isDiverted); }
+    public set isDiverted(val: boolean) { this.setDataVal('isDiverted', val); }
+    public getExtended(): any {
+        let valve = sys.valves.getItemById(this.id);
+        let vstate = this.get(true);
+        if(valve.circuit !== 256) vstate.circuit = state.circuits.getInterfaceById(valve.circuit).get(true);
+        vstate.isIntake = utils.makeBool(valve.isIntake);
+        vstate.isReturn = utils.makeBool(valve.isReturn);
+        vstate.isVirtual = utils.makeBool(valve.isVirtual);
+        vstate.isActive = utils.makeBool(valve.isActive);
+        vstate.pinId = valve.pinId;
+        return vstate;
+    }
+    public emitEquipmentChange() {
+        if (typeof (webApp) !== 'undefined' && webApp) {
+            if (this.hasChanged) this.emitData(this.dataName, this.getExtended());
+            this.hasChanged = false;
+            state._dirtyList.removeEqState(this);
         }
     }
 }
