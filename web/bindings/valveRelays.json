@@ -1,0 +1,20 @@
+{
+  "context": {
+    "name": "valveRelay",
+    "options": {
+      "method": "GET",
+      "path": "/@bind=data.pinId;/@bind=data.isDiverted ? 'on' : 'off';",
+      "headers": {
+        "CONTENT-TYPE": "application/json"
+      }
+    },
+    "vars": {} 
+  },
+  "events": [
+    {
+      "name": "valve",
+      "filter": "@bind=data.isVirtual;",
+      "description": "Send commands to turn on or off the valve relay based upon the valve emit."       
+    }
+  ]
+}

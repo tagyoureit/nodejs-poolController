@@ -67,6 +67,7 @@ export class BaseInterfaceBindings {
 export class InterfaceEvent {
     public name: string;
     public enabled: boolean = true;
+    public filter: string;
     public options: any = {};
     public body: any = {};
     public vars: any = {};

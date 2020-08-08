@@ -224,6 +224,15 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.delete('/config/valve', async (req, res, next) => {
+            // Update a valve.
+            try {
+                let valve = await sys.board.valves.deleteValveAsync(req.body);
+                return res.status(200).send((valve).get(true));
+            }
+            catch (err) { next(err); }
+        });
+
         app.put('/config/body', async (req, res, next) => {
             // Change the body attributes.
             try {

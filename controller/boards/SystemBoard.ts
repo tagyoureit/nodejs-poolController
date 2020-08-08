@@ -1540,6 +1540,7 @@ export class CircuitCommands extends BoardCommands {
                 }
             }
         }
+        sys.board.valves.syncValveStates();
         state.emitEquipmentChanges();
         sys.board.virtualPumpControllers.start();
         return Promise.resolve(state.circuits.getInterfaceById(circ.id));
@@ -1915,6 +1916,7 @@ export class FeatureCommands extends BoardCommands {
         let feature = sys.features.getItemById(id);
         let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
         fstate.isOn = val;
+        sys.board.valves.syncValveStates();
         sys.board.virtualPumpControllers.start();
         state.emitEquipmentChanges();
         return Promise.resolve(fstate.get(true));
@@ -1937,6 +1939,7 @@ export class FeatureCommands extends BoardCommands {
             }
             let sgrp = state.circuitGroups.getItemById(grp.id);
             sgrp.isOn = bIsOn && grp.isActive;
+            sys.board.valves.syncValveStates();
             state.emitEquipmentChanges();
         }
     }
@@ -2378,13 +2381,49 @@ export class HeaterCommands extends BoardCommands {
 }
 export class ValveCommands extends BoardCommands {
     public async setValveAsync(obj: any): Promise<Valve> {
+        let id = parseInt(obj.id, 10);
+        // The following code will make sure we do not encroach on any valves defined by the OCP.
+        obj.isVirtual = true;
+        if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false), 49) + 1;
         return new Promise<Valve>(function (resolve, reject) {
-            let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
-            let valve = sys.valves.getItemById(id, false);
+            if (id < 50) reject(new InvalidEquipmentDataError('Virtual valves must be defined with an id >= 50.', obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, true);
+            obj.id = id;
             for (var s in obj) valve[s] = obj[s];
+            sys.board.valves.syncValveStates();
             resolve(valve);
         });
+    }
+    public async deleteValveAsync(obj: any): Promise<Valve> {
+        let id = parseInt(obj.id, 10);
+        // The following code will make sure we do not encroach on any valves defined by the OCP.
+        return new Promise<Valve>(function (resolve, reject) {
+            if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, false);
+            let vstate = state.valves.getItemById(id);
+            valve.isActive = false;
+            vstate.hasChanged = true;
+            vstate.emitEquipmentChange();
+            sys.valves.removeItemById(id);
+            state.valves.removeItemById(id);
+            
+            resolve(valve);
+        });
+    }
+
+    public syncValveStates() {
+        for (let i = 0; i < sys.valves.length; i++) {
+            // Run through all the valves to see whether they should be triggered or not.
+            let valve = sys.valves.getItemByIndex(i);
+            if (valve.circuit > 0) {
+                let circ = state.circuits.getInterfaceById(valve.circuit);
+                let vstate = state.valves.getItemById(valve.id, true);
+                vstate.type = valve.type;
+                vstate.name = valve.name;
+                vstate.isDiverted = utils.makeBool(circ.isOn);
+            }
+        }
     }
 }
 export class ChemControllerCommands extends BoardCommands {

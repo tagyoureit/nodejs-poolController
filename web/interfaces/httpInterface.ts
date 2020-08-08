@@ -50,6 +50,11 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                     let e = evts[i];
                     if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
                     let opts = extend(true, baseOpts, e.options);
+                    // Figure out whether we need to check the filter.
+                    if (typeof e.filter !== 'undefined') {
+                        this.buildTokens(e.filter, evt, toks, e, data[0]);
+                        if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
+                    }
 
                     // If we are still waiting on mdns then blow this off.
                     if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
@@ -63,7 +68,7 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                         //case 'application/json':
                         //case 'json':
                         default:
-                            sbody = JSON.stringify(e.body);
+                            sbody = typeof e.body !== 'undefined' ? JSON.stringify(e.body) : '';
                             break;
                         // We may need an XML output and can add transforms for that
                         // later.  There isn't a native xslt processor in node and most
@@ -87,7 +92,7 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                     }
                     if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
                     // opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-                    logger.verbose(`Sending [${ evt }] request to ${ this.cfg.name }: ${ JSON.stringify(opts) }`);
+                    logger.verbose(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
                     let req: http.ClientRequest;
                     // We should now have all the tokens.  Put together the request.
                     if (typeof sbody !== 'undefined') {

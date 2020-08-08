@@ -78,6 +78,7 @@ export class ValveMessage {
         // what is payload[0]?
         for (let ndx  = 4, id = 1; id <= sys.equipment.maxValves;) {
             let valve = sys.valves.getItemById(id, true);
+            valve.isVirtual = false;
             valve.type = 0;
             if (id === 3){
                 valve.circuit = 6; // pool/spa -- fix
