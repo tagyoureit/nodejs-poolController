@@ -90,6 +90,7 @@ export class ExternalMessage {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);
         valve.circuit = msg.extractPayloadByte(3) + 1;
         valve.name = msg.extractPayloadString(4, 16);
+        valve.isVirtual = false;
     }
     public static processPool(msg: Inbound) {
         switch (msg.extractPayloadByte(2)) {

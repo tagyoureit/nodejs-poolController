@@ -525,6 +525,7 @@ export class EquipmentStateMessage {
                                 // to be available on message 30-15 and 168-15.
                                 //EquipmentStateMessage.processFeatureState(msg);
                                 sys.board.circuits.syncVirtualCircuitStates();
+                                sys.board.valves.syncValveStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 break;
@@ -537,6 +538,7 @@ export class EquipmentStateMessage {
                                 // This will toggle the group states depending on the state of the individual circuits.
                                 sys.board.features.syncGroupStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
+                                sys.board.valves.syncValveStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 break;
