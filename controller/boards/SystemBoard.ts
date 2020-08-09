@@ -15,14 +15,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
-import { PoolSystem, ConfigVersion, Body, Chlorinator, Schedule, Pump, CircuitGroup, CircuitGroupCircuit, Heater, sys, LightGroup, PumpCircuit, EggTimer, Circuit, Feature, Valve, Options, Location, Owner, General, ICircuit, CustomNameCollection, CustomName, LightGroupCircuit, ChemController } from '../Equipment';
-import { state, ChlorinatorState, BodyTempState, VirtualCircuitState, EquipmentState, ICircuitState, LightGroupState, PumpState, TemperatureState, ICircuitGroupState, ChemControllerState } from '../State';
-import { Outbound, Response, Message, Protocol } from '../comms/messages/Messages';
-import { conn } from '../comms/Comms';
-import { utils } from '../Constants';
-import { InvalidEquipmentIdError, ParameterOutOfRangeError, EquipmentNotFoundError, InvalidEquipmentDataError } from '../Errors';
 import { logger } from '../../logger/Logger';
 import { webApp } from '../../web/Server';
+import { conn } from '../comms/Comms';
+import { Message, Outbound, Protocol } from '../comms/messages/Messages';
+import { utils } from '../Constants';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve } from '../Equipment';
+import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
+import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -1994,7 +1994,7 @@ export class ChlorinatorCommands extends BoardCommands {
             dest: cstate.id,
             action: 20,
             payload: [2],
-            retries: 6
+            retries: 1
         });
         conn.queueSendMessage(out);
     }
@@ -2567,36 +2567,241 @@ export class ChemControllerCommands extends BoardCommands {
         // init chem controller here
         /* on EasyTouch2 8p
         See these two packets first:
+        debug: Packet not processed: 255,0,255,165,23,16,34,200,1,0,1,183
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
         debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,152
+
 
         Followed shortly by the same two packets but 128 is towards the end of the payload on the 147 packet;
         Guessing 128 is status=Not Found or Lost Comms
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
         debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
 
+        debug: Packet not processed: 255,0,255,165,23,16,34,231,1,0,1,214
+
+
         And then the 217/19 pair (both a get and a set packet)
         debug: Packet not processed: 255,0,255,165,23,16,34,217,1,0,1,200
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
         debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
         */
-        let arr = [];
-        arr.push(new Promise((resolve, reject) => {
+
+        /*
+        And per https://gitter.im/nodejs-poolController/Lobby?at=5ec819fb9da05a060a250ef8
+        255,0,255,165,16,144,16,210,1,210,2,250
+
+        */
+
+
+        
+       
             let out = Outbound.create({
+                source: 23,
+                dest: 16,
+                action: 200,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                source: 23,
                 dest: 16,
                 action: 19,
                 payload: [0],
                 retries: 3,
                 response: true,
                 onComplete: (err) => {
-                    if (err) reject(err);
-                    else resolve();
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
+                    }
                 }
             });
             conn.queueSendMessage(out);
-        }));
-        arr.push(new Promise((resolve, reject) => {
-            let out = Outbound.create({
+       
+       
+            out = Outbound.create({
+                //source: 23,
+                dest: 16,
+                action: 200,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                source: 23,
+                dest: 16,
+                action: 19,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                dest: 16,
+                action: 19,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                source: 23,
+                dest: 16,
+                action: 231,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                dest: 16,
+                action: 231,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                source: 23,
+                dest: 16,
+                action: 217,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                dest: 16,
+                action: 217,
+                payload: [0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+               
+            out = Outbound.create({
+                source: 16,
+                dest: 144,
+                action: 210,
+                payload: [210],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+       
+            out = Outbound.create({
+                //source: 23,
+                dest: 144,
+                action: 210,
+                payload: [210],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.warn(`No response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
+                    }
+                    else {
+                        logger.info(`Response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+       
+/*         
+            out = Outbound.create({
                 dest: 15,
                 action: 147,
                 payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -2608,16 +2813,17 @@ export class ChemControllerCommands extends BoardCommands {
                 }
             });
             conn.queueSendMessage(out);
-        }));
+         */
         // TODO: if the 2nd out message comes back after the first is rejected it results in an 
         // 'uncaught exception'.  Boo javascript.
-        return new Promise<any>(async (resolve, reject) => {
+/*         return new Promise<any>(async (resolve, reject) => {
             try {
                 await Promise.all(arr).catch(err => reject(err));
                 resolve();
             }
             catch (err) { reject(err); }
-        });
+        }); */
+        return Promise.reject('TESTING');
     }
 
     public async stopAsync(chem: ChemController) {
@@ -2808,8 +3014,9 @@ export class VirtualChemController extends BoardCommands {
             chem.isActive = true;
             chem.isVirtual = true;
             chem.type = 1;
-            logger.info(`Searching for a chem controller at address... ${chem.address}`);
+            chem.address = 144; // first address; 
             try {
+                logger.info(`Searching for a chem controller at address... ${chem.address}`);
                 await sys.board.chemControllers.initChem(chem);
                 state.chemControllers.getItemById(i, true);
             }
