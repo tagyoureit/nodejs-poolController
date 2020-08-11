@@ -423,9 +423,15 @@ export class Inbound extends Message {
         }
         return s;
     }
+    // return Little Endian Int
     public extractPayloadInt(ndx: number, def?: number) {
         return ndx + 1 < this.payload.length ? (this.payload[ndx + 1] * 256) + this.payload[ndx] : def;
-    }
+    
+     }
+    // return Big Endian Int
+    public extractPayloadIntBE(ndx: number, endian = 'le', def?: number) {
+        return ndx + 1 < this.payload.length ? (this.payload[ndx] * 256) + this.payload[ndx + 1] : def;
+     }
     public extractPayloadByte(ndx: number, def?: number) {
         return ndx < this.payload.length ? this.payload[ndx] : def;
     }
