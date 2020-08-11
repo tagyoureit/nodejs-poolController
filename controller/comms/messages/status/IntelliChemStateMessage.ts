@@ -102,7 +102,7 @@ export class IntelliChemStateMessage {
         let scontroller = state.chemControllers.getItemById(controller.id, true);
         scontroller.lastComm = new Date().getTime();
         scontroller.address = controller.address;
-        scontroller.pHLevel = msg.extractPayloadIntBE(0,) / 100;
+        scontroller.pHLevel = msg.extractPayloadIntBE(0) / 100;
         scontroller.orpLevel = msg.extractPayloadIntBE(2);
         controller.pHSetpoint = msg.extractPayloadIntBE(4) / 100;
         controller.orpSetpoint = msg.extractPayloadIntBE(6);
