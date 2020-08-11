@@ -102,15 +102,15 @@ export class IntelliChemStateMessage {
         let scontroller = state.chemControllers.getItemById(controller.id, true);
         scontroller.lastComm = new Date().getTime();
         scontroller.address = controller.address;
-        scontroller.pHLevel = msg.extractPayloadInt(0) / 100;
-        scontroller.orpLevel = msg.extractPayloadInt(2);
-        controller.pHSetpoint = msg.extractPayloadInt(4) / 100;
-        controller.orpSetpoint = msg.extractPayloadInt(6);
-        scontroller.type = controller.type;
+        scontroller.pHLevel = msg.extractPayloadIntBE(0,) / 100;
+        scontroller.orpLevel = msg.extractPayloadIntBE(2);
+        controller.pHSetpoint = msg.extractPayloadIntBE(4) / 100;
+        controller.orpSetpoint = msg.extractPayloadIntBE(6);
+        scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
 
         // These are a guess as the byte mapping is not yet complete.
-        scontroller.pHDosingTime = (msg.extractPayloadInt(9) * 60) + msg.extractPayloadByte(11);
-        scontroller.orpDosingTime = (msg.extractPayloadInt(13) * 60) + msg.extractPayloadByte(15);
+        scontroller.pHDosingTime = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
+        scontroller.orpDosingTime = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
 
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
@@ -118,10 +118,10 @@ export class IntelliChemStateMessage {
         // Bytes 16-19
         scontroller.acidTankLevel = msg.extractPayloadByte(20);
         scontroller.orpTankLevel = msg.extractPayloadByte(21);
-        controller.calciumHardness = msg.extractPayloadInt(23);
+        controller.calciumHardness = msg.extractPayloadIntBE(23);
         scontroller.status2 = msg.extractPayloadByte(25);
         controller.cyanuricAcid = msg.extractPayloadByte(26);
-        controller.alkalinity = msg.extractPayloadInt(27);
+        controller.alkalinity = msg.extractPayloadIntBE(27);
         // Byte 29
         scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
         scontroller.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
