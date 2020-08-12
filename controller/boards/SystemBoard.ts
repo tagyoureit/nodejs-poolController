@@ -2450,9 +2450,7 @@ export class ChemControllerCommands extends BoardCommands {
                     response: true,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        // todo: track delay status?
-                        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
-                        resolve();
+                        resolve(chem);
                     }
                 });
                 out.insertPayloadBytes(0, 0, 21);
