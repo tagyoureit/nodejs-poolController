@@ -4,7 +4,7 @@
 1. Implement https (no basic auth yet)
 1. API documentation @ https://tagyoureit.github.io/nodejs-poolcontroller-api/
 1. Add timestamp to logs for API calls
-1. #200
+1. #200, #202
 
 
 ## 6.0

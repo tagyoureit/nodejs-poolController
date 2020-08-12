@@ -2407,7 +2407,7 @@ export class ValveCommands extends BoardCommands {
             vstate.emitEquipmentChange();
             sys.valves.removeItemById(id);
             state.valves.removeItemById(id);
-            
+
             resolve(valve);
         });
     }
@@ -2438,6 +2438,45 @@ export class ChemControllerCommands extends BoardCommands {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
         let chem = sys.chemControllers.getItemById(id, true);
         let schem = state.chemControllers.getItemById(id, true);
+
+        // if we have an IntelliChem, set the values here and let the status 
+        if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) {
+            return new Promise((resolve, reject) => {
+                let out = Outbound.create({
+                    dest: chem.address,
+                    action: 146,
+                    payload: [],
+                    retries: 0,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        // todo: track delay status?
+                        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
+                        resolve();
+                    }
+                });
+                out.insertPayloadBytes(0, 0, 21);
+                const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.pHSetpoint) * 100
+                out.setPayloadByte(0, Math.floor(_ph / 256));
+                out.setPayloadByte(1, _ph % 256);
+                const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.pHSetpoint);
+                out.setPayloadByte(2, Math.floor(_orp / 256));
+                out.setPayloadByte(3, _orp % 256);
+                out.setPayloadByte(4, data.acidTankLevel, schem.acidTankLevel); // why is OCP setting this?
+                out.setPayloadByte(5, data.orpTankLevel, schem.orpTankLevel); // why is OCP setting this?
+                const _ch = (typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness);
+                out.setPayloadByte(6, Math.floor(_ch / 256));
+                out.setPayloadByte(7, _ch % 256);
+                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
+                const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
+                out.setPayloadByte(10, Math.floor(_alk / 256));
+                out.setPayloadByte(12, _alk % 256);
+                out.setPayloadByte(12, 20);  // fixed value?
+                conn.queueSendMessage(out);
+            });
+        }
+
+
         if (typeof data.type !== 'undefined' && data.type === 0) {
             // remove
             sys.chemControllers.removeItemById(data.id);
@@ -2485,6 +2524,7 @@ export class ChemControllerCommands extends BoardCommands {
         // sys.emitEquipmentChange();  // RSG - eliminating this emit in favor of the more complete extended emit below
         webApp.emitToClients('chemController', schem.getExtended()); // emit extended data
         schem.hasChanged = false; // try to avoid duplicate emits
+
         return Promise.resolve(chem);
     }
     public calculateSaturationIndex(chem: ChemController, schem: ChemControllerState): void {
@@ -2593,236 +2633,236 @@ export class ChemControllerCommands extends BoardCommands {
         */
 
 
-        
-       
-            let out = Outbound.create({
-                source: 23,
-                dest: 16,
-                action: 200,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
-                    }
+
+
+        let out = Outbound.create({
+            source: 23,
+            dest: 16,
+            action: 200,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                source: 23,
-                dest: 16,
-                action: 19,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                    }
+                else {
+                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                //source: 23,
-                dest: 16,
-                action: 200,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
-                    }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            source: 23,
+            dest: 16,
+            action: 19,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                source: 23,
-                dest: 16,
-                action: 19,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                    }
+                else {
+                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                dest: 16,
-                action: 19,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
-                    }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            //source: 23,
+            dest: 16,
+            action: 200,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                source: 23,
-                dest: 16,
-                action: 231,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
-                    }
+                else {
+                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                dest: 16,
-                action: 231,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
-                    }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            source: 23,
+            dest: 16,
+            action: 19,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                source: 23,
-                dest: 16,
-                action: 217,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
-                    }
+                else {
+                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                dest: 16,
-                action: 217,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
-                    }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            dest: 16,
+            action: 19,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-               
-            out = Outbound.create({
-                source: 16,
-                dest: 144,
-                action: 210,
-                payload: [210],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
-                    }
+                else {
+                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-       
-            out = Outbound.create({
-                //source: 23,
-                dest: 144,
-                action: 210,
-                payload: [210],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.warn(`No response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
-                    }
-                    else {
-                        logger.info(`Response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
-                    }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            source: 23,
+            dest: 16,
+            action: 231,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-       
-/*         
-            out = Outbound.create({
-                dest: 15,
-                action: 147,
-                payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                retries: 1,
-                response: true,
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else resolve();
+                else {
+                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
                 }
-            });
-            conn.queueSendMessage(out);
-         */
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            dest: 16,
+            action: 231,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
+                }
+                else {
+                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            source: 23,
+            dest: 16,
+            action: 217,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
+                }
+                else {
+                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            dest: 16,
+            action: 217,
+            payload: [0],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
+                }
+                else {
+                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            source: 16,
+            dest: 144,
+            action: 210,
+            payload: [210],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                }
+                else {
+                    logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+
+        out = Outbound.create({
+            //source: 23,
+            dest: 144,
+            action: 210,
+            payload: [210],
+            retries: 3,
+            response: true,
+            onComplete: (err) => {
+                if (err) {
+                    logger.warn(`No response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
+                }
+                else {
+                    logger.info(`Response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
+                }
+            }
+        });
+        conn.queueSendMessage(out);
+
+        /*         
+                    out = Outbound.create({
+                        dest: 15,
+                        action: 147,
+                        payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        retries: 1,
+                        response: true,
+                        onComplete: (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        }
+                    });
+                    conn.queueSendMessage(out);
+                 */
         // TODO: if the 2nd out message comes back after the first is rejected it results in an 
         // 'uncaught exception'.  Boo javascript.
-/*         return new Promise<any>(async (resolve, reject) => {
-            try {
-                await Promise.all(arr).catch(err => reject(err));
-                resolve();
-            }
-            catch (err) { reject(err); }
-        }); */
+        /*         return new Promise<any>(async (resolve, reject) => {
+                    try {
+                        await Promise.all(arr).catch(err => reject(err));
+                        resolve();
+                    }
+                    catch (err) { reject(err); }
+                }); */
         return Promise.reject('TESTING');
     }
 
