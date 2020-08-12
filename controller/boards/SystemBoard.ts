@@ -2442,6 +2442,10 @@ export class ChemControllerCommands extends BoardCommands {
         // if we have an IntelliChem, set the values here and let the status 
         if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) {
             return new Promise((resolve, reject) => {
+                const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.pHSetpoint) * 100;
+                const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.pHSetpoint);
+                const _ch = (typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness);
+                const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
                 let out = Outbound.create({
                     dest: chem.address,
                     action: 146,
@@ -2450,23 +2454,28 @@ export class ChemControllerCommands extends BoardCommands {
                     response: true,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        resolve(chem);
+                        else {
+                            chem.pHSetpoint = _ph;
+                            chem.orpSetpoint = _orp;
+                            chem.calciumHardness = _ch;
+                            chem.alkalinity = _alk;
+                            schem.acidTankLevel = typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel;
+                            schem.orpTankLevel = typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel;
+                            chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+                            resolve(chem); // let IntelliChem status packet set values
+                       }
                     }
                 });
                 out.insertPayloadBytes(0, 0, 21);
-                const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.pHSetpoint) * 100
                 out.setPayloadByte(0, Math.floor(_ph / 256));
                 out.setPayloadByte(1, _ph % 256);
-                const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.pHSetpoint);
                 out.setPayloadByte(2, Math.floor(_orp / 256));
                 out.setPayloadByte(3, _orp % 256);
-                out.setPayloadByte(4, data.acidTankLevel, schem.acidTankLevel); // why is OCP setting this?
-                out.setPayloadByte(5, data.orpTankLevel, schem.orpTankLevel); // why is OCP setting this?
-                const _ch = (typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness);
+                out.setPayloadByte(4, parseInt(data.acidTankLevel, 10), schem.acidTankLevel); // why is OCP setting this?
+                out.setPayloadByte(5, parseInt(data.orpTankLevel, 10), schem.orpTankLevel); // why is OCP setting this?
                 out.setPayloadByte(6, Math.floor(_ch / 256));
                 out.setPayloadByte(7, _ch % 256);
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
-                const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
                 out.setPayloadByte(10, Math.floor(_alk / 256));
                 out.setPayloadByte(12, _alk % 256);
                 out.setPayloadByte(12, 20);  // fixed value?
