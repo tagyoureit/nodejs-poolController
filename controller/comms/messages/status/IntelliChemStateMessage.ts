@@ -18,6 +18,7 @@ import { Inbound } from "../Messages";
 import { state } from "../../../State";
 import { sys, ControllerType } from "../../../Equipment";
 import { logger } from "../../../../logger/Logger";
+import { webApp } from "../../../../web/Server";
 export class IntelliChemStateMessage {
     public static process(msg: Inbound) {
         if (sys.controllerType === ControllerType.Unknown) return;
@@ -135,6 +136,9 @@ export class IntelliChemStateMessage {
             scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
         }
         else scontroller.saltLevel = 0;
-
+        
+        // manually emit extended values
+        webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
+        scontroller.hasChanged = false; // try to avoid duplicate emits
     }
 }
