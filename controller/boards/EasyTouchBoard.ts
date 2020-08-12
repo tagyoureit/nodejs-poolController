@@ -260,7 +260,7 @@ export class EasyTouchBoard extends SystemBoard {
     public chlorinator: TouchChlorinatorCommands = new TouchChlorinatorCommands(this);
     public pumps: TouchPumpCommands = new TouchPumpCommands(this);
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
-    public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
+    //public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
 
     public checkConfiguration() {
@@ -1474,21 +1474,23 @@ class TouchPumpCommands extends PumpCommands {
         } */
 }
 
-class TouchChemControllerCommands extends ChemControllerCommands {
-    public async setChemControllerAsync(data: any):Promise<ChemController> {
-        let chem = sys.chemControllers.getItemById(data.id);
+// class TouchChemControllerCommands extends ChemControllerCommands {
+//     public async setChemControllerAsync(data: any):Promise<ChemController> {
+//         let chem = sys.chemControllers.getItemById(data.id);
     
-        // we aren't setting an IntelliChem or changing TO an IntelliChem
-        if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
-            typeof data.type === 'undefined' && typeof data.type === 'undefined')
-            return super.setChemControllerAsync(data);  
+//         // we aren't setting an IntelliChem or changing TO an IntelliChem
+//         if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
+//             typeof data.type === 'undefined' && typeof data.type === 'undefined')
+//             return super.setChemControllerAsync(data);  
 
-        else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
-            return super.setChemControllerAsync(data);  
+//         else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
+//             return super.setChemControllerAsync(data);  
 
         
-        // do stuff here to set IntelliChem on *Touch
-        chem.set(data);
-        return Promise.resolve(chem);
-    }
-}
+//         // do stuff here to set IntelliChem on *Touch
+//         chem.set(data);
+//         //Lead In Bytes					Destination	Source	Action	No. of Bytes	pH Setpoint Hi	pH Setpoint Lo	ORP Setpoint Hi	ORP Setpoint Lo	Acid Tank Level	ORP Tank Level	Hardness  Hi	Hardness Lo		Cyanuric Acid Level	TA Hi Byte	TA Lo Byte	????										
+//         //[255, 0, 255],[165,0,144,16,146,2][2,218,2,188,4,3,1,144,0,0,0,150,20,0,0,0,0,0,0,0,0,4,200
+//         return Promise.resolve(chem);
+//     }
+// }
