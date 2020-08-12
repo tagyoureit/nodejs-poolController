@@ -27,7 +27,7 @@ In short, everything!  6.0 is a complete re-write of the application.  Huge prop
 1. Configuring and running the app - all new.  Start over with the Installation instructions.
 1. Automatic detection of your pool equipment.  Previous versions of the app would detect the configuration of your pool but you still had to tell the app if you had IntelliTouch/EasyTouch/IntelliCom.  This is now done automatically.
 1. Configuration and state information.  Config.json now only stores information related to the configuration of the app.  There are separate files in the /data directory that store (and persist) pool configuration and state information.
-1. API's - completely changed.  See separate API documentation (*link here)
+1. API's - completely changed.  See separate [API documentation](https://tagyoureit.github.io/nodejs-poolcontroller-api/)
 1. Outbound Sockets - Now more granular to make the web app more responsive
 1. Web app - Now a separate installion for a true client/server metaphore.
 
@@ -113,11 +113,8 @@ v6 adds all new configuration and support for virtual pumps, chlorinators (and s
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
 
 
-# Changed/dropped since 5.3
-1. Ability to load different config.json files
-1. Automatic upgrade of config.json files (tbd)
-1. Automatic version notification of newer releases available (tbd)
-1. Most of the output to console has been eliminated.
+# Changes
+See Changelog
 
 
 <a name="module_nodejs-poolController--config.json"></a>
