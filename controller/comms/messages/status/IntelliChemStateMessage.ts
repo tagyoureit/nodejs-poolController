@@ -112,25 +112,40 @@ export class IntelliChemStateMessage {
         // These are a guess as the byte mapping is not yet complete.
         scontroller.pHDosingTime = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
         scontroller.orpDosingTime = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
-
+        controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
+        
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
         // controller.waterVolume = msg.extractPayloadByte(15) * 1000;
         // Bytes 16-19
-        scontroller.acidTankLevel = msg.extractPayloadByte(20);
-        scontroller.orpTankLevel = msg.extractPayloadByte(21);
+        scontroller.pHDosingVolume = msg.extractPayloadByte(17); // Previous pH Dose volume
+        scontroller.orpDosingVolume = msg.extractPayloadByte(19); // Previous ORP Dose volume
+        scontroller.acidTankLevel = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
+        scontroller.orpTankLevel = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+
+        scontroller.saturationIndex = (msg.extractPayloadByte(22) & 0xff) / 100;
+        // if msb is set than SI is negative
+        if ((msg.extractPayloadByte(22) & 0x100) === 0x100) scontroller.saturationIndex = scontroller.saturationIndex * -1;
         controller.calciumHardness = msg.extractPayloadIntBE(23);
-        scontroller.status2 = msg.extractPayloadByte(25);
+        
+        scontroller.status2 = msg.extractPayloadByte(25); // unsure
         controller.cyanuricAcid = msg.extractPayloadByte(26);
         controller.alkalinity = msg.extractPayloadIntBE(27);
-        // Byte 29
+
         scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
         scontroller.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
         scontroller.temp = msg.extractPayloadByte(31);
 
-        scontroller.status1 = msg.extractPayloadByte(34);
+     
+        controller.calciumHardness = msg.extractPayloadIntBE(32); 
+        scontroller.alarms = msg.extractPayloadByte(33);
+        scontroller.status1 = msg.extractPayloadByte(34); // remove
+        scontroller.dosingStatus = msg.extractPayloadByte(34);
+        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3,'0')}`
+        scontroller.warnings = msg.extractPayloadByte(38);
 
         // RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
+        // RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
         if (sys.chlorinators.length > 0) {
             let chlor = state.chlorinators.find(elem => elem.id === 1);
             scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
