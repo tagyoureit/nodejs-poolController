@@ -204,6 +204,45 @@ export class byteValueMaps {
                 else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
             }
         }
+        this.chemControllerStatus.transform = function (byte: number) {
+            let arr = [];
+            for (let b = 8; b > 0; b--) {
+                let bit = (1 << (b - 1));
+                if ((byte & bit) > 0) {
+                    let v = this.get(b);
+                    if (typeof v !== "undefined") {
+                        arr.push(extend(true, {}, v, { val: bit }));
+                    }
+                }
+            }
+            return arr;
+        }
+        this.chemControllerLimits.transform = function (byte: number) {
+            let arr = [];
+            for (let b = 8; b > 0; b--) {
+                let bit = (1 << (b - 1));
+                if ((byte & bit) > 0) {
+                    let v = this.get(b);
+                    if (typeof v !== "undefined") {
+                        arr.push(extend(true, {}, v, { val: bit }));
+                    }
+                }
+            }
+            return arr;
+        }
+        this.chemControllerDosingStatus.transform = function (byte: number) {
+            let arr = [];
+            for (let b = 8; b > 0; b--) {
+                let bit = (1 << (b - 1));
+                if ((byte & bit) > 0) {
+                    let v = this.get(b);
+                    if (typeof v !== "undefined") {
+                        arr.push(extend(true, {}, v, { val: bit }));
+                    }
+                }
+            }
+            return arr;
+        }
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -465,6 +504,40 @@ export class byteValueMaps {
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'nocomms', desc: 'No Communication' }]
     ]);
+    public chemControllerAlarms: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - Flow detected' }],
+        [1, { name: 'noflow', desc: 'Alarm - No Flow' }],
+        [2, { name: 'phhigh', desc: 'Alarm - pH High' }],
+        [3, { name: 'phlow', desc: 'Alarm - pH Low' }],
+        [4, { name: 'orphigh', desc: 'Alarm - orp High' }],
+        [5, { name: 'orplow', desc: 'Alarm - orp Low' }],
+        [6, { name: 'phtankempty', desc: 'Alarm - pH Tank Empty' }],
+        [7, { name: 'orptankempty', desc: 'Alarm - orp Tank Empty' }],
+        [8, { name: 'probefault', desc: 'Alarm - Probe Fault' }]
+    ]);
+    public chemControllerWarnings: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Warnings' }],
+        [1, { name: 'corrosive', desc: 'Warning - Corrosion May Occur' }],
+        [2, { name: 'scaling', desc: 'Warning - Scaling May Occur' }]
+    ]);
+    public chemControllerLimits: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No limits reached' }],
+        [1, { name: 'phlockout', desc: 'Limit - pH Lockout' }],
+        [2, { name: 'phdailylimit', desc: 'Limit - pH Daily Limit Reached' }],
+        [3, { name: 'orpdailylimit', desc: 'Limit - orp Daily Limit Reached' }],
+        [4, { name: 'invalidsetup', desc: 'Invalid Setup' }]
+    ]);
+    public chemControllerDosingStatus: byteValueMap = new byteValueMap([
+        [1, { name: 'phvolume', desc: 'Dosing - pH by Volume' }],
+        [2, { name: 'phtime', desc: 'Dosing - pH by Time' }],
+        [3, { name: 'orpvolume', desc: 'Dosing - orp by Volume' }],
+        [4, { name: 'orptime', desc: 'Dosing - orp by Time' }],
+        [5, { name: 'phmixing', desc: 'Dosing - pH Mixing' }],
+        [6, { name: 'phmonitoring', desc: 'Dosing - pH Monitoring' }],
+        [7, { name: 'orpmixing', desc: 'Dosing - orp Mixing' }],
+        [8, { name: 'orpmonitoring', desc: 'Dosing - orp Monitoring' }]
+    ]);
+    /* ---- TO GET RID OF ----- */
     public chemControllerWaterFlow: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
@@ -481,6 +554,7 @@ export class byteValueMaps {
         [20, { name: 'ok', desc: 'Ok' }],
         [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
     ]);
+    /* ---- TO GET RID OF END ----- */
     public countries: byteValueMap = new byteValueMap([
         [1, { name: 'US', desc: 'United States' }],
         [2, { name: 'CA', desc: 'Canada' }],
@@ -1772,7 +1846,7 @@ export class CircuitCommands extends BoardCommands {
         else
             return sys.customNames.getItemById(id - 200).name;
     }
-    public async setLightGroupThemeAsync(id: number, theme: number):Promise<ICircuitState> {
+    public async setLightGroupThemeAsync(id: number, theme: number): Promise<ICircuitState> {
         const grp = sys.lightGroups.getItemById(id);
         const sgrp = state.lightGroups.getItemById(id);
         grp.lightingTheme = sgrp.lightingTheme = theme;
@@ -2459,25 +2533,25 @@ export class ChemControllerCommands extends BoardCommands {
                             chem.orpSetpoint = _orp;
                             chem.calciumHardness = _ch;
                             chem.alkalinity = _alk;
-                            schem.acidTankLevel = typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel;
-                            schem.orpTankLevel = typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel;
+                            schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
+                            schem.orpTankLevel = Math.max(typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel, 0);
                             chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
                             resolve(chem); // let IntelliChem status packet set values
-                       }
+                        }
                     }
                 });
                 out.insertPayloadBytes(0, 0, 21);
                 out.setPayloadByte(0, Math.floor(_ph / 256));
-                out.setPayloadByte(1, _ph % 256);
+                out.setPayloadByte(1, Math.round(_ph % 256));
                 out.setPayloadByte(2, Math.floor(_orp / 256));
-                out.setPayloadByte(3, _orp % 256);
-                out.setPayloadByte(4, parseInt(data.acidTankLevel, 10), schem.acidTankLevel); // why is OCP setting this?
-                out.setPayloadByte(5, parseInt(data.orpTankLevel, 10), schem.orpTankLevel); // why is OCP setting this?
+                out.setPayloadByte(3, Math.round(_orp % 256));
+                out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel); // why is OCP setting this?
+                out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel); // why is OCP setting this?
                 out.setPayloadByte(6, Math.floor(_ch / 256));
-                out.setPayloadByte(7, _ch % 256);
+                out.setPayloadByte(7, Math.round(_ch % 256));
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
                 out.setPayloadByte(10, Math.floor(_alk / 256));
-                out.setPayloadByte(12, _alk % 256);
+                out.setPayloadByte(12, Math.round(_alk % 256));
                 out.setPayloadByte(12, 20);  // fixed value?
                 conn.queueSendMessage(out);
             });
@@ -2510,8 +2584,8 @@ export class ChemControllerCommands extends BoardCommands {
         if (typeof data.saltLevel !== 'undefined') schem.saltLevel = parseInt(data.saltLevel, 10);
         else if (sys.chlorinators.getItemById(1).isActive) schem.saltLevel = state.chlorinators.getItemById(1).saltLevel;
         if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
-        if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = parseInt(data.acidTankLevel, 10);
-        if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = parseInt(data.orpTankLevel, 10);
+        if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = Math.max(parseInt(data.acidTankLevel, 10), 0);
+        if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
         if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10);
         if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10);
         if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);

@@ -1289,14 +1289,41 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
+    public set alarms(val: number) {
+        if (this.alarms !== val) {
+            this.data.alarms = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
+    public set dosingStatus(val: number) {
+        if (this.dosingStatus !== val) {
+            this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get warnings(): number { return typeof (this.data.warnings) !== 'undefined' ? this.data.warnings.val : undefined; }
+    public set warnings(val: number) {
+        if (this.dosingStatus !== val) {
+            this.data.dosingStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get pHDosingTime(): number { return this.data.pHDosingTime; }
     public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
     public get orpDosingTime(): number { return this.data.orpDosingTime; }
     public set orpDosingTime(val: number) { this.setDataVal('orpDosingTime', val); }
+    public get pHDosingVolume(): number { return this.data.pHDosingVolume; }
+    public set pHDosingVolume(val: number) { this.setDataVal('pHDosingVolume', val); }
+    public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
+    public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
     public get saturationIndex() : number { return this.data.saturationIndex; }
     public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
+    public get firmware(): string { return this.data.firmware; }
+    public set firmware(val: string) { this.setDataVal('firmware', val); }
     public get tempUnits(): number { 
         if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
         else return state.temps.units; 
