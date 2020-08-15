@@ -505,17 +505,17 @@ export class byteValueMaps {
         [1, { name: 'nocomms', desc: 'No Communication' }]
     ]);
     public chemControllerAlarms: byteValueMap = new byteValueMap([
-        [0, { name: 'ok', desc: 'Ok - Flow detected' }],
+        [0, { name: 'ok', desc: 'Ok - No alarm' }],
         [1, { name: 'noflow', desc: 'Alarm - No Flow' }],
         [2, { name: 'phhigh', desc: 'Alarm - pH High' }],
-        [3, { name: 'phlow', desc: 'Alarm - pH Low' }],
-        [4, { name: 'orphigh', desc: 'Alarm - orp High' }],
-        [5, { name: 'orplow', desc: 'Alarm - orp Low' }],
-        [6, { name: 'phtankempty', desc: 'Alarm - pH Tank Empty' }],
-        [7, { name: 'orptankempty', desc: 'Alarm - orp Tank Empty' }],
-        [8, { name: 'probefault', desc: 'Alarm - Probe Fault' }]
+        [4, { name: 'phlow', desc: 'Alarm - pH Low' }],
+        [8, { name: 'orphigh', desc: 'Alarm - orp High' }],
+        [16, { name: 'orplow', desc: 'Alarm - orp Low' }],
+        [32, { name: 'phtankempty', desc: 'Alarm - pH Tank Empty' }],
+        [64, { name: 'orptankempty', desc: 'Alarm - orp Tank Empty' }],
+        [128, { name: 'probefault', desc: 'Alarm - Probe Fault' }]
     ]);
-    public chemControllerWarnings: byteValueMap = new byteValueMap([
+    public chemControllerChemistryWarnings: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Warnings' }],
         [1, { name: 'corrosive', desc: 'Warning - Corrosion May Occur' }],
         [2, { name: 'scaling', desc: 'Warning - Scaling May Occur' }]
@@ -528,14 +528,9 @@ export class byteValueMaps {
         [4, { name: 'invalidsetup', desc: 'Invalid Setup' }]
     ]);
     public chemControllerDosingStatus: byteValueMap = new byteValueMap([
-        [1, { name: 'phvolume', desc: 'Dosing - pH by Volume' }],
-        [2, { name: 'phtime', desc: 'Dosing - pH by Time' }],
-        [3, { name: 'orpvolume', desc: 'Dosing - orp by Volume' }],
-        [4, { name: 'orptime', desc: 'Dosing - orp by Time' }],
-        [5, { name: 'phmixing', desc: 'Dosing - pH Mixing' }],
-        [6, { name: 'phmonitoring', desc: 'Dosing - pH Monitoring' }],
-        [7, { name: 'orpmixing', desc: 'Dosing - orp Mixing' }],
-        [8, { name: 'orpmonitoring', desc: 'Dosing - orp Monitoring' }]
+        [0, { name: 'dosing', desc: 'Dosing - Dosing' }],
+        [1, { name: 'monitoring', desc: 'Dosing - Monitoring' }],
+        [2, { name: 'mixing', desc: 'Dosing - Mixing' }]
     ]);
     /* ---- TO GET RID OF ----- */
     public chemControllerWaterFlow: byteValueMap = new byteValueMap([
@@ -2545,8 +2540,8 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(1, Math.round(_ph % 256));
                 out.setPayloadByte(2, Math.floor(_orp / 256));
                 out.setPayloadByte(3, Math.round(_orp % 256));
-                out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel); // why is OCP setting this?
-                out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel); // why is OCP setting this?
+                out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel); 
+                out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel); 
                 out.setPayloadByte(6, Math.floor(_ch / 256));
                 out.setPayloadByte(7, Math.round(_ch % 256));
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);

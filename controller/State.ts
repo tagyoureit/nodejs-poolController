@@ -14,16 +14,15 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import * as path from 'path';
-import * as fs from 'fs';
 import * as extend from 'extend';
-import * as util from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 import { setTimeout } from 'timers';
+import * as util from 'util';
 import { logger } from '../logger/Logger';
-import { Timestamp, ControllerType, utils } from './Constants';
 import { webApp } from '../web/Server';
-import { sys, ChemController } from './Equipment';
-import { InvalidEquipmentIdError } from './Errors';
+import { ControllerType, Timestamp, utils } from './Constants';
+import { sys } from './Equipment';
 export class State implements IState {
     statePath: string;
     data: any;
@@ -33,7 +32,7 @@ export class State implements IState {
     private _timerDirty: NodeJS.Timeout;
     protected _dt: Timestamp;
     protected _controllerType: ControllerType;
-    protected onchange=(obj, fn) => {
+    protected onchange = (obj, fn) => {
         const handler = {
             get(target, property, receiver) {
                 const val = Reflect.get(target, property, receiver);
@@ -70,7 +69,7 @@ export class State implements IState {
                 clearTimeout(this._timerDirty);
                 this._timerDirty = null;
             }
-            if (this._isDirty) this._timerDirty = setTimeout(function() { self.persist(); }, 3000);
+            if (this._isDirty) this._timerDirty = setTimeout(function () { self.persist(); }, 3000);
         }
     }
     public persist() {
@@ -80,13 +79,13 @@ export class State implements IState {
             .then(() => {
                 fs.writeFileSync(self.statePath, JSON.stringify(self.data, undefined, 2));
             })
-            .catch(function(err) { if (err) logger.error('Error writing pool state %s %s', err, self.statePath); });
+            .catch(function (err) { if (err) logger.error('Error writing pool state %s %s', err, self.statePath); });
     }
     public getState(section?: string): any {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
         //let state:any = {};
         let obj: any = this;
-        
+
         if (typeof section === 'undefined' || section === 'all') {
             var _state: any = this.controllerState;
             _state.circuits = this.circuits.getExtended();
@@ -123,14 +122,14 @@ export class State implements IState {
     public async stopAsync() {
         if (this._timerDirty) clearTimeout(this._timerDirty);
         this.persist();
-        if (sys.controllerType === ControllerType.Virtual){
+        if (sys.controllerType === ControllerType.Virtual) {
             for (let i = 0; i < state.temps.bodies.length; i++) {
                 state.temps.bodies.getItemByIndex(i).isOn = false;
             }
-            for (let i = 0; i < state.circuits.length; i++){
+            for (let i = 0; i < state.circuits.length; i++) {
                 state.circuits.getItemByIndex(i).isOn = false;
             }
-            for (let i = 0; i < state.features.length; i++){
+            for (let i = 0; i < state.features.length; i++) {
                 state.features.getItemByIndex(i).isOn = false;
             }
         }
@@ -138,18 +137,18 @@ export class State implements IState {
     }
     private _emitTimerDirty: NodeJS.Timeout;
     private _hasChanged = false;
-    private get hasChanged() { return this._hasChanged;}
-    private set hasChanged(val:boolean){ 
+    private get hasChanged() { return this._hasChanged; }
+    private set hasChanged(val: boolean) {
         // RSG: 7/4/2020 - added this because it is now a "lazy" emit.  
         // If emitControllerChange isn't called right away this will call the emit fn after 3s.
         // Previously, this would not happen every minute when the time changed.
         this._hasChanged = val;
         var self = this;
-        if (val !== this._hasChanged){
+        if (val !== this._hasChanged) {
             clearTimeout(this._emitTimerDirty);
             this._emitTimerDirty = null;
         }
-        if (this._hasChanged) {this._emitTimerDirty = setTimeout(function() { self.emitControllerChange();}, 3000)}
+        if (this._hasChanged) { this._emitTimerDirty = setTimeout(function () { self.emitControllerChange(); }, 3000) }
     }
     public get controllerState() {
         var self = this;
@@ -189,14 +188,14 @@ export class State implements IState {
             this.data.mode = m;
             this.hasChanged = true;
         }
-    } 
+    }
     public get freeze(): boolean { return this.data.freeze === true; }
     public set freeze(val: boolean) {
         if (this.data.freeze !== val) {
             this.data.freeze = val;
             this.hasChanged = true;
         }
-    } 
+    }
     public get status() { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val) {
         if (typeof (val) === 'number') {
@@ -220,13 +219,13 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
-/*     public get body(): number { return this.data.body; }
-    public set body(val: number) {
-        if (this.body !== val) {
-            this.data.body = val;
-            this.hasChanged = true;
-        }
-    } */
+    /*     public get body(): number { return this.data.body; }
+        public set body(val: number) {
+            if (this.body !== val) {
+                this.data.body = val;
+                this.hasChanged = true;
+            }
+        } */
     public get delay(): number { return typeof this.data.delay !== 'undefined' ? this.data.delay.val : -1; }
     public set delay(val: number) {
         if (this.delay !== val) {
@@ -254,8 +253,8 @@ export class State implements IState {
         var self = this;
         this._dt = new Timestamp(new Date());
         this._dt.milliseconds = 0;
-        this.data = this.onchange(state, function() { self.dirty = true; });
-        this._dt.emitter.on('change', function() {
+        this.data = this.onchange(state, function () { self.dirty = true; });
+        this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
             self.hasChanged = true;
         });
@@ -361,7 +360,7 @@ interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
 class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
     public data: any;
-    private _hasChanged: boolean=false;
+    private _hasChanged: boolean = false;
     public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
         // If we are not already on the dirty list add us.        
@@ -561,8 +560,8 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
     }
 }
 export class PumpState extends EqState {
-    public dataName: string='pump';
-    private _threshold=0.05;
+    public dataName: string = 'pump';
+    private _threshold = 0.05;
     private exceedsThreshold(origVal: number, newVal: number) {
         return Math.abs((newVal - origVal) / origVal) > this._threshold;
     }
@@ -666,14 +665,14 @@ export class ScheduleState extends EqState {
         else this._startDate = new Date(data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
     }
-    private _startDate: Date=new Date();
+    private _startDate: Date = new Date();
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; this._saveStartDate(); }
     private _saveStartDate() {
         this.startDate.setHours(0, 0, 0, 0);
         this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate));
     }
-    public dataName: string='schedule';
+    public dataName: string = 'schedule';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get isActive(): boolean { return this.data.isActive; }
@@ -761,7 +760,7 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
     }
 }
 export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName: string='circuitGroup';
+    public dataName: string = 'circuitGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -804,7 +803,7 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
-    public dataName='lightGroup';
+    public dataName = 'lightGroup';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -860,8 +859,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
 }
 export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     public createItem(data: any): BodyTempState { return new BodyTempState(data); }
-    public getBodyIsOn(){
-        for (let i = 0; i < this.data.length; i++){
+    public getBodyIsOn() {
+        for (let i = 0; i < this.data.length; i++) {
             if (this.data[i].isOn) return this.createItem(this.data[i]);
         }
         return undefined;
@@ -869,7 +868,7 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
 }
 // RKS: This is an interesting object.  We are doing some gymnastics with it to comply
 // with type safety.
-export class BodyHeaterTypeStateCollection extends EqStateCollection <BodyHeaterTypeState> {
+export class BodyHeaterTypeStateCollection extends EqStateCollection<BodyHeaterTypeState> {
     public createItem(data: any): BodyHeaterTypeState { return new BodyHeaterTypeState(data); }
 }
 export class BodyHeaterTypeState extends EqState {
@@ -879,7 +878,7 @@ export class BodyHeaterTypeState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
 }
 export class BodyTempState extends EqState {
-    public dataName='bodyTempState';
+    public dataName = 'bodyTempState';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -952,7 +951,7 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
     public createItem(data: any): HeaterState { return new HeaterState(data); }
 }
 export class HeaterState extends EqState {
-    public dataName: string='heater';
+    public dataName: string = 'heater';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -966,7 +965,7 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public async toggleFeatureStateAsync(id: number) { return sys.board.features.toggleFeatureStateAsync(id); }
 }
 export class FeatureState extends EqState implements ICircuitState {
-    public dataName: string='feature';
+    public dataName: string = 'feature';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -986,7 +985,7 @@ export class FeatureState extends EqState implements ICircuitState {
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
-    public dataName: string='virtualCircuit';
+    public dataName: string = 'virtualCircuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1008,7 +1007,7 @@ export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCirc
 }
 export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     public createItem(data: any): CircuitState { return new CircuitState(data); }
-    public setCircuitStateAsync(id: number, val: boolean):Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
+    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public async setLightThemeAsync(id: number, theme: number) { return sys.board.circuits.setLightThemeAsync(id, theme); }
     public getInterfaceById(id: number, add?: boolean): ICircuitState {
@@ -1026,7 +1025,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     }
 }
 export class CircuitState extends EqState implements ICircuitState {
-    public dataName='circuit';
+    public dataName = 'circuit';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1058,7 +1057,7 @@ export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
 }
 export class ValveState extends EqState {
-    public dataName: string='valve';
+    public dataName: string = 'valve';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1075,7 +1074,7 @@ export class ValveState extends EqState {
     public getExtended(): any {
         let valve = sys.valves.getItemById(this.id);
         let vstate = this.get(true);
-        if(valve.circuit !== 256) vstate.circuit = state.circuits.getInterfaceById(valve.circuit).get(true);
+        if (valve.circuit !== 256) vstate.circuit = state.circuits.getInterfaceById(valve.circuit).get(true);
         vstate.isIntake = utils.makeBool(valve.isIntake);
         vstate.isReturn = utils.makeBool(valve.isReturn);
         vstate.isVirtual = utils.makeBool(valve.isVirtual);
@@ -1095,7 +1094,7 @@ export class CoverStateCollection extends EqStateCollection<CoverState> {
     public createItem(data: any): CoverState { return new CoverState(data); }
 }
 export class CoverState extends EqState {
-    public dataName: string='cover';
+    public dataName: string = 'cover';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1105,11 +1104,11 @@ export class CoverState extends EqState {
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
-    public superChlorReference: number=0;
-    public lastDispatchSuperChlor: number=0;
+    public superChlorReference: number = 0;
+    public lastDispatchSuperChlor: number = 0;
 }
 export class ChlorinatorState extends EqState {
-    public dataName: string='chlorinator';
+    public dataName: string = 'chlorinator';
     // The lastComm property has a fundamental flaw.  Although, the structure is
     // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
     // triggered by this. We need to find a way that the property change does not trigger persistence.
@@ -1225,7 +1224,7 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
 }
 
 export class ChemControllerState extends EqState {
-    public dataName: string='chemController';
+    public dataName: string = 'chemController';
     public get lastComm(): number { return this.data.lastComm || 0; }
     public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get id(): number { return this.data.id; }
@@ -1289,27 +1288,36 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
-    public set alarms(val: number) {
-        if (this.alarms !== val) {
-            this.data.alarms = sys.board.valueMaps.chemControllerAlarms.transform(val);
-            this.hasChanged = true;
-        }
-    }
-    public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
-    public set dosingStatus(val: number) {
-        if (this.dosingStatus !== val) {
+    /*     public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
+        public set alarms(val: number) {
+            if (this.alarms !== val) {
+                this.data.alarms = sys.board.valueMaps.chemControllerAlarms.transform(val);
+                this.hasChanged = true;
+            }
+        } */
+    public get phDosingStatus(): number { return typeof (this.data.phDosingStatus) !== 'undefined' ? this.data.phDosingStatus.val : undefined; }
+    public set phDosingStatus(val: number) {
+        if (this.phDosingStatus !== val) {
             this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
     }
-    public get warnings(): number { return typeof (this.data.warnings) !== 'undefined' ? this.data.warnings.val : undefined; }
-    public set warnings(val: number) {
-        if (this.dosingStatus !== val) {
-            this.data.dosingStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
+    public get orpDosingStatus(): number { return typeof (this.data.orpDosingStatus) !== 'undefined' ? this.data.orpDosingStatus.val : undefined; }
+    public set orpDosingStatus(val: number) {
+        if (this.orpDosingStatus !== val) {
+            this.data.orpDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
     }
+    /*     public get warnings(): number { return typeof (this.data.warnings) !== 'undefined' ? this.data.warnings.val : undefined; }
+        public set warnings(val: number) {
+            if (this.dosingStatus !== val) {
+                this.data.dosingStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
+                this.hasChanged = true;
+            }
+        } */
+    public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
+    public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
     public get pHDosingTime(): number { return this.data.pHDosingTime; }
     public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
     public get orpDosingTime(): number { return this.data.orpDosingTime; }
@@ -1318,15 +1326,15 @@ export class ChemControllerState extends EqState {
     public set pHDosingVolume(val: number) { this.setDataVal('pHDosingVolume', val); }
     public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
     public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
-    public get saturationIndex() : number { return this.data.saturationIndex; }
+    public get saturationIndex(): number { return this.data.saturationIndex; }
     public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
     public get firmware(): string { return this.data.firmware; }
     public set firmware(val: string) { this.setDataVal('firmware', val); }
-    public get tempUnits(): number { 
+    public get tempUnits(): number {
         if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
-        else return state.temps.units; 
+        else return state.temps.units;
     }
     public set tempUnits(val: number) {
         // specific check for the data val here because we can return the body temp units if undefined
@@ -1361,6 +1369,77 @@ export class ChemControllerState extends EqState {
         obj.orpLevel = this.orpLevel || 0;
         return obj;
     }
+}
+
+export class ChemControllerStateWarnings extends EqState {
+    ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }
+    public dataName = 'chemControllerWarnings';
+    public get waterChemistry(): number { return typeof this.data.waterChemistry === 'undefined' ? undefined : this.data.waterChemistry.val; }
+    public set waterChemistry(val: number) {
+        if (this.waterChemistry !== val) {
+            this.data.waterChemistry = sys.board.valueMaps.chemControllerChemistryWarnings.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
+    public get phLockout(): boolean { return this.data.phLockout; }
+    public set phLockout(val: boolean) { this.setDataVal('phLockout', val); }
+    public get phDailyLimitReached(): boolean { return this.data.phDailyLimitReached; }
+    public set phDailyLimitReached(val: boolean) { this.setDataVal('phDailyLimitReached', val); }
+    public get orpDailyLimitReached(): boolean { return this.data.orpDailyLimitReached; }
+    public set orpDailyLimitReached(val: boolean) { this.setDataVal('orpDailyLimitReached', val); }
+    public get invalidSetup(): boolean { return this.data.invalidSetup; }
+    public set invalidSetup(val: boolean) { this.setDataVal('invalidSetup', val); }
+    public get chlorinatorCommError(): boolean { return this.data.chlorinatorCommError; }
+    public set chlorinatorCommError(val: boolean) { this.setDataVal('chlorinatorCommError', val); }
+
+}
+export class ChemControllerStateAlarms extends EqState {
+    ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'alarms'); }
+    public dataName = 'chemControllerAlarms';
+    public get flow(): number { return typeof this.data.flow === 'undefined' ? undefined : this.data.flow.val; }
+    public set flow(val: number) {
+        if (this.flow !== val) {
+            this.data.flow = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get ph(): number { return typeof this.data.ph === 'undefined' ? undefined : this.data.ph.val.ph; }
+    public set ph(val: number) {
+        if (this.ph !== val) {
+            this.data.ph = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get orp(): number { return typeof this.data.orp === 'undefined' ? undefined : this.data.orp.val; }
+    public set orp(val: number) {
+        if (this.orp !== val) {
+            this.data.orp = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get phTank(): number { return typeof this.data.phTank === 'undefined' ? undefined : this.data.phTank.val; }
+    public set phTank(val: number) { 
+        if (this.phTank !== val) {
+            this.data.phTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get orpTank(): number { return typeof this.data.orpTank === 'undefined' ? undefined : this.data.orpTank.val; }
+    public set orpTank(val: number) { 
+        if (this.orpTank !== val) {
+            this.data.orpTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get probeFault(): number { return typeof this.data.probeFault === 'undefined' ? undefined : this.data.probeFault.val; }
+    public set probeFault(val: number) { 
+        if (this.probeFault !== val) {
+            this.data.probeFault = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
 }
 export class CommsState {
     public keepAlives: number;
