@@ -146,7 +146,7 @@ export class IntelliChemStateMessage {
         msg.extractPayloadByte(33);
         scontroller.status1 = msg.extractPayloadByte(34); // remove
         scontroller.phDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
-        scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 4; // mask xx000000 and shift
+        scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
         controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
         controller.isIntelliChlorUsed = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
