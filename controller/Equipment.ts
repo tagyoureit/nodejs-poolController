@@ -1544,6 +1544,23 @@ export class ChemController extends EqItem {
     public set cyanuricAcid(val: number) { this.setDataVal('cyanuricAcid', val); }
     public get alkalinity(): number { return this.data.alkalinity; }
     public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
+    
+    public get isFlowDelayMode(): boolean { return this.data.isFlowDelayMode; }
+    public set isFlowDelayMode(val: boolean) { this.setDataVal('isFlowDelayMode', val); }
+    public get isIntelliChlorUsed(): boolean { return this.data.isIntelliChlorUsed; }
+    public set isIntelliChlorUsed(val: boolean) { this.setDataVal('isIntelliChlorUsed', val); }
+    public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
+    public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
+    public get isAcidBaseDosing(): boolean { return this.data.isAcidBaseDosing; }
+    public set isAcidBaseDosing(val: boolean) { this.setDataVal('isAcidBaseDosing', val); }
+    
+    public get ispHDoseByVolume(): boolean { return this.data.ispHDoseByVolume; }
+    public set ispHDoseByVolume(val: boolean) { this.setDataVal('ispHDoseByVolume', val); }
+    
+    public get isorpDoseByVolume(): boolean { return this.data.isorpDoseByVolume; }
+    public set isorpDoseByVolume(val: boolean) { this.setDataVal('isAcidBaseDosing', val); }
+    
+
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
