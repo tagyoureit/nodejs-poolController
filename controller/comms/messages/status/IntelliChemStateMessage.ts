@@ -122,13 +122,17 @@ export class IntelliChemStateMessage {
         scontroller.orpDosingVolume = msg.extractPayloadByte(19); // Previous ORP Dose volume
         scontroller.acidTankLevel = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
         scontroller.orpTankLevel = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
-
-        scontroller.saturationIndex = (msg.extractPayloadByte(22) & 0x7f) / 100;
-        // if msb is set than SI is negative
-        if ((msg.extractPayloadByte(22) & 0x80) === 0x80) scontroller.saturationIndex = scontroller.saturationIndex * -1;
+        let SIRaw = msg.extractPayloadByte(22);
+        if ((SIRaw & 0x80) === 0x80) {
+            // negative SI
+            scontroller.saturationIndex = (256 - SIRaw) / -100;     
+        }
+        else {
+            scontroller.saturationIndex = msg.extractPayloadByte(22) / 100;
+        }
         controller.calciumHardness = msg.extractPayloadIntBE(23);
         
-        scontroller.status2 = msg.extractPayloadByte(25); // unsure
+        scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
         controller.cyanuricAcid = msg.extractPayloadByte(26);
         controller.alkalinity = msg.extractPayloadIntBE(27);
 
@@ -144,10 +148,11 @@ export class IntelliChemStateMessage {
         alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         msg.extractPayloadByte(33);
-        scontroller.status1 = msg.extractPayloadByte(34); // remove
+        scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
         scontroller.phDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
         scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
         controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
+        controller.phManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false; 
         controller.isIntelliChlorUsed = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
         controller.isAcidBaseDosing = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid ph dosing = 1; base ph dosing = 0;
