@@ -1263,31 +1263,31 @@ export class ChemControllerState extends EqState {
     public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
     public get saltLevel(): number { return this.data.saltLevel; }
     public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
-    public get waterFlow(): number { return this.data.waterFlow; }
+/*     public get waterFlow(): number { return this.data.waterFlow; }
     public set waterFlow(val: number) {
         if (this.waterFlow !== val) {
             this.data.waterFlow = sys.board.valueMaps.chemControllerWaterFlow.transform(val);
             this.hasChanged = true;
         }
-    }
+    } */
     public get acidTankLevel(): number { return this.data.acidTankLevel; }
     public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
     public get orpTankLevel(): number { return this.data.orpTankLevel; }
     public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
-    public get status1(): number { return this.data.status1; }
+    /* public get status1(): number { return this.data.status1; }
     public set status1(val: number) {
         if (this.status1 !== val) {
             this.data.status1 = sys.board.valueMaps.intelliChemStatus1.transform(val);
             this.hasChanged = true;
         }
-    }
-    public get status2(): number { return this.data.status2; }
+    } */
+/*     public get status2(): number { return this.data.status2; }
     public set status2(val: number) {
         if (this.status2 !== val) {
             this.data.status2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
             this.hasChanged = true;
         }
-    }
+    } */
     /*     public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
         public set alarms(val: number) {
             if (this.alarms !== val) {
@@ -1298,7 +1298,7 @@ export class ChemControllerState extends EqState {
     public get phDosingStatus(): number { return typeof (this.data.phDosingStatus) !== 'undefined' ? this.data.phDosingStatus.val : undefined; }
     public set phDosingStatus(val: number) {
         if (this.phDosingStatus !== val) {
-            this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+            this.data.phDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1377,21 +1377,46 @@ export class ChemControllerStateWarnings extends EqState {
     public get waterChemistry(): number { return typeof this.data.waterChemistry === 'undefined' ? undefined : this.data.waterChemistry.val; }
     public set waterChemistry(val: number) {
         if (this.waterChemistry !== val) {
-            this.data.waterChemistry = sys.board.valueMaps.chemControllerChemistryWarnings.transform(val);
+            this.data.waterChemistry = sys.board.valueMaps.chemControllerWarnings.transform(val);
             this.hasChanged = true;
         }
     }
 
-    public get phLockout(): boolean { return this.data.phLockout; }
-    public set phLockout(val: boolean) { this.setDataVal('phLockout', val); }
-    public get phDailyLimitReached(): boolean { return this.data.phDailyLimitReached; }
-    public set phDailyLimitReached(val: boolean) { this.setDataVal('phDailyLimitReached', val); }
-    public get orpDailyLimitReached(): boolean { return this.data.orpDailyLimitReached; }
-    public set orpDailyLimitReached(val: boolean) { this.setDataVal('orpDailyLimitReached', val); }
-    public get invalidSetup(): boolean { return this.data.invalidSetup; }
-    public set invalidSetup(val: boolean) { this.setDataVal('invalidSetup', val); }
-    public get chlorinatorCommError(): boolean { return this.data.chlorinatorCommError; }
-    public set chlorinatorCommError(val: boolean) { this.setDataVal('chlorinatorCommError', val); }
+    public get phLockout(): number { return this.data.phLockout; }
+    public set phLockout(val: number) {
+        if (this.phLockout !== val) {
+            this.data.phLockout = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get phDailyLimitReached(): number { return this.data.phDailyLimitReached; }
+    public set phDailyLimitReached(val: number) {
+        if (this.phDailyLimitReached !== val) {
+            this.data.phDailyLimitReached = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get orpDailyLimitReached(): number { return this.data.orpDailyLimitReached; }
+    public set orpDailyLimitReached(val: number) {
+        if (this.orpDailyLimitReached !== val) {
+            this.data.orpDailyLimitReached = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get invalidSetup(): number { return this.data.invalidSetup; }
+    public set invalidSetup(val: number) {
+        if (this.invalidSetup !== val) {
+            this.data.invalidSetup = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get chlorinatorCommError(): number { return this.data.chlorinatorCommError; }
+    public set chlorinatorCommError(val: number) {
+        if (this.chlorinatorCommError !== val) {
+            this.data.chlorinatorCommError = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.hasChanged = true;
+        }
+    }
 
 }
 export class ChemControllerStateAlarms extends EqState {
