@@ -172,14 +172,33 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/chemControllers', (req, res) => {
+            let alarms = {
+                flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,1].includes(el.val)),
+                ph: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,2,4].includes(el.val)),
+                orp: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,8,16].includes(el.val)),
+                phTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,32].includes(el.val)),
+                orpTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,64].includes(el.val)),
+                probeFault: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,128].includes(el.val))
+            }
+            let warnings = {
+                waterChemistry: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,1,2].includes(el.val)),
+                phLockout: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,1].includes(el.val)),
+                phDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,2].includes(el.val)),
+                orpDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,4].includes(el.val)),
+                invalidSetup: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,8].includes(el.val)),
+                chlorinatorCommsError: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,16].includes(el.val)),
+            }
             let opts = {
                 types: sys.board.valueMaps.chemControllerTypes.toArray(),
                 bodies: sys.board.bodies.getBodyAssociations(),
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
                 status: sys.board.valueMaps.chemControllerStatus.toArray(),
-                status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
-                status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
-                waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(),
+                // status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
+                // status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
+                dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
+                alarms,
+                warnings,
+                // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
                 controllers: sys.chemControllers.get(),
                 maxChemControllers: sys.equipment.maxChemControllers
             };

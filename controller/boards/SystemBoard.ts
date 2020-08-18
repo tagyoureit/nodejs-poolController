@@ -204,7 +204,7 @@ export class byteValueMaps {
                 else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
             }
         }
-        this.chemControllerStatus.transform = function (byte: number) {
+/*         this.chemControllerStatus.transform = function (byte: number) {
             let arr = [];
             for (let b = 8; b > 0; b--) {
                 let bit = (1 << (b - 1));
@@ -216,8 +216,8 @@ export class byteValueMaps {
                 }
             }
             return arr;
-        }
-        this.chemControllerLimits.transform = function (byte: number) {
+        } */
+/*         this.chemControllerLimits.transform = function (byte: number) {
             let arr = [];
             for (let b = 8; b > 0; b--) {
                 let bit = (1 << (b - 1));
@@ -242,7 +242,7 @@ export class byteValueMaps {
                 }
             }
             return arr;
-        }
+        } */
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -515,17 +515,19 @@ export class byteValueMaps {
         [64, { name: 'orptankempty', desc: 'Alarm - orp Tank Empty' }],
         [128, { name: 'probefault', desc: 'Alarm - Probe Fault' }]
     ]);
-    public chemControllerChemistryWarnings: byteValueMap = new byteValueMap([
-        [0, { name: 'ok', desc: 'Ok - No Warnings' }],
+    public chemControllerWarnings: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Warning' }],
         [1, { name: 'corrosive', desc: 'Warning - Corrosion May Occur' }],
-        [2, { name: 'scaling', desc: 'Warning - Scaling May Occur' }]
+        [2, { name: 'scaling', desc: 'Warning - Scaling May Occur' }],
+        [8, { name: 'invalidsetup', desc: 'Invalid Setup' }],
+        [16, { name: 'chlorinatorComms', desc: 'Chlorinator Comms Error' }]
     ]);
     public chemControllerLimits: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No limits reached' }],
         [1, { name: 'phlockout', desc: 'Limit - pH Lockout' }],
         [2, { name: 'phdailylimit', desc: 'Limit - pH Daily Limit Reached' }],
-        [3, { name: 'orpdailylimit', desc: 'Limit - orp Daily Limit Reached' }],
-        [4, { name: 'invalidsetup', desc: 'Invalid Setup' }]
+        [4, { name: 'orpdailylimit', desc: 'Limit - orp Daily Limit Reached' }],
+
     ]);
     public chemControllerDosingStatus: byteValueMap = new byteValueMap([
         [0, { name: 'dosing', desc: 'Dosing - Dosing' }],
@@ -533,22 +535,22 @@ export class byteValueMaps {
         [2, { name: 'mixing', desc: 'Dosing - Mixing' }]
     ]);
     /* ---- TO GET RID OF ----- */
-    public chemControllerWaterFlow: byteValueMap = new byteValueMap([
-        [0, { name: 'ok', desc: 'Ok' }],
-        [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
-    ]);
-    public intelliChemStatus1: byteValueMap = new byteValueMap([
-        // need to be verified - and combined with below?
-        [37, { name: 'dosingAuto', desc: 'Dosing - Auto' }],
-        [69, { name: 'dosingManual', desc: 'Dosing Acid - Manual' }],
-        [85, { name: 'mixing', desc: 'Mixing' }],
-        [101, { name: 'monitoring', desc: 'Monitoring' }]
-    ]);
-    public intelliChemStatus2: byteValueMap = new byteValueMap([
-        // need to be verified
-        [20, { name: 'ok', desc: 'Ok' }],
-        [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
-    ]);
+    // public chemControllerWaterFlow: byteValueMap = new byteValueMap([
+    //     [0, { name: 'ok', desc: 'Ok' }],
+    //     [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
+    // ]);
+    // public intelliChemStatus1: byteValueMap = new byteValueMap([
+    //     // need to be verified - and combined with below?
+    //     [37, { name: 'dosingAuto', desc: 'Dosing - Auto' }],
+    //     [69, { name: 'dosingManual', desc: 'Dosing Acid - Manual' }],
+    //     [85, { name: 'mixing', desc: 'Mixing' }],
+    //     [101, { name: 'monitoring', desc: 'Monitoring' }]
+    // ]);
+    // public intelliChemStatus2: byteValueMap = new byteValueMap([
+    //     // need to be verified
+    //     [20, { name: 'ok', desc: 'Ok' }],
+    //     [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
+    // ]);
     /* ---- TO GET RID OF END ----- */
     public countries: byteValueMap = new byteValueMap([
         [1, { name: 'US', desc: 'United States' }],
@@ -2505,7 +2507,9 @@ export class ChemControllerCommands extends BoardCommands {
         }
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
-        let chem = sys.chemControllers.getItemById(id, true);
+        let chem: ChemController;
+        if (data.address) chem = sys.chemControllers.getItemByAddress(id, true);
+        else chem = sys.chemControllers.getItemById(id, true);
         let schem = state.chemControllers.getItemById(id, true);
 
         // if we have an IntelliChem, set the values here and let the status 
@@ -2552,7 +2556,6 @@ export class ChemControllerCommands extends BoardCommands {
             });
         }
 
-
         if (typeof data.type !== 'undefined' && data.type === 0) {
             // remove
             sys.chemControllers.removeItemById(data.id);
@@ -2568,23 +2571,52 @@ export class ChemControllerCommands extends BoardCommands {
         schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
         // config data
         chem.body = data.body || chem.body || 32;
+        chem.address = parseInt(data.address, 10) || chem.address || chem.id;
         if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
         if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint, 10);
         if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
         if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
         if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
+        if (typeof data.phManualDosing !== 'undefined') chem.phManualDosing = utils.makeBool(data.phManualDosing);
+        if (typeof data.isIntelliChlorUsed !== 'undefined') chem.isIntelliChlorUsed = utils.makeBool(data.isIntelliChlorUsed);
+        if (typeof data.HMIAdvancedDisplay !== 'undefined') chem.HMIAdvancedDisplay = utils.makeBool(data.HMIAdvancedDisplay);
+        if (typeof data.isAcidBaseDosing !== 'undefined') chem.isAcidBaseDosing = utils.makeBool(data.isAcidBaseDosing);
         // state data
+        const alarms = data.alarms
+        if (typeof alarms !== 'undefined'){
+            if (typeof alarms.flow !== 'undefined') schem.alarms.flow = parseInt(alarms.flow, 10);
+            if (typeof alarms.ph !== 'undefined') schem.alarms.ph = parseInt(alarms.ph, 10);
+            if (typeof alarms.orp !== 'undefined') schem.alarms.orp = parseInt(alarms.orp, 10);
+            if (typeof alarms.phTank !== 'undefined') schem.alarms.phTank = parseInt(alarms.phTank, 10);
+            if (typeof alarms.orpTank !== 'undefined') schem.alarms.orpTank = parseInt(alarms.orpTank, 10);
+            if (typeof alarms.probeFault !== 'undefined') schem.alarms.probeFault = parseInt(alarms.probeFault, 10);
+        }
+        const warnings = data.warnings
+        if (typeof warnings !== 'undefined'){
+            if (typeof warnings.waterChemistry !== 'undefined') schem.warnings.waterChemistry = parseInt(warnings.waterChemistry, 10);
+            if (typeof warnings.phLockout !== 'undefined') schem.warnings.phLockout = parseInt(warnings.phLockout, 10);
+            if (typeof warnings.phDailyLimitReached !== 'undefined') schem.warnings.phDailyLimitReached = parseInt(warnings.phDailyLimitReached, 10);
+            if (typeof warnings.orpDailyLimitReached !== 'undefined') schem.warnings.orpDailyLimitReached = parseInt(warnings.orpDailyLimitReached, 10);
+            if (typeof warnings.invalidSetup !== 'undefined') schem.warnings.invalidSetup = parseInt(warnings.invalidSetup, 10);
+            if (typeof warnings.chlorinatorCommError !== 'undefined') schem.warnings.chlorinatorCommError = parseInt(warnings.chlorinatorCommError, 10);
+
+        }
         if (typeof data.pHLevel !== 'undefined') schem.pHLevel = parseFloat(data.pHLevel);
         if (typeof data.orpLevel !== 'undefined') schem.orpLevel = parseFloat(data.orpLevel);
         if (typeof data.saltLevel !== 'undefined') schem.saltLevel = parseInt(data.saltLevel, 10);
         else if (sys.chlorinators.getItemById(1).isActive) schem.saltLevel = state.chlorinators.getItemById(1).saltLevel;
-        if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
+        // if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
         if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = Math.max(parseInt(data.acidTankLevel, 10), 0);
         if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
-        if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10);
-        if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10);
+        // if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10); // remove/unsure?
+        // if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10); // remove/unsure?
+        if (typeof data.phDosingStatus !== 'undefined') schem.phDosingStatus = parseInt(data.phDosingStatus, 10); 
+        if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10); 
         if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
         if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
+        if (typeof data.pHDosingVolume !== 'undefined') schem.pHDosingVolume = parseInt(data.pHDosingVolume, 10);
+        if (typeof data.orpDosingVolume !== 'undefined') schem.orpDosingVolume = parseInt(data.orpDosingVolume, 10);
+
         if (typeof data.temp !== 'undefined') schem.temp = parseInt(data.temp, 10);
         else {
             let tbody = state.temps.bodies.getBodyIsOn();
