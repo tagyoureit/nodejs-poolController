@@ -29,7 +29,17 @@ export class IntelliChemStateMessage {
             case 146: // OCP is telling IntelliChem that it needs to change its settings to...
                 break;
             case 210: // OCP is asking IntelliChem controller for it's current status info.
+            {
+                let address = msg.dest;
+                // The address is king here.  The id is not.
+                let controller = sys.chemControllers.getItemByAddress(address, true);
+                let scontroller = state.chemControllers.getItemById(controller.id, true);
+                if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
+                    // We have not talked to the chem controller in 30 seconds so we have lost communication.
+                    scontroller.status = 1;
+                }
                 break;
+            }
             case 18: // IntelliChem is sending us it's status.
                 IntelliChemStateMessage.processState(msg);
                 break;
@@ -101,6 +111,8 @@ export class IntelliChemStateMessage {
         // The address is king here.  The id is not.
         let controller = sys.chemControllers.getItemByAddress(address, true);
         let scontroller = state.chemControllers.getItemById(controller.id, true);
+        controller.isActive = true;
+        scontroller.status = 0;
         scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
         controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
         scontroller.lastComm = new Date().getTime();
@@ -132,11 +144,11 @@ export class IntelliChemStateMessage {
         }
         controller.calciumHardness = msg.extractPayloadIntBE(23);
         
-        scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
+        // scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
         controller.cyanuricAcid = msg.extractPayloadByte(26);
         controller.alkalinity = msg.extractPayloadIntBE(27);
 
-        scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
+        // scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
         scontroller.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
         scontroller.temp = msg.extractPayloadByte(31);
 
@@ -148,7 +160,7 @@ export class IntelliChemStateMessage {
         alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         msg.extractPayloadByte(33);
-        scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
+        // scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
         scontroller.phDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
         scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
         controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
@@ -160,11 +172,11 @@ export class IntelliChemStateMessage {
         
         const warnings = scontroller.warnings;
         warnings.waterChemistry = msg.extractPayloadByte(38);
-        warnings.phLockout = (msg.extractPayloadByte(33) & 0x01) === 1 ? true : false;
-        warnings.phDailyLimitReached = (msg.extractPayloadByte(33) & 0x02) === 1 ? true : false;
-        warnings.orpDailyLimitReached = (msg.extractPayloadByte(33) & 0x04) === 1 ? true : false;
-        warnings.invalidSetup = (msg.extractPayloadByte(33) & 0x08) === 1 ? true : false;
-        warnings.chlorinatorCommError = (msg.extractPayloadByte(33) & 0x08) === 1 ? true : false;
+        warnings.phLockout = msg.extractPayloadByte(33) & 0x01;
+        warnings.phDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
+        warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
+        warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
+        warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
         
         // RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
         // RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
