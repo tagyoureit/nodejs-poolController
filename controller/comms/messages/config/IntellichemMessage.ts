@@ -62,7 +62,7 @@ export class IntellichemMessage {
                         if (typeof scontroller.pHDosingTime === 'undefined') scontroller.orpDosingTime = 0;
                         if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
                         if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
-                        if (typeof scontroller.waterFlow === 'undefined') scontroller.waterFlow = 0;
+                        //if (typeof scontroller.waterFlow === 'undefined') scontroller.waterFlow = 0;
                     }
                 }
                 break;
