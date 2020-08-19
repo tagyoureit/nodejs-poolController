@@ -82,6 +82,21 @@
           "host": "0.0.0.0",
           "port":  8081
         }
+      },
+      "influxDB": {
+        "name": "InfluxDB",
+        "type": "influx",
+        "enabled": false,
+        "fileName": "influxDB.json",
+        "options": {
+          "protocol": "http",  
+          "host": "192.168.0.1",
+          "port": 32770,
+          "username": "",
+          "password": "",
+          "database": "pool",
+          "retentionPolicy": "autogen"
+        }
       }
     }
   },
