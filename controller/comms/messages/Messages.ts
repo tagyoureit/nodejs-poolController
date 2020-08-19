@@ -189,6 +189,19 @@ export class Message {
                         }
                     };
                 }
+                else if (this.protocol === Protocol.IntelliChem) {
+                    return (msgIn, msgOut) => {
+                        if (msgIn.protocol !== msgOut.protocol) { return false; }
+                        if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
+                        switch (msgIn.action) {
+
+                            default:
+                                // in: 18; out 210 fits msgout & 0x63 pattern
+                                if (msgIn.action === (msgOut.action & 63) && msgIn.source === msgOut.dest) return true;
+                                return false;
+                        }
+                    };
+                }
                 else if (sys.controllerType !== ControllerType.IntelliCenter) {
                     return (msgIn, msgOut) => {
                         if (msgIn.protocol !== msgOut.protocol) { return false; }
@@ -547,6 +560,9 @@ export class Inbound extends Message {
             case 144:
             case 162:
                 HeaterMessage.process(this);
+                break;
+            case 147:
+                IntelliChemStateMessage.process(this);
                 break;
             default:
                 // take these out...

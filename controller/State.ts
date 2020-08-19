@@ -1464,6 +1464,13 @@ export class ChemControllerStateAlarms extends EqState {
             this.hasChanged = true;
         }
     }
+    public get comms(): number { return typeof this.data.comms === 'undefined' ? undefined : this.data.comms.val; }
+    public set comms(val: number) { 
+        if (this.comms !== val) {
+            this.data.comms = sys.board.valueMaps.chemControllerStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
 
 }
 export class CommsState {
