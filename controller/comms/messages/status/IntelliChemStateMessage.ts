@@ -24,35 +24,50 @@ export class IntelliChemStateMessage {
         if (sys.controllerType === ControllerType.Unknown) return;
         if (msg.source < 144 || msg.source > 158) return;
         switch (msg.action) {
-            case 19: // OCP is returning the status that ic currently has.
-                break;
-            case 146: // OCP is telling IntelliChem that it needs to change its settings to...
+
+            // ---------- IntelliChem set get ----------- //
+            case 18: // IntelliChem is sending us it's status.
+
+                IntelliChemStateMessage.processState(msg);
                 break;
             case 210: // OCP is asking IntelliChem controller for it's current status info.
-            {
+                // [165,0,144,16,210,1],[210],[2,234]
+                break;
+            // ---------- End IntelliChem set get ----------- //
+
+            // ---------- OCP set get ----------- //
+            case 19: // Request to OCP to return the status that ic currently has.
+                // [165,14,16,34,19,1],[0],[0,249]
+                break;
+            case 147: // OCP is broadcasting it's known ic values...  Need to change our settings if virtual.
+                // 147 is a proto:broadcast message; 
+                // it has exactly the same format as 18 but there is payload[0] which is inserted at the beginning.  Likely the chem controller id.
+                if (msg.dest < 144 || msg.dest > 158) return;
+                IntelliChemStateMessage.processControllerChange(msg);
+                break;
+            // ---------- End OCP set get ----------- //
+
+            // ---------- ICP or SL set get ----------- //
+            case 211: // SL or other controller is telling OCP to set IntelliChem value
+                // It will take these values and pass them in 146 to IntelliChem
+                // values that are NOT SET should be ignored
+                break;
+            case 146: // OCP is telling IntelliChem that it needs to change its settings to...
                 let address = msg.dest;
                 // The address is king here.  The id is not.
                 let controller = sys.chemControllers.getItemByAddress(address, true);
                 let scontroller = state.chemControllers.getItemById(controller.id, true);
                 if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
                     // We have not talked to the chem controller in 30 seconds so we have lost communication.
-                    scontroller.status = 1;
+                    scontroller.status = scontroller.alarms.comms = 1;                   
                 }
                 break;
-            }
-            case 18: // IntelliChem is sending us it's status.
-                IntelliChemStateMessage.processState(msg);
-                break;
-            case 147: // IntelliChem is telling the controller that it needs to change it's settings to...  Need to change our settings if virtual.
-                if (msg.dest < 144 || msg.dest > 158) return;
-                IntelliChemStateMessage.processControllerChange(msg);
-                break;
-            case 211: // IntelliChem is asking OCP for its status.  Need to respond if we are a virtual controller.
-                break;
+            // ---------- OCP set get ----------- //
         }
         state.emitEquipmentChanges();
     }
     private static processControllerChange(msg: Inbound) {
+        // this inb
         logger.info(`Incoming message from IntelliChem ${msg.toShortPacket()}`);
     }
     private static processState(msg: Inbound) {
@@ -116,16 +131,18 @@ export class IntelliChemStateMessage {
         scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
         controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
         scontroller.lastComm = new Date().getTime();
+        scontroller.status = scontroller.alarms.comms = 0; 
+
         scontroller.address = controller.address;
         scontroller.pHLevel = msg.extractPayloadIntBE(0) / 100;
         scontroller.orpLevel = msg.extractPayloadIntBE(2);
         controller.pHSetpoint = msg.extractPayloadIntBE(4) / 100;
         controller.orpSetpoint = msg.extractPayloadIntBE(6);
-        
+
         // These are a guess as the byte mapping is not yet complete.
         scontroller.pHDosingTime = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
         scontroller.orpDosingTime = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
-        
+
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
         // controller.waterVolume = msg.extractPayloadByte(15) * 1000;
@@ -137,13 +154,13 @@ export class IntelliChemStateMessage {
         let SIRaw = msg.extractPayloadByte(22);
         if ((SIRaw & 0x80) === 0x80) {
             // negative SI
-            scontroller.saturationIndex = (256 - SIRaw) / -100;     
+            scontroller.saturationIndex = (256 - SIRaw) / -100;
         }
         else {
             scontroller.saturationIndex = msg.extractPayloadByte(22) / 100;
         }
         controller.calciumHardness = msg.extractPayloadIntBE(23);
-        
+
         // scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
         controller.cyanuricAcid = msg.extractPayloadByte(26);
         controller.alkalinity = msg.extractPayloadIntBE(27);
@@ -164,12 +181,13 @@ export class IntelliChemStateMessage {
         scontroller.phDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
         scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
         controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
-        controller.phManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false; 
+        scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
+        controller.phManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
         controller.isIntelliChlorUsed = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
         controller.isAcidBaseDosing = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid ph dosing = 1; base ph dosing = 0;
-        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3,'0')}`
-        
+        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
+
         const warnings = scontroller.warnings;
         warnings.waterChemistry = msg.extractPayloadByte(38);
         warnings.phLockout = msg.extractPayloadByte(33) & 0x01;
@@ -177,7 +195,7 @@ export class IntelliChemStateMessage {
         warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
         warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
         warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
-        
+
         // RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
         // RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
         if (sys.chlorinators.length > 0) {
@@ -185,7 +203,7 @@ export class IntelliChemStateMessage {
             scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
         }
         else scontroller.saltLevel = 0;
-        
+
         // manually emit extended values
         webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
         scontroller.hasChanged = false; // try to avoid duplicate emits
