@@ -204,45 +204,45 @@ export class byteValueMaps {
                 else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
             }
         }
-/*         this.chemControllerStatus.transform = function (byte: number) {
-            let arr = [];
-            for (let b = 8; b > 0; b--) {
-                let bit = (1 << (b - 1));
-                if ((byte & bit) > 0) {
-                    let v = this.get(b);
-                    if (typeof v !== "undefined") {
-                        arr.push(extend(true, {}, v, { val: bit }));
+        /*         this.chemControllerStatus.transform = function (byte: number) {
+                    let arr = [];
+                    for (let b = 8; b > 0; b--) {
+                        let bit = (1 << (b - 1));
+                        if ((byte & bit) > 0) {
+                            let v = this.get(b);
+                            if (typeof v !== "undefined") {
+                                arr.push(extend(true, {}, v, { val: bit }));
+                            }
+                        }
                     }
-                }
-            }
-            return arr;
-        } */
-/*         this.chemControllerLimits.transform = function (byte: number) {
-            let arr = [];
-            for (let b = 8; b > 0; b--) {
-                let bit = (1 << (b - 1));
-                if ((byte & bit) > 0) {
-                    let v = this.get(b);
-                    if (typeof v !== "undefined") {
-                        arr.push(extend(true, {}, v, { val: bit }));
+                    return arr;
+                } */
+        /*         this.chemControllerLimits.transform = function (byte: number) {
+                    let arr = [];
+                    for (let b = 8; b > 0; b--) {
+                        let bit = (1 << (b - 1));
+                        if ((byte & bit) > 0) {
+                            let v = this.get(b);
+                            if (typeof v !== "undefined") {
+                                arr.push(extend(true, {}, v, { val: bit }));
+                            }
+                        }
                     }
+                    return arr;
                 }
-            }
-            return arr;
-        }
-        this.chemControllerDosingStatus.transform = function (byte: number) {
-            let arr = [];
-            for (let b = 8; b > 0; b--) {
-                let bit = (1 << (b - 1));
-                if ((byte & bit) > 0) {
-                    let v = this.get(b);
-                    if (typeof v !== "undefined") {
-                        arr.push(extend(true, {}, v, { val: bit }));
+                this.chemControllerDosingStatus.transform = function (byte: number) {
+                    let arr = [];
+                    for (let b = 8; b > 0; b--) {
+                        let bit = (1 << (b - 1));
+                        if ((byte & bit) > 0) {
+                            let v = this.get(b);
+                            if (typeof v !== "undefined") {
+                                arr.push(extend(true, {}, v, { val: bit }));
+                            }
+                        }
                     }
-                }
-            }
-            return arr;
-        } */
+                    return arr;
+                } */
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -506,28 +506,28 @@ export class byteValueMaps {
     ]);
     public chemControllerAlarms: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No alarm' }],
-        [1, { name: 'noflow', desc: 'Alarm - No Flow' }],
-        [2, { name: 'phhigh', desc: 'Alarm - pH High' }],
-        [4, { name: 'phlow', desc: 'Alarm - pH Low' }],
-        [8, { name: 'orphigh', desc: 'Alarm - orp High' }],
-        [16, { name: 'orplow', desc: 'Alarm - orp Low' }],
-        [32, { name: 'phtankempty', desc: 'Alarm - pH Tank Empty' }],
-        [64, { name: 'orptankempty', desc: 'Alarm - orp Tank Empty' }],
-        [128, { name: 'probefault', desc: 'Alarm - Probe Fault' }]
+        [1, { name: 'noflow', desc: 'No Flow' }],
+        [2, { name: 'phhigh', desc: 'pH High' }],
+        [4, { name: 'phlow', desc: 'pH Low' }],
+        [8, { name: 'orphigh', desc: 'orp High' }],
+        [16, { name: 'orplow', desc: 'orp Low' }],
+        [32, { name: 'phtankempty', desc: 'pH Tank Empty' }],
+        [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
+        [128, { name: 'probefault', desc: 'Probe Fault' }]
     ]);
     public chemControllerWarnings: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Warning' }],
-        [1, { name: 'corrosive', desc: 'Warning - Corrosion May Occur' }],
-        [2, { name: 'scaling', desc: 'Warning - Scaling May Occur' }],
+        [1, { name: 'corrosive', desc: 'Corrosion May Occur' }],
+        [2, { name: 'scaling', desc: 'Scaling May Occur' }],
         [8, { name: 'invalidsetup', desc: 'Invalid Setup' }],
         [16, { name: 'chlorinatorComms', desc: 'Chlorinator Comms Error' }]
     ]);
     public chemControllerLimits: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No limits reached' }],
-        [1, { name: 'phlockout', desc: 'Limit - pH Lockout' }],
-        [2, { name: 'phdailylimit', desc: 'Limit - pH Daily Limit Reached' }],
-        [4, { name: 'orpdailylimit', desc: 'Limit - orp Daily Limit Reached' }],
-
+        [1, { name: 'phlockout', desc: 'pH Lockout' }],
+        [2, { name: 'phdailylimit', desc: 'pH Daily Limit Reached' }],
+        [4, { name: 'orpdailylimit', desc: 'orp Daily Limit Reached' }],
+        [128, { name: 'commslost', desc: 'Communications with Chem Controller Lost' }] // to be verified
     ]);
     public chemControllerDosingStatus: byteValueMap = new byteValueMap([
         [0, { name: 'dosing', desc: 'Dosing - Dosing' }],
@@ -2544,8 +2544,8 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(1, Math.round(_ph % 256));
                 out.setPayloadByte(2, Math.floor(_orp / 256));
                 out.setPayloadByte(3, Math.round(_orp % 256));
-                out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel); 
-                out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel); 
+                out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel);
+                out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel);
                 out.setPayloadByte(6, Math.floor(_ch / 256));
                 out.setPayloadByte(7, Math.round(_ch % 256));
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
@@ -2583,7 +2583,7 @@ export class ChemControllerCommands extends BoardCommands {
         if (typeof data.isAcidBaseDosing !== 'undefined') chem.isAcidBaseDosing = utils.makeBool(data.isAcidBaseDosing);
         // state data
         const alarms = data.alarms
-        if (typeof alarms !== 'undefined'){
+        if (typeof alarms !== 'undefined') {
             if (typeof alarms.flow !== 'undefined') schem.alarms.flow = parseInt(alarms.flow, 10);
             if (typeof alarms.ph !== 'undefined') schem.alarms.ph = parseInt(alarms.ph, 10);
             if (typeof alarms.orp !== 'undefined') schem.alarms.orp = parseInt(alarms.orp, 10);
@@ -2592,7 +2592,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (typeof alarms.probeFault !== 'undefined') schem.alarms.probeFault = parseInt(alarms.probeFault, 10);
         }
         const warnings = data.warnings
-        if (typeof warnings !== 'undefined'){
+        if (typeof warnings !== 'undefined') {
             if (typeof warnings.waterChemistry !== 'undefined') schem.warnings.waterChemistry = parseInt(warnings.waterChemistry, 10);
             if (typeof warnings.phLockout !== 'undefined') schem.warnings.phLockout = parseInt(warnings.phLockout, 10);
             if (typeof warnings.phDailyLimitReached !== 'undefined') schem.warnings.phDailyLimitReached = parseInt(warnings.phDailyLimitReached, 10);
@@ -2610,8 +2610,8 @@ export class ChemControllerCommands extends BoardCommands {
         if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
         // if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10); // remove/unsure?
         // if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10); // remove/unsure?
-        if (typeof data.phDosingStatus !== 'undefined') schem.phDosingStatus = parseInt(data.phDosingStatus, 10); 
-        if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10); 
+        if (typeof data.phDosingStatus !== 'undefined') schem.phDosingStatus = parseInt(data.phDosingStatus, 10);
+        if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10);
         if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
         if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
         if (typeof data.pHDosingVolume !== 'undefined') schem.pHDosingVolume = parseInt(data.pHDosingVolume, 10);
@@ -2715,23 +2715,19 @@ export class ChemControllerCommands extends BoardCommands {
         // init chem controller here
         /* on EasyTouch2 8p
         See these two packets first:
-        debug: Packet not processed: 255,0,255,165,23,16,34,200,1,0,1,183
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
-        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,152
+        debug: Packet not processed: 255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,152
 
 
         Followed shortly by the same two packets but 128 is towards the end of the payload on the 147 packet;
         Guessing 128 is status=Not Found or Lost Comms
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
-        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
-
-        debug: Packet not processed: 255,0,255,165,23,16,34,231,1,0,1,214
+        debug: Packet not processed: 255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
 
 
         And then the 217/19 pair (both a get and a set packet)
-        debug: Packet not processed: 255,0,255,165,23,16,34,217,1,0,1,200
         debug: Packet not processed: 255,0,255,165,23,16,34,19,1,0,1,2
-        debug: Packet not processed: 255,255,255,255,255,255,255,255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
+        debug: Packet not processed: 255,0,255,165,23,15,16,147,42,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,128,0,0,0,0,0,0,0,2,24
         */
 
         /*
@@ -2740,238 +2736,37 @@ export class ChemControllerCommands extends BoardCommands {
 
         */
 
-
-
+        // this mimics another control panel asking OCP for chem controller status
+        // return new Promise((resolve, reject)=> {
 
         let out = Outbound.create({
-            source: 23,
-            dest: 16,
-            action: 200,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 200, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            source: 23,
-            dest: 16,
-            action: 19,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            //source: 23,
-            dest: 16,
-            action: 200,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 200, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            source: 23,
-            dest: 16,
-            action: 19,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 19, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            dest: 16,
-            action: 19,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 19, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            source: 23,
-            dest: 16,
-            action: 231,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 231, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            dest: 16,
-            action: 231,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 231, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            source: 23,
-            dest: 16,
-            action: 217,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: 23, dest: 16, action: 217, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            dest: 16,
-            action: 217,
-            payload: [0],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: [default], dest: 16, action: 217, payload: [0] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
             source: 16,
-            dest: 144,
+            dest: chem.address,
             action: 210,
             payload: [210],
             retries: 3,
+            timeout: 2000,
+            protocol: Protocol.IntelliChem,
             response: true,
             onComplete: (err) => {
                 if (err) {
                     logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    logger.info(`No chemController found at address ${chem.address}: ${err.message}`);
+                    sys.chemControllers.getItemById(chem.id).isActive = false;
+                    sys.chemControllers.removeItemById(chem.id);
+                    state.chemControllers.removeItemById(chem.id);
+                    state.emitEquipmentChanges(); // emit destroyed chlor if we fail
+                    // reject(`No chemController found at address ${chem.address}: ${err.message}`);
                 }
                 else {
                     logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    // resolve(state.chemControllers.getItemById(chem.id, true));
+                    state.chemControllers.getItemById(chem.id, true);
                 }
             }
         });
         conn.queueSendMessage(out);
-
-
-        out = Outbound.create({
-            //source: 23,
-            dest: 144,
-            action: 210,
-            payload: [210],
-            retries: 3,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`No response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
-                }
-                else {
-                    logger.info(`Response from chem controller: src: [default], dest: 144, action: 210, payload: [210] `);
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-
-        /*         
-                    out = Outbound.create({
-                        dest: 15,
-                        action: 147,
-                        payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                        retries: 1,
-                        response: true,
-                        onComplete: (err) => {
-                            if (err) reject(err);
-                            else resolve();
-                        }
-                    });
-                    conn.queueSendMessage(out);
-                 */
-        // TODO: if the 2nd out message comes back after the first is rejected it results in an 
-        // 'uncaught exception'.  Boo javascript.
-        /*         return new Promise<any>(async (resolve, reject) => {
-                    try {
-                        await Promise.all(arr).catch(err => reject(err));
-                        resolve();
-                    }
-                    catch (err) { reject(err); }
-                }); */
-        return Promise.reject('TESTING');
+        //};
     }
 
     public async stopAsync(chem: ChemController) {
@@ -3156,27 +2951,17 @@ export class VirtualChemController extends BoardCommands {
     public async search() {
         // TODO: If we are searching for multiple chem controllers this should be a promise.all array
         // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
+        let promises = [];
         for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
-            let chem = sys.chemControllers.getItemById(i, true);
+            let address = 144 + i - 1; // first address;
+            let chem = sys.chemControllers.getItemByAddress(address, true);
             if (chem.isActive) continue;
             chem.isActive = true;
             chem.isVirtual = true;
             chem.type = 1;
-            chem.address = 144; // first address; 
-            try {
-                logger.info(`Searching for a chem controller at address... ${chem.address}`);
-                await sys.board.chemControllers.initChem(chem);
-                state.chemControllers.getItemById(i, true);
-            }
-            catch (err) {
-                logger.info(`No chemController found at address ${chem.address}: ${err.message}`);
-                sys.chemControllers.removeItemById(i);
-                state.chemControllers.removeItemById(i);
-                state.emitEquipmentChanges(); // emit destroyed chlor if we fail
-            }
-            state.emitEquipmentChanges(); // emit success if we get this far
+            sys.board.chemControllers.initChem(chem);
         }
-        return Promise.resolve('Searching for chem controllers.');
+        return Promise.resolve('Searching for chem controllers...')
     }
     // is stopping virtual chem controllers necessary?
     public async stopAsync() {
