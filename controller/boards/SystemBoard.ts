@@ -2567,7 +2567,7 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(7, Math.round(_ch % 256));
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
                 out.setPayloadByte(10, Math.floor(_alk / 256));
-                out.setPayloadByte(12, Math.round(_alk % 256)); 
+                out.setPayloadByte(12, Math.round(_alk % 256));
                 // out.setPayloadByte(12, 20);  // fixed value?
                 conn.queueSendMessage(out);
             });
@@ -2937,6 +2937,18 @@ export class VirtualPumpController extends BoardCommands {
             }
         }
     }
+    public async softStop() {
+        // reset the values when the app starts; this is in case there is a system failure while the pumps are running
+        // turn off all pumps
+        for (let i = 1; i <= sys.pumps.length; i++) {
+            let pump = sys.pumps.getItemById(i);
+            let spump = state.pumps.getItemById(i);
+            if (pump.isVirtual && pump.type !== 0) {
+                spump.targetSpeed = 0;
+                spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+            }
+        }
+    }
     public async stopAsync() {
         // this is faux async just so we give pumps time to stop.
         // maybe a better way to do this without having individual
@@ -3023,10 +3035,10 @@ export class VirtualChemController extends BoardCommands {
                     setTimeout(sys.board.chemControllers.run, 100, chem);
                 }
                 // else {
-                    // if (schem.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
-                    // schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                    // sys.board.chemControllers.stop(chem);
-                    // }
+                // if (schem.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+                // schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                // sys.board.chemControllers.stop(chem);
+                // }
                 // }
             }
             else schem.virtualControllerStatus = -1;

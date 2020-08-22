@@ -187,6 +187,10 @@ export class PoolSystem implements IPoolSystem {
                 sys.equipment.setEquipmentIds();
                 state.emitControllerChange();
             }
+            // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
+            sys.board.virtualPumpControllers.softStop();
+            sys.board.virtualChlorinatorController.stop();
+            sys.board.virtualChemControllers.stop();
             // try to start any virtual controllers that are present irregardless of overall controller virtual status
             sys.board.virtualPumpControllers.start();
             sys.board.virtualChlorinatorController.start();
