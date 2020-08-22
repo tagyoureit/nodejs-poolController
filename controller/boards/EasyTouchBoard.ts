@@ -283,7 +283,7 @@ export class EasyTouchBoard extends SystemBoard {
         this.checkConfiguration();
     }
 
-    public async stopAsync() { this._configQueue.close(); return Promise.resolve([]); }
+    public async stopAsync() { this._configQueue.close(); return super.stopAsync(); }
 }
 export class TouchConfigRequest extends ConfigRequest {
     constructor(setcat: number, items?: number[], oncomplete?: Function) {
