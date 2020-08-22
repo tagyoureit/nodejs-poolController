@@ -50,13 +50,23 @@
     "services": {},
     "interfaces": {
       "smartThings": {
-        "name": "SmartThings/Hubitat",
+        "name": "SmartThings",
         "enabled": false,
         "fileName": "smartThings-Hubitat.json",
         "globals": {},
         "options": {
           "host": "0.0.0.0",
           "port": 39500
+        }
+      },
+      "hubitat": {
+        "name": "Hubitat",
+        "enabled": false,
+        "fileName": "smartThings-Hubitat.json",
+        "globals": {},
+        "options": {
+          "host": "0.0.0.0",
+          "port": 39501
         }
       },
       "vera": {

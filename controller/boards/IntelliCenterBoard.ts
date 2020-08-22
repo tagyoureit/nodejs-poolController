@@ -250,7 +250,7 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.configVersion.valves = ver.valves;
         }
     }
-    public async stopAsync() { this._configQueue.close(); return Promise.resolve([]);}
+    public async stopAsync() { this._configQueue.close(); return super.stopAsync();}
     public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp2A: number, ocp3A: number) {
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);

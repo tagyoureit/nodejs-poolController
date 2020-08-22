@@ -174,19 +174,25 @@ export class PoolSystem implements IPoolSystem {
     }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
-            logger.info("Searching for chlorinators and pumps");
+            logger.info("Searching chlorinators, pumps and chem controllers");
             EquipmentStateMessage.initVirtual();
             sys.board.virtualChlorinatorController.search();
             sys.board.virtualPumpControllers.search();
+            sys.board.virtualChemControllers.search();
         }  
-        else if (this.controllerType === ControllerType.Virtual){
+        else {
+            if (this.controllerType === ControllerType.Virtual){
+                state.mode = 0;
+                state.status = 1;
+                sys.equipment.setEquipmentIds();
+                state.emitControllerChange();
+            }
+            // try to start any virtual controllers that are present irregardless of overall controller virtual status
             sys.board.virtualPumpControllers.start();
             sys.board.virtualChlorinatorController.start();
-            state.mode = 0;
-            state.status = 1;
-            sys.equipment.setEquipmentIds();
-            state.emitControllerChange();
+            sys.board.virtualChemControllers.start();
         }  
+
      }
     public board: SystemBoard=new SystemBoard(this);
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }

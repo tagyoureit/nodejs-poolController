@@ -194,7 +194,9 @@ export class Message {
                         if (msgIn.protocol !== msgOut.protocol) { return false; }
                         if (typeof msgIn === 'undefined' || msgIn.protocol !== msgOut.protocol) { return; } // getting here on msg send failure
                         switch (msgIn.action) {
-
+                            case 1: // ack
+                                if (msgIn.source === msgOut.dest && msgIn.payload[0] === msgOut.action) return true;
+                                break;
                             default:
                                 // in: 18; out 210 fits msgout & 0x63 pattern
                                 if (msgIn.action === (msgOut.action & 63) && msgIn.source === msgOut.dest) return true;

@@ -243,7 +243,10 @@ export class SendRecieveBuffer {
                 conn.buffer.writeMessage(msg);
             }
         }
-        if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket) {
+        // RG: added the last `|| typeof msg !== 'undef'` because virtual chem controller only sends a single packet
+        // but this condition would be eval'd before the callback of conn.write was calles and the outbound packet
+        // would be sitting idle for eternity. 
+        if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket || typeof msg !== 'undefined') {
             // Come back later as we still have items to send.
             conn.buffer.procTimer = setTimeout(() => this.processPackets(), 100);
         }
