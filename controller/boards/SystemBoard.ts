@@ -20,7 +20,7 @@ import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol } from '../comms/messages/Messages';
 import { utils } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve } from '../Equipment';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState } from '../State';
 
@@ -625,11 +625,9 @@ export class SystemBoard {
     public async stopAsync() {
         // turn off chlor
         sys.board.virtualChlorinatorController.stop();
-        let p = [];
-        p.push(this.turnOffAllCircuits());
-        p.push(sys.board.virtualChemControllers.stopAsync());
-        p.push(sys.board.virtualPumpControllers.stopAsync());
-        return Promise.all(p);
+        if (sys.controllerType === ControllerType.Virtual) this.turnOffAllCircuits();
+        sys.board.virtualChemControllers.stop();
+        return sys.board.virtualPumpControllers.stopAsync()
     }
     public async turnOffAllCircuits() {
         // turn off all circuits/features
@@ -647,7 +645,6 @@ export class SystemBoard {
         }
         sys.board.virtualPumpControllers.setTargetSpeed();
         state.emitEquipmentChanges();
-        return Promise.resolve();
     }
     public system: SystemCommands = new SystemCommands(this);
     public bodies: BodyCommands = new BodyCommands(this);
@@ -2500,20 +2497,38 @@ export class ValveCommands extends BoardCommands {
 export class ChemControllerCommands extends BoardCommands {
     public async setChemControllerAsync(data: any): Promise<ChemController> {
         // this is a combined chem config/state setter.  
+        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : undefined;
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
-        if (id <= 0) {
+        if (typeof address === 'undefined' && id <= 0) {
             // adding a chem controller
             id = sys.chemControllers.nextAvailableChemController();
         }
-        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+        if (typeof id === 'undefined' || id > sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+        if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
         let chem: ChemController;
-        if (data.address) chem = sys.chemControllers.getItemByAddress(id, true);
+        if (typeof address !== 'undefined') chem = sys.chemControllers.getItemByAddress(address, true);
         else chem = sys.chemControllers.getItemById(id, true);
-        let schem = state.chemControllers.getItemById(id, true);
+        let schem = state.chemControllers.getItemById(chem.id, true);
 
+        // Before we send an outbound ic packet, check if we are deleting this controller
+        if (typeof data.type !== 'undefined' && data.type === 0) {
+            // remove
+            sys.chemControllers.removeItemById(data.id);
+            state.chemControllers.removeItemById(data.id);
+            let chem = sys.chemControllers.getItemById(data.id);
+            chem.isActive = false;
+            sys.emitEquipmentChange();
+            return Promise.resolve(chem);
+        }
+        // and check to see if we are changing TO an intellichem or AWAY from an intellichem
+        schem.type = chem.type = parseInt(data.type, 10) || chem.type || 1;
+        chem.isActive = data.isActive || true;
+        chem.isVirtual = data.isVirtual || true;
+        schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
         // if we have an IntelliChem, set the values here and let the status 
         if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) {
+            sys.board.virtualChemControllers.start();
             return new Promise((resolve, reject) => {
                 const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.pHSetpoint) * 100;
                 const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.pHSetpoint);
@@ -2521,14 +2536,16 @@ export class ChemControllerCommands extends BoardCommands {
                 const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
                 let out = Outbound.create({
                     dest: chem.address,
+                    source: 16, // ic doesn't seem to like msgs coming from 33
                     action: 146,
                     payload: [],
-                    retries: 0,
+                    retries: 1,
                     response: true,
+                    protocol: Protocol.IntelliChem,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else {
-                            chem.pHSetpoint = _ph;
+                            chem.pHSetpoint = _ph / 100;
                             chem.orpSetpoint = _orp;
                             chem.calciumHardness = _ch;
                             chem.alkalinity = _alk;
@@ -2550,25 +2567,12 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(7, Math.round(_ch % 256));
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid);
                 out.setPayloadByte(10, Math.floor(_alk / 256));
-                out.setPayloadByte(12, Math.round(_alk % 256));
-                out.setPayloadByte(12, 20);  // fixed value?
+                out.setPayloadByte(12, Math.round(_alk % 256)); 
+                // out.setPayloadByte(12, 20);  // fixed value?
                 conn.queueSendMessage(out);
             });
         }
 
-        if (typeof data.type !== 'undefined' && data.type === 0) {
-            // remove
-            sys.chemControllers.removeItemById(data.id);
-            state.chemControllers.removeItemById(data.id);
-            let chem = sys.chemControllers.getItemById(data.id);
-            chem.isActive = false;
-            sys.emitEquipmentChange();
-            return Promise.resolve(chem);
-        }
-        schem.type = chem.type = parseInt(data.type, 10) || chem.type || 1;
-        chem.isActive = data.isActive || true;
-        chem.isVirtual = data.isVirtual || true;
-        schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
         // config data
         chem.body = data.body || chem.body || 32;
         chem.address = parseInt(data.address, 10) || chem.address || chem.id;
@@ -2744,22 +2748,23 @@ export class ChemControllerCommands extends BoardCommands {
             dest: chem.address,
             action: 210,
             payload: [210],
-            retries: 3,
-            timeout: 2000,
+            retries: 1,
             protocol: Protocol.IntelliChem,
             response: true,
             onComplete: (err) => {
                 if (err) {
-                    logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    // logger.warn(`No response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
                     logger.info(`No chemController found at address ${chem.address}: ${err.message}`);
                     sys.chemControllers.getItemById(chem.id).isActive = false;
                     sys.chemControllers.removeItemById(chem.id);
                     state.chemControllers.removeItemById(chem.id);
+                    setTimeout(sys.board.virtualChemControllers.start, 5000);
                     state.emitEquipmentChanges(); // emit destroyed chlor if we fail
                     // reject(`No chemController found at address ${chem.address}: ${err.message}`);
                 }
                 else {
-                    logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
+                    logger.info(`Found chem controller id:${chem.id}/address:${chem.address} `);
+                    // logger.info(`Response from chem controller: src: 16, dest: 144, action: 210, payload: [210] `);
                     // resolve(state.chemControllers.getItemById(chem.id, true));
                     state.chemControllers.getItemById(chem.id, true);
                 }
@@ -2769,13 +2774,43 @@ export class ChemControllerCommands extends BoardCommands {
         //};
     }
 
-    public async stopAsync(chem: ChemController) {
-        // stop commands
-        return Promise.resolve(chem);
-    }
-    public async runAsync(chem: ChemController) {
+    /*     public stop(chem: ChemController) {
+            // stop commands
+            state.chemControllers.getItemById(chem.id).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped')
+            return Promise.resolve(chem);
+        } */
+    public run(chem: ChemController) {
         // run commands
-        return Promise.resolve(chem);
+        let schem = state.chemControllers.getItemById(chem.id);
+        if (chem.isActive && chem.isVirtual && chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) {
+            if (schem.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) {
+                return;
+            }
+            else {
+                let out = Outbound.create({
+                    source: 16,
+                    dest: chem.address,
+                    action: 210,
+                    payload: [210],
+                    retries: 1,
+                    protocol: Protocol.IntelliChem,
+                    response: true,
+                    onComplete: (err) => {
+                        if (err) {
+                            logger.warn(`No response from IntelliChem id:${chem.id}/address:${chem.address}`);
+                            if (schem.lastComm + (30 * 1000) < new Date().getTime()) {
+                                // We have not talked to the chem controller in 30 seconds so we have lost communication.
+                                schem.status = schem.alarms.comms = 1;
+                            }
+                        }
+                        setTimeout(sys.board.chemControllers.run, 5000, chem);
+                    }
+                });
+                conn.queueSendMessage(out);
+
+            }
+        }
+
     }
 
 }
@@ -2827,7 +2862,6 @@ export class VirtualChlorinatorController extends BoardCommands {
             logger.warn(`No Chlorinator Found`);
             sys.chlorinators.removeItemById(1);
             state.chlorinators.removeItemById(1);
-            logger.info('no chlor');
         }
     }
 }
@@ -2913,7 +2947,7 @@ export class VirtualPumpController extends BoardCommands {
             for (let i = 1; i <= sys.pumps.length; i++) {
                 let pump = sys.pumps.getItemById(i);
                 let spump = state.pumps.getItemById(i);
-                if (pump.isVirtual) {
+                if (pump.isVirtual && pump.type !== 0) {
                     bAnyVirtual = true;
                     logger.info(`Queueing pump ${i} to return to manual control.`);
                     spump.targetSpeed = 0;
@@ -2937,17 +2971,16 @@ export class VirtualPumpController extends BoardCommands {
                 state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
                 setTimeout(sys.board.pumps.run, 100, pump);
             }
-            else {
-                if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
-                    spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-                    sys.board.pumps.stopPumpRemoteContol(pump);
-                }
-            }
+            // else {
+            //     if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+            //         spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+            //         sys.board.pumps.stopPumpRemoteContol(pump);
+            //     }
+            // }
         }
     }
 }
 export class VirtualChemController extends BoardCommands {
-    private _timers: NodeJS.Timeout[] = [];
     public async search() {
         // TODO: If we are searching for multiple chem controllers this should be a promise.all array
         // except even one resolve() could be a success for all.  Or we could just return a generic "searching"
@@ -2964,37 +2997,39 @@ export class VirtualChemController extends BoardCommands {
         return Promise.resolve('Searching for chem controllers...')
     }
     // is stopping virtual chem controllers necessary?
-    public async stopAsync() {
-        let promises = [];
+    public stop() {
         // turn off all chem controllers
-        for (let i = 1; i <= sys.chemControllers.length; i++) {
-            let chem = sys.chemControllers.getItemById(i);
-            let schem = state.chemControllers.getItemById(i);
+        let bAnyVirtual = false;
+        for (let i = 0; i < sys.chemControllers.length; i++) {
+            let chem = sys.chemControllers.getItemByIndex(i);
+            let schem = state.chemControllers.getItemById(chem.id);
             if (chem.isVirtual && chem.isActive) {
-                logger.info(`Queueing chemController ${i} to stop.`);
-                promises.push(sys.board.chemControllers.stopAsync(chem));
-                typeof this._timers[i] !== 'undefined' && clearTimeout(this._timers[i]);
-                state.chemControllers.getItemById(i, true).virtualControllerStatus = 0;
+                logger.info(`Stopping chemController ${i} to stop.`);
+                // sys.board.chemControllers.stop(chem);
+                schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                bAnyVirtual = true;
             }
         }
-        return Promise.all(promises);
     }
 
     public start() {
-        for (let i = 1; i <= sys.pumps.length; i++) {
-            let chem = sys.chemControllers.getItemById(i);
-            if (chem.isVirtual && chem.isActive) {
-                typeof this._timers[i] !== 'undefined' && clearInterval(this._timers[i]);
-                setImmediate(function () { sys.board.chemControllers.runAsync(chem); });
-                // TODO: refactor into a wrapper like pumps
-                // this won't work with async inside setTimeout/setInterval
-                this._timers[i] = setInterval(async function () { await sys.board.chemControllers.runAsync(chem); }, 8000);
-                if (state.chemControllers.getItemById(i).virtualControllerStatus !== 1) {
-                    logger.info(`Starting Virtual Pump Controller: Pump ${chem.id}`);
-                    state.chemControllers.getItemById(i).virtualControllerStatus = 1;
+        for (let i = 0; i < sys.chemControllers.length; i++) {
+            let chem = sys.chemControllers.getItemByIndex(i);
+            let schem = state.chemControllers.getItemById(chem.id);
+            if (chem.isVirtual && chem.isActive && chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) {
+                if (state.chemControllers.getItemById(chem.id).virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+                    logger.info(`Starting Virtual Chem Controller: Chem id:${chem.id}/address:${chem.address}`);
+                    schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+                    setTimeout(sys.board.chemControllers.run, 100, chem);
                 }
-
+                // else {
+                    // if (schem.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+                    // schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+                    // sys.board.chemControllers.stop(chem);
+                    // }
+                // }
             }
+            else schem.virtualControllerStatus = -1;
         }
     }
 }
