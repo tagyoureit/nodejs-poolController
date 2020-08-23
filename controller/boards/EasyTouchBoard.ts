@@ -848,6 +848,7 @@ class TouchCircuitCommands extends CircuitCommands {
         return this.setCircuitAsync(data);
     }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
         return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.create({
