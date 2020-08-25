@@ -1326,7 +1326,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
@@ -1349,7 +1349,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err, msg: Outbound) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
@@ -1371,7 +1371,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err, msg: Outbound) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
@@ -1405,7 +1405,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err, msg) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
@@ -1437,7 +1437,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err, msg) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
@@ -1470,7 +1470,7 @@ export class PumpCommands extends BoardCommands {
             onComplete: (err, msg) => {
                 if (err) {
                     logger.error(err);
-                    setTimeout(this.run, 500, pump);
+                    setTimeout(sys.board.pumps.run, 500, pump);
                 }
                 else if (callbackStack.length > 0) {
                     let cb = callbackStack.shift();
