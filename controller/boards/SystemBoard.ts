@@ -1290,7 +1290,6 @@ export class PumpCommands extends BoardCommands {
         let spump = state.pumps.getItemById(pump.id);
         if (typeof spump.targetSpeed === 'undefined') sys.board.virtualPumpControllers.setTargetSpeed();
         if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) {
-            spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
             sys.board.pumps.stopPumpRemoteContol(pump);
         }
         else {
