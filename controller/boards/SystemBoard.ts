@@ -2449,7 +2449,7 @@ export class HeaterCommands extends BoardCommands {
 }
 export class ValveCommands extends BoardCommands {
     public async setValveAsync(obj: any): Promise<Valve> {
-        let id = parseInt(obj.id, 10);
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         // The following code will make sure we do not encroach on any valves defined by the OCP.
         obj.isVirtual = true;
         if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false), 49) + 1;
