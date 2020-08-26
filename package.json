@@ -15,7 +15,8 @@
     "scripts": {
         "start": "npm run build && node dist/app.js",
         "start:cached": "node dist/app.js",
-        "build": "tsc"
+        "build": "tsc",
+        "watch": "tsc -w"
     },
     "dependencies": {
         "@influxdata/influxdb-client": "^1.5.0",
