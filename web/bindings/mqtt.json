@@ -1,0 +1,79 @@
+{
+    "context": {
+        "name": "MQTT",
+        "options": {
+            "formatter": [
+                {   
+                    "transform":".toLowerCase()"
+                },
+                {
+                    "regexkey": "\\s",
+                    "replace": "",
+                    "description": "Remove whitespace"
+                },
+                {
+                    "regexkey": "\\/",
+                    "replace": "",
+                    "description": "Remove /"
+                }
+            ],
+            "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
+            "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
+        }
+    },
+    "events": [
+        {
+            "name": "config",
+            "description": "Don't flood the MQTT bus.",
+            "enabled": false
+        },
+        {
+            "name": "circuit",
+            "description": "Populate the circuits topics",
+            "topics": [
+                {
+                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/boolean",
+                    "message": "@bind=data.isOn;",
+                    "desciption": "Bind the isOn as a message to the topic."
+                },
+                {
+                    "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
+                    "message": "@bind=data.isOn;",
+                    "desciption": "Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
+                    "formatter": [
+                        {   
+                            "transform":".toLowerCase()"
+                        },
+                        {
+                            "regexkey": "\\s",
+                            "replace": "__",
+                            "description": "Remove whitespace and replace with __"
+                        },
+                        {
+                            "regexkey": "\\/",
+                            "replace": "__",
+                            "description": "Remove / and replace with __"
+                        }
+                    ],
+                    "qos": 2
+                },
+                {
+                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/string",
+                    "message": "@bind=data.isOn?'on':'off';",
+                    "desciption": "Bind 'on'/'off' as a message to the topic."
+                },
+                {
+                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/object",
+                    "message": "@bind=data;",
+                    "desciption": "Bind a JSON object as a message to the topic."
+                }
+            ]
+        },
+        {
+            "name": "*",
+            "description": "DEFAULT: Sends the entire emitted response.",
+            "body": "@bind=data;",
+            "enabled": false
+        }
+    ]
+}

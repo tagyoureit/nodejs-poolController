@@ -20,7 +20,6 @@
         "logger/**/*",
         "controller/**/*",
         "config/**/*", 
-        "**/*.ts", "smartthings.js"
-
+        "**/*.ts"
     ]
 }
