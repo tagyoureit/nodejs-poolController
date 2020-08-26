@@ -349,6 +349,10 @@ export class HttpsServer extends HttpServer {
                         (auth.connect(basic))(req, res, next);
                 });
             } */
+            if (cfg.sslKeyFile === '' || cfg.sslCertFile === '' || !fs.existsSync(path.join(process.cwd(), cfg.sslKeyFile)) || !fs.existsSync(path.join(process.cwd(), cfg.sslCertFile))) { 
+                logger.warn(`HTTPS not enabled because key or crt file is missing.`); 
+                return;
+            }
             let opts = {
                 key: fs.readFileSync(path.join(process.cwd(), cfg.sslKeyFile), 'utf8'),
                 cert: fs.readFileSync(path.join(process.cwd(), cfg.sslCertFile), 'utf8'),
