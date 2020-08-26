@@ -14,7 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { HttpInterfaceServer } from "../../web/Server";
+import { HttpInterfaceServer } from "../Server";
 import { connect, MqttClient, Client } from 'mqtt';
 import * as http2 from "http2";
 import * as http from "http";
@@ -100,7 +100,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 tok.value = eval(bind);
                 if (typeof formatter !== 'undefined') {
                     formatter.forEach(entry => {
-                        // logger.debug(eMQTT: ntry); 
                         if (typeof entry.transform !== 'undefined') {
                             let transform = `('${tok.value}')${entry.transform}`;
                             tok.value = eval(transform);
