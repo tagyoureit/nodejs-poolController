@@ -2496,7 +2496,7 @@ export class ValveCommands extends BoardCommands {
 }
 export class ChemControllerCommands extends BoardCommands {
     public async setChemControllerAsync(data: any): Promise<ChemController> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise<ChemController>(async (resolve, reject) => {
             // this is a combined chem config/state setter.  
             let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : undefined;
             let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
