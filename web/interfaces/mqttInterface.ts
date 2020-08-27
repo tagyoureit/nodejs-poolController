@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { HttpInterfaceServer } from "../Server";
 import { connect, MqttClient, Client } from 'mqtt';
 import * as http2 from "http2";
 import * as http from "http";
@@ -23,12 +22,11 @@ import extend = require("extend");
 import { logger } from "../../logger/Logger";
 import { sys } from "../../controller/Equipment";
 import { state } from "../../controller/State";
-import { InterfaceContext, InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
+import { InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
 import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
 import { utils } from "../../controller/Constants";
-const net = require('net');
 
 export class MqttInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
@@ -64,10 +62,16 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
 
     private subscribe = () => {
-        let topic = `${this.rootTopic()}/state/#`;
-        this.client.subscribe(topic, (err, granted) => {
-            if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`)
-            else logger.error(`MQTT Subscribe: ${err}`)
+        let topics = [`${this.rootTopic()}/state/circuit/setState`,
+        `${this.rootTopic()}/state/feature/setState`,
+        `${this.rootTopic()}/state/circuit/toggleState`,
+        `${this.rootTopic()}/state/feature/toggleState`,
+    ];
+        topics.forEach(topic => {
+            this.client.subscribe(topic, (err, granted) => {
+                if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`)
+                else logger.error(`MQTT Subscribe: ${err}`)
+            })
         })
         this.client.on('message', this.messageHandler)
         this.subscribed = true;
@@ -157,7 +161,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     let rootTopic = this.rootTopic();
                     if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
 
-                    logger.debug(`MQTT: e: ${JSON.stringify(e)}`)
                     if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
                         let topicFormatter = t.formatter || opts.formatter;
                         let topicToks = {};
@@ -195,7 +198,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         if (topics[0] === this.rootTopic() && typeof msg === 'object') {
             let id = parseInt(msg.id, 10);
             switch (topics[topics.length-2]){
-                case 'circuits':
+                case 'circuit':
                     {
                         if (isNaN(id)) break;
                         switch (topics[topics.length-1]){
@@ -210,9 +213,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 break;
                             }
                         }
-
+                        break;
                     }
-                case 'features':
+                case 'feature':
                     {
                         if (isNaN(id)) break;
                         switch (topics[topics.length-1]){
@@ -227,12 +230,11 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 break;
                             }
                         }
+                        break;
                     }
                 default:
-                    logger.debug(`MQTT: Inbound MQTT Message not matched: ${topic}: ${message.toString()}`)
+                    logger.silly(`MQTT: Inbound MQTT Message not matched: ${topic}: ${message.toString()}`)
             }
-            
-            
         }
     }
 }

@@ -91,7 +91,6 @@ export class State implements IState {
 
         if (typeof section === 'undefined' || section === 'all') {
             var _state: any = this.controllerState;
-            _state.circuits = this.circuits.getExtended();
             _state.temps = this.temps.getExtended();
             _state.equipment = this.equipment.getExtended();
             _state.pumps = this.pumps.getExtended();
@@ -1365,13 +1364,13 @@ export class ChemControllerState extends EqState {
     public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
     public get saltLevel(): number { return this.data.saltLevel; }
     public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
-/*     public get waterFlow(): number { return this.data.waterFlow; }
-    public set waterFlow(val: number) {
-        if (this.waterFlow !== val) {
-            this.data.waterFlow = sys.board.valueMaps.chemControllerWaterFlow.transform(val);
-            this.hasChanged = true;
-        }
-    } */
+    /*     public get waterFlow(): number { return this.data.waterFlow; }
+        public set waterFlow(val: number) {
+            if (this.waterFlow !== val) {
+                this.data.waterFlow = sys.board.valueMaps.chemControllerWaterFlow.transform(val);
+                this.hasChanged = true;
+            }
+        } */
     public get acidTankLevel(): number { return this.data.acidTankLevel; }
     public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
     public get orpTankLevel(): number { return this.data.orpTankLevel; }
@@ -1383,13 +1382,13 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     } */
-/*     public get status2(): number { return this.data.status2; }
-    public set status2(val: number) {
-        if (this.status2 !== val) {
-            this.data.status2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
-            this.hasChanged = true;
-        }
-    } */
+    /*     public get status2(): number { return this.data.status2; }
+        public set status2(val: number) {
+            if (this.status2 !== val) {
+                this.data.status2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
+                this.hasChanged = true;
+            }
+        } */
     /*     public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
         public set alarms(val: number) {
             if (this.alarms !== val) {
@@ -1554,21 +1553,21 @@ export class ChemControllerStateAlarms extends EqState {
         }
     }
     public get orpTank(): number { return typeof this.data.orpTank === 'undefined' ? undefined : this.data.orpTank.val; }
-    public set orpTank(val: number) { 
+    public set orpTank(val: number) {
         if (this.orpTank !== val) {
             this.data.orpTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
             this.hasChanged = true;
         }
     }
     public get probeFault(): number { return typeof this.data.probeFault === 'undefined' ? undefined : this.data.probeFault.val; }
-    public set probeFault(val: number) { 
+    public set probeFault(val: number) {
         if (this.probeFault !== val) {
             this.data.probeFault = sys.board.valueMaps.chemControllerAlarms.transform(val);
             this.hasChanged = true;
         }
     }
     public get comms(): number { return typeof this.data.comms === 'undefined' ? undefined : this.data.comms.val; }
-    public set comms(val: number) { 
+    public set comms(val: number) {
         if (this.comms !== val) {
             this.data.comms = sys.board.valueMaps.chemControllerStatus.transform(val);
             this.hasChanged = true;
