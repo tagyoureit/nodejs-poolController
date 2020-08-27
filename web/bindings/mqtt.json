@@ -3,8 +3,8 @@
         "name": "MQTT",
         "options": {
             "formatter": [
-                {   
-                    "transform":".toLowerCase()"
+                {
+                    "transform": ".toLowerCase()"
                 },
                 {
                     "regexkey": "\\s",
@@ -32,17 +32,17 @@
             "description": "Populate the circuits topics",
             "topics": [
                 {
-                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/boolean",
+                    "topic": "state/circuit/@bind=data.id;/@bind=data.name;/isOn/boolean",
                     "message": "@bind=data.isOn;",
                     "desciption": "Bind the isOn as a message to the topic."
                 },
                 {
-                    "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
+                    "topic": "state/circuit/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
                     "message": "@bind=data.isOn;",
                     "desciption": "Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
                     "formatter": [
-                        {   
-                            "transform":".toLowerCase()"
+                        {
+                            "transform": ".toLowerCase()"
                         },
                         {
                             "regexkey": "\\s",
@@ -58,14 +58,25 @@
                     "qos": 2
                 },
                 {
-                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/string",
+                    "topic": "state/circuit/@bind=data.id;/@bind=data.name;/isOn/string",
                     "message": "@bind=data.isOn?'on':'off';",
                     "desciption": "Bind 'on'/'off' as a message to the topic."
                 },
                 {
-                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/object",
+                    "topic": "state/circuit/@bind=data.id;/@bind=data.name;/object",
                     "message": "@bind=data;",
                     "desciption": "Bind a JSON object as a message to the topic."
+                }
+            ]
+        },
+        {
+            "name": "feature",
+            "description": "Populate the features topics",
+            "topics": [
+                {
+                    "topic": "state/features/@bind=data.id;/@bind=data.name;",
+                    "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+                    "desciption": "Bind 'on'/'off' as a message to the state topic."
                 }
             ]
         },
