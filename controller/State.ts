@@ -1295,10 +1295,10 @@ export class ChemControllerState extends EqState {
                 this.hasChanged = true;
             }
         } */
-    public get phDosingStatus(): number { return typeof (this.data.phDosingStatus) !== 'undefined' ? this.data.phDosingStatus.val : undefined; }
-    public set phDosingStatus(val: number) {
-        if (this.phDosingStatus !== val) {
-            this.data.phDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+    public get pHDosingStatus(): number { return typeof (this.data.pHDosingStatus) !== 'undefined' ? this.data.pHDosingStatus.val : undefined; }
+    public set pHDosingStatus(val: number) {
+        if (this.pHDosingStatus !== val) {
+            this.data.pHDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1429,10 +1429,10 @@ export class ChemControllerStateAlarms extends EqState {
             this.hasChanged = true;
         }
     }
-    public get ph(): number { return typeof this.data.ph === 'undefined' ? undefined : this.data.ph.val.ph; }
-    public set ph(val: number) {
-        if (this.ph !== val) {
-            this.data.ph = sys.board.valueMaps.chemControllerAlarms.transform(val);
+    public get pH(): number { return typeof this.data.pH === 'undefined' ? undefined : this.data.pH.val.pH; }
+    public set pH(val: number) {
+        if (this.pH !== val) {
+            this.data.pH = sys.board.valueMaps.chemControllerAlarms.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1443,10 +1443,10 @@ export class ChemControllerStateAlarms extends EqState {
             this.hasChanged = true;
         }
     }
-    public get phTank(): number { return typeof this.data.phTank === 'undefined' ? undefined : this.data.phTank.val; }
-    public set phTank(val: number) { 
-        if (this.phTank !== val) {
-            this.data.phTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
+    public get pHTank(): number { return typeof this.data.pHTank === 'undefined' ? undefined : this.data.pHTank.val; }
+    public set pHTank(val: number) { 
+        if (this.pHTank !== val) {
+            this.data.pHTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
             this.hasChanged = true;
         }
     }
