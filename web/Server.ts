@@ -38,7 +38,7 @@ import * as os from 'os';
 import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import { InfluxInterfaceBindings } from './interfaces/influxInterface';
-import { MqttInterfaceBindings } from './interfaces/mqttinterface';
+import { MqttInterfaceBindings } from './interfaces/mqttInterface';
 import { Timestamp } from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
