@@ -293,7 +293,6 @@ export class State implements IState {
         this.virtualCircuits.clear();
         this.covers.clear();
         this.chemControllers.clear();
-        //this.intellichem.clear();
     }
 
     public equipment: EquipmentState;
@@ -308,10 +307,8 @@ export class State implements IState {
     public circuitGroups: CircuitGroupStateCollection;
     public lightGroups: LightGroupStateCollection;
     public virtualCircuits: VirtualCircuitStateCollection;
-    // public intellibrite: LightGroupState;
     public covers: CoverStateCollection;
     public chemControllers: ChemControllerStateCollection;
-    //public intellichem: IntelliChemState;
     public comms: CommsState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
