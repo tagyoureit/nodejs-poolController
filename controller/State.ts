@@ -1382,17 +1382,17 @@ export class ChemControllerStateWarnings extends EqState {
         }
     }
 
-    public get phLockout(): number { return this.data.phLockout; }
-    public set phLockout(val: number) {
-        if (this.phLockout !== val) {
-            this.data.phLockout = sys.board.valueMaps.chemControllerLimits.transform(val);
+    public get pHLockout(): number { return this.data.pHLockout; }
+    public set pHLockout(val: number) {
+        if (this.pHLockout !== val) {
+            this.data.pHLockout = sys.board.valueMaps.chemControllerLimits.transform(val);
             this.hasChanged = true;
         }
     }
-    public get phDailyLimitReached(): number { return this.data.phDailyLimitReached; }
-    public set phDailyLimitReached(val: number) {
-        if (this.phDailyLimitReached !== val) {
-            this.data.phDailyLimitReached = sys.board.valueMaps.chemControllerLimits.transform(val);
+    public get pHDailyLimitReached(): number { return this.data.pHDailyLimitReached; }
+    public set pHDailyLimitReached(val: number) {
+        if (this.pHDailyLimitReached !== val) {
+            this.data.pHDailyLimitReached = sys.board.valueMaps.chemControllerLimits.transform(val);
             this.hasChanged = true;
         }
     }
