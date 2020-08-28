@@ -36,6 +36,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     private client: MqttClient;
     public events: MqttInterfaceEvent[];
     private subscribed: boolean; // subscribed to events or not
+    private sentInitialMessages = false;
     private init = () => {
 
         let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
@@ -57,16 +58,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         this.client.on('connect', () => {
             logger.info(`MQTT connected to ${url}`);
             this.subscribe();
-        }) 
+        })
 
     }
 
     private subscribe = () => {
-        let topics = [`${this.rootTopic()}/state/circuit/setState`,
-        `${this.rootTopic()}/state/feature/setState`,
-        `${this.rootTopic()}/state/circuit/toggleState`,
-        `${this.rootTopic()}/state/feature/toggleState`,
-    ];
+        let topics = [`${this.rootTopic()}/state/+/setState`,
+        `${this.rootTopic()}/state/+/toggleState`
+        ];
         topics.forEach(topic => {
             this.client.subscribe(topic, (err, granted) => {
                 if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`)
@@ -133,6 +132,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
 
     public bindEvent(evt: string, ...data: any) {
+        if (!this.sentInitialMessages && evt === 'controller' && data[0].status.val === 1){
+            state.emitAllEquipmentChanges();
+            this.sentInitialMessages = true;
+        }
         // Find the binding by first looking for the specific event name.  
         // If that doesn't exist then look for the "*" (all events).
         if (typeof this.events !== 'undefined') {
@@ -193,47 +196,69 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     private messageHandler = async (topic, message) => {
         let msg = message.toString();
         if (msg[0] === '{') msg = JSON.parse(msg);
-        
         const topics = topic.split('/');
         if (topics[0] === this.rootTopic() && typeof msg === 'object') {
-            let id = parseInt(msg.id, 10);
-            switch (topics[topics.length-2]){
-                case 'circuit':
-                    {
-                        if (isNaN(id)) break;
-                        switch (topics[topics.length-1]){
-                            case 'setState':{
-                                logger.debug(`MQTT: Inbound CIRCUIT SETSTATE: ${JSON.stringify(msg)}`);
-                                if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(msg.isOn));
-                                break;
-                            }
-                            case 'toggleState':{
-                                logger.debug(`MQTT: Inbound CIRCUIT TOGGLESTATE: ${JSON.stringify(msg)}`);
-                                await sys.board.circuits.toggleCircuitStateAsync(id);
-                                break;
-                            }
+
+            switch (topics[topics.length - 1]) {
+                case 'setState': {
+                    let id = parseInt(msg.id, 10);
+                    if (typeof id !== 'undefined' && isNaN(id)) {
+                        logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
+                    };
+                    let isOn = utils.makeBool(msg.isOn);
+                    switch (topics[topics.length - 2].toLowerCase()) {
+                        case 'circuit': {
+                            logger.debug(`MQTT: Inbound CIRCUIT SETSTATE: ${JSON.stringify(msg)}`);
+                            if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
+                            break;
                         }
-                        break;
-                    }
-                case 'feature':
-                    {
-                        if (isNaN(id)) break;
-                        switch (topics[topics.length-1]){
-                            case 'setState':{
-                                logger.debug(`MQTT: Inbound FEATURE SETSTATE: ${JSON.stringify(msg)}`);
-                                if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, utils.makeBool(msg.isOn));
-                                break;
-                            }
-                            case 'toggleState':{
-                                logger.debug(`MQTT: Inbound FEATURE TOGGLESTATE: ${JSON.stringify(msg)}`);
-                                await sys.board.features.toggleFeatureStateAsync(id);
-                                break;
-                            }
+                        case 'feature': {
+                            logger.debug(`MQTT: Inbound FEATURE SETSTATE: ${JSON.stringify(msg)}`);
+                            if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                         }
-                        break;
+                        case 'lightgroup': {
+                            logger.debug(`MQTT: Inbound LIGHTGROUP SETSTATE: ${JSON.stringify(msg)}`);
+                            await sys.board.circuits.setLightGroupStateAsync(id, isOn);
+                            break;
+                        }
+                        case 'circuitgroup': {
+                            logger.debug(`MQTT: Inbound CIRCUITGROUP SETSTATE: ${JSON.stringify(msg)}`);
+                            await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
+                            break;
+                        }
+                        default:
+                            logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
                     }
+                    break;
+                }
+                case 'toggleState':
+                    {
+                        let id = parseInt(msg.id, 10);
+                        if (typeof id !== 'undefined' && isNaN(id)) {
+                            logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
+                        };
+                        switch (topics[topics.length - 2].toLowerCase()) {
+
+                            case 'circuit':
+                                {
+                                    logger.debug(`MQTT: Inbound CIRCUIT TOGGLESTATE: ${JSON.stringify(msg)}`);
+                                    await sys.board.circuits.toggleCircuitStateAsync(id);
+                                    break;
+                                }
+                            case 'feature':
+                                {
+                                    logger.debug(`MQTT: Inbound FEATURE TOGGLESTATE: ${JSON.stringify(msg)}`);
+                                    await sys.board.features.toggleFeatureStateAsync(id);
+                                    break;
+                                }
+                            default:
+                                logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
+                        }
+
+                    }
+
                 default:
-                    logger.silly(`MQTT: Inbound MQTT Message not matched: ${topic}: ${message.toString()}`)
+                    logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
             }
         }
     }
