@@ -171,27 +171,27 @@ export class IntelliChemStateMessage {
 
         const alarms = scontroller.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
-        alarms.ph = msg.extractPayloadByte(32) & 0x06;
+        alarms.pH = msg.extractPayloadByte(32) & 0x06;
         alarms.orp = msg.extractPayloadByte(32) & 0x18;
-        alarms.phTank = msg.extractPayloadByte(32) & 0x20;
+        alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
         alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         msg.extractPayloadByte(33);
         // scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
-        scontroller.phDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
+        scontroller.pHDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
         scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
         controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
         scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
-        controller.phManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
+        controller.pHManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
         controller.isIntelliChlorUsed = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
-        controller.isAcidBaseDosing = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid ph dosing = 1; base ph dosing = 0;
+        controller.isAcidBaseDosing = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
         scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
 
         const warnings = scontroller.warnings;
         warnings.waterChemistry = msg.extractPayloadByte(38);
-        warnings.phLockout = msg.extractPayloadByte(33) & 0x01;
-        warnings.phDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
+        warnings.pHLockout = msg.extractPayloadByte(33) & 0x01;
+        warnings.pHDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
         warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
         warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
         warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;

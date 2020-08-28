@@ -2593,7 +2593,7 @@ export class ChemControllerCommands extends BoardCommands {
                 if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
                 if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
                 if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
-                if (typeof data.phManualDosing !== 'undefined') chem.phManualDosing = utils.makeBool(data.phManualDosing);
+                if (typeof data.pHManualDosing !== 'undefined') chem.pHManualDosing = utils.makeBool(data.pHManualDosing);
                 if (typeof data.isIntelliChlorUsed !== 'undefined') chem.isIntelliChlorUsed = utils.makeBool(data.isIntelliChlorUsed);
                 if (typeof data.HMIAdvancedDisplay !== 'undefined') chem.HMIAdvancedDisplay = utils.makeBool(data.HMIAdvancedDisplay);
                 if (typeof data.isAcidBaseDosing !== 'undefined') chem.isAcidBaseDosing = utils.makeBool(data.isAcidBaseDosing);
@@ -2601,17 +2601,17 @@ export class ChemControllerCommands extends BoardCommands {
                 const alarms = data.alarms
                 if (typeof alarms !== 'undefined') {
                     if (typeof alarms.flow !== 'undefined') schem.alarms.flow = parseInt(alarms.flow, 10);
-                    if (typeof alarms.ph !== 'undefined') schem.alarms.ph = parseInt(alarms.ph, 10);
+                    if (typeof alarms.pH !== 'undefined') schem.alarms.pH = parseInt(alarms.pH, 10);
                     if (typeof alarms.orp !== 'undefined') schem.alarms.orp = parseInt(alarms.orp, 10);
-                    if (typeof alarms.phTank !== 'undefined') schem.alarms.phTank = parseInt(alarms.phTank, 10);
+                    if (typeof alarms.pHTank !== 'undefined') schem.alarms.pHTank = parseInt(alarms.pHTank, 10);
                     if (typeof alarms.orpTank !== 'undefined') schem.alarms.orpTank = parseInt(alarms.orpTank, 10);
                     if (typeof alarms.probeFault !== 'undefined') schem.alarms.probeFault = parseInt(alarms.probeFault, 10);
                 }
                 const warnings = data.warnings
                 if (typeof warnings !== 'undefined') {
                     if (typeof warnings.waterChemistry !== 'undefined') schem.warnings.waterChemistry = parseInt(warnings.waterChemistry, 10);
-                    if (typeof warnings.phLockout !== 'undefined') schem.warnings.phLockout = parseInt(warnings.phLockout, 10);
-                    if (typeof warnings.phDailyLimitReached !== 'undefined') schem.warnings.phDailyLimitReached = parseInt(warnings.phDailyLimitReached, 10);
+                    if (typeof warnings.pHLockout !== 'undefined') schem.warnings.pHLockout = parseInt(warnings.pHLockout, 10);
+                    if (typeof warnings.pHDailyLimitReached !== 'undefined') schem.warnings.pHDailyLimitReached = parseInt(warnings.pHDailyLimitReached, 10);
                     if (typeof warnings.orpDailyLimitReached !== 'undefined') schem.warnings.orpDailyLimitReached = parseInt(warnings.orpDailyLimitReached, 10);
                     if (typeof warnings.invalidSetup !== 'undefined') schem.warnings.invalidSetup = parseInt(warnings.invalidSetup, 10);
                     if (typeof warnings.chlorinatorCommError !== 'undefined') schem.warnings.chlorinatorCommError = parseInt(warnings.chlorinatorCommError, 10);
@@ -2626,7 +2626,7 @@ export class ChemControllerCommands extends BoardCommands {
                 if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
                 // if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10); // remove/unsure?
                 // if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10); // remove/unsure?
-                if (typeof data.phDosingStatus !== 'undefined') schem.phDosingStatus = parseInt(data.phDosingStatus, 10);
+                if (typeof data.pHDosingStatus !== 'undefined') schem.pHDosingStatus = parseInt(data.pHDosingStatus, 10);
                 if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10);
                 if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
                 if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
