@@ -1567,8 +1567,8 @@ export class ChemController extends EqItem {
     public set ispHDoseByVolume(val: boolean) { this.setDataVal('ispHDoseByVolume', val); }
     public get isorpDoseByVolume(): boolean { return this.data.isorpDoseByVolume; }
     public set isorpDoseByVolume(val: boolean) { this.setDataVal('isorpDoseByVolume', val); }
-    public get phManualDosing(): boolean { return this.data.phManualDosing; }
-    public set phManualDosing(val: boolean) { this.setDataVal('phManualDosing', val); }
+    public get pHManualDosing(): boolean { return this.data.pHManualDosing; }
+    public set pHManualDosing(val: boolean) { this.setDataVal('pHManualDosing', val); }
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
