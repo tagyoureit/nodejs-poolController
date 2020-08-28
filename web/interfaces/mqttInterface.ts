@@ -199,28 +199,32 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         const topics = topic.split('/');
         if (topics[0] === this.rootTopic() && typeof msg === 'object') {
 
-            switch (topics[topics.length - 1]) {
-                case 'setState': {
+            switch (topics[topics.length - 1].toLowerCase()) {
+                case 'setstate': {
                     let id = parseInt(msg.id, 10);
                     if (typeof id !== 'undefined' && isNaN(id)) {
                         logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                     };
                     let isOn = utils.makeBool(msg.isOn);
                     switch (topics[topics.length - 2].toLowerCase()) {
+                        case 'circuits':
                         case 'circuit': {
                             logger.debug(`MQTT: Inbound CIRCUIT SETSTATE: ${JSON.stringify(msg)}`);
                             if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
                             break;
                         }
+                        case 'features':
                         case 'feature': {
                             logger.debug(`MQTT: Inbound FEATURE SETSTATE: ${JSON.stringify(msg)}`);
                             if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                         }
+                        case 'lightgroups':
                         case 'lightgroup': {
                             logger.debug(`MQTT: Inbound LIGHTGROUP SETSTATE: ${JSON.stringify(msg)}`);
                             await sys.board.circuits.setLightGroupStateAsync(id, isOn);
                             break;
                         }
+                        case 'circuitgroups':
                         case 'circuitgroup': {
                             logger.debug(`MQTT: Inbound CIRCUITGROUP SETSTATE: ${JSON.stringify(msg)}`);
                             await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
@@ -231,20 +235,21 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     }
                     break;
                 }
-                case 'toggleState':
+                case 'togglestate':
                     {
                         let id = parseInt(msg.id, 10);
                         if (typeof id !== 'undefined' && isNaN(id)) {
                             logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                         };
                         switch (topics[topics.length - 2].toLowerCase()) {
-
+                            case 'circuits':
                             case 'circuit':
                                 {
                                     logger.debug(`MQTT: Inbound CIRCUIT TOGGLESTATE: ${JSON.stringify(msg)}`);
                                     await sys.board.circuits.toggleCircuitStateAsync(id);
                                     break;
                                 }
+                            case 'features':
                             case 'feature':
                                 {
                                     logger.debug(`MQTT: Inbound FEATURE TOGGLESTATE: ${JSON.stringify(msg)}`);
