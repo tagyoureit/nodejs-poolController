@@ -528,6 +528,7 @@ export class EquipmentStateMessage {
                                 sys.board.valves.syncValveStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
+                                sys.board.heaters.syncHeaterStates();
                                 break;
                             }
                         case ControllerType.IntelliCom:
@@ -541,6 +542,7 @@ export class EquipmentStateMessage {
                                 sys.board.valves.syncValveStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
+                                sys.board.heaters.syncHeaterStates();
                                 break;
                             }
                     }
