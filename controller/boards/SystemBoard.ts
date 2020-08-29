@@ -3185,8 +3185,8 @@ export class VirtualChemController extends BoardCommands {
         for (let i = 0; i < sys.chemControllers.length; i++) {
             let chem = sys.chemControllers.getItemByIndex(i);
             let schem = state.chemControllers.getItemById(chem.id);
-            if (chem.isVirtual && chem.isActive) {
-                logger.info(`Stopping chemController ${i} to stop.`);
+            if (chem.isVirtual && chem.isActive && schem.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+                logger.info(`Stopping chemController ${i}.`);
                 // sys.board.chemControllers.stop(chem);
                 schem.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
                 bAnyVirtual = true;
