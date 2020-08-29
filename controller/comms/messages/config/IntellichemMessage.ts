@@ -40,6 +40,7 @@ export class IntellichemMessage {
                     let isActive = msg.extractPayloadByte(i + 14) === 1;
                     let controller = sys.chemControllers.getItemById(i + 1, isActive, { id:i + 1, type: 1 });
                     controller.isActive = msg.extractPayloadByte(i + 14) === 1;
+                    controller.isVirtual = false;
                     
                     if (!controller.isActive) {
                         sys.chemControllers.removeItemById(controller.id);

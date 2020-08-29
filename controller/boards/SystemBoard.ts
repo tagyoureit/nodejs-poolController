@@ -19,10 +19,10 @@ import { logger } from '../../logger/Logger';
 import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol } from '../comms/messages/Messages';
-import { utils } from '../Constants';
+import { utils, Heliotrope } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState } from '../State';
+import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -616,7 +616,7 @@ export class byteValueMaps {
 // acquiring state and configuration data.
 export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
-    constructor(system: PoolSystem) { }
+    constructor(system: PoolSystem) {}
     protected _modulesAcquired: boolean = true;
     public needsConfigChanges: boolean = false;
     public valueMaps: byteValueMaps = new byteValueMaps();
@@ -880,6 +880,7 @@ export class SystemCommands extends BoardCommands {
             return resolve(cname);
         });
     }
+
 }
 export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
@@ -1305,7 +1306,6 @@ export class PumpCommands extends BoardCommands {
             sys.board.pumps.setPumpToRemoteControl(pump, spump, callbackStack);
         }
     }
-
     public stopPumpRemoteContol(pump: Pump) {
         let callbackStack: CallbackStack[] = [
             { fn: () => { sys.board.pumps.setPumpManual(pump, spump, callbackStack); }, timeout: 500 },
@@ -1338,7 +1338,6 @@ export class PumpCommands extends BoardCommands {
         });
         conn.queueSendMessage(out);
     }
-
     public setPumpManual(pump: Pump, spump: PumpState, callbackStack: any[]) {
         let out = Outbound.create({
             protocol: Protocol.Pump,
@@ -1383,7 +1382,6 @@ export class PumpCommands extends BoardCommands {
         });
         conn.queueSendMessage(out);
     }
-
     private runRPM(pump: Pump, spump: PumpState, callbackStack?: CallbackStack[]) {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
         sys.board.virtualPumpControllers.setTargetSpeed();
@@ -1417,7 +1415,6 @@ export class PumpCommands extends BoardCommands {
         });
         conn.queueSendMessage(out);
     }
-
     private runGPM(pump: Pump, spump: PumpState, callbackStack?: any[]) {
         // return new Promise((resolve, reject) => {
         sys.board.virtualPumpControllers.setTargetSpeed();
@@ -1458,7 +1455,6 @@ export class PumpCommands extends BoardCommands {
         conn.queueSendMessage(out);
         // });
     }
-
     public requestPumpStatus(pump: Pump, spump: PumpState, callbackStack: any[]) {
         let out = Outbound.create({
             protocol: Protocol.Pump,
@@ -1613,7 +1609,6 @@ export class CircuitCommands extends BoardCommands {
         sys.board.virtualPumpControllers.start();
         return Promise.resolve(state.circuits.getInterfaceById(circ.id));
     }
-
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -1805,7 +1800,6 @@ export class CircuitCommands extends BoardCommands {
         else
             return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup'));
     }
-
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit'));
         let circuit = sys.circuits.getInterfaceById(data.id);
@@ -1880,7 +1874,6 @@ export class CircuitCommands extends BoardCommands {
         state.emitEquipmentChanges();
         return Promise.resolve(sgrp);
     }
-
     public setLightGroupAttribs(group: LightGroup) {
         let grp = sys.lightGroups.getItemById(group.id);
         grp.circuits.clear();
@@ -1924,7 +1917,6 @@ export class CircuitCommands extends BoardCommands {
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         return sys.board.circuits.setCircuitGroupStateAsync(id, val);
     }
-
     /*     public sequenceIntelliBrite(operation: string) {
             state.intellibrite.hasChanged = true;
             let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
@@ -2305,6 +2297,7 @@ export class HeaterCommands extends BoardCommands {
     }
     public updateHeaterServices() {
         // RSG: these heater types are for IC.  Overwriting with *Touch types in EasyTouchBoard.
+        // RKS: This has been switched so they are for *Touch.  The IC heater types are in IntelliCenterBoard.ts
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
@@ -2445,7 +2438,124 @@ export class HeaterCommands extends BoardCommands {
             }
         }
     }
-
+    // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
+    // and those that are not.
+    public syncHeaterStates() {
+        // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
+        // heater that is not controlled by the OCP then we need to determine whether it should be on.
+        let heaters = sys.heaters.toArray();
+        let bodies = state.temps.bodies.get();
+        for (let i = 0; i < bodies.length; i++) {
+            let body: BodyTempState = bodies[i];
+            let isHeating = false;
+            if (body.isOn) {
+                for (let j = 0; j < heaters.length; j++) {
+                    let heater: Heater = heaters[j];
+                    if (!heater.isActive) continue;
+                    let isOn = false;
+                    // Determine whether the heater can be used on this body.
+                    let isAssociated = false;
+                    let b = sys.board.valueMaps.bodies.transform(heater.body);
+                    switch (b.name) {
+                        case 'body1':
+                        case 'pool':
+                            if (body.id === 1) isAssociated = true;
+                            break;
+                        case 'body2':
+                        case 'spa':
+                            if (body.id === 2) isAssociated = true;
+                            break;
+                        case 'poolspa':
+                            if (body.id === 1 || body.id === 2) isAssociated = true;
+                            break;
+                        case 'body3':
+                            if (body.id === 3) isAssociated = true;
+                            break;
+                        case 'body4':
+                            if (body.id === 4) isAssociated = true;
+                            break;
+                    }
+                    if (isAssociated) {
+                        let hstate = state.heaters.getItemById(heater.id, true);
+                        let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+                        let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
+                        if (heater.isVirtual) {
+                            // We need to do our own calculation as to whether it is on.
+                            let mode = sys.board.valueMaps.heatModes.transform(body.heatMode);
+                            switch (htype.name) {
+                                case 'solar':
+                                    if (mode === 'solar' || mode === 'solarpref') {
+                                        // Measure up against start and stop temp deltas for effective solar heating.
+                                        if (body.temp < body.setPoint &&
+                                            state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                            isOn = true;
+                                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                        }
+                                        else if (heater.coolingEnabled && body.temp > body.setPoint && state.heliotrope.isNight &&
+                                            state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                            isOn = true;
+                                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                        }
+                                        
+                                        //else if (heater.coolingEnabled && state.time.isNight)
+                                    }
+                                    break;
+                                case 'gas':
+                                    if (mode === 'heater') {
+                                        if (body.temp < body.setPoint) isOn = true;
+                                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                    }
+                                    else if (mode === 'solarpref' || mode === 'heatpumppref') {
+                                        // If solar should be running gas heater should be off.
+                                        if (body.temp < body.setPoint &&
+                                            state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
+                                        else if (body.temp < body.setPoint) {
+                                            isOn = true;
+                                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                        }
+                                    }
+                                    break;
+                                case 'heatpump':
+                                    if (mode === 'heatpump' || mode === 'heatpumppref') {
+                                        if (body.temp < body.setPoint &&
+                                            state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                            isOn = true;
+                                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    isOn = utils.makeBool(hstate.isOn);
+                                    break;
+                            }
+                        }
+                        else if (body.heatStatus > 0) {
+                            switch (htype.name) {
+                                case 'solar':
+                                    if (status === 'solar') isOn = true;
+                                    break;
+                                case 'gas':
+                                    if (status === 'heater') isOn = true;
+                                    break;
+                                case 'heatpump':
+                                    if (status === 'heatpump') isOn = true;
+                                    break;
+                                // TODO: Figure out what needs to be done with ultratemp and hybrid heaters.
+                                default:
+                                    isOn = utils.makeBool(hstate.isOn);
+                                    break;
+                            }
+                        }
+                        hstate.isOn = isOn;
+                        if (isOn) isHeating = true;
+                    }
+                }
+            }
+            if (!isHeating && sys.controllerType === ControllerType.Virtual) {
+                body.heatStatus = 0;
+            }
+        }
+    }
 }
 export class ValveCommands extends BoardCommands {
     public async setValveAsync(obj: any): Promise<Valve> {
