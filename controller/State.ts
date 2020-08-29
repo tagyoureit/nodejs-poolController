@@ -171,6 +171,56 @@ export class State implements IState {
             sunset: self.data.sunset || ''
         };
     }
+    public emitAllEquipmentChanges() {
+        // useful for setting initial states of external clients like MQTT, SmartThings, Hubitat, etc
+        state.temps.hasChanged = true;
+        state.equipment.hasChanged = true;
+        for (let i = 0; i < state.circuits.length; i++) {
+            state.circuits.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.features.length; i++) {
+            state.features.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.temps.bodies.length; i++) {
+            state.temps.bodies.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.circuits.length; i++) {
+            state.circuits.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.pumps.length; i++) {
+            state.pumps.getItemByIndex(i).hasChanged = true;
+        }
+
+        for (let i = 0; i < state.valves.length; i++) {
+            state.valves.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.heaters.length; i++) {
+            state.heaters.getItemByIndex(i).hasChanged = true;
+        }
+
+        for (let i = 0; i < state.chlorinators.length; i++) {
+            state.chlorinators.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.circuitGroups.length; i++) {
+            state.circuitGroups.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.lightGroups.length; i++) {
+            state.lightGroups.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.virtualCircuits.length; i++) {
+            state.virtualCircuits.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.covers.length; i++) {
+            state.covers.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.schedules.length; i++) {
+            state.schedules.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.chemControllers.length; i++) {
+            state.chemControllers.getItemByIndex(i).hasChanged = true;
+        }
+        state.emitEquipmentChanges();
+    }
     public emitEquipmentChanges() {
         if (typeof (webApp) !== 'undefined' && webApp) { this._dirtyList.emitChanges(); }
     }

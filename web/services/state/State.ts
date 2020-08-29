@@ -215,6 +215,9 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.get('/state/emitAll', (req, res) => {
+            res.status(200).send(state.emitAllEquipmentChanges());
+        });
         app.get('/state/:section', (req, res) => {
             res.status(200).send(state.getState(req.params.section));
         });
