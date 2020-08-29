@@ -21,7 +21,7 @@ import { setTimeout } from 'timers';
 import * as util from 'util';
 import { logger } from '../logger/Logger';
 import { webApp } from '../web/Server';
-import { ControllerType, Timestamp, utils } from './Constants';
+import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
 import { sys } from './Equipment';
 export class State implements IState {
     statePath: string;
@@ -60,6 +60,7 @@ export class State implements IState {
         return new Proxy(obj, handler);
     };
     constructor() { this.statePath = path.posix.join(process.cwd(), '/data/poolState.json'); }
+    public heliotrope: Heliotrope;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
         var self = this;
@@ -165,7 +166,9 @@ export class State implements IState {
             // freeze: self.data.freeze || false,
             appVersion: sys.appVersion || '',
             clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
-            clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {}
+            clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {},
+            sunrise: self.data.sunrise || '',
+            sunset: self.data.sunset || ''
         };
     }
     public emitEquipmentChanges() {
@@ -257,6 +260,12 @@ export class State implements IState {
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
             self.hasChanged = true;
+            self.heliotrope.date = self._dt.toDate();
+            self.heliotrope.longitude = sys.general.location.longitude;
+            self.heliotrope.latitude = sys.general.location.latitude;
+            let times = self.heliotrope.calculatedTimes;
+            self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
+            self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
         });
         this.status = 0; // Initializing
         this.equipment = new EquipmentState(this.data, 'equipment');
@@ -275,6 +284,7 @@ export class State implements IState {
         this.chemControllers = new ChemControllerStateCollection(this.data, 'chemControllers');
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
+        this.heliotrope = new Heliotrope();
     }
     public resetData() {
         this.circuitGroups.clear();
@@ -474,6 +484,15 @@ class EqStateCollection<T> {
     public find(f: (value: any, index?: number, obj?: any) => boolean): T {
         let itm = this.data.find(f);
         if (typeof itm !== 'undefined') return this.createItem(itm);
+    }
+    public toArray() {
+        let arr = [];
+        if (typeof this.data !== 'undefined') {
+            for (let i = 0; i < this.data.length; i++) {
+                arr.push(this.createItem(this.data[i]));
+            }
+        }
+        return arr;
     }
 }
 class DirtyStateCollection extends Array<EqState> {
@@ -955,6 +974,15 @@ export class HeaterState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get isVirtual(): boolean { return this.data.isVirtual; }
+    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get type(): number | any { return typeof this.data.type !== 'undefined' ? this.data.type.val : 0; }
+    public set type(val: number | any) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.heaterTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }

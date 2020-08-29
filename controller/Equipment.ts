@@ -1232,6 +1232,8 @@ export class Heater extends EqItem {
     public set efficiencyMode(val: number) { this.setDataVal('efficiencyMode', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get isVirtual(): boolean { return this.data.isVirtual; }
+    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get coolingEnabled(): boolean { return this.data.coolingEnabled; }
     public set coolingEnabled(val: boolean) { this.setDataVal('coolingEnabled', val); }
     public get heatingEnabled(): boolean { return this.data.heatingEnabled; }
