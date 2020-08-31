@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as express from "express";
 import * as extend from 'extend';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -157,6 +157,8 @@ export class ConfigRoute {
         });
         app.get('/config/options/heaters', (req, res) => {
             let opts = {
+                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
+                bodies: sys.board.bodies.getBodyAssociations(),
                 maxHeaters: sys.equipment.maxHeaters,
                 heaters: sys.heaters.get(),
                 heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
@@ -383,7 +385,20 @@ export class ConfigRoute {
                 next(err);
             }
         });
-
+        app.put('/config/heater', async (req, res, next) => {
+            try {
+                let heater = await sys.board.heaters.setHeaterAsync(req.body);
+                return res.status(200).send(sys.heaters.getItemById(heater.id).get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/heater', async (req, res, next) => {
+            try {
+                let heater = await sys.board.heaters.deleteHeaterAsync(req.body);
+                return res.status(200).send((heater as Heater).get(true));
+            }
+            catch (err) { next(err); }
+        });
         /*
         app.put('/config/schedule/:id', (req, res) => {
             let schedId = parseInt(req.params.id || '0', 10);

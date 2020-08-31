@@ -110,6 +110,7 @@ export class HeaterMessage {
                     solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
+                    solar.isVirtual = false;
                     sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
                     sys.features.removeItemById(20); // if present
                     state.features.removeItemById(20); // if present
@@ -119,16 +120,23 @@ export class HeaterMessage {
                     solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
                     solar.startTempDelta = ((msg.extractPayloadByte(2) & 0xE) >> 1) + 3;
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
+                    let sstate = state.heaters.getItemById(solar.id, true);
+                    sstate.name = solar.name;
+                    sstate.isVirtual = false;
                     sys.heaters.removeItemById(3);
                 }
                 else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
                     let heatPump: Heater = sys.heaters.getItemById(3, true);
+                    heatPump.isVirtual = false;
                     heatPump.type = 3;
                     heatPump.isActive = true;
                     heatPump.heatingEnabled = (msg.extractPayloadByte(1) & 0x1) === 1;
                     heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
                     sys.heaters.removeItemById(2);
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
+                    let hstate = state.heaters.getItemById(heatPump.id, true);
+                    hstate.name = heatPump.name;
+                    hstate.isVirtual = false;
                 }
                 for (var i = 0; i <= sys.heaters.length; i++){
                     let heater = sys.heaters.getItemByIndex(i);
@@ -141,6 +149,7 @@ export class HeaterMessage {
                     let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
                     btemp.heaterOptions = opts;
                 }
+                sys.board.heaters.syncHeaterStates();
                 sys.equipment.setEquipmentIds();
                 break;
             case 114:
@@ -176,6 +185,7 @@ export class HeaterMessage {
             if (heater.type === 0) sys.heaters.removeItemById(i);
             heater.isActive = heater.type > 0;
             heater.body = msg.extractPayloadByte(i + 17);
+            heater.isVirtual = false;
         }
         sys.board.heaters.updateHeaterServices();
     }
