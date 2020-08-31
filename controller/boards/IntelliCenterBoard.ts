@@ -2779,7 +2779,6 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
     // RKS: 06-24-20 - Need to talk to Russ.  This needs to go away and reconstituted in the async.
     public setSchedule(sched: Schedule, obj: any) { }
 }
-
 class IntelliCenterHeaterCommands extends HeaterCommands {
     private createHeaterConfigMessage(heater: Heater): Outbound {
         let out = Outbound.createMessage(
@@ -2794,6 +2793,162 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         super.setHeater(heater, obj);
         let out = this.createHeaterConfigMessage(heater);
         conn.queueSendMessage(out);
+    }
+    public async setHeaterAsync(obj: any): Promise<Heater> {
+        if (utils.makeBool(obj.isVirtual) || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
+        return new Promise<Heater>((resolve, reject) => {
+            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            let heater: Heater;
+            if (id <= 0) {
+                // We are adding a heater.  In this case all heaters are virtual.
+                let vheaters = sys.heaters.filter(h => h.isVirtual);
+                id = vheaters.length + 1;
+            }
+            heater = sys.heaters.getItemById(id, false);
+            let type = 0;
+            if (typeof obj.type === 'undefined' && (heater.type === 0 || typeof heater.type === 'undefined')) return reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
+            else {
+                // We only get here if the type was not previously defined.
+                if (typeof obj.type === 'string' && isNaN(parseInt(obj.type, 10)))
+                    type = sys.board.valueMaps.heaterTypes.getValue(obj.type);
+                else
+                    type = parseInt(obj.type, 10);
+                if (!sys.board.valueMaps.heaterTypes.valExists(type)) return reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
+                heater.type = type;
+            }
+            let htype = sys.board.valueMaps.heaterTypes.transform(type);
+            let address = heater.address || 112;
+            if (htype.hasAddress) {
+                if (typeof obj.address !== 'undefined') {
+                    address = parseInt(obj.address, 10);
+                    if (isNaN(address) || address < 112 || address > 128) return reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
+                }
+            }
+            let differentialTemp = heater.differentialTemp || 6;
+            if (typeof obj.differentialTemp !== 'undefined') {
+                differentialTemp = parseInt(obj.differentialTemp, 10);
+                if (isNaN(differentialTemp) || differentialTemp < 0) return reject(new InvalidEquipmentDataError(`Invalid Differential Temp was specified`, 'Heater', obj.differentialTemp));
+            }
+            let efficiencyMode = heater.efficiencyMode || 0;
+            if (typeof obj.efficiencyMode !== 'undefined') {
+                efficiencyMode = parseInt(obj.efficiencyMode, 10);
+                if (isNaN(efficiencyMode) || efficiencyMode < 0) return reject(new InvalidEquipmentDataError(`Invalid Efficiency Mode was specified`, 'Heater', obj.efficiencyMode));
+            }
+            let maxBoostTemp = heater.maxBoostTemp || 0;
+            if (typeof obj.maxBoostTemp !== 'undefined') {
+                maxBoostTemp = parseInt(obj.maxBoostTemp, 10);
+                if (isNaN(maxBoostTemp) || maxBoostTemp < 0) return reject(new InvalidEquipmentDataError(`Invalid Max Boost Temp was specified`, 'Heater', obj.maxBoostTemp));
+            }
+            let startTempDelta = heater.startTempDelta || 5;
+            if (typeof obj.startTempDelta !== 'undefined') {
+                startTempDelta = parseInt(obj.startTempDelta, 10);
+                if (isNaN(startTempDelta) || startTempDelta < 0) return reject(new InvalidEquipmentDataError(`Invalid Start Temp Delta was specified`, 'Heater', obj.startTempDelta));
+            }
+            let stopTempDelta = heater.stopTempDelta || 3;
+            if (typeof obj.stopTempDelta !== 'undefined') {
+                stopTempDelta = parseInt(obj.stopTempDelta, 10);
+                if (isNaN(stopTempDelta) || stopTempDelta < 0) return reject(new InvalidEquipmentDataError(`Invalid Stop Temp Delta was specified`, 'Heater', obj.stopTempDelta));
+            }
+            let economyTime = heater.economyTime || 1;
+            if (typeof obj.economyTime !== 'undefined') {
+                economyTime = parseInt(obj.economyTime, 10);
+                if (isNaN(economyTime) || economyTime < 0) return reject(new InvalidEquipmentDataError(`Invalid Economy Time was specified`, 'Heater', obj.economyTime));
+            }
+            let body = heater.body || 0;
+            if (typeof obj.body !== 'undefined') {
+                body = parseInt(obj.body, 10);
+                if (isNaN(obj.body) && typeof obj.body === 'string') body = sys.board.valueMaps.bodies.getValue(obj.body);
+                if (typeof body === 'undefined' || isNaN(body)) return reject(new InvalidEquipmentDataError(`Invalid Body was specified`, 'Heater', obj.body));
+            }
+            if (htype.hasAddress) {
+                if (isNaN(address) || address < 112 || address > 128) return reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
+                for (let i = 0; i < sys.heaters.length; i++) {
+                    let h = sys.heaters.getItemByIndex(i);
+                    if (h.id === id) continue;
+                    let t = sys.board.valueMaps.heaterTypes.transform(h.type);
+                    if (!t.hasAddress) continue;
+                    if (h.address === address) return reject(new InvalidEquipmentDataError(`Heater id# ${h.id} ${t.desc} is already communicating on this address.`, 'Heater', obj.address));
+                }
+            }
+            
+            let out = Outbound.create({
+                action: 168,
+                payload: [10, 0, heater.id - 1,
+                    type,
+                    body,
+                    differentialTemp,
+                    startTempDelta,
+                    stopTempDelta,
+                    (typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled)) ? 1 : 0,
+                    6,
+                    address
+                ],
+                retries: 3,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            out.appendPayloadString(obj.name || heater.name, 16);
+            out.appendPayloadByte(efficiencyMode);
+            out.appendPayloadByte(maxBoostTemp);
+            out.appendPayloadByte(economyTime);
+            out.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    heater = sys.heaters.getItemById(heater.id, true);
+                    let hstate = state.heaters.getItemById(heater.id, true);
+                    hstate.type = heater.type = type;
+                    heater.address = address;
+                    hstate.name = heater.name = obj.name || heater.name;
+                    heater.coolingEnabled = typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled);
+                    heater.differentialTemp = differentialTemp;
+                    heater.economyTime = economyTime;
+                    heater.startTempDelta = startTempDelta;
+                    heater.stopTempDelta = stopTempDelta;
+                    hstate.isVirtual = heater.isVirtual = false;
+                    resolve(heater);
+                }
+
+            };
+            conn.queueSendMessage(out);
+
+        });
+    }
+    public async deleteHeaterAsync(obj): Promise<Heater> {
+        if (utils.makeBool(obj.isVirtual) || parseInt(obj.id, 10) > 255) return super.deleteHeaterAsync(obj);
+        return new Promise<Heater>((resolve, reject) => {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            let heater = sys.heaters.getItemById(id);
+            let out = Outbound.create({
+                action: 168,
+                payload: [10, 0, heater.id - 1,
+                    0,
+                    1,
+                    5,
+                    5,
+                    3,
+                    0,
+                    6,
+                    112
+                ],
+                retries: 3,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            out.appendPayloadString('', 16);
+            out.appendPayloadByte(3);
+            out.appendPayloadByte(5);
+            out.appendPayloadByte(1);
+            out.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    heater.isActive = false;
+                    sys.heaters.removeItemById(id);
+                    state.heaters.removeItemById(id);
+                    resolve(heater);
+                }
+            };
+            conn.queueSendMessage(out);
+        });
     }
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
