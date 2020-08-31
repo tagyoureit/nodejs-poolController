@@ -2482,7 +2482,7 @@ export class HeaterCommands extends BoardCommands {
         // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
         // heater that is not controlled by the OCP then we need to determine whether it should be on.
         let heaters = sys.heaters.toArray();
-        let bodies = state.temps.bodies.get();
+        let bodies = state.temps.bodies.toArray();
         let hon = [];
         for (let i = 0; i < bodies.length; i++) {
             let body: BodyTempState = bodies[i];
@@ -2490,7 +2490,7 @@ export class HeaterCommands extends BoardCommands {
             if (body.isOn) {
                 for (let j = 0; j < heaters.length; j++) {
                     let heater: Heater = heaters[j];
-                    if (!heater.isActive) continue;
+                    if (heater.isActive === false) continue;
                     let isOn = false;
                     // Determine whether the heater can be used on this body.
                     let isAssociated = false;
@@ -2518,7 +2518,7 @@ export class HeaterCommands extends BoardCommands {
                         let hstate = state.heaters.getItemById(heater.id, true);
                         let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
                         let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
-                        if (heater.isVirtual) {
+                        if (heater.isVirtual === true) {
                             // We need to do our own calculation as to whether it is on.
                             let mode = sys.board.valueMaps.heatModes.transform(body.heatMode);
                             switch (htype.name) {
@@ -2568,16 +2568,16 @@ export class HeaterCommands extends BoardCommands {
                                     break;
                             }
                         }
-                        else if (body.heatStatus > 0) {
+                        else if (status.val > 0) {
                             switch (htype.name) {
                                 case 'solar':
-                                    if (status === 'solar') isOn = true;
+                                    if (status.name === 'solar') isOn = true;
                                     break;
                                 case 'gas':
-                                    if (status === 'heater') isOn = true;
+                                    if (status.name === 'heater') isOn = true;
                                     break;
                                 case 'heatpump':
-                                    if (status === 'heatpump') isOn = true;
+                                    if (status.name === 'heatpump') isOn = true;
                                     break;
                                 // TODO: Figure out what needs to be done with ultratemp and hybrid heaters.
                                 default:
@@ -2586,7 +2586,6 @@ export class HeaterCommands extends BoardCommands {
                             }
                         }
                         hstate.isOn = isOn;
-                        if (isOn) isHeating = true;
                     }
                     if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') hon.push(heater.id);
                 }
