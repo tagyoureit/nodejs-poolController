@@ -384,12 +384,14 @@ export class byteValueMaps {
         [255, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
     public heaterTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'No Heater' }],
-        [1, { name: 'gas', desc: 'Gas Heater' }],
-        [2, { name: 'solar', desc: 'Solar Heater' }],
-        [3, { name: 'heatpump', desc: 'Heat Pump' }],
-        [4, { name: 'ultratemp', desc: 'Ultratemp' }],
-        [5, { name: 'hybrid', desc: 'hybrid' }]
+        [0, { name: 'none', desc: 'No Heater', hasAddress:false }],
+        [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
+        [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
+        [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
+        [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true }],
+        [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
+        [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+        [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
     ]);
     public heatModes: byteValueMap = new byteValueMap([]);
     // RSG: virtual controllers typically don't have heat
@@ -2295,6 +2297,42 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
+    public async setHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            else if (id < 256 && id > 0) return reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+            let heater: Heater;
+            if (id <= 0) {
+                // We are adding a heater.  In this case all heaters are virtual.
+                let vheaters = sys.heaters.filter(h => h.isVirtual === true);
+                id = vheaters.length + 256;
+            }
+            heater = sys.heaters.getItemById(id, true);
+            if (typeof obj !== undefined) {
+                for (var s in obj) {
+                    if (s === 'id') continue;
+                    heater[s] = obj[s];
+                }
+            }
+            let hstate = state.heaters.getItemById(id, true);
+            hstate.isVirtual = heater.isVirtual = true;
+            hstate.name = heater.name;
+            hstate.type = heater.type;
+            resolve(heater);
+        });
+    }
+    public async deleteHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            let heater = sys.heaters.getItemById(id);
+            heater.isActive = false;
+            sys.heaters.removeItemById(id);
+            state.heaters.removeItemById(id);
+            resolve(heater);
+        });
+    }
     public updateHeaterServices() {
         // RSG: these heater types are for IC.  Overwriting with *Touch types in EasyTouchBoard.
         // RKS: This has been switched so they are for *Touch.  The IC heater types are in IntelliCenterBoard.ts
@@ -2445,6 +2483,7 @@ export class HeaterCommands extends BoardCommands {
         // heater that is not controlled by the OCP then we need to determine whether it should be on.
         let heaters = sys.heaters.toArray();
         let bodies = state.temps.bodies.get();
+        let hon = [];
         for (let i = 0; i < bodies.length; i++) {
             let body: BodyTempState = bodies[i];
             let isHeating = false;
@@ -2549,10 +2588,18 @@ export class HeaterCommands extends BoardCommands {
                         hstate.isOn = isOn;
                         if (isOn) isHeating = true;
                     }
+                    if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') hon.push(heater.id);
                 }
             }
-            if (!isHeating && sys.controllerType === ControllerType.Virtual) {
-                body.heatStatus = 0;
+            // When the controller is a virtual one we need to control the heat status ourselves.
+            if (!isHeating && sys.controllerType === ControllerType.Virtual) body.heatStatus = 0;
+        }
+        // Turn off any heaters that should be off.  The code above only turns heaters on.
+        for (let i = 0; i < heaters.length; i++) {
+            let heater: Heater = heaters[i];
+            if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                let hstate = state.heaters.getItemById(heater.id, true);
+                hstate.isOn = false;              
             }
         }
     }

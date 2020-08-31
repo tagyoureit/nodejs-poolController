@@ -401,10 +401,15 @@ interface IEqItemCollection {
 class EqItemCollection<T> implements IEqItemCollection {
     protected data: any;
     protected name: string;
-    constructor(data: [], name: string) {
-        if (typeof data[name] === "undefined") data[name] = [];
-        this.data = data[name];
-        this.name = name;
+    constructor(data: any, name?: string) {
+        if (typeof name === 'undefined') {
+            this.data = data;
+        }
+        else {
+            if (typeof data[name] === "undefined") data[name] = [];
+            this.data = data[name];
+            this.name = name;
+        }
     }
     public getItemByIndex(ndx: number, add?: boolean, data?: any): T {
         if (this.data.length > ndx) return this.createItem(this.data[ndx]);
@@ -417,7 +422,6 @@ class EqItemCollection<T> implements IEqItemCollection {
         if (typeof itm !== 'undefined') return itm;
         if (typeof add !== 'undefined' && add) return this.add(data || { id: id });
         return this.createItem(data || { id: id });
-
     }
     public removeItemById(id: number | string): T {
         let rem: T = null;
@@ -451,8 +455,8 @@ class EqItemCollection<T> implements IEqItemCollection {
     // This will return a new collection of this type. NOTE: This is a separate object but the data is still attached to the
     // overall configuration.  This meanse that changes made to the objects in the collection will reflect in the configuration.
     // HOWEVER, any of the array manipulation methods like removeItemBy..., add..., or creation methods will not modify the configuration.
-    public filter(f: (value:any, index?: any, array?:any[]) => []): EqItemCollection<T> {
-        return new EqItemCollection<T>(this.data.filter(f), this.name);
+    public filter(f: (value: T, index?: any, array?: any[]) => boolean): EqItemCollection<T> {
+        return new EqItemCollection<T>(this.data.filter(f));
     }
     public toArray() {
         let arr = [];

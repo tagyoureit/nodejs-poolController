@@ -222,7 +222,7 @@ export class ExternalMessage {
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
         // hijack it and get it ourselves.
-        let heater = sys.heaters.getItemById(msg.extractPayloadByte(2));
+        let heater = sys.heaters.getItemById(msg.extractPayloadByte(2) + 1);
         heater.efficiencyMode = msg.extractPayloadByte(27);
         heater.type = msg.extractPayloadByte(3);
         heater.address = msg.extractPayloadByte(10);
@@ -230,8 +230,20 @@ export class ExternalMessage {
         heater.body = msg.extractPayloadByte(4);
         heater.differentialTemp = msg.extractPayloadByte(5);
         heater.coolingEnabled = msg.extractPayloadByte(8) > 0;
+        heater.maxBoostTemp = msg.extractPayloadByte(28);
         heater.economyTime = msg.extractPayloadByte(29);
-        if (heater.type === 0) sys.heaters.removeItemById(heater.id);
+        if (heater.type === 0) {
+            sys.heaters.removeItemById(heater.id);
+            state.heaters.removeItemById(heater.id);
+        }
+        else {
+            let hstate = state.heaters.getItemById(heater.id, true);
+            hstate.name = heater.name;
+            heater.isVirtual = hstate.isVirtual = false;
+            hstate.name = heater.name;
+            hstate.type = heater.type;
+        }
+        
         sys.board.heaters.updateHeaterServices();
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);
