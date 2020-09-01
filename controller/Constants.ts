@@ -16,15 +16,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
+import { logger } from "../logger/Logger";
 export class Heliotrope {
     constructor() {
         this.isCalculated = false;
         this._zenith = 90 + 50 / 60;
     }
     private dMath = {
-        sin: function (deg) { return Math.sin(deg * Math.PI / 180); },
-        cos: function (deg) { return Math.cos(deg * Math.PI / 180); },
-        tan: function (deg) { return Math.tan(deg * Math.PI / 180); },
+        sin: function (deg) { return Math.sin(deg * (Math.PI / 180)); },
+        cos: function (deg) { return Math.cos(deg * (Math.PI / 180)); },
+        tan: function (deg) { return Math.tan(deg * (Math.PI / 180)); },
         asin: function (x) { return (180 / Math.PI) * Math.asin(x); },
         acos: function (x) { return (180 / Math.PI) * Math.acos(x); },
         atan: function (x) { return (180 / Math.PI) * Math.atan(x); }
@@ -60,63 +61,62 @@ export class Heliotrope {
     private _zenith: number;
     private _dtSunrise: Date;
     private _dtSunset: Date;
-    private get longitudeHours(): number { return this.longitude / 15; }
-    private get doy(): number {
-        let month = this.dt.getMonth() + 1;
-        let day = this.dt.getDate();
-        let year = this.dt.getFullYear();
-        return Math.floor(275 * month / 9)
-            - (Math.floor((month + 9) / 12)
-                * (1 + Math.floor((year - 4 * Math.floor(year / 4) + 2) / 3)))
-            + day - 30;
+    private get longitudeHours(): number { return this.longitude / 15.0; }
+    private get doy(): number { return Math.ceil((this.dt.getTime() - new Date(this.dt.getFullYear(), 0, 1).getTime()) / 8.64e7); }
+    private get sunriseApproxTime(): number { return this.doy + ((6.0 - this.longitudeHours) / 24.0); }
+    private get sunsetApproxTime(): number { return this.doy + ((18.0 - this.longitudeHours) / 24.0); }
+    private get sunriseAnomaly(): number { return (this.sunriseApproxTime * 0.9856) - 3.289; }
+    private get sunsetAnomaly(): number { return (this.sunsetApproxTime * 0.9856) - 3.289; }
+    private calcTrueLongitude(anomaly: number) {
+        let tl = anomaly + (1.916 * this.dMath.sin(anomaly)) + (0.020 * this.dMath.sin(2 * anomaly)) + 282.634;
+        while (tl >= 360.0) tl -= 360.0;
+        while (tl < 0) tl += 360.0;
+        return tl;
     }
-    private get riseApproxTime(): number { return this.doy + ((6 - this.longitudeHours) / 24); } // Check
-    private get setApproxTime(): number { return this.doy + ((18 - this.longitudeHours) / 24); }
-    private get riseAnomaly(): number { return (this.riseApproxTime * 0.9856) - 3.289; } // Check
-    private get setAnomaly(): number { return (this.setApproxTime * 0.9856) - 3.289; }
-    private calcTrueLongitude(anomaly: number) { return (anomaly + (1.916 + this.dMath.sin(anomaly)) + (0.20 * this.dMath.sin(2 * anomaly)) + 282.634) % 360; }
-    private get riseLongitude(): number { return this.calcTrueLongitude(this.riseAnomaly); } // Check
-    private get setLongitude(): number { return this.calcTrueLongitude(this.setAnomaly); }
+    private get sunriseLongitude(): number { return this.calcTrueLongitude(this.sunriseAnomaly); } // Check
+    private get sunsetLongitude(): number { return this.calcTrueLongitude(this.sunsetAnomaly); }
     private calcRightAscension(trueLongitude) {
-        let asc = this.dMath.atan(0.91764 * this.dMath.tan(trueLongitude)) % 360;
-        let lQuad = Math.floor(trueLongitude / 90) * 90;
-        let ascQuad = Math.floor(asc / 90) * 90;
-        return asc + (lQuad - ascQuad) / 15;
+        let asc = this.dMath.atan(0.91764 * this.dMath.tan(trueLongitude));
+        while (asc >= 360.0) asc -= 360.0;
+        while (asc < 0) asc += 360.0;
+        let lQuad = Math.floor(trueLongitude / 90.0) * 90.0;
+        let ascQuad = Math.floor(asc / 90.0) * 90.0;
+        return (asc + (lQuad - ascQuad)) / 15.0;
     }
-    private get riseAscension(): number { return this.calcRightAscension(this.riseLongitude); }
-    private get setAscension(): number { return this.calcRightAscension(this.setLongitude); }
+    private get sunriseAscension(): number { return this.calcRightAscension(this.sunriseLongitude); }
+    private get sunsetAscension(): number { return this.calcRightAscension(this.sunsetLongitude); }
     private calcSinDeclination(trueLongitude: number): number { return 0.39782 * this.dMath.sin(trueLongitude); }
     private calcCosDeclination(sinDeclination: number): number { return this.dMath.cos(this.dMath.asin(sinDeclination)); }
-    private get riseSinDeclination(): number { return this.calcSinDeclination(this.riseLongitude); }
-    private get setSinDeclination(): number { return this.calcSinDeclination(this.setLongitude); }
-    private get riseCosDeclination(): number { return this.calcCosDeclination(this.riseSinDeclination); }
-    private get setCosDeclination(): number { return this.calcCosDeclination(this.setSinDeclination); }
+    private get sunriseSinDeclination(): number { return this.calcSinDeclination(this.sunriseLongitude); }
+    private get sunsetSinDeclination(): number { return this.calcSinDeclination(this.sunsetLongitude); }
+    private get sunriseCosDeclination(): number { return this.calcCosDeclination(this.sunriseSinDeclination); }
+    private get sunsetCosDeclination(): number { return this.calcCosDeclination(this.sunsetSinDeclination); }
     private calcLocalHourAngle(sinDeclination: number, cosDeclination: number): number { return (this.dMath.cos(this.zenith) - (sinDeclination * this.dMath.sin(this.latitude))) / (cosDeclination * this.dMath.cos(this.latitude)); }
-    private get riseLocalTime(): number {
-        let ha = this.calcLocalHourAngle(this.riseSinDeclination, this.riseCosDeclination);
+    private get sunriseLocalTime(): number {
+        let ha = this.calcLocalHourAngle(this.sunriseSinDeclination, this.sunriseCosDeclination);
         if (ha >= -1 && ha <= 1) {
             let h = (360 - this.dMath.acos(ha)) / 15;
-            return (h + this.riseAscension - (0.06571 * this.riseApproxTime) - 6.622);
+            return (h + this.sunriseAscension - (0.06571 * this.sunriseApproxTime) - 6.622);
         }
         // The sun never rises here.
         return;
     }
-    private get setLocalTime(): number {
-        let ha = this.calcLocalHourAngle(this.setSinDeclination, this.setCosDeclination);
+    private get sunsetLocalTime(): number {
+        let ha = this.calcLocalHourAngle(this.sunsetSinDeclination, this.sunsetCosDeclination);
         if (ha >= -1 && ha <= 1) {
             let h = this.dMath.acos(ha) / 15;
-            return (h + this.setAscension - (0.06571 * this.setApproxTime) - 6.622);
+            return (h + this.sunsetAscension - (0.06571 * this.sunsetApproxTime) - 6.622);
         }
         // The sun never sets here.
         return;
     }
     private toLocalTime(time: number) {
         let off = -(this.dt.getTimezoneOffset() * 60 * 1000);
-        let hours = Math.floor(time);
-        let mins = Math.floor(60 * (time - hours));
-        let secs = Math.floor(3600 * (time - hours - (mins / 60)));
-        let utc = new Date(Date.UTC(this.dt.getUTCFullYear(), this.dt.getUTCMonth(), this.dt.getUTCDate(), hours, mins, secs) + off);
-        let dtLocal = new Date(utc.toUTCString());
+        let utcHours = Math.floor(time);
+        let utcMins = Math.floor(60 * (time - utcHours));
+        let utcSecs = Math.floor(3600 * (time - utcHours - (utcMins / 60)));
+        let dtLocal = new Date(new Date(this.dt.getFullYear(), this.dt.getMonth(), this.dt.getDate(), utcHours, utcMins, utcSecs).getTime() + off);
+        dtLocal.setDate(this.dt.getDate());
         return dtLocal;
     }
     public get isNight(): boolean {
@@ -132,14 +132,27 @@ export class Heliotrope {
             && typeof this._latitude !== 'undefined'
             && typeof this._longitude !== 'undefined'
             && typeof this._zenith !== 'undefined') {
-            let riseLocal = this.riseLocalTime;
-            let setLocal = this.setLocalTime;
-            this._dtSunrise = typeof riseLocal !== 'undefined' ? this.toLocalTime(((riseLocal - this.longitudeHours) + 24) % 24) : undefined;
-            this._dtSunset = typeof setLocal !== 'undefined' ? this.toLocalTime(((setLocal - this.longitudeHours) + 24) % 24) : undefined;
-            this.isValid = true;
+            let sunriseLocal = this.sunriseLocalTime;
+            let sunsetLocal = this.sunsetLocalTime;
+            if (typeof sunriseLocal !== 'undefined') {
+                sunriseLocal = (sunriseLocal - this.longitudeHours);
+                while (sunriseLocal >= 24) sunriseLocal -= 24;
+                while (sunriseLocal < 0) sunriseLocal += 24;
+                this._dtSunrise = this.toLocalTime(sunriseLocal);
+            }
+            else this._dtSunrise = undefined;
+            if (typeof sunsetLocal !== 'undefined') {
+                sunsetLocal = (sunsetLocal - this.longitudeHours);
+                while (sunsetLocal >= 24) sunsetLocal -= 24;
+                while (sunsetLocal < 0) sunsetLocal += 24;
+                this._dtSunset = this.toLocalTime(sunsetLocal);
+            }
+            else this._dtSunset = undefined;
+            logger.verbose(`sunriseLocal:${sunriseLocal} sunsetLocal:${sunsetLocal} Calculating Heliotrope Valid`);
+            this.isValid = typeof this._dtSunrise !== 'undefined' && typeof this._dtSunset !== 'undefined';
         }
         else {
-            //console.log(`Cannot calculate heliotrope: dt:${this.dt} lat:${this.latitude} lon:${this.longitude}`);
+            logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.`);
             this.isValid = false;
             this._dtSunset = undefined;
             this._dtSunrise = undefined;
@@ -154,9 +167,7 @@ export class Heliotrope {
         if (!this.isCalculated) this.calculate();
         return this._dtSunset;
     }
-    public get calculatedTimes(): any {
-        return { sunrise: this.sunrise, sunset: this.sunset, isValid: this.isValid };
-    }
+    public get calculatedTimes(): any { return { sunrise: this.sunrise, sunset: this.sunset, isValid: this.isValid }; }
 }
 export class Timestamp {
     private _dt: Date;
