@@ -254,7 +254,9 @@ export class State implements IState {
         var state = this.loadFile(this.statePath, {});
         state = extend(true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, state);
         var self = this;
-        this._dt = new Timestamp(new Date());
+        let pnlTime = typeof state.time !== 'undefined' ? new Date(state.time) : new Date();
+        if (isNaN(pnlTime.getTime())) pnlTime = new Date();
+        this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
         this.data = this.onchange(state, function () { self.dirty = true; });
         this._dt.emitter.on('change', function () {

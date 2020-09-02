@@ -37,8 +37,13 @@ export class Heliotrope {
         if (typeof this.dt === 'undefined' ||
             this.dt.getFullYear() !== dt.getFullYear() ||
             this.dt.getMonth() !== dt.getMonth() ||
-            this.dt.getDate() !== dt.getDate()) this.isCalculated = false;
-        this.dt = dt;
+            this.dt.getDate() !== dt.getDate()) {
+            this.isCalculated = false;
+            // Always store a copy since we don't want to create instances where the change doesn't get reflected.  This
+            // also could hold onto references that we don't want held for garbage cleanup.
+            this.dt = typeof dt !== 'undefined' && typeof dt.getMonth === 'function' ? new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(),
+                dt.getHours(), dt.getMinutes(), dt.getSeconds(), dt.getMilliseconds()) : undefined;
+        }
     }
     public get longitude() { return this._longitude; }
     public set longitude(lon: number) {
@@ -116,7 +121,7 @@ export class Heliotrope {
         let utcMins = Math.floor(60 * (time - utcHours));
         let utcSecs = Math.floor(3600 * (time - utcHours - (utcMins / 60)));
         let dtLocal = new Date(new Date(this.dt.getFullYear(), this.dt.getMonth(), this.dt.getDate(), utcHours, utcMins, utcSecs).getTime() + off);
-        dtLocal.setDate(this.dt.getDate());
+        dtLocal.setFullYear(this.dt.getFullYear(), this.dt.getMonth(), this.dt.getDate());
         return dtLocal;
     }
     public get isNight(): boolean {
