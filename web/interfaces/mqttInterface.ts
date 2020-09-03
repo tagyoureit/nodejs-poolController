@@ -27,7 +27,7 @@ import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
 import { utils } from "../../controller/Constants";
-import { ServiceParameterError } from 'controller/Errors';
+import { ServiceParameterError } from '../../controller/Errors';
 
 export class MqttInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
@@ -64,8 +64,16 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
 
     private subscribe = () => {
-        let topics = [`${this.rootTopic()}/state/+/setState`,
-        `${this.rootTopic()}/state/+/toggleState`
+        let topics = [
+        `${this.rootTopic()}/state/+/setState`,
+        `${this.rootTopic()}/state/+/setstate`,
+        `${this.rootTopic()}/state/+/toggleState`,
+        `${this.rootTopic()}/state/+/togglestate`,
+        `${this.rootTopic()}/state/body/setPoint`,
+        `${this.rootTopic()}/state/body/setpoint`,
+        `${this.rootTopic()}/state/body/heatMode`,
+        `${this.rootTopic()}/state/body/heatmode`,
+        `${this.rootTopic()}/state/chlorinator`        
         ];
         topics.forEach(topic => {
             this.client.subscribe(topic, (err, granted) => {
@@ -284,13 +292,13 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 case 'setpoint':
                     {
                         try {
-                            let body = sys.bodies.findByObject(msg.body);
+                            let body = sys.bodies.findByObject(msg);
                             if (topics[topics.length - 2].toLowerCase() === 'body') {
                                 if (typeof body === 'undefined') {
-                                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.body.id));
+                                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
                                     return;
                                 }
-                                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.body.setPoint, 10));
+                                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
                             }
                         }
                         catch (err) { logger.error(err); }
@@ -302,19 +310,19 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         try {
                             if (topics[topics.length - 2].toLowerCase() !== 'body') return;
                             // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
-                            let mode = parseInt(msg.body.mode, 10);
+                            let mode = parseInt(msg.mode, 10);
                             let val;
-                            if (isNaN(mode)) mode = parseInt(msg.body.heatMode, 10);
+                            if (isNaN(mode)) mode = parseInt(msg.heatMode, 10);
                             if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                            else val = sys.board.valueMaps.heatModes.transformByName(msg.body.mode || msg.body.heatMode);
+                            else val = sys.board.valueMaps.heatModes.transformByName(msg.mode || msg.heatMode);
                             if (typeof val.val === 'undefined') {
-                                logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.body.mode}`, 'body', 'heatMode', mode));
+                                logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.mode}`, 'body', 'heatMode', mode));
                                 return;
                             }
                             mode = val.val;
-                            let body = sys.bodies.findByObject(msg.body);
+                            let body = sys.bodies.findByObject(msg);
                             if (typeof body === 'undefined') {
-                                logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.body.id));
+                                logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
                                 return;
                             }
                             let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
@@ -325,7 +333,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 case 'chlorinator':
                     {
                         try {
-                            let schlor = await sys.board.chlorinator.setChlorAsync(msg.body);
+                            let schlor = await sys.board.chlorinator.setChlorAsync(msg);
                         }
                         catch (err) { logger.error(err); }
                         break;
