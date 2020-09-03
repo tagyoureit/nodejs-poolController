@@ -15,6 +15,21 @@
                     "regexkey": "\\/",
                     "replace": "",
                     "description": "Remove /"
+                },
+                {
+                    "regexkey": "\\+",
+                    "replace": "",
+                    "description": "Remove +"
+                },
+                {
+                    "regexkey": "\\$",
+                    "replace": "",
+                    "description": "Remove $"
+                },
+                {
+                    "regexkey": "\\#",
+                    "replace": "",
+                    "description": "Remove #"
                 }
             ],
             "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
