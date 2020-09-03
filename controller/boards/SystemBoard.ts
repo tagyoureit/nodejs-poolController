@@ -532,9 +532,9 @@ export class byteValueMaps {
         [128, { name: 'commslost', desc: 'Communications with Chem Controller Lost' }] // to be verified
     ]);
     public chemControllerDosingStatus: byteValueMap = new byteValueMap([
-        [0, { name: 'dosing', desc: 'Dosing - Dosing' }],
-        [1, { name: 'monitoring', desc: 'Dosing - Monitoring' }],
-        [2, { name: 'mixing', desc: 'Dosing - Mixing' }]
+        [0, { name: 'dosing', desc: 'Dosing' }],
+        [1, { name: 'monitoring', desc: 'Monitoring' }],
+        [2, { name: 'mixing', desc: 'Mixing' }]
     ]);
     /* ---- TO GET RID OF ----- */
     // public chemControllerWaterFlow: byteValueMap = new byteValueMap([

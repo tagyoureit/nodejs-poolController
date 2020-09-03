@@ -1432,6 +1432,7 @@ export class ChemControllerState extends EqState {
     public getExtended(): any {
         let chem = sys.chemControllers.getItemById(this.id);
         let obj = this.get(true);
+        obj.address = chem.address;
         obj.saturationIndex = this.saturationIndex || 0;
         obj.alkalinity = chem.alkalinity;
         obj.body = sys.board.valueMaps.bodies.transform(chem.body);
