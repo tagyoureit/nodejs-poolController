@@ -269,6 +269,9 @@ export class HttpServer extends ProtoServer {
                 });
             }
             this.app.use(express.json());
+
+            this.app.use(express.static(path.join(process.cwd(), '/dist/static'), { maxAge: '60d' }));
+
             this.app.use((req, res, next) => {
                 res.header('Access-Control-Allow-Origin', '*');
                 res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');

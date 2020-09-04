@@ -1,0 +1,15 @@
+FROM node:current as build
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+ENTRYPOINT ["node", "dist/app.js"]
+
+# to host both controller and web in a single container (simplifying ports and CORS)
+# you can copy the static react client from the web container
+# All that remains is mapping in json over /app/dist/static/discover file to
+# supply the client-side configuration
+COPY --from=andylippitt/pool_web:0.16-arm /app/dist/web/ /app/dist/static/
