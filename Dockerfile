@@ -1,9 +1,10 @@
-FROM node:current as build
-
+FROM node:current as controllerbuild
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build-prod
 
-ENTRYPOINT ["node", "dist/app.js"]
+FROM node:current as releasecontainer
+COPY --from=controllerbuild /app/dist/compiled /app
+ENTRYPOINT ["node", "dist/compiled/index.js"]
