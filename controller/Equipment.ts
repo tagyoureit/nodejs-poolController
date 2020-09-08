@@ -1,5 +1,5 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -29,6 +29,7 @@ import { SystemBoard, EquipmentIdRange } from "./boards/SystemBoard";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
+import { versionCheck } from "../config/VersionCheck";
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -97,7 +98,8 @@ export class PoolSystem implements IPoolSystem {
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         //this.intellichem = new IntelliChem(this.data, 'intellichem');
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
-        this.data.appVersion = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
+        this.data.appVersion = state.appVersion.installed = this.appVersion =  JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
+        versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         // this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
     }

@@ -1,5 +1,5 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -611,6 +611,12 @@ export class byteValueMaps {
         [2, { name: 'is10', desc: 'iS10 Spa-Side Remote', maxButtons: 10 }],
         [6, { name: 'quickTouch', desc: 'Quick Touch Remote', maxButtons: 4 }],
         [7, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
+    ]);
+    public appVersionStatus: byteValueMap = new byteValueMap([
+        [-1, { name: 'unknown', desc: 'Unable to compare versions' }],
+        [0, { name: 'current', desc: 'On current version' }],
+        [1, { name: 'behind', desc: 'New version available' }],
+        [2, { name: 'ahead', desc: 'Ahead of published version' }]
     ]);
 }
 // SystemBoard is a mechanism to abstract the underlying pool system from specific functionality
