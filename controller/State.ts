@@ -1,5 +1,5 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -23,6 +23,8 @@ import { logger } from '../logger/Logger';
 import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
 import { sys } from './Equipment';
+import { versionCheck } from '../config/VersionCheck';
+
 export class State implements IState {
     statePath: string;
     data: any;
@@ -165,6 +167,7 @@ export class State implements IState {
             mode: self.data.mode || {},
             // freeze: self.data.freeze || false,
             appVersion: sys.appVersion || '',
+            appVersionState: self.appVersion || {},
             clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
             clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {},
             sunrise: self.data.sunrise || '',
@@ -190,14 +193,12 @@ export class State implements IState {
         for (let i = 0; i < state.pumps.length; i++) {
             state.pumps.getItemByIndex(i).hasChanged = true;
         }
-
         for (let i = 0; i < state.valves.length; i++) {
             state.valves.getItemByIndex(i).hasChanged = true;
         }
         for (let i = 0; i < state.heaters.length; i++) {
             state.heaters.getItemByIndex(i).hasChanged = true;
         }
-
         for (let i = 0; i < state.chlorinators.length; i++) {
             state.chlorinators.getItemByIndex(i).hasChanged = true;
         }
@@ -318,6 +319,7 @@ export class State implements IState {
             let times = self.heliotrope.calculatedTimes;
             self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
             self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
+            versionCheck.check()
         });
         this.status = 0; // Initializing
         this.equipment = new EquipmentState(this.data, 'equipment');
@@ -337,6 +339,7 @@ export class State implements IState {
         this.covers = new CoverStateCollection(this.data, 'covers');
         this.comms = new CommsState();
         this.heliotrope = new Heliotrope();
+        this.appVersion = new AppVersionState(this.data, 'appVersion');
     }
     public resetData() {
         this.circuitGroups.clear();
@@ -372,6 +375,7 @@ export class State implements IState {
     public covers: CoverStateCollection;
     public chemControllers: ChemControllerStateCollection;
     public comms: CommsState;
+    public appVersion: AppVersionState;
 
     // This performs a safe load of the state file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -1549,7 +1553,23 @@ export class ChemControllerStateAlarms extends EqState {
             this.hasChanged = true;
         }
     }
-
+}
+export class AppVersionState extends EqState{
+    public get nextCheckTime(): string { return this.data.nextCheckTime; }
+    public set nextCheckTime(val: string) { this.setDataVal('nextCheckTime', val); }
+    public get isDismissed(): boolean { return this.data.isDismissed; }
+    public set isDismissed(val: boolean) { this.setDataVal('isDismissed', val); }
+    public get installed(): string { return this.data.installed; }
+    public set installed(val: string) { this.setDataVal('installed', val); }
+    public get githubRelease(): string { return this.data.githubRelease; }
+    public set githubRelease(val: string) { this.setDataVal('githubRelease', val); }
+    public get status(): number { return typeof this.data.status === 'undefined' ? undefined : this.data.status.val; }
+    public set status(val: number) { 
+        if (this.status !== val) {
+            this.data.status = sys.board.valueMaps.appVersionStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class CommsState {
     public keepAlives: number;
