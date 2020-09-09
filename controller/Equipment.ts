@@ -1204,7 +1204,7 @@ export class Valve extends EqItem {
     public get isIntake(): boolean { return utils.makeBool(this.data.isIntake); }
     public set isIntake(val: boolean) { this.setDataVal('isIntake', val); }
     public get isReturn(): boolean { return utils.makeBool(this.data.isReturn); }
-    public set isReturn(val: boolean) { this.setDataVal('isVirtual', val); }
+    public set isReturn(val: boolean) { this.setDataVal('isReturn', val); }
     public get isVirtual(): boolean { return utils.makeBool(this.data.isReturn); }
     public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get pinId(): number { return this.data.pinId || 0; }
