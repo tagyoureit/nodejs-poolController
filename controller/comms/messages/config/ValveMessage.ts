@@ -15,7 +15,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import {Inbound} from "../Messages";
-import {sys, Valve} from "../../../Equipment";
+import { sys, Valve } from "../../../Equipment";
+import { state, ValveState } from "../../../State";
 import { ControllerType } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 export class ValveMessage {
@@ -122,31 +123,43 @@ export class ValveMessage {
     private static processCircuit(msg: Inbound) {
         // When it comes to valves there are some interesting numberings
         // going on.  This is due to the fact that the i10d has two sets of intake/returns.
+        // NOTE: The previous statement is untrue.  Apparently the intake/returns are completely omitted
+        // for i10d.
         let ndx: number = 2;
         let id = 1;
         for (let i = 0; i < sys.equipment.maxValves; i++) {
+            if (id === 3 && !sys.equipment.shared) {
+                // The intake/return valves are skipped for non-shared systems.
+                sys.valves.removeItemById(3);
+                sys.valves.removeItemById(4);
+                state.valves.removeItemById(3);
+                state.valves.removeItemById(4);
+                id += 2;
+                ndx += 2;
+            }
             if (id === 5) {
-                // If we aren't an i10d then lets jump over the second intake/return.
-                if (!sys.equipment.dual) {
-                    sys.valves.removeItemById(5);
-                    sys.valves.removeItemById(6);
-                    id += 2;
-                    ndx += 2;
-                }
+                // Originally we thought this secondary intake/return was for i10d but as it turns out it doesn't use it either.
+                sys.valves.removeItemById(5);
+                sys.valves.removeItemById(6);
+                state.valves.removeItemById(5);
+                state.valves.removeItemById(6);
+                id += 2;
+                ndx += 2;
             }
             let valve: Valve = sys.valves.getItemById(id, i < sys.equipment.maxValves);
+            valve.isVirtual = false;
             if (id === 3 || id === 5) {
-                valve.circuit = 247; // Hardcode the intake/return;
+                valve.circuit = 247; // Hardcode the intake/return to pool/spa;
                 valve.isIntake = true;
                 valve.isReturn = false;
             }
             else if (id === 4 || id === 6) {
-                valve.circuit = 247; // Hardcode the intake/return;
+                valve.circuit = 247; // Hardcode the intake/return to pool/spa;
                 valve.isIntake = false;
                 valve.isReturn = true;
             }
             else {
-                valve.circuit = msg.extractPayloadByte(ndx) + 1; // Even the circuit ids are 0 based.
+                valve.circuit = msg.extractPayloadByte(ndx) + 1; // Even the circuit ids are 0 based on the valve messages.
                 valve.isIntake = false;
                 valve.isReturn = false;
             }
@@ -155,6 +168,8 @@ export class ValveMessage {
             ndx++;
             id++;
         }
+        // Sort them so they are in valve id order.  This will ensure any OCP valves come first in the list.  Valves ids > 50 are virtual valves.
+        sys.valves.sortById();
     }
     private static processValveNames(msg: Inbound) {
         let byte = msg.extractPayloadByte(1);
@@ -163,7 +178,7 @@ export class ValveMessage {
         // byte = 3 == 5
         // 0 + 5
         let valveId = byte <= 2 ? ((byte - 1) * 2) + 1 : (byte - 3) * 2 + 5;
-        sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
-        sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
+        state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
+        state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
     }
 }

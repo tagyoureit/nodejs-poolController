@@ -67,7 +67,13 @@ export class StateSocket {
                 // return res.status(200).send(tbody);
             } catch (err) { logger.error(err); }
         });
-        
+        sock.on('/temps', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                sys.board.system.setTempsAsync(data);
+            }
+            catch (err) { logger.error(err); }
+        });
 
         /*
         app.get('/state/chemController/:id', (req, res) => {
