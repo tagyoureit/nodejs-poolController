@@ -1006,6 +1006,19 @@ export class TemperatureState extends EqState {
     public set waterSensor1(val: number) { this.setDataVal('waterSensor1', val); }
     public get waterSensor2(): number { return this.data.waterSensor2; }
     public set waterSensor2(val: number) { this.setDataVal('waterSensor2', val); }
+    public get waterSensor3(): number { return this.data.waterSensor3; }
+    public set waterSensor3(val: number) { this.setDataVal('waterSensor3', val); }
+    public get waterSensor4(): number { return this.data.waterSensor4; }
+    public set waterSensor4(val: number) { this.setDataVal('waterSensor4', val); }
+    public get solarSensor1(): number { return this.data.solar; }
+    public set solarSensor1(val: number) { this.setDataVal('solar', val); }
+    public get solarSensor2(): number { return this.data.solarSensor2; }
+    public set solarSensor2(val: number) { this.setDataVal('solarSensor2', val); }
+    public get solarSensor3(): number { return this.data.solarSensor3; }
+    public set solarSensor3(val: number) { this.setDataVal('solarSensor3', val); }
+    public get solarSensor4(): number { return this.data.solarSensor4; }
+    public set solarSensor4(val: number) { this.setDataVal('solarSensor4', val); }
+
     public get bodies(): BodyTempStateCollection { return new BodyTempStateCollection(this.data, 'bodies'); }
     public get air(): number { return this.data.air; }
     public set air(val: number) { this.setDataVal('air', val); }
