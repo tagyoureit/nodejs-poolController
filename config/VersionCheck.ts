@@ -71,7 +71,7 @@ class VersionCheck {
             this.redirects += 1;
         }
         if (this.redirects >= 20) return Promise.reject(`Too many redirects.`)
-                return new Promise((resolve, reject)=> {
+                return new Promise<string>((resolve, reject)=> {
             try {
                 https.request(url, options, async res => {
                     if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) await this.getLatestRelease(res.headers.location);
