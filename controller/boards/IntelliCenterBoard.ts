@@ -655,7 +655,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.maybeQueueItems(curr.chlorinators, ver.chlorinators, ConfigCategories.chlorinators, [0]);
         if (this.compareVersions(curr.valves, ver.valves)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.valves, ver.valves, [0]);
-            req.fillRange(1, Math.min(Math.ceil(sys.equipment.maxValves / 2) + 1, 14));
+            let totalValves = sys.equipment.maxValves + (sys.equipment.shared ? 2 : 4);
+            req.fillRange(1, Math.min(Math.ceil(totalValves / 2) + 1, 14));
             this.push(req);
         }
         if (this.compareVersions(curr.intellichem, ver.intellichem)) {
