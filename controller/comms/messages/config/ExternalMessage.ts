@@ -185,6 +185,7 @@ export class ExternalMessage {
                         }
                     }
                     group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
+                    group.dontStop = group.eggTimer === 1440;
                     // sgroup.eggTimer = group.eggTimer;
                     if (type === 1) {
                         let g = group as LightGroup;
@@ -563,16 +564,22 @@ export class ExternalMessage {
     }
     private static processFeature(msg: Inbound) {
         let featureId = msg.extractPayloadByte(2) + sys.board.equipmentIds.features.start;
-        let feature = sys.features.getItemById(featureId, false);
-        let fstate = state.features.getItemById(featureId, false);
-        feature.showInFeatures = msg.extractPayloadByte(5) > 0;
-        feature.freeze = msg.extractPayloadByte(4) > 0;
-        feature.name = msg.extractPayloadString(9, 16);
-        feature.type = msg.extractPayloadByte(3);
-        feature.eggTimer = (msg.extractPayloadByte(6) * 60) + msg.extractPayloadByte(7);
-        fstate.type = feature.type;
-        fstate.showInFeatures = feature.showInFeatures;
-        fstate.name = feature.name;
+        let type = msg.extractPayloadByte(5);
+        let feature = sys.features.getItemById(featureId, type !== 255);
+        let fstate = state.features.getItemById(featureId, type !== 255);
+        if (type === 255) {
+            feature.isActive = false;
+            sys.features.removeItemById(featureId);
+            state.features.removeItemById(featureId);
+        }
+        else {
+            feature.freeze = msg.extractPayloadByte(4) > 0;
+            feature.dontStop = msg.extractPayloadByte(8) > 0;
+            fstate.name = feature.name = msg.extractPayloadString(9, 16);
+            fstate.type = feature.type = type;
+            feature.eggTimer = (msg.extractPayloadByte(6) * 60) + msg.extractPayloadByte(7);
+            fstate.showInFeatures = feature.showInFeatures = msg.extractPayloadByte(5) > 0;
+        }
         state.emitEquipmentChanges();
     }
     private static processCircuit(msg: Inbound) {

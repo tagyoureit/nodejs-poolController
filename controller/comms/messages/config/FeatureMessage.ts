@@ -16,13 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
 import { sys, Feature } from "../../../Equipment";
-import { state } from "../../../State";
+import { state, FeatureState } from "../../../State";
 import { logger } from "../../../../logger/Logger";
 export class FeatureMessage {
     public static process(msg: Inbound): void {
         switch (msg.extractPayloadByte(1)) {
             case 0: // Feature Type
-                FeatureMessage.processIsActive(msg);
+                FeatureMessage.processFeatureType(msg);
                 break;
             case 1: // Freeze
                 FeatureMessage.processFreezeProtect(msg);
@@ -37,7 +37,7 @@ export class FeatureMessage {
                 FeatureMessage.processEggTimerMinutes(msg);
                 break;
             case 5:
-                FeatureMessage.processFeatureType(msg);
+                FeatureMessage.processDontStop(msg); // Don't Stop
                 break;
             case 6:
             case 7:
@@ -64,24 +64,28 @@ export class FeatureMessage {
                 break;
         }
     }
-    private static processIsActive(msg: Inbound) {
+    private static processDontStop(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
             let featureId = i + sys.board.equipmentIds.features.start - 1;
-            var feature: Feature = sys.features.getItemById(featureId, msg.extractPayloadByte(i + 1) !== 255);
-            if (feature.isActive && msg.extractPayloadByte(i + 1) === 255) sys.features.removeItemById(featureId);
-            feature.isActive = msg.extractPayloadByte(i + 1) !== 255;
-            if (!feature.isActive) state.features.removeItemById(featureId);
-            else state.features.getItemById(featureId, true);
+            var feature: Feature = sys.features.getItemById(featureId, false);
+            feature.dontStop = msg.extractPayloadByte(i + 1) == 1;
         }
     }
     private static processFeatureType(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
             let featureId = i + sys.board.equipmentIds.features.start - 1;
-            let feature: Feature = sys.features.getItemById(featureId);
-            if (feature.isActive) {
-                feature.type = msg.extractPayloadByte(i + 1);
-                let sFeature = state.features.getItemById(featureId);
-                sFeature.type = feature.type;
+            let type = msg.extractPayloadByte(i + 1);
+            let feature: Feature = sys.features.getItemById(featureId, type !== 255);
+            let sFeature: FeatureState = state.features.getItemById(featureId, type !== 255);
+            if (type !== 255) {
+                let feature: Feature = sys.features.getItemById(featureId);
+                feature.isActive = true;
+                sFeature.type = feature.type = type;
+            }
+            else {
+                feature.isActive = false;
+                sys.features.removeItemById(featureId);
+                state.features.removeItemById(featureId);
             }
         }
     }

@@ -1750,7 +1750,9 @@ export class CircuitCommands extends BoardCommands {
             if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
             if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
             if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+            if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
             if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+            circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
             return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
@@ -1770,8 +1772,11 @@ export class CircuitCommands extends BoardCommands {
         group = sys.circuitGroups.getItemById(id, true);
         return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.dontStop = group.eggTimer === 1440;
             group.isActive = true;
+
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
                     let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
@@ -1798,7 +1803,9 @@ export class CircuitCommands extends BoardCommands {
         group = sys.lightGroups.getItemById(id, true);
         return new Promise<LightGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.dontStop = group.eggTimer === 1440;
             group.isActive = true;
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
@@ -2000,7 +2007,9 @@ export class FeatureCommands extends BoardCommands {
             else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
             if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
             if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
+            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
+            feature.dontStop = feature.eggTimer === 1440;
             return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }
         else

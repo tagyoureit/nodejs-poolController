@@ -608,8 +608,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this.push(req);
         }
         if (this.compareVersions(curr.features, ver.features)) {
-            let req = new IntelliCenterConfigRequest(ConfigCategories.features, ver.features, [0, 1, 2, 3, 4, 5]);
-            // Only add in the items that we need for now.  We will queue the optional packets later.  The first 6 packets
+            let req = new IntelliCenterConfigRequest(ConfigCategories.features, ver.features, [0, 1, 2, 3, 4, 5, 22]);
+            // Only add in the items that we need for now.  We will queue the optional packets later.  The first 6 packets and 22
             // are required but we can reduce the number of names returned by only requesting the data after the names have been processed.
             req.oncomplete = function (req: IntelliCenterConfigRequest) {
                 let maxId = sys.features.getMaxId(true, 0) - sys.board.equipmentIds.features.start + 1;
@@ -1217,6 +1217,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (isNaN(eggTimer)) eggTimer = circuit.eggTimer;
             let eggHrs = Math.floor(eggTimer / 60);
             let eggMins = eggTimer - (eggHrs * 60);
+            if (data.dontStop === true) eggTimer = 1440;
+            data.dontStop = (eggTimer === 1440);
             let out = Outbound.create({
                 action: 168,
                 payload: [1, 0, id - 1,
@@ -1224,11 +1226,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze) ? 1 : 0,
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures) ? 1 : 0,
                     typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme,
-                    eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
+                    eggHrs, eggMins, data.dontStop ? 1 : 0],
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
                         circuit.eggTimer = eggTimer;
+                        circuit.dontStop = data.dontStop;
                         circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
                         circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
                         circuit.lightingTheme = typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme;
@@ -1277,9 +1280,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
                 let eggHours = Math.floor(eggTimer / 60);
                 let eggMins = eggTimer - (eggHours * 60);
+                if (obj.dontStop === true) eggTimer = 1440;
+                obj.dontStop = (eggTimer === 1440);
+
                 let out = Outbound.create({
                     action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],
+                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],  // The last byte here should be don't stop but I believe this to be a current bug.
                     response: IntelliCenterBoard.getAckResponse(168),
                     retries: 3,
                     onComplete: (err, msg) => {
@@ -1287,6 +1293,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         else {
                             // sgroup.eggTimer = group.eggTimer = eggTimer;
                             group.eggTimer = eggTimer;
+                            group.dontStop = obj.dontStop;
                             sgroup.type = group.type = 2;
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
@@ -1444,10 +1451,13 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
                 let eggHours = Math.floor(eggTimer / 60);
                 let eggMins = eggTimer - (eggHours * 60);
+                if (obj.dontStop === true) eggTimer = 1440;
+                obj.dontStop = (eggTimer === 1440);
+
                 let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme : obj.lightingTheme;
                 let out = Outbound.create({
                     action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0],
+                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0], // The last byte here should be don't stop but I believe this to be a current bug.
                     response: IntelliCenterBoard.getAckResponse(168),
                     retries: 3,
                     onComplete: (err, msg) => {
@@ -1770,7 +1780,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     let circuit = sys.circuits.getInterfaceById(id);
                     let cstate = state.circuits.getInterfaceById(id);
                     let out = Outbound.createMessage(168, [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-                        theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+                        theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0],
                         0, undefined
                     );
                     out.response = IntelliCenterBoard.getAckResponse(168);
@@ -1936,7 +1946,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         arr.push(new Promise((resolve, reject) => {
             let out = Outbound.create({
                 action: 168, payload: [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-                    level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), 0],
+                    level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0],
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries:3,
                 onComplete: (err, msg) => {
@@ -1982,6 +1992,8 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
+            if (data.dontStop === true) eggTimer = 1440;
+            data.dontStop = (eggTimer === 1440);
             let eggHrs = Math.floor(eggTimer / 60);
             let eggMins = eggTimer - (eggHrs * 60);
             let out = Outbound.create({
@@ -1992,7 +2004,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
                     typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type,
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures) ? 1 : 0,
-                    eggHrs, eggMins, eggTimer === 1440 ? 1 : 0],
+                    eggHrs, eggMins, data.dontStop ? 1 : 0],
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
@@ -2000,6 +2012,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
                         let fstate = state.features.getItemById(id, true);
 
                         feature.eggTimer = eggTimer;
+                        feature.dontStop = data.dontStop;
                         feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
                         fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
                         fstate.name = feature.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : feature.name;
