@@ -831,7 +831,7 @@ class TouchCircuitCommands extends CircuitCommands {
                         circuit.nameId = cstate.nameId = nameByte;
                         circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
                         circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures;
-                        circuit.showInCircuits = typeof data.showInCircuits !== 'undefined' ? data.showInCircuits : circuit.showInCircuits; // cstate.showInCircuits?
+                        //circuit.showInCircuits = typeof data.showInCircuits !== 'undefined' ? data.showInCircuits : circuit.showInCircuits; // cstate.showInCircuits?
                         circuit.freeze = typeof data.freeze !== 'undefined' ? data.freeze : circuit.freeze;
                         circuit.type = cstate.type = typeByte;
                         state.emitEquipmentChanges();
@@ -991,6 +991,7 @@ class TouchCircuitCommands extends CircuitCommands {
 
         if (typeof obj.name !== 'undefined') group.name = obj.name;
         if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
+        group.dontStop = (group.eggTimer === 1440);
         group.isActive = true;
         if (typeof obj.circuits !== 'undefined') {
             for (let i = 0; i < obj.circuits.length; i++) {
