@@ -1426,7 +1426,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     }
     public async setLightGroupAsync(obj: any): Promise<LightGroup> {
         let group: LightGroup = null;
-        let sgroup: LightGroup = null;
+        let sgroup: LightGroupState = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
             // We are adding a light group.
@@ -1453,7 +1453,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 let eggMins = eggTimer - (eggHours * 60);
                 if (obj.dontStop === true) eggTimer = 1440;
                 obj.dontStop = (eggTimer === 1440);
-
+                sgroup = state.lightGroups.getItemById(id, true);
                 let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme : obj.lightingTheme;
                 let out = Outbound.create({
                     action: 168,
@@ -1463,7 +1463,6 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else {
-                            sgroup.eggTimer = group.eggTimer = eggTimer;
                             sgroup.type = group.type = 1;
                             sgroup.lightingTheme = group.lightingTheme = theme;
                             if (typeof obj.circuits !== 'undefined') {
