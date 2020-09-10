@@ -965,8 +965,9 @@ export class Circuit extends EqItem implements ICircuit {
     public set freeze(val: boolean) { this.setDataVal('freeze', val); }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
-    public get showInCircuits(): boolean { return this.data.showInCircuits; }
-    public set showInCircuits(val: boolean) { this.setDataVal('showInCircuits', val); }
+    // RKS: This turned out to be the Don't Stop flag.
+    //public get showInCircuits(): boolean { return this.data.showInCircuits; }
+    //public set showInCircuits(val: boolean) { this.setDataVal('showInCircuits', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
@@ -975,6 +976,9 @@ export class Circuit extends EqItem implements ICircuit {
     public set level(val: number) { this.setDataVal('level', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
+    public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
+
     public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
@@ -1007,6 +1011,8 @@ export class Feature extends EqItem implements ICircuit {
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
+    public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
     public get macro(): boolean { return this.data.macro; }
     public set macro(val: boolean) { this.setDataVal('macro', val); }
 }
@@ -1019,10 +1025,11 @@ export interface ICircuit {
     nameId?: number;
     type: number;
     eggTimer: number;
+    dontStop: boolean;
     freeze?: boolean;
     isActive: boolean;
     lightingTheme?: number;
-    showInCircuits?: boolean;
+    //showInCircuits?: boolean;
     showInFeatures?: boolean;
     macro?: boolean;
     getLightThemes?: () => {};
@@ -1280,6 +1287,7 @@ export interface ICircuitGroup {
     name: string;
     nameId?: number;
     eggTimer: number;
+    dontStop: boolean;
     isActive: boolean;
     lightingTheme?: number;
     circuits: LightGroupCircuitCollection | CircuitGroupCircuitCollection;
@@ -1359,6 +1367,8 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
+    public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
     public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
@@ -1434,6 +1444,8 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
+    public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
     public getExtended() {
         let group = this.get(true);

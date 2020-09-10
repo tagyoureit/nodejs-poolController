@@ -204,6 +204,7 @@ export class CircuitGroupMessage {
             if (group.isActive) {
                 let sgroup: ICircuitGroupState = group.type === 1 ? state.lightGroups.getItemById(group.id) : state.circuitGroups.getItemById(group.id);
                 group.eggTimer = (msg.extractPayloadByte(i) * 60) + msg.extractPayloadByte(i + 16);
+                group.dontStop = group.eggTimer === 1440;
                 //  sgroup.eggTimer = group.eggTimer;
             }
         }

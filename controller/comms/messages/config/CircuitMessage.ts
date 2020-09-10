@@ -72,7 +72,7 @@ export class CircuitMessage {
                         CircuitMessage.processEggTimerMinutes(msg);
                         break;
                     case 29:
-                        CircuitMessage.processShowInCircuits(msg);
+                        CircuitMessage.processDontStop(msg);
                         break;
                     default:
                         logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
@@ -246,13 +246,13 @@ export class CircuitMessage {
             circuit.eggTimer = Math.floor(circuit.eggTimer / 60) * 60 + msg.extractPayloadByte(i);
         }
     }
-    private static processShowInCircuits(msg: Inbound) {
+    private static processDontStop(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
         // With single body systems we have a funny scenario where circuit 1 is just ignored.
         let maxCircuitId = sys.board.equipmentIds.circuits.end;
         for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
-            circuit.showInCircuits = msg.extractPayloadByte(i) > 0;
+            circuit.dontStop = msg.extractPayloadByte(i) > 0;
         }
     }
 
