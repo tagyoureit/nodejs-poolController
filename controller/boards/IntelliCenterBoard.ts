@@ -1454,7 +1454,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 if (obj.dontStop === true) eggTimer = 1440;
                 obj.dontStop = (eggTimer === 1440);
                 sgroup = state.lightGroups.getItemById(id, true);
-                let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme : obj.lightingTheme;
+                let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme || 0 : obj.lightingTheme;
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0], // The last byte here should be don't stop but I believe this to be a current bug.
@@ -1465,6 +1465,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         else {
                             sgroup.type = group.type = 1;
                             sgroup.lightingTheme = group.lightingTheme = theme;
+                            group.eggTimer = eggTimer;
+                            group.dontStop = obj.dontStop;
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
                                     let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
