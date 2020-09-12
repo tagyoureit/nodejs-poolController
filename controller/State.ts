@@ -167,11 +167,12 @@ export class State implements IState {
             mode: self.data.mode || {},
             // freeze: self.data.freeze || false,
             appVersion: sys.appVersion || '',
-            appVersionState: self.appVersion || {},
+            appVersionState: self.appVersion.get(true) || {},
             clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
             clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {},
             sunrise: self.data.sunrise || '',
-            sunset: self.data.sunset || ''
+            sunset: self.data.sunset || '',
+            alias: sys.general.alias
         };
     }
     public emitAllEquipmentChanges() {
