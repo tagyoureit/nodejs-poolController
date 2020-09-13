@@ -70,7 +70,7 @@ export class StateSocket {
         sock.on('/temps', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                sys.board.system.setTempsAsync(data);
+                await sys.board.system.setTempsAsync(data).catch(err => logger.error(err));
             }
             catch (err) { logger.error(err); }
         });

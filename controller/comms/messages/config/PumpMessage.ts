@@ -301,14 +301,16 @@ export class PumpMessage {
                     case 1:
                         {
                             let body = sys.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                            body.type = 1; // spa
+                            let sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
+                            sbody.type = body.type = 1; // spa
                             body.isActive = true;
                             break;
                         }
                     case 6:
                         {
                             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-                            body.type = 0; // pool
+                            let sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+                            sbody.type = body.type = 0; // pool
                             body.isActive = true;
                             body.capacity = msg.extractPayloadByte(6) * 1000;
                             break;

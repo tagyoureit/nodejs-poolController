@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from '../Messages';
 import { sys, Equipment, ExpansionPanel, Body } from '../../../Equipment';
-import { state } from '../../../State';
+import { state, BodyTempState } from '../../../State';
 import { ControllerType } from '../../../Constants';
 import { logger } from "../../../../logger/Logger";
 export class EquipmentMessage {
@@ -24,6 +24,7 @@ export class EquipmentMessage {
         let pnl: ExpansionPanel;
         let bodyId: number;
         let body: Body;
+        let sbody: BodyTempState;
         switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
                 switch (msg.extractPayloadByte(1)) {
@@ -42,7 +43,8 @@ export class EquipmentMessage {
                         pnl.type = msg.extractPayloadByte(38);
                         pnl.isActive = false; //pnl.type !== 0 && pnl.type !== 255;
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-                        body.type = msg.extractPayloadByte(39);
+                        sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+                        sbody.type = body.type = msg.extractPayloadByte(39);
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && sys.equipment.maxBodies === 0) sys.bodies.removeItemById(1);
                         body.isActive = sys.equipment.maxBodies > 0;
@@ -51,11 +53,11 @@ export class EquipmentMessage {
                         pnl = sys.equipment.expansions.getItemById(2);
                         pnl.name = msg.extractPayloadString(2, 16);
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                        body.type = msg.extractPayloadByte(35);
+                        sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
+                        sbody.type = body.type = msg.extractPayloadByte(35);
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && sys.equipment.maxBodies < 1) sys.bodies.removeItemById(2);
                         body.isActive = sys.equipment.maxBodies > 1;
-
                         pnl = sys.equipment.expansions.getItemById(3);
                         pnl.name = msg.extractPayloadString(18, 16);
                         break;
@@ -63,14 +65,16 @@ export class EquipmentMessage {
                         // The first name is the first body in this packet and the second is the third.  Go figure.
                         bodyId = 1;
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        body.name = msg.extractPayloadString(2, 16);
+                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                        sbody.name = body.name = msg.extractPayloadString(2, 16);
                         bodyId = 3;
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        body.type = msg.extractPayloadByte(35);
+                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                        sbody.type = body.type = msg.extractPayloadByte(35);
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
                         body.isActive = bodyId <= sys.equipment.maxBodies;
-                        body.name = msg.extractPayloadString(18, 16);
+                        sbody.name = body.name = msg.extractPayloadString(18, 16);
                         body.isActive = bodyId <= sys.equipment.maxBodies;
                         break;
                     case 3:
@@ -78,19 +82,22 @@ export class EquipmentMessage {
                         // any additional information related to bodies 3 & 4 that were not previously included.
                         bodyId = 2;
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        body.name = msg.extractPayloadString(2, 16);
+                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                        sbody.name = body.name = msg.extractPayloadString(2, 16);
 
                         bodyId = 4;
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        body.name = msg.extractPayloadString(18, 16);
-                        body.type = msg.extractPayloadByte(37);
+                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                        sbody.name = body.name = msg.extractPayloadString(18, 16);
+                        sbody.type = body.type = msg.extractPayloadByte(37);
                         body.capacity = msg.extractPayloadByte(36) * 1000;
                         if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
                         body.isActive = bodyId <= sys.equipment.maxBodies;
 
                         bodyId = 3;
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        body.type = msg.extractPayloadByte(35);
+                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                        sbody.type = body.type = msg.extractPayloadByte(35);
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
                         body.isActive = bodyId <= sys.equipment.maxBodies;
