@@ -440,6 +440,10 @@ export class byteValueMaps {
         [0, { name: 'rpm', desc: 'RPM' }],
         [1, { name: 'gpm', desc: 'GPM' }]
     ]);
+    public bodyTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'pool', desc: 'Pool' }],
+        [1, { name: 'spa', desc: 'Spa'}]
+    ]);
     public bodies: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
         [1, { name: 'spa', desc: 'Spa' }],
@@ -801,14 +805,14 @@ export class SystemCommands extends BoardCommands {
                     case 'air':
                     case 'airSensor1':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
                         }
                         break;
                     case 'waterSensor1':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
                             let body = state.temps.bodies.getItemById(1);
@@ -818,7 +822,7 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor2':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
                             if (!state.equipment.shared) {
@@ -829,7 +833,7 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor3':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
                             let body = state.temps.bodies.getItemById(3);
@@ -838,7 +842,8 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor4':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
                             let body = state.temps.bodies.getItemById(4);
@@ -850,7 +855,7 @@ export class SystemCommands extends BoardCommands {
                     case 'solar1':
                     case 'solar':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
                         }
@@ -858,7 +863,7 @@ export class SystemCommands extends BoardCommands {
                     case 'solar2':
                     case 'solarSensor2':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
                         }
@@ -866,7 +871,7 @@ export class SystemCommands extends BoardCommands {
                     case 'solar3':
                     case 'solarSensor3':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
                         }
@@ -874,7 +879,7 @@ export class SystemCommands extends BoardCommands {
                     case 'solar4':
                     case 'solarSensor4':
                         {
-                            let temp = parseFloat(obj[prop]);
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
                         }
@@ -968,30 +973,44 @@ export class BodyCommands extends BoardCommands {
         let ass = [];
         let assoc = sys.board.valueMaps.bodies.toArray();
         for (let i = 0; i < assoc.length; i++) {
+            let body;
             let code = assoc[i];
-
             switch (code.name) {
                 case 'body1':
                 case 'pool':
-                    if (sys.equipment.dual) code.desc = 'Body 1';
+                    body = sys.bodies.getItemById(1);
+                    code.desc = body.name;
                     ass.push(code);
                     break;
                 case 'body2':
                 case 'spa':
                     if (sys.equipment.maxBodies >= 2) {
-                        if (sys.equipment.dual) code.desc = 'Body 2';
-                        else if (sys.equipment.shared) code.desc = 'Spa';
+                        body = sys.bodies.getItemById(2);
+                        code.desc = body.name;
                         ass.push(code);
                     }
                     break;
                 case 'body3':
-                    if (sys.equipment.maxBodies >= 3) ass.push(code);
+                    if (sys.equipment.maxBodies >= 3) {
+                        body = sys.bodies.getItemById(3);
+                        code.desc = body.name;
+                        ass.push(code);
+                    }
                     break;
                 case 'body4':
-                    if (sys.equipment.maxBodies >= 4) ass.push(code);
+                    if (sys.equipment.maxBodies >= 4) {
+                        body = sys.bodies.getItemById(3);
+                        code.desc = body.name;
+                        ass.push(code);
+                    }
                     break;
                 case 'poolspa':
-                    if (sys.equipment.shared) ass.push(code);
+                    if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                        body = sys.bodies.getItemById(1);
+                        let body2 = sys.bodies.getItemById(2);
+                        code.desc = `${body.name}/${body2.name}`;
+                        ass.push(code);
+                    }
                     break;
             }
         }
