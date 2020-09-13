@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
 import { sys, Body, Circuit, ICircuit } from "../../../Equipment";
-import { state } from "../../../State";
+import { state, BodyTempState } from "../../../State";
 import { logger } from "../../../../logger/Logger";
 
 export class CircuitMessage {
@@ -294,18 +294,21 @@ export class CircuitMessage {
                 // Circuits will be the only type that are referenced here.
                 if (circuit.type === 0) return; // do not process if type doesn't exist
                 let body: Body;
+                let sbody: BodyTempState;
                 switch (msg.extractPayloadByte(0)) {
                     case 6: // pool
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                        body.name = "Pool";
-                        body.type = 1;
+                        sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+                        sbody.name = body.name = "Pool";
+                        sbody.type = body.type = 0; // RKS: The body types were backwards here but correct everywhere else e.g. PumpMessage.
                         circuit.type === 2 ? body.isActive = true : body.isActive = false;
                         // sys.board.virtualChlorinatorController.start();
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                        body.name = "Spa";
-                        body.type = 0;
+                        sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies > 1);
+                        sbody.name = body.name = "Spa";
+                        sbody.type = body.type = 1;
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
                         // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.
                         circuit.type === 1 ? body.isActive = true : body.isActive = false;

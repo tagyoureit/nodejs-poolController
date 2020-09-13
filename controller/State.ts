@@ -960,6 +960,13 @@ export class BodyTempState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
+    public get type():number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.bodyTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get heatMode(): number { return typeof (this.data.heatMode) !== 'undefined' ? this.data.heatMode.val : -1; }
     public set heatMode(val: number) {
         if (this.heatMode !== val) {
