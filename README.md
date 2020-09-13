@@ -65,6 +65,8 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Verify your pool equipment is correctly identified by inspecting the `/data/*.json` files.  
 1. Install a [webclient](module_nodejs-poolController--clients) for a browser experience and/or a [binding](module_nodejs-poolController--bindings) to have two way control with Home Automation systems.
 
+For a very thorough walk-through, see [this](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) great thread on Trouble Free Pool.  Thanks @MyAZPool.
+
 ### Docker instructions
 @wurmr created Docker [Dockerfile](https://hub.docker.com/r/wurmr/nodejs-pool-controller) and [pre-built containers](https://github.com/wurmr/nodejs-poolController-docker).
 
