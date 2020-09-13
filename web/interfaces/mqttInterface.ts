@@ -73,6 +73,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         `${this.rootTopic()}/state/body/setpoint`,
         `${this.rootTopic()}/state/body/heatMode`,
         `${this.rootTopic()}/state/body/heatmode`,
+        `${this.rootTopic()}/state/+/setTheme`,
+        `${this.rootTopic()}/state/+/settheme`,
         `${this.rootTopic()}/state/chlorinator`        
         ];
         topics.forEach(topic => {
@@ -174,6 +176,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
 
                     if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
+                        if (typeof t.enabled !== 'undefined' && !t.enabled) return;
                         let topicFormatter = t.formatter || opts.formatter;
                         let topicToks = {};
                         let topic = '';
@@ -338,6 +341,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         catch (err) { logger.error(err); }
                         break;
                     }
+                case 'settheme':
+                    {
+                        try {
+                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));   
+                        }
+                        catch (err) {logger.error(err); }
+                        break;
+                    }
                 default:
                     logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
             }
@@ -355,5 +366,6 @@ export interface IMQTT {
     description: string;
     formatter: any[];
     qos: string;
-    retain: boolean
+    retain: boolean;
+    enabled?: boolean;
 }

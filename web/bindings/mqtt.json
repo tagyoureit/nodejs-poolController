@@ -32,7 +32,8 @@
                     "description": "Remove #"
                 }
             ],
-            "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
+            "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
+            "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
             "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
         }
     },
@@ -47,14 +48,26 @@
             "description": "Populate the circuits topics",
             "topics": [
                 {
+                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;",
+                    "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                },
+                {
+                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/string",
+                    "message": "@bind=data.isOn?'on':'off';",
+                    "desciption": "Bind 'on'/'off' as a message to the topic.",
+                    "enabled": false
+                },
+                {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/boolean",
                     "message": "@bind=data.isOn;",
-                    "desciption": "Bind the isOn as a message to the topic."
+                    "desciption": "SAMPLE: Bind the isOn as a message to the topic.",
+                    "enabled": false
                 },
                 {
                     "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
                     "message": "@bind=data.isOn;",
-                    "desciption": "Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
+                    "desciption": "SAMPLE: Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
                     "formatter": [
                         {
                             "transform": ".toLowerCase()"
@@ -70,17 +83,14 @@
                             "description": "Remove / and replace with __"
                         }
                     ],
-                    "qos": 2
-                },
-                {
-                    "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/string",
-                    "message": "@bind=data.isOn?'on':'off';",
-                    "desciption": "Bind 'on'/'off' as a message to the topic."
+                    "qos": 2,
+                    "enabled": false
                 },
                 {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;/object",
                     "message": "@bind=data;",
-                    "desciption": "Bind a JSON object as a message to the topic."
+                    "desciption": "SAMPLE: Bind a JSON object as a message to the topic.",
+                    "enabled": false
                 }
             ]
         },
