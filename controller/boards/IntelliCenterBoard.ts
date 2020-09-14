@@ -2912,6 +2912,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     heater = sys.heaters.getItemById(heater.id, true);
                     let hstate = state.heaters.getItemById(heater.id, true);
                     hstate.type = heater.type = type;
+                    heater.body = body;
                     heater.address = address;
                     hstate.name = heater.name = obj.name || heater.name;
                     heater.coolingEnabled = typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled);
