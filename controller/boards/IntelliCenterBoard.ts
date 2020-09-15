@@ -292,6 +292,7 @@ export class IntelliCenterBoard extends SystemBoard {
         state.equipment.maxSchedules = sys.equipment.maxSchedules;
         state.equipment.maxValves = sys.equipment.maxValves;
         state.equipment.shared = sys.equipment.shared;
+        state.equipment.dual = sys.equipment.dual;
         let pb = sys.equipment.modules.getItemById(0);
         if (pb.type === 0 || pb.type > 7)
             sys.equipment.model = 'IntelliCenter i5P';
