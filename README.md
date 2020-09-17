@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 6.0.0
+# nodejs-poolController - Version 6.1.0
 
 ## What is nodejs-poolController
 
@@ -91,17 +91,17 @@ To do anything with this app, you need a client to connect to it.  A client can 
 ## Home Automation Bindings (previously Integrations)
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
-Ready for 6.0;
+Available for 6.0;
 * [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
 * [SmartThings/Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
 * [Homebridge/Siri/EVE](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
 * InfluxDB
+* [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) original release by @crsherman, re-write by @kkzonie, testing by @baudfather and others.
 
 Need to be updated:
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
-* [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) created by @crsherman.
 
 # Support
 1. For discussions, recommendations, designs, and clarifications, we recommend you join our [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
