@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.1.0
+1. Chem controller
+1. MQTT native support
+1. Server based time for *Touch and other non-internet based OCP
+1. Version notifications
+1. IntelliCenter updates for dual bodies, 1.045/1.047 (partial) support
+1. Many bug fixes
+
 ## 6.0.1
 1. Implement https (no basic auth yet)
 1. API documentation @ https://tagyoureit.github.io/nodejs-poolcontroller-api/
