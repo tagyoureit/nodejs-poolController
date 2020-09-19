@@ -613,7 +613,6 @@ export class EquipmentState extends EqState {
     public get maxLightGroups(): number { return this.data.maxLightGroups; }
     public set maxLightGroups(val: number) { this.setDataVal('maxLightGroups', val); }
     // This could be extended to include all the expansion panels but not sure why.
-    public cancelDelay() { sys.board.system.cancelDelay(); }
     public getExtended() {
         let obj = this.get(true);
         obj.softwareVersion = sys.equipment.controllerFirmware || "";

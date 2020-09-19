@@ -210,7 +210,7 @@ export class EasyTouchBoard extends SystemBoard {
             [158, { name: 'setHighSpeedCircuits', desc: 'Set High Speed Circuits for Valves' }],
             [160, { name: 'setIs4Is10', desc: 'Set is4/is10 Spa Side Remote' }],
             [161, { name: 'setQuickTouch', desc: 'Set QuickTouch Spa Side Remote' }],
-            [162, { name: 'setSolarHeatPump', desc: 'Set Solar/Heat Pump' }], 
+            [162, { name: 'setSolarHeatPump', desc: 'Set Solar/Heat Pump' }],
             [163, { name: 'setDelay', desc: 'Set Delay' }],
             [167, { name: 'set', desc: 'Set Light Groups/Positions' }],
             [168, { name: 'set', desc: 'Set Heat Mode' }],
@@ -628,10 +628,14 @@ class TouchSystemCommands extends SystemCommands {
                 retries: 0,
                 response: true,
                 onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    // todo: track delay status?
-                    state.delay = sys.board.valueMaps.delay.getValue('nodelay');
-                    resolve();
+                    if (err) {
+                        reject(err);
+                    }
+                    else {
+                        // todo: track delay status?
+                        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
+                        resolve(state.data.delay);
+                    }
                 }
             });
             conn.queueSendMessage(out);
@@ -886,7 +890,7 @@ class TouchCircuitCommands extends CircuitCommands {
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         if (cstate instanceof LightGroupState) {
-            return this.setLightGroupThemeAsync(id, sys.board.valueMaps.lightThemes.getValue(cstate.isOn?'off':'on'));
+            return this.setLightGroupThemeAsync(id, sys.board.valueMaps.lightThemes.getValue(cstate.isOn ? 'off' : 'on'));
         }
         return this.setCircuitStateAsync(id, !cstate.isOn);
     }
@@ -1055,11 +1059,11 @@ class TouchCircuitCommands extends CircuitCommands {
                                 let c = grp.circuits.getItemByIndex(i);
                                 let cstate = state.circuits.getItemById(c.circuit);
                                 // if theme is 'off' light groups should not turn on
-                                if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off') 
+                                if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off')
                                     await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
-                                else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true); 
+                                else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                             }
-                            sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false: true;
+                            sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
                             switch (theme) {
                                 case 0: // off
                                 case 1: // on
@@ -1480,7 +1484,7 @@ class TouchPumpCommands extends PumpCommands {
 // class TouchChemControllerCommands extends ChemControllerCommands {
 //     public async setChemControllerAsync(data: any):Promise<ChemController> {
 //         let chem = sys.chemControllers.getItemById(data.id);
-    
+
 //         // we aren't setting an IntelliChem or changing TO an IntelliChem
 //         if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
 //             typeof data.type === 'undefined' && typeof data.type === 'undefined')
@@ -1489,7 +1493,7 @@ class TouchPumpCommands extends PumpCommands {
 //         else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
 //             return super.setChemControllerAsync(data);  
 
-        
+
 //         // do stuff here to set IntelliChem on *Touch
 //         chem.set(data);
 //         //Lead In Bytes					Destination	Source	Action	No. of Bytes	pH Setpoint Hi	pH Setpoint Lo	ORP Setpoint Hi	ORP Setpoint Lo	Acid Tank Level	ORP Tank Level	Hardness  Hi	Hardness Lo		Cyanuric Acid Level	TA Hi Byte	TA Lo Byte	????										

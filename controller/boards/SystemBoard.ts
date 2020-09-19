@@ -754,7 +754,7 @@ export class BoardCommands {
     constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    public cancelDelay() { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); }
+    public cancelDelay():Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay);}
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public keepManualTime() {
         // every minute, updated the time from the system clock in server mode
