@@ -190,9 +190,12 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/state/cancelDelay', (req, res) => {
-            state.equipment.cancelDelay();
-            return res.status(200).send('OK');
+        app.put('/state/cancelDelay', async (req, res, next) => {
+            try {
+                let delay = await sys.board.system.cancelDelay();
+                return res.status(200).send(delay);
+            }
+            catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSync', async (req, res, next) => {
             try {

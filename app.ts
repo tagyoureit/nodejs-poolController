@@ -78,7 +78,7 @@ if (process.platform === 'win32') {
     rl.on('SIGINT', async function() { stopAsync(); });
 }
 else {
-    process.stdin.resume()
+    process.stdin.resume();
     process.on('SIGINT', async function() { return stopAsync(); });
 }
 initAsync();

@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 6.1.0
+# nodejs-poolController - Version 6.1.1
 
 ## What is nodejs-poolController
 
@@ -69,6 +69,7 @@ For a very thorough walk-through, see [this](https://www.troublefreepool.com/thr
 
 ### Docker instructions
 @wurmr created Docker [Dockerfile](https://hub.docker.com/r/wurmr/nodejs-pool-controller) and [pre-built containers](https://github.com/wurmr/nodejs-poolController-docker).
+And @andylippitt contributed docker, docker-compose and kubernetes/helm support via included config files.
 
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).
