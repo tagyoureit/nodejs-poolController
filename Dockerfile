@@ -8,4 +8,4 @@ RUN npm run build-prod
 FROM node:current as releasecontainer
 COPY --from=controllerbuild /app/dist/compiled /app
 WORKDIR /app
-ENTRYPOINT ["node", "/app/index.js"] 
+ENTRYPOINT ["node", "/app/index.js"]
