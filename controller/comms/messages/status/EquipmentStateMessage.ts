@@ -397,11 +397,11 @@ export class EquipmentStateMessage {
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         let sensor = sys.equipment.tempSensors.getItemById('water1');
                         state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.equipment.tempSensors.getCalibration('water1');
-                        if (sys.bodies.length > 2)
-                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + sys.equipment.tempSensors.getCalibration('water2');
+                        if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
+                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + (sys.equipment.tempSensors.getCalibration('water2') || 0);
                         // We are making an assumption here in that the circuits are always labeled the same.
-                        // 1=Spa
-                        // 6=Pool
+                        // 1=Spa/Body2
+                        // 6=Pool/Body1
                         // 12=Body3
                         // 22=Body4 -- Really not sure about this one.
                         if (sys.bodies.length > 0) {
