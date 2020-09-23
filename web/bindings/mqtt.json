@@ -44,30 +44,42 @@
             "enabled": false
         },
         {
+            "name": "controller",
+            "description": "Emit time every minute",
+            "enabled": true,
+            "topics": [
+                {
+                    "topic": "state/time",
+                    "message": "@bind=data.time;",
+                    "filter": "@bind=data.status.percent === 100;"
+                }
+            ]
+        },
+        {
             "name": "circuit",
             "description": "Populate the circuits topics",
             "topics": [
                 {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 },
                 {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/string",
                     "message": "@bind=data.isOn?'on':'off';",
-                    "desciption": "Bind 'on'/'off' as a message to the topic.",
+                    "description": "Bind 'on'/'off' as a message to the topic.",
                     "enabled": false
                 },
                 {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;/isOn/boolean",
                     "message": "@bind=data.isOn;",
-                    "desciption": "SAMPLE: Bind the isOn as a message to the topic.",
+                    "description": "SAMPLE: Bind the isOn as a message to the topic.",
                     "enabled": false
                 },
                 {
                     "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
                     "message": "@bind=data.isOn;",
-                    "desciption": "SAMPLE: Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
+                    "description": "SAMPLE: Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",
                     "formatter": [
                         {
                             "transform": ".toLowerCase()"
@@ -89,7 +101,7 @@
                 {
                     "topic": "state/circuits/@bind=data.id;/@bind=data.name;/object",
                     "message": "@bind=data;",
-                    "desciption": "SAMPLE: Bind a JSON object as a message to the topic.",
+                    "description": "SAMPLE: Bind a JSON object as a message to the topic.",
                     "enabled": false
                 }
             ]
@@ -101,7 +113,7 @@
                 {
                     "topic": "state/features/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 }
             ]
         },
@@ -112,13 +124,13 @@
                 {
                     "topic": "state/temps/air",
                     "message": "{\"temp\":@bind=data.air;}",
-                    "desciption": "Send air temp."
+                    "description": "Send air temp."
                 },
                 {
                     "topic": "state/temps/solar",
                     "message": "{\"temp\":@bind=data.solar;}",
-                    "desciption": "Send solar temp.",
-                    "filter": "@bind=typeof data.solar === 'undefined'"
+                    "description": "Send solar temp.",
+                    "filter": "@bind=typeof data.solar === 'undefined';"
                 },
                 {
                     "topic": "state/temps/units",
@@ -133,27 +145,27 @@
                 {
                     "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 },
                 {
                     "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/heatMode",
                     "message": "{\"heatMode\":@bind=data.heatMode;}",
-                    "desciption": "Send heat mode."
+                    "description": "Send heat mode."
                 },
                 {
                     "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/heatStatus",
                     "message": "{\"heatStatus\":@bind=data.heatStatus;}",
-                    "desciption": "Send heat status."
+                    "description": "Send heat status."
                 },
                 {
                     "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/setPoint",
                     "message": "{\"setPoint\":@bind=data.setPoint;}",
-                    "desciption": "Send set point."
+                    "description": "Send set point."
                 },
                 {
                     "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/temp",
                     "message": "{\"temp\":@bind=data.temp;}",
-                    "desciption": "Send temp."
+                    "description": "Send temp."
                 }
             ]
         },
@@ -164,52 +176,52 @@
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/currentOutput",
                     "message": "{\"currentOutput\":@bind=data.currentOutput;}",
-                    "desciption": "Send current output."
+                    "description": "Send current output."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/poolSetpoint",
                     "message": "{\"poolSetpoint\":@bind=data.poolSetpoint;}",
-                    "desciption": "Send pool setpoint."
+                    "description": "Send pool setpoint."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/spaSetpoint",
                     "message": "{\"spaSetpoint\":@bind=data.spaSetpoint;}",
-                    "desciption": "Send set point."
+                    "description": "Send set point."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/status",
                     "message": "{\"status\":@bind=data.status;}",
-                    "desciption": "Send status."
+                    "description": "Send status."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlor",
                     "message": "{\"superChlor\":@bind=data.superChlor?'\"on\"':'\"off\"';}",
-                    "desciption": "Send superChlor."
+                    "description": "Send superChlor."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlorHours",
                     "message": "{\"superChlorHours\":@bind=data.superChlorHours;}",
-                    "desciption": "Send superChlorHours."
+                    "description": "Send superChlorHours."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/type",
                     "message": "{\"type\":@bind=data.type;}",
-                    "desciption": "Send type."
+                    "description": "Send type."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/targetOutput",
                     "message": "{\"targetOutput\":@bind=data.targetOutput;}",
-                    "desciption": "Send targetOutput."
+                    "description": "Send targetOutput."
                 },
                 {
                     "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
                     "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}",
-                    "desciption": "Send virtualControllerStatus."
+                    "description": "Send virtualControllerStatus."
                 }
             ]
         },
@@ -220,7 +232,7 @@
                 {
                     "topic": "state/lightgroups/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 },
                 {
                     "topic": "state/lightgroups/@bind=data.id;/@bind=data.name;/action",
@@ -243,7 +255,7 @@
                 {
                     "topic": "state/pumps/@bind=data.id;/@bind=data.name;",
                     "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "desciption": "Bind 'on'/'off' as a message to the state topic."
+                    "description": "Bind 'on'/'off' as a message to the state topic."
                 },
                 {
                     "topic": "state/pumps/@bind=data.id;/@bind=data.name;/rpm",
@@ -330,7 +342,7 @@
                 {
                     "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
                     "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}"
-                },                
+                },
                 {
                     "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/flow",
                     "message": "{\"flow\":@bind=data.flow;}"

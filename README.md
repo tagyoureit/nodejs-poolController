@@ -92,12 +92,12 @@ To do anything with this app, you need a client to connect to it.  A client can 
 ## Home Automation Bindings (previously Integrations)
 **NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
-Available for 6.0;
-* [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.
-* [SmartThings/Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo)
+Available for 6.x:
+* [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#vera)
+* [SmartThings/Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo).  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#smartthingshubitat)
 * [Homebridge/Siri/EVE](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
-* InfluxDB
-* [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) original release by @crsherman, re-write by @kkzonie, testing by @baudfather and others.
+* InfluxDB - [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#influx)
+* [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) original release by @crsherman, re-write by @kkzonie, testing by @baudfather and others.  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#mqtt)
 
 Need to be updated:
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
@@ -114,7 +114,7 @@ v6 adds all new configuration and support for virtual pumps, chlorinators (and s
 
 * [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
-
+* Virtual Chem Controller
 
 # Changes
 See Changelog
