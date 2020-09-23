@@ -174,11 +174,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 
                     let rootTopic = this.rootTopic();
                     if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
-
                     if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
+                     let topicToks = {};
                         if (typeof t.enabled !== 'undefined' && !t.enabled) return;
+                        if (typeof t.filter !== 'undefined') {
+                            this.buildTokens(t.filter, evt, topicToks, e, data[0]);
+                            if (eval(this.replaceTokens(t.filter, topicToks)) === false) return;
+                        }
                         let topicFormatter = t.formatter || opts.formatter;
-                        let topicToks = {};
                         let topic = '';
                         let message: any;
                         // build tokens for Topic
@@ -368,4 +371,5 @@ export interface IMQTT {
     qos: string;
     retain: boolean;
     enabled?: boolean;
+    filter?: string;
 }

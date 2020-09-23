@@ -114,7 +114,7 @@ v6 adds all new configuration and support for virtual pumps, chlorinators (and s
 
 * [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
 * [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
-
+* Virtual Chem Controller
 
 # Changes
 See Changelog
