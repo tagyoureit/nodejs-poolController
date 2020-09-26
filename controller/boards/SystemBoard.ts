@@ -480,6 +480,10 @@ export class byteValueMaps {
         [2, { name: 'circuit', desc: 'Circuit' }],
         [3, { name: 'intellibrite', desc: 'IntelliBrite' }]
     ]);
+    public groupCircuitStates: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }],
+        [1, {name: 'on', desc: 'On'}]
+    ]);
     public tempUnits: byteValueMap = new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
         [4, { name: 'C', desc: 'Celcius' }]
@@ -890,29 +894,66 @@ export class SystemCommands extends BoardCommands {
         });
     }
     public getSensors() {
-        let sensors = [{ name: 'Air Sensor', temp: state.temps.air - sys.general.options.airTempAdj, tempAdj: sys.general.options.airTempAdj, binding: 'airTempAdj' }];
+        let sensors = [{ name: 'Air Sensor', temp: state.temps.air, tempAdj: sys.equipment.tempSensors.getCalibration('air'), binding: 'airTempAdj' }];
         if (sys.equipment.shared) {
             if (sys.equipment.maxBodies > 2)
-                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' },
-                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2 - sys.general.options.waterTempAdj2, tempAdj: sys.general.options.waterTempAdj2, binding: 'waterTempAdj2' });
+                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' },
+                    { name: 'Water Sensor 3', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
             else
-                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' });
+                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
+            if (sys.equipment.maxBodies > 3)
+                sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
 
             if (sys.board.heaters.isSolarInstalled()) {
                 if (sys.equipment.maxBodies > 2) {
-                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' },
-                        { name: 'Solar Sensor 2', temp: state.temps.solar - sys.general.options.solarTempAdj2, tempAdj: sys.general.options.solarTempAdj2, binding: 'solarTempAdj2' });
+                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+                        { name: 'Solar Sensor 2', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
                 }
                 else
-                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' });
+                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
+                if (sys.equipment.maxBodies > 3)
+                    sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
             }
         }
         else if (sys.equipment.dual) {
-            sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1 - sys.general.options.waterTempAdj1, tempAdj: sys.general.options.waterTempAdj1, binding: 'waterTempAdj1' },
-                { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.general.options.waterTempAdj2, binding: 'waterTempAdj2' });
+            sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+                { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
+            if (sys.equipment.maxBodies > 2)
+                sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
+            if (sys.equipment.maxBodies > 3)
+                sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
             if (sys.board.heaters.isSolarInstalled()) {
-                sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar - sys.general.options.solarTempAdj1, tempAdj: sys.general.options.solarTempAdj1, binding: 'solarTempAdj1' },
-                    { name: 'Solar Sensor 2', temp: state.temps.solar - sys.general.options.solarTempAdj2, tempAdj: sys.general.options.solarTempAdj2, binding: 'solarTempAdj2' });
+                sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+                    { name: 'Solar Sensor 2', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
+                if (sys.equipment.maxBodies > 2)
+                    sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
+                if (sys.equipment.maxBodies > 3)
+                    sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+            }
+        }
+        else {
+            if (sys.equipment.maxBodies > 1) {
+                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
+                if (sys.equipment.maxBodies > 2)
+                    sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
+                if (sys.equipment.maxBodies > 3)
+                    sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
+
+                if (sys.board.heaters.isSolarInstalled()) {
+                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solarSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+                        { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
+                    if (sys.equipment.maxBodies > 2)
+                        sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
+                    if (sys.equipment.maxBodies > 3)
+                        sensors.push({ name: 'Water Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+                }
+            }
+            else {
+                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
+                if (sys.board.heaters.isSolarInstalled())
+                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
             }
         }
         return sensors;
@@ -1032,21 +1073,19 @@ export class BodyCommands extends BoardCommands {
     }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
-        heatModes.push(this.board.valueMaps.heatModes.transform(0));
-        for (let i = 1; i <= sys.heaters.length; i++) {
-            let heater = sys.heaters.getItemById(i);
-            if (heater.body === 32 || // Any
-                heater.body === 1 && bodyId === 2 || // Spa
-                heater.body === 0 && bodyId === 1) {
-                // Pool
-                // Pool and spa.
-                if (heater.type === 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-                if (heater.type === 2) {
-                    heatModes.push(this.board.valueMaps.heatModes.transformByName('solar'));
-                    if (heatModes.length > 2)
-                        heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
-                }
-            }
+        // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
+        heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        if (heatTypes.gas > 0)
+            heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('solar');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
         }
         return heatModes;
     }
@@ -1801,8 +1840,15 @@ export class CircuitCommands extends BoardCommands {
                     let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
                     let cobj = obj.circuits[i];
                     if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
-                    if (typeof cobj.desiredStateOn !== 'undefined') c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
-                    if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                    if (typeof cobj.desiredState !== 'undefined')
+                        c.desiredState = parseInt(cobj.desiredState, 10);
+                    else if (typeof cobj.desiredStateOn !== 'undefined') {
+                        // Shim for prior interfaces that send desiredStateOn.
+                        c.desiredState = utils.makeBool(cobj.desiredStateOn) ? 0 : 1;
+                        //c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
+                    }
+                    //RKS: 09-26-20 There is no such thing as a lighting theme on a circuit group circuit.  That is what lighGroups are for.
+                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
                 }
                 // group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
             }
@@ -2071,12 +2117,14 @@ export class FeatureCommands extends BoardCommands {
         for (let i = 0; i < sys.circuitGroups.length; i++) {
             let grp: CircuitGroup = sys.circuitGroups.getItemByIndex(i);
             let circuits = grp.circuits.toArray();
-            let bIsOn = true;
+            let bIsOn = false;
             if (grp.isActive) {
                 for (let j = 0; j < circuits.length; j++) {
                     let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
-                    if (cstate.isOn !== circuit.desiredStateOn) bIsOn = false;
+                    if (circuit.desiredState === 1 || circuit.desiredState === 0) {
+                        if (cstate.isOn === utils.makeBool(circuit.desiredState)) bIsOn = true;
+                    }
                 }
             }
             let sgrp = state.circuitGroups.getItemById(grp.id);

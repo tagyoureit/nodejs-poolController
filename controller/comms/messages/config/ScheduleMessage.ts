@@ -294,7 +294,8 @@ export class ScheduleMessage {
             let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 let hs = msg.extractPayloadByte(i + 1);
-                if (hs === 1) hs = 0; // Shim for 1.047 a heat source of 1 is not valid.
+                // RKS: During the transition to 1.047 then heat sources were all screwed up.  This meant that 0 was no change and 1 was off.
+                //if (hs === 1) hs = 0; // Shim for 1.047 a heat source of 1 is not valid.
                 schedule.heatSource = hs;
                 let csched = state.schedules.getItemById(schedule.id);
                 csched.heatSource = schedule.heatSource;

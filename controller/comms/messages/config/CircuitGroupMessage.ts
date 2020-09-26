@@ -40,9 +40,9 @@ export class CircuitGroupMessage {
                 CircuitGroupMessage.processEggTimer(msg);
                 break;
             case 35:
-                CircuitGroupMessage.processEggTimer(msg);
-                CircuitGroupMessage.processColor(msg);
-                break;
+                //CircuitGroupMessage.processEggTimer(msg);
+                //CircuitGroupMessage.processColor(msg);
+                //break;
             case 36:
             case 37:
             case 38:
@@ -123,12 +123,14 @@ export class CircuitGroupMessage {
                     if (offByte & 1) {
                         let circuit = circuits.getItemById(ndx, true);
                         circuit.circuit = ndx;
-                        circuit.desiredStateOn = false;
+                        circuit.desiredState = 0;
+                        //circuit.desiredStateOn = false;
                     }
                     else if (onByte & 1) {
                         let circuit = circuits.getItemById(ndx, true);
                         circuit.circuit = ndx;
-                        circuit.desiredStateOn = true;
+                        circuit.desiredState = 1;
+                        //circuit.desiredStateOn = true;
                     }
                     else circuits.removeItemById(ndx); 
                     offByte = offByte >> 1;
@@ -191,10 +193,19 @@ export class CircuitGroupMessage {
         var group: ICircuitGroup = sys.circuitGroups.getInterfaceById(groupId++);
         if (group.isActive && group.type === 1) {
             let lg = group as LightGroup;
-            for (let j = 1; j <= 16 && j < msg.payload.length && j <= lg.circuits.length; j++) {
-                let circuit = lg.circuits.getItemById(j);
-                circuit.color = msg.extractPayloadByte(j + 17);
+            for (let j = 0; j < 16; j++) {
+                let circuit = lg.circuits.getItemById(j + 1);
+                circuit.color = msg.extractPayloadByte(j + 2);
             }
+        }
+        else if (group.isActive && group.type === 2) {
+            let g = group as CircuitGroup;
+            for (let j = 0; j < 16 && j < msg.payload.length; j++) {
+                let circuit = g.circuits.getItemById(j + 1);
+                let state = msg.extractPayloadByte(j + 18);
+                circuit.desiredState = state !== 255 ? state : 3;
+            }
+
         }
     }
     private static processEggTimer(msg: Inbound) {
