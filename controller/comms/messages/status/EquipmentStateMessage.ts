@@ -354,6 +354,11 @@ export class EquipmentStateMessage {
         switch (msg.action) {
             case 2:
                 {
+                    let fnTempFromByte = function (byte) {
+                        return byte;
+                        //return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); // RKS: 09-26-20 Not sure how negative temps are represented but this aint it.  Temps > 127 have been witnessed.
+                    }
+
                     // Shared
                     let dt = new Date();
                     if (state.chemControllers.length > 0) {
@@ -395,10 +400,9 @@ export class EquipmentStateMessage {
                     state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
-                        let sensor = sys.equipment.tempSensors.getItemById('water1');
-                        state.temps.waterSensor1 = msg.extractPayloadByte(14) + sys.equipment.tempSensors.getCalibration('water1');
+                        state.temps.waterSensor1 = msg.extractPayloadByte(14);
                         if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
-                            state.temps.waterSensor2 = msg.extractPayloadByte(15) + (sys.equipment.tempSensors.getCalibration('water2') || 0);
+                            state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         // We are making an assumption here in that the circuits are always labeled the same.
                         // 1=Spa/Body2
                         // 6=Pool/Body1
@@ -432,6 +436,7 @@ export class EquipmentStateMessage {
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 2) {
+                            state.temps.waterSensor3 = fnTempFromByte(msg.extractPayloadByte(20));
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(10, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(3, true);
                             const cbody: Body = sys.bodies.getItemById(3);
@@ -442,11 +447,12 @@ export class EquipmentStateMessage {
                             tbody.circuit = cbody.circuit = 12;
                             if ((msg.extractPayloadByte(3) & 0x08) === 8) {
                                 // This is the first circuit on the second body.
-                                tbody.temp = state.temps.waterSensor2;
+                                tbody.temp = state.temps.waterSensor3;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 3) {
+                            state.temps.waterSensor4 = fnTempFromByte(msg.extractPayloadByte(21));
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(19, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(4, true);
                             const cbody: Body = sys.bodies.getItemById(4);
@@ -461,8 +467,15 @@ export class EquipmentStateMessage {
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                         }
-                        state.temps.air = msg.extractPayloadByte(18) + sys.equipment.tempSensors.getCalibration('air'); // 18
-                        state.temps.solar = msg.extractPayloadByte(19) + sys.equipment.tempSensors.getCalibration('solar1'); // 19
+                        state.temps.air = fnTempFromByte(msg.extractPayloadByte(18)); // 18
+                        state.temps.solarSensor1 = fnTempFromByte(msg.extractPayloadByte(19)); // 19
+                        if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
+                            state.temps.solarSensor2 = fnTempFromByte(msg.extractPayloadByte(17));
+                        if ((sys.bodies.length > 2))
+                            state.temps.solarSensor3 = fnTempFromByte(msg.extractPayloadByte(22));
+                        if ((sys.bodies.length > 3))
+                            state.temps.solarSensor4 = fnTempFromByte(msg.extractPayloadByte(23));
+
                         if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
                     }
                     else {
@@ -521,7 +534,7 @@ export class EquipmentStateMessage {
                                 EquipmentStateMessage.processCircuitState(msg);
                                 // RKS: As of 1.04 the entire feature state is emitted on 204.  This message
                                 // used to contain the first 4 feature states starting in byte 8 upper 4 bits
-                                // and as of 1.047 beta this was no longer reliable.  Macro circuits onl appear
+                                // and as of 1.047 release this was no longer reliable.  Macro circuits only appear
                                 // to be available on message 30-15 and 168-15.
                                 //EquipmentStateMessage.processFeatureState(msg);
                                 sys.board.circuits.syncVirtualCircuitStates();
@@ -632,7 +645,8 @@ export class EquipmentStateMessage {
         // unaccounted for when it comes to a total of 32 features.
 
         // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-        if (sys.equipment.controllerFirmware !== '1.047') {
+        // RKS: 09-26-20 IntelliCenter versions after 1.040 now pass the feature state in message 204.  The 2 data is no longer reliable.
+        if (parseFloat(sys.equipment.controllerFirmware) <= 1.04) {
 
             // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
             // Not exactly sure why we are hardcoding byte 7 here.

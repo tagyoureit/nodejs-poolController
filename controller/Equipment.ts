@@ -599,16 +599,16 @@ export class Options extends EqItem {
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
-    public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
-    public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
-    public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
-    public set waterTempAdj1(val: number) { this.setDataVal('waterTempAdj1', val); }
-    public get solarTempAdj1(): number { return typeof this.data.solarTempAdj1 === 'undefined' ? 0 : this.data.solarTempAdj1; }
-    public set solarTempAdj1(val: number) { this.setDataVal('solarTempAdj1', val); }
-    public get waterTempAdj2(): number { return typeof this.data.waterTempAdj2 === 'undefined' ? 0 : this.data.waterTempAdj2; }
-    public set waterTempAdj2(val: number) { this.setDataVal('waterTempAdj2', val); }
-    public get solarTempAdj2(): number { return typeof this.data.solarTempAdj2 === 'undefined' ? 0 : this.data.solarTempAdj2; }
-    public set solarTempAdj2(val: number) { this.setDataVal('solarTempAd2', val); }
+    //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
+    //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
+    //public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
+    //public set waterTempAdj1(val: number) { this.setDataVal('waterTempAdj1', val); }
+    //public get solarTempAdj1(): number { return typeof this.data.solarTempAdj1 === 'undefined' ? 0 : this.data.solarTempAdj1; }
+    //public set solarTempAdj1(val: number) { this.setDataVal('solarTempAdj1', val); }
+    //public get waterTempAdj2(): number { return typeof this.data.waterTempAdj2 === 'undefined' ? 0 : this.data.waterTempAdj2; }
+    //public set waterTempAdj2(val: number) { this.setDataVal('waterTempAdj2', val); }
+    //public get solarTempAdj2(): number { return typeof this.data.solarTempAdj2 === 'undefined' ? 0 : this.data.solarTempAdj2; }
+    //public set solarTempAdj2(val: number) { this.setDataVal('solarTempAd2', val); }
 }
 export class Location extends EqItem {
     public dataName='locationConfig';
@@ -1290,8 +1290,12 @@ export interface ICircuitGroup {
     dontStop: boolean;
     isActive: boolean;
     lightingTheme?: number;
-    circuits: LightGroupCircuitCollection | CircuitGroupCircuitCollection;
+    circuits: EqItemCollection<ICircuitGroupCircuit>;
     get(copy?: boolean);
+}
+export interface ICircuitGroupCircuit {
+    id: number,
+    circuit:number
 }
 export class LightGroupCollection extends EqItemCollection<LightGroup> {
     constructor(data: any, name?: string) { super(data, name || "lightGroups"); }
@@ -1320,15 +1324,19 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
     }
     // public sortByPosition() { sys.intellibrite.circuits.sort((a, b) => { return a.position > b.position ? 1 : -1; }); }
 }
-export class LightGroupCircuit extends EqItem {
+export class LightGroupCircuit extends EqItem implements ICircuitGroupCircuit {
     public dataName = 'lightGroupCircuitConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     // RG - these shouldn't be here; only need them for CircuitGroupCircuit but if I remove it getItemById returns an error... to be fixed.
-    public get desiredStateOn(): boolean { return this.data.desiredStateOn; }
-    public set desiredStateOn(val: boolean) { this.setDataVal('desiredStateOn', val); }
+    // RKS: 09-26-20 Deprecated the desiredStateOn property.  There are 3 values for this and they include on-off-ignore.  For non-IC boards these resolve to 0 or 1 for on/off.
+    //public get desiredStateOn(): boolean { return this.data.desiredStateOn; }
+    //public set desiredStateOn(val: boolean) { this.setDataVal('desiredStateOn', val); }
+    public get desiredState(): number { return this.data.desiredState; }
+    public set desiredState(val: number) { this.setDataVal('desiredState', val); }
+
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val, false); }
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
@@ -1392,16 +1400,19 @@ export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroup
     constructor(data: any, name?: string) { super(data, name || 'circuits'); }
     public createItem(data: any): CircuitGroupCircuit { return new CircuitGroupCircuit(data); }
 }
-export class CircuitGroupCircuit extends EqItem {
+export class CircuitGroupCircuit extends EqItem implements ICircuitGroupCircuit {
     public dataName='circuitGroupCircuitConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
-    public get desiredStateOn(): boolean { return this.data.desiredStateOn; }
-    public set desiredStateOn(val: boolean) { this.setDataVal('desiredStateOn', val); }
-    public get lightingTheme(): number { return this.data.lightingTheme; }
-    public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
+    // RKS: 09-26-20 Deprecated the desiredStateOn property.  The values are mapped to on-off-ignore in IC and on-off in all other boards.
+    //public get desiredStateOn(): boolean { return this.data.desiredStateOn; }
+    //public set desiredStateOn(val: boolean) { this.setDataVal('desiredStateOn', val); }
+    public get desiredState(): number { return this.data.desiredState; }
+    public set desiredState(val: number) { this.setDataVal('desiredState', val); }
+    //public get lightingTheme(): number { return this.data.lightingTheme; }
+    //public set lightingTheme(val: number) { this.setDataVal('lightingTheme', val); }
     public getExtended() {
         let circ = this.get(true);
         circ.circuit = state.circuits.getInterfaceById(circ.circuit);
@@ -1416,7 +1427,7 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
         if (!iGroup.isActive) iGroup = sys.lightGroups.getItemById(id, false, { id: id, isActive: false });
         return iGroup;
     }
-    public getItemById(id: number, add?: boolean, data?: any): CircuitGroup|LightGroup {
+    public getItemById(id: number, add?: boolean, data?: any): LightGroup | CircuitGroup {
         for (let i = 0; i < this.data.length; i++) {
             if (typeof this.data[i].id !== 'undefined' && this.data[i].id === id) {
                 return this.createItem(this.data[i]);

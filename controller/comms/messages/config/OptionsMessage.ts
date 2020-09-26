@@ -42,8 +42,16 @@ export class OptionsMessage {
                                 sys.general.options.clockSource = 'manual';
                             sys.general.options.clockMode = (msg.extractPayloadByte(13) & 64) === 64 ? 24 : 12;
                             if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = (msg.extractPayloadByte(13) & 128) === 128;
+                            // No pumpDelay
+                            //[255, 0, 255][165, 63, 15, 16, 30, 40][0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 149, 29, 35, 3, 0, 0, 92, 81, 91, 81, 3, 3, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 193]
+                            // pumpDelay                                                                                                                                       
+                            //[255, 0, 255][165, 63, 15, 16, 30, 40][0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 149, 29, 35, 3, 0, 0, 92, 81, 91, 81, 3, 3, 0, 0, 15, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 194]
                             sys.general.options.pumpDelay = msg.extractPayloadByte(29) === 1;
-                            sys.general.options.cooldownDelay = msg.extractPayloadByte(37) === 1;
+                            // No cooldownDelay
+                            //[255, 0, 255][165, 63, 15, 16, 30, 40][0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 149, 29, 35, 3, 0, 0, 92, 81, 91, 81, 3, 3, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 193]
+                            // cooldownDelay
+                            //[255, 0, 255][165, 63, 15, 16, 30, 40][0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 149, 29, 35, 3, 0, 0, 92, 81, 91, 81, 3, 3, 0, 0, 15, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 194]
+                            sys.general.options.cooldownDelay = msg.extractPayloadByte(30) === 1;
                             sys.general.options.manualPriority = msg.extractPayloadByte(38) === 1;
                             sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;
 
@@ -58,11 +66,11 @@ export class OptionsMessage {
                             sys.equipment.tempSensors.setCalibration('solar4', (msg.extractPayloadByte(8) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
 
                             // When we complete our transition for the calibration make this go away.
-                            sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1);
-                            sys.general.options.waterTempAdj1 = (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1);
-                            sys.general.options.solarTempAdj1 = (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1);
-                            sys.general.options.airTempAdj = (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1);
-                            sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
+                            //sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1);
+                            //sys.general.options.waterTempAdj1 = (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1);
+                            //sys.general.options.solarTempAdj1 = (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1);
+                            //sys.general.options.airTempAdj = (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1);
+                            //sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
 
                             // Somewhere in here are the units.
 

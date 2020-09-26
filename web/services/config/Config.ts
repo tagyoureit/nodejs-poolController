@@ -69,7 +69,8 @@ export class ConfigRoute {
                 maxCircuitGroups: sys.equipment.maxCircuitGroups,
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, false),
-                circuitGroups: sys.circuitGroups.get()
+                circuitGroups: sys.circuitGroups.get(),
+                circuitStates: sys.board.valueMaps.groupCircuitStates.toArray()
             };
             return res.status(200).send(opts);
         });
@@ -233,10 +234,20 @@ export class ConfigRoute {
             // Change the options for the pool.
             try {
                 await sys.board.system.setGeneralAsync(req.body);
-                return res.status(200).send(sys.general.get());
+                let opts = {
+                    countries: sys.board.valueMaps.countries.toArray(),
+                    tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                    timeZones: sys.board.valueMaps.timeZones.toArray(),
+                    clockSources: sys.board.valueMaps.clockSources.toArray(),
+                    clockModes: sys.board.valueMaps.clockModes.toArray(),
+                    pool: sys.general.get(true),
+                    sensors: sys.board.system.getSensors()
+                };
+                return res.status(200).send(opts);
             }
             catch (err) { next(err); }
         });
+
         app.put('/config/valve', async (req, res, next) => {
             // Update a valve.
             try {

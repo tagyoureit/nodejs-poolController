@@ -76,6 +76,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
             [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
         ]);
+        this.valueMaps.groupCircuitStates = new byteValueMap([
+            [1, { name: 'on', desc: 'On' }],
+            [2, { name: 'off', desc: 'Off' }],
+            [3, { name: 'ignore', desc: 'Ignore' }]
+        ]);
+
         // Keep this around for now so I can fart with the custom names array.
         //this.valueMaps.customNames = new byteValueMap(
         //    sys.customNames.get().map((el, idx) => {
@@ -108,7 +114,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
             [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
-            [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 10, shared: false, dual: true, chlorinators: 1, chemControllers: 1 }], // We have witnessed this in the wild
+            [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 1, chemControllers: 1 }], // We have witnessed this in the wild
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
             [9, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
             [10, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // This is a guess
@@ -757,16 +763,20 @@ class IntelliCenterSystemCommands extends SystemCommands {
     }
     public async setOptionsAsync(obj?: any) : Promise<Options> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
+        
         let payload = [0, 0, 0,
-            fnToByte(sys.general.options.waterTempAdj2),
-            fnToByte(sys.general.options.waterTempAdj1),
-            fnToByte(sys.general.options.solarTempAdj1),
-            fnToByte(sys.general.options.airTempAdj),
-            fnToByte(sys.general.options.waterTempAdj2), // This might actually be a secondary air sensor but it is not ever set on a shared body.
-            fnToByte(sys.general.options.solarTempAdj2), // 8
+            fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('air')),
+            fnToByte(0), // This might actually be a secondary air sensor but it is not ever set on a shared body.
+            fnToByte(sys.equipment.tempSensors.getCalibration('solar2')), // 8
             // The following contains the bytes for water3&4 and solar3&4.  The reason for 5 bytes may be that
             // the software jumps over a fake airTemp byte in the sensor arrays.
-            0, 0, 0, 0, 0,
+            fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
+            fnToByte(sys.equipment.tempSensors.getCalibration('water4')), 0,
             0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00), // 14
             0, 0,
             sys.general.options.clockSource === 'internet' ? 1 : 0, // 17
@@ -786,7 +796,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             sys.general.options.manualPriority ? 1 : 0, // 39
             sys.general.options.manualHeat ? 1 : 0];
         let arr = [];
-        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.general.options.waterTempAdj1) {
+        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 1;
                 payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
@@ -796,29 +806,62 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.waterTempAdj1 = parseInt(obj.waterTempAdj1, 10); resolve(); }
+                        else { sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10)); resolve(); }
                     }
                 });
                 conn.queueSendMessage(out);
             }));
         }
-        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.general.options.waterTempAdj2) {
+        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 4;
-                payload[3] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
+                payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     retries: 1,
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.waterTempAdj2 = parseInt(obj.waterTempAdj2, 10); resolve(); }
+                        else { sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10)); resolve(); }
                     }
                 });
                 conn.queueSendMessage(out);
             }));
         }
-        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.general.options.solarTempAdj1) {
+        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 6;
+                payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 1,
+                    payload: payload,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        else { sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10)); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 8;
+                payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 1,
+                    payload: payload,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        else { sys.equipment.tempSensors.setCalibration('water4', parseInt(obj.waterTempAdj3, 10)); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+
+        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 2;
                 payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
@@ -828,13 +871,13 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.solarTempAdj1 = parseInt(obj.solarTempAdj1, 10); resolve(); }
+                        else { sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10)); resolve(); }
                     }
                 });
                 conn.queueSendMessage(out);
             }));
         }
-        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.general.options.solarTempAdj2) {
+        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
             arr.push(new Promise(function (resolve, reject) {
                 payload[2] = 5;
                 payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
@@ -844,23 +887,56 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.solarTempAdj2 = parseInt(obj.solarTempAdj2, 10); resolve(); }
+                        else { sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10)); resolve(); }
                     }
                 });
                 conn.queueSendMessage(out);
             }));
         }
-        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.general.options.airTempAdj) {
+        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
             arr.push(new Promise(function (resolve, reject) {
-                payload[2] = 3;
-                payload[7] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
+                payload[2] = 7;
+                payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
                     retries: 1,
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { sys.general.options.airTempAdj = parseInt(obj.airTempAdj, 10); resolve(); }
+                        else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 8;
+                payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 1,
+                    payload: payload,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            }));
+        }
+
+        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
+            arr.push(new Promise(function (resolve, reject) {
+                payload[2] = 3;
+                payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 1,
+                    payload: payload,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        else { sys.equipment.tempSensors.setCalibration('air', parseInt(obj.airTempAdj, 10)); resolve(); }
                     }
                 });
                 conn.queueSendMessage(out);
@@ -1247,6 +1323,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         });
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
+        // When we save circuit groups we are going to reorder the whole mess.  IntelliCenter does some goofy
+        // gap filling strategy where the circuits are added into the first empty slot.  This makes for a
+        // strange configuration with empty slots.  It even causes the mobile app to crash.
+
         let group: CircuitGroup = null;
         let sgroup: CircuitGroupState = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
@@ -1350,10 +1430,28 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     retries: 3,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        else { resolve(); }
+                        else {
+                            if (typeof obj.circuits !== 'undefined') {
+                                for (let i = 0; i < obj.circuits.length; i++) {
+                                    let c = group.circuits.getItemByIndex(i);
+                                    c.desiredState = obj.circuits[i].desiredState;
+                                }
+                            }
+                            resolve();
+                        }
                     }
                 });
-                for (let i = 0; i < 16; i++) out.payload.push(0);
+                for (let i = 0; i < 16; i++) out.payload.push(0); // Push the 0s for the color
+                // Add in the desired State.
+                if (typeof obj.circuits === 'undefined')
+                    for (let i = 0; i < 16; i++) {
+                        let c = group.circuits.getItemByIndex(i, false);
+                        typeof c.desiredState !== 'undefined' ? out.payload.push(c.desiredState) : out.payload.push(255);
+                    }
+                else {
+                    for (let i = 0; i < 16; i++)
+                        (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].desiredState) : out.payload.push(255);
+                }
                 conn.queueSendMessage(out);
             });
             return new Promise<CircuitGroup>((resolve, reject) => { resolve(group) });
@@ -2549,7 +2647,6 @@ class IntelliCenterBodyCommands extends BodyCommands {
             catch (err) { reject(err); }
         });
     }
-
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             const self = this;
@@ -2683,9 +2780,11 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
             if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
             if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-            if (sys.equipment.controllerFirmware === '1.047') {
-                if (heatSource === 32 || heatSource === 0) heatSource = 1;
-            }
+            // RKS: During the transition to 1.047 they invalidated the 32 heat source and 0 was turned into no change.  This is no longer needed
+            // as we now have the correct mapping.
+            //if (sys.equipment.controllerFirmware === '1.047') {
+            //    if (heatSource === 32 || heatSource === 0) heatSource = 1;
+            //}
             if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
             if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
                 return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
@@ -2972,9 +3071,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
-        // RKS: This is a hack to get us by the heater type changes in 1.047.  Sadly, this is what it has come to for the time being
-        // as 1.047 rearranges the type identifiers.
-        if (sys.equipment.controllerFirmware === '1.047') {
+        // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.
+        if (parseFloat(sys.equipment.controllerFirmware) > 1.04) {
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
@@ -2983,10 +3081,10 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heat Pump' }]]);
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
-            sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-            if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'heater', desc: 'Heater' }]]);
-            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar' }]]);
+            sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+            if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
         }

@@ -14,8 +14,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import {Inbound} from "../Messages";
-import {sys, Feature, Body, ICircuitGroup, LightGroup} from "../../../Equipment";
+import { Inbound } from "../Messages";
+import { sys, Feature, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
 import {state, BodyTempState, ICircuitGroupState, LightGroupState} from "../../../State";
 //import {setTimeout} from "timers";
 //import { exceptions, ExceptionHandler } from "winston";
@@ -179,8 +179,8 @@ export class ExternalMessage {
                     if (group.isActive) {
                         for (let i = 0; i < 16; i++) {
                             let circuitId = msg.extractPayloadByte(i + 6);
-                            let circuit = group.circuits.getItemByIndex(i, circuitId !== 255);
-                            if (circuitId === 255) group.circuits.removeItemByIndex(i);
+                            let circuit = group.circuits.getItemById(i + 1, circuitId !== 255);
+                            if (circuitId === 255) group.circuits.removeItemById(i + 1);
                             circuit.circuit = circuitId + 1;
                         }
                     }
@@ -190,7 +190,7 @@ export class ExternalMessage {
                     if (type === 1) {
                         let g = group as LightGroup;
                         for (let i = 0; i < 16; i++) {
-                            g.circuits.getItemByIndex(i).swimDelay = msg.extractPayloadByte(22 + i);
+                            g.circuits.getItemById(i + 1).swimDelay = msg.extractPayloadByte(22 + i);
                         }
                     }
                     state.emitEquipmentChanges();
@@ -203,13 +203,23 @@ export class ExternalMessage {
                 if (group.type === 1) {
                     let g = group as LightGroup;
                     for (let i = 0; i < 16; i++) {
-                        let circuit = g.circuits.getItemByIndex(i);
+                        let circuit = g.circuits.getItemById(i + 1);
                         circuit.color = msg.extractPayloadByte(i + 3);
                     }
                 }
                 state.emitEquipmentChanges();
                 break;
             case 2:
+                group = sys.circuitGroups.getInterfaceById(groupId);
+                // Process the group states.
+                if (group.type === 2) {
+                    let g = group as CircuitGroup;
+                    for (let i = 0; i < 16; i++) {
+                        let desiredState = msg.extractPayloadByte(i + 19);
+                        let circuit = g.circuits.getItemById(i + 1);
+                        circuit.desiredState = (desiredState !== 255) ? desiredState : 3;
+                    }
+                }
                 break;
         }
     }
@@ -454,7 +464,8 @@ export class ExternalMessage {
         cfg.startDay = msg.extractPayloadByte(11);
         cfg.startYear = msg.extractPayloadByte(12);
         let hs = msg.extractPayloadByte(13);
-        if (hs === 1) hs = 0; // Shim for 1.047
+        // RKS: During the transition to 1.047 the heat sources were all screwed up.  O now means no change and 1 means off.
+        //if (hs === 1) hs = 0; // Shim for 1.047
         cfg.heatSource = hs;
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.flags = msg.extractPayloadByte(15);
@@ -610,6 +621,7 @@ export class ExternalMessage {
         state.emitEquipmentChanges();
     }
     private static processTempSettings(msg: Inbound) {
+        let fnTranslateByte = (byte: number) => { return byte & 0x007F * (((byte & 0x0080) > 0) ? -1 : 1); }
         // What the developers did is supply an offset index into the payload for the byte that is
         // changing.  I suppose this may have been easier but we are not using that logic.  We want the
         // information to remain decoded so that we aren't guessing which byte does what.
@@ -617,22 +629,34 @@ export class ExternalMessage {
         let body: Body = null;
         switch (msg.extractPayloadByte(2)) {
             case 0: // Water Sensor 2 Adj
-                sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('water2', fnTranslateByte(msg.extractPayloadByte(3)));
                 break;
             case 1: // Water Sensor 1 Adj
-                sys.general.options.waterTempAdj1 = (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('water1', fnTranslateByte(msg.extractPayloadByte(4)));
                 break;
             case 2: // Solar Sensor 1 Adj
-                sys.general.options.solarTempAdj1 = (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('solar1', fnTranslateByte(msg.extractPayloadByte(5)));
                 break;
             case 3: // Air Sensor Adj
-                sys.general.options.airTempAdj = (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('air', fnTranslateByte(msg.extractPayloadByte(6)));
                 break;
             case 4: // Water Sensor 2 Adj
-                sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(7) & 0x007F) * (((msg.extractPayloadByte(7) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('water2', fnTranslateByte(msg.extractPayloadByte(7)));
                 break;
             case 5: // Solar Sensor 2 Adj
-                sys.general.options.solarTempAdj2 = (msg.extractPayloadByte(8) & 0x007F) * (((msg.extractPayloadByte(8) & 0x0080) > 0) ? -1 : 1);
+                sys.equipment.tempSensors.setCalibration('solar2', fnTranslateByte(msg.extractPayloadByte(8)));
+                break;
+            case 6: // Water Sensor 3 Adj
+                sys.equipment.tempSensors.setCalibration('water3', fnTranslateByte(msg.extractPayloadByte(9)));
+                break;
+            case 7: // Solar Sensor 3 Adj
+                sys.equipment.tempSensors.setCalibration('solar3', fnTranslateByte(msg.extractPayloadByte(10)));
+                break;
+            case 8: // Water Sensor 4 Adj
+                sys.equipment.tempSensors.setCalibration('water4', fnTranslateByte(msg.extractPayloadByte(11)));
+                break;
+            case 9: // Solar Sensor 4 Adj
+                sys.equipment.tempSensors.setCalibration('water4', fnTranslateByte(msg.extractPayloadByte(12)));
                 break;
             case 11: // Clock mode
                 sys.general.options.clockMode = (msg.extractPayloadByte(14) & 0x0001) == 1 ? 24 : 12;
