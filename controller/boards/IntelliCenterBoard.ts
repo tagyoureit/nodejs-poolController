@@ -1376,6 +1376,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                             group.eggTimer = eggTimer;
                             group.dontStop = obj.dontStop;
                             sgroup.type = group.type = 2;
+                            sgroup.isActive = group.isActive = true;
+                            if (typeof obj.showInFeatures !== 'undefined') sgroup.showInFeatures = group.showInFeatures = utils.makeBool(obj.showInFeatures);
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
                                     let c = group.circuits.getItemByIndex(i, true);
