@@ -1039,8 +1039,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
         }
         if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
             arr.push(new Promise(function (resolve, reject) {
-                payload[2] = 36;
-                payload[39] = obj.manualHeat ? 0x01 : 0x00;
+                payload[2] = 37;
+                payload[40] = obj.manualHeat ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 1,
