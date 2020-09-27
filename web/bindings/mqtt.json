@@ -107,6 +107,17 @@
             ]
         },
         {
+            "name": "virtualCircuit",
+            "description": "Populate the virtual circuits topics",
+            "topics": [
+                {
+                    "topic": "state/virtualcircuits/@bind=data.id;/@bind=data.name;",
+                    "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+                    "description": "Bind 'on'/'off' as a message to the state topic."
+                }
+            ]
+        },
+        {
             "name": "feature",
             "description": "Populate the features topics",
             "topics": [

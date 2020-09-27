@@ -2462,8 +2462,6 @@ export class HeaterCommands extends BoardCommands {
         });
     }
     public updateHeaterServices() {
-        // RSG: these heater types are for IC.  Overwriting with *Touch types in EasyTouchBoard.
-        // RKS: This has been switched so they are for *Touch.  The IC heater types are in IntelliCenterBoard.ts
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;

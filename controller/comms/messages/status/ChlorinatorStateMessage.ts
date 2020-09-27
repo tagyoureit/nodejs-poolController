@@ -27,7 +27,7 @@ export class ChlorinatorStateMessage {
                 if (typeof cstate.lastComm === 'undefined') cstate.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
                 // RG: I was getting some time deltas of 25-30s and bumped this up
                 else if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
-                    // We have not talked to the chlorinator in 20 seconds so we have lost communication.
+                    // We have not talked to the chlorinator in 30 seconds so we have lost communication.
                     cstate.status = 128;
                 }
                 let chlor = sys.chlorinators.getItemById(msg.dest, true);
