@@ -114,6 +114,7 @@ export class CircuitGroupMessage {
             group.nameId = sgroup.nameId = feature.nameId;
             group.type = sgroup.type = sys.board.valueMaps.circuitGroupTypes.getValue('circuit'); 
             group.isActive = _isActive;
+            if (typeof group.showInFeatures === 'undefined') sgroup.showInFeatures = group.showInFeatures = true;
             let circuits: CircuitGroupCircuitCollection = group.circuits;
             for (let byte = 1; byte <= 7; byte++){
                 let offByte = msg.extractPayloadByte(byte);
@@ -178,12 +179,15 @@ export class CircuitGroupMessage {
         for (let i = 0; i < arrlightGrps.length; i++) {
             let group: LightGroup = arrlightGrps[i];
             let sgroup: LightGroupState = state.lightGroups.getItemById(group.id, true);
+            group.isActive = sgroup.isActive = true;
             sgroup.type = group.type;
             sgroup.lightingTheme = group.lightingTheme;
         }
         for (let i = 0; i < arrCircuitGrps.length; i++) {
             let group: CircuitGroup = arrCircuitGrps[i];
             let sgroup: CircuitGroupState = state.circuitGroups.getItemById(group.id, true);
+            group.isActive = sgroup.isActive = true;
+            if (typeof group.showInFeatures === 'undefined') group.showInFeatures = true;
             sgroup.type = group.type;
         }
         state.emitEquipmentChanges();
