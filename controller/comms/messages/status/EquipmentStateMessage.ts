@@ -172,18 +172,18 @@ export class EquipmentStateMessage {
                         // exclude Aux4-Aux7, Feature 5-8
                         sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 15, 16, 17, 18])
                         break;
-                    case 5: // EasyTouch PL4?? Complete guess.  If we see it; change the case.
-                        sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
-                        sys.equipment.maxBodies = 1;
+                    case 6:
+                        sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
+                        sys.equipment.maxBodies = 2;
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
                         // exclude Aux4-Aux7, Feature 3-8
                         sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
                         break;
-                    case 6:
-                        sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
-                        sys.equipment.maxBodies = 2;
+                    case 7: // EasyTouch PL4 P/N 522523
+                        sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
+                        sys.equipment.maxBodies = 1;
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
@@ -502,7 +502,7 @@ export class EquipmentStateMessage {
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                             }
-                            tbody.heatStatus = heatStatus; 
+                            tbody.heatStatus = heatStatus;
                         }
                         if (sys.bodies.length > 1) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -525,7 +525,7 @@ export class EquipmentStateMessage {
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                             }
-                            tbody.heatStatus = heatStatus; 
+                            tbody.heatStatus = heatStatus;
                         }
                     }
                     switch (sys.controllerType) {
