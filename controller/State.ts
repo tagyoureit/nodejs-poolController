@@ -819,6 +819,7 @@ export interface ICircuitGroupState {
     isActive: boolean;
     dataName: string;
     lightingTheme?: number;
+    showInFeatures?: boolean;
     get(bCopy?: boolean);
     emitEquipmentChange();
 }
@@ -851,8 +852,11 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
+    public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
+        if (typeof sgrp.showInFeatures === 'undefined') sgrp.showInFeatures = true;
         let cgrp = sys.circuitGroups.getItemById(this.id);
         sgrp.circuits = [];
         for (let i = 0; i < cgrp.circuits.length; i++) {

@@ -165,6 +165,8 @@ export class ExternalMessage {
                         case 1:
                             group = sys.lightGroups.getItemById(groupId, true);
                             sgroup = state.lightGroups.getItemById(groupId, true);
+                            sys.circuitGroups.removeItemById(groupId);
+                            state.circuitGroups.removeItemById(groupId);
                             sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
                             sgroup.type = group.type = type;
                             sgroup.isActive = group.isActive = true;
@@ -173,6 +175,9 @@ export class ExternalMessage {
                             group = sys.circuitGroups.getItemById(groupId, true);
                             sgroup = state.circuitGroups.getItemById(groupId, true);
                             sgroup.type = group.type = type;
+                            if (typeof group.showInFeatures === 'undefined') group.showInFeatures = sgroup.showInFeatures = true;
+                            sys.lightGroups.removeItemById(groupId);
+                            state.lightGroups.removeItemById(groupId);
                             sgroup.isActive = group.isActive = true;
                             break;
                     }
@@ -182,6 +187,7 @@ export class ExternalMessage {
                             let circuit = group.circuits.getItemById(i + 1, circuitId !== 255);
                             if (circuitId === 255) group.circuits.removeItemById(i + 1);
                             circuit.circuit = circuitId + 1;
+                            
                         }
                     }
                     group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);

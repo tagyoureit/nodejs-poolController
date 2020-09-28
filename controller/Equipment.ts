@@ -1290,6 +1290,7 @@ export interface ICircuitGroup {
     dontStop: boolean;
     isActive: boolean;
     lightingTheme?: number;
+    showInFeatures?: boolean;
     circuits: EqItemCollection<ICircuitGroupCircuit>;
     get(copy?: boolean);
 }
@@ -1377,6 +1378,8 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
     public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
+    public get showInFeatures(): boolean { return utils.makeBool(this.data.showInFeatures); }
+    public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
     public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
@@ -1457,6 +1460,9 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
     public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
+    public get showInFeatures(): boolean { return utils.makeBool(this.data.showInFeatures); }
+    public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
+
     public get circuits(): CircuitGroupCircuitCollection { return new CircuitGroupCircuitCollection(this.data, "circuits"); }
     public getExtended() {
         let group = this.get(true);
@@ -1465,6 +1471,7 @@ export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
         let gstate = state.lightGroups.getItemById(this.id).getExtended();
         group.action = gstate.action;
         group.isOn = gstate.isOn;
+        group.showInFeatures = this.showInFeatures;
         group.circuits = [];
         for (let i = 0; i < this.circuits.length; i++) {
             group.circuits.push(this.circuits.getItemByIndex(i).getExtended());

@@ -1039,8 +1039,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
         }
         if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
             arr.push(new Promise(function (resolve, reject) {
-                payload[2] = 36;
-                payload[39] = obj.manualHeat ? 0x01 : 0x00;
+                payload[2] = 37;
+                payload[40] = obj.manualHeat ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 1,
@@ -1292,10 +1292,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
             if (isNaN(eggTimer)) eggTimer = circuit.eggTimer;
-            let eggHrs = Math.floor(eggTimer / 60);
-            let eggMins = eggTimer - (eggHrs * 60);
             if (data.dontStop === true) eggTimer = 1440;
             data.dontStop = (eggTimer === 1440);
+            let eggHrs = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHrs * 60);
             let out = Outbound.create({
                 action: 168,
                 payload: [1, 0, id - 1,
@@ -1359,9 +1359,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
                 if (isNaN(eggTimer)) eggTimer = 720;
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+                if (obj.dontStop === true) eggTimer = 1440;
                 let eggHours = Math.floor(eggTimer / 60);
                 let eggMins = eggTimer - (eggHours * 60);
-                if (obj.dontStop === true) eggTimer = 1440;
                 obj.dontStop = (eggTimer === 1440);
 
                 let out = Outbound.create({
@@ -1376,6 +1376,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                             group.eggTimer = eggTimer;
                             group.dontStop = obj.dontStop;
                             sgroup.type = group.type = 2;
+                            sgroup.isActive = group.isActive = true;
+                            if (typeof obj.showInFeatures !== 'undefined') sgroup.showInFeatures = group.showInFeatures = utils.makeBool(obj.showInFeatures);
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
                                     let c = group.circuits.getItemByIndex(i, true);
@@ -1548,9 +1550,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
                 if (isNaN(eggTimer)) eggTimer = 720;
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+                if (obj.dontStop === true) eggTimer = 1440;
                 let eggHours = Math.floor(eggTimer / 60);
                 let eggMins = eggTimer - (eggHours * 60);
-                if (obj.dontStop === true) eggTimer = 1440;
                 obj.dontStop = (eggTimer === 1440);
                 sgroup = state.lightGroups.getItemById(id, true);
                 let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme || 0 : obj.lightingTheme;
