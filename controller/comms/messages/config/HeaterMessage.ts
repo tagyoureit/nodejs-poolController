@@ -28,7 +28,7 @@ export class HeaterMessage {
                         HeaterMessage.processHeaterTypes(msg);
                         break;
                     case 1:
-                        HeaterMessage.processMaxBoostTemp(msg);
+                        HeaterMessage.processCooldownDelay(msg);
                         break;
                     case 2:
                         HeaterMessage.processStartStopDelta(msg);
@@ -51,6 +51,9 @@ export class HeaterMessage {
                         break;
                     case 13:
                         HeaterMessage.processEfficiencyMode(msg);
+                        break;
+                    case 14:
+                        HeaterMessage.processMaxBoostTemp(msg);
                         break;
                     default:
                         logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
@@ -178,21 +181,46 @@ export class HeaterMessage {
                 }
         }
     }
+    private static processCooldownDelay(msg: Inbound) {
+        for (let i = 0; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters - 1; i++) {
+            var heater: Heater = sys.heaters.getItemById(i + 1);
+            heater.cooldownDelay = msg.extractPayloadByte(i + 2);
+            heater.isVirtual = false;
+        }
+    }
+
+    //private static processBody(msg: Inbound) {
+    //    for (let i = 0; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters - 1; i++) {
+    //        let heater: Heater = sys.heaters.getItemById(i + 18);
+    //        let hstate = state.heaters.getItemById(i + 1);
+    //        heater.body = msg.extractPayloadByte(i + 18);
+    //        hstate.isVirtual = heater.isVirtual = false;
+    //    }
+    //}
     private static processHeaterTypes(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
-            var heater: Heater = sys.heaters.getItemById(i, msg.extractPayloadByte(i + 1) > 0);
+            let heater: Heater = sys.heaters.getItemById(i, msg.extractPayloadByte(i + 1) > 0);
             heater.type = msg.extractPayloadByte(i + 1);
-            if (heater.type === 0) sys.heaters.removeItemById(i);
-            heater.isActive = heater.type > 0;
-            heater.body = msg.extractPayloadByte(i + 17);
-            heater.isVirtual = false;
+            if (heater.type === 0) {
+                sys.heaters.removeItemById(i);
+                state.heaters.removeItemById(i);
+            }
+            else {
+                heater.isActive = heater.type > 0;
+                heater.body = msg.extractPayloadByte(i + 17);
+                heater.isVirtual = false;
+                let hstate = state.heaters.getItemById(i);
+                hstate.isVirtual = false;
+                hstate.name = heater.name;
+            }
+
         }
         sys.board.heaters.updateHeaterServices();
     }
     private static processMaxBoostTemp(msg: Inbound) {
-        for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
-            var heater: Heater = sys.heaters.getItemById(i);
-            heater.maxBoostTemp = msg.extractPayloadByte(i + 1);
+        for (let i = 0; i < msg.payload.length - 1 && i < sys.equipment.maxHeaters; i++) {
+            var heater: Heater = sys.heaters.getItemById(i + 1);
+            heater.maxBoostTemp = msg.extractPayloadByte(i + 2);
         }
     }
     private static processStartStopDelta(msg: Inbound) {
@@ -224,7 +252,13 @@ export class HeaterMessage {
 
     private static processHeaterNames(msg: Inbound) {
         var heaterId = ((msg.extractPayloadByte(1) - 5) * 2) + 1;
-        if (heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(2, 16);
-        if (heaterId <= sys.equipment.maxHeaters) sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(18, 16);
+        if (heaterId <= sys.equipment.maxHeaters) {
+            let hstate = state.heaters.getItemById(heaterId);
+            hstate.name = sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(2, 16);
+        }
+        if (heaterId <= sys.equipment.maxHeaters) {
+            let hstate = state.heaters.getItemById(heaterId);
+            hstate.name = sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(18, 16);
+        }
     }
 }

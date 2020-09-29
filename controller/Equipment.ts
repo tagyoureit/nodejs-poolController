@@ -1239,6 +1239,8 @@ export class Heater extends EqItem {
     public set startTempDelta(val: number) { this.setDataVal('startTempDelta', val); }
     public get stopTempDelta(): number { return this.data.stopTempDelta; }
     public set stopTempDelta(val: number) { this.setDataVal('stopTempDelta', val); }
+    public get cooldownDelay(): number { return this.data.cooldownDelay; }
+    public set cooldownDelay(val: number) { this.setDataVal('cooldownDelay', val); }
     public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
     public get efficiencyMode(): number { return this.data.efficiencyMode; }

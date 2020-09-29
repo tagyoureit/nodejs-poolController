@@ -163,7 +163,8 @@ export class ConfigRoute {
                 maxHeaters: sys.equipment.maxHeaters,
                 heaters: sys.heaters.get(),
                 heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
-                heatModes: sys.board.valueMaps.heatModes.toArray()
+                heatModes: sys.board.valueMaps.heatModes.toArray(),
+                coolDownDelay: sys.general.options.cooldownDelay
             };
             return res.status(200).send(opts);
         });
