@@ -802,8 +802,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10)); resolve(); }
@@ -818,8 +819,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10)); resolve(); }
@@ -834,8 +836,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10)); resolve(); }
@@ -850,7 +853,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
@@ -867,8 +871,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10)); resolve(); }
@@ -883,8 +888,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10)); resolve(); }
@@ -899,8 +905,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
@@ -915,8 +922,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
@@ -932,7 +940,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
@@ -954,7 +963,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[14] = byte;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
@@ -974,8 +984,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else {
@@ -995,7 +1006,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[30] = obj.pumpDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     payload: payload,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
@@ -1011,8 +1023,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false; resolve(); }
@@ -1027,8 +1040,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[39] = obj.manualPriority ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.manualPriority = obj.manualPriority ? true : false; resolve(); }
@@ -1043,8 +1057,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 payload[40] = obj.manualHeat ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.options.manualHeat = obj.manualHeat ? true : false; resolve(); }
@@ -1067,8 +1082,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 1],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.address = obj.address; resolve(); }
@@ -1082,8 +1098,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 8],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.country = obj.country; resolve(); }
@@ -1097,8 +1114,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 9],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.city = obj.city; resolve(); }
@@ -1112,8 +1130,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 10],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.state = obj.state; resolve(); }
@@ -1127,8 +1146,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 7],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.zip = obj.zip; resolve(); }
@@ -1144,10 +1164,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 let lat = Math.round(Math.abs(obj.latitude) * 100);
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 11,
                         Math.floor(lat/256),
                         lat - Math.floor(lat/256)],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.longitude = lat/100; resolve(); }
@@ -1161,10 +1182,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 let lon = Math.round(Math.abs(obj.longitude) * 100);
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 12,
                         Math.floor(lon / 256),
                         lon - Math.floor(lon / 256)],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.longitude = -(lon/100); resolve(); }
@@ -1177,8 +1199,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 10, parseInt(obj.timeZone, 10)],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.location.timeZone = parseInt(obj.timeZone, 10); resolve(); }
@@ -1202,8 +1225,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 2],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.name = obj.name; resolve(); }
@@ -1217,8 +1241,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 3],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.email = obj.email; resolve(); }
@@ -1232,7 +1257,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
                     payload: [12, 0, 4],
                     onComplete: (err, msg) => {
                         if (err) reject(err);
@@ -1247,8 +1273,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 6],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.phone2 = obj.phone2; resolve(); }
@@ -1262,8 +1289,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             arr.push(new Promise(function (resolve, reject) {
                 let out = Outbound.create({
                     action: 168,
-                    retries: 1,
+                    retries: 2,
                     payload: [12, 0, 5],
+                    response: IntelliCenterBoard.getAckResponse(168),
                     onComplete: (err, msg) => {
                         if (err) reject(err);
                         else { sys.general.owner.phone = obj.phone; resolve(); }
@@ -2899,8 +2927,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
 class IntelliCenterHeaterCommands extends HeaterCommands {
     private createHeaterConfigMessage(heater: Heater): Outbound {
         let out = Outbound.createMessage(
-            168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0
-                , heater.address,
+            168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0,
+                heater.cooldownDelay || 6, heater.address,
                 //, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // Name
                 heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
         out.insertPayloadString(11, heater.name, 16);
@@ -2988,17 +3016,22 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     if (h.address === address) return reject(new InvalidEquipmentDataError(`Heater id# ${h.id} ${t.desc} is already communicating on this address.`, 'Heater', obj.address));
                 }
             }
-            
+            let cooldownDelay = heater.cooldownDelay || 5;
+            if (typeof obj.cooldownDelay !== 'undefined') {
+                cooldownDelay = parseInt(obj.cooldownDelay, 10);
+                if (isNaN(cooldownDelay) || cooldownDelay < 0 || cooldownDelay > 20) return reject(new InvalidEquipmentDataError(`Invalid cooldown delay was specified`, 'Heater', obj.cooldownDelay));
+            }
+
             let out = Outbound.create({
                 action: 168,
                 payload: [10, 0, heater.id - 1,
                     type,
                     body,
-                    differentialTemp,
+                    cooldownDelay,
                     startTempDelta,
                     stopTempDelta,
                     (typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled)) ? 1 : 0,
-                    6,
+                    differentialTemp,
                     address
                 ],
                 retries: 3,
@@ -3023,6 +3056,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     heater.startTempDelta = startTempDelta;
                     heater.stopTempDelta = stopTempDelta;
                     hstate.isVirtual = heater.isVirtual = false;
+                    heater.cooldownDelay = cooldownDelay;
                     resolve(heater);
                 }
 
