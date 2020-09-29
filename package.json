@@ -16,7 +16,6 @@
         "start": "npm run build && node dist/app.js",
         "start:cached": "node dist/app.js",
         "build": "tsc",
-        "build-prod": "ncc build app.ts -o dist/compiled",
         "watch": "tsc -w"
     },
     "dependencies": {
