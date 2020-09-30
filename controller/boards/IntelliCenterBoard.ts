@@ -190,8 +190,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [3, { name: 'cooling', desc: 'Cooling' }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false }],
-            [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days:'multi' }]
+            [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
+            [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days: 'multi', heatSource: true, heatSetpoint: true }]
         ]);
         this.valueMaps.remoteTypes = new byteValueMap([
             [0, { name: 'none', desc: 'Not Installed', maxButtons: 0 }],
