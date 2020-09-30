@@ -630,7 +630,7 @@ export class ExternalMessage {
         state.emitEquipmentChanges();
     }
     private static processTempSettings(msg: Inbound) {
-        let fnTranslateByte = (byte: number) => { return byte & 0x007F * (((byte & 0x0080) > 0) ? -1 : 1); }
+        let fnTranslateByte = (byte: number) => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
         // What the developers did is supply an offset index into the payload for the byte that is
         // changing.  I suppose this may have been easier but we are not using that logic.  We want the
         // information to remain decoded so that we aren't guessing which byte does what.
