@@ -152,7 +152,8 @@ export class ConfigRoute {
                 heatSources: sys.board.valueMaps.heatSources.toArray(),
                 circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
                 schedules: sys.schedules.get(),
-                clockMode: sys.general.options.clockMode || 12
+                clockMode: sys.general.options.clockMode || 12,
+                eggTimers: sys.eggTimers.get() // needed for *Touch to not overwrite real schedules
             };
             return res.status(200).send(opts);
         });

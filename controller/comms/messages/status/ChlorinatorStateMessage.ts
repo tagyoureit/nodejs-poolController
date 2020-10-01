@@ -153,6 +153,7 @@ export class ChlorinatorStateMessage {
                 schlor.body = chlor.body;
                 if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.poolSetpoint;
                 else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.spaSetpoint;
+                state.emitEquipmentChanges();
             }
             else {
                 sys.chlorinators.removeItemById(chlorId);
