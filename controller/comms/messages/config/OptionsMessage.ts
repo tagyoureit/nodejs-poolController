@@ -54,16 +54,16 @@ export class OptionsMessage {
                             sys.general.options.cooldownDelay = msg.extractPayloadByte(30) === 1;
                             sys.general.options.manualPriority = msg.extractPayloadByte(38) === 1;
                             sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;
-
-                            sys.equipment.tempSensors.setCalibration('air', (msg.extractPayloadByte(5) & 0x007F) * (((msg.extractPayloadByte(5) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('water1', (msg.extractPayloadByte(3) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('water2', (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('water3', (msg.extractPayloadByte(9) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('water4', (msg.extractPayloadByte(10) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('solar1', (msg.extractPayloadByte(4) & 0x007F) * (((msg.extractPayloadByte(4) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('solar2', (msg.extractPayloadByte(6) & 0x007F) * (((msg.extractPayloadByte(6) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('solar3', (msg.extractPayloadByte(7) & 0x007F) * (((msg.extractPayloadByte(3) & 0x0080) > 0) ? -1 : 1));
-                            sys.equipment.tempSensors.setCalibration('solar4', (msg.extractPayloadByte(8) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1));
+                            let fnTranslateByte = (byte):number => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
+                            sys.equipment.tempSensors.setCalibration('water1', fnTranslateByte(msg.extractPayloadByte(3)));
+                            sys.equipment.tempSensors.setCalibration('solar1', fnTranslateByte(msg.extractPayloadByte(4)));
+                            sys.equipment.tempSensors.setCalibration('air',    fnTranslateByte(msg.extractPayloadByte(5)));
+                            sys.equipment.tempSensors.setCalibration('water2', fnTranslateByte(msg.extractPayloadByte(6)));
+                            sys.equipment.tempSensors.setCalibration('solar2', fnTranslateByte(msg.extractPayloadByte(7)));
+                            sys.equipment.tempSensors.setCalibration('water3', fnTranslateByte(msg.extractPayloadByte(8)));
+                            sys.equipment.tempSensors.setCalibration('solar3', fnTranslateByte(msg.extractPayloadByte(9)));
+                            sys.equipment.tempSensors.setCalibration('water4', fnTranslateByte(msg.extractPayloadByte(10)));
+                            sys.equipment.tempSensors.setCalibration('solar4', fnTranslateByte(msg.extractPayloadByte(11)));
 
                             // When we complete our transition for the calibration make this go away.
                             //sys.general.options.waterTempAdj2 = (msg.extractPayloadByte(2) & 0x007F) * (((msg.extractPayloadByte(2) & 0x0080) > 0) ? -1 : 1);
