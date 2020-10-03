@@ -66,21 +66,18 @@ export class CircuitGroupMessage {
                 
         }
         if (msgId <= 15) {
-            var circuitId = 1;
             groupId = msg.extractPayloadByte(1) + sys.board.equipmentIds.circuitGroups.start;
             group = sys.circuitGroups.getInterfaceById(groupId);
             if (group.isActive) {
-                group.circuits.clear();
-                // Circuit #
-                for (let i = 2; i < msg.payload.length && circuitId <= this.maxCircuits; i++) {
-                    if (msg.extractPayloadByte(i) !== 255) {
-                        if (group.type === 1 && msg.extractPayloadByte(i + 1) !== 0)
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1, swimDelay: msg.extractPayloadByte(i + 16) });
-                        else
-                            group.circuits.add({ id: circuitId, circuit: msg.extractPayloadByte(i) + 1 });
-
+                for (let i = 0; i < msg.payload.length && i < 15; i++) {
+                    let circuitId = msg.extractPayloadByte(i + 2) + 1;
+                    if (circuitId < 255) {
+                        let circuit = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                        circuit.circuit = circuitId;
+                        if (group.type === 1) (circuit as LightGroupCircuit).swimDelay = msg.extractPayloadByte(i + 18);
                     }
-                    circuitId++;
+                    else
+                        group.circuits.removeItemByIndex(i);
                 }
             }
         }

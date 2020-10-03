@@ -612,10 +612,13 @@ export class ConfigRoute {
         app.get('/config/lightGroup/colors', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
         });
-        app.put('/config/lightGroup/:id/setColors', (req, res) => {
-            let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
-            sys.board.circuits.setLightGroupAttribs(new LightGroup(grp));
-            return res.status(200).send('OK');
+        app.put('/config/lightGroup/:id/setColors', async (req, res, next) => {
+            try {
+                let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
+                await sys.board.circuits.setLightGroupAttribsAsync(grp);
+                return res.status(200).send(grp.getExtended());
+            }
+            catch (err) { next(err); }
         });
         app.get('/config/intellibrite/themes', (req, res) => {
             return res.status(200).send(sys.board.circuits.getLightThemes(16));
