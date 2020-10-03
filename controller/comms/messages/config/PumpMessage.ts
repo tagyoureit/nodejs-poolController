@@ -62,6 +62,7 @@ export class PumpMessage {
         if (typeof pump.name === 'undefined') pump.name = sys.board.valueMaps.pumpTypes.get(pump.type).desc;
         const spump = state.pumps.getItemById(pump.id, pumpId <= sys.equipment.maxPumps);
         spump.type = pump.type;
+        spump.isActive = pump.isActive;
         spump.status = 0;
     }
     private static processIntelliCenterPump(msg: Inbound) {
@@ -199,8 +200,9 @@ export class PumpMessage {
                 }
                 if (typeof pump.model === 'undefined') pump.model = 0;
                 pump.type = type;
-                state.pumps.getItemById(pump.id, true).type = pump.type;
-                pump.isActive = true;
+                let spump = state.pumps.getItemById(pump.id, true);
+                spump.type = pump.type;
+                spump.isActive = pump.isActive = true;
             }
         }
     }

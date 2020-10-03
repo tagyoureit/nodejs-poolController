@@ -886,7 +886,7 @@ export class Schedule extends EqItem {
     public get endTimeType(): number | any { return this.data.endTimeType; }
     public set endTimeType(val: number | any) { this.setDataVal('endTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
 
-    private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.data.startDate = Timestamp.toISOLocal(this.startDate); }
+    private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate)); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }
     // RKS: Talk to Russ about these. The method below was originally set.  Unfortunately, this interacts with proxy and delete should be

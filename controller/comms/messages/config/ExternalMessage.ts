@@ -77,14 +77,32 @@ export class ExternalMessage {
         }
     }
     public static processIntelliChem(msg: Inbound) {
-        let controller = sys.chemControllers.getItemById(msg.extractPayloadByte(2) + 1);
-        controller.body = msg.extractPayloadByte(3);
-        controller.address = msg.extractPayloadByte(5);
-        controller.pHSetpoint = msg.extractPayloadInt(7) / 100;
-        controller.orpSetpoint = msg.extractPayloadInt(9);
-        controller.calciumHardness = msg.extractPayloadInt(13);
-        controller.cyanuricAcid = msg.extractPayloadInt(15);
-        controller.alkalinity = msg.extractPayloadInt(17);
+        let id = msg.extractPayloadByte(2) + 1;
+        if (msg.extractPayloadByte(6) > 0) {
+            let controller = sys.chemControllers.getItemById(id, true);
+            let scontroller = state.chemControllers.getItemById(id, true);
+            scontroller.type = controller.type = 2;
+            scontroller.name = controller.name = (controller.name || 'IntelliChem' + id);
+            scontroller.body = controller.body = msg.extractPayloadByte(3);
+            scontroller.address = controller.address = msg.extractPayloadByte(5);
+            controller.pHSetpoint = msg.extractPayloadInt(7) / 100;
+            controller.orpSetpoint = msg.extractPayloadInt(9);
+            controller.calciumHardness = msg.extractPayloadInt(13);
+            controller.cyanuricAcid = msg.extractPayloadInt(15);
+            controller.alkalinity = msg.extractPayloadInt(17);
+            if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
+            if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
+            if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;
+            if (typeof scontroller.orpLevel === 'undefined') scontroller.orpLevel = 0;
+            if (typeof scontroller.orpDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+            if (typeof scontroller.pHDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+            if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
+            if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
+        }
+        else {
+            sys.chemControllers.removeItemById(id);
+            state.chemControllers.removeItemById(id);
+        }
     }
     public static processValve(msg: Inbound) {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);

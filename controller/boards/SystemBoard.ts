@@ -1350,6 +1350,7 @@ export class PumpCommands extends BoardCommands {
             }
             let spump = state.pumps.getItemById(pump.id, true);
             spump.type = pump.type;
+            spump.isActive = pump.isActive;
             spump.status = 0;
             spump.emitData('pumpExt', spump.getExtended());
         }
@@ -2000,15 +2001,19 @@ export class CircuitCommands extends BoardCommands {
         state.emitEquipmentChanges();
         return Promise.resolve(sgrp);
     }
-    public setLightGroupAttribs(group: LightGroup) {
+    public async setLightGroupAttribsAsync(group: LightGroup): Promise<LightGroup> {
         let grp = sys.lightGroups.getItemById(group.id);
-        grp.circuits.clear();
-        for (let i = 0; i < group.circuits.length; i++) {
-            let circuit = group.circuits.getItemByIndex(i);
-            grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+        try {
+            grp.circuits.clear();
+            for (let i = 0; i < group.circuits.length; i++) {
+                let circuit = group.circuits.getItemByIndex(i);
+                grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+            }
+            let sgrp = state.lightGroups.getItemById(group.id);
+            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            return Promise.resolve(grp);
         }
-        let sgrp = state.lightGroups.getItemById(group.id);
-        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+        catch (err) { Promise.reject(err); }
     }
     public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
@@ -3168,7 +3173,7 @@ export class VirtualPumpController extends BoardCommands {
             if (pump.isActive) continue;
             let spump = state.pumps.getItemById(i, true);
             pump = sys.pumps.getItemById(i, true);
-            pump.isActive = pump.isVirtual = true;
+            spump.isActive = pump.isActive = pump.isVirtual = true;
             pump.type = spump.type = 0;
             logger.info(`Searching for a pump at address... ${pump.address}`);
             spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
