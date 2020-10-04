@@ -2013,7 +2013,7 @@ export class CircuitCommands extends BoardCommands {
             sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
             return Promise.resolve(grp);
         }
-        catch (err) { Promise.reject(err); }
+        catch (err) { return Promise.reject(err); }
     }
     public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);

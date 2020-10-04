@@ -235,7 +235,7 @@ export class ConfigRoute {
         app.put('/config/general', async (req, res, next) => {
             // Change the options for the pool.
             try {
-                await sys.board.system.setGeneralAsync(req.body);
+                let rc = await sys.board.system.setGeneralAsync(req.body);
                 let opts = {
                     countries: sys.board.valueMaps.countries.toArray(),
                     tempUnits: sys.board.valueMaps.tempUnits.toArray(),
