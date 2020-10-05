@@ -260,8 +260,8 @@ export class byteValueMaps {
 
     public circuitFunctions: byteValueMap = new byteValueMap([
         [0, { name: 'generic', desc: 'Generic' }],
-        [1, { name: 'spa', desc: 'Spa' }],
-        [2, { name: 'pool', desc: 'Pool' }],
+        [1, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
+        [2, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
         [7, { name: 'light', desc: 'Light', isLight: true }],
         [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
@@ -1742,7 +1742,7 @@ export class CircuitCommands extends BoardCommands {
             let circuits = sys.circuits.get();
             for (let i = 0; i < circuits.length; i++) {
                 let c = circuits[i];
-                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId });
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId, hasHeatSource: typeof sys.board.valueMaps.circuitFunctions.get(c.type).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(c.type).hasHeatSource : false });
             }
         }
         if (includeFeatures) {

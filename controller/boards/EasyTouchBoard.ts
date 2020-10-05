@@ -234,6 +234,10 @@ export class EasyTouchBoard extends SystemBoard {
             [252, { name: 'version', desc: 'Versions' }],
             [253, { name: 'version', desc: 'Get Versions' }]
         ]);
+        this.valueMaps.scheduleTimeTypes.merge([
+            [1, { name: 'sunrise', desc: 'Sunrise' }],
+            [2, { name: 'sunset', desc: 'Sunset' }]
+        ]);
         // TODO: RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
         this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];
