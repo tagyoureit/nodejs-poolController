@@ -1739,10 +1739,10 @@ export class CircuitCommands extends BoardCommands {
     public getCircuitReferences(includeCircuits?: boolean, includeFeatures?: boolean, includeVirtual?: boolean, includeGroups?: boolean) {
         let arrRefs = [];
         if (includeCircuits) {
-            let circuits = sys.circuits.get();
-            for (let i = 0; i < circuits.length; i++) {
-                let c = circuits[i];
-                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId, hasHeatSource: typeof sys.board.valueMaps.circuitFunctions.get(c.type).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(c.type).hasHeatSource : false });
+            // RSG: converted this to getItemByIndex because hasHeatSource isn't actually stored as part of the data
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId, hasHeatSource: c.hasHeatSource });
             }
         }
         if (includeFeatures) {

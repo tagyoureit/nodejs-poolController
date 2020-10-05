@@ -49,8 +49,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
             [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true }],
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
-            [12, { name: 'pool', desc: 'Pool' }],
-            [13, { name: 'spa', desc: 'Spa' }]
+            [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+            [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody:false }],

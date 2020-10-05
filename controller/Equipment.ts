@@ -978,7 +978,7 @@ export class Circuit extends EqItem implements ICircuit {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
     public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
-
+    public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false};
     public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
