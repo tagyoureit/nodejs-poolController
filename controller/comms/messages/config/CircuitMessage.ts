@@ -109,17 +109,8 @@ export class CircuitMessage {
         lg.type = sgrp.type = 3;
         sgrp.action = 0;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
-            // if this is the first (or only) packet, reset all IB to active=false and re-verify they are still there with incoming packets
-/*             for (let i = 0; i < sys.intellibrite.circuits.length; i++) {
-                let ibCircuit = sys.intellibrite.circuits.getItemByIndex(i);
-                // only evaluate intellibrites here; skip others
-                // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
-                ibCircuit.isActive = false;
-            } */
             for (let i = 0; i < lg.circuits.length; i++) {
                 let lgCircuit = lg.circuits.getItemByIndex(i);
-                // only evaluate intellibrites here; skip others
-                // if (sys.circuits.getItemById(ib.circuit).type !== 16) continue;
                 lgCircuit.isActive = false;
             }
         }
@@ -129,12 +120,6 @@ export class CircuitMessage {
                 let pair = msg.extractPayloadByte(byte + 1);
                 let _isActive = circuitId > 0 && pair > 0;
                 if (_isActive) {
-/*                     const ibCircuit = sys.intellibrite.circuits.getItemByCircuitId(circuitId, _isActive);
-                    ibCircuit.isActive = _isActive;
-                    ibCircuit.circuit = circuitId;
-                    ibCircuit.position = (pair >> 4) + 1;
-                    ibCircuit.color = pair & 15;
-                    ibCircuit.swimDelay = msg.extractPayloadByte(byte + 2) >> 1; */
                     const lgCircuit = lg.circuits.getItemByCircuitId(circuitId, _isActive);
                     lgCircuit.isActive = _isActive;
                     lgCircuit.circuit = circuitId;
@@ -146,18 +131,11 @@ export class CircuitMessage {
         }
         // go through and clean up what is not active only if this is the last (or only) packet
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 1) || msg.datalen === 32)
-/*             for (let idx = 0; idx < sys.intellibrite.circuits.length; idx++) {
-                const ibCircuit = sys.intellibrite.circuits.getItemByIndex(idx);
-                if (ibCircuit.isActive === true) continue;
-                sys.intellibrite.circuits.removeItemById(ibCircuit.circuit);
-            } */
             for (let idx = 0; idx < lg.circuits.length; idx++) {
                 const lgCircuit = lg.circuits.getItemByIndex(idx);
                 if (lgCircuit.isActive === true) continue;
                 lg.circuits.removeItemById(lgCircuit.circuit);
             }
-        // Now that we are done.  Lets sort the array by position.
-        //  sys.intellibrite.circuits.sortByPosition();
         if (lg.circuits.length === 0){
             lg.isActive = false;
             sys.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
@@ -174,22 +152,8 @@ export class CircuitMessage {
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
-           /*  switch (circuit.type) {
-                case 5:
-                case 6:
-                case 8:
-                case 10:
-                    sys.intellibrite.circuits.getItemByCircuitId(circuit.id, true);
-                    // RG - to RKS shouldn't these be as below.  Not sure why intellibrite is being set here.
-                    // sys.lightGroups.getItemById(1, true).circuits.getItemByCircuitId(circuit.id, true);
-                    break;
-                    default:
-                        sys.intellibrite.circuits.removeItemByCircuitId(circuit.id);
-                        // sys.lightGroups.getItemById(1, true).circuits.removeItemByCircuitId(circuit.id);
-                    break;
-            }  */
+
         } 
-        // sys.intellibrite.circuits.sortByPosition();
     }
     private static processFreezeProtect(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -277,9 +241,6 @@ export class CircuitMessage {
             circuit.isActive = _isActive;
             if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
             if ([9, 10, 16, 17].includes(circuit.type)) {
-/*                 const ib = sys.intellibrite.circuits.getItemByCircuitId(id, true);
-                sys.intellibrite.isActive = true;
-                ib.isActive = true; */
                 const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 sgrp.action = 0;
@@ -287,7 +248,6 @@ export class CircuitMessage {
                 lg.isActive = sgrp.isActive = true;
             }
             else {
-                // sys.intellibrite.circuits.removeItemByCircuitId(id);
                 sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start).circuits.removeItemByCircuitId(id);
             }
             if (sys.board.equipmentIds.circuits.isInRange(id)) {
@@ -302,7 +262,6 @@ export class CircuitMessage {
                         sbody.name = body.name = "Pool";
                         sbody.type = body.type = 0; // RKS: The body types were backwards here but correct everywhere else e.g. PumpMessage.
                         circuit.type === 2 ? body.isActive = true : body.isActive = false;
-                        // sys.board.virtualChlorinatorController.start();
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
