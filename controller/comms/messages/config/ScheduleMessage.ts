@@ -148,6 +148,8 @@ export class ScheduleMessage {
             schedule.scheduleType = schedule.runOnce > 0 ? 128 : 0;
             schedule.startTimeType = 0;  // Normalize as not supported by *Touch using manual.
             schedule.endTimeType = 0; // Normalize as not supported by *Touch using manual.
+
+            if (sys.circuits.getItemById(schedule.circuit).hasHeatSource && typeof schedule.heatSource === 'undefined') schedule.heatSource = sys.board.valueMaps.heatSources.getValue('nochange');
             // todo: add to base sched item
             //  (msg.extractPayloadByte(1) & 128) === 1 ? schedule.smartStart = 1 : schedule.smartStart = 0;
             if (schedule.isActive) {
