@@ -138,7 +138,7 @@ export class ConfigRoute {
             // RG: because I need the name/val of the Not Used circuit for displaying pumpCircuits that are
             // empty.  EG A pump circuit can be not used even if all the circuits are used.
             if (sys.controllerType !== ControllerType.IntelliCenter) {
-                opts.circuitNames = sys.board.circuits.getCircuitNames().filter(c=>c.name==='notused');
+                opts.circuitNames = sys.board.circuits.getCircuitNames().filter(c => c.name === 'notused');
             }
             return res.status(200).send(opts);
         });
@@ -178,20 +178,20 @@ export class ConfigRoute {
         });
         app.get('/config/options/chemControllers', (req, res) => {
             let alarms = {
-                flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,1].includes(el.val)),
-                pH: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,2,4].includes(el.val)),
-                orp: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,8,16].includes(el.val)),
-                pHTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,32].includes(el.val)),
-                orpTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,64].includes(el.val)),
-                probeFault: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0,128].includes(el.val))
+                flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 1].includes(el.val)),
+                pH: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 2, 4].includes(el.val)),
+                orp: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 8, 16].includes(el.val)),
+                pHTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 32].includes(el.val)),
+                orpTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 64].includes(el.val)),
+                probeFault: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 128].includes(el.val))
             }
             let warnings = {
-                waterChemistry: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,1,2].includes(el.val)),
-                pHLockout: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,1].includes(el.val)),
-                pHDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,2].includes(el.val)),
-                orpDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0,4].includes(el.val)),
-                invalidSetup: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,8].includes(el.val)),
-                chlorinatorCommsError: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0,16].includes(el.val)),
+                waterChemistry: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 1, 2].includes(el.val)),
+                pHLockout: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 1].includes(el.val)),
+                pHDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 2].includes(el.val)),
+                orpDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 4].includes(el.val)),
+                invalidSetup: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 8].includes(el.val)),
+                chlorinatorCommsError: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 16].includes(el.val)),
             }
             let opts = {
                 types: sys.board.valueMaps.chemControllerTypes.toArray(),
@@ -394,9 +394,14 @@ export class ConfigRoute {
                 let chlor = await sys.board.chlorinator.setChlorAsync(req.body);
                 return res.status(200).send(sys.chlorinators.getItemById(chlor.id).get(true));
             }
-            catch (err) {
-                next(err);
+            catch (err) { next(err); }
+        });
+        app.delete('/config/chlorinator', async (req, res, next) => {
+            try {
+                let chlor = await sys.board.chlorinator.deleteChlorAsync(req.body);
+                return res.status(200).send(chlor.get(true));
             }
+            catch (err) { next(err); }
         });
         app.put('/config/heater', async (req, res, next) => {
             try {
@@ -479,20 +484,20 @@ export class ConfigRoute {
                 next(err);
             }
         });
-/*         app.get('/config/pump/:id/circuits', (req, res) => {
-            return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
-        });
-        app.get('/config/pump/availableCircuits', (req, res) => {
-            return res.status(200).send(sys.board.pumps.availableCircuits());
-        });
-        app.get('/config/pump/:id/circuit/:circuitid', (req, res) => {
-            return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits[parseInt(req.params.circuitid, 10)]);
-        });
-        app.get('/config/pump/:id/nextAvailablePumpCircuit', (req, res) => {
-            // if no pumpCircuitId is available, 0 will be returned
-            let _id = sys.pumps.getItemById(parseInt(req.params.id, 10)).nextAvailablePumpCircuit();
-            return res.status(200).send(_id.toString());
-        }); */
+        /*         app.get('/config/pump/:id/circuits', (req, res) => {
+                    return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits);
+                });
+                app.get('/config/pump/availableCircuits', (req, res) => {
+                    return res.status(200).send(sys.board.pumps.availableCircuits());
+                });
+                app.get('/config/pump/:id/circuit/:circuitid', (req, res) => {
+                    return res.status(200).send(sys.pumps.getItemById(parseInt(req.params.id, 10)).get().circuits[parseInt(req.params.circuitid, 10)]);
+                });
+                app.get('/config/pump/:id/nextAvailablePumpCircuit', (req, res) => {
+                    // if no pumpCircuitId is available, 0 will be returned
+                    let _id = sys.pumps.getItemById(parseInt(req.params.id, 10)).nextAvailablePumpCircuit();
+                    return res.status(200).send(_id.toString());
+                }); */
         /*
         app.put('/config/pump/:id/pumpCircuit', (req, res) => {
             // if no pumpCircuitId is specified, set it as 0 and take the next available one
@@ -519,67 +524,67 @@ export class ConfigRoute {
             else
                 return res.status(500).send({ result: result, reason: reason });
         }); */
-/*         app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
-            // pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
-            pump.deletePumpCircuit(parseInt(req.params.pumpCircuitId, 10));
-            return res.status(200).send('OK');
-        }); */
-/*         app.get('/config/pump/types', (req, res) => {
-            let pumpTypes = sys.board.pumps.getPumpTypes();
-            return res.status(200).send(pumpTypes);
-        });
-        app.get('/config/pump/units', (req, res) => {
-            // get all units for all system board
-            let pumpTypes = sys.board.pumps.getCircuitUnits();
-            return res.status(200).send(pumpTypes);
-        });
-        app.get('/config/pump/:id/units', (req, res) => {
-            // get units for all specific pump types
-            // need to coorerce into array if only a single unit is returned; by default getExtended will return an array
-            // if there is 1+ object so this creates parity
-            let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
-            let pumpTypes = sys.board.pumps.getCircuitUnits(pump);
-            if (!Array.isArray(pumpTypes)) pumpTypes = [pumpTypes];
-            return res.status(200).send(pumpTypes);
-        });
-        app.put('/config/pump/:pumpId/type', (req, res) => {
-            const _type = parseInt(req.body.pumpType, 10);
-            const _pumpId = parseInt(req.params.pumpId, 10);
-            // RG - this was left as it's own end point because trying to combine changing the pump type (which requires resetting the pump values) while simultaneously setting new pump values was tricky. 
-            let pump = sys.pumps.getItemById(_pumpId);
-            if (sys.controllerType === ControllerType.Virtual) {
-                pump.isVirtual = true;
-            }
-            if (_type !== pump.type) {
-                pump.setType(_type);
-            }
-            return res.status(200).send('OK');
-        }); */
-  /*       app.get('/config/pump/:pumpId', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).get(true);
-            return res.status(200).send(pump);
-        });
-        app.put('/config/pump/:pumpId', (req, res) => {
-            // this will change the pump type
-            let _type = parseInt(req.body.pumpType, 10);
-            let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
-            if (sys.controllerType === ControllerType.Virtual) {
-                // if virtualController, add the virtual pump
-                pump.isVirtual = true;
-            }
-
-            if (_type !== pump.type && typeof _type !== 'undefined') {
-                pump.setType(_type);
-            }
-            // get a new instance of the pump here because setType will remove/add a new instance
-            if (Object.keys(req.body).length) sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).setPump(req.body);
-            return res.status(200).send('OK');
-        }); */
+        /*         app.delete('/config/pump/:id/pumpCircuit/:pumpCircuitId', (req, res) => {
+                    let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
+                    // pump.circuits.removeItemById(parseInt(req.params.pumpCircuitId, 10));
+                    pump.deletePumpCircuit(parseInt(req.params.pumpCircuitId, 10));
+                    return res.status(200).send('OK');
+                }); */
+        /*         app.get('/config/pump/types', (req, res) => {
+                    let pumpTypes = sys.board.pumps.getPumpTypes();
+                    return res.status(200).send(pumpTypes);
+                });
+                app.get('/config/pump/units', (req, res) => {
+                    // get all units for all system board
+                    let pumpTypes = sys.board.pumps.getCircuitUnits();
+                    return res.status(200).send(pumpTypes);
+                });
+                app.get('/config/pump/:id/units', (req, res) => {
+                    // get units for all specific pump types
+                    // need to coorerce into array if only a single unit is returned; by default getExtended will return an array
+                    // if there is 1+ object so this creates parity
+                    let pump = sys.pumps.getItemById(parseInt(req.params.id, 10));
+                    let pumpTypes = sys.board.pumps.getCircuitUnits(pump);
+                    if (!Array.isArray(pumpTypes)) pumpTypes = [pumpTypes];
+                    return res.status(200).send(pumpTypes);
+                });
+                app.put('/config/pump/:pumpId/type', (req, res) => {
+                    const _type = parseInt(req.body.pumpType, 10);
+                    const _pumpId = parseInt(req.params.pumpId, 10);
+                    // RG - this was left as it's own end point because trying to combine changing the pump type (which requires resetting the pump values) while simultaneously setting new pump values was tricky. 
+                    let pump = sys.pumps.getItemById(_pumpId);
+                    if (sys.controllerType === ControllerType.Virtual) {
+                        pump.isVirtual = true;
+                    }
+                    if (_type !== pump.type) {
+                        pump.setType(_type);
+                    }
+                    return res.status(200).send('OK');
+                }); */
+        /*       app.get('/config/pump/:pumpId', (req, res) => {
+                  let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).get(true);
+                  return res.status(200).send(pump);
+              });
+              app.put('/config/pump/:pumpId', (req, res) => {
+                  // this will change the pump type
+                  let _type = parseInt(req.body.pumpType, 10);
+                  let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
+                  if (sys.controllerType === ControllerType.Virtual) {
+                      // if virtualController, add the virtual pump
+                      pump.isVirtual = true;
+                  }
+      
+                  if (_type !== pump.type && typeof _type !== 'undefined') {
+                      pump.setType(_type);
+                  }
+                  // get a new instance of the pump here because setType will remove/add a new instance
+                  if (Object.keys(req.body).length) sys.pumps.getItemById(parseInt(req.params.pumpId, 10)).setPump(req.body);
+                  return res.status(200).send('OK');
+              }); */
         app.delete('/config/pump/:pumpId', (req, res) => {
             let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
             if (pump.type === 0) {
-                return res.status(500).send(`Pump ${ pump.id } not active`);
+                return res.status(500).send(`Pump ${pump.id} not active`);
             }
             pump.setType(0);
             return res.status(200).send('OK');
@@ -595,16 +600,16 @@ export class ConfigRoute {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?
 
             // if (sys.controllerType === ControllerType.IntelliCenter) {
-                let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
-                return res.status(200).send(grp.getLightThemes());
+            let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
+            return res.status(200).send(grp.getLightThemes());
             // }
             // else
             //     return res.status(200).send(sys.intellibrite.getLightThemes());
         });
         app.get('/config/lightGroup/:id', (req, res) => {
             // if (sys.controllerType === ControllerType.IntelliCenter) {
-                let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
-                return res.status(200).send(grp.getExtended());
+            let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
+            return res.status(200).send(grp.getExtended());
             // }
             // else
             //     return res.status(200).send(sys.intellibrite.getExtended());
@@ -643,6 +648,14 @@ export class ConfigRoute {
                 return res.status(200).send(chem.get());
             }
             catch (err) { next(err); }
+        });
+        app.delete('/config/chemController', async (req, res, next) => {
+            try {
+                let chem = await sys.board.chemControllers.deleteChemControllerAsync(req.body);
+                return res.status(200).send(chem.get());
+            }
+            catch (err) { next(err); }
+
         });
 /*         app.get('/config/intellibrite', (req, res) => {
             return res.status(200).send(sys.intellibrite.getExtended());

@@ -27,12 +27,14 @@ export class ChlorinatorMessage {
                 chlorId = 1;
                 for (let i = 0; i < 4 && i + 30 < msg.payload.length; i++) {
                     let isActive = msg.extractPayloadByte(i + 22) === 1;
+                    let chlor = sys.chlorinators.getItemById(chlorId, isActive);
+                    let schlor = state.chlorinators.getItemById(chlor.id, isActive);
+                    chlor.isActive = schlor.isActive = isActive;
                     if (i >= sys.equipment.maxChlorinators || !isActive) {
                         sys.chlorinators.removeItemById(chlorId);
                         state.chlorinators.removeItemById(chlorId);
                     }
                     else {
-                        chlor = sys.chlorinators.getItemById(chlorId, isActive);
                         chlor.body = msg.extractPayloadByte(i + 2);
                         chlor.type = msg.extractPayloadByte(i + 6);
                         chlor.poolSetpoint = msg.extractPayloadByte(i + 10);
@@ -41,11 +43,11 @@ export class ChlorinatorMessage {
                         chlor.isActive = msg.extractPayloadByte(i + 22) === 1;
                         chlor.superChlorHours = msg.extractPayloadByte(i + 26);
                         chlor.address = 80 + i;
-                        let schlor = state.chlorinators.getItemById(chlor.id, isActive);
                         schlor.body = chlor.body;
                         schlor.poolSetpoint = chlor.poolSetpoint;
                         schlor.spaSetpoint = chlor.spaSetpoint;
                         schlor.type = chlor.type;
+                        schlor.isActive = chlor.isActive;
                         schlor.superChlorHours = chlor.superChlorHours;
                         state.emitEquipmentChanges();
                     }
