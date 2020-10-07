@@ -2169,6 +2169,7 @@ export class ChlorinatorCommands extends BoardCommands {
         if (isNaN(id)) obj.id = 1;
         // Merge all the information.
         let chlor = state.chlorinators.getItemById(id);
+        
         state.chlorinators.removeItemById(id);
         sys.chlorinators.removeItemById(id);
         state.emitEquipmentChanges();
@@ -2782,6 +2783,18 @@ export class ValveCommands extends BoardCommands {
     }
 }
 export class ChemControllerCommands extends BoardCommands {
+    public async deleteChemControllerAsync(data: any): Promise<ChemController> {
+        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+        if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+        let chem = sys.chemControllers.getItemById(id);
+        if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
+            sys.board.virtualChemControllers.stop();
+        chem.isActive = false;
+        sys.chemControllers.removeItemById(chem.id);
+        state.chemControllers.removeItemById(chem.id);
+        sys.emitEquipmentChange();
+        return Promise.resolve(chem);
+    }
     public async setChemControllerAsync(data: any): Promise<ChemController> {
         return new Promise<ChemController>(async (resolve, reject) => {
             // this is a combined chem config/state setter.  
@@ -2795,6 +2808,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
             let chem: ChemController;
+            
             if (typeof address !== 'undefined') chem = sys.chemControllers.getItemByAddress(address, true);
             else chem = sys.chemControllers.getItemById(id, true);
             let schem = state.chemControllers.getItemById(chem.id, true);
@@ -2802,7 +2816,7 @@ export class ChemControllerCommands extends BoardCommands {
             // Before we send an outbound ic packet, check if we are deleting this controller
             if (typeof data.type !== 'undefined' && data.type === 0) {
                 // remove
-                chem.isActive = false;
+                schem.isActive = chem.isActive = false;
                 sys.chemControllers.removeItemById(chem.id);
                 state.chemControllers.removeItemById(chem.id);
                 sys.emitEquipmentChange();
@@ -2848,6 +2862,7 @@ export class ChemControllerCommands extends BoardCommands {
                                     schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
                                     schem.orpTankLevel = Math.max(typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel, 0);
                                     chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+                                    chem.isActive = schem.isActive = true;
                                     _resolve(); // let IntelliChem status packet set values
                                 }
                             }

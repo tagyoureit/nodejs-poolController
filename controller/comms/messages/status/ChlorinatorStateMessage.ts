@@ -32,7 +32,7 @@ export class ChlorinatorStateMessage {
                 }
                 let chlor = sys.chlorinators.getItemById(msg.dest, true);
                 chlor.address = msg.dest + 79;
-                chlor.isActive = true;
+                if (typeof chlor.isActive === 'undefined') cstate.isActive = chlor.isActive = true;
             }
             else {
                 // message from controller
@@ -61,6 +61,7 @@ export class ChlorinatorStateMessage {
                     if (typeof chlor.name === 'undefined' || chlor.name === '')
                         chlor.name = msg.extractPayloadString(1, 16);
                     cstate.name = chlor.name;
+                    cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
                     break;
                 }

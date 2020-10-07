@@ -126,7 +126,7 @@ export class IntelliChemStateMessage {
         // The address is king here.  The id is not.
         let controller = sys.chemControllers.getItemByAddress(address, true);
         let scontroller = state.chemControllers.getItemById(controller.id, true);
-        controller.isActive = true;
+        scontroller.isActive = controller.isActive = true;
         scontroller.status = 0;
         scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
         controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set

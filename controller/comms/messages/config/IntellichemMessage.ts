@@ -39,15 +39,14 @@ export class IntellichemMessage {
                 for (let i = 0; i < 4; i++) {
                     let isActive = msg.extractPayloadByte(i + 14) === 1;
                     let controller = sys.chemControllers.getItemById(i + 1, isActive, { id:i + 1, type: 1 });
-                    controller.isActive = msg.extractPayloadByte(i + 14) === 1;
+                    let scontroller = state.chemControllers.getItemById(controller.id, isActive);
+                    scontroller.isActive = controller.isActive = isActive;
                     controller.isVirtual = false;
-                    
                     if (!controller.isActive) {
                         sys.chemControllers.removeItemById(controller.id);
                         state.chemControllers.removeItemById(controller.id);
                     }
                     else {
-                        let scontroller = state.chemControllers.getItemById(controller.id, true);
                         scontroller.address = controller.address = msg.extractPayloadByte(i + 10);
                         scontroller.type = controller.type = 2;
                         scontroller.body = controller.body = msg.extractPayloadByte(i + 2);

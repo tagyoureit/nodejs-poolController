@@ -1176,6 +1176,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     }
                     let schlor = state.chlorinators.getItemById(id, true);
                     let cchlor = sys.chlorinators.getItemById(id, true);
+                    schlor.isActive = cchlor.isActive = true;
                     for (let prop in chlor) {
                         if (prop in schlor) schlor[prop] = chlor[prop];
                         if (prop in cchlor) cchlor[prop] = chlor[prop];

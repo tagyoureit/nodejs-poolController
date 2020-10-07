@@ -16,7 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
 import { sys, Feature, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
-import {state, BodyTempState, ICircuitGroupState, LightGroupState} from "../../../State";
+import { state, BodyTempState, ICircuitGroupState, LightGroupState } from "../../../State";
+import { utils } from "../../../Constants";
 //import {setTimeout} from "timers";
 //import { exceptions, ExceptionHandler } from "winston";
 import { logger } from "../../../../logger/Logger";
@@ -78,9 +79,12 @@ export class ExternalMessage {
     }
     public static processIntelliChem(msg: Inbound) {
         let id = msg.extractPayloadByte(2) + 1;
-        if (msg.extractPayloadByte(6) > 0) {
-            let controller = sys.chemControllers.getItemById(id, true);
-            let scontroller = state.chemControllers.getItemById(id, true);
+        let isActive = utils.makeBool(msg.extractPayloadByte(6));
+        let controller = sys.chemControllers.getItemById(id, isActive);
+        let scontroller = state.chemControllers.getItemById(id, isActive);
+        controller.isActive = scontroller.isActive = isActive;
+        if (isActive) {
+            controller.isVirtual = false;
             scontroller.type = controller.type = 2;
             scontroller.name = controller.name = (controller.name || 'IntelliChem' + id);
             scontroller.body = controller.body = msg.extractPayloadByte(3);
