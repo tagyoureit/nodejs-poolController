@@ -1461,7 +1461,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
                                     let c = group.circuits.getItemByIndex(i);
-                                    c.desiredState = obj.circuits[i].desiredState;
+                                    c.desiredState = obj.circuits[i].desiredState || 1;
                                 }
                             }
                             resolve();
@@ -1477,7 +1477,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     }
                 else {
                     for (let i = 0; i < 16; i++)
-                        (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].desiredState) : out.payload.push(255);
+                        (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].desiredState || 1) : out.payload.push(255);
                 }
                 conn.queueSendMessage(out);
             });
