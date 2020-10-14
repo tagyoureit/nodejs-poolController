@@ -162,7 +162,7 @@
       "intellichem": {
         "enabled": true,
         "includeActions": [],
-        "exclueActions": [],
+        "excludeActions": [],
         "includeSource": [],
         "includeDest": [],
         "excludeSource": [],
@@ -171,7 +171,7 @@
       "intellivalve": {
         "enabled": true,
         "includeActions": [],
-        "exclueActions": [],
+        "excludeActions": [],
         "includeSource": [],
         "includeDest": [],
         "excludeSource": [],
