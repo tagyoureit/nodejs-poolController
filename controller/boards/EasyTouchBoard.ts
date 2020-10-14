@@ -767,7 +767,7 @@ class TouchBodyCommands extends BodyCommands {
                         return;
                     }
                     break;
-                case 1: // celcius
+                case 1: // celsius
                     if (setPoint < 4 || setPoint > 40) {
                         logger.warn(
                             `Setpoint of ${setPoint} is outside of acceptable range.`
