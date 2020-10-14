@@ -92,6 +92,7 @@ export class OptionsMessage {
                     case 1: // Unknown
                         break;
                 }
+                msg.isProcessed = true;
                 break;
         }
     }
@@ -117,12 +118,14 @@ export class OptionsMessage {
                     for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j];
                 }
                 else sys.pumps.removeItemById(10);
+                msg.isProcessed = true;
                 break;
             }
             case 40:
                 // [165,33,16,34,168,10],[0,0,0,254,0,0,0,0,0,0],[2,168 = manual heat mode off
                 // [165,33,16,34,168,10],[0,0,0,254,1,0,0,0,0,0],[2,169] = manual heat mode on
                 sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1;
+                msg.isProcessed = true;
                 break;
         }
     }

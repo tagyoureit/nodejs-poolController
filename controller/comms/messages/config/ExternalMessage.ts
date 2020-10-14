@@ -22,7 +22,7 @@ import { utils } from "../../../Constants";
 //import { exceptions, ExceptionHandler } from "winston";
 import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
-    public static process(msg: Inbound): void {
+    public static processIntelliCenter(msg: Inbound): void {
         switch (msg.extractPayloadByte(0)) {
             case 0: // Setpoints/HeatMode
                 ExternalMessage.processTempSettings(msg);
@@ -107,59 +107,72 @@ export class ExternalMessage {
             sys.chemControllers.removeItemById(id);
             state.chemControllers.removeItemById(id);
         }
+        msg.isProcessed = true;
     }
     public static processValve(msg: Inbound) {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);
         valve.circuit = msg.extractPayloadByte(3) + 1;
         valve.name = msg.extractPayloadString(4, 16);
         valve.isVirtual = false;
+        msg.isProcessed = true;
     }
     public static processPool(msg: Inbound) {
         switch (msg.extractPayloadByte(2)) {
             case 0: // Pool Alias
                 sys.general.alias = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 1: // Address
                 sys.general.location.address = msg.extractPayloadString(3, 32);
+                msg.isProcessed = true;
                 break;
             case 2: // Owner
                 sys.general.owner.name = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 3: // Email
                 sys.general.owner.email = msg.extractPayloadString(3, 32);
+                msg.isProcessed = true;
                 break;
             case 4: // Email 2
                 sys.general.owner.email2 = msg.extractPayloadString(3, 32);
+                msg.isProcessed = true;
                 break;
             case 5: // Phone
                 sys.general.owner.phone = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 6: // Phone 2
                 sys.general.owner.phone2 = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 7: // Zipcode
                 sys.general.location.zip = msg.extractPayloadString(3, 6);
+                msg.isProcessed = true;
                 break;
             case 8: // Country
                 sys.general.location.country = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 9: // City
                 sys.general.location.city = msg.extractPayloadString(3, 32);
+                msg.isProcessed = true;
                 break;
             case 10: // State
                 sys.general.location.state = msg.extractPayloadString(3, 16);
+                msg.isProcessed = true;
                 break;
             case 11: // Latitute
                 sys.general.location.latitude = ((msg.extractPayloadByte(4) * 256) + msg.extractPayloadByte(3)) / 100;
+                msg.isProcessed = true;
                 break;
             case 12: // Longitude
                 sys.general.location.longitude = -((msg.extractPayloadByte(4) * 256) + msg.extractPayloadByte(3)) / 100;
+                msg.isProcessed = true;
                 break;
             case 13: // Timezone
                 sys.general.location.timeZone = msg.extractPayloadByte(3);
-                break;
-            default:
-                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
+                msg.isProcessed = true;
                 break;
         }
     }
@@ -183,6 +196,7 @@ export class ExternalMessage {
                             sys.circuitGroups.removeItemById(groupId);
                             sgroup.isActive = false;
                             state.emitEquipmentChanges();
+                            msg.isProcessed = true;
                             break;
                         case 1:
                             group = sys.lightGroups.getItemById(groupId, true);
@@ -192,6 +206,7 @@ export class ExternalMessage {
                             sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
                             sgroup.type = group.type = type;
                             sgroup.isActive = group.isActive = true;
+                            msg.isProcessed = true;
                             break;
                         case 2:
                             group = sys.circuitGroups.getItemById(groupId, true);
@@ -201,6 +216,7 @@ export class ExternalMessage {
                             sys.lightGroups.removeItemById(groupId);
                             state.lightGroups.removeItemById(groupId);
                             sgroup.isActive = group.isActive = true;
+                            msg.isProcessed = true;
                             break;
                     }
                     if (group.isActive) {
@@ -222,6 +238,7 @@ export class ExternalMessage {
                         }
                     }
                     state.emitEquipmentChanges();
+                    msg.isProcessed = true;
                     break;
                 }
             case 1:
@@ -236,6 +253,7 @@ export class ExternalMessage {
                     }
                 }
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 2:
                 group = sys.circuitGroups.getInterfaceById(groupId);
@@ -248,6 +266,7 @@ export class ExternalMessage {
                         circuit.desiredState = (desiredState !== 255) ? desiredState : 3;
                     }
                 }
+                msg.isProcessed = true;
                 break;
         }
     }
@@ -256,7 +275,6 @@ export class ExternalMessage {
         ExternalMessage.processFeatureState(8, msg);
         ExternalMessage.processScheduleState(14, msg);
         ExternalMessage.processCircuitGroupState(12, msg);
-
     }
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
@@ -289,6 +307,7 @@ export class ExternalMessage {
         sys.board.heaters.updateHeaterServices();
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);
+        msg.isProcessed = true;
     }
 
     private static processCircuitState(start: number, msg: Inbound) {
@@ -324,6 +343,7 @@ export class ExternalMessage {
                 state.emitEquipmentChanges();
                 circuitId++;
             }
+            msg.isProcessed = true;
         }
         // state.body = body;
     }
@@ -357,6 +377,7 @@ export class ExternalMessage {
             }
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     public static processFeatureState(start: number, msg: Inbound) {
         let featureId = sys.board.equipmentIds.features.start;
@@ -379,6 +400,8 @@ export class ExternalMessage {
             }
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
+
     }
     private static processCircuitGroupState(start: number, msg: Inbound) {
         let groupId = sys.board.equipmentIds.circuitGroups.start;
@@ -432,6 +455,7 @@ export class ExternalMessage {
             }
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
 
     private static processBodies(msg: Inbound) {
@@ -449,6 +473,7 @@ export class ExternalMessage {
                 cbody = sys.bodies.getItemById(bodyId);
                 cbody.name = msg.extractPayloadString(3, 16);
                 state.temps.bodies.getItemById(bodyId, false).name = cbody.name;
+                msg.isProcessed = true;
                 break;
             case 4:
             case 5:
@@ -460,12 +485,16 @@ export class ExternalMessage {
                 else if (bodyId === 3) bodyId = 4;
                 cbody = sys.bodies.getItemById(bodyId);
                 cbody.capacity = msg.extractPayloadByte(3) * 1000;
+                msg.isProcessed = true;
                 break;
             case 13: // Pump notifications
+                msg.isProcessed = true;
                 break;
             case 14: // Heater notifications
+                msg.isProcessed = true;
                 break;
             case 15: // Chlorinator notifications
+                msg.isProcessed = true;
                 break;
         }
         state.emitEquipmentChanges();
@@ -522,6 +551,7 @@ export class ExternalMessage {
             s.emitEquipmentChange();
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processChlorinator(msg: Inbound) {
         let isActive = msg.extractPayloadByte(10) > 0;
@@ -532,6 +562,7 @@ export class ExternalMessage {
             sys.chlorinators.removeItemById(chlorId);
             state.chlorinators.removeItemById(chlorId);
             s.emitEquipmentChange();
+            msg.isProcessed = true;
             return;
         }
         else {
@@ -545,6 +576,7 @@ export class ExternalMessage {
             s.spaSetpoint = cfg.spaSetpoint;
             s.superChlorHours = cfg.superChlorHours;
             s.body = cfg.body;
+            msg.isProcessed = true;
         }
         state.emitEquipmentChanges();
     }
@@ -603,6 +635,7 @@ export class ExternalMessage {
             }
             spump.emitData('pumpExt', spump.getExtended()); // Do this so clients can delete them.
         }
+        msg.isProcessed = true;
     }
     private static processFeature(msg: Inbound) {
         let featureId = msg.extractPayloadByte(2) + sys.board.equipmentIds.features.start;
@@ -623,6 +656,7 @@ export class ExternalMessage {
             fstate.showInFeatures = feature.showInFeatures = msg.extractPayloadByte(5) > 0;
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processCircuit(msg: Inbound) {
         let circuitId = msg.extractPayloadByte(2) + 1;
@@ -650,6 +684,7 @@ export class ExternalMessage {
                 break;
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processTempSettings(msg: Inbound) {
         let fnTranslateByte = (byte: number) => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
@@ -661,102 +696,126 @@ export class ExternalMessage {
         switch (msg.extractPayloadByte(2)) {
             case 0: // Water Sensor 2 Adj
                 sys.equipment.tempSensors.setCalibration('water2', fnTranslateByte(msg.extractPayloadByte(3)));
+                msg.isProcessed = true;
                 break;
             case 1: // Water Sensor 1 Adj
                 sys.equipment.tempSensors.setCalibration('water1', fnTranslateByte(msg.extractPayloadByte(4)));
+                msg.isProcessed = true;
                 break;
             case 2: // Solar Sensor 1 Adj
                 sys.equipment.tempSensors.setCalibration('solar1', fnTranslateByte(msg.extractPayloadByte(5)));
+                msg.isProcessed = true;
                 break;
             case 3: // Air Sensor Adj
                 sys.equipment.tempSensors.setCalibration('air', fnTranslateByte(msg.extractPayloadByte(6)));
+                msg.isProcessed = true;
                 break;
             case 4: // Water Sensor 2 Adj
                 sys.equipment.tempSensors.setCalibration('water2', fnTranslateByte(msg.extractPayloadByte(7)));
+                msg.isProcessed = true;
                 break;
             case 5: // Solar Sensor 2 Adj
                 sys.equipment.tempSensors.setCalibration('solar2', fnTranslateByte(msg.extractPayloadByte(8)));
+                msg.isProcessed = true;
                 break;
             case 6: // Water Sensor 3 Adj
                 sys.equipment.tempSensors.setCalibration('water3', fnTranslateByte(msg.extractPayloadByte(9)));
+                msg.isProcessed = true;
                 break;
             case 7: // Solar Sensor 3 Adj
                 sys.equipment.tempSensors.setCalibration('solar3', fnTranslateByte(msg.extractPayloadByte(10)));
+                msg.isProcessed = true;
                 break;
             case 8: // Water Sensor 4 Adj
                 sys.equipment.tempSensors.setCalibration('water4', fnTranslateByte(msg.extractPayloadByte(11)));
+                msg.isProcessed = true;
                 break;
             case 9: // Solar Sensor 4 Adj
                 sys.equipment.tempSensors.setCalibration('water4', fnTranslateByte(msg.extractPayloadByte(12)));
+                msg.isProcessed = true;
                 break;
             case 11: // Clock mode
                 sys.general.options.clockMode = (msg.extractPayloadByte(14) & 0x0001) == 1 ? 24 : 12;
+                msg.isProcessed = true;
                 break;
             case 14: // Clock source
                 if ((msg.extractPayloadByte(17) & 0x0040) === 1)
                     sys.general.options.clockSource = 'internet';
                 else if (sys.general.options.clockSource !== 'server')
                     sys.general.options.clockSource = 'manual';
+                msg.isProcessed = true;
                 break;
             case 18: // Body 1 Setpoint
                 body = sys.bodies.getItemById(1, false);
                 body.setPoint = msg.extractPayloadByte(21);
                 state.temps.bodies.getItemById(1).setPoint = body.setPoint;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 19: // Body 3 Setpoint
                 body = sys.bodies.getItemById(3, false);
                 body.setPoint = msg.extractPayloadByte(22);
                 state.temps.bodies.getItemById(3).setPoint = body.setPoint;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 20: // Body 2 Setpoint
                 body = sys.bodies.getItemById(2, false);
                 body.setPoint = msg.extractPayloadByte(23);
                 state.temps.bodies.getItemById(2).setPoint = body.setPoint;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 21: // Body 4 Setpoint
                 body = sys.bodies.getItemById(4, false);
                 body.setPoint = msg.extractPayloadByte(24);
                 state.temps.bodies.getItemById(4).setPoint = body.setPoint;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 22: // Body 1 Heat Mode
                 body = sys.bodies.getItemById(1, false);
                 body.heatMode = msg.extractPayloadByte(25);
                 state.temps.bodies.getItemById(1).heatMode = body.heatMode;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 23: // Body 2 Heat Mode
                 body = sys.bodies.getItemById(2, false);
                 body.heatMode = msg.extractPayloadByte(26);
                 state.temps.bodies.getItemById(2).heatMode = body.heatMode;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 24: // Body 3 Heat Mode
                 body = sys.bodies.getItemById(3, false);
                 body.heatMode = msg.extractPayloadByte(27);
                 state.temps.bodies.getItemById(3).heatMode = body.heatMode;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 25: // Body 4 Heat Mode
                 body = sys.bodies.getItemById(4, false);
                 body.heatMode = msg.extractPayloadByte(28);
                 state.temps.bodies.getItemById(4).heatMode = body.heatMode;
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             case 27: // Pump Valve Delay
                 sys.general.options.pumpDelay = msg.extractPayloadByte(30) !== 0;
+                msg.isProcessed = true;
                 break;
             case 28: // Cooldown Delay
                 sys.general.options.cooldownDelay = msg.extractPayloadByte(31) !== 0;
+                msg.isProcessed = true;
                 break;
             case 36: // Manual Priority
                 sys.general.options.manualPriority = msg.extractPayloadByte(39) !== 0;
+                msg.isProcessed = true;
                 break;
             case 37: // Manual Heat
                 sys.general.options.manualHeat = msg.extractPayloadByte(40) !== 0;
+                msg.isProcessed = true;
                 break;
         }
     }

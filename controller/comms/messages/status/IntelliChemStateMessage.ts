@@ -32,6 +32,7 @@ export class IntelliChemStateMessage {
                 break;
             case 210: // OCP is asking IntelliChem controller for it's current status info.
                 // [165,0,144,16,210,1],[210],[2,234]
+                msg.isProcessed = true;
                 break;
             // ---------- End IntelliChem set get ----------- //
 
@@ -51,6 +52,7 @@ export class IntelliChemStateMessage {
             case 211: // SL or other controller is telling OCP to set IntelliChem value
                 // It will take these values and pass them in 146 to IntelliChem
                 // values that are NOT SET should be ignored
+                msg.isProcessed = true;
                 break;
             case 146: // OCP is telling IntelliChem that it needs to change its settings to...
                 let address = msg.dest;
@@ -61,6 +63,7 @@ export class IntelliChemStateMessage {
                     // We have not talked to the chem controller in 30 seconds so we have lost communication.
                     scontroller.status = scontroller.alarms.comms = 1;                   
                 }
+                msg.isProcessed = true;
                 break;
             // ---------- OCP set get ----------- //
         }
@@ -69,6 +72,7 @@ export class IntelliChemStateMessage {
     private static processControllerChange(msg: Inbound) {
         // this inb
         logger.info(`Incoming message from IntelliChem ${msg.toShortPacket()}`);
+        msg.isProcessed = true;
     }
     private static processState(msg: Inbound) {
         if (msg.source < 144 || msg.source > 158) return;
@@ -207,5 +211,6 @@ export class IntelliChemStateMessage {
         // manually emit extended values
         webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
         scontroller.hasChanged = false; // try to avoid duplicate emits
+        msg.isProcessed = true;
     }
 }

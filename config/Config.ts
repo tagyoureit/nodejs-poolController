@@ -16,6 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as path from "path";
 import * as fs from "fs";
+import { EventEmitter } from 'events';
+
+//import { conn } from "../controller/comms/Comms";
 const extend = require("extend");
 import { logger } from "../logger/Logger";
 class Config {
@@ -24,9 +27,11 @@ class Config {
     private _isInitialized: boolean=false;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
+    public emitter: EventEmitter;
     constructor() {
         let self=this;
         this.cfgPath = path.posix.join(process.cwd(), "/config.json");
+        this.emitter = new EventEmitter();
         // RKS 05-18-20: This originally had multiple points of failure where it was not in the try/catch.
         try {
             this._isLoading = true;
@@ -40,12 +45,14 @@ class Config {
                     fs.watch(this.cfgPath, (event, fileName) => {
                         if (fileName && event === 'change') {
                             if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                            console.log('Updating config file');
                             const stats = fs.statSync(self.cfgPath);
                             if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
                             this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
                             this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
                             logger.init(); // only reload logger for now; possibly expand to other areas of app
                             logger.info(`Reloading app config: ${fileName}`);
+                            this.emitter.emit('reloaded', this._cfg);
                         }
                     });
                 }
@@ -112,7 +119,7 @@ class Config {
         this.ensurePath(baseDir + '/logs/');
         this.ensurePath(baseDir + '/data/');
         // this.ensurePath(baseDir + '/replay/');
-        setTimeout(() => { config.update(); }, 100);
+        //setTimeout(() => { config.update(); }, 100);
     }
     private ensurePath(dir: string) {
         if (!fs.existsSync(dir)) {

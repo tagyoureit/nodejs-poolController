@@ -20,64 +20,10 @@ import { state, BodyTempState } from "../../../State";
 import { logger } from "../../../../logger/Logger";
 
 export class CircuitMessage {
-    public static process(msg: Inbound): void {
+    public static processTouch(msg: Inbound): void {
         switch (msg.action) {
             case 11: // IntelliTouch Circuits
                 CircuitMessage.processCircuitAttributes(msg);
-                break;
-            case 30: // IntelliCenter
-                switch (msg.extractPayloadByte(1)) {
-                    case 0: // Circuit Type
-                        CircuitMessage.processCircuitTypes(msg);
-                        break;
-                    case 1: // Freeze
-                        CircuitMessage.processFreezeProtect(msg);
-                        break;
-                    case 2: // Show in features
-                        CircuitMessage.processShowInFeatures(msg);
-                        break;
-                    case 3: // Circuit Names
-                    case 4:
-                    case 5:
-                    case 6:
-                    case 7:
-                    case 8:
-                    case 9:
-                    case 10:
-                    case 11:
-                    case 12:
-                    case 13:
-                    case 14:
-                    case 15:
-                    case 16:
-                    case 17:
-                    case 18:
-                    case 19:
-                    case 20:
-                    case 21:
-                    case 22:
-                    case 23:
-                    case 24:
-                        CircuitMessage.processCircuitNames(msg);
-                        break;
-                    case 25: // Not sure what this is.
-                        break;
-                    case 26:
-                        CircuitMessage.processLightingTheme(msg);
-                        break;
-                    case 27:
-                        CircuitMessage.processEggTimerHours(msg);
-                        break;
-                    case 28:
-                        CircuitMessage.processEggTimerMinutes(msg);
-                        break;
-                    case 29:
-                        CircuitMessage.processDontStop(msg);
-                        break;
-                    default:
-                        logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
-                        break;
-                }
                 break;
             case 39: // IntelliTouch Light Groups
             case 167:
@@ -85,6 +31,60 @@ export class CircuitMessage {
                 break;
             default:
                 logger.debug(`Unprocessed Message ${msg.toPacket()}`)
+                break;
+        }
+    }
+    public static processIntelliCenter(msg: Inbound) {
+        switch (msg.extractPayloadByte(1)) {
+            case 0: // Circuit Type
+                CircuitMessage.processCircuitTypes(msg);
+                break;
+            case 1: // Freeze
+                CircuitMessage.processFreezeProtect(msg);
+                break;
+            case 2: // Show in features
+                CircuitMessage.processShowInFeatures(msg);
+                break;
+            case 3: // Circuit Names
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+            case 16:
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            case 22:
+            case 23:
+            case 24:
+                CircuitMessage.processCircuitNames(msg);
+                break;
+            case 25: // Not sure what this is.
+                break;
+            case 26:
+                CircuitMessage.processLightingTheme(msg);
+                break;
+            case 27:
+                CircuitMessage.processEggTimerHours(msg);
+                break;
+            case 28:
+                CircuitMessage.processEggTimerMinutes(msg);
+                break;
+            case 29:
+                CircuitMessage.processDontStop(msg);
+                break;
+            default:
+                logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                 break;
         }
     }
@@ -141,6 +141,7 @@ export class CircuitMessage {
             sys.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
             state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
         }
+        msg.isProcessed = true;
     }
     private static processCircuitTypes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -152,8 +153,8 @@ export class CircuitMessage {
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
-
-        } 
+        }
+        msg.isProcessed = true;
     }
     private static processFreezeProtect(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -163,6 +164,7 @@ export class CircuitMessage {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.freeze = msg.extractPayloadByte(i) > 0;
         }
+        msg.isProcessed = true;
     }
     private static processShowInFeatures(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -172,6 +174,7 @@ export class CircuitMessage {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.showInFeatures = msg.extractPayloadByte(i) > 0;
         }
+        msg.isProcessed = true;
     }
     private static processCircuitNames(msg: Inbound) {
         let circuitId = ((msg.extractPayloadByte(1) - 3) * 2) + 1;  // In single body systems the very first circuit name is spa.  We used to start at the id start
@@ -179,6 +182,7 @@ export class CircuitMessage {
                                                                     // will filter our the first one.
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(2, 16);
         if (sys.board.equipmentIds.circuits.isInRange(circuitId)) sys.circuits.getItemById(circuitId++, true).name = msg.extractPayloadString(18, 16);
+        msg.isProcessed = true;
     }
     private static processLightingTheme(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -191,6 +195,7 @@ export class CircuitMessage {
             else
                 circuit.lightingTheme = msg.extractPayloadByte(i);
         }
+        msg.isProcessed = true;
     }
     private static processEggTimerHours(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -200,6 +205,7 @@ export class CircuitMessage {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.eggTimer = msg.extractPayloadByte(i) * 60 + (circuit.eggTimer || 0) % 60;
         }
+        msg.isProcessed = true;
     }
     private static processEggTimerMinutes(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -209,6 +215,7 @@ export class CircuitMessage {
             const circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.eggTimer = Math.floor(circuit.eggTimer / 60) * 60 + msg.extractPayloadByte(i);
         }
+        msg.isProcessed = true;
     }
     private static processDontStop(msg: Inbound) {
         let circuitId = sys.board.equipmentIds.circuits.start;
@@ -218,6 +225,7 @@ export class CircuitMessage {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
             circuit.dontStop = msg.extractPayloadByte(i) > 0;
         }
+        msg.isProcessed = true;
     }
 
     // Intellitouch
@@ -296,5 +304,6 @@ export class CircuitMessage {
             state.circuits.removeItemById(id);
             sys.circuitGroups.removeItemById(id);
         }
+        msg.isProcessed = true;
     }
 }
