@@ -293,7 +293,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             default:
                                 logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
                         }
-
+                        break;
                     }
                 case 'setpoint':
                     {
