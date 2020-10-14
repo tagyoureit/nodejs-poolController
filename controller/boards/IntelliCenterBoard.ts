@@ -1883,22 +1883,106 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 return [];
         }
     }
-    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        let circ = state.circuits.getInterfaceById(id);
-        let out = this.createCircuitStateMessage(id, val);
-        return new Promise<ICircuitState>((resolve, reject) => {
-            out.onComplete = (err, msg: Inbound) => {
-                if (err) reject(err);
-                else {
-                    circ.isOn = val;
-                    state.emitEquipmentChanges();
-                    resolve(circ);
+    private async verifyVersionAsync(): Promise<boolean> {
+        return new Promise<boolean>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 228,
+                retries: 3,
+                response: Response.create({ dest: -1, action: 164 }),
+                payload: [0],
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else {
+                        // Send an ACK to the OCP.
+                        let ack = Outbound.create({ action: 1, destination: 16, payload: [164] });
+                        conn.queueSendMessage(ack);
+                        resolve(true);
+                    }
                 }
-            };
-            out.retries = 5;
-            out.response = IntelliCenterBoard.getAckResponse(168);
+            });
             conn.queueSendMessage(out);
         });
+    }
+    private async getConfigAsync(payload: number[]): Promise<boolean> {
+        return new Promise<boolean>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 222,
+                retries: 3,
+                payload: payload,
+                response: Response.create({ dest: -1, action: 30, payload: payload }),
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else {
+                        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
+                        conn.queueSendMessage(ack);
+                        resolve(true);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+
+    }
+    private async verifyStateAsync(): Promise<boolean> {
+        return new Promise<boolean>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 222,
+                retries: 3,
+                payload: [15, 0],
+                response: Response.create({ dest: -1, action: 30, payload: [15, 0] }),
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else {
+                        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
+                        conn.queueSendMessage(ack);
+                        resolve(true);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        // As of 1.047 there is a sequence to this.
+        // 1. ICP Sends action 228 (Get versions)
+        // 2. OCP responds 164
+        // 3. ICP responds ACK(164)
+        // 4. ICP Sends action 222[15,0] (Get circuit config)
+        // 5. OCP responds 30[15,0] (Respond circuit config)
+        // 6. ICP responds ACK(30)
+        // NOT SURE IF COINCIDENTAL: The ICP seems to respond immediately after action 2.
+        // 7. ICP Sends 168[15,0,... new options, 0,0,0,0]
+        // 8. OCP responds ACK(168)
+
+        // The previous sequence is just additional noise on the bus. There is no need for it.  We just
+        // need to send the set circuit message.  It will reliably work 100% of the time but the ICP
+        // may set it back again.  THIS HAS TO BE A 1.047 BUG!
+        try {
+            //let b = await this.verifyVersionAsync();
+            //if (b) b = await this.getConfigAsync([15, 0]);
+            return new Promise<ICircuitState>((resolve, reject) => {
+                let out = this.createCircuitStateMessage(id, val);
+                out.onComplete = async (err, msg: Inbound) => {
+                    if (err) reject(err);
+                    else {
+                        // There is a current bug in 1.047 where one controller will reset the settings
+                        // of another when they are not the controller that set it.  Either this is a BS bug
+                        // or there is some piece of information we do not have.
+                        let b = await this.getConfigAsync([15, 0]);
+                        let circ = state.circuits.getInterfaceById(id);
+                        // This doesn't work to set it back because the ICP will set it back but often this
+                        // can take several seconds to do so.
+                        //if (circ.isOn !== utils.makeBool(val)) await this.setCircuitStateAsync(id, val);
+                        state.emitEquipmentChanges();
+                        resolve(circ);
+                    }
+                };
+                out.retries = 5;
+                out.response = IntelliCenterBoard.getAckResponse(168);
+                conn.queueSendMessage(out);
+            });
+        }
+        catch (err) { return Promise.reject(err); }
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
@@ -2021,7 +2105,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let out = Outbound.createMessage(168, [15, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0-9
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 10-19
             0, 0, 0, 0, 0, 0, 0, 0, 255, 255, // 20-29
-            255, 255, 0, 0, 1, 0], // 30-35
+            255, 255, 0, 0, 0, 0], // 30-35
             3);
 
         // Circuits are always contiguous so we don't have to worry about

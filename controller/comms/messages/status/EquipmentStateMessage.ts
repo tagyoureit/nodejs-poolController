@@ -316,7 +316,7 @@ export class EquipmentStateMessage {
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
-        // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047 beta.
+        // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047.
         if (model2 === 0 && (model1 === 23 || model1 >= 40)) {
             state.equipment.controllerType = 'intellicenter';
             sys.controllerType = ControllerType.IntelliCenter;
@@ -334,10 +334,12 @@ export class EquipmentStateMessage {
         Message.headerSubByte = msg.header[1];
         //console.log(process.memoryUsage());
         if (!state.isInitialized) {
+            msg.isProcessed = true;
             if (msg.action === 2) EquipmentStateMessage.initController(msg);
             else return;
         }
         else if (!sys.board.modulesAcquired) {
+            msg.isProcessed = true;
             if (msg.action === 204) {
                 let board = sys.board as IntelliCenterBoard;
                 // We have determined that the 204 message now contains the information
@@ -400,7 +402,7 @@ export class EquipmentStateMessage {
                     state.delay = msg.extractPayloadByte(12) & 63; // not sure what 64 val represents
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
-                        state.temps.waterSensor1 = msg.extractPayloadByte(14);
+                        state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
                         if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
                             state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         // We are making an assumption here in that the circuits are always labeled the same.
@@ -479,8 +481,8 @@ export class EquipmentStateMessage {
                         if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = (msg.extractPayloadByte(23) & 0x01) === 0x0; //23
                     }
                     else {
-                        state.temps.waterSensor1 = msg.extractPayloadByte(14);
-                        if (sys.bodies.length > 2) state.temps.waterSensor2 = msg.extractPayloadByte(15);
+                        state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
+                        if (sys.bodies.length > 2) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         if (sys.bodies.length > 0) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(6, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -571,6 +573,7 @@ export class EquipmentStateMessage {
                 state.time.year = msg.extractPayloadByte(5);
                 if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = msg.extractPayloadByte(7) === 0x01;
                 setTimeout(function () { sys.board.checkConfiguration(); }, 100);
+                msg.isProcessed = true;
                 break;
             case 8: {
                 // IntelliTouch only.  Heat status
@@ -595,6 +598,7 @@ export class EquipmentStateMessage {
                     if (tbody.isOn) tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }
                 state.emitEquipmentChanges();
+                msg.isProcessed = true;
                 break;
             }
             case 96:
@@ -608,6 +612,7 @@ export class EquipmentStateMessage {
                 ver.lastUpdated = new Date();
                 sys.processVersionChanges(ver); */
                 sys.configVersion.lastUpdated = new Date();
+                msg.isProcessed = true;
                 break;
             }
             case 204: // IntelliCenter only.
@@ -629,6 +634,7 @@ export class EquipmentStateMessage {
                     }
                 }
                 ExternalMessage.processFeatureState(9, msg);
+                msg.isProcessed = true;
                 // state.emitControllerChange();
                 // state.emitEquipmentChanges();
                 break;
@@ -637,42 +643,42 @@ export class EquipmentStateMessage {
     // RKS: 07-06-20 I am deprecating this from processing in IntelliCenter.  This was a throwback from *Touch but
     // not all the features are represented and I am unsure if it actually processes correctly in all situations.  The
     // bytes may be set but it may also be coincidental.  This is wholly unreliable in 1.047+.  Message 204 contains the complete set.
-    private static processFeatureState(msg: Inbound) {
-        // Somewhere in this packet we need to find support for 32 bits of features.
-        // Turning on the first defined feature set by 7 to 16
-        // Turning on the second defined feature set byte 7 to 32
-        // This means that the first 4 feature circuits are located at byte 7 on the 4 most significant bits.  This leaves 28 bits
-        // unaccounted for when it comes to a total of 32 features.
+    //private static processFeatureState(msg: Inbound) {
+    //    // Somewhere in this packet we need to find support for 32 bits of features.
+    //    // Turning on the first defined feature set by 7 to 16
+    //    // Turning on the second defined feature set byte 7 to 32
+    //    // This means that the first 4 feature circuits are located at byte 7 on the 4 most significant bits.  This leaves 28 bits
+    //    // unaccounted for when it comes to a total of 32 features.
 
-        // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-        // RKS: 09-26-20 IntelliCenter versions after 1.040 now pass the feature state in message 204.  The 2 data is no longer reliable.
-        if (parseFloat(sys.equipment.controllerFirmware) <= 1.04) {
+    //    // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
+    //    // RKS: 09-26-20 IntelliCenter versions after 1.040 now pass the feature state in message 204.  The 2 data is no longer reliable.
+    //    if (parseFloat(sys.equipment.controllerFirmware) <= 1.04) {
 
-            // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
-            // Not exactly sure why we are hardcoding byte 7 here.
-            // I combined the *touch circuits and features in processTouchCircuits below.
-            let featureId = sys.board.equipmentIds.features.start;
-            for (let i = 1; i <= sys.features.length; i++) {
-                // Use a case statement here since we don't know where to go after 4.
-                switch (i) {
-                    case 1:
-                    case 2:
-                    case 3:
-                    case 4: {
-                        const byte = msg.extractPayloadByte(7);
-                        const feature = sys.features.getItemById(featureId, false, { isActive: false });
-                        if (feature.isActive !== false) {
-                            const fstate = state.features.getItemById(featureId, feature.isActive);
-                            fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
-                            fstate.name = feature.name;
-                        }
-                        break;
-                    }
-                }
-                featureId++;
-            }
-        }
-    }
+    //        // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
+    //        // Not exactly sure why we are hardcoding byte 7 here.
+    //        // I combined the *touch circuits and features in processTouchCircuits below.
+    //        let featureId = sys.board.equipmentIds.features.start;
+    //        for (let i = 1; i <= sys.features.length; i++) {
+    //            // Use a case statement here since we don't know where to go after 4.
+    //            switch (i) {
+    //                case 1:
+    //                case 2:
+    //                case 3:
+    //                case 4: {
+    //                    const byte = msg.extractPayloadByte(7);
+    //                    const feature = sys.features.getItemById(featureId, false, { isActive: false });
+    //                    if (feature.isActive !== false) {
+    //                        const fstate = state.features.getItemById(featureId, feature.isActive);
+    //                        fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
+    //                        fstate.name = feature.name;
+    //                    }
+    //                    break;
+    //                }
+    //            }
+    //            featureId++;
+    //        }
+    //    }
+    //}
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
         // configuration already determined how many available circuits we have by querying the model of the panel
@@ -710,6 +716,7 @@ export class EquipmentStateMessage {
                 circuitId++;
             }
         }
+        msg.isProcessed = true;
     }
     private static processTouchCircuits(msg: Inbound) {
         let circuitId = 1;
@@ -747,6 +754,7 @@ export class EquipmentStateMessage {
         // state.body = body;
         //state.emitControllerChange();
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
@@ -807,5 +815,6 @@ export class EquipmentStateMessage {
                     break;
                 }
         }
+        msg.isProcessed = true;
     }
 }

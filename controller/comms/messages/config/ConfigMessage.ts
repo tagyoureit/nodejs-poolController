@@ -50,7 +50,7 @@ export class ConfigMessage {
                         OptionsMessage.process(msg);
                         break;
                     case 1:
-                        CircuitMessage.process(msg);
+                        CircuitMessage.processIntelliCenter(msg);
                         break;
                     case 2:
                         FeatureMessage.process(msg);

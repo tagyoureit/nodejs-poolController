@@ -35,6 +35,7 @@ export class VersionMessage {
         ver.equipment = msg.extractPayloadInt(32);
         ver.covers = msg.extractPayloadInt(34);
         ver.systemState = msg.extractPayloadInt(36);
-        sys.processVersionChanges( ver );
+        sys.processVersionChanges(ver);
+        msg.isProcessed = true;
     }
 }

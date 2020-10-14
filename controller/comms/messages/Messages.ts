@@ -262,6 +262,8 @@ export class Inbound extends Message {
         inbound.process();
     }
     public responseFor: number[] = [];
+    public isProcessed: boolean = false;
+    public collisions: number = 0;
     // Private methods
     private isValidChecksum(): boolean {
         if (this.protocol === Protocol.Chlorinator) return this.checksum % 256 === this.chkLo;
@@ -283,10 +285,36 @@ export class Inbound extends Message {
         return ndx;
     }
     // Methods
+    public rewind(bytes: number[], ndx: number): number {
+        let buff = [];
+        //buff.push(...this.padding);
+        //buff.push(...this.preamble);
+        buff.push(...this.header);
+        buff.push(...this.payload);
+        buff.push(...this.term);
+        // Add in the remaining bytes.
+        if (ndx < bytes.length - 1) buff.push(...bytes.slice(ndx, bytes.length - 1));
+        this.padding.push(...this.preamble);
+        this.preamble.length = 0;
+        this.header.length = 0;
+        this.payload.length = 0;
+        this.term.length = 0;
+        buff.shift();
+        this.protocol = Protocol.Unknown;
+        this._complete = false;
+        this.isValid = true;
+        
+        this.collisions++;
+        logger.info(`rewinding message collision ${this.collisions} ${ndx} ${bytes.length} ${JSON.stringify(buff)}`);
+        this.readPacket(buff);
+        return ndx; 
+        //return this.padding.length + this.preamble.length;
+    }
     public readPacket(bytes: number[]): number {
         var ndx = this.readHeader(bytes, 0);
         if (this.isValid && this.header.length > 0) ndx = this.readPayload(bytes, ndx);
         if (this.isValid && this.header.length > 0) ndx = this.readChecksum(bytes, ndx);
+        //if (this.isComplete && !this.isValid) return this.rewind(bytes, ndx);
         return ndx;
     }
     public mergeBytes(bytes) {
@@ -294,6 +322,7 @@ export class Inbound extends Message {
         if (this.header.length === 0) ndx = this.readHeader(bytes, ndx);
         if (this.isValid && this.header.length > 0) ndx = this.readPayload(bytes, ndx);
         if (this.isValid && this.header.length > 0) ndx = this.readChecksum(bytes, ndx);
+        //if (this.isComplete && !this.isValid) return this.rewind(bytes, ndx);
         return ndx;
     }
     public readHeader(bytes: number[], ndx: number): number {
@@ -338,8 +367,14 @@ export class Inbound extends Message {
                 else if (this.source >= 144 && this.source <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
                 if (this.datalen > 75) {
-                    this.isValid = false;
-                    logger.verbose(`Protocol length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message marked as invalid ${this.header}`);
+                    //this.isValid = false;
+                    logger.verbose(`Broadcast length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message rewound ${this.header}`);
+                    this.padding.push(...this.preamble);
+                    this.padding.push(...this.header.slice(0, 1));
+                    this.preamble = [];
+                    this.header = [];
+                    this.collisions++;
+                    return ndxHeader + 1;
                 }
                 break;
             case Protocol.Chlorinator:
@@ -362,14 +397,16 @@ export class Inbound extends Message {
                 break;
             default:
                 // We didn't get a message signature. don't do anything with it.
-                //logger.verbose(`Message Signature could not be found in ${bytes}. Resetting.`);
                 ndx = ndxStart;
                 if (bytes.length > 24) {
+                    // The length of the incoming bytes have exceeded 24 bytes.  This is very likely
+                    // flat out garbage on the serial port.  Strip off all but the last 5 preamble + signature bytes and move on.  Heck we aren't even
+                    // going to keep them.
                     // 255, 255, 255, 0, 255
-                    ndx = bytes.length - 3;
+                    ndx = bytes.length - 5;
                     let arr = bytes.slice(0, ndx);
                     // Remove all but the last 4 bytes.  This will result in nothing anyway.
-                    logger.silly(`Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
+                    logger.verbose(`Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
                 }
                 this.padding = [];
                 break;
@@ -457,124 +494,241 @@ export class Inbound extends Message {
             // we won't need this check here anymore.
             return;
         }
-        switch (this.action) {
-            // IntelliCenter
-            case 2:  // Shared IntelliCenter/IntelliTouch
-            case 5:
-            case 8:
-            case 96: // intellibrite lights
-            case 204:
-                EquipmentStateMessage.process(this);
-                break;
-            // IntelliTouch
-            case 10:
-                CustomNameMessage.process(this);
-                break;
-            case 11:
-                CircuitMessage.process(this);
-                break;
-            case 17:
-            case 145:
-                ScheduleMessage.process(this);
-                break;
-            case 18:
-                IntellichemMessage.process(this);
-                break;
-            case 24:
-            case 27:
-            case 152:
-            case 155:
-                PumpMessage.process(this);
-                break;
-            case 25:
-                ChlorinatorStateMessage.process(this);
-                break;
-            // IntelliCenter & IntelliTouch
-            case 30:
-                switch (sys.controllerType) {
-                    case ControllerType.IntelliCenter:
+        switch (sys.controllerType) {
+            // RKS: 10-10-20 - We have a message somewhere that is ending up in a process for one of the other controllers. This
+            // makes sure we are processing every message and alerting when a message is not being processed.
+            case ControllerType.IntelliCenter:
+                switch (this.action) {
+                    case 1: // ACK
+                        break;
+                    case 2:
+                    case 204:
+                        EquipmentStateMessage.process(this);
+                        break;
+                    case 30:
                         ConfigMessage.process(this);
                         break;
-                    case ControllerType.Unknown:
+                    case 147: // Not sure whether this is only for *Touch. If it is not then it probably should have been caught by the protocol.
+                        IntelliChemStateMessage.process(this);
+                        break;
+                    case 164:
+                        VersionMessage.process(this);
+                        break;
+                    case 168:
+                        ExternalMessage.processIntelliCenter(this);
+                        break;
+                    case 222: // A panel is asking for action 30s
+                    case 228: // A panel is asking for the current version
                         break;
                     default:
-                        OptionsMessage.process(this);
+                        logger.info(`An unprocessed message was received ${this.toPacket()}`)
                         break;
+                        
                 }
-                break;
-            case 22:
-            case 32:
-            case 33:
-                RemoteMessage.process(this);
-                break;
-            case 29:
-            case 35:
-                ValveMessage.process(this);
-                break;
-            case 39:
-            case 167:
-                CircuitMessage.process(this);
-                break;
-            case 40:
-                OptionsMessage.process(this);
-                break;
-            case 41:
-                CircuitGroupMessage.process(this);
-                break;
-            case 164:  //IntelliCenter
-                VersionMessage.process(this);
-                break;
-            case 168:
-                switch (sys.controllerType) {
-                    case ControllerType.IntelliCenter:
-                        // Some other turd is setting a value.
-                        // This appears to be like the config packet where the dispatching is dependent upon the byte 0 of the payload.
-                        // 7 = Intellichlor and this looks like the correct data.
-                        // Change pool level from 50 to 51%
-                        // [165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 10, 0, 13, 0, 1][2, 41]
-                        // Set cleaner on.
-                        // [165, 63, 16, 36, 168, 35][15, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0][6, 14] // Later on.
-                        //console.log(this.toLog());
-                        // We are going to catch some of these as this will reflect some of the state information much more rapidly.  For instance, when another controller
-                        // selects a new light theme a message will come across the wire with an action of 168 and a byte 0 of 1.  In order to get this change more rapidly
-                        // we will capture it and reflect the change.  If a failure occurs the request will either be sent again or a 164 will be sent on the wire.  At that point
-                        // all configuration changes will be picked up.
-                        ExternalMessage.process(this);
-                        break;
-                    case ControllerType.Unknown:
-                        break;
-                    default:
-                        HeaterMessage.process(this);
-                        break;
-                }
-                break;
-            case 197:
-                EquipmentStateMessage.process(this);    // Date/Time request
-                break;
-            case 252:
-                EquipmentMessage.process(this);
-                break;
-            case 9:
-            case 16:
-            case 34:
-            case 114:
-            case 137:
-            case 144:
-            case 162:
-                HeaterMessage.process(this);
-                break;
-            case 147:
-                IntelliChemStateMessage.process(this);
                 break;
             default:
-                // take these out...
-                if (this.action === 1) break; // Remove Acks.
-                if (this.action === 109 && this.payload[1] === 3) break;
-                if (this.source === 17 && this.payload[0] === 109) break;
-                if (sys.controllerType === ControllerType.IntelliCenter && (this.action === 222 || this.action === 228)) break; // These are config requests from another controller (100s of them).
-                logger.debug(`Packet not processed: ${this.toPacket()}`);
+                switch (this.action) {
+                    case 1: // Ack
+                        break;
+                    case 2:  // Shared IntelliCenter/IntelliTouch
+                    case 5:
+                    case 8:
+                    case 96: // intellibrite lights
+                        EquipmentStateMessage.process(this);
+                        break;
+                    // IntelliTouch
+                    case 10:
+                        CustomNameMessage.process(this);
+                        break;
+                    case 11:
+                        CircuitMessage.processTouch(this);
+                        break;
+                    case 17:
+                    case 145:
+                        ScheduleMessage.process(this);
+                        break;
+                    case 18:
+                        IntellichemMessage.process(this);
+                        break;
+                    case 24:
+                    case 27:
+                    case 152:
+                    case 155:
+                        PumpMessage.process(this);
+                        break;
+                    case 25:
+                        ChlorinatorStateMessage.process(this);
+                        break;
+                    case 30:
+                        if (sys.controllerType !== ControllerType.Unknown) OptionsMessage.process(this);
+                        break;
+                    case 22:
+                    case 32:
+                    case 33:
+                        RemoteMessage.process(this);
+                        break;
+                    case 29:
+                    case 35:
+                        ValveMessage.process(this);
+                        break;
+                    case 39:
+                    case 167:
+                        CircuitMessage.processTouch(this);
+                        break;
+                    case 40:
+                        OptionsMessage.process(this);
+                        break;
+                    case 41:
+                        CircuitGroupMessage.process(this);
+                        break;
+                    case 168:
+                        if (sys.controllerType !== ControllerType.Unknown) HeaterMessage.process(this);
+                        break;
+                    case 197:
+                        EquipmentStateMessage.process(this);    // Date/Time request
+                        break;
+                    case 252:
+                        EquipmentMessage.process(this);
+                        break;
+                    case 9:
+                    case 16:
+                    case 34:
+                    case 114:
+                    case 137:
+                    case 144:
+                    case 162:
+                        HeaterMessage.process(this);
+                        break;
+                    case 147:
+                        IntelliChemStateMessage.process(this);
+                        break;
+                    default:
+                        // take these out...
+                        if (this.action === 109 && this.payload[1] === 3) break;
+                        if (this.source === 17 && this.payload[0] === 109) break;
+                        logger.debug(`Packet not processed: ${this.toPacket()}`);
+                        break;
+                }
                 break;
         }
+        //switch (this.action) {
+        //    // IntelliCenter
+        //    case 2:  // Shared IntelliCenter/IntelliTouch
+        //    case 5:
+        //    case 8:
+        //    case 96: // intellibrite lights
+        //    case 204:
+        //        EquipmentStateMessage.process(this);
+        //        break;
+        //    // IntelliTouch
+        //    case 10:
+        //        CustomNameMessage.process(this);
+        //        break;
+        //    case 11:
+        //        CircuitMessage.process(this);
+        //        break;
+        //    case 17:
+        //    case 145:
+        //        ScheduleMessage.process(this);
+        //        break;
+        //    case 18:
+        //        IntellichemMessage.process(this);
+        //        break;
+        //    case 24:
+        //    case 27:
+        //    case 152:
+        //    case 155:
+        //        PumpMessage.process(this);
+        //        break;
+        //    case 25:
+        //        ChlorinatorStateMessage.process(this);
+        //        break;
+        //    // IntelliCenter & IntelliTouch
+        //    case 30:
+        //        switch (sys.controllerType) {
+        //            case ControllerType.IntelliCenter:
+        //                ConfigMessage.process(this);
+        //                break;
+        //            case ControllerType.Unknown:
+        //                break;
+        //            default:
+        //                OptionsMessage.process(this);
+        //                break;
+        //        }
+        //        break;
+        //    case 22:
+        //    case 32:
+        //    case 33:
+        //        RemoteMessage.process(this);
+        //        break;
+        //    case 29:
+        //    case 35:
+        //        ValveMessage.process(this);
+        //        break;
+        //    case 39:
+        //    case 167:
+        //        CircuitMessage.process(this);
+        //        break;
+        //    case 40:
+        //        OptionsMessage.process(this);
+        //        break;
+        //    case 41:
+        //        CircuitGroupMessage.process(this);
+        //        break;
+        //    case 164:  //IntelliCenter
+        //        VersionMessage.process(this);
+        //        break;
+        //    case 168:
+        //        switch (sys.controllerType) {
+        //            case ControllerType.IntelliCenter:
+        //                // Some other turd is setting a value.
+        //                // This appears to be like the config packet where the dispatching is dependent upon the byte 0 of the payload.
+        //                // 7 = Intellichlor and this looks like the correct data.
+        //                // Change pool level from 50 to 51%
+        //                // [165, 63, 15, 16, 168, 11][7, 0, 0, 32, 1, 51, 10, 0, 13, 0, 1][2, 41]
+        //                // Set cleaner on.
+        //                // [165, 63, 16, 36, 168, 35][15, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0][6, 14] // Later on.
+        //                //console.log(this.toLog());
+        //                // We are going to catch some of these as this will reflect some of the state information much more rapidly.  For instance, when another controller
+        //                // selects a new light theme a message will come across the wire with an action of 168 and a byte 0 of 1.  In order to get this change more rapidly
+        //                // we will capture it and reflect the change.  If a failure occurs the request will either be sent again or a 164 will be sent on the wire.  At that point
+        //                // all configuration changes will be picked up.
+        //                ExternalMessage.process(this);
+        //                break;
+        //            case ControllerType.Unknown:
+        //                break;
+        //            default:
+        //                HeaterMessage.process(this);
+        //                break;
+        //        }
+        //        break;
+        //    case 197:
+        //        EquipmentStateMessage.process(this);    // Date/Time request
+        //        break;
+        //    case 252:
+        //        EquipmentMessage.process(this);
+        //        break;
+        //    case 9:
+        //    case 16:
+        //    case 34:
+        //    case 114:
+        //    case 137:
+        //    case 144:
+        //    case 162:
+        //        HeaterMessage.process(this);
+        //        break;
+        //    case 147:
+        //        IntelliChemStateMessage.process(this);
+        //        break;
+        //    default:
+        //        // take these out...
+        //        if (this.action === 1) break; // Remove Acks.
+        //        if (this.action === 109 && this.payload[1] === 3) break;
+        //        if (this.source === 17 && this.payload[0] === 109) break;
+        //        if (sys.controllerType === ControllerType.IntelliCenter && (this.action === 222 || this.action === 228)) break; // These are config requests from another controller (100s of them).
+        //        logger.debug(`Packet not processed: ${this.toPacket()}`);
+        //        break;
+        //}
     }
     public process() {
         switch (this.protocol) {
@@ -881,7 +1035,7 @@ export class Response extends Message {
     }
     // Methods
     public isResponse(msgIn: Inbound, msgOut?: Outbound): boolean {
-        if (typeof this.action !== 'undefined' && this.action !== null && msgIn.action !== this.action)
+        if (typeof this.action !== 'undefined' && this.action !== null && this.action > 0 && msgIn.action !== this.action)
             return false;
         if (sys.controllerType === ControllerType.IntelliCenter) {
             // intellicenter packets
