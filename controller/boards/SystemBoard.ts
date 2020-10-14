@@ -486,7 +486,7 @@ export class byteValueMaps {
     ]);
     public tempUnits: byteValueMap = new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
-        [4, { name: 'C', desc: 'Celcius' }]
+        [4, { name: 'C', desc: 'Celsius' }]
     ]);
     public valveTypes: byteValueMap = new byteValueMap([
         [0, { name: 'standard', desc: 'Standard' }],
