@@ -290,7 +290,7 @@ export class EquipmentStateMessage {
         let pool = sys.circuits.getItemById(6, true);
         let spool = state.circuits.getItemById(6, true);
         pool.name = spool.name = 'Pool';
-        pool.type = spool.type = 6;
+        pool.type = spool.type = 2;
         pool.isActive = true;
         spool.isOn = false;
         const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });

@@ -48,18 +48,39 @@ export class Connection {
             this.emitter.on('messagewrite', (msg) => { this.buffer.pushOut(msg); });
         }
         if (this._cfg.netConnect && !this._cfg.mockPort) {
-            let nc: net.Socket = new net.Socket;
-            nc.on('connect', () => {
-                logger.info(`Net connect (socat) connected to: ${this._cfg.netHost}:${this._cfg.netPort}`);
-                nc.on('data', (data) => {
-                    if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data);
-                    this.resetConnTimer('timeout');
-                });
+            if (typeof this._port !== 'undefined' && this._port.isOpen) {
+                // This used to try to reconnect and recreate events even though the socket was already connected.  This resulted in
+                // instances where multiple event processors were present.
+                return Promise.resolve(true);
+            }
+            let nc: net.Socket = new net.Socket();
+            nc.on('connect', () => { logger.info(`Net connect (socat) connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
+            nc.on('ready', () => {
+                logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                nc.on('data', (data) => { if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data); });
             });
+            nc.on('close', (p) => {
+                this.isOpen = false;
+                if (typeof this._port !== 'undefined') this._port.destroy();
+                this._port = undefined;
+                logger.info(`Net connect (socat) closed ${p === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
+            });
+            nc.on('end', () => { // Happens when the other end of the socket closes.
+                this.isOpen = false;
+                this.resetConnTimer();
+                logger.info(`The end event was fired`);
+            }); 
+            //nc.on('drain', () => { logger.info(`The drain event was fired.`); });
+            //nc.on('lookup', (o) => { logger.info(`The lookup event was fired ${o}`); });
+            // Occurs when there is no activity.  This should not reset the connection, the previous implementation did so and
+            // left the connection in a weird state where the previous connection was processing events and the new connection was
+            // doing so as well.  This isn't an error it is a warning as the RS485 bus will most likely be communicating at all times.
+            nc.on('timeout', () => { logger.warn(`Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
             return new Promise<boolean>((resolve, reject) => {
+                // We only connect an error once as we will destroy this connection on error then recreate a new socket on failure.
                 nc.once('error', (err) => {
                     logger.error(`Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
-                    this.resetConnTimer('timeout');
+                    this.resetConnTimer();
                     this.isOpen = false;
                     resolve(false);
                 });
@@ -96,8 +117,8 @@ export class Connection {
                 // be open if a hardware interface is used and this method returns.
                 sp.open((err) => {
                     if (err) {
-                        conn.resetConnTimer();
-                        conn.isOpen = false;
+                        this.resetConnTimer();
+                        this.isOpen = false;
                         logger.error(`Error opening port: ${err.message}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
                         resolve(false);
                     }
@@ -112,9 +133,7 @@ export class Connection {
                     else logger.info(`Serial port: ${this._cfg.rs485Port} request to open succeeded without error`);
                     this._port = sp;
                     this.isOpen = true;
-                    sp.on('data', (data) => {
-                        if (!this.mockPort && !this.isPaused) this.emitter.emit('packetread', data);
-                    });
+                    sp.on('data', (data) => { if (!this.mockPort && !this.isPaused) this.emitter.emit('packetread', data); this.resetConnTimer(); });
                     this.resetConnTimer();
                 });
                 sp.on('close', (err) => {
