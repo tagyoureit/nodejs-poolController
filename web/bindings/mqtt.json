@@ -183,58 +183,63 @@
         {
             "name": "chlorinator",
             "description": "Populate the chlorinator topic",
-            "topics": [
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;",
-                    "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
-                    "description": "Bind 'on'/'off' as a message to the state topic."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/currentOutput",
-                    "message": "{\"currentOutput\":@bind=data.currentOutput;}",
-                    "description": "Send current output."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/poolSetpoint",
-                    "message": "{\"poolSetpoint\":@bind=data.poolSetpoint;}",
-                    "description": "Send pool setpoint."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/spaSetpoint",
-                    "message": "{\"spaSetpoint\":@bind=data.spaSetpoint;}",
-                    "description": "Send set point."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/status",
-                    "message": "{\"status\":@bind=data.status;}",
-                    "description": "Send status."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlor",
-                    "message": "{\"superChlor\":@bind=data.superChlor?'\"on\"':'\"off\"';}",
-                    "description": "Send superChlor."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlorHours",
-                    "message": "{\"superChlorHours\":@bind=data.superChlorHours;}",
-                    "description": "Send superChlorHours."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/type",
-                    "message": "{\"type\":@bind=data.type;}",
-                    "description": "Send type."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/targetOutput",
-                    "message": "{\"targetOutput\":@bind=data.targetOutput;}",
-                    "description": "Send targetOutput."
-                },
-                {
-                    "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
-                    "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}",
-                    "description": "Send virtualControllerStatus."
-                }
-            ]
+          "topics": [
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;",
+              "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+              "description": "Bind 'on'/'off' as a message to the state topic."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/currentOutput",
+              "message": "{\"currentOutput\":@bind=data.currentOutput;}",
+              "description": "Send current output."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/poolSetpoint",
+              "message": "{\"poolSetpoint\":@bind=data.poolSetpoint;}",
+              "description": "Send pool setpoint."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/spaSetpoint",
+              "message": "{\"spaSetpoint\":@bind=data.spaSetpoint;}",
+              "description": "Send set point."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/status",
+              "message": "{\"status\":@bind=data.status;}",
+              "description": "Send status."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlor",
+              "message": "{\"superChlor\":@bind=data.superChlor?'\"on\"':'\"off\"';}",
+              "description": "Send superChlor."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/superChlorHours",
+              "message": "{\"superChlorHours\":@bind=data.superChlorHours;}",
+              "description": "Send superChlorHours."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/saltLevel",
+              "message": "{\"saltLevel\":@bind=data.saltLevel;}",
+              "description": "Send salt level."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/type",
+              "message": "{\"type\":@bind=data.type;}",
+              "description": "Send type."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/targetOutput",
+              "message": "{\"targetOutput\":@bind=data.targetOutput;}",
+              "description": "Send targetOutput."
+            },
+            {
+              "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
+              "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}",
+              "description": "Send virtualControllerStatus."
+            }
+          ]
         },
         {
             "name": "lightGroup",
