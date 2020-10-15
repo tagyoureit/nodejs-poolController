@@ -72,13 +72,13 @@ export class Connection {
             });
         }
         else {
-            let sp: SerialPort = null;
             if (typeof this._port !== 'undefined' && this._port.isOpen) {
                 // This used to try to reconnect even though the serial port was already connected.  This resulted in
                 // instances where an access denied error was emitted.
                 this.resetConnTimer();
-                return;
+                return Promise.resolve(true);
             }
+            let sp: SerialPort = null;
             if (this._cfg.mockPort) {
                 this.mockPort = true;
                 SerialPort.Binding = MockBinding;
@@ -103,10 +103,15 @@ export class Connection {
                     }
                     else resolve(true);
                 });
+                // The event processors below should not resolve or reject the promise.  This is the misnomer with the stupid javascript promise
+                // structure when dealing with serial ports.  The original promise will be either accepted or rejected above with the open method.  These 
+                // won't be called until long after the promise is resolved above.  Yes we should never reject this promise.  The resolution is true
+                // for a successul connect and false otherwise.
                 sp.on('open', () => {
                     if (typeof conn._port !== 'undefined') logger.info(`Serial Port: ${this._cfg.rs485Port} recovered from lost connection.`)
                     else logger.info(`Serial port: ${this._cfg.rs485Port} request to open succeeded without error`);
                     this._port = sp;
+                    this.isOpen = true;
                     sp.on('data', (data) => {
                         if (!this.mockPort && !this.isPaused) this.emitter.emit('packetread', data);
                     });
