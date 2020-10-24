@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands, ChemControllerCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController } from '../Equipment';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection } from '../Equipment';
 import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -768,6 +768,26 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 console.log(`Rejected setGeneralAsync`);
                 reject(err);
             }
+        });
+    }
+    public async setTempSensorsAsync(obj?: any): Promise<TempSensorCollection> {
+        return new Promise<TempSensorCollection>(async (resolve, reject) => {
+            try {
+                let sensors = {
+                    waterTempAdj1: obj.waterTempAdj1,
+                    waterTempAdj2: obj.waterTempAdj2,
+                    waterTempAdj3: obj.waterTempAdj3,
+                    waterTempAdj4: obj.waterTempAdj4,
+                    airTempAdj: obj.airTempAdj, 
+                    solarTempAdj1: obj.solarTempAdj1,
+                    solarTempAdj2: obj.solarTempAdj2,
+                    solarTempAdj3: obj.solarTempAdj3,
+                    solarTempAdj4: obj.solarTempAdj4,
+                }
+                await this.setOptionsAsync(sensors); // Map this to the options message as these are one in the same.
+                resolve(sys.equipment.tempSensors);
+            }
+            catch (err) { reject(err); }
         });
     }
     public async setOptionsAsync(obj?: any) : Promise<Options> {
