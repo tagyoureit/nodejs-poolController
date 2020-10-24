@@ -65,17 +65,19 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 
     private subscribe = () => {
         let topics = [
-        `${this.rootTopic()}/state/+/setState`,
-        `${this.rootTopic()}/state/+/setstate`,
-        `${this.rootTopic()}/state/+/toggleState`,
-        `${this.rootTopic()}/state/+/togglestate`,
-        `${this.rootTopic()}/state/body/setPoint`,
-        `${this.rootTopic()}/state/body/setpoint`,
-        `${this.rootTopic()}/state/body/heatMode`,
-        `${this.rootTopic()}/state/body/heatmode`,
-        `${this.rootTopic()}/state/+/setTheme`,
-        `${this.rootTopic()}/state/+/settheme`,
-        `${this.rootTopic()}/state/chlorinator`        
+            `${this.rootTopic()}/state/+/setState`,
+            `${this.rootTopic()}/state/+/setstate`,
+            `${this.rootTopic()}/state/+/toggleState`,
+            `${this.rootTopic()}/state/+/togglestate`,
+            `${this.rootTopic()}/state/body/setPoint`,
+            `${this.rootTopic()}/state/body/setpoint`,
+            `${this.rootTopic()}/state/body/heatMode`,
+            `${this.rootTopic()}/state/body/heatmode`,
+            `${this.rootTopic()}/state/+/setTheme`,
+            `${this.rootTopic()}/state/+/settheme`,
+            `${this.rootTopic()}/state/chlorinator`,
+            `${this.rootTopic()}/state/temps`,
+            `${this.rootTopic()}/config/tempSensors`
         ];
         topics.forEach(topic => {
             this.client.subscribe(topic, (err, granted) => {
@@ -213,7 +215,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         if (msg[0] === '{') msg = JSON.parse(msg);
         const topics = topic.split('/');
         if (topics[0] === this.rootTopic() && typeof msg === 'object') {
-
+            // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
+            // between them so it doesn't matter but it will become an issue.
             switch (topics[topics.length - 1].toLowerCase()) {
                 case 'setstate': {
                     let id = parseInt(msg.id, 10);
@@ -352,8 +355,23 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         catch (err) {logger.error(err); }
                         break;
                     }
+                case 'temp':
+                case 'temps':
+                    try {
+                        await sys.board.system.setTempsAsync(msg);
+                    }
+                    catch (err) { logger.error(err); }
+                    break;
+                case 'tempsensor':
+                case 'tempsensors':
+                    try {
+                        await sys.board.system.setTempSensorsAsync(msg);
+                    }
+                    catch (err) { logger.error(err); }
+                    break;
                 default:
                     logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
+                    break;
             }
         }
     }

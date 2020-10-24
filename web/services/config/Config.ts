@@ -230,8 +230,26 @@ export class ConfigRoute {
             }
             return res.status(200).send(opts);
         });
+        app.get('/config/options/tempSensors', (req, res) => {
+            let opts = {
+                tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                sensors: sys.board.system.getSensors()
+            };
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
+        app.put('/config/tempSensors', async (req, res, next) => {
+            try {
+                await sys.board.system.setTempSensorsAsync(req.body);
+                let opts = {
+                    tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                    sensors: sys.board.system.getSensors()
+                };
+                return res.status(200).send(opts);
+            }
+            catch (err) { next(err); }
+        });
         app.put('/config/general', async (req, res, next) => {
             // Change the options for the pool.
             try {

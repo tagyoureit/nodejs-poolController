@@ -20,7 +20,7 @@ import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol } from '../comms/messages/Messages';
 import { utils, Heliotrope } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType } from '../Equipment';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState } from '../State';
 
@@ -789,8 +789,39 @@ export class SystemCommands extends BoardCommands {
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
         return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
     }
+    public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
+        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
+            sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
+        }
+        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
+            sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
+        }
+        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
+            sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
+        }
+        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
+            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj3));
+        }
+        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
+            sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
+        }
+        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
+            sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
+        }
+        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
+            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
+        }
+        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
+            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
+        }
+        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
+            sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
+        }
+        return new Promise<TempSensorCollection>((resolve, reject) => { resolve(sys.equipment.tempSensors); });
+    }
     public async setOptionsAsync(obj: any): Promise<Options> {
         if (obj.clockSource === 'server') sys.board.system.setTZ();
+        sys.board.system.setTempSensorsAsync(obj);
         sys.general.options.set(obj);
         return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
     }
