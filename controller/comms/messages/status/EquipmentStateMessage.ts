@@ -162,8 +162,8 @@ export class EquipmentStateMessage {
                         // AuxExtra (20) is valid if not used with solar
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
-                        // exclude Aux4-Aux7, Feature 5-8
-                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 15, 16, 17, 18])
+                        // exclude Aux5-Aux7, Feature 5-8
+                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9, 15, 16, 17, 18])
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
