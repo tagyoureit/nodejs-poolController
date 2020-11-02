@@ -123,7 +123,7 @@ export class ScheduleMessage {
              // It is possible that the runOnce schedule will be discovered before the eggTimer so we need to adjust the endTime 
             for (let i = 0; i < sys.schedules.length; i++){
                 const schedule: Schedule = sys.schedules.getItemByIndex(i);
-                if (schedule.scheduleType === 0 && schedule.circuit === eggTimer.circuit){
+                if (schedule.scheduleType === sys.board.valueMaps.scheduleTypes.getValue('runonce') && schedule.circuit === eggTimer.circuit){
                     const sstate = state.schedules.getItemById(schedule.id);
                     sstate.endTime = schedule.endTime = (schedule.startTime + eggTimer.runTime) % 1440; // remove days if we go past midnight                   
                 }
@@ -132,22 +132,18 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId, true);
             schedule.circuit = circuitId;
             schedule.startTime = msg.extractPayloadByte(2) * 60 + msg.extractPayloadByte(3);
-            // 26 is 'let the eggTimer control end time'
+            // 26 is 'let the eggTimer control end time' & run once
+            schedule.scheduleType = msg.extractPayloadByte(4) === 26 ? 26 : 0; 
             if (msg.extractPayloadByte(4) !== 26)
                 schedule.endTime = msg.extractPayloadByte(4) * 60 + msg.extractPayloadByte(5);
             else {
                 let _eggTimer = sys.circuits.getInterfaceById(circuitId).eggTimer || 720;
                 schedule.endTime = (schedule.startTime + _eggTimer) % 1440; // remove days if we go past midnight
-                
             }
             schedule.isActive = schedule.startTime !== 0;
             schedule.scheduleDays = msg.extractPayloadByte(6) & 0x7F; // 127
-            // todo: double check if this is opposity of IntelliCenter; if so add to easytouch board 
-            // this should be scheduleType
-            schedule.runOnce = (msg.extractPayloadByte(6) & 0x80); // 128; 
-            schedule.scheduleType = schedule.runOnce > 0 ? 128 : 0;
-            schedule.startTimeType = 0;  // Normalize as not supported by *Touch using manual.
-            schedule.endTimeType = 0; // Normalize as not supported by *Touch using manual.
+            if (schedule.startTimeType === 'undefined') schedule.startTimeType = 0;  
+            if (schedule.endTimeType === 'undefined') schedule.endTimeType = 0; 
 
             if (sys.circuits.getItemById(schedule.circuit).hasHeatSource && typeof schedule.heatSource === 'undefined') schedule.heatSource = sys.board.valueMaps.heatSources.getValue('nochange');
             // todo: add to base sched item
@@ -157,16 +153,20 @@ export class ScheduleMessage {
                 sstate.circuit = schedule.circuit;
                 sstate.startTime = schedule.startTime;
                 sstate.endTime = schedule.endTime;
-                sstate.scheduleType = schedule.runOnce;
-                sstate.scheduleDays = schedule.scheduleDays;
                 sstate.scheduleType = schedule.scheduleType;
+                sstate.scheduleDays = schedule.scheduleDays;
                 sstate.startTimeType = schedule.startTimeType;
                 sstate.endTimeType = schedule.endTimeType;
+                sstate.heatSource = schedule.heatSource;
+                sstate.heatSetpoint = schedule.heatSetpoint;
+                sstate.isActive = schedule.isActive;
+                state.schedules.sortById();
             }
         }
         if (!scheduleActive) {
             sys.schedules.removeItemById(schedId);
             state.schedules.removeItemById(schedId);
+            state.emitEquipmentChanges();
         }
 
         if (!eggTimerActive) {
@@ -263,7 +263,7 @@ export class ScheduleMessage {
             let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 let byte = msg.extractPayloadByte(i + 1);
-                schedule.runOnce = byte;
+                // schedule.runOnce = byte;
                 schedule.scheduleType = (byte & 1 & 0xFF) === 1 ? 0 : 128;
                 if ((byte & 4 & 0xFF) === 4) schedule.startTimeType = 1;
                 else if ((byte & 8 & 0xFF) === 8) schedule.startTimeType = 2;

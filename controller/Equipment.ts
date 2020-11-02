@@ -865,12 +865,12 @@ export class Schedule extends EqItem {
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get heatSource(): number | any { return this.data.heatSource; }
     public set heatSource(val: number | any) { this.setDataVal('heatSource', sys.board.valueMaps.heatSources.encode(val)); }
+    public get changeHeatSetpoint(): boolean { return this.data.changeHeatSetpoint; }
+    public set changeHeatSetpoint(val: boolean) { this.setDataVal('changeHeatSetpoint', val); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public get runOnce(): number { return this.data.runOnce; }
-    public set runOnce(val: number) { this.setDataVal('runOnce', val); }
     public get startMonth(): number { return this._startDate.getMonth() + 1; }
     public set startMonth(val: number) { this._startDate.setMonth(val - 1); this._saveStartDate(); }
     public get startDay(): number { return this._startDate.getDate(); }
@@ -889,13 +889,6 @@ export class Schedule extends EqItem {
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate)); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }
-    // RKS: Talk to Russ about these. The method below was originally set.  Unfortunately, this interacts with proxy and delete should be
-    // replaced by the corresponding deleteAsync call.
-    public setSchedule(obj: any) { sys.board.schedules.setSchedule(this, obj); }
-    public deleteSchedule() {
-        this.circuit = 0;
-        sys.board.schedules.setSchedule(this);
-    }
 }
 // TODO: Get rid of this
 export class EggTimerCollection extends EqItemCollection<EggTimer> {

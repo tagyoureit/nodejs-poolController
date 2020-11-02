@@ -518,7 +518,7 @@ export class ExternalMessage {
         if ((byte & 16 & 0xFF) === 16) cfg.endTimeType = 1;
         else if ((byte & 32 & 0xFF) === 32) cfg.endTimeType = 2;
         else cfg.endTimeType = 0;
-        cfg.runOnce = byte;
+        //cfg.runOnce = byte;
         cfg.scheduleDays = msg.extractPayloadByte(9);
         cfg.startMonth = msg.extractPayloadByte(10);
         cfg.startDay = msg.extractPayloadByte(11);

@@ -24,7 +24,6 @@ import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
 import { utils } from '../Constants';
 
-
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -163,8 +162,8 @@ export class EasyTouchBoard extends SystemBoard {
             [64, { name: 'sat', desc: 'Saturday', dow: 6 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'runonce', desc: 'Run Once', startDate: false, startTime: true, endTime: false, days: 'single', heatSource: true, heatSetpoint: false }],
-            [128, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, entTime: true, days: 'multi', heatSource: true, heatSetpoint: false }]
+            [0, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, entTime: true, days: 'multi', heatSource: true, heatSetpoint: false }],
+            [26, { name: 'runonce', desc: 'Run Once', startDate: false, startTime: true, endTime: false, days: 'single', heatSource: true, heatSetpoint: false }]
         ]);
         this.valueMaps.featureFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
@@ -238,12 +237,11 @@ export class EasyTouchBoard extends SystemBoard {
             [1, { name: 'sunrise', desc: 'Sunrise' }],
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
-        // TODO: RG - is this used in schedules?  It doesn't return correct results with scheduleDays.toArray()
         this.valueMaps.scheduleDays.transform = function (byte) {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
-                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, {}, this.get((byte & 1 << (bit - 1)))));
+                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, { val: 1 << (bit - 1)  }, this.get((byte & 1 << (bit - 1)))));
             }
             return { val: b, days: days };
         };
@@ -389,11 +387,6 @@ export class TouchConfigQueue extends ConfigQueue {
                 retries: 3,
                 response: true,
                 onResponseProcessed: function () { self.processNext(out); }
-                /*                 response: Response.create({
-                                    action: this.curr.category,
-                                    payload: [itm],
-                                    callback: function() { self.processNext(out); }
-                                }) */
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
@@ -405,7 +398,6 @@ export class TouchConfigQueue extends ConfigQueue {
             // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
             // this._configQueueTimer = setTimeout(()=>{sys.board.checkConfiguration();}, 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
-            // sys.board.virtualChlorinatorController.search();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();
@@ -428,7 +420,6 @@ export class TouchScheduleCommands extends ScheduleCommands {
             action: 145,
             payload: [sched.id, 0, 0, 0, 0, 0, 0],
             retries: 2
-            // ,response: Response.create({ action: 1, payload: [145] })
         });
         if (sched.circuit === 0) {
             // delete - take defaults
@@ -447,14 +438,13 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 setSchedConfig.payload[4] = Math.floor(sched.endTime / 60);
                 setSchedConfig.payload[5] = sched.endTime - (setSchedConfig.payload[4] * 60);
                 setSchedConfig.payload[6] = sched.scheduleDays;
-                if (sched.runOnce) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
+                if (sched.scheduleType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
             }
         }
         const schedConfigRequest = Outbound.create({
             action: 209,
             payload: [sched.id],
             retries: 2
-            // ,response: Response.create({ action: 17, payload: [sched.id] })
         });
 
         return [setSchedConfig, schedConfigRequest];
@@ -464,42 +454,73 @@ export class TouchScheduleCommands extends ScheduleCommands {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-            let sched = sys.schedules.getItemById(id, data.id <= 0);
-            let ssched = state.schedules.getItemById(id, data.id <= 0);
+            let sched = sys.schedules.getItemById(id, id > 0);
+            let ssched = state.schedules.getItemById(id, id > 0);
             let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-            if (typeof schedType === 'undefined') schedType = 0; // Repeats
+            if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
+
 
             let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
             let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-            let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-            if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+            // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+            // if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+            let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 32;
             let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
             let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
+            let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
 
             // Ensure all the defaults.
-            if (isNaN(startDate.getTime())) startDate = new Date();
+            // if (isNaN(startDate.getTime())) startDate = new Date();
             if (typeof startTime === 'undefined') startTime = 480; // 8am
             if (typeof endTime === 'undefined') endTime = 1020; // 5pm
             if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
             if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+            if (typeof circuit === 'undefined') circuit = 6; // pool
+            if (typeof heatSource !== 'undefined' && typeof heatSetpoint === 'undefined') heatSetpoint = state.temps.units === sys.board.valueMaps.tempUnits.getValue('C') ? 26 : 80;
+            if (typeof changeHeatSetpoint === 'undefined') changeHeatSetpoint = false;
 
             // At this point we should have all the data.  Validate it.
-            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
-            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));}
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));}
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));}
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));}
+            if (heatSetpoint < 0 || heatSetpoint > 104) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));}
             if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
-            // *Touch always requires the days.
-            if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+                { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));}
+            // if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+            if (typeof heatSource !== 'undefined' && !sys.circuits.getItemById(circuit).hasHeatSource) heatSource = undefined;
 
             // If we make it here we can make it anywhere.
-            let runOnce = (schedDays | (schedType !== 0 ? 0 : 0x80));
+            // let runOnce = (schedDays || (schedType !== 0 ? 0 : 0x80));
+            if (schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) {
+                // make sure only 1 day is selected
+                let scheduleDays = sys.board.valueMaps.scheduleDays.transform(schedDays);
+                let s2 = sys.board.valueMaps.scheduleDays.toArray();
+                if (scheduleDays.days.length > 1) {
+                    schedDays = scheduleDays.days[scheduleDays.days.length - 1].val;  // get the earliest day in the week
+                }
+                else if (scheduleDays.days.length === 0){
+                    for (let i = 0; i < s2.length; i++){
+                        if (s2[i].days[0].name==='sun') schedDays = s2[i].val;
+                    }
+                }
+                // update end time incase egg timer changed
+                const eggTimer = sys.circuits.getInterfaceById(circuit).eggTimer || 720;
+                endTime = (startTime + eggTimer) % 1440; // remove days if we go past midnight
+            }
+
+
+            // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
+            if (state.heliotrope.isCalculated) {
+                const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+                const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
+                if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
+                else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
+                if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
+                else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;            }
 
             let out = Outbound.create({
                 action: 145,
@@ -508,9 +529,9 @@ export class TouchScheduleCommands extends ScheduleCommands {
                     circuit,
                     Math.floor(startTime / 60),
                     startTime - (Math.floor(startTime / 60) * 60),
-                    Math.floor(endTime / 60),
+                    schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
                     endTime - (Math.floor(endTime / 60) * 60),
-                    runOnce],
+                    schedDays],
                 retries: 2
                 // ,response: Response.create({ action: 1, payload: [145] })
             });
@@ -520,19 +541,21 @@ export class TouchScheduleCommands extends ScheduleCommands {
                         sched.circuit = ssched.circuit = circuit;
                         sched.scheduleDays = ssched.scheduleDays = schedDays;
                         sched.scheduleType = ssched.scheduleType = schedType;
+                        sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
                         sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
                         sched.heatSource = ssched.heatSource = heatSource;
                         sched.startTime = ssched.startTime = startTime;
                         sched.endTime = ssched.endTime = endTime;
                         sched.startTimeType = ssched.startTimeType = startTimeType;
                         sched.endTimeType = ssched.endTimeType = endTimeType;
-                        sched.startDate = ssched.startDate = startDate;
+                        sched.isActive = ssched.isActive = true;
                         ssched.emitEquipmentChange();
                         // For good measure russ is sending out a config request for
                         // the schedule in question.  If there was a failure on the
                         // OCP side this will resolve it.
                         let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
                         conn.queueSendMessage(req);
+                        state.schedules.sortById();
                         resolve(sched);
                     }
                     else reject(err);
@@ -569,6 +592,8 @@ export class TouchScheduleCommands extends ScheduleCommands {
                         state.schedules.removeItemById(id);
                         ssched.emitEquipmentChange();
                         sched.isActive = false;
+                        let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                        conn.queueSendMessage(req);
                         resolve(sched);
                     }
                     else reject(err);
