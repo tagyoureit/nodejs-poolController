@@ -155,14 +155,16 @@ export class Heliotrope {
             else this._dtSunset = undefined;
             logger.verbose(`sunriseLocal:${sunriseLocal} sunsetLocal:${sunsetLocal} Calculating Heliotrope Valid`);
             this.isValid = typeof this._dtSunrise !== 'undefined' && typeof this._dtSunset !== 'undefined';
+            this.isCalculated = true;
         }
         else {
             logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.`);
             this.isValid = false;
             this._dtSunset = undefined;
             this._dtSunrise = undefined;
+            this.isCalculated = false;
         }
-        this.isCalculated = true;
+
     }
     public get sunrise(): Date {
         if (!this.isCalculated) this.calculate();

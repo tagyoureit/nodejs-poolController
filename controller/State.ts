@@ -526,7 +526,7 @@ class EqStateCollection<T> {
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
-    public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : extend(true, {}, this.data); }
+    public get(bCopy?: boolean) { return typeof bCopy === 'undefined' || !bCopy ? this.data : JSON.parse(JSON.stringify(this.data)) };// extend(true, {}, this.data); }
     public getExtended(): any {
         let arr = [];
         for (let i = 0; i < this.length; i++) {
@@ -791,6 +791,8 @@ export class ScheduleState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get changeHeatSetpoint(): boolean { return this.data.changeHeatSetpoint; }
+    public set changeHeatSetpoint(val: boolean) { this.setDataVal('changeHeatSetpoint', val); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }

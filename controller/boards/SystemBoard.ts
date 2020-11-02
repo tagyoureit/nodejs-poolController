@@ -22,7 +22,7 @@ import { Message, Outbound, Protocol } from '../comms/messages/Messages';
 import { utils, Heliotrope } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState } from '../State';
+import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -384,7 +384,7 @@ export class byteValueMaps {
         [255, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
     public heaterTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'No Heater', hasAddress:false }],
+        [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
         [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
         [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
         [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
@@ -394,20 +394,7 @@ export class byteValueMaps {
         [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
     ]);
     public heatModes: byteValueMap = new byteValueMap([]);
-    // RSG: virtual controllers typically don't have heat
-    /*         [0, { name: 'off', desc: 'Off' }],
-            [3, { name: 'heater', desc: 'Heater' }],
-            [5, { name: 'solar', desc: 'Solar Only' }],
-            [12, { name: 'solarpref', desc: 'Solar Preferred' }]
-        ]); */
     public heatSources: byteValueMap = new byteValueMap([]);
-    // RSG: virtual controllers typically don't have heat
-    /*         [0, { name: 'off', desc: 'No Heater' }],
-            [3, { name: 'heater', desc: 'Heater' }],
-            [5, { name: 'solar', desc: 'Solar Only' }],
-            [21, { name: 'solarpref', desc: 'Solar Preferred' }],
-            [32, { name: 'nochange', desc: 'No Change' }]
-        ]); */
     public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
@@ -442,7 +429,7 @@ export class byteValueMaps {
     ]);
     public bodyTypes: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
-        [1, { name: 'spa', desc: 'Spa'}]
+        [1, { name: 'spa', desc: 'Spa' }]
     ]);
     public bodies: byteValueMap = new byteValueMap([
         [0, { name: 'pool', desc: 'Pool' }],
@@ -482,7 +469,7 @@ export class byteValueMaps {
     ]);
     public groupCircuitStates: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
-        [1, {name: 'on', desc: 'On'}]
+        [1, { name: 'on', desc: 'On' }]
     ]);
     public tempUnits: byteValueMap = new byteValueMap([
         [0, { name: 'F', desc: 'Fahrenheit' }],
@@ -632,7 +619,7 @@ export class byteValueMaps {
 // acquiring state and configuration data.
 export class SystemBoard {
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
-    constructor(system: PoolSystem) {}
+    constructor(system: PoolSystem) { }
     protected _modulesAcquired: boolean = true;
     public needsConfigChanges: boolean = false;
     public valueMaps: byteValueMaps = new byteValueMaps();
@@ -758,7 +745,7 @@ export class BoardCommands {
     constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    public cancelDelay():Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay);}
+    public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public keepManualTime() {
         // every minute, updated the time from the system clock in server mode
@@ -877,7 +864,7 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor4':
                         {
-                            
+
                             let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
@@ -2200,7 +2187,7 @@ export class ChlorinatorCommands extends BoardCommands {
         if (isNaN(id)) obj.id = 1;
         // Merge all the information.
         let chlor = state.chlorinators.getItemById(id);
-        
+
         state.chlorinators.removeItemById(id);
         sys.chlorinators.removeItemById(id);
         state.emitEquipmentChanges();
@@ -2336,6 +2323,29 @@ export class ScheduleCommands extends BoardCommands {
                 sched[s] = obj[s];
         }
     }
+    public syncScheduleHeatSourceAndSetpoint(cbody: Body, tbody: BodyTempState) {
+        // check schedules to see if we need to adjust heat mode and setpoint.  This will be in effect for the first minute of the schedule
+        let schedules: ScheduleState[] = state.schedules.get(true);
+        for (let i = 0; i < schedules.length; i++) {
+            let sched = schedules[i];
+            // check if the id's, min, hour match
+            if (sched.circuit === cbody.circuit && sched.isActive && Math.floor(sched.startTime / 60)  === state.time.hours && sched.startTime % 60 === state.time.minutes) {
+                // check day match next as we need to iterate another array
+                // let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
+                // const days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
+                const days = (sched.scheduleDays as any).days.map(d => d.dow)
+                // if scheduleDays includes today
+                if (days.includes(state.time.toDate().getDay())) {
+                    if (sched.changeHeatSetpoint && (sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('off') && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
+                        setTimeout(() => sys.board.bodies.setHeatSetpointAsync(cbody, sched.heatSetpoint), 100);
+                    }
+                    if ((sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('nochange') && sched.heatSource !== tbody.heatMode) {
+                        setTimeout(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue((sched.heatSource as any).name)), 100);
+                    }
+                }
+            }
+        };
+    }
     public async setScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
@@ -2356,6 +2366,7 @@ export class ScheduleCommands extends BoardCommands {
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
             let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+            let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
 
             // Ensure all the defaults.
             if (isNaN(startDate.getTime())) startDate = new Date();
@@ -2378,6 +2389,7 @@ export class ScheduleCommands extends BoardCommands {
             sched.circuit = ssched.circuit = circuit;
             sched.scheduleDays = ssched.scheduleDays = schedDays;
             sched.scheduleType = ssched.scheduleType = schedType;
+            sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
             sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
             sched.heatSource = ssched.heatSource = heatSource;
             sched.startTime = ssched.startTime = startTime;
@@ -2503,8 +2515,8 @@ export class HeaterCommands extends BoardCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
-        sys.board.valueMaps.heatModes[0] = { name: 'off', desc: 'Off' };
-        sys.board.valueMaps.heatSources[0] = { name: 'off', desc: 'Off' };
+        sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });
+        sys.board.valueMaps.heatSources.set(0, { name: 'off', desc: 'Off' });
         if (gasHeaterInstalled) {
             sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
             sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
@@ -2698,7 +2710,7 @@ export class HeaterCommands extends BoardCommands {
                                             isOn = true;
                                             body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                         }
-                                        
+
                                         //else if (heater.coolingEnabled && state.time.isNight)
                                     }
                                     break;
@@ -2761,7 +2773,7 @@ export class HeaterCommands extends BoardCommands {
             let heater: Heater = heaters[i];
             if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
                 let hstate = state.heaters.getItemById(heater.id, true);
-                hstate.isOn = false;              
+                hstate.isOn = false;
             }
         }
     }
@@ -2839,7 +2851,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
             let chem: ChemController;
-            
+
             if (typeof address !== 'undefined') chem = sys.chemControllers.getItemByAddress(address, true);
             else chem = sys.chemControllers.getItemById(id, true);
             let schem = state.chemControllers.getItemById(chem.id, true);

@@ -14,12 +14,13 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+import { O_DSYNC } from 'constants';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 
 import { logger } from '../../../../logger/Logger';
 import { ControllerType } from '../../../Constants';
 import { Body, Circuit, ExpansionPanel, Feature, Heater, sys } from '../../../Equipment';
-import { BodyTempState, state } from '../../../State';
+import { BodyTempState, ScheduleState, State, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message } from '../Messages';
 
@@ -505,6 +506,7 @@ export class EquipmentStateMessage {
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                             }
                             tbody.heatStatus = heatStatus;
+                            sys.board.schedules.syncScheduleHeatSourceAndSetpoint(cbody, tbody);
                         }
                         if (sys.bodies.length > 1) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -528,6 +530,7 @@ export class EquipmentStateMessage {
                                 else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                             }
                             tbody.heatStatus = heatStatus;
+                            sys.board.schedules.syncScheduleHeatSourceAndSetpoint(cbody, tbody);
                         }
                     }
                     switch (sys.controllerType) {
