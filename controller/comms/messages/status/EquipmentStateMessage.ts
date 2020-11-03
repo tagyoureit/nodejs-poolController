@@ -161,17 +161,17 @@ export class EquipmentStateMessage {
                         sys.equipment.maxBodies = 2;
                         // AuxExtra (20) is valid if not used with solar
                         // Thus, valid features can be 11,12,13,14 and 20
-                        // See #113
-                        // exclude Aux5-Aux7, Feature 5-8
-                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9, 15, 16, 17, 18])
+                        // See #113, 244
+                        // exclude Aux5-Aux7
+                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
                         break;
                     case 3:
                         sys.equipment.model = 'EasyTouch2 4P';
                         // AuxExtra (20) is valid if not used with solar
                         // Thus, valid features can be 11,12,13,14 and 20
                         // See #113
-                        // exclude Aux4-Aux7, Feature 5-8
-                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 15, 16, 17, 18])
+                        // exclude Aux5-Aux7
+                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
                         break;
                     case 6:
                         sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
@@ -179,8 +179,8 @@ export class EquipmentStateMessage {
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
-                        // exclude Aux4-Aux7, Feature 3-8
-                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
+                        // exclude Aux5-Aux7
+                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
                         break;
                     case 7: // EasyTouch PL4 P/N 522523
                         sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
@@ -188,8 +188,8 @@ export class EquipmentStateMessage {
                         sys.equipment.maxPumps = 1;
                         sys.equipment.maxSchedules = 4;
                         sys.equipment.maxFeatures = 2;
-                        // exclude Aux4-Aux7, Feature 3-8
-                        sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
+                        // exclude Aux5-Aux7
+                        sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
                         break;
                 }
                 break;
