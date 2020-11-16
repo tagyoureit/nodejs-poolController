@@ -39,6 +39,13 @@ export class StateRoute {
         app.get('/state/circuit/:id', (req, res) => {
             res.status(200).send(state.circuits.getItemById(parseInt(req.params.id, 10)).get());
         });
+        app.get('/state/feature/:id', (req, res) => {
+            res.status(200).send(state.features.getItemById(parseInt(req.params.id, 10)).get());
+        });
+        app.get('/state/circuitGroup/:id', (req, res) => {
+            res.status(200).send(state.circuitGroups.getItemById(parseInt(req.params.id, 10)).get());
+        });
+
         app.get('/state/pump/:id', (req, res) => {
             // todo: need getInterfaceById.get() for features
             let pump = state.pumps.getItemById(parseInt(req.params.id, 10));
