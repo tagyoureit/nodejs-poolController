@@ -133,7 +133,7 @@ export class EquipmentStateMessage {
                 sys.equipment.maxCircuitGroups = 3;
                 sys.equipment.maxIntelliBrites = 10;
                 sys.equipment.dual = true;
-                sys.equipment.shared = true;
+                sys.equipment.shared = false;
                 sys.equipment.maxChemControllers = sys.equipment.maxChlorinators = 2;
                 break;
             case 13: // EasyTouch2 Models

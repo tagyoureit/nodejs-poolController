@@ -32,7 +32,7 @@ export class EasyTouchBoard extends SystemBoard {
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-        this.equipmentIds.circuits.start = sys.equipment.shared ? 1 : 2;
+        this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.customNames = new byteValueMap(
             sys.customNames.get().map((el, idx) => {
