@@ -25,6 +25,7 @@ export class CustomNameMessage
         customName.name = msg.extractPayloadString( 1, 11 );
         // customName.isActive = customNameId <= sys.equipment.maxCustomNames && !customName.name.includes('USERNAME-')
         if (customNameId >= sys.equipment.maxCustomNames) sys.equipment.maxCustomNames = customNameId + 1;
+        sys.board.system.syncCustomNamesValueMap();
         msg.isProcessed = true;
     }
 }

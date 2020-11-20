@@ -84,7 +84,7 @@ export class EasyTouchBoard extends SystemBoard {
             [37, { name: 'fountain2', desc: 'Fountain 2' }],
             [38, { name: 'fountain3', desc: 'Fountain 3' }],
             [39, { name: 'fountains', desc: 'Fountains' }],
-            [40, { name: 'frontlight', desc: 'DFront Light' }],
+            [40, { name: 'frontlight', desc: 'Front Light' }],
             [41, { name: 'gardenlts', desc: 'Garden Lights' }],
             [42, { name: 'gazebolts', desc: 'Gazebo Lights' }],
             [43, { name: 'highspeed', desc: 'High Speed' }],
@@ -185,10 +185,16 @@ export class EasyTouchBoard extends SystemBoard {
             [32, { name: 'is4is10', desc: 'IS4/IS10' }],
             [34, { name: 'solarHeatPump', desc: 'Solar Heat Pump' }],
             [35, { name: 'delays', desc: 'Delays' }],
+            [37, { name: 'unknown37', desc: 'unknown 37' }],
+            [38, { name: 'unknown38', desc: 'unknown 38' }],
             [39, { name: 'lightGroupPositions', desc: 'Light Group Positions' }],
             [40, { name: 'settings', desc: 'Settings' }],
             [41, { name: 'circuitGroups', desc: 'Circuit Groups' }],
+            [42, { name: 'unknown42', desc: 'unknown 42' }],
             [96, { name: 'setColor', desc: 'Set Color' }],
+            [109, { name: 'iLink1', desc: 'iLink Protocol 1' }],
+            [110, { name: 'iLink2', desc: 'iLink Protocol 2' }],
+            [111, { name: 'iLink3', desc: 'iLink Protocol 3' }],
             [114, { name: 'setHeatPump', desc: 'Heat Pump Status?' }],
             [131, { name: 'setDelayCancel', desc: 'Set Delay Cancel' }],
             [133, { name: 'setDateTime', desc: 'Set Date/Time' }],
@@ -197,6 +203,7 @@ export class EasyTouchBoard extends SystemBoard {
             [137, { name: 'setHeatPump', desc: 'Set heat pump?' }],
             [138, { name: 'setCustomName', desc: 'Set Custom Name' }],
             [139, { name: 'setCircuitNameFunc', desc: 'Set Circuit Name/Function' }],
+            [140, { name: 'unknown140', desc: 'unknown 140' }],
             [144, { name: 'setHeatPump2', desc: 'Set Heat Pump' }],
             [145, { name: 'setSchedule', desc: 'Set Schedule' }],
             [146, { name: 'setIntelliChem', desc: 'Set IntelliChem' }],
@@ -211,8 +218,8 @@ export class EasyTouchBoard extends SystemBoard {
             [161, { name: 'setQuickTouch', desc: 'Set QuickTouch Spa Side Remote' }],
             [162, { name: 'setSolarHeatPump', desc: 'Set Solar/Heat Pump' }],
             [163, { name: 'setDelay', desc: 'Set Delay' }],
-            [167, { name: 'set', desc: 'Set Light Groups/Positions' }],
-            [168, { name: 'set', desc: 'Set Heat Mode' }],
+            [167, { name: 'setLightGroup', desc: 'Set Light Groups/Positions' }],
+            [168, { name: 'setHeatMode', desc: 'Set Heat Mode' }],
             [197, { name: 'dateTime', desc: 'Get Date/Time' }],
             [200, { name: 'heatTemp', desc: 'Get Heat/Temperature' }],
             [202, { name: 'customNames', desc: 'Get Custom Names' }],
@@ -227,9 +234,12 @@ export class EasyTouchBoard extends SystemBoard {
             [224, { name: 'is4is10', desc: 'Get IS4/IS10' }],
             [226, { name: 'solarHeatPump', desc: 'Get Solar Heat Pump' }],
             [227, { name: 'delays', desc: 'Get Delays' }],
+            [229, { name: 'unknown229', desc: 'unknown 229' }],
+            [230, { name: 'unknown230', desc: 'unknown 230' }],
             [231, { name: 'lightGroupPositions', desc: 'Get Light Group Positions' }],
             [232, { name: 'settings', desc: 'Get Settings' }],
             [233, { name: 'circuitGroups', desc: 'Get Circuit Groups' }],
+            [234, { name: 'unknown234', desc: 'unknown 234' }],
             [252, { name: 'version', desc: 'Versions' }],
             [253, { name: 'version', desc: 'Get Versions' }]
         ]);
@@ -742,6 +752,7 @@ class TouchSystemCommands extends SystemCommands {
                         let c = sys.customNames.getItemById(id, true);
                         c.name = data.name;
                         resolve(c);
+                        sys.board.system.syncCustomNamesValueMap();
                     }
                 }
             });

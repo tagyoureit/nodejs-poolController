@@ -204,45 +204,6 @@ export class byteValueMaps {
                 else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
             }
         }
-        /*         this.chemControllerStatus.transform = function (byte: number) {
-                    let arr = [];
-                    for (let b = 8; b > 0; b--) {
-                        let bit = (1 << (b - 1));
-                        if ((byte & bit) > 0) {
-                            let v = this.get(b);
-                            if (typeof v !== "undefined") {
-                                arr.push(extend(true, {}, v, { val: bit }));
-                            }
-                        }
-                    }
-                    return arr;
-                } */
-        /*         this.chemControllerLimits.transform = function (byte: number) {
-                    let arr = [];
-                    for (let b = 8; b > 0; b--) {
-                        let bit = (1 << (b - 1));
-                        if ((byte & bit) > 0) {
-                            let v = this.get(b);
-                            if (typeof v !== "undefined") {
-                                arr.push(extend(true, {}, v, { val: bit }));
-                            }
-                        }
-                    }
-                    return arr;
-                }
-                this.chemControllerDosingStatus.transform = function (byte: number) {
-                    let arr = [];
-                    for (let b = 8; b > 0; b--) {
-                        let bit = (1 << (b - 1));
-                        if ((byte & bit) > 0) {
-                            let v = this.get(b);
-                            if (typeof v !== "undefined") {
-                                arr.push(extend(true, {}, v, { val: bit }));
-                            }
-                        }
-                    }
-                    return arr;
-                } */
     }
     public expansionBoards: byteValueMap = new byteValueMap();
     public panelModes: byteValueMap = new byteValueMap([
@@ -983,6 +944,7 @@ export class SystemCommands extends BoardCommands {
         return new Promise<CustomNameCollection>(async (resolve, reject) => {
             try {
                 await Promise.all(arr).catch(err => reject(err));
+                sys.board.system.syncCustomNamesValueMap();
                 resolve(sys.customNames);
             }
             catch (err) { reject(err); }
@@ -995,10 +957,18 @@ export class SystemCommands extends BoardCommands {
             if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
             let cname = sys.customNames.getItemById(id, true);
             cname.name = data.name;
+            sys.board.system.syncCustomNamesValueMap();
             return resolve(cname);
         });
     }
-
+    public syncCustomNamesValueMap() {
+        sys.customNames.sortById();
+        sys.board.valueMaps.customNames = new byteValueMap(
+            sys.customNames.get().map((el, idx) => {
+                return [idx + 200, { name: el.name, desc: el.name }];
+            })
+        );
+    }
 }
 export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
