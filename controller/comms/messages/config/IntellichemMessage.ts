@@ -53,6 +53,8 @@ export class IntellichemMessage {
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
+                        controller.acidTankCapacity = controller.orpTankCapacity = 6;
+                        controller.acidTankUnits = controller.orpTankUnits = '';
                         
                         if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
                         if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
