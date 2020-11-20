@@ -63,6 +63,8 @@ export class IntelliChemStateMessage {
                     // We have not talked to the chem controller in 30 seconds so we have lost communication.
                     scontroller.status = scontroller.alarms.comms = 1;                   
                 }
+                controller.acidTankCapacity = controller.orpTankCapacity = 6;
+                controller.acidTankUnits = controller.orpTankUnits = '';
                 msg.isProcessed = true;
                 break;
             // ---------- OCP set get ----------- //
@@ -136,7 +138,9 @@ export class IntelliChemStateMessage {
         controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
         scontroller.lastComm = new Date().getTime();
         scontroller.status = scontroller.alarms.comms = 0; 
-
+        controller.acidTankCapacity = controller.orpTankCapacity = 6;
+        controller.acidTankUnits = controller.orpTankUnits = '';
+        
         scontroller.address = controller.address;
         scontroller.pHLevel = msg.extractPayloadIntBE(0) / 100;
         scontroller.orpLevel = msg.extractPayloadIntBE(2);

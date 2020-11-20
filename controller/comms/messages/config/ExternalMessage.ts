@@ -85,6 +85,8 @@ export class ExternalMessage {
         controller.isActive = scontroller.isActive = isActive;
         if (isActive) {
             controller.isVirtual = false;
+            controller.acidTankCapacity = controller.orpTankCapacity = 6;
+            controller.acidTankUnits = controller.orpTankUnits = '';
             scontroller.type = controller.type = 2;
             scontroller.name = controller.name = (controller.name || 'IntelliChem' + id);
             scontroller.body = controller.body = msg.extractPayloadByte(3);

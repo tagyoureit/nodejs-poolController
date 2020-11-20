@@ -3381,6 +3381,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                     if (err) { reject(err); }
                     else {
                         chem.isActive = false;
+                        chem.acidTankCapacity = chem.orpTankCapacity = 6;
+                        chem.acidTankUnits = chem.orpTankUnits = '';
                         let schem = state.chemControllers.getItemById(id);
                         schem.isActive = false;
                         sys.chemControllers.removeItemById(id);
@@ -3465,6 +3467,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                         chem.alkalinity = alkalinity;
                         chem.type = 2;
                         chem.name = name;
+                        chem.acidTankCapacity = chem.orpTankCapacity = 6;
+                        chem.acidTankUnits = chem.orpTankUnits = '';
                         let cstate = state.chemControllers.getItemById(id, true);
                         cstate.body = chem.body;
                         cstate.address = chem.address;
