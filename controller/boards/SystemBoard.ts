@@ -456,7 +456,8 @@ export class byteValueMaps {
         [0, { name: 'none', desc: 'None' }],
         [1, { name: 'unknown', desc: 'Unknown' }],
         [2, { name: 'intellichem', desc: 'IntelliChem' }],
-        [3, { name: 'homegrown', desc: 'Homegrown' }]
+        [3, { name: 'homegrown', desc: 'Homegrown' }],
+        [4, { name: 'rem', desc: 'REM Chem'}]
     ]);
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -2873,6 +2874,7 @@ export class ChemControllerCommands extends BoardCommands {
                                     chem.calciumHardness = _ch;
                                     chem.alkalinity = _alk;
                                     schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
+
                                     schem.orpTankLevel = Math.max(typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel, 0);
                                     chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
                                     chem.isActive = schem.isActive = true;

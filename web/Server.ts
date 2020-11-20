@@ -17,9 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as path from "path";
 import * as fs from "fs";
 import express = require('express');
+import { utils } from "../controller/Constants";
 import { config } from "../config/Config";
 import { logger } from "../logger/Logger";
 import socketio = require("socket.io");
+const sockClient = require('socket.io-client');
 import { ConfigRoute } from "./services/config/Config";
 import { StateRoute } from "./services/state/State";
 import { StateSocket } from "./services/state/StateSocket";
@@ -55,21 +57,25 @@ export class WebServer {
         let srv;
         for (let s in cfg.servers) {
             let c = cfg.servers[s];
+            if (typeof c.uuid === 'undefined') {
+                c.uuid = utils.uuid();
+                config.setSection(`web.servers.${s}`, c);
+            }
             switch (s) {
                 case 'http':
-                    srv = new HttpServer();
+                    srv = new HttpServer(s, s);
                     break;
                 case 'http2':
-                    srv = new Http2Server();
+                    srv = new Http2Server(s, s);
                     break;
                 case 'https':
-                    srv = new HttpsServer();
+                    srv = new HttpsServer(s, s);
                     break;
                 case 'mdns':
-                    srv = new MdnsServer();
+                    srv = new MdnsServer(s, s);
                     break;
                 case 'ssdp':
-                    srv = new SsdpServer();
+                    srv = new SsdpServer(s, s);
                     break;
             }
             if (typeof srv !== 'undefined') {
@@ -81,22 +87,31 @@ export class WebServer {
         for (let s in cfg.interfaces) {
             let int;
             let c = cfg.interfaces[s];
+            if (typeof c.uuid === 'undefined') {
+                c.uuid = utils.uuid();
+                config.setSection(`web.interfaces.${s}`, c);
+            }
             if (!c.enabled) continue;
             let type = c.type || 'http';
             logger.info(`Init ${type} interface: ${c.name}`);
             switch (type) {
                 case 'http':
-                    int = new HttpInterfaceServer();
+                    int = new HttpInterfaceServer(c.name, type);
                     int.init(c);
                     this._servers.push(int);
                     break;
                 case 'influx':
-                    int = new InfluxInterfaceServer();
+                    int = new InfluxInterfaceServer(c.name, type);
                     int.init(c);
                     this._servers.push(int);
                     break;
                 case 'mqtt':
-                    int = new MqttInterfaceServer();
+                    int = new MqttInterfaceServer(c.name, type);
+                    int.init(c);
+                    this._servers.push(int);
+                    break;
+                case 'rem':
+                    int = new REMInterfaceServer(c.name, type);
                     int.init(c);
                     this._servers.push(int);
                     break;
@@ -143,10 +158,17 @@ export class WebServer {
     public mac() {
         return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac;
     }
+    public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
+    public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type);  }
 }
 class ProtoServer {
+    constructor(name: string, type: string) { this.name = name; this.type = type; }
+    public name: string;
+    public type: string;
+    public uuid: string;
     // base class for all servers.
     public isRunning: boolean = false;
+    public get isConnected() { return this.isRunning; }
     public emitToClients(evt: string, ...data: any) { }
     public emitToChannel(channel: string, evt: string, ...data: any) { }
     public stop() { }
@@ -157,6 +179,7 @@ export class Http2Server extends ProtoServer {
     public server: http2.Http2Server;
     public app: Express.Application;
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.app = express();
             // TODO: create a key and cert at some time but for now don't fart with it.
@@ -170,7 +193,7 @@ export class HttpServer extends ProtoServer {
     public sockServer: socketio.Server;
     //public parcel: parcelBundler;
     private _sockets: socketio.Socket[] = [];
-    private _pendingMsg: Inbound;
+    //private _pendingMsg: Inbound;
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
             // console.log(JSON.stringify({evt:evt, msg: 'Emitting...', data: data },null,2));
@@ -181,6 +204,7 @@ export class HttpServer extends ProtoServer {
         //console.log(`Emitting to channel ${channel} - ${evt}`)
         if (this.isRunning) this.sockServer.to(channel).emit(evt, ...data);
     }
+    public get isConnected() { return typeof this.sockServer !== 'undefined' && this._sockets.length > 0; }
     protected initSockets() {
         this.sockServer = socketio(this.server, { cookie: false });
 
@@ -202,6 +226,7 @@ export class HttpServer extends ProtoServer {
         });
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
     }
+
     private socketHandler(sock: socketio.Socket) {
         let self = this;
         this._sockets.push(sock);
@@ -271,6 +296,7 @@ export class HttpServer extends ProtoServer {
         ConfigSocket.initSockets(sock);
     }
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.app = express();
 
@@ -280,7 +306,8 @@ export class HttpServer extends ProtoServer {
                 var cfgHttps = config.getSection('web').server.https;
                 this.app.get('*', (res: express.Response, req: express.Request) => {
                     let host = res.get('host');
-                    host = host.replace(/:\d+$/, ':' + cfgHttps.port);
+                    // Only append a port if there is one declared.  This will be the case for urls that have have an implicit port.
+                    host = host.replace(/:\d+$/, typeof cfgHttps.port !== 'undefined' ? ':' + cfgHttps.port : '');
                     return res.redirect('https://' + host + req.url);
                 });
             }
@@ -342,6 +369,7 @@ export class HttpsServer extends HttpServer {
     
     public init(cfg) {
         // const auth = require('http-auth');
+        this.uuid = cfg.uuid;
         if (!cfg.enabled) return;
         try {
             this.app = express();
@@ -427,6 +455,7 @@ export class SsdpServer extends ProtoServer {
     // Simple service discovery protocol
     public server: any; //node-ssdp;
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             let self = this;
 
@@ -457,7 +486,7 @@ export class SsdpServer extends ProtoServer {
             });
         }
     }
-    public deviceXML() {
+    public static deviceXML() {
         let ver = sys.appVersion;
         let XML = `<?xml version="1.0"?>
                         <root xmlns="urn:schemas-upnp-org:PoolController-1-0">
@@ -489,6 +518,7 @@ export class MdnsServer extends ProtoServer {
     public mdnsEmitter = new EventEmitter();
     private queries = [];
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             logger.info('Starting up MDNS server');
             this.server = multicastdns({ loopback: true });
@@ -559,6 +589,7 @@ export class HttpInterfaceServer extends ProtoServer {
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
         }
@@ -633,6 +664,7 @@ export class InfluxInterfaceServer extends ProtoServer {
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
         }
@@ -692,7 +724,9 @@ export class MqttInterfaceServer extends ProtoServer {
     public bindings: HttpInterfaceBindings;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
+    public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
     public init(cfg) {
+        this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
         }
@@ -748,4 +782,132 @@ export class MqttInterfaceServer extends ProtoServer {
     }
 }
 
+export class REMInterfaceServer extends ProtoServer {
+    public init(cfg) {
+        this.cfg = cfg;
+        this.uuid = cfg.uuid;
+        if (cfg.enabled) {
+            this.initSockets();
+        }
+    }
+    public cfg;
+    public sockClient;
+    public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
+    private _sockets: socketio.Socket[] = [];
+    private async sendClientRequest(method: string, url: string, data?: any): Promise<string> {
+        try {
+            let opts = extend(true, { headers: {} }, this.cfg.options);
+            if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
+                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
+                return;
+            }
+            let sbody = typeof data === 'undefined' ? '' : typeof data === 'string' ? data : typeof data === 'object' ? JSON.stringify(data) : data.toString();
+            if (typeof sbody !== 'undefined') {
+                if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
+                opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
+            }
+            opts.path = url;
+            opts.method = method || 'GET';
+            let ret = await new Promise<any>((resolve, reject) => {
+                let req: http.ClientRequest;
+                let result = '';
+                if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
+                    opts.protocol = 'https:';
+                    req = https.request(opts, (response: http.IncomingMessage) => {
+                        response.on('error', (err) => { reject(err); });
+                        response.on('data', (data) => { result += data; });
+                        response.on('end', () => { resolve(result); });
+                    });
+                }
+                else {
+                    opts.protocol = undefined;
+                    req = http.request(opts, (response: http.IncomingMessage) => {
+                        response.on('error', (err) => { logger.error(err); reject(err); });
+                        response.on('data', (data) => {
+                            result += data; console.log('Got Data?');
+                        });
+                        response.on('end', () => { console.log('Request Ended'); resolve(result); });
+                    });
+                }
+                req.on('error', (err, req, res) => { logger.error(err); reject(err); });
+                req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
+                req.end();
+            }).catch((err) => { logger.error(err); });
+            return Promise.resolve(ret);
+        }
+        catch (err) { logger.error(err); return Promise.reject(err); }
+    }
+    private initSockets() {
+        try {
+            let self = this;
+            let url = `${this.cfg.options.protocol || 'http://'}${this.cfg.options.host}${typeof this.cfg.options.port !== 'undefined' ? ':' + this.cfg.options.port : ''}`;
+            logger.info(`Opening ${this.cfg.name} socket on ${url}`);
+            //console.log(this.cfg);
+            this.sockClient = sockClient(url, extend(true,
+                { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000, transports: ['websocket'], upgrade: false }, this.cfg.socket));
+            if (typeof this.sockClient === 'undefined') return Promise.reject(new Error('Could not Initialize REM Server.  Invalid configuration.'));
+            //this.sockClient = io.connect(url, { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000 });
+            //console.log(this.sockClient);
+            //console.log(typeof this.sockClient.on);
+            this.sockClient.on('connect_error', (err) => { logger.error(`${this.cfg.name} socket connection error: ${err}`); });
+            this.sockClient.on('connect_timeout', () => { logger.error(`${this.cfg.name} socket connection timeout`); });
+            this.sockClient.on('reconnect', (attempts) => { logger.info(`${this.cfg.name} socket reconnected after ${attempts}`); });
+            this.sockClient.on('reconnect_attempt', () => { logger.warn(`${this.cfg.name} socket attempting to reconnect`); });
+            this.sockClient.on('reconnecting', (attempts) => { logger.warn(`${this.cfg.name} socket attempting to reconnect: ${attempts}`); });
+            this.sockClient.on('reconnect_failed', (err) => { logger.warn(`${this.cfg.name} socket failed to reconnect: ${err}`); });
+            this.sockClient.on('close', () => { logger.info(`${this.cfg.name} socket closed`); });
+            this.sockClient.on('connect', () => {
+                logger.info(`${this.cfg.name} socket connected`);
+                this.sockClient.on('i2cDataValues', function (data) {
+                    //logger.info(`REM Socket i2cDataValues ${JSON.stringify(data)}`);
+
+                });
+            });
+            this.isRunning = true;
+        }
+        catch (err) { logger.error(err); }
+    }
+    public async setDevice(binding: string, data): Promise<boolean> {
+        // Calls a rest service on the REM to set the state of a connected device.
+        try {
+            let req: http.ClientRequest;
+            let opts = extend(true, { headers: {} }, this.cfg.options);
+            if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
+                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
+                return;
+            }
+
+            let sbody = JSON.stringify(data);
+            // We should now have all the tokens.  Put together the request.
+            if (typeof sbody !== 'undefined') {
+                if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
+                opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
+            }
+            if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
+                req = https.request(opts, (response: http.IncomingMessage) => {
+                    //console.log(response);
+                });
+            }
+            else {
+                req = http.request(opts, (response: http.IncomingMessage) => {
+                    //console.log(response.statusCode);
+                });
+            }
+            req.on('error', (err, req, res) => { logger.error(err); });
+            if (typeof sbody !== 'undefined') {
+                req.write(sbody);
+            }
+            req.end();
+
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async getDevices() {
+        try {
+            let response = await this.sendClientRequest('GET', '/devices/all');
+            return Promise.resolve(typeof response !== 'undefined' ? JSON.parse(response) : response);
+        }
+        catch (err) { logger.error(err); }
+    }
+}
 export const webApp = new WebServer();

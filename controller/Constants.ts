@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { logger } from "../logger/Logger";
 export class Heliotrope {
@@ -315,6 +314,103 @@ export class Utils {
         }
         return false;
     }
+    public uuid(a?, b?) { for (b = a = ''; a++ < 36; b += a * 51 & 52 ? (a ^ 15 ? 8 ^ Math.random() * (a ^ 20 ? 16 : 4) : 4).toString(16) : '-'); return b }
+    public convert = {
+        temperature: {
+            f: {
+                k: (val) => { return (val - 32) * (5 / 9) + 273.15; },
+                c: (val) => { return (val - 32) * (5 / 9); },
+                f: (val) => { return val; }
+            },
+            c: {
+                k: (val) => { return val + 273.15; },
+                c: (val) => { return val; },
+                f: (val) => { return (val * (9 / 5)) + 32; }
+            },
+            k: {
+                k: (val) => { return val; },
+                c: (val) => { return val - 273.15; },
+                f: (val) => { return ((val - 273.15) * (9 / 5)) + 32; }
+            },
+            convertUnits: (val: number, from: string, to: string) => {
+                if (typeof val !== 'number') return null;
+                let fn = this.convert.temperature[from.toLowerCase()];
+                if (typeof fn !== 'undefined' && typeof fn[to.toLowerCase()] === 'function') return fn[to.toLowerCase()](val);
+            }
+        },
+        volume: {
+            gal: {
+                l: (val) => { return val * 3.78541; },
+                ml: (val) => { return val * 3.78541 * 1000; },
+                cl: (val) => { return val * 3.78541 * 100; },
+                gal: (val) => { return val; },
+                oz: (val) => { return val * 128; },
+                pint: (val) => { return val / 8; },
+                qt: (val) => { return val / 4; },
+            },
+            l: {
+                l: (val) => { return val; },
+                ml: (val) => { return val * 1000; },
+                cl: (val) => { return val * 100; },
+                gal: (val) => { return val * 0.264172; },
+                oz: (val) => { return val * 33.814; },
+                pint: (val) => { return val * 2.11338; },
+                qt: (val) => { return val * 1.05669; },
+            },
+            ml: {
+                l: (val) => { return val * .001; },
+                ml: (val) => { return val; },
+                cl: (val) => { return val * .1; },
+                gal: (val) => { return val * 0.000264172; },
+                oz: (val) => { return val * 0.033814; },
+                pint: (val) => { return val * 0.00211338; },
+                qt: (val) => { return val * 0.00105669; },
+            },
+            cl: {
+                l: (val) => { return val * .01; },
+                ml: (val) => { return val * 10; },
+                cl: (val) => { return val; },
+                gal: (val) => { return val * 0.00264172; },
+                oz: (val) => { return val * 0.33814; },
+                pint: (val) => { return val * 0.0211338; },
+                qt: (val) => { return val * 0.0105669; },
+            },
+            oz: {
+                l: (val) => { return val * 0.0295735; },
+                ml: (val) => { return val * 29.5735; },
+                cl: (val) => { return val * 2.95735; },
+                gal: (val) => { return val * 0.0078125; },
+                oz: (val) => { return val; },
+                pint: (val) => { return val * 0.0625; },
+                qt: (val) => { return val * 0.03125; },
+            },
+            pint: {
+                l: (val) => { return val * 0.473176; },
+                ml: (val) => { return val * 473.176; },
+                cl: (val) => { return val * 47.3176; },
+                gal: (val) => { return val * 0.125; },
+                oz: (val) => { return val * 16; },
+                pint: (val) => { return val; },
+                qt: (val) => { return val * 0.5; },
+            },
+            qt: {
+                l: (val) => { return val * 0.946353; },
+                ml: (val) => { return val * 946.353; },
+                cl: (val) => { return val * 94.6353; },
+                gal: (val) => { return val * 0.25; },
+                oz: (val) => { return val * 32; },
+                pint: (val) => { return val * 2; },
+                qt: (val) => { return val; },
+
+            },
+            convertUnits: (val: number, from: string, to: string) => {
+                if (typeof val !== 'number') return null;
+                let fn = this.convert.volume[from.toLowerCase()];
+                if (typeof fn !== 'undefined' && typeof fn[to.toLowerCase()] === 'function') return fn[to.toLowerCase()](val);
+            }
+        }
+    }
+
 }
 
 export const utils = new Utils();

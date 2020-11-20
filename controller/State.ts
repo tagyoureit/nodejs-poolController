@@ -1382,9 +1382,9 @@ export class ChemControllerState extends EqState {
                 this.hasChanged = true;
             }
         } */
-    public get acidTankLevel(): number { return this.data.acidTankLevel; }
+    public get acidTankLevel(): number { return this.data.acidTankLevel || 0; }
     public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
-    public get orpTankLevel(): number { return this.data.orpTankLevel; }
+    public get orpTankLevel(): number { return this.data.orpTankLevel || 0; }
     public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
     /* public get status1(): number { return this.data.status1; }
     public set status1(val: number) {
@@ -1439,7 +1439,7 @@ export class ChemControllerState extends EqState {
     public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
     public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
     public get saturationIndex(): number { return this.data.saturationIndex; }
-    public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val); }
+    public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val || 0); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
     public get firmware(): string { return this.data.firmware; }
@@ -1480,6 +1480,10 @@ export class ChemControllerState extends EqState {
         obj.acidTankLevel = this.acidTankLevel || 0;
         obj.pHLevel = this.pHLevel || 0;
         obj.orpLevel = this.orpLevel || 0;
+        obj.acidTankCapacity = chem.acidTankCapacity;
+        obj.acidTankUnits = chem.acidTankUnits;
+        obj.orpTankCapacity = chem.orpTankCapacity;
+        obj.orpTankUnits = chem.orpTankUnits;
         return obj;
     }
 }

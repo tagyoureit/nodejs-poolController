@@ -27,7 +27,7 @@
         "multicast-dns": "^7.2.0",
         "node-ssdp": "^4.0.0",
         "serialport": "^9.0.1",
-        "socket.io": "^2.2.0",
+        "socket.io": "^2.3.0",
         "source-map-support": "^0.5.13",
         "winston": "^3.3.3"
     },
