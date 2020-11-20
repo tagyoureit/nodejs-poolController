@@ -209,6 +209,14 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/rem', async (req, res, next) => {
+            try {
+                let opts = {
+                    servers: await sys.getREMServers()
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
         app.get('/config/options/chlorinators', (req, res) => {
             let opts = {
                 types: sys.board.valueMaps.chlorinatorType.toArray(),

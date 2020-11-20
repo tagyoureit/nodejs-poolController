@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { state, ICircuitState, LightGroupState } from "../../../controller/State";
-import { sys } from "../../../controller/Equipment";
+import { sys, ChemController, Circuit, Feature } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
 import { ServiceParameterError } from "../../../controller/Errors";
@@ -71,6 +71,94 @@ export class StateSocket {
             try {
                 data = JSON.parse(data);
                 await sys.board.system.setTempsAsync(data).catch(err => logger.error(err));
+            }
+            catch (err) { logger.error(err); }
+        });
+        sock.on('/chemController', async (data: any) => {
+            try {
+                console.log(`chemController: ${data}`);
+                data = JSON.parse(data);
+                
+                // Get the chem controller.
+                let id = parseInt(data.id, 10);
+                let address = parseInt(data.address, 10);
+                let controller: ChemController;
+                if (!isNaN(id))
+                    controller = sys.chemControllers.getItemById(id);
+                else if (!isNaN(address))
+                    controller = sys.chemControllers.getItemByAddress(address);
+                if (typeof controller !== 'undefined') {
+                    let scontroller = state.chemControllers.getItemById(controller.id);
+                    if (typeof data.pHLevel !== 'undefined') {
+                        if (!isNaN(parseFloat(data.pHLevel))) scontroller.pHLevel = parseFloat(data.pHLevel);
+                        else if (typeof data.pHLevel === 'object') {
+                            if (!isNaN(parseFloat(data.pHLevel.pH))) scontroller.pHLevel = parseFloat(data.pHLevel.pH);
+                            if (!isNaN(parseFloat(data.pHLevel.temperature))) scontroller.temp = parseFloat(data.pHLevel.temperature);
+                            if (['C', 'F', 'c', 'f'].includes(data.pHLevel.tempUnits)) scontroller.tempUnits = data.pHLevel.tempUnits;
+                        }
+                    }
+                    if (typeof data.orpLevel !== 'undefined') scontroller.orpLevel = data.orpLevel;
+                    if (typeof data.temperature !== 'undefined') scontroller.temp = data.temperauture;
+                    if (typeof data.tempUnits !== 'undefined') scontroller.tempUnits = data.tempUnits;
+                    if (typeof data.acidTank !== 'undefined') {
+                        if (!isNaN(parseFloat(data.acidTank.level))) scontroller.acidTankLevel = parseFloat(data.acidTank.level);
+                        if (!isNaN(parseFloat(data.acidTank.capacity))) controller.acidTankCapacity = parseFloat(data.acidTank.capacity);
+                        if (typeof data.acidTank.units === 'string') controller.acidTankUnits = data.units;
+                    }
+                    if (typeof data.orpTank !== 'undefined') {
+                        if (!isNaN(parseFloat(data.orpTank.level))) scontroller.orpTankLevel = parseFloat(data.orpTank.level);
+                        if (!isNaN(parseFloat(data.orpTank.capacity))) controller.orpTankCapacity = parseFloat(data.orpTank.capacity);
+                        if (typeof data.orpTank.units === 'string') controller.orpTankUnits = data.orpTank.units;
+                    }
+
+                    // Need to build this out to include the type of controller.  If this is Homegrown or REM Chem we
+                    // will send the whole rest of the nut over to it.  Intellichem will only let us
+                    // set specific values.
+                    if (controller.type === 3) {
+
+                    }
+                }
+            }
+            catch (err) { logger.error(err); }
+        });
+        sock.on('/circuit', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = data.parseInt(data.id, 10);
+                if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
+                    await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
+                }
+            }
+            catch (err) { logger.error(err); }
+        });
+        sock.on('/feature', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = data.parseInt(data.id, 10);
+                if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
+                    await sys.board.features.setFeatureStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
+                }
+            }
+            catch (err) { logger.error(err); }
+        });
+        sock.on('/circuitGroup', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = data.parseInt(data.id, 10);
+                if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
+                    await sys.board.circuits.setCircuitGroupStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
+                }
+            }
+            catch (err) { logger.error(err); }
+        });
+        sock.on('/lightGroup', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = data.parseInt(data.id, 10);
+                if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
+                    await sys.board.circuits.setLightGroupStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
+                }
+                if (!isNaN(id) && typeof data.theme !== 'undefined') await sys.board.circuits.setLightGroupThemeAsync(id, data.theme);
             }
             catch (err) { logger.error(err); }
         });

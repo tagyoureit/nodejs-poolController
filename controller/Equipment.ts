@@ -102,8 +102,8 @@ export class PoolSystem implements IPoolSystem {
         versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
         // this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
+        //console.log(utils.uuid());
     }
-
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
     public async updateControllerDateTimeAsync(obj: any) { return sys.board.system.setDateTimeAsync(obj); }
@@ -255,6 +255,43 @@ export class PoolSystem implements IPoolSystem {
         Promise.resolve()
             .then(() => { fs.writeFileSync(sys.cfgPath, JSON.stringify(sys.data, undefined, 2)); })
             .catch(function(err) { if (err) logger.error('Error writing pool config %s %s', err, sys.cfgPath); });
+    }
+    // We are doing this because TS is lame. Accessing the app servers from the routes causes a cyclic include.
+    public findServersByType(type: string) {
+        let srv = [];
+        let servers = webApp.findServersByType(type);
+        for (let i = 0; i < servers.length; i++) {
+            srv.push({
+                uuid: servers[i].uuid,
+                name: servers[i].name,
+                type: servers[i].type,
+                isRunning: servers[i].isRunning,
+                isConnected: servers[i].isConnected
+            });
+        }
+        return srv;
+    }
+    public async getREMServers() {
+        try {
+            let srv = [];
+            let servers = webApp.findServersByType('rem');
+            for (let i = 0; i < servers.length; i++) {
+                let server = servers[i];
+                // Sometimes I hate type safety.
+                let devices = typeof server['getDevices'] === 'function' ? await server['getDevices']() : [];
+                console.log(devices);
+                srv.push({
+                    uuid: servers[i].uuid,
+                    name: servers[i].name,
+                    type: servers[i].type,
+                    isRunning: servers[i].isRunning,
+                    isConnected: servers[i].isConnected,
+                    devices: devices
+                });
+            }
+            return srv;
+        } catch (err) { logger.error(err); }
+
     }
     protected onchange=(obj, fn) => {
         const handler = {
@@ -1602,6 +1639,15 @@ export class ChemController extends EqItem {
     public set isorpDoseByVolume(val: boolean) { this.setDataVal('isorpDoseByVolume', val); }
     public get pHManualDosing(): boolean { return this.data.pHManualDosing; }
     public set pHManualDosing(val: boolean) { this.setDataVal('pHManualDosing', val); }
+    public get acidTankCapacity() { return this.data.acidTankCapacity; }
+    public set acidTankCapacity(val) { this.setDataVal('acidTankCapacity', val); }
+    public get acidTankUnits() { return this.data.acidTankUnits; }
+    public set acidTankUnits(val) { this.setDataVal('acidTankUnits', val); }
+    public get orpTankCapacity() { return this.data.orpTankCapacity; }
+    public set orpTankCapacity(val) { this.setDataVal('orpTankCapacity', val); }
+    public get orpTankUnits() { return this.data.orpTankUnits; }
+    public set orpTankUnits(val) { this.setDataVal('orpTankUnits', val); }
+
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
