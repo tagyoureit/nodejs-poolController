@@ -123,25 +123,25 @@
           "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
           "retain": true,
           "qos": 0
+        }
+      },
+      "rem": {
+        "name": "Relay Equipment Manager",
+        "type": "rem",
+        "enabled": false,
+        "options": {
+          "protocol": "http://",
+          "host": "raspberrypi",
+          "port": 8080
         },
-        "rem": {
-          "name": "Relay Equipment Manager",
-          "type": "rem",
-          "enabled": false,
-          "options": {
-            "protocol": "http://",
-            "host": "raspberrypi",
-            "port": 8080
-          },
-          "socket": {
-            "transports": [
-              "websocket"
-            ],
-            "upgrade": false,
-            "reconnectionDelay": 2000,
-            "reconnection": true,
-            "reconnectionDelayMax": 20000
-          }
+        "socket": {
+          "transports": [
+            "websocket"
+          ],
+          "upgrade": false,
+          "reconnectionDelay": 2000,
+          "reconnection": true,
+          "reconnectionDelayMax": 20000
         }
       }
     }
