@@ -2814,11 +2814,13 @@ export class ChemControllerCommands extends BoardCommands {
             // this is a combined chem config/state setter.  
             let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : undefined;
             let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+            let isAdd = false;
             if (typeof address === 'undefined' && id <= 0) {
                 // adding a chem controller
                 id = sys.chemControllers.nextAvailableChemController();
+                isAdd = true;               
             }
-            if (typeof id === 'undefined' || id > sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+            if (isAdd && sys.chemControllers.length >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
             if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
             let chem: ChemController;

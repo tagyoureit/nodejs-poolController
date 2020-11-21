@@ -3412,7 +3412,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             id = sys.chemControllers.nextAvailableChemController();
             isAdd = true;
         }
-        if (typeof id === 'undefined' || id > sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+        if (isAdd && sys.chemControllers.length >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
         chem = sys.chemControllers.getItemById(id, false); // Don't add it yet if it doesn't exist we will commit later after the OCP responds.
         if (isVirtual || chem.isVirtual || type !== 2) return super.setChemControllerAsync(data); // Fall back to the world of the virtual chem controller.
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
