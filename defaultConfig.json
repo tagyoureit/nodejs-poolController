@@ -90,7 +90,7 @@
         },
         "options": {
           "host": "0.0.0.0",
-          "port":  8081
+          "port": 8081
         }
       },
       "influxDB": {
@@ -99,7 +99,7 @@
         "enabled": false,
         "fileName": "influxDB.json",
         "options": {
-          "protocol": "http",  
+          "protocol": "http",
           "host": "192.168.0.1",
           "port": 32770,
           "username": "",
@@ -143,6 +143,15 @@
           "reconnection": true,
           "reconnectionDelayMax": 20000
         }
+      },
+      "equipmentManager": {
+        "name": "Equipment Manager",
+        "type": "equipmentManager",
+        "enabled": false,
+        "fileName": "equipmentManager.json",
+        "globals": {},
+        "options": {},
+        "uuid": "27d91217-bd91-4024-a39b-6d9be9bb3926"
       }
     }
   },

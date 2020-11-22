@@ -1,0 +1,65 @@
+{
+  "context": {
+    "name":  "Rules Manager",
+    "vars": {},
+    "options": {
+      "method": "PUT",
+      "headers": {
+        "CONTENT-TYPE": "application/json"
+      }
+    }
+  },
+  "events": [
+    {
+      "name": "controller",
+      "description": "Turn on needsCleaning flag for filter.  Evaluate on a controller socket emit.  True when the pool is on, pump is not priming, and filter psi > 15",
+      "enabled": true,
+      "filter": "@bind=data.id;===1 && @bind=state.filters.getItemById(1).psi;>15 && @bind=data.status.name;!=='priming'",
+      "options": {
+        "path": "/config/filter"
+      },
+      "body": "{\"needsCleaning\":true}"
+    },
+    {
+      "name": "controller",
+      "description": "Turn on needsCleaning flag for filter.  Evaluate on a controller socket emit.  True when the pool is on, pump is not priming, and filter psi > 15",
+      "enabled": true,
+      "filter": "@bind=data.id;===1 && @bind=state.filters.getItemById(1).psi;>15 && @bind=data.status.name;!=='priming'",
+      "options": {
+        "path": "/config/filter"
+      },
+      "body": {"needsCleaning":true}
+    },
+    {
+      "name": "controller",
+      "description": "Turn on needsCleaning flag for filter.  Evaluate on a controller/time socket emit.  Eval on the first day of every 3rd month when psi is >15 at any point",
+      "enabled": true,
+      "filter": "@bind=(new Date(data.time)).getMonth()%3;===0 && @bind=(new Date(data.time)).getDate();===1 && @bind=state.filters.getItemById(1).psi;>15",
+      "options": {
+        "path": "/config/filter"
+      },
+      "body": {"needsCleaning":true}
+    },
+    {
+      "name": "chemController",
+      "description": "Sets chlorinator to 50% if ORP is low",
+      "enabled": true,
+      "filter": "@bind=data.orpLevel; < @bind=sys.chemControllers.getItemById(1).orpSetpoint;",
+      "options": {
+        "path": "/config/chlorinator"
+      },
+      "body": {"id":1, "poolSetpoint":50}
+    },
+    {
+      "name": "chemController",
+      "description": "Sets chlorinator to 5% if ORP is in range",
+      "enabled": true,
+      "filter": "@bind=data.orpLevel; > @bind=sys.chemControllers.getItemById(1).orpSetpoint;",
+      "options": {
+        "path": "/config/chlorinator"
+      },
+      "body": {"id":1, "poolSetpoint":5}
+    }
+  
+  ]
+}

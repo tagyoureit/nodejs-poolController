@@ -44,6 +44,7 @@ interface IPoolSystem {
     features: FeatureCollection;
     pumps: PumpCollection;
     chlorinators: ChlorinatorCollection;
+    filters: FilterCollection;
     valves: ValveCollection;
     heaters: HeaterCollection;
     covers: CoverCollection;
@@ -52,10 +53,7 @@ interface IPoolSystem {
     eggTimers: EggTimerCollection;
     security: Security;
     chemControllers: ChemControllerCollection;
-    //intellichem: IntelliChem;
     board: SystemBoard;
-    // virtualChlorinatorControllers: VirtualChlorinatorControllerCollection;
-    // virtualPumpControllers: VirtualPumpControllerCollection;
     updateControllerDateTimeAsync(
         hour: number,
         min: number,
@@ -96,13 +94,11 @@ export class PoolSystem implements IPoolSystem {
         this.security = new Security(this.data, 'security');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
-        //this.intellichem = new IntelliChem(this.data, 'intellichem');
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
+        this.filters = new FilterCollection(this.data, 'filters');
         this.data.appVersion = state.appVersion.installed = this.appVersion =  JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
-        // this.intellibrite = new LightGroup(this.data, 'intellibrite', { id: 0, isActive: false, type: 3 });
-        //console.log(utils.uuid());
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -163,11 +159,8 @@ export class PoolSystem implements IPoolSystem {
         this.security.clear();
         this.valves.clear();
         this.chemControllers.clear();
-        //if (typeof this.data.intelliBrite !== 'undefined') this.intellibrite.clear();
+        this.filters.clear();
         if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
-        //this.intellichem.clear();
-        //console.log(this.configVersion);
-       
     }
     public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
@@ -230,6 +223,7 @@ export class PoolSystem implements IPoolSystem {
     public security: Security;
     public customNames: CustomNameCollection;
     public chemControllers: ChemControllerCollection;
+    public filters: FilterCollection;
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
@@ -1653,5 +1647,26 @@ export class ChemController extends EqItem {
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
         return chem;
     }
+}
+export class FilterCollection extends EqItemCollection<Filter> {
+    constructor(data: any, name?: string) { super(data, name || "filters"); }
+    public createItem(data: any): Filter { return new Filter(data); }
+}
+export class Filter extends EqItem {
+    public dataName='filterConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get filterType(): number | any { return this.data.filterType; }
+    public set filterType(val: number | any) { this.setDataVal('filterType', sys.board.valueMaps.filterTypes.encode(val)); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
+    public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
+    public get needsCleaning(): number { return this.data.needsCleaning; }
+    public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
 }
 export let sys = new PoolSystem();

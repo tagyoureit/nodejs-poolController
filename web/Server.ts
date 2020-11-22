@@ -41,6 +41,7 @@ import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import { InfluxInterfaceBindings } from './interfaces/influxInterface';
 import { MqttInterfaceBindings } from './interfaces/mqttInterface';
+import { EquipmentManagerInterfaceBindings } from './interfaces/equipmentManagerInterface';
 import { Timestamp } from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
@@ -112,6 +113,11 @@ export class WebServer {
                     break;
                 case 'rem':
                     int = new REMInterfaceServer(c.name, type);
+                    int.init(c);
+                    this._servers.push(int);
+                    break;
+                case 'equipmentManager':
+                    int = new EquipmentManagerInterfaceServer(c.name, type);
                     int.init(c);
                     this._servers.push(int);
                     break;
@@ -782,6 +788,68 @@ export class MqttInterfaceServer extends ProtoServer {
     }
 }
 
+export class EquipmentManagerInterfaceServer extends ProtoServer {
+    public bindingsPath: string;
+    public bindings: EquipmentManagerInterfaceBindings;
+    private _fileTime: Date = new Date(0);
+    private _isLoading: boolean = false;
+    public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
+    public init(cfg) {
+        this.uuid = cfg.uuid;
+        if (cfg.enabled) {
+            if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
+        }
+    }
+    public loadBindings(cfg): boolean {
+        this._isLoading = true;
+        if (fs.existsSync(this.bindingsPath)) {
+            try {
+                let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
+                let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
+                this.bindings = Object.assign<EquipmentManagerInterfaceBindings, any>(new EquipmentManagerInterfaceBindings(cfg), ext);
+                this.isRunning = true;
+                this._isLoading = false;
+                const stats = fs.statSync(this.bindingsPath);
+                this._fileTime = stats.mtime;
+                return true;
+            }
+            catch (err) {
+                logger.error(`Error reading interface bindings file: ${this.bindingsPath}. ${err}`);
+                this.isRunning = false;
+                this._isLoading = false;
+            }
+        }
+        return false;
+    }
+    public initBindings(cfg): boolean {
+        let self = this;
+        try {
+            this.bindingsPath = path.posix.join(process.cwd(), "/web/bindings") + '/' + cfg.fileName;
+            let fileTime = new Date(0).valueOf();
+            fs.watch(this.bindingsPath, (event, fileName) => {
+                if (fileName && event === 'change') {
+                    if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                    const stats = fs.statSync(self.bindingsPath);
+                    if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
+                    self.loadBindings(cfg);
+                    logger.info(`Reloading ${cfg.name || ''} interface config: ${fileName}`);
+                }
+            });
+            this.loadBindings(cfg);
+            return true;
+        }
+        catch (err) {
+            logger.error(`Error initializing interface bindings: ${err}`);
+        }
+        return false;
+    }
+    public emitToClients(evt: string, ...data: any) {
+        if (this.isRunning) {
+            // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
+            this.bindings.bindEvent(evt, ...data);
+        }
+    }
+}
 export class REMInterfaceServer extends ProtoServer {
     public init(cfg) {
         this.cfg = cfg;
