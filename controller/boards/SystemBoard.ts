@@ -20,9 +20,9 @@ import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol } from '../comms/messages/Messages';
 import { utils, Heliotrope } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection } from '../Equipment';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState } from '../State';
+import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -493,24 +493,18 @@ export class byteValueMaps {
         [1, { name: 'monitoring', desc: 'Monitoring' }],
         [2, { name: 'mixing', desc: 'Mixing' }]
     ]);
-    /* ---- TO GET RID OF ----- */
-    // public chemControllerWaterFlow: byteValueMap = new byteValueMap([
-    //     [0, { name: 'ok', desc: 'Ok' }],
-    //     [1, { name: 'alarm', desc: 'Alarm - No Water Flow' }]
+    public filterTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'sand', desc: 'Sand Filter', hasBackwash: true }],
+        [1, { name: 'cartridge', desc: 'Cartridge Filter', hasBackwash: false }],
+        [2, { name: 'de', desc: 'DE Filter', hasBackwash: true }],
+        [3, { name: 'unknown', desc: 'unknown' }]
+    ]);
+    // public filterPSITargetTypes: byteValueMap = new byteValueMap([
+    //     [0, { name: 'none', desc: 'Do not use filter PSI' }],
+    //     [1, { name: 'value', desc: 'Change filter at value' }],
+    //     [2, { name: 'percent', desc: 'Change filter with % increase' }],
+    //     [3, { name: 'increase', desc: 'Change filter with psi increase' }]
     // ]);
-    // public intelliChemStatus1: byteValueMap = new byteValueMap([
-    //     // need to be verified - and combined with below?
-    //     [37, { name: 'dosingAuto', desc: 'Dosing - Auto' }],
-    //     [69, { name: 'dosingManual', desc: 'Dosing Acid - Manual' }],
-    //     [85, { name: 'mixing', desc: 'Mixing' }],
-    //     [101, { name: 'monitoring', desc: 'Monitoring' }]
-    // ]);
-    // public intelliChemStatus2: byteValueMap = new byteValueMap([
-    //     // need to be verified
-    //     [20, { name: 'ok', desc: 'Ok' }],
-    //     [22, { name: 'dosingManual', desc: 'Dosing Chlorine - Manual' }]
-    // ]);
-    /* ---- TO GET RID OF END ----- */
     public countries: byteValueMap = new byteValueMap([
         [1, { name: 'US', desc: 'United States' }],
         [2, { name: 'CA', desc: 'Canada' }],
@@ -619,6 +613,7 @@ export class SystemBoard {
     public features: FeatureCommands = new FeatureCommands(this);
     public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
     public heaters: HeaterCommands = new HeaterCommands(this);
+    public filters: FilterCommands = new FilterCommands(this);
     public chemControllers: ChemControllerCommands = new ChemControllerCommands(this);
 
     public schedules: ScheduleCommands = new ScheduleCommands(this);
@@ -1194,122 +1189,6 @@ export class PumpCommands extends BoardCommands {
         let spump = state.pumps.getItemById(pump.id);
         spump.emitData('pumpExt', spump.getExtended());
     }
-    /* public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
-        const origValues = extend(true, {}, pumpCircuitDeltas);
-        let { pumpCircuitId, circuit, rate, units } = pumpCircuitDeltas;
-
-        let failed = false;
-        let succeeded = false;
-        // STEP 1 - Make a copy of the existing circuit
-        let shadowPumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId);
-
-        // if pumpCircuitId === 0, do we have an available circuit
-        if (pumpCircuitId === 0 || typeof pumpCircuitId === 'undefined') {
-            pumpCircuitId = pump.nextAvailablePumpCircuit();
-            // no circuits available
-            if (pumpCircuitId === 0) failed = true;
-            succeeded = true;
-        }
-        // if we get a bad pumpCircuitId then fail.  Only idiots will get here.
-        else if (pumpCircuitId < 1 || pumpCircuitId > 8) failed = true;
-        if (failed) return { result: 'FAILED', reason: { pumpCircuitId: pumpCircuitId } };
-
-        // STEP 1A: Validate Circuit
-        // first check if we are missing both a new circuitId or existing circuitId
-        if (typeof circuit !== 'undefined') {
-            let _circuit = sys.circuits.getInterfaceById(circuit);
-            if (_circuit.isActive === false || typeof _circuit.type === 'undefined') {
-                // not a good circuit, fail
-                return { result: 'FAILED', reason: { circuit: circuit } };
-            }
-            shadowPumpCircuit.circuit = circuit;
-            succeeded = true;
-        }
-        // if we don't have a circuit, fail
-        if (typeof shadowPumpCircuit.circuit === 'undefined') return { result: 'FAILED', reason: { circuit: 0 } };
-
-        // STEP 1B: Validate Rate/Units
-        let type = sys.board.valueMaps.pumpTypes.transform(pump.type).name;
-        switch (type) {
-            case 'vs':
-                // if VS, need rate only
-                // in fact, ignoring units
-                if (typeof rate === 'undefined') rate = shadowPumpCircuit.speed;
-                shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
-                shadowPumpCircuit.flow = undefined;
-                succeeded = true;
-                break;
-            case 'vf':
-                // if VF, need rate only
-                // in fact, ignoring units
-                if (typeof rate === 'undefined') rate = shadowPumpCircuit.flow;
-                shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
-                shadowPumpCircuit.speed = undefined;
-                succeeded = true;
-                break;
-            case 'vsf':
-                // if VSF, we can take either rate or units or both and make a valid pumpCircuit
-                if ((typeof rate !== 'undefined') && (typeof units !== 'undefined')) {
-                    // do we have a valid combo of units and rate? -- do we need to check that or assume it will be passed in correctly?
-                    if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
-                        shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(rate);
-                        shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        shadowPumpCircuit.flow = undefined;
-                        succeeded = true;
-                    }
-                    else {
-                        shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(rate);
-                        shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                        shadowPumpCircuit.speed = undefined;
-                        succeeded = true;
-                    }
-                }
-                else if (typeof rate === 'undefined') {
-                    // only have units; set default rate or use existing rate
-                    if (sys.board.valueMaps.pumpUnits.getName(units) === 'rpm') {
-                        shadowPumpCircuit.speed = pump.checkOrMakeValidRPM(shadowPumpCircuit.speed);
-                        shadowPumpCircuit.flow = undefined;
-                        succeeded = true;
-                    }
-                    else {
-                        shadowPumpCircuit.flow = pump.checkOrMakeValidGPM(shadowPumpCircuit.flow);
-                        shadowPumpCircuit.speed = undefined;
-                        succeeded = true;
-                    }
-                }
-                else if (typeof units === 'undefined') {
-                    let rateType = pump.isRPMorGPM(rate);
-                    if (rateType !== 'gpm') {
-                        // default to speed if None
-                        shadowPumpCircuit.flow = rate;
-                        shadowPumpCircuit.speed = undefined;
-                    }
-                    else {
-                        shadowPumpCircuit.speed = rate || 1000;
-                        shadowPumpCircuit.flow = undefined;
-                    }
-                    shadowPumpCircuit.units = sys.board.valueMaps.pumpUnits.getValue(rateType);
-                    succeeded = true;
-                }
-                break;
-        }
-
-        if (!succeeded) return { result: 'FAILED', reason: origValues };
-        // STEP 2: Copy values to real circuit -- if we get this far, we have a real circuit
-        let pumpCircuit: PumpCircuit = pump.circuits.getItemById(pumpCircuitId, true);
-        pumpCircuit.circuit = shadowPumpCircuit.circuit;
-        pumpCircuit.units = shadowPumpCircuit.units;
-        pumpCircuit.speed = shadowPumpCircuit.speed;
-        pumpCircuit.flow = shadowPumpCircuit.flow;
-        let spump = state.pumps.getItemById(pump.id);
-        spump.emitData('pumpExt', spump.getExtended());
-        sys.emitEquipmentChange();
-        // sys.board.virtualPumpControllers.setTargetSpeed();
-        return { result: 'OK' };
-
-    } */
 
     public setType(pump: Pump, pumpType: number) {
         // if we are changing pump types, need to clear out circuits
@@ -1372,22 +1251,6 @@ export class PumpCommands extends BoardCommands {
         _availCircuits.push({ type: 'none', id: 255, name: 'Remove' });
         return _availCircuits;
     }
-    // ping the pump and see if we get a response
-    /*     public async initPump(pump: Pump) {
-            try {
-                await this.setPumpToRemoteControl(pump, true);
-                await this.requestPumpStatus(pump);
-                logger.info(`found pump ${ pump.id }`);
-                let spump = sys.pumps.getItemById(pump.id, true);
-                spump.type = pump.type;
-                pump.circuits.clear();
-                await this.setPumpToRemoteControl(pump, false);
-            }
-            catch (err) {
-                logger.warn(`Init pump cannot find pump: ${ err.message }.  Removing Pump.`);
-                if (pump.id > 1) { sys.pumps.removeItemById(pump.id); }
-            }
-        } */
 
     public run(pump: Pump) {
         let spump = state.pumps.getItemById(pump.id);
@@ -2300,7 +2163,7 @@ export class ScheduleCommands extends BoardCommands {
         for (let i = 0; i < schedules.length; i++) {
             let sched = schedules[i];
             // check if the id's, min, hour match
-            if (sched.circuit === cbody.circuit && sched.isActive && Math.floor(sched.startTime / 60)  === state.time.hours && sched.startTime % 60 === state.time.minutes) {
+            if (sched.circuit === cbody.circuit && sched.isActive && Math.floor(sched.startTime / 60) === state.time.hours && sched.startTime % 60 === state.time.minutes) {
                 // check day match next as we need to iterate another array
                 // let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
                 // const days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
@@ -2871,8 +2734,8 @@ export class ChemControllerCommands extends BoardCommands {
                                     _reject(err);
                                 }
                                 else {
-                                    chem.pHSetpoint = _ph / 100;
-                                    chem.orpSetpoint = _orp;
+                                    schem.pHSetpoint = chem.pHSetpoint = _ph / 100;
+                                    schem.orpSetpoint = chem.orpSetpoint = _orp;
                                     chem.calciumHardness = _ch;
                                     chem.alkalinity = _alk;
                                     schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
@@ -3376,5 +3239,58 @@ export class VirtualChemController extends BoardCommands {
             }
             else schem.virtualControllerStatus = -1;
         }
+    }
+}
+
+export class FilterCommands extends BoardCommands {
+    public setFilter(data: any): any {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.filters.length + 1; // set max filters?
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
+        let filter = sys.filters.getItemById(id, id > 0);
+        let sfilter = state.filters.getItemById(id, id > 0);
+        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType,10) : filter.filterType;
+        if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
+
+        if (typeof data.isActive !== 'undefined') {
+            if (utils.makeBool(data.isActive) === false) {
+                sys.filters.removeItemById(id);
+                state.filters.removeItemById(id);
+                return;
+            }
+        }
+
+        let body = typeof data.body !== 'undefined' ? data.body : filter.body;
+        let name = typeof data.name !== 'undefined' ? data.name : filter.name;
+        let psi = typeof data.psi !== 'undefined' ? parseFloat(data.psi) : sfilter.psi;
+        let lastCleanDate = typeof data.lastCleanDate !== 'undefined' ? data.lastCleanDate : sfilter.lastCleanDate;
+        let filterPsi = typeof data.filterPsi !== 'undefined' ? parseInt(data.filterPsi, 10) : sfilter.filterPsi;
+        let needsCleaning = typeof data.needsCleaning !== 'undefined' ? data.needsCleaning : sfilter.needsCleaning;
+
+        // Ensure all the defaults.
+        if (isNaN(psi)) psi = 0;
+        if (typeof body === 'undefined') body = 32;
+
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
+
+        filter.filterType = sfilter.filterType = filterType;
+        filter.body = sfilter.body = body;
+        filter.filterType = sfilter.filterType = filterType;
+        filter.name = sfilter.name = name;
+        sfilter.psi = psi;
+        sfilter.filterPsi = filterPsi;
+        filter.needsCleaning = sfilter.needsCleaning = needsCleaning;
+        filter.lastCleanDate = sfilter.lastCleanDate = lastCleanDate;
+        sfilter.emitEquipmentChange();
+        return sfilter;
+    }
+
+    public deleteFilter(data: any): any {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id)) return;
+        sys.filters.removeItemById(id);
+        state.filters.removeItemById(id);
+        return state.filters.getItemById(id);
     }
 }

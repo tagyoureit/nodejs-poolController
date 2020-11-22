@@ -103,6 +103,7 @@ export class State implements IState {
             _state.lightGroups = this.lightGroups.getExtended();
             _state.virtualCircuits = this.virtualCircuits.getExtended();
             _state.covers = this.covers.getExtended();
+            _state.filters = this.filters.getExtended();
             _state.schedules = this.schedules.getExtended();
             _state.chemControllers = this.chemControllers.getExtended();
             return _state;
@@ -213,6 +214,9 @@ export class State implements IState {
         }
         for (let i = 0; i < state.covers.length; i++) {
             state.covers.getItemByIndex(i).hasChanged = true;
+        }
+        for (let i = 0; i < state.filters.length; i++) {
+            state.filters.getItemByIndex(i).hasChanged = true;
         }
         for (let i = 0; i < state.schedules.length; i++) {
             state.schedules.getItemByIndex(i).hasChanged = true;
@@ -337,6 +341,7 @@ export class State implements IState {
         this.virtualCircuits = new VirtualCircuitStateCollection(this.data, 'virtualCircuits');
         this.chemControllers = new ChemControllerStateCollection(this.data, 'chemControllers');
         this.covers = new CoverStateCollection(this.data, 'covers');
+        this.filters = new FilterStateCollection(this.data, 'filters');
         this.comms = new CommsState();
         this.heliotrope = new Heliotrope();
         this.appVersion = new AppVersionState(this.data, 'appVersion');
@@ -356,7 +361,7 @@ export class State implements IState {
         this.schedules.clear();
         this.valves.clear();
         this.virtualCircuits.clear();
-        this.covers.clear();
+        this.filters.clear();
         this.chemControllers.clear();
     }
 
@@ -373,6 +378,7 @@ export class State implements IState {
     public lightGroups: LightGroupStateCollection;
     public virtualCircuits: VirtualCircuitStateCollection;
     public covers: CoverStateCollection;
+    public filters: FilterStateCollection;
     public chemControllers: ChemControllerStateCollection;
     public comms: CommsState;
     public appVersion: AppVersionState;
@@ -405,6 +411,7 @@ interface IState {
     circuitGroups: CircuitGroupStateCollection;
     virtualCircuits: VirtualCircuitStateCollection;
     chemControllers: ChemControllerStateCollection;
+    filters: FilterStateCollection;
     comms: CommsState;
 }
 export interface ICircuitState {
@@ -1369,44 +1376,20 @@ export class ChemControllerState extends EqState {
         }
     }
 
+    public get pHSetpoint(): number { return this.data.pHSetpoint; }
+    public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
     public get pHLevel(): number { return this.data.pHLevel; }
     public set pHLevel(val: number) { this.setDataVal('pHLevel', val); }
+    public get orpSetpoint(): number { return this.data.orpSetpoint; }
+    public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
     public get orpLevel(): number { return this.data.orpLevel; }
     public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
     public get saltLevel(): number { return this.data.saltLevel; }
     public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
-    /*     public get waterFlow(): number { return this.data.waterFlow; }
-        public set waterFlow(val: number) {
-            if (this.waterFlow !== val) {
-                this.data.waterFlow = sys.board.valueMaps.chemControllerWaterFlow.transform(val);
-                this.hasChanged = true;
-            }
-        } */
-    public get acidTankLevel(): number { return this.data.acidTankLevel || 0; }
+    public get acidTankLevel(): number { return this.data.acidTankLevel; }
     public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
     public get orpTankLevel(): number { return this.data.orpTankLevel || 0; }
     public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
-    /* public get status1(): number { return this.data.status1; }
-    public set status1(val: number) {
-        if (this.status1 !== val) {
-            this.data.status1 = sys.board.valueMaps.intelliChemStatus1.transform(val);
-            this.hasChanged = true;
-        }
-    } */
-    /*     public get status2(): number { return this.data.status2; }
-        public set status2(val: number) {
-            if (this.status2 !== val) {
-                this.data.status2 = sys.board.valueMaps.intelliChemStatus2.transform(val);
-                this.hasChanged = true;
-            }
-        } */
-    /*     public get alarms(): number { return typeof (this.data.alarms) !== 'undefined' ? this.data.alarms.val : undefined; }
-        public set alarms(val: number) {
-            if (this.alarms !== val) {
-                this.data.alarms = sys.board.valueMaps.chemControllerAlarms.transform(val);
-                this.hasChanged = true;
-            }
-        } */
     public get pHDosingStatus(): number { return typeof (this.data.pHDosingStatus) !== 'undefined' ? this.data.pHDosingStatus.val : undefined; }
     public set pHDosingStatus(val: number) {
         if (this.pHDosingStatus !== val) {
@@ -1421,13 +1404,6 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     }
-    /*     public get warnings(): number { return typeof (this.data.warnings) !== 'undefined' ? this.data.warnings.val : undefined; }
-        public set warnings(val: number) {
-            if (this.dosingStatus !== val) {
-                this.data.dosingStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
-                this.hasChanged = true;
-            }
-        } */
     public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
     public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
     public get pHDosingTime(): number { return this.data.pHDosingTime; }
@@ -1609,5 +1585,37 @@ export class AppVersionState extends EqState{
 export class CommsState {
     public keepAlives: number;
 }
+export class FilterStateCollection extends EqStateCollection<FilterState> {
+    public createItem(data: any): FilterState { return new FilterState(data); }
+}
+export class FilterState extends EqState {
+    public dataName: string = 'filter';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.data.id = val; }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get body(): number { return typeof (this.data.body) !== 'undefined' ? this.data.body.val : -1; }
+    public set body(val: number) {
+        if (this.body !== val) {
+            this.data.body = sys.board.valueMaps.bodies.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get filterType(): number { return typeof this.data.filterType === 'undefined' ? undefined : this.data.filterType.val; }
+    public set filterType(val: number) { 
+        if (this.filterType !== val) {
+            this.data.filterType = sys.board.valueMaps.filterTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get psi(): number { return this.data.psi; }
+    public set psi(val: number) { this.setDataVal('psi', val); }
+    public get filterPsi(): number { return this.data.filterPsi; } // do not exceed value.  
+    public set filterPsi(val: number) { this.setDataVal('filterPsi', val); }
+    public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
+    public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
+    public get needsCleaning(): number { return this.data.needsCleaning; }
+    public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
 
+}
 export var state = new State();

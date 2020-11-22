@@ -245,6 +245,14 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
+        app.get('/config/options/filters', (req, res) => {
+            let opts = {
+                types: sys.board.valueMaps.filterTypes.toArray(),
+                bodies: sys.board.bodies.getBodyAssociations(),
+                filters: sys.filters.get(),
+            };
+            return res.status(200).send(opts);
+        });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/tempSensors', async (req, res, next) => {
@@ -255,6 +263,20 @@ export class ConfigRoute {
                     sensors: sys.board.system.getSensors()
                 };
                 return res.status(200).send(opts);
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/filter', async (req, res, next) => {
+            try {
+                let sfilter = sys.board.filters.setFilter(req.body);
+                return res.status(200).send(sfilter.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/config/filter', async (req, res, next) => {
+            try {
+                let sfilter = sys.board.filters.deleteFilter(req.body);
+                return res.status(200).send(sfilter.get(true));
             }
             catch (err) { next(err); }
         });
@@ -443,27 +465,6 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
-        /*
-        app.put('/config/schedule/:id', (req, res) => {
-            let schedId = parseInt(req.params.id || '0', 10);
-            let eggTimer = sys.eggTimers.getItemById(schedId);
-            let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.set(req.body);
-            else if (sched.circuit) sched.set(req.body);
-            else return res.status(500).send('Not a valid id');
-            return res.status(200).send('OK');
-        });
-        app.delete('/config/schedule/:id', (req, res) => {
-            let schedId = parseInt(req.params.id || '0', 10);
-            let eggTimer = sys.eggTimers.getItemById(schedId);
-            let sched = sys.schedules.getItemById(schedId);
-            if (eggTimer.circuit) eggTimer.delete();
-            else if (sched.circuit) sched.delete();
-            else return res.status(500).send('Not a valid id');
-            return res.status(200).send('OK');
-        });
-        */
-
 
         /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
 
