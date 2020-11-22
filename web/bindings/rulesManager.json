@@ -18,16 +18,6 @@
       "options": {
         "path": "/config/filter"
       },
-      "body": "{\"needsCleaning\":true}"
-    },
-    {
-      "name": "controller",
-      "description": "Turn on needsCleaning flag for filter.  Evaluate on a controller socket emit.  True when the pool is on, pump is not priming, and filter psi > 15",
-      "enabled": true,
-      "filter": "@bind=data.id;===1 && @bind=state.filters.getItemById(1).psi;>15 && @bind=data.status.name;!=='priming'",
-      "options": {
-        "path": "/config/filter"
-      },
       "body": {"needsCleaning":true}
     },
     {

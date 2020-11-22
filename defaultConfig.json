@@ -144,15 +144,18 @@
           "reconnectionDelayMax": 20000
         }
       },
-      "equipmentManager": {
-        "name": "Equipment Manager",
-        "type": "equipmentManager",
+      "rulesManager": {
+        "name": "Rules Manager",
+        "type": "http",
         "enabled": false,
-        "fileName": "equipmentManager.json",
+        "fileName": "rulesManager.json",
         "globals": {},
-        "options": {},
-        "uuid": "27d91217-bd91-4024-a39b-6d9be9bb3926"
-      }
+        "options": {
+          "host": "localhost",
+          "port": 4200
+        },
+        "uuid": "65ee2581-e652-427e-99c6-17c6aa02a6e3"
+      },
     }
   },
   "log": {
