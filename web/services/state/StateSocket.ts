@@ -87,28 +87,28 @@ export class StateSocket {
                     controller = sys.chemControllers.getItemById(id);
                 else if (!isNaN(address))
                     controller = sys.chemControllers.getItemByAddress(address);
-                if (typeof controller !== 'undefined') {
+                if (typeof controller !== 'undefined' && controller.isActive === true) {
                     let scontroller = state.chemControllers.getItemById(controller.id);
                     if (typeof data.pHLevel !== 'undefined') {
-                        if (!isNaN(parseFloat(data.pHLevel))) scontroller.pHLevel = parseFloat(data.pHLevel);
+                        if (!isNaN(parseFloat(data.pHLevel))) scontroller.ph.probe.level = parseFloat(data.pHLevel);
                         else if (typeof data.pHLevel === 'object') {
-                            if (!isNaN(parseFloat(data.pHLevel.pH))) scontroller.pHLevel = parseFloat(data.pHLevel.pH);
-                            if (!isNaN(parseFloat(data.pHLevel.temperature))) scontroller.temp = parseFloat(data.pHLevel.temperature);
-                            if (['C', 'F', 'c', 'f'].includes(data.pHLevel.tempUnits)) scontroller.tempUnits = data.pHLevel.tempUnits;
+                            if (!isNaN(parseFloat(data.pHLevel.pH))) scontroller.ph.probe.level = parseFloat(data.pHLevel.pH);
+                            if (!isNaN(parseFloat(data.pHLevel.temperature))) scontroller.ph.probe.temperature = parseFloat(data.pHLevel.temperature);
+                            if (['C', 'F', 'c', 'f'].includes(data.pHLevel.tempUnits)) scontroller.ph.probe.tempUnits = data.pHLevel.tempUnits;
                         }
                     }
-                    if (typeof data.orpLevel !== 'undefined') scontroller.orpLevel = data.orpLevel;
-                    if (typeof data.temperature !== 'undefined') scontroller.temp = data.temperauture;
-                    if (typeof data.tempUnits !== 'undefined') scontroller.tempUnits = data.tempUnits;
+                    if (typeof data.orpLevel !== 'undefined') scontroller.orp.probe.level = data.orpLevel;
+                    if (typeof data.temperature !== 'undefined') scontroller.ph.probe.temperature = data.temperauture;
+                    if (typeof data.tempUnits !== 'undefined') scontroller.ph.probe.tempUnits = data.tempUnits;
                     if (typeof data.acidTank !== 'undefined') {
-                        if (!isNaN(parseFloat(data.acidTank.level))) scontroller.acidTankLevel = parseFloat(data.acidTank.level);
-                        if (!isNaN(parseFloat(data.acidTank.capacity))) controller.acidTankCapacity = parseFloat(data.acidTank.capacity);
-                        if (typeof data.acidTank.units === 'string') controller.acidTankUnits = data.units;
+                        if (!isNaN(parseFloat(data.acidTank.level))) scontroller.ph.tank.level = parseFloat(data.acidTank.level);
+                        if (!isNaN(parseFloat(data.acidTank.capacity))) scontroller.ph.tank.capacity = controller.ph.tank.capacity = parseFloat(data.acidTank.capacity);
+                        if (typeof data.acidTank.units === 'string') scontroller.ph.tank.units = controller.ph.tank.units = data.acidTank.units;
                     }
                     if (typeof data.orpTank !== 'undefined') {
-                        if (!isNaN(parseFloat(data.orpTank.level))) scontroller.orpTankLevel = parseFloat(data.orpTank.level);
-                        if (!isNaN(parseFloat(data.orpTank.capacity))) controller.orpTankCapacity = parseFloat(data.orpTank.capacity);
-                        if (typeof data.orpTank.units === 'string') controller.orpTankUnits = data.orpTank.units;
+                        if (!isNaN(parseFloat(data.orpTank.level))) scontroller.orp.tank.level = parseFloat(data.orpTank.level);
+                        if (!isNaN(parseFloat(data.orpTank.capacity))) scontroller.orp.tank.capacity = controller.orp.tank.capacity = parseFloat(data.orpTank.capacity);
+                        if (typeof data.orpTank.units === 'string') scontroller.orp.tank.units = controller.orp.tank.units = data.orpTank.units;
                     }
 
                     // Need to build this out to include the type of controller.  If this is Homegrown or REM Chem we

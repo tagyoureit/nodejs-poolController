@@ -28,8 +28,8 @@ export class StateRoute {
         });
         app.put('/state/chemController', async (req, res, next) => {
             try {
-                let schem = await sys.board.chemControllers.setChemControllerAsync(req.body);
-                return res.status(200).send(state.chemControllers.getItemById(schem.id).getExtended());
+                let schem = await sys.board.chemControllers.setChemControllerStateAsync(req.body);
+                return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }
         });

@@ -22,7 +22,7 @@ import * as util from 'util';
 import { logger } from '../logger/Logger';
 import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
-import { sys } from './Equipment';
+import { sys, Chemical } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
 
 export class State implements IState {
@@ -426,11 +426,11 @@ export interface ICircuitState {
     showInFeatures?: boolean;
 }
 
-interface IEqStateCreator<T> { ctor(data: any, name: string): T; }
+interface IEqStateCreator<T> { ctor(data: any, name: string, parent?): T; }
 class EqState implements IEqStateCreator<EqState> {
     public dataName: string;
     public data: any;
-    private _hasChanged: boolean = false;
+    protected _hasChanged: boolean = false;
     public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
         // If we are not already on the dirty list add us.        
@@ -445,10 +445,14 @@ class EqState implements IEqStateCreator<EqState> {
             if (typeof (data[name]) === 'undefined') data[name] = {};
             this.data = data[name];
             this.dataName = name;
+            this.initData();
         }
-        else
+        else {
             this.data = data;
+            this.initData();
+        }
     }
+    public initData() { }
     public emitEquipmentChange() {
         if (typeof (webApp) !== 'undefined' && webApp) {
             if (this.hasChanged) this.emitData(this.dataName, this.data);
@@ -490,6 +494,26 @@ class EqState implements IEqStateCreator<EqState> {
         return false;
     }
     public getExtended(): any { return this.get(true); }
+}
+class ChildEqState extends EqState implements IEqStateCreator<EqState> {
+    private _pmap = new WeakSet();
+    //private _dataKey = { id: 'parent' };
+    constructor(data: any, name: string, parent) {
+        super(data, name);
+        this._pmap['parent'] = parent;
+    }
+    public get hasChanged(): boolean { return this._hasChanged; }
+    public set hasChanged(val: boolean) {
+        // If we are not already on the dirty list add us.        
+        if (!this._hasChanged && val) {
+            let parent = this._pmap['parent'];
+            if (typeof parent !== 'undefined' && typeof parent['hasChanged'] !== 'undefined') parent.hasChanged = true;
+        }
+        this._hasChanged = val;
+    }
+    public getParent() {
+        return this._pmap['parent'];
+    }
 }
 class EqStateCollection<T> {
     protected data: any;
@@ -1341,6 +1365,79 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
 }
 
 export class ChemControllerState extends EqState {
+    public initData() {
+        if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
+        if (typeof this.data.orp === 'undefined') this.data.orp = {};
+        if (typeof this.data.ph === 'undefined') this.data.ph = {};
+        //var chemControllerState = {
+        //    lastComm: 'number',             // The unix time the chem controller sent its status.
+        //    id: 'number',                   // Id of the chemController.
+        //    type: 'valueMap',               // intellichem, homegrown, rem.
+        //    address: 'number',              // Assigned address if IntelliChem.
+        //    name: 'string',                 // Name assigned to the controller.
+        //    status: 'valueMap',             // ok, nocomms, setupError
+        //    body: 'valueMap',               // Body that the chemController is assigned to.
+        //    flowDetected: 'boolean',        // True if there is currently sufficient flow to read and dose.
+        //    flowDelay: 'boolean',           // True of the controller is currently under a flow delay.
+        //    firmware: 'string',             // Firmware version from IntelliChem (this should be in config)
+        //    saturationIndex: 'number',      // Calculated LSI for the body.
+        //    isActive: 'boolean',    
+        //    alarms: {},                     // This has not changed although additional alarms will be added.
+        //    warnings: {},                   // This has not changed although additional warnings will be added.
+        //    chemistryStatus: 'valueMap',    // Current water quality status.
+        //    ph: {
+        //        chemType: 'string',                 // Constant ph.
+        //        dosingTimeRemaining: 'number',      // The number of seconds remaining for the current dose.
+        //        dosingVolumeRemaining: 'number',    // Remaining volume for the current dose in mL.
+        //        mixTimeRemaining: 'number',         // The number of seconds remaining in the current mix cycle.
+        //        dosingStatus: 'valueMap',           // dosing, monitoring, mixing.
+        //        level: 'number',                    // The current pH level.
+        //        lockout: 'boolean',                 // True if an attempt to dose was thwarted by error.
+        //        manualDosing: 'boolean',            // True if the pump is running outside of a dosing command.
+        //        dailyLimitReached: 'boolean',       // True if the calculated daily limit has been reached based upon body volume.
+        //        pump: {
+        //            type: 'valueMap',               // The defined pump type.
+        //            isDosing: 'boolean',            // True if the pump is running.
+        //        },
+        //        tank: {
+        //            level: 'number',                // The current level for the tank.
+        //            capacity: 'number',             // Total capacity for the tank.
+        //            units: 'valueMap',              // nounits, gal, mL, cL, L, oz, pt, qt.
+        //        },
+        //        probe: {
+        //            level: 'number',                // Current ph level as measured by the probe.
+        //            temperature: 'number',          // The temperature used to calculate the adjusted probe level.
+        //            tempUnits: 'valueMap'           // Units for the temperature C or F.
+        //        }
+        //    },
+        //    orp: {
+        //        chemType: 'string',                 // Constant orp.
+        //        dosingTimeRemaining: 'number',      // The number of seconds remaining for the current dose.
+        //        dosingVolumeRemaining: 'number',    // Remaining volume for the current dose in mL.
+        //        mixTimeRemaining: 'number',         // The number of seconds remaining in the current mix cycle.
+        //        dosingStatus: 'valueMap',           // dosing, monitoring, mixing.
+        //        level: 'number',                    // The current ORP level.
+        //        lockout: 'boolean',                 // True if an attempt to dose was thwarted by error.
+        //        manualDosing: 'boolean',            // True if the pump is running outside of a dosing command.
+        //        dailyLimitReached: 'boolean',       // True if the calculated daily limit has been reached based upon body volume.
+        //        pump: {
+        //            type: 'valueMap',               // The defined pump type.
+        //            isDosing: 'boolean',            // True if the pump is running.
+        //        },
+        //        tank: {
+        //            level: 'number',                // The current level for the tank.
+        //            capacity: 'number',             // Total capacity for the tank.
+        //            units: 'valueMap',              // nounits, gal, mL, cL, L, oz, pt, qt.
+        //        },
+        //        probe: {
+        //            level: 'number',                // Current ORP level as measured by the probe.
+        //            temperature: 'number',          // The temperature used to calculate the adjusted probe level.
+        //            tempUnits: 'valueMap'           // Units for the temperature C or F.
+        //        }
+        //    }
+        //}
+
+    }
     public dataName: string = 'chemController';
     public get lastComm(): number { return this.data.lastComm || 0; }
     public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
@@ -1375,62 +1472,72 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     }
-
-    public get pHSetpoint(): number { return this.data.pHSetpoint; }
-    public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
-    public get pHLevel(): number { return this.data.pHLevel; }
-    public set pHLevel(val: number) { this.setDataVal('pHLevel', val); }
-    public get orpSetpoint(): number { return this.data.orpSetpoint; }
-    public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
-    public get orpLevel(): number { return this.data.orpLevel; }
-    public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
-    public get saltLevel(): number { return this.data.saltLevel; }
-    public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
-    public get acidTankLevel(): number { return this.data.acidTankLevel; }
-    public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
-    public get orpTankLevel(): number { return this.data.orpTankLevel || 0; }
-    public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
-    public get pHDosingStatus(): number { return typeof (this.data.pHDosingStatus) !== 'undefined' ? this.data.pHDosingStatus.val : undefined; }
-    public set pHDosingStatus(val: number) {
-        if (this.pHDosingStatus !== val) {
-            this.data.pHDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
-            this.hasChanged = true;
-        }
-    }
-    public get orpDosingStatus(): number { return typeof (this.data.orpDosingStatus) !== 'undefined' ? this.data.orpDosingStatus.val : undefined; }
-    public set orpDosingStatus(val: number) {
-        if (this.orpDosingStatus !== val) {
-            this.data.orpDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
-            this.hasChanged = true;
-        }
-    }
-    public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
-    public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
-    public get pHDosingTime(): number { return this.data.pHDosingTime; }
-    public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
-    public get orpDosingTime(): number { return this.data.orpDosingTime; }
-    public set orpDosingTime(val: number) { this.setDataVal('orpDosingTime', val); }
-    public get pHDosingVolume(): number { return this.data.pHDosingVolume; }
-    public set pHDosingVolume(val: number) { this.setDataVal('pHDosingVolume', val); }
-    public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
-    public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
+    public get flowDelay(): boolean { return utils.makeBool(this.data.flowDelay); }
+    public set flowDelay(val: boolean) { this.data.flowDelay = val; }
     public get saturationIndex(): number { return this.data.saturationIndex; }
     public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val || 0); }
-    public get temp(): number { return this.data.temp; }
-    public set temp(val: number) { this.setDataVal('temp', val); }
     public get firmware(): string { return this.data.firmware; }
     public set firmware(val: string) { this.setDataVal('firmware', val); }
-    public get tempUnits(): number {
-        if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
-        else return state.temps.units;
-    }
-    public set tempUnits(val: number) {
+    public get ph(): ChemicalPhState { return new ChemicalPhState(this.data, 'ph', this); }
+    public get orp(): ChemicalORPState { return new ChemicalORPState(this.data, 'orp', this); }
+    public get chemistryStatus(): number { if (typeof this.data.chemistryStatus !== 'undefined') return this.data.chemistryStatus.val; }
+    public set chemistryStatus(val: number) {
         // specific check for the data val here because we can return the body temp units if undefined
-        if (this.data.tempUnits !== val) {
-            this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
+        if (this.data.chemistryStatus !== val) {
+            this.data.chemistryStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
             this.hasChanged = true;
         }
     }
+    public get flowDetected(): boolean { return utils.makeBool(this.data.flowDetected); }
+    public set flowDetected(val: boolean) { this.setDataVal('flowDetected', val); }
+
+    //public get pHLevel(): number { return this.data.pHLevel; }
+    //public set pHLevel(val: number) { this.setDataVal('pHLevel', val); }
+    //public get orpLevel(): number { return this.data.orpLevel; }
+    //public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
+    //public get saltLevel(): number { return this.data.saltLevel; }
+    //public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
+    //public get acidTankLevel(): number { return this.data.acidTankLevel || 0; }
+    //public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
+    //public get orpTankLevel(): number { return this.data.orpTankLevel || 0; }
+    //public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
+    //public get pHDosingStatus(): number { return typeof (this.data.pHDosingStatus) !== 'undefined' ? this.data.pHDosingStatus.val : undefined; }
+    //public set pHDosingStatus(val: number) {
+    //    if (this.pHDosingStatus !== val) {
+    //        this.data.pHDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+    //        this.hasChanged = true;
+    //    }
+    //}
+    //public get orpDosingStatus(): number { return typeof (this.data.orpDosingStatus) !== 'undefined' ? this.data.orpDosingStatus.val : undefined; }
+    //public set orpDosingStatus(val: number) {
+    //    if (this.orpDosingStatus !== val) {
+    //        this.data.orpDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+    //        this.hasChanged = true;
+    //    }
+    //}
+    //public get pHDosingTime(): number { return this.data.pHDosingTime; }
+    //public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
+    //public get orpDosingTime(): number { return this.data.orpDosingTime; }
+    //public set orpDosingTime(val: number) { this.setDataVal('orpDosingTime', val); }
+    //public get pHDosingVolume(): number { return this.data.pHDosingVolume; }
+    //public set pHDosingVolume(val: number) { this.setDataVal('pHDosingVolume', val); }
+    //public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
+    //public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
+    public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
+    public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
+    //public get temp(): number { return this.data.temp; }
+    //public set temp(val: number) { this.setDataVal('temp', val); }
+    //public get tempUnits(): number {
+    //    if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
+    //    else return state.temps.units;
+    //}
+    //public set tempUnits(val: number) {
+    //    // specific check for the data val here because we can return the body temp units if undefined
+    //    if (this.data.tempUnits !== val) {
+    //        this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
+    //        this.hasChanged = true;
+    //    }
+    //}
     public get virtualControllerStatus(): number {
         return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
     }
@@ -1446,23 +1553,169 @@ export class ChemControllerState extends EqState {
         obj.address = chem.address;
         obj.saturationIndex = this.saturationIndex || 0;
         obj.alkalinity = chem.alkalinity;
-        obj.body = sys.board.valueMaps.bodies.transform(chem.body);
+        //obj.body = sys.board.valueMaps.bodies.transform(chem.body);
         obj.calciumHardness = chem.calciumHardness;
         obj.cyanuricAcid = chem.cyanuricAcid;
-        obj.orpSetpoint = chem.orpSetpoint;
-        obj.pHSetpoint = chem.pHSetpoint;
-        obj.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-        obj.orpTankLevel = this.orpTankLevel || 0;
-        obj.acidTankLevel = this.acidTankLevel || 0;
-        obj.pHLevel = this.pHLevel || 0;
-        obj.orpLevel = this.orpLevel || 0;
-        obj.acidTankCapacity = chem.acidTankCapacity;
-        obj.acidTankUnits = chem.acidTankUnits;
-        obj.orpTankCapacity = chem.orpTankCapacity;
-        obj.orpTankUnits = chem.orpTankUnits;
+        //obj.orpSetpoint = chem.orp.setpoint;
+        //obj.pHSetpoint = chem.ph.setpoint;
+        //obj.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+        //obj.orpTankLevel = this.orpTankLevel || 0;
+        //obj.acidTankLevel = this.acidTankLevel || 0;
+        //obj.pHLevel = this.pHLevel || 0;
+        //obj.orpLevel = this.orpLevel || 0;
+        obj.ph = this.ph.getExtended();
+        obj.orp = this.orp.getExtended();
+        //obj.acidTankCapacity = chem.ph.tank.capacity;
+        //obj.acidTankUnits = chem.ph.tank.units;
+        //obj.orpTankCapacity = chem.orp.tank.capacity;
+        //obj.orpTankUnits = chem.orp.tank.units;
+        obj = extend(true, obj, chem.getExtended());
+        //obj.ph = extend(true, obj.ph, chem.ph.getExtended());
+        //obj.orp = extend(true, obj.orp, chem.orp.getExtended());
+        //obj.ph.tank.units = sys.board.valueMaps.volumeUnits.transform(chem.ph.tank.units);
+        //obj.orp.tank.units = sys.board.valueMaps.volumeUnits.transform(chem.ph.tank.units);
         return obj;
     }
 }
+export class ChemicalState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
+        if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
+        if (typeof this.data.dosingVolumeRemaining === 'undefined') this.data.dosingVolumeRemaining = 0;
+        if (typeof this.data.lockout === 'undefined') this.data.lockout = false;
+        if (typeof this.data.level == 'undefined') this.data.level = 0;
+        if (typeof this.data.mixTimeRemaining === 'undefined') this.data.mixTimeRemaining = 0;
+        if (typeof this.data.dailyLimitReached === 'undefined') this.data.dailyLimitReached = false;
+        if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
+    }
+    public get chemType(): string { return this.data.chemType; }
+    public get dosingTimeRemaining(): number { return this.data.dosingTimeRemaining; }
+    public set dosingTimeRemaining(val: number) { this.setDataVal('dosingTimeRemaining', val); }
+    public get dosingVolumeRemaining(): number { return this.data.dosingVolumeRemaining; }
+    public set dosingVolumeRemaining(val: number) { this.setDataVal('dosingVolumeRemaining', val); }
+    public get mixTimeRemaining(): number { return this.data.mixTimeRemaining; }
+    public set mixTimeRemaining(val: number) { this.setDataVal('mixTimeRemaining', val); }
+    public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
+    public set dosingStatus(val: number) {
+        if (this.dosingStatus !== val) {
+            this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get level(): number { return this.data.level; }
+    public set level(val: number) { this.setDataVal('level', val); }
+    public get lockout(): boolean { return utils.makeBool(this.data.lockout); }
+    public set lockout(val: boolean) { this.setDataVal('lockout', val); }
+    public get manualDosing(): boolean { return utils.makeBool(this.data.manualDosing); }
+    public set manualDosing(val: boolean) { this.setDataVal('manualDosing', val); }
+    public get dailyLimitReached(): boolean { return utils.makeBool(this.data.dailyLimitReached); }
+    public set dailyLimitReached(val: boolean) { this.data.dailyLimitReached = val; }
+    public get tank(): ChemicalTankState { return new ChemicalTankState(this.data, 'tank', this); }
+    public get pump(): ChemicalPumpState { return new ChemicalPumpState(this.data, 'pump', this); }
+    public getExtended() {
+        let chem = this.get(true);
+        chem.tank = this.tank.getExtended();
+        chem.pump = this.pump.getExtended();
+        return chem;
+    }
+
+}
+export class ChemicalPhState extends ChemicalState {
+    public initData() {
+        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';
+        super.initData();
+    }
+    public get probe(): ChemicalProbePHState { return new ChemicalProbePHState(this.data, 'probe', this); }
+    public getExtended() {
+        let chem = super.getExtended();
+        chem.probe = this.probe.getExtended();
+        return chem;
+    }
+}
+export class ChemicalORPState extends ChemicalState {
+    public initData() {
+        if (typeof this.data.probe === 'undefined') this.data.probe = {};
+        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
+        super.initData();
+    }
+    public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
+    public getExtended() {
+        let chem = super.getExtended();
+        chem.probe = this.probe.getExtended();
+        return chem;
+    }
+}
+export class ChemicalPumpState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.isDosing === 'undefined') this.data.isDosing = false;
+    }
+    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : undefined; }
+    public set type(val: number) {
+        if (this.type !== val) {
+            this.data.type = sys.board.valueMaps.chemPumpTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get isDosing(): boolean { return utils.makeBool(this.data.isDosing); }
+    public set isDosing(val: boolean) { this.setDataVal('isDosing', val); }
+    public getExtended() {
+        let pump = this.get(true);
+        pump.type = sys.board.valueMaps.chemPumpTypes.transform(this.type);
+        return pump;
+    }
+}
+export class ChemicalProbeState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.level === 'undefined') this.data.level = null;
+    }
+    public get level(): number { return this.data.level; }
+    public set level(val: number) { this.setDataVal('level', val); }
+}
+export class ChemicalProbeORPState extends ChemicalProbeState {
+    public initData() {
+        if (typeof this.data.saltLevel === 'undefined') this.data.saltLevel = 0;
+        super.initData();
+    }
+    public get saltLevel(): number { return this.data.saltLevel; }
+    public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
+}
+export class ChemicalProbePHState extends ChemicalProbeState {
+    public initData() {
+        if (typeof this.data.temperature === 'undefined') this.data.temperature = 0;
+        super.initData();
+    }
+    public get temperature(): number { return this.data.temperature; }
+    public set temperature(val: number) { this.setDataVal('temperature', val); }
+    public get tempUnits(): number {
+        return typeof (this.data.tempUnits) !== 'undefined' ? this.data.tempUnits.val : undefined;
+    }
+    public set tempUnits(val: number) {
+        if (this.tempUnits !== val) {
+            this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+}
+export class ChemicalTankState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.level === 'undefined') this.data.level == 0;
+        if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
+        if (typeof this.data.units === 'undefined') this.data.units = 0;
+    }
+    public get level(): number { return this.data.level; }
+    public set level(val: number) { this.setDataVal('level', val); }
+    public get capacity(): number { return this.data.capacity; }
+    public set capacity(val: number) { this.setDataVal('capacity', val); }
+    public get units(): number | any { return typeof this.data.units !== 'undefined' ? this.data.units.val : undefined; }
+    public set units(val: number | any) {
+        let v = sys.board.valueMaps.volumeUnits.encode(val);
+        if (this.units !== v) {
+            this.data.units = sys.board.valueMaps.volumeUnits.transform(val);
+            this.hasChanged = true;
+        }
+    }
+}
+
 
 export class ChemControllerStateWarnings extends EqState {
     ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }

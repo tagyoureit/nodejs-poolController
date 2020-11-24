@@ -892,9 +892,9 @@ export class REMInterfaceServer extends ProtoServer {
                     req = http.request(opts, (response: http.IncomingMessage) => {
                         response.on('error', (err) => { logger.error(err); reject(err); });
                         response.on('data', (data) => {
-                            result += data; console.log('Got Data?');
+                            result += data;
                         });
-                        response.on('end', () => { console.log('Request Ended'); resolve(result); });
+                        response.on('end', () => { resolve(result); });
                     });
                 }
                 req.on('error', (err, req, res) => { logger.error(err); reject(err); });
