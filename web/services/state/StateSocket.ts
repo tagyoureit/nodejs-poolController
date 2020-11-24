@@ -76,7 +76,7 @@ export class StateSocket {
         });
         sock.on('/chemController', async (data: any) => {
             try {
-                console.log(`chemController: ${data}`);
+                //console.log(`chemController: ${data}`);
                 data = JSON.parse(data);
                 
                 // Get the chem controller.

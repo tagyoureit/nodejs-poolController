@@ -41,7 +41,7 @@ import { URL } from "url";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import { InfluxInterfaceBindings } from './interfaces/influxInterface';
 import { MqttInterfaceBindings } from './interfaces/mqttInterface';
-import { EquipmentManagerInterfaceBindings } from './interfaces/equipmentManagerInterface';
+//import { EquipmentManagerInterfaceBindings } from './interfaces/equipmentManagerInterface';
 import { Timestamp } from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
@@ -790,10 +790,12 @@ export class MqttInterfaceServer extends ProtoServer {
 
 export class EquipmentManagerInterfaceServer extends ProtoServer {
     public bindingsPath: string;
-    public bindings: EquipmentManagerInterfaceBindings;
+    //public bindings: EquipmentManagerInterfaceBindings;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
-    public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
+    public get isConnected() { return this.isRunning; }
+    // RKS: Commented out to get running again;
+    //public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
     public init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
@@ -806,7 +808,7 @@ export class EquipmentManagerInterfaceServer extends ProtoServer {
             try {
                 let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
                 let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
-                this.bindings = Object.assign<EquipmentManagerInterfaceBindings, any>(new EquipmentManagerInterfaceBindings(cfg), ext);
+                //this.bindings = Object.assign<EquipmentManagerInterfaceBindings, any>(new EquipmentManagerInterfaceBindings(cfg), ext);
                 this.isRunning = true;
                 this._isLoading = false;
                 const stats = fs.statSync(this.bindingsPath);
@@ -846,7 +848,7 @@ export class EquipmentManagerInterfaceServer extends ProtoServer {
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
             // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
-            this.bindings.bindEvent(evt, ...data);
+            //this.bindings.bindEvent(evt, ...data);
         }
     }
 }
