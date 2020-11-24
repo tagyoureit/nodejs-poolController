@@ -168,9 +168,9 @@ export class HeaterMessage {
                     if ((msg.extractPayloadByte(3) & 0x01) === 1) {
                         // only support for 1 ic with EasyTouch
                         let chem = sys.chemControllers.getItemByAddress(144, true);
-                        state.chemControllers.getItemById(chem.id, true); 
-                        chem.acidTankCapacity = chem.orpTankCapacity = 6;
-                        chem.acidTankUnits = chem.orpTankUnits = '';
+                        let schem = state.chemControllers.getItemById(chem.id, true);
+                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+                        chem.ph.tank.units = chem.orp.tank.units = '';
 
                     }
                     else {

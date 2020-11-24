@@ -273,7 +273,7 @@ export class PoolSystem implements IPoolSystem {
                 let server = servers[i];
                 // Sometimes I hate type safety.
                 let devices = typeof server['getDevices'] === 'function' ? await server['getDevices']() : [];
-                console.log(devices);
+                //console.log(devices);
                 srv.push({
                     uuid: servers[i].uuid,
                     name: servers[i].name,
@@ -378,8 +378,12 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
             if (typeof data[name] === 'undefined') data[name] = {};
             this.data = data[name];
             this.dataName = name;
-        } else this.data = data;
+            this.initData();
+        } else {
+            this.data = data;
+        }
     }
+    public initData() {}
     public get(bCopy?: boolean): any {
         // RSG: 7/2/20 - extend was deep copying arrays (eg pump circuits) by reference
         // return bCopy ? extend(true, {}, this.data) : this.data;
@@ -426,6 +430,17 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
         else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
     }
    
+}
+class ChildEqItem extends EqItem {
+    private _pmap = new WeakSet();
+    //private _dataKey = { id: 'parent' };
+    constructor(data: any, name: string, parent) {
+        super(data, name);
+        this._pmap['parent'] = parent;
+    }
+    public getParent() {
+        return this._pmap['parent'];
+    }
 }
 interface IEqItemCollection {
     set(data);
@@ -1593,7 +1608,83 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
     }
 }
 export class ChemController extends EqItem {
-    public dataName='chemControllerConfig';
+    public initData() {
+        //var chemController = {
+        //    id: 'number',               // Id of the controller
+        //    name: 'string',             // Name assigned to the controller
+        //    type: 'valueMap',           // intellichem, homegrown, rem -- There is an unknown but that should probably go away.
+        //    body: 'valueMap',           // Body assigned to the chem controller.
+        //    address: 'number',          // Address for IntelliChem controller only.
+        //    isActive: 'booean',
+        //    isVirtual: 'boolean',       // False if controlled by OCP.
+        //    calciumHardness: 'number',
+        //    cyanuricAcid: 'number',
+        //    alkalinity: 'number',
+        //    HMIAdvancedDisplay: 'boolean', // This is related to IntelliChem and determines what is displayed on the controller.
+        //    ph: {                           // pH chemical structure
+        //        chemType: 'string',         // Constant ph
+        //        enabled: 'boolean',         // Allows disabling the functions without deleting the settings.
+        //        dosingMethod: 'valueMap',   // manual, volume, volumeTime.
+        //        //  manual = The dosing pump is not triggered.
+        //        //  volume = Time is not considered as a limit to the dosing.
+        //        //  time = The only limit to the dose is the amount of time.
+        //        //  volumeTime = Limit the dose by volume or time whichever is sooner.
+        //        maxDosingTime: 'number',    // The maximum amount of time a dose can occur before mixing.
+        //        maxDosingVolume: 'number',  // The maximum volume for a dose in mL.
+        //        mixingTime: 'number',       // Amount of time between in seconds doses that the pump must run before adding another dose.
+        //        startDelay: 'number',       // The number of seconds that the pump must be running prior to considering a dose.
+        //        setpoint: 'number',         // Target setpoint for pH
+        //        phSupply: 'valueMap',       // base or acid.
+        //        pump: {
+        //            type: 'valueMap',           // none, relay, ezo-pmp
+        //            connectionId: 'uuid',       // Unique identifier for njspc external connections.
+        //            deviceBinding: 'string',    // Binding value for REM to tell it what device is involved.
+        //            ratedFlow: 'number',        // The standard flow rate for the pump in mL/min.
+        //        },
+        //        tank: {
+        //            capacity: 'number',         // Capacity of the tank in the units provided.
+        //            units: 'valueMap'           // gal, mL, cL, L, oz, pt, qt.
+        //        },
+        //        probe: {
+        //            connectionId: 'uuid',       // A unique identifier that has been generated for connections in njspc.
+        //            deviceBinding: 'string',    // A mapping value that is used by REM to determine which device is used.
+        //            type: 'valueMap'            // none, ezo-ph, other.
+        //        }
+
+        //    },
+        //    orp: {                          // ORP chemical structure
+        //        chemType: 'string',         // Constant orp
+        //        enabled: 'boolean',         // Allows disabling the functions without deleting the settings.
+        //        dosingMethod: 'valueMap',   // manual, volume, volumeTime.
+        //        //  manual = The dosing pump is not triggered.
+        //        //  volume = Time is not considered as a limit to the dosing.
+        //        //  time = The only limit to the dose is the amount of time.
+        //        //  volumeTime = Limit the dose by volume or time whichever is sooner.
+        //        maxDosingTime: 'number',    // The maximum amount of time a dose can occur before mixing.
+        //        maxDosingVolume: 'number',  // The maximum volume for a dose in mL.
+        //        mixingTime: 'number',       // Amount of time between in seconds doses that the pump must run before adding another dose.
+        //        startDelay: 'number',       // The number of seconds that the pump must be running prior to considering a dose.
+        //        setpoint: 'number',         // Target setpoint for ORP
+        //        useChlorinator: 'boolean',  // Indicates whether the chlorinator will be used for dosing.
+        //        pump: {
+        //            type: 'valueMap',           // none, relay, ezo-pmp
+        //            connectionId: 'uuid',       // Unique identifier for njspc external connections.
+        //            deviceBinding: 'string',    // Binding value for REM to tell it what device is involved.
+        //            ratedFlow: 'number',        // The standard flow rate for the pump in mL/min.
+        //        },
+        //        tank: {
+        //            capacity: 'number',         // Capacity of the tank in the units provided.
+        //            units: 'valueMap'           // gal, mL, cL, L, oz, pt, qt.
+        //        },
+        //        probe: {
+        //            connectionId: 'uuid',       // A unique identifier that has been generated for connections in njspc.
+        //            deviceBinding: 'string',    // A mapping value that is used by REM to determine which device is used.
+        //            type: 'valueMap'            // none, ezo-orp, other.
+        //        }
+        //    }
+        //}
+    }
+    public dataName = 'chemControllerConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1608,10 +1699,6 @@ export class ChemController extends EqItem {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get isVirtual(): boolean { return this.data.isVirtual; }
     public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
-    public get pHSetpoint(): number { return this.data.pHSetpoint; }
-    public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
-    public get orpSetpoint(): number { return this.data.orpSetpoint; }
-    public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
     public get calciumHardness(): number { return this.data.calciumHardness; }
     public set calciumHardness(val: number) { this.setDataVal('calciumHardness', val); }
     public get cyanuricAcid(): number { return this.data.cyanuricAcid; }
@@ -1619,32 +1706,102 @@ export class ChemController extends EqItem {
     public get alkalinity(): number { return this.data.alkalinity; }
     public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
     
-    public get isFlowDelayMode(): boolean { return this.data.isFlowDelayMode; }
-    public set isFlowDelayMode(val: boolean) { this.setDataVal('isFlowDelayMode', val); }
-    public get isIntelliChlorUsed(): boolean { return this.data.isIntelliChlorUsed; }
-    public set isIntelliChlorUsed(val: boolean) { this.setDataVal('isIntelliChlorUsed', val); }
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
-    public get isAcidBaseDosing(): boolean { return this.data.isAcidBaseDosing; }
-    public set isAcidBaseDosing(val: boolean) { this.setDataVal('isAcidBaseDosing', val); }
-    public get ispHDoseByVolume(): boolean { return this.data.ispHDoseByVolume; }
-    public set ispHDoseByVolume(val: boolean) { this.setDataVal('ispHDoseByVolume', val); }
-    public get isorpDoseByVolume(): boolean { return this.data.isorpDoseByVolume; }
-    public set isorpDoseByVolume(val: boolean) { this.setDataVal('isorpDoseByVolume', val); }
-    public get pHManualDosing(): boolean { return this.data.pHManualDosing; }
-    public set pHManualDosing(val: boolean) { this.setDataVal('pHManualDosing', val); }
-    public get acidTankCapacity() { return this.data.acidTankCapacity; }
-    public set acidTankCapacity(val) { this.setDataVal('acidTankCapacity', val); }
-    public get acidTankUnits() { return this.data.acidTankUnits; }
-    public set acidTankUnits(val) { this.setDataVal('acidTankUnits', val); }
-    public get orpTankCapacity() { return this.data.orpTankCapacity; }
-    public set orpTankCapacity(val) { this.setDataVal('orpTankCapacity', val); }
-    public get orpTankUnits() { return this.data.orpTankUnits; }
-    public set orpTankUnits(val) { this.setDataVal('orpTankUnits', val); }
-
+    //public get pHSetpoint(): number { return this.data.pHSetpoint; }
+    //public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
+    //public get orpSetpoint(): number { return this.data.orpSetpoint; }
+    //public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
+    //public get isFlowDelayMode(): boolean { return this.data.isFlowDelayMode; }
+    //public set isFlowDelayMode(val: boolean) { this.setDataVal('isFlowDelayMode', val); }
+    //public get isIntelliChlorUsed(): boolean { return this.data.isIntelliChlorUsed; }
+    //public set isIntelliChlorUsed(val: boolean) { this.setDataVal('isIntelliChlorUsed', val); }
+    //public get isAcidBaseDosing(): boolean { return this.data.isAcidBaseDosing; }
+    //public set isAcidBaseDosing(val: boolean) { this.setDataVal('isAcidBaseDosing', val); }
+    //public get ispHDoseByVolume(): boolean { return this.data.ispHDoseByVolume; }
+    //public set ispHDoseByVolume(val: boolean) { this.setDataVal('ispHDoseByVolume', val); }
+    //public get isorpDoseByVolume(): boolean { return this.data.isorpDoseByVolume; }
+    //public set isorpDoseByVolume(val: boolean) { this.setDataVal('isorpDoseByVolume', val); }
+    //public get pHManualDosing(): boolean { return this.data.pHManualDosing; }
+    //public set pHManualDosing(val: boolean) { this.setDataVal('pHManualDosing', val); }
+    public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
+    public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
     public getExtended() {
         let chem = this.get(true);
-        chem.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+        chem.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
+        chem.body = sys.board.valueMaps.bodies.transform(this.body);
+        chem.ph = this.ph.getExtended();
+        chem.orp = this.orp.getExtended();
+        return chem;
+    }
+}
+export class Chemical extends ChildEqItem {
+    public dataName = 'chemicalConfig';
+    public initData() {
+        if (typeof this.data.pump === 'undefined') this.data.pump = {};
+        if (typeof this.data.tank === 'undefined') this.data.tank = {};
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        if (typeof this.data.dosingMethod === 'undefined') this.data.dosingMethod = 0;
+        if (typeof this.data.startDelay === 'undefined') this.data.startDelay = 1.5;
+
+    }
+    public get chemType(): string { return this.data.chemType; }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get maxDosingTime(): number { return this.data.maxDosingTime; }
+    public set maxDosingTime(val: number) { this.setDataVal('maxDosingTime', val); }
+    public get maxDosingVolume(): number { return this.data.maxDosingVolume; }
+    public set maxDosingVolume(val: number) { this.setDataVal('maxDosingVolume', val); }
+    public get mixingTime(): number { return this.data.mixingTime; }
+    public set mixingTime(val: number) { this.setDataVal('mixingTime', val); }
+    public get dosingMethod(): number | any { return this.data.dosingMethod; }
+    public set dosingMethod(val: number | any) { this.setDataVal('dosingMethod', sys.board.valueMaps.chemDosingMethods.encode(val)); }
+    public get startDelay(): number { return this.data.startDelay; }
+    public set startDelay(val: number) { this.setDataVal('startDelay', val); }
+    public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
+    public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
+    public get setpoint(): number { return this.data.setpoint; }
+    public set setpoint(val: number) { this.setDataVal('setpoint', val); }
+    public getExtended() {
+        let chem = this.get(true);
+        chem.tank = this.tank.getExtended();
+        chem.pump = this.pump.getExtended();
+        chem.dosingMethod = sys.board.valueMaps.chemDosingMethods.transform(this.dosingMethod);
+        return chem;
+    }
+}
+export class ChemicalPh extends Chemical {
+    public initData() {
+        this.data.chemType = 'ph';
+        if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 7.2;
+        if (typeof this.data.phSupply === 'undefined') this.data.phSupply = 1;
+        if (typeof this.data.probe === 'undefined') this.data.probe = {};
+        super.initData();
+    }
+    public get phSupply(): number | any { return this.data.units; }
+    public set phSupply(val: number | any) { this.setDataVal('phSupply', sys.board.valueMaps.phSupplyTypes.encode(val)); }
+    public get probe(): ChemicalPhProbe { return new ChemicalPhProbe(this.data, 'probe', this); }
+    public getExtended() {
+        let chem = super.getExtended();
+        chem.probe = this.probe.getExtended();
+        chem.phSupply = sys.board.valueMaps.phSupplyTypes.transform(this.phSupply);
+        return chem;
+    }
+}
+export class ChemicalORP extends Chemical {
+    public initData() {
+        this.data.chemType = 'orp';
+        if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 600;
+        if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
+        if (typeof this.data.probe === 'undefined') this.data.probe = {};
+        super.initData();
+    }
+    public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
+    public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
+    public get probe(): ChemicalORPProbe { return new ChemicalORPProbe(this.data, 'probe', this); }
+    public getExtended() {
+        let chem = super.getExtended();
+        chem.probe = this.probe.getExtended();
         return chem;
     }
 }
@@ -1668,5 +1825,65 @@ export class Filter extends EqItem {
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }
     public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
+}
+export class ChemicalProbe extends ChildEqItem {
+    public initData() {
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+    }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public getExtended() { return this.get(true); }
+}
+export class ChemicalPhProbe extends ChemicalProbe {
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemPhProbeTypes.encode(val)); }
+}
+export class ChemicalORPProbe extends ChemicalProbe {
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemORPProbeTypes.encode(val)); }
+}
+
+export class ChemicalPump extends ChildEqItem {
+    public dataName = 'chemicalPumpConfig';
+    public initData() {
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
+        if (typeof this.data.ratedFlow === 'undefined') this.data.ratedFlow = 0;
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+    }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemPumpTypes.encode(val)); }
+    public get ratedFlow(): number { return this.data.ratedFlow || 0; }
+    public set ratedFlow(val: number) { this.setDataVal('ratedFlow', val); }
+    public getExtended() {
+        let pump = this.get(true);
+        pump.type = sys.board.valueMaps.chemPumpTypes.transform(this.type);
+        return pump;
+    }
+}
+export class ChemicalTank extends ChildEqItem {
+    public dataName = 'chemicalTankConfig';
+    public initData() {
+        if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
+        if (typeof this.data.units === 'undefined') this.data.units = 0;
+    }
+    public get capacity(): number { return this.data.capacity; }
+    public set capacity(val: number) { this.setDataVal('capacity', val); }
+    public get units(): number | any { return this.data.units; }
+    public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.volumeUnits.encode(val)); }
+    public getExtended() {
+        let tank = this.get(true);
+        tank.units = sys.board.valueMaps.volumeUnits.transform(this.units);
+        return tank;
+    }
 }
 export let sys = new PoolSystem();

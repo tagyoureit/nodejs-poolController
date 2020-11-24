@@ -63,8 +63,8 @@ export class IntelliChemStateMessage {
                     // We have not talked to the chem controller in 30 seconds so we have lost communication.
                     scontroller.status = scontroller.alarms.comms = 1;                   
                 }
-                controller.acidTankCapacity = controller.orpTankCapacity = 6;
-                controller.acidTankUnits = controller.orpTankUnits = '';
+                controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
+                controller.ph.tank.units = controller.orp.tank.units = '';
                 msg.isProcessed = true;
                 break;
             // ---------- OCP set get ----------- //
@@ -138,27 +138,27 @@ export class IntelliChemStateMessage {
         controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
         scontroller.lastComm = new Date().getTime();
         scontroller.status = scontroller.alarms.comms = 0; 
-        controller.acidTankCapacity = controller.orpTankCapacity = 6;
-        controller.acidTankUnits = controller.orpTankUnits = '';
+        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
+        controller.ph.tank.units = controller.orp.tank.units = '';
         
         scontroller.address = controller.address;
-        scontroller.pHLevel = msg.extractPayloadIntBE(0) / 100;
-        scontroller.orpLevel = msg.extractPayloadIntBE(2);
-        controller.pHSetpoint = msg.extractPayloadIntBE(4) / 100;
-        controller.orpSetpoint = msg.extractPayloadIntBE(6);
+        scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
+        scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
+        controller.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
+        controller.orp.setpoint = msg.extractPayloadIntBE(6);
 
         // These are a guess as the byte mapping is not yet complete.
-        scontroller.pHDosingTime = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
-        scontroller.orpDosingTime = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
+        scontroller.ph.dosingTimeRemaining = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
+        scontroller.orp.dosingTimeRemaining = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
 
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
         // controller.waterVolume = msg.extractPayloadByte(15) * 1000;
         // Bytes 16-19
-        scontroller.pHDosingVolume = msg.extractPayloadByte(17); // Previous pH Dose volume
-        scontroller.orpDosingVolume = msg.extractPayloadByte(19); // Previous ORP Dose volume
-        scontroller.acidTankLevel = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
-        scontroller.orpTankLevel = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+        scontroller.ph.dosingVolumeRemaining = msg.extractPayloadByte(17); // Previous pH Dose volume
+        scontroller.orp.dosingVolumeRemaining = msg.extractPayloadByte(19); // Previous ORP Dose volume
+        scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
+        scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
         let SIRaw = msg.extractPayloadByte(22);
         if ((SIRaw & 0x80) === 0x80) {
             // negative SI
@@ -174,8 +174,8 @@ export class IntelliChemStateMessage {
         controller.alkalinity = msg.extractPayloadIntBE(27);
 
         // scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
-        scontroller.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
-        scontroller.temp = msg.extractPayloadByte(31);
+        scontroller.ph.probe.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
+        scontroller.ph.probe.temperature = msg.extractPayloadByte(31);
 
         const alarms = scontroller.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
@@ -186,14 +186,14 @@ export class IntelliChemStateMessage {
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         msg.extractPayloadByte(33);
         // scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
-        scontroller.pHDosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
-        scontroller.orpDosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
-        controller.isFlowDelayMode = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
+        scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
+        scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
+        scontroller.flowDelay = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
         scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
-        controller.pHManualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
-        controller.isIntelliChlorUsed = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
+        scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
+        controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
-        controller.isAcidBaseDosing = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
+        controller.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
         scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
 
         const warnings = scontroller.warnings;
@@ -208,9 +208,9 @@ export class IntelliChemStateMessage {
         // RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
         if (sys.chlorinators.length > 0) {
             let chlor = state.chlorinators.find(elem => elem.id === 1);
-            scontroller.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+            scontroller.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
         }
-        else scontroller.saltLevel = 0;
+        else scontroller.orp.probe.saltLevel = 0;
 
         // manually emit extended values
         webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data

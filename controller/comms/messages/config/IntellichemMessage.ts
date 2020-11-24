@@ -53,17 +53,17 @@ export class IntellichemMessage {
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
-                        controller.acidTankCapacity = controller.orpTankCapacity = 6;
-                        controller.acidTankUnits = controller.orpTankUnits = '';
+                        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
+                        controller.ph.tank.units = controller.orp.tank.units = '';
                         
-                        if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
-                        if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
-                        if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;
-                        if (typeof scontroller.orpLevel === 'undefined') scontroller.orpLevel = 0;
-                        if (typeof scontroller.orpDosingTime === 'undefined') scontroller.orpDosingTime = 0;
-                        if (typeof scontroller.pHDosingTime === 'undefined') scontroller.orpDosingTime = 0;
-                        if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
-                        if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
+                        //if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
+                        //if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;
+                        //if (typeof scontroller.pHLevel === 'undefined') scontroller.pHLevel = 0;
+                        //if (typeof scontroller.orpLevel === 'undefined') scontroller.orpLevel = 0;
+                        //if (typeof scontroller.orpDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+                        //if (typeof scontroller.pHDosingTime === 'undefined') scontroller.orpDosingTime = 0;
+                        //if (typeof scontroller.temp === 'undefined') scontroller.temp = 0;
+                        //if (typeof scontroller.tempUnits === 'undefined') scontroller.tempUnits = 0;
                         //if (typeof scontroller.waterFlow === 'undefined') scontroller.waterFlow = 0;
                     }
                 }
@@ -72,8 +72,8 @@ export class IntellichemMessage {
                 for (let i = 0; i < 4; i++) {
                     let controller = sys.chemControllers.getItemById(i + 1, false);
                     if (controller.isActive) {
-                        controller.pHSetpoint = msg.extractPayloadInt((i * 2) + 2) / 100;
-                        controller.orpSetpoint = msg.extractPayloadInt((i * 2) + 10);
+                        controller.ph.setpoint = msg.extractPayloadInt((i * 2) + 2) / 100;
+                        controller.orp.setpoint = msg.extractPayloadInt((i * 2) + 10);
                         controller.calciumHardness = msg.extractPayloadInt((i * 2) + 18);
                         controller.alkalinity = msg.extractPayloadInt((i * 2) + 26);
                     }

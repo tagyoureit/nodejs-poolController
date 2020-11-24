@@ -453,11 +453,47 @@ export class byteValueMaps {
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
     public chemControllerTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'None' }],
-        [1, { name: 'unknown', desc: 'Unknown' }],
-        [2, { name: 'intellichem', desc: 'IntelliChem' }],
-        [3, { name: 'homegrown', desc: 'Homegrown' }],
-        [4, { name: 'rem', desc: 'REM Chem'}]
+        [0, { name: 'none', desc: 'None', hasAddress: false }],
+        [1, { name: 'unknown', desc: 'Unknown', hasAddress: false }],
+        [2, { name: 'intellichem', desc: 'IntelliChem', hasAddress: true }],
+        [3, { name: 'homegrown', desc: 'Homegrown', hasAddress: false }],
+        [4, { name: 'rem', desc: 'REM Chem', hasAddress: false}]
+    ]);
+    public chemPumpTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Pump', ratedFlow: false, tank: false, remAddress: false }],
+        [1, { name: 'relay', desc: 'Relay Pump', ratedFlow: true, tank: true, remAddress: true }],
+        [2, { name: 'ezo-pmp', desc: 'Altas EZO-PMP', ratedFlow: false, tank: false, remAddress: true }]
+    ]);
+    public chemPhProbeTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Probe' }],
+        [1, { name: 'ezo-ph', desc: 'Atlas EZO-PH', remAddress: true }],
+        [2, { name: 'other', desc: 'Other' }]
+    ]);
+    public chemORPProbeTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Probe' }],
+        [1, { name: 'ezo-orp', desc: 'Atlas EZO-ORP', remAddress: true }],
+        [2, { name: 'other', desc: 'Other' }]
+    ]);
+
+    public chemDosingMethods: byteValueMap = new byteValueMap([
+        [0, { name: 'manual', desc: 'Manual' }],
+        [1, { name: 'time', desc: 'Time' }],
+        [2, { name: 'volume', desc: 'Volume' }],
+        [3, { name: 'volumeTime', desc: 'Volume/Time' }]
+    ]);
+    public phSupplyTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'base', desc: 'Base pH+' }],
+        [1, { name: 'acid', desc: 'Acid pH-' }]
+    ]);
+    public volumeUnits: byteValueMap = new byteValueMap([
+        [0, { name: '', desc: 'No Units' }],
+        [1, { name: 'gal', desc: 'Gallons' }],
+        [2, { name: 'L', desc: 'Liters' }],
+        [3, { name: 'mL', desc: 'Milliliters' }],
+        [4, { name: 'cL', desc: 'Centiliters' }],
+        [5, { name: 'oz', desc: 'Ounces' }],
+        [6, { name: 'qt', desc: 'Quarts' }],
+        [7, { name: 'pt', desc: 'Pints' }]
     ]);
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
@@ -2672,172 +2708,659 @@ export class ChemControllerCommands extends BoardCommands {
         sys.emitEquipmentChange();
         return Promise.resolve(chem);
     }
+    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
+        // We will land here whenever the chem controller is not attached to an IntelliCenter.  Apparently
+        // *Touch controllers communicate directly with the IntelliChem controller and the OCP has no play in it.
+        try {
+            let chem = sys.chemControllers.find(elem => elem.id === data.id);
+            let ichemType = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+            if (typeof chem === 'undefined') {
+                // We are adding an IntelliChem.  Check to see how many intellichems we have.
+                let arr = sys.chemControllers.toArray();
+                let count = 0;
+                for (let i = 0; i < arr.length; i++) {
+                    let cc: ChemController = arr[i];
+                    if (cc.type === ichemType) count++;
+                }
+                if (count >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentDataError(`The max number of IntelliChem controllers has been reached: ${sys.equipment.maxChemControllers}`, 'chemController', sys.equipment.maxChemControllers));
+                chem = sys.chemControllers.getItemById(data.id);
+            }
+            let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
+            if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
+            if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
+
+            let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+            let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+            let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+            let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+            // Do a final validation pass so we dont send this off in a mess.
+            if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
+            if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
+            if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+            if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+            if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+            let schem = state.chemControllers.getItemById(chem.id);
+            schem.ph.tank.capacity = schem.orp.tank.capacity = chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+            schem.ph.tank.units = schem.orp.tank.units = chem.ph.tank.units = chem.orp.tank.units = '';
+            let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+            let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
+            if (isNaN(orpTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', orpTankLevel));
+            if (isNaN(acidTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', acidTankLevel));
+
+            await new Promise((resolve, reject) => {
+                let out = Outbound.create({
+                    dest: chem.address,
+                    source: 16, // ic doesn't seem to like msgs coming from 33
+                    action: 146,
+                    payload: [],
+                    retries: 1,
+                    response: true,
+                    protocol: Protocol.IntelliChem,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            if (typeof data.isVirtual !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
+                            reject(err);
+                        }
+                        else {
+                            chem = sys.chemControllers.getItemById(data.id, true);
+                            schem = state.chemControllers.getItemById(data.id, true);
+                            chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+                            chem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = orpSetpoint;
+                            chem.calciumHardness = calciumHardness;
+                            chem.alkalinity = alkalinity;
+                            schem.ph.tank.level = acidTankLevel;
+                            schem.orp.tank.level = orpTankLevel;
+                            chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+                            chem.isActive = schem.isActive = true;
+                            resolve(); // let IntelliChem status packet set values
+                        }
+                    }
+                });
+                out.insertPayloadBytes(0, 0, 21);
+                out.setPayloadByte(0, Math.floor((pHSetpoint * 100) / 256) || 0);
+                out.setPayloadByte(1, Math.round((pHSetpoint * 100) % 256) || 0);
+                out.setPayloadByte(2, Math.floor(orpSetpoint / 256) || 0);
+                out.setPayloadByte(3, Math.round(orpSetpoint % 256) || 0);
+                out.setPayloadByte(4, acidTankLevel);
+                out.setPayloadByte(5, orpTankLevel);
+                out.setPayloadByte(6, Math.floor(calciumHardness / 256) || 0);
+                out.setPayloadByte(7, Math.round(calciumHardness % 256) || 0);
+                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+                out.setPayloadByte(10, Math.floor(alkalinity / 256) || 0);
+                out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
+                // out.setPayloadByte(12, 20);  // fixed value?
+                conn.queueSendMessage(out);
+            })
+            return Promise.resolve(sys.chemControllers.getItemById(data.id));
+        }
+        catch (err) { return Promise.reject(err); }
+    }
     public async setChemControllerAsync(data: any): Promise<ChemController> {
-        return new Promise<ChemController>(async (resolve, reject) => {
-            // this is a combined chem config/state setter.  
+        try {
+            // We could be adding here so create athe appropriate logic to add a chem controller if we need to.  THIS DOES NOT DELETE!
+            // The other thing this does not do is change an existing type to another type.
             let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : undefined;
             let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
-            let isAdd = false;
-            if (typeof address === 'undefined' && id <= 0) {
-                // adding a chem controller
-                id = sys.chemControllers.nextAvailableChemController();
-                isAdd = true;               
-            }
-            if (isAdd && sys.chemControllers.length >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
-            if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
             let chem: ChemController;
-
-            if (typeof address !== 'undefined') chem = sys.chemControllers.getItemByAddress(address, true);
-            else chem = sys.chemControllers.getItemById(id, true);
-            let schem = state.chemControllers.getItemById(chem.id, true);
-
-            // Before we send an outbound ic packet, check if we are deleting this controller
-            if (typeof data.type !== 'undefined' && data.type === 0) {
-                // remove
-                schem.isActive = chem.isActive = false;
-                sys.chemControllers.removeItemById(chem.id);
-                state.chemControllers.removeItemById(chem.id);
-                sys.emitEquipmentChange();
-                return Promise.resolve(chem);
-            }
-            // and check to see if we are changing TO an intellichem or AWAY from an intellichem
-            schem.type = chem.type = parseInt(data.type, 10) || chem.type || 1;
-            if (typeof data.isActive !== 'undefined') chem.isActive = data.isActive;
-            else if (typeof chem.isActive === 'undefined') chem.isActive = true;
-            if (typeof data.isVirtual !== 'undefined') chem.isVirtual = data.isVirtual;
-            else if (typeof chem.isVirtual === 'undefined') chem.isVirtual = true;
-            schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
-            if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual ||
-                chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) schem.virtualControllerStatus = -1;
-            // if we have an IntelliChem, set the values here and let the status 
-            if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual) {
-                sys.board.virtualChemControllers.start();
-
-                const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.pHSetpoint) * 100;
-                const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.pHSetpoint);
-                const _ch = (typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness);
-                const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
-                try {
-                    await new Promise((_resolve, _reject) => {
-                        let out = Outbound.create({
-                            dest: chem.address,
-                            source: 16, // ic doesn't seem to like msgs coming from 33
-                            action: 146,
-                            payload: [],
-                            retries: 1,
-                            response: true,
-                            protocol: Protocol.IntelliChem,
-                            onComplete: (err, msg) => {
-                                if (err) {
-                                    if (typeof data.isVirtual !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
-                                    _reject(err);
-                                }
-                                else {
-                                    schem.pHSetpoint = chem.pHSetpoint = _ph / 100;
-                                    schem.orpSetpoint = chem.orpSetpoint = _orp;
-                                    chem.calciumHardness = _ch;
-                                    chem.alkalinity = _alk;
-                                    schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
-
-                                    schem.orpTankLevel = Math.max(typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel, 0);
-                                    chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-                                    chem.isActive = schem.isActive = true;
-                                    _resolve(); // let IntelliChem status packet set values
-                                }
-                            }
-                        });
-                        out.insertPayloadBytes(0, 0, 21);
-                        out.setPayloadByte(0, Math.floor(_ph / 256) || 0);
-                        out.setPayloadByte(1, Math.round(_ph % 256) || 0);
-                        out.setPayloadByte(2, Math.floor(_orp / 256) || 0);
-                        out.setPayloadByte(3, Math.round(_orp % 256) || 0);
-                        out.setPayloadByte(4, Math.max(parseInt(data.acidTankLevel, 10), 0), schem.acidTankLevel || 0);
-                        out.setPayloadByte(5, Math.max(parseInt(data.orpTankLevel, 10), 0), schem.orpTankLevel || 0);
-                        out.setPayloadByte(6, Math.floor(_ch / 256) || 0);
-                        out.setPayloadByte(7, Math.round(_ch % 256) || 0);
-                        out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
-                        out.setPayloadByte(10, Math.floor(_alk / 256) || 0);
-                        out.setPayloadByte(12, Math.round(_alk % 256) || 0);
-                        // out.setPayloadByte(12, 20);  // fixed value?
-                        conn.queueSendMessage(out);
-                    })
-                    resolve(chem); // return Promise to API
+            let type;
+            let isAdd = false;
+            if (id > 0) {
+                chem = sys.chemControllers.find(elem => elem.id === id);
+                address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
+                if (typeof chem !== 'undefined') {
+                    type = chem.type;
                 }
-                catch (err) { reject(err); }
+                else {
+                    data.id = id; // We are adding a chem controller at the specified id.
+                    isAdd = true;
+                }
+            }
+            else if (address > 0) {
+                chem = sys.chemControllers.find(elem => elem.address === address);
+                if (typeof chem !== 'undefined') {
+                    data.id = chem.id;
+                    type = chem.type;
+                }
+                else {
+                    data.address = address;
+                    isAdd = true;
+                }
             }
             else {
-                // config data
-                chem.body = data.body || chem.body || 32;
-                chem.address = parseInt(data.address, 10) || chem.address || (chem.id + 143);
-                if (typeof data.pHSetpoint !== 'undefined') chem.pHSetpoint = parseFloat(data.pHSetpoint);
-                if (typeof data.orpSetpoint !== 'undefined') chem.orpSetpoint = parseInt(data.orpSetpoint, 10);
-                if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
-                if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
-                if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
-                if (typeof data.pHManualDosing !== 'undefined') chem.pHManualDosing = utils.makeBool(data.pHManualDosing);
-                if (typeof data.isIntelliChlorUsed !== 'undefined') chem.isIntelliChlorUsed = utils.makeBool(data.isIntelliChlorUsed);
-                if (typeof data.HMIAdvancedDisplay !== 'undefined') chem.HMIAdvancedDisplay = utils.makeBool(data.HMIAdvancedDisplay);
-                if (typeof data.isAcidBaseDosing !== 'undefined') chem.isAcidBaseDosing = utils.makeBool(data.isAcidBaseDosing);
-                // state data
-                const alarms = data.alarms
-                if (typeof alarms !== 'undefined') {
-                    if (typeof alarms.flow !== 'undefined') schem.alarms.flow = parseInt(alarms.flow, 10);
-                    if (typeof alarms.pH !== 'undefined') schem.alarms.pH = parseInt(alarms.pH, 10);
-                    if (typeof alarms.orp !== 'undefined') schem.alarms.orp = parseInt(alarms.orp, 10);
-                    if (typeof alarms.pHTank !== 'undefined') schem.alarms.pHTank = parseInt(alarms.pHTank, 10);
-                    if (typeof alarms.orpTank !== 'undefined') schem.alarms.orpTank = parseInt(alarms.orpTank, 10);
-                    if (typeof alarms.probeFault !== 'undefined') schem.alarms.probeFault = parseInt(alarms.probeFault, 10);
-                }
-                const warnings = data.warnings
-                if (typeof warnings !== 'undefined') {
-                    if (typeof warnings.waterChemistry !== 'undefined') schem.warnings.waterChemistry = parseInt(warnings.waterChemistry, 10);
-                    if (typeof warnings.pHLockout !== 'undefined') schem.warnings.pHLockout = parseInt(warnings.pHLockout, 10);
-                    if (typeof warnings.pHDailyLimitReached !== 'undefined') schem.warnings.pHDailyLimitReached = parseInt(warnings.pHDailyLimitReached, 10);
-                    if (typeof warnings.orpDailyLimitReached !== 'undefined') schem.warnings.orpDailyLimitReached = parseInt(warnings.orpDailyLimitReached, 10);
-                    if (typeof warnings.invalidSetup !== 'undefined') schem.warnings.invalidSetup = parseInt(warnings.invalidSetup, 10);
-                    if (typeof warnings.chlorinatorCommError !== 'undefined') schem.warnings.chlorinatorCommError = parseInt(warnings.chlorinatorCommError, 10);
-
-                }
-                if (typeof data.pHLevel !== 'undefined') schem.pHLevel = parseFloat(data.pHLevel);
-                if (typeof data.orpLevel !== 'undefined') schem.orpLevel = parseFloat(data.orpLevel);
-                if (typeof data.saltLevel !== 'undefined') schem.saltLevel = parseInt(data.saltLevel, 10);
-                else if (sys.chlorinators.getItemById(1).isActive) schem.saltLevel = state.chlorinators.getItemById(1).saltLevel;
-                // if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
-                if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = Math.max(parseInt(data.acidTankLevel, 10), 0);
-                if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
-                // if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10); // remove/unsure?
-                // if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10); // remove/unsure?
-                if (typeof data.pHDosingStatus !== 'undefined') schem.pHDosingStatus = parseInt(data.pHDosingStatus, 10);
-                if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10);
-                if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
-                if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
-                if (typeof data.pHDosingVolume !== 'undefined') schem.pHDosingVolume = parseInt(data.pHDosingVolume, 10);
-                if (typeof data.orpDosingVolume !== 'undefined') schem.orpDosingVolume = parseInt(data.orpDosingVolume, 10);
-
-                if (typeof data.temp !== 'undefined') schem.temp = parseInt(data.temp, 10);
-                else {
-                    let tbody = state.temps.bodies.getBodyIsOn();
-                    if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') schem.temp = tbody.temp;
-                }
-                if (typeof data.tempUnits !== 'undefined') {
-                    if (typeof data.tempUnits === 'string') schem.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
-                    else schem.tempUnits = data.tempUnits;
-                }
-                else schem.tempUnits = state.temps.units;
-                if (typeof data.saturationIndex !== 'undefined') schem.saturationIndex = data.saturationIndex;
-                else sys.board.chemControllers.calculateSaturationIndex(chem, schem)
-                // sys.emitEquipmentChange();  // RSG - eliminating this emit in favor of the more complete extended emit below
-                webApp.emitToClients('chemController', schem.getExtended()); // emit extended data
-                schem.hasChanged = false; // try to avoid duplicate emits
-                resolve(chem);
+                isAdd = true;
             }
-        })
+            if (isAdd) {
+                // Alright we are adding here.  So the type must be defined.  From here on out the determination as to whether
+                // this is an add will be based upon finding the id in the chemControllers array.
+                type = sys.board.valueMaps.chemControllerTypes.encode(parseInt(data.type, 10), undefined);
+                isAdd = true;
+                data.id = (sys.chemControllers.getMaxId() || 0) + 1;
+                chem = sys.chemControllers.getItemById(data.id);
+            }
+            if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
+            else if (sys.board.valueMaps.chemControllerTypes.getName(type) === 'intellichem') return await this.setIntelliChemAsync(data);
+            chem = sys.chemControllers.getItemById(data.id, true);
+            // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
+            let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+            let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+            let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+            let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+            // Do a final validation pass so we dont send this off in a mess.
+            if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+            if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+            if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+            let schem = state.chemControllers.getItemById(chem.id, true);
+            chem.address = address;
+            chem.calciumHardness = calciumHardness;
+            chem.cyanuricAcid = cyanuricAcid;
+            chem.alkalinity = alkalinity;
+            chem.body = body;
+            schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
+            schem.type = chem.type = type;
+            schem.isActive = chem.isActive = true;
+            // Alright we are down to the equipment items all validation should have been completed by now.
+           
+
+            // ORP Settings
+            if (typeof data.orp !== 'undefined') {
+                // ORP Probe: The data here is read only so we are not calling out to equipment.
+                chem.orp.useChlorinator = typeof data.orp.useChlorinator !== 'undefined' ? utils.makeBool(data.orp.useChlorinator) : chem.orp.useChlorinator;
+                chem.orp.dosingMethod = typeof data.orp.dosingMethod !== 'undefined' ? data.orp.dosingMethod : chem.orp.dosingMethod;
+                chem.orp.enabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+                if (typeof data.orp.mixingTimeHours !== 'undefined' || typeof data.orp.mixingTimeMinutes !== 'undefined') {
+                    data.orp.mixingTime = (typeof data.orp.mixingTimeHours !== 'undefined' ? parseInt(data.orp.mixingTimeHours, 10) * 3600 : 0) +
+                        (typeof data.orp.mixingTimeMinutes !== 'undefined' ? parseInt(data.orp.mixingTimeMinutes, 10) * 60 : 0) +
+                            (typeof data.orp.mixingTimeSeconds !== 'undefined' ? parseInt(data.orp.mixingTimeSeconds, 10) : 0);
+                }
+                if (typeof data.orp.maxDosingTimeHours !== 'undefined' || typeof data.orp.maxDosingTimeMinutes !== 'undefined') {
+                    data.orp.maxDosingTime = (typeof data.orp.maxDosingTimeHours !== 'undefined' ? parseInt(data.orp.maxDosingTimeHours, 10) * 3600 : 0) +
+                        (typeof data.orp.maxDosingTimeMinutes !== 'undefined' ? parseInt(data.orp.maxDosingTimeMinutes, 10) * 60 : 0) +
+                            (typeof data.orp.maxDosingTimeSeconds !== 'undefined' ? parseInt(data.orp.maxDosingTimeSeconds, 10) : 0);
+                }
+
+                chem.orp.maxDosingTime = typeof data.orp.maxDosingTime !== 'undefined' ? parseInt(data.orp.maxDosingTime, 10) : chem.orp.maxDosingTime;
+                chem.orp.maxDosingVolume = typeof data.orp.maxDosingVolume !== 'undefined' ? parseInt(data.orp.maxDosingVolume, 10) : chem.orp.maxDosingVolume;
+                chem.orp.mixingTime = typeof data.orp.mixingTime !== 'undefined' ? parseInt(data.orp.mixingTime, 10) : chem.orp.mixingTime;
+                chem.orp.setpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+                chem.orp.startDelay = typeof data.orp.startDelay !== 'undefined' ? parseFloat(data.orp.startDelay) : chem.orp.startDelay;
+                if (typeof data.orp.probe !== 'undefined') {
+                    schem.orp.probe.level = typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : schem.orp.probe.level;
+                    schem.orp.probe.saltLevel = typeof data.orp.probe.saltLevel !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : schem.orp.probe.saltLevel;
+                    chem.orp.probe.connectionId = typeof data.orp.probe.connectionId !== 'undefined' ? data.orp.probe.connectionId : chem.orp.probe.connectionId;
+                    chem.orp.probe.deviceBinding = typeof data.orp.probe.deviceBinding !== 'undefined' ? data.orp.probe.deviceBinding : chem.orp.probe.deviceBinding;
+                }
+                // ORP Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+                if (typeof data.orp.tank !== 'undefined') {
+                    schem.orp.tank.level = typeof data.orp.tank.level !== 'undefined' ? parseFloat(data.orp.tank.level) : schem.orp.tank.level;
+                    chem.orp.tank.capacity = schem.orp.tank.capacity = typeof data.orp.tank.capacity !== 'undefined' ? parseFloat(data.orp.tank.capacity) : schem.orp.tank.capacity;
+                    chem.orp.tank.units = schem.orp.tank.units = typeof data.orp.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.orp.tank.units) : chem.orp.tank.units;
+                }
+                if (typeof data.orp.pump !== 'undefined') {
+                    chem.orp.pump.enabled = typeof data.orp.pump.enabled !== 'undefined' ? data.orp.pump.enabled : chem.orp.pump.enabled;
+                    chem.orp.pump.type = typeof data.orp.pump.type !== 'undefined' ? data.orp.pump.type : chem.orp.pump.type;
+                    chem.orp.pump.ratedFlow = typeof data.orp.pump.ratedFlow !== 'undefined' ? data.orp.pump.ratedFlow : chem.orp.pump.ratedFlow;
+                    chem.orp.pump.connectionId = typeof data.orp.pump.connectionId !== 'undefined' ? data.orp.pump.connectionId : chem.orp.pump.connectionId;
+                    chem.orp.pump.deviceBinding = typeof data.orp.pump.deviceBinding !== 'undefined' ? data.orp.pump.deviceBinding : chem.orp.pump.deviceBinding;
+                }
+                if (typeof data.orp.probe !== 'undefined') {
+                    chem.orp.probe.type = typeof data.orp.probe.type !== 'undefined' ? data.orp.probe.type : chem.orp.probe.type;
+                    chem.orp.probe.connectionId = typeof data.orp.probe.connectionId !== 'undefined' ? data.orp.probe.connectionId : chem.orp.probe.connectionId;
+                    chem.orp.probe.deviceBinding = typeof data.orp.probe.deviceBinding !== 'undefined' ? data.orp.probe.deviceBinding : chem.orp.probe.deviceBinding;
+                }
+            }
+            if (typeof data.ph !== 'undefined') {
+                chem.ph.dosingMethod = typeof data.ph.dosingMethod !== 'undefined' ? data.ph.dosingMethod : chem.ph.dosingMethod;
+                chem.ph.enabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+                if (typeof data.ph.mixingTimeHours !== 'undefined' || typeof data.ph.mixingTimeMinutes !== 'undefined') {
+                    data.ph.mixingTime = (typeof data.ph.mixingTimeHours !== 'undefined' ? parseInt(data.ph.mixingTimeHours, 10) * 3600 : 0) +
+                        (typeof data.ph.mixingTimeMinutes !== 'undefined' ? parseInt(data.ph.mixingTimeMinutes, 10) * 60 : 0) +
+                            (typeof data.ph.mixingTimeSeconds !== 'undefined' ? parseInt(data.ph.mixingTimeSeconds, 10) : 0);
+                }
+                if (typeof data.ph.maxDosingTimeHours !== 'undefined' || typeof data.ph.maxDosingTimeMinutes !== 'undefined') {
+                    data.ph.maxDosingTime = (typeof data.ph.maxDosingTimeHours !== 'undefined' ? parseInt(data.ph.maxDosingTimeHours, 10) * 3600 : 0)
+                        + (typeof data.ph.maxDosingTimeMinutes !== 'undefined' ? parseInt(data.ph.maxDosingTimeMinutes, 10) * 60 : 0)
+                            + (typeof data.ph.maxDosingTimeSeconds !== 'undefined' ? parseInt(data.ph.maxDosingTimeSeconds, 10) : 0);
+                }
+
+                chem.ph.maxDosingTime = typeof data.ph.maxDosingTime !== 'undefined' ? parseInt(data.ph.maxDosingTime, 10) : chem.ph.maxDosingTime;
+                chem.ph.maxDosingVolume = typeof data.ph.maxDosingVolume !== 'undefined' ? parseInt(data.ph.maxDosingVolume, 10) : chem.ph.maxDosingVolume;
+                chem.ph.mixingTime = typeof data.ph.mixingTime !== 'undefined' ? parseInt(data.ph.mixingTime, 10) : chem.ph.mixingTime;
+                chem.ph.setpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+                chem.ph.phSupply = typeof data.ph.phSupply !== 'undefined' ? data.ph.phSupply : chem.ph.phSupply;
+                chem.ph.startDelay = typeof data.ph.startDelay !== 'undefined' ? parseFloat(data.ph.startDelay) : chem.ph.startDelay;
+                // pH Probe: the data here is read only so we are not calling out to equipment.
+                if (typeof data.ph.probe !== 'undefined') {
+                    schem.ph.probe.level = typeof data.ph.probe.level !== 'undefined' ? parseFloat(data.ph.probe.level) : schem.ph.probe.level;
+                    schem.ph.probe.temperature = typeof data.ph.probe.temperature !== 'undefined' ? parseFloat(data.ph.probe.temperature) : schem.ph.probe.temperature;
+                    schem.ph.probe.tempUnits = typeof data.ph.probe.tempUnits !== 'undefined' ? data.ph.probe.tempUnits : schem.ph.probe.tempUnits;
+                    chem.ph.probe.connectionId = typeof data.ph.probe.connectionId !== 'undefined' ? data.ph.probe.connectionId : chem.ph.probe.connectionId;
+                    chem.ph.probe.deviceBinding = typeof data.ph.probe.deviceBinding !== 'undefined' ? data.ph.probe.deviceBinding : chem.ph.probe.deviceBinding;
+                }
+                // Acid Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+                if (typeof data.ph.tank !== 'undefined') {
+                    schem.ph.tank.level = typeof data.ph.tank.level !== 'undefined' ? parseFloat(data.ph.tank.level) : schem.ph.tank.level;
+                    chem.ph.tank.capacity = schem.ph.tank.capacity = typeof data.ph.tank.capacity !== 'undefined' ? parseFloat(data.ph.tank.capacity) : schem.ph.tank.capacity;
+                    chem.ph.tank.units = schem.ph.tank.units = typeof data.ph.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.ph.tank.units) : chem.ph.tank.units;
+                }
+                if (typeof data.ph.pump !== 'undefined') {
+                    chem.ph.pump.enabled = typeof data.ph.pump.enabled !== 'undefined' ? data.ph.pump.enabled : chem.ph.pump.enabled;
+                    chem.ph.pump.type = typeof data.ph.pump.type !== 'undefined' ? data.ph.pump.type : chem.ph.pump.type;
+                    chem.ph.pump.ratedFlow = typeof data.ph.pump.ratedFlow !== 'undefined' ? data.ph.pump.ratedFlow : chem.ph.pump.ratedFlow;
+                    chem.ph.pump.connectionId = typeof data.ph.pump.connectionId !== 'undefined' ? data.ph.pump.connectionId : chem.ph.pump.connectionId;
+                    chem.ph.pump.deviceBinding = typeof data.ph.pump.deviceBinding !== 'undefined' ? data.ph.pump.deviceBinding : chem.ph.pump.deviceBinding;
+                }
+                if (typeof data.ph.probe !== 'undefined') {
+                    chem.ph.probe.type = typeof data.ph.probe.type !== 'undefined' ? data.ph.probe.type : chem.ph.probe.type;
+                    chem.ph.probe.connectionId = typeof data.ph.probe.connectionId !== 'undefined' ? data.ph.probe.connectionId : chem.ph.probe.connectionId;
+                    chem.ph.probe.deviceBinding = typeof data.ph.probe.deviceBinding !== 'undefined' ? data.ph.probe.deviceBinding : chem.ph.probe.deviceBinding;
+                }
+            }
+            return Promise.resolve(chem);
+        }
+        catch (err) { return Promise.reject(err); }
+
+        //return new Promise<ChemController>(async (resolve, reject) => {
+        //    // this is a combined chem config/state setter.  
+        //    let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : -1;
+        //    let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+        //    let chem: ChemController;
+        //    if (id > 0) {
+        //        chem = sys.chemControllers.getItemById(id);
+        //    }
+        //    let isAdd = false;
+        //    if (id <= 0) {
+        //        // adding a chem controller
+        //        id = sys.chemControllers.nextAvailableChemController();
+        //        isAdd = true;               
+        //    }
+        //    if (isAdd && sys.chemControllers.length >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+        //    if (typeof address !== 'undefined' && address < 144 || address > 158) return Promise.reject(new InvalidEquipmentIdError(`Max chem controller id exceeded`, id, 'chemController'));
+        //    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid chemController id: ${data.id}`, data.id, 'ChemController'));
+
+        //    if (typeof address !== 'undefined') chem = sys.chemControllers.getItemByAddress(address, true);
+        //    else chem = sys.chemControllers.getItemById(id, true);
+        //    let schem = state.chemControllers.getItemById(chem.id, true);
+
+        //    // Before we send an outbound ic packet, check if we are deleting this controller
+        //    if (typeof data.type !== 'undefined' && data.type === 0) {
+        //        // remove
+        //        schem.isActive = chem.isActive = false;
+        //        sys.chemControllers.removeItemById(chem.id);
+        //        state.chemControllers.removeItemById(chem.id);
+        //        sys.emitEquipmentChange();
+        //        return Promise.resolve(chem);
+        //    }
+        //    // and check to see if we are changing TO an intellichem or AWAY from an intellichem
+        //    schem.type = chem.type = parseInt(data.type, 10) || chem.type || 1;
+        //    if (typeof data.isActive !== 'undefined') chem.isActive = data.isActive;
+        //    else if (typeof chem.isActive === 'undefined') chem.isActive = true;
+        //    if (typeof data.isVirtual !== 'undefined') chem.isVirtual = data.isVirtual;
+        //    else if (typeof chem.isVirtual === 'undefined') chem.isVirtual = true;
+        //    schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
+        //    if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual ||
+        //        chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('intellichem')) schem.virtualControllerStatus = -1;
+        //    // if we have an IntelliChem, set the values here and let the status 
+        //    let phSetpoint = typeof data.ph !== 'undefined' ? parseFloat(data.ph.setpoint) : parseFloat(data.pHSetpoint);
+        //    if (isNaN(phSetpoint)) phSetpoint = chem.ph.setpoint || 400;
+        //    let orpSetpoint = typeof data.orp !== 'undefined' ? parseFloat(data.orp.setpoint) : parseFloat(data.orpSetpoint);
+        //    if (isNaN(orpSetpoint)) orpSetpoint = chem.orp.setpoint || 7.2;
+        //    let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' ? parseInt(data.ph.tank.level, 10) : parseInt(data.acidTankLevel, 10);
+        //    let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' ? parseInt(data.orp.tank.level, 10) : parseInt(data.orpTankLevel, 10);
+        //    if (isNaN(acidTankLevel)) acidTankLevel = schem.ph.tank.level || 0;
+        //    if (isNaN(orpTankLevel)) orpTankLevel = schem.orp.tank.level || 0;
+
+        //    if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual) {
+        //        sys.board.virtualChemControllers.start();
+        //        phSetpoint = Math.floor(phSetpoint * 100);
+
+        //        //const _ph = (typeof data.pHSetpoint !== 'undefined' ? parseFloat(data.pHSetpoint) : chem.ph.setpoint) * 100;
+        //        //const _orp = (typeof data.orpSetpoint !== 'undefined' ? parseInt(data.orpSetpoint, 10) : chem.ph.setpoint);
+        //        const _ch = (typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness);
+        //        const _alk = (typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity);
+
+        //        // RKS TODO CHEM: Have to go through this to continue to support the old format for now.
+        //        chem.ph.tank.capacity = 6;
+        //        chem.ph.tank.units = '';
+        //        acidTankLevel = Math.min(Math.max(acidTankLevel, 0), chem.ph.tank.capacity);
+        //        try {
+        //            await new Promise((_resolve, _reject) => {
+        //                let out = Outbound.create({
+        //                    dest: chem.address,
+        //                    source: 16, // ic doesn't seem to like msgs coming from 33
+        //                    action: 146,
+        //                    payload: [],
+        //                    retries: 1,
+        //                    response: true,
+        //                    protocol: Protocol.IntelliChem,
+        //                    onComplete: (err, msg) => {
+        //                        if (err) {
+        //                            if (typeof data.isVirtual !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
+        //                            _reject(err);
+        //                        }
+        //                        else {
+        //                            chem.ph.setpoint = phSetpoint / 100;
+        //                            chem.orp.setpoint = orpSetpoint;
+        //                            chem.calciumHardness = _ch;
+        //                            chem.alkalinity = _alk;
+        //                            schem.ph.tank.level = acidTankLevel;
+        //                            schem.orp.tank.level = orpTankLevel;
+        //                            //schem.acidTankLevel = Math.max(typeof data.acidTankLevel !== 'undefined' ? parseInt(data.acidTankLevel, 10) : schem.acidTankLevel, 0);
+        //                            //schem.orpTankLevel = Math.max(typeof data.orpTankLevel !== 'undefined' ? parseInt(data.orpTankLevel, 10) : schem.orpTankLevel, 0);
+        //                            chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+        //                            chem.isActive = schem.isActive = true;
+        //                            _resolve(); // let IntelliChem status packet set values
+        //                        }
+        //                    }
+        //                });
+        //                out.insertPayloadBytes(0, 0, 21);
+        //                out.setPayloadByte(0, Math.floor(phSetpoint / 256) || 0);
+        //                out.setPayloadByte(1, Math.round(phSetpoint % 256) || 0);
+        //                out.setPayloadByte(2, Math.floor(orpSetpoint / 256) || 0);
+        //                out.setPayloadByte(3, Math.round(orpSetpoint % 256) || 0);
+        //                out.setPayloadByte(4, acidTankLevel);
+        //                out.setPayloadByte(5, orpTankLevel);
+        //                out.setPayloadByte(6, Math.floor(_ch / 256) || 0);
+        //                out.setPayloadByte(7, Math.round(_ch % 256) || 0);
+        //                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+        //                out.setPayloadByte(10, Math.floor(_alk / 256) || 0);
+        //                out.setPayloadByte(12, Math.round(_alk % 256) || 0);
+        //                // out.setPayloadByte(12, 20);  // fixed value?
+        //                conn.queueSendMessage(out);
+        //            })
+        //            resolve(chem); // return Promise to API
+        //        }
+        //        catch (err) { reject(err); }
+        //    }
+        //    else {
+        //        let useChlorinator = chem.orp.useChlorinator;
+        //        if (typeof data.orp !== 'undefined' && typeof data.orp.useChlorinator !== 'undefined') useChlorinator = utils.makeBool(data.orp.useChlorinator);
+        //        else if (typeof data.isIntelliChlorUsed !== 'undefined') useChlorinator = utils.makeBool(data.isIntelliChlorUsed);
+        //        chem.orp.useChlorinator = useChlorinator;
+        //        // config data
+        //        if (typeof data.calciumHardness !== 'undefined') chem.calciumHardness = parseInt(data.calciumHardness, 10);
+        //        if (typeof data.cyanuricAcid !== 'undefined') chem.cyanuricAcid = parseInt(data.cyanuricAcid, 10);
+        //        if (typeof data.alkalinity !== 'undefined') chem.alkalinity = parseInt(data.alkalinity, 10);
+        //        chem.body = data.body || chem.body || 32;
+        //        chem.address = parseInt(data.address, 10) || chem.address || (chem.id + 143);
+        //        chem.ph.setpoint = phSetpoint;
+        //        chem.orp.setpoint = orpSetpoint;
+        //        let phSupply = typeof data.ph !== 'undefined' ?
+        //            sys.board.valueMaps.phSupplyTypes.encode(data.ph.phSupply, -1) :
+        //            typeof data.isAcidBaseDosing !== 'undefined' ? sys.board.valueMaps.phSupplyTypes.encode(utils.makeBool(data.isAcidBaseDosing) ? 1 : 0, -1) : chem.ph.phSupply;
+        //        chem.ph.phSupply = phSupply;
+
+
+        //        //if (typeof data.pHSetpoint !== 'undefined') chem.ph.setpoint = parseFloat(data.pHSetpoint);
+        //        //if (typeof data.orpSetpoint !== 'undefined') chem.orp.setpoint = parseInt(data.orpSetpoint, 10);
+        //        if (typeof data.pHManualDosing !== 'undefined') schem.ph.manualDosing = utils.makeBool(data.pHManualDosing);
+        //        //if (typeof data.isIntelliChlorUsed !== 'undefined') chem.isIntelliChlorUsed = utils.makeBool(data.isIntelliChlorUsed);
+        //        if (typeof data.HMIAdvancedDisplay !== 'undefined') chem.HMIAdvancedDisplay = utils.makeBool(data.HMIAdvancedDisplay);
+        //        //if (typeof data.isAcidBaseDosing !== 'undefined') chem.isAcidBaseDosing = utils.makeBool(data.isAcidBaseDosing);
+        //        // state data
+        //        const alarms = data.alarms
+        //        if (typeof alarms !== 'undefined') {
+        //            if (typeof alarms.flow !== 'undefined') schem.alarms.flow = parseInt(alarms.flow, 10);
+        //            if (typeof alarms.pH !== 'undefined') schem.alarms.pH = parseInt(alarms.pH, 10);
+        //            if (typeof alarms.orp !== 'undefined') schem.alarms.orp = parseInt(alarms.orp, 10);
+        //            if (typeof alarms.pHTank !== 'undefined') schem.alarms.pHTank = parseInt(alarms.pHTank, 10);
+        //            if (typeof alarms.orpTank !== 'undefined') schem.alarms.orpTank = parseInt(alarms.orpTank, 10);
+        //            if (typeof alarms.probeFault !== 'undefined') schem.alarms.probeFault = parseInt(alarms.probeFault, 10);
+        //        }
+        //        const warnings = data.warnings
+        //        if (typeof warnings !== 'undefined') {
+        //            if (typeof warnings.waterChemistry !== 'undefined') schem.warnings.waterChemistry = parseInt(warnings.waterChemistry, 10);
+        //            if (typeof warnings.pHLockout !== 'undefined') schem.warnings.pHLockout = parseInt(warnings.pHLockout, 10);
+        //            if (typeof warnings.pHDailyLimitReached !== 'undefined') schem.warnings.pHDailyLimitReached = parseInt(warnings.pHDailyLimitReached, 10);
+        //            if (typeof warnings.orpDailyLimitReached !== 'undefined') schem.warnings.orpDailyLimitReached = parseInt(warnings.orpDailyLimitReached, 10);
+        //            if (typeof warnings.invalidSetup !== 'undefined') schem.warnings.invalidSetup = parseInt(warnings.invalidSetup, 10);
+        //            if (typeof warnings.chlorinatorCommError !== 'undefined') schem.warnings.chlorinatorCommError = parseInt(warnings.chlorinatorCommError, 10);
+
+        //        }
+        //        //if (typeof data.pHLevel !== 'undefined') schem.pHLevel = parseFloat(data.pHLevel);
+        //        //if (typeof data.orpLevel !== 'undefined') schem.orpLevel = parseFloat(data.orpLevel);
+        //        //if (typeof data.saltLevel !== 'undefined') schem.saltLevel = parseInt(data.saltLevel, 10);
+        //        //else if (sys.chlorinators.getItemById(1).isActive) schem.saltLevel = state.chlorinators.getItemById(1).saltLevel;
+        //        // if (typeof data.waterFlow !== 'undefined') schem.waterFlow = parseInt(data.waterFlow);
+        //        // RKS CHEM: Only doing this to support old clients.  This should change.
+        //        let phLevel = typeof data.ph !== 'undefined' && typeof data.ph.probe !== 'undefined' ? parseFloat(data.ph.probe.level) : parseFloat(data.pHLevel);
+        //        if (isNaN(phLevel)) schem.ph.probe.level = phLevel;
+        //        let orpLevel = typeof data.orp !== 'undefined' && typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : parseFloat(data.orpLevel);
+        //        if (isNaN(orpLevel)) schem.orp.probe.level = orpLevel;
+
+        //        let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' ? parseInt(data.ph.tank.level, 10) : parseInt(data.acidTankLevel, 10);
+        //        let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' ? parseInt(data.orp.tank.level, 10) : parseInt(data.orpTankLevel, 10);
+        //        if (!isNaN(acidTankLevel)) schem.ph.tank.level = Math.max(0, Math.min(chem.ph.tank.capacity, acidTankLevel));
+        //        if (!isNaN(orpTankLevel)) schem.orp.tank.level = Math.max(0, Math.min(chem.orp.tank.capacity, orpTankLevel));
+
+        //        let saltLevel = typeof data.orp !== 'undefined' && typeof data.orp.probe !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : parseFloat(data.saltLevel);
+        //        if (isNaN(saltLevel)) saltLevel = sys.chlorinators.getItemById(1).isActive ? saltLevel = state.chlorinators.getItemById(1).saltLevel : schem.orp.probe.saltLevel;
+        //        schem.orp.probe.saltLevel = saltLevel;
+
+
+        //        //if (typeof data.acidTankLevel !== 'undefined') schem.acidTankLevel = Math.max(parseInt(data.acidTankLevel, 10), 0);
+        //        //if (typeof data.orpTankLevel !== 'undefined') schem.orpTankLevel = Math.max(parseInt(data.orpTankLevel, 10), 0);
+        //        // if (typeof data.status1 !== 'undefined') schem.status1 = parseInt(data.status1, 10); // remove/unsure?
+        //        // if (typeof data.status2 !== 'undefined') schem.status2 = parseInt(data.status2, 10); // remove/unsure?
+        //        //if (typeof data.pHDosingStatus !== 'undefined') schem.pHDosingStatus = parseInt(data.pHDosingStatus, 10);
+        //        //if (typeof data.orpDosingStatus !== 'undefined') schem.orpDosingStatus = parseInt(data.orpDosingStatus, 10);
+        //        let dosingStatus = typeof data.ph !== 'undefined' ? parseInt(data.ph.dosingStatus, 10) : parseInt(data.pHDosingStatus, 10);
+        //        schem.ph.dosingStatus = isNaN(dosingStatus) ? schem.ph.dosingStatus : dosingStatus;
+        //        dosingStatus = typeof data.orp !== 'undefined' ? parseInt(data.orp.dosingStatus, 10) : parseInt(data.orpDosingStatus, 10);
+        //        schem.orp.dosingStatus = isNaN(dosingStatus) ? schem.orp.dosingStatus : dosingStatus;
+
+        //        let dosingTime = typeof data.ph !== 'undefined' ? parseInt(data.ph.dosingTimeRemaining, 10) : parseInt(data.pHDosingTime, 10);
+        //        schem.ph.dosingTimeRemaining = isNaN(dosingTime) ? schem.ph.dosingTimeRemaining : dosingTime;
+        //        dosingTime = typeof data.orp !== 'undefined' ? parseInt(data.orp.dosingTimeRemaining, 10) : parseInt(data.orpDosingTime, 10);
+        //        schem.orp.dosingTimeRemaining = isNaN(dosingTime) ? schem.orp.dosingTimeRemaining : dosingTime;
+                
+        //        //if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
+        //        //if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
+        //        let dosingVolume = typeof data.ph !== 'undefined' ? parseInt(data.ph.dosingVolumeRemaing, 10) : parseInt(data.pHDosingVolume, 10);
+        //        schem.ph.dosingVolumeRemaining = isNaN(dosingVolume) ? schem.ph.dosingVolumeRemaining : dosingVolume;
+        //        dosingVolume = typeof data.orp !== 'undefined' ? parseInt(data.orp.dosingVolumeRemaing, 10) : parseInt(data.orpDosingVolume, 10);
+        //        schem.orp.dosingVolumeRemaining = isNaN(dosingVolume) ? schem.orp.dosingVolumeRemaining : dosingVolume;
+
+        //        //if (typeof data.pHDosingVolume !== 'undefined') schem.pHDosingVolume = parseInt(data.pHDosingVolume, 10);
+        //        //if (typeof data.orpDosingVolume !== 'undefined') schem.orpDosingVolume = parseInt(data.orpDosingVolume, 10);
+        //        let temp = typeof data.orp !== 'undefined' && typeof data.orp.probe !== 'undefined' ? parseFloat(data.orp.probe.temperature) : parseFloat(data.temp);
+        //        if (isNaN(temp)) {
+        //            let tbody = state.temps.bodies.getBodyIsOn();
+        //            if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') temp = tbody.temp;
+        //        }
+        //        schem.ph.probe.temperature = isNaN(temp) ? schem.ph.probe.temperature : temp;
+        //        let tempUnits = typeof data.orp !== 'undefined' && typeof data.orp.probe !== 'undefined' ?
+        //            sys.board.valueMaps.tempUnits.encode(data.orp.probe.tempUnits, -1) : sys.board.valueMaps.tempUnits.encode(data.tempUnits, -1);
+        //        schem.ph.probe.tempUnits = tempUnits >= 0 ? tempUnits : schem.ph.probe.tempUnits;
+
+
+        //        //if (typeof data.temp !== 'undefined') schem.temp = parseInt(data.temp, 10);
+        //        //else {
+        //        //    let tbody = state.temps.bodies.getBodyIsOn();
+        //        //    if (typeof tbody !== 'undefined' && typeof tbody.temp !== 'undefined') schem.temp = tbody.temp;
+        //        //}
+        //        //if (typeof data.tempUnits !== 'undefined') {
+        //        //    if (typeof data.tempUnits === 'string') schem.tempUnits = sys.board.valueMaps.tempUnits.getValue(data.tempUnits.toUpperCase());
+        //        //    else schem.tempUnits = data.tempUnits;
+        //        //}
+        //        //else schem.tempUnits = state.temps.units;
+        //        if (typeof data.saturationIndex !== 'undefined') schem.saturationIndex = data.saturationIndex;
+        //        else sys.board.chemControllers.calculateSaturationIndex(chem, schem)
+        //        // sys.emitEquipmentChange();  // RSG - eliminating this emit in favor of the more complete extended emit below
+        //        webApp.emitToClients('chemController', schem.getExtended()); // emit extended data
+        //        schem.hasChanged = false; // try to avoid duplicate emits
+        //        resolve(chem);
+        //    }
+        //})
+    }
+    protected async setIntelliChemStateAsync(data: any): Promise<ChemControllerState> {
+        // We will land here whenever the chem controller is not attached to an IntelliCenter.  Apparently
+        // *Touch controllers communicate directly with the IntelliChem controller and the OCP has no play in it.
+        try {
+            let chem = sys.chemControllers.find(elem => elem.id === data.id);
+            if (typeof chem === 'undefined') return Promise.reject(`A valid IntelliChem controller could not be found at id ${data.id}`);
+            let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
+            if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
+            let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+            let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+            let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+            let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+            // Do a final validation pass so we dont send this off in a mess.
+            if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
+            if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
+            if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+            if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+            if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+            let schem = state.chemControllers.getItemById(chem.id, true);
+            schem.ph.tank.capacity = schem.orp.tank.capacity = chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+            schem.ph.tank.units = schem.orp.tank.units = chem.ph.tank.units = chem.orp.tank.units = '';
+            let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+            let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
+            if (isNaN(orpTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', orpTankLevel));
+            if (isNaN(acidTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', acidTankLevel));
+
+            await new Promise((_resolve, _reject) => {
+                let out = Outbound.create({
+                    dest: chem.address,
+                    source: 16, // ic doesn't seem to like msgs coming from 33
+                    action: 146,
+                    payload: [],
+                    retries: 1,
+                    response: true,
+                    protocol: Protocol.IntelliChem,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            if (typeof data.isVirtual !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
+                            _reject(err);
+                        }
+                        else {
+                            chem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = orpSetpoint;
+                            chem.calciumHardness = calciumHardness;
+                            chem.alkalinity = alkalinity;
+                            schem.ph.tank.level = acidTankLevel;
+                            schem.orp.tank.level = orpTankLevel;
+                            chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+                            chem.isActive = schem.isActive = true;
+                            _resolve(); // let IntelliChem status packet set values
+                        }
+                    }
+                });
+                out.insertPayloadBytes(0, 0, 21);
+                out.setPayloadByte(0, Math.floor((pHSetpoint * 100) / 256) || 0);
+                out.setPayloadByte(1, Math.round((pHSetpoint * 100) % 256) || 0);
+                out.setPayloadByte(2, Math.floor(orpSetpoint / 256) || 0);
+                out.setPayloadByte(3, Math.round(orpSetpoint % 256) || 0);
+                out.setPayloadByte(4, acidTankLevel);
+                out.setPayloadByte(5, orpTankLevel);
+                out.setPayloadByte(6, Math.floor(calciumHardness / 256) || 0);
+                out.setPayloadByte(7, Math.round(calciumHardness % 256) || 0);
+                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+                out.setPayloadByte(10, Math.floor(alkalinity / 256) || 0);
+                out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
+                // out.setPayloadByte(12, 20);  // fixed value?
+                conn.queueSendMessage(out);
+            })
+            return Promise.resolve(schem);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
+        // NOTE: This will not add, delete, flip isVirtual, or change the type of a chemController.  
+        // You cannot change the basis of operation for the controller with this method. This method will
+        // however update state values for each of the types we are using in njspc.  
+        // These include:
+        // 1. Straight IntelliChem -- attached to OCP.
+        // 2. IntelliChem -- standalone.
+        // 3. Homegrown -- Russ to decide what to do with this.
+        // 4. REM Chem -- Chem controller with equipment on REM.
+        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : NaN;
+        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : NaN;
+        let chem: ChemController;
+        if (isNaN(id) && isNaN(address)) return Promise.reject(new InvalidEquipmentIdError(`No valid id or address not provided for chem controller id:${data.id} address:${data.address}`, id, 'chemController'));
+        else if (!isNaN(id)) {
+            chem = sys.chemControllers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id}`, id, 'chemController'));
+        }
+        else if (!isNaN(address)) {
+            chem = sys.chemControllers.find(elem => elem.address === address);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for address:${data.address}`, id, 'chemController'));
+        }
+        // Set the id back so we are always dealing with the id from here on out.
+        data.id = id;
+        // At this point we know if our chemController exists, how it is controlled and what its identifiers are. Marshall it off
+        // to the appropriate party.  The board will get a crack at it first then send it back here when it is IntelliChem virtual.
+        if (sys.board.valueMaps.chemControllerTypes.getValue('intellichem') === chem.type) return await this.setIntelliChemStateAsync(data);
+        // So here we are.  We fell into the world of homegrown and REM Chem.  At this point we know all the information we need
+        // to validate the data and set the options.  Some of it will require talking to REM to activate the equipment up and others
+        // will simply require setting attributes.  For the most part though we are not controlling equipment from this method.
+        let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+        let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+        // Do a final validation pass so we dont send this off in a mess.
+        if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
+        if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
+        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+        let schem = state.chemControllers.getItemById(chem.id, true);
+        chem.address = address;
+        chem.ph.setpoint = pHSetpoint;
+        chem.orp.setpoint = orpSetpoint;
+        chem.calciumHardness = calciumHardness;
+        chem.cyanuricAcid = cyanuricAcid;
+        chem.alkalinity = alkalinity;
+        chem.body = body;
+
+        // Alright we are down to the equipment items.
+
+        // ORP Settings
+        if (typeof data.orp !== 'undefined') {
+            // ORP Probe: The data here is read only so we are not calling out to equipment.
+            if (typeof data.orp.probe !== 'undefined') {
+                schem.orp.probe.level = typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : schem.orp.probe.level;
+                schem.orp.probe.saltLevel = typeof data.orp.probe.saltLevel !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : schem.orp.probe.saltLevel;
+            }
+            // ORP Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+            if (typeof data.orp.tank !== 'undefined') {
+                schem.orp.tank.level = typeof data.orp.tank.level !== 'undefined' ? parseFloat(data.orp.tank.level) : schem.orp.tank.level;
+                chem.orp.tank.capacity = schem.orp.tank.capacity = typeof data.orp.tank.capacity !== 'undefined' ? parseFloat(data.orp.tank.capacity) : schem.orp.tank.capacity;
+                chem.orp.tank.units = schem.orp.tank.units = typeof data.orp.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.orp.tank.units) : chem.orp.tank.units;
+            }
+            // For now let's not dose with this method so we are not going to change anything with the pump.
+        }
+        if (typeof data.ph !== 'undefined') {
+            // pH Probe: the data here is read only so we are not calling out to equipment.
+            if (typeof data.ph.probe !== 'undefined') {
+                schem.ph.probe.level = typeof data.ph.probe.level !== 'undefined' ? parseFloat(data.ph.probe.level) : schem.ph.probe.level;
+                schem.ph.probe.temperature = typeof data.ph.probe.temperature !== 'undefined' ? parseFloat(data.ph.probe.temperature) : schem.ph.probe.temperature;
+                schem.ph.probe.tempUnits = typeof data.ph.probe.tempUnits !== 'undefined' ? data.ph.probe.tempUnits : schem.ph.probe.tempUnits;
+            }
+            // Acid Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+            if (typeof data.ph.tank !== 'undefined') {
+                schem.ph.tank.level = typeof data.ph.tank.level !== 'undefined' ? parseFloat(data.ph.tank.level) : schem.ph.tank.level;
+                chem.ph.tank.capacity = schem.ph.tank.capacity = typeof data.ph.tank.capacity !== 'undefined' ? parseFloat(data.ph.tank.capacity) : schem.ph.tank.capacity;
+                chem.ph.tank.units = schem.ph.tank.units = typeof data.ph.tank.units !== 'undefined' ? data.ph.tank.units : chem.ph.tank.units;
+            }
+            // For now let's not dose with this method so we are not going to change anything with the pump.
+        }
+        return Promise.resolve(schem);
     }
     public calculateSaturationIndex(chem: ChemController, schem: ChemControllerState): void {
         // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
         let SI = Math.round(
-            (schem.pHLevel +
+            (schem.ph.probe.level +
                 this.calculateCalciumHardnessFactor(chem) +
                 this.calculateTotalCarbonateAlkalinity(chem) +
                 this.calculateTemperatureFactor(schem) -
@@ -2876,8 +3399,8 @@ export class ChemControllerCommands extends BoardCommands {
         return chem.alkalinity - (chem.cyanuricAcid / 3);
     }
     private calculateTemperatureFactor(schem: ChemControllerState): number {
-        const temp = schem.temp;
-        const UOM = typeof schem.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(schem.tempUnits) : sys.board.valueMaps.tempUnits.getName(state.temps.units);
+        const temp = schem.ph.probe.temperature;
+        const UOM = typeof schem.ph.probe.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(schem.ph.probe.tempUnits) : sys.board.valueMaps.tempUnits.getName(state.temps.units);
         if (UOM === 'F') {
             if (temp <= 32) return 0.0;
             else if (temp <= 37) return 0.1;

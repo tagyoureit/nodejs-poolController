@@ -176,38 +176,46 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/chemControllers', (req, res) => {
-            let alarms = {
-                flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 1].includes(el.val)),
-                pH: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 2, 4].includes(el.val)),
-                orp: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 8, 16].includes(el.val)),
-                pHTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 32].includes(el.val)),
-                orpTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 64].includes(el.val)),
-                probeFault: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 128].includes(el.val))
+        app.get('/config/options/chemControllers', async (req, res, next) => {
+            try {
+                let alarms = {
+                    flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 1].includes(el.val)),
+                    pH: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 2, 4].includes(el.val)),
+                    orp: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 8, 16].includes(el.val)),
+                    pHTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 32].includes(el.val)),
+                    orpTank: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 64].includes(el.val)),
+                    probeFault: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 128].includes(el.val))
+                }
+                let warnings = {
+                    waterChemistry: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 1, 2].includes(el.val)),
+                    pHLockout: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 1].includes(el.val)),
+                    pHDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 2].includes(el.val)),
+                    orpDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 4].includes(el.val)),
+                    invalidSetup: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 8].includes(el.val)),
+                    chlorinatorCommsError: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 16].includes(el.val)),
+                }
+                let opts = {
+                    types: sys.board.valueMaps.chemControllerTypes.toArray(),
+                    bodies: sys.board.bodies.getBodyAssociations(),
+                    tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                    status: sys.board.valueMaps.chemControllerStatus.toArray(),
+                    pumpTypes: sys.board.valueMaps.chemPumpTypes.toArray(),
+                    phSupplyTypes: sys.board.valueMaps.phSupplyTypes.toArray(),
+                    volumeUnits: sys.board.valueMaps.volumeUnits.toArray(),
+                    dosingMethods: sys.board.valueMaps.chemDosingMethods.toArray(),
+                    orpProbeTypes: sys.board.valueMaps.chemORPProbeTypes.toArray(),
+                    phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
+                    remServers: await sys.getREMServers(),
+                    dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
+                    alarms,
+                    warnings,
+                    // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
+                    controllers: sys.chemControllers.get(),
+                    maxChemControllers: sys.equipment.maxChemControllers
+                };
+                return res.status(200).send(opts);
             }
-            let warnings = {
-                waterChemistry: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 1, 2].includes(el.val)),
-                pHLockout: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 1].includes(el.val)),
-                pHDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 2].includes(el.val)),
-                orpDailyLimitReached: sys.board.valueMaps.chemControllerLimits.toArray().filter(el => [0, 4].includes(el.val)),
-                invalidSetup: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 8].includes(el.val)),
-                chlorinatorCommsError: sys.board.valueMaps.chemControllerWarnings.toArray().filter(el => [0, 16].includes(el.val)),
-            }
-            let opts = {
-                types: sys.board.valueMaps.chemControllerTypes.toArray(),
-                bodies: sys.board.bodies.getBodyAssociations(),
-                tempUnits: sys.board.valueMaps.tempUnits.toArray(),
-                status: sys.board.valueMaps.chemControllerStatus.toArray(),
-                // status1: sys.board.valueMaps.intelliChemStatus1.toArray(),
-                // status2: sys.board.valueMaps.intelliChemStatus2.toArray(),
-                dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
-                alarms,
-                warnings,
-                // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
-                controllers: sys.chemControllers.get(),
-                maxChemControllers: sys.equipment.maxChemControllers
-            };
-            return res.status(200).send(opts);
+            catch (err) { next(err); }
         });
         app.get('/config/options/rem', async (req, res, next) => {
             try {

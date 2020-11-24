@@ -404,8 +404,7 @@ export class EquipmentStateMessage {
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
-                        if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
-                            state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
+                        if (sys.bodies.length > 2 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         // We are making an assumption here in that the circuits are always labeled the same.
                         // 1=Spa/Body2
                         // 6=Pool/Body1
@@ -472,7 +471,7 @@ export class EquipmentStateMessage {
                         }
                         state.temps.air = fnTempFromByte(msg.extractPayloadByte(18)); // 18
                         state.temps.solarSensor1 = fnTempFromByte(msg.extractPayloadByte(19)); // 19
-                        if ((!sys.equipment.shared && sys.bodies.length > 1) || sys.equipment.dual)
+                        if (sys.bodies.length > 2 || sys.equipment.dual)
                             state.temps.solarSensor2 = fnTempFromByte(msg.extractPayloadByte(17));
                         if ((sys.bodies.length > 2))
                             state.temps.solarSensor3 = fnTempFromByte(msg.extractPayloadByte(22));
@@ -483,7 +482,8 @@ export class EquipmentStateMessage {
                     }
                     else {
                         state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
-                        if (sys.bodies.length > 2) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
+                        // RKS: Added check for i10d for water sensor 2.
+                        if (sys.bodies.length > 2 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         if (sys.bodies.length > 0) {
                             // const tbody: BodyTempState = state.temps.bodies.getItemById(6, true);
                             const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
@@ -513,7 +513,7 @@ export class EquipmentStateMessage {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
                             const cbody: Body = sys.bodies.getItemById(2);
                             if ((msg.extractPayloadByte(2) & 0x01) === 1) {
-                                tbody.temp = state.temps.waterSensor2;
+                                tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
                             tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
