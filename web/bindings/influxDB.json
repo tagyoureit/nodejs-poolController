@@ -39,62 +39,6 @@
               "type": "int"
             }
           ]
-        },
-        {
-          "measurement": "bodyTemps",
-          "tags": [
-            {
-              "name": "units",
-              "value": "@bind=data.units.desc;"
-            },
-            {
-              "name": "heatMode",
-              "value": "@bind=data.bodies[0].heatMode.desc;"
-            },
-            {
-              "name": "heatStatus",
-              "value": "@bind=data.bodies[0].heatStatus.desc;"
-            },
-            {
-              "name": "body",
-              "value": "@bind=data.bodies[0].name;"
-            }
-          ],
-          "fields": [
-            {
-              "name": "@bind=data.bodies[0].name;",
-              "value": "@bind=data.bodies[0].temp;",
-              "type": "int"
-            }
-          ]
-        },
-        {
-          "measurement": "bodyTemps",
-          "tags": [
-            {
-              "name": "units",
-              "value": "@bind=data.units.desc;"
-            },
-            {
-              "name": "heatMode",
-              "value": "@bind=data.bodies[1].heatMode.desc;"
-            },
-            {
-              "name": "heatStatus",
-              "value": "@bind=data.bodies[1].heatStatus.desc;"
-            },
-            {
-              "name": "body",
-              "value": "@bind=data.bodies[1].name;"
-            }
-          ],
-          "fields": [
-            {
-              "name": "@bind=data.bodies[1].name;",
-              "value": "@bind=data.bodies[1].temp;",
-              "type": "int"
-            }
-          ]
         }
       ]
     },
@@ -125,7 +69,7 @@
               "type": "int"
             },
             {
-              "name": "@bind=data.name+'Setpoint';",
+              "name": "@bind=data.name+'.setPoint';",
               "value": "@bind=data.setPoint;",
               "type": "int"
             }
