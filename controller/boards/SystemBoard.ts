@@ -1026,7 +1026,7 @@ export class BodyCommands extends BoardCommands {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
             let body = sys.bodies.getItemById(id, false);
-            for (let s in body) body[s] = obj[s];
+            body.set(obj);
             resolve(body);
         });
     }
