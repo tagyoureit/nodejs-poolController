@@ -1369,7 +1369,6 @@ export class ChemControllerState extends EqState {
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
         if (typeof this.data.ph === 'undefined') this.data.ph = {};
-        if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 1;
         //var chemControllerState = {
         //    lastComm: 'number',             // The unix time the chem controller sent its status.
         //    id: 'number',                   // Id of the chemController.
@@ -1518,6 +1517,7 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.dailyLimitReached === 'undefined') this.data.dailyLimitReached = false;
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
+        if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 1;
 
     }
     public get chemType(): string { return this.data.chemType; }
