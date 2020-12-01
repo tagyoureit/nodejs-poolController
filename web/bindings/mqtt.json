@@ -80,7 +80,7 @@
           "topic": "state/circuits/@bind=data.id;/@bind=data.name;/lightingTheme",
           "message": "{\"lightingTheme\":@bind=data.lightingTheme;}",
           "description": "SAMPLE: Bind the lighting theme to the topic.",
-          "filter": "@bind=typeof data.lightingTheme === 'undefined' || data.type.isLight === true;"
+          "filter": "@bind=data.type.isLight === true;"
         },
         {
           "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
