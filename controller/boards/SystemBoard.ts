@@ -18,7 +18,8 @@ import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
-import { Message, Outbound, Protocol } from '../comms/messages/Messages';
+import { ncp } from "../nixie/Nixie"
+import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { utils, Heliotrope } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
@@ -206,6 +207,11 @@ export class byteValueMaps {
         }
     }
     public expansionBoards: byteValueMap = new byteValueMap();
+    // Identifies which controller manages the underlying equipment.
+    public equipmentMaster: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'ocp', desc: 'Outdoor Control Panel' }],
+        [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }]
+    ]);
     public panelModes: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
@@ -497,7 +503,8 @@ export class byteValueMaps {
     ]);
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
-        [1, { name: 'nocomms', desc: 'No Communication' }]
+        [1, { name: 'nocomms', desc: 'No Communication' }],
+        [2, { name: 'config', desc: 'Invalid Configuration'}]
     ]);
     public chemControllerAlarms: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No alarm' }],
@@ -529,12 +536,22 @@ export class byteValueMaps {
         [1, { name: 'monitoring', desc: 'Monitoring' }],
         [2, { name: 'mixing', desc: 'Mixing' }]
     ]);
+    public acidTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'a34.6', desc: '34.6% - 22 Baume', dosingFactor: 0.909091 }],
+        [1, { name: 'a31.45', desc: '31.45% - 20 Baume', dosingFactor: 1 }],
+        [2, { name: 'a29', desc: '29% - 19 Baume', dosingFactor:1.08448 }],
+        [3, { name: 'a28', desc: '28.3% - 18 Baume', dosingFactor: 1.111111 }],
+        [4, { name: 'a15.7', desc: '15.7% - 10 Baume', dosingFactor: 2.0 }],
+        [5, { name: 'a14.5', desc: '14.5% - 9.8 Baume', dosingFactor: 2.16897 }],
+    ]);
+
     public filterTypes: byteValueMap = new byteValueMap([
         [0, { name: 'sand', desc: 'Sand Filter', hasBackwash: true }],
         [1, { name: 'cartridge', desc: 'Cartridge Filter', hasBackwash: false }],
         [2, { name: 'de', desc: 'DE Filter', hasBackwash: true }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
+   
     // public filterPSITargetTypes: byteValueMap = new byteValueMap([
     //     [0, { name: 'none', desc: 'Do not use filter PSI' }],
     //     [1, { name: 'value', desc: 'Change filter at value' }],
@@ -617,6 +634,7 @@ export class SystemBoard {
     public valueMaps: byteValueMaps = new byteValueMaps();
     public checkConfiguration() { }
     public requestConfiguration(ver?: ConfigVersion) { }
+    public equipmentMaster = 0;
     public async stopAsync() {
         // turn off chlor
         sys.board.virtualChlorinatorController.stop();
@@ -1127,6 +1145,27 @@ export class BodyCommands extends BoardCommands {
             }
         }
         return arrSpas;
+    }
+    public isBodyOn(bodyCode: number): boolean {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1).isOn;
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2).isOn;
+            case 'body3':
+                return state.temps.bodies.getItemById(3).isOn;
+            case 'body4':
+                return state.temps.bodies.getItemById(4).isOn;
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
+                    return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
+                else
+                    return state.temps.bodies.getItemById(1).isOn;
+        }
+        return false;
     }
 }
 export interface CallbackStack {
@@ -2703,13 +2742,15 @@ export class ChemControllerCommands extends BoardCommands {
         if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
             sys.board.virtualChemControllers.stop();
         chem.isActive = false;
+        await ncp.chemControllers.removeById(chem.id);
         sys.chemControllers.removeItemById(chem.id);
         state.chemControllers.removeItemById(chem.id);
+        
         sys.emitEquipmentChange();
         return Promise.resolve(chem);
     }
     protected async setIntelliChemAsync(data: any): Promise<ChemController> {
-        // We will land here whenever the chem controller is not attached to an IntelliCenter.  Apparently
+        // We will land here whenever the IntelliChem controller is not attached to an IntelliCenter.  Apparently
         // *Touch controllers communicate directly with the IntelliChem controller and the OCP has no play in it.
         try {
             let chem = sys.chemControllers.find(elem => elem.id === data.id);
@@ -2766,6 +2807,8 @@ export class ChemControllerCommands extends BoardCommands {
                         }
                         else {
                             chem = sys.chemControllers.getItemById(data.id, true);
+                            // Setting the master makes sure the proper xCP is in control.
+                            chem.master = sys.board.equipmentMaster;
                             schem = state.chemControllers.getItemById(data.id, true);
                             chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
                             chem.ph.setpoint = pHSetpoint;
@@ -2794,12 +2837,27 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
                 // out.setPayloadByte(12, 20);  // fixed value?
                 conn.queueSendMessage(out);
-            })
-            return Promise.resolve(sys.chemControllers.getItemById(data.id));
+            });
+            chem = sys.chemControllers.getItemById(data.id);
+            return Promise.resolve(chem);
         }
         catch (err) { return Promise.reject(err); }
     }
     public async setChemControllerAsync(data: any): Promise<ChemController> {
+        // IntelliChem controllers on *Touch do not have a special message structure like you would find for IntelliChlor or any other piece of
+        // equipment.  Apparently, this is controlled by communicating with IntelliChem directly.  It does this regardless of whether IntelliChem is
+        // enabled in the equipment.  NOTE: This may not be true with IntelliTouch as it does have a menu to enable/disable IntelliChem, I could not
+        // find a reference to such a setting in EasyTouch.
+
+        // The following are the rules related to when an OCP is present.
+        // ==============================================================
+        // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
+        // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. (This may not be right).
+        // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
+
+        // The following are the rules related to when no OCP is present.
+        // =============================================================
+        // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
         try {
             // We could be adding here so create athe appropriate logic to add a chem controller if we need to.  THIS DOES NOT DELETE!
             // The other thing this does not do is change an existing type to another type.
@@ -2844,6 +2902,10 @@ export class ChemControllerCommands extends BoardCommands {
             if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
             else if (sys.board.valueMaps.chemControllerTypes.getName(type) === 'intellichem') return await this.setIntelliChemAsync(data);
             chem = sys.chemControllers.getItemById(data.id, true);
+            await ncp.chemControllers.setControllerAsync(chem, data);
+
+
+            /*
             // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
@@ -2959,7 +3021,9 @@ export class ChemControllerCommands extends BoardCommands {
                     chem.ph.probe.connectionId = typeof data.ph.probe.connectionId !== 'undefined' ? data.ph.probe.connectionId : chem.ph.probe.connectionId;
                     chem.ph.probe.deviceBinding = typeof data.ph.probe.deviceBinding !== 'undefined' ? data.ph.probe.deviceBinding : chem.ph.probe.deviceBinding;
                 }
+                
             }
+            */
             return Promise.resolve(chem);
         }
         catch (err) { return Promise.reject(err); }
@@ -3273,7 +3337,7 @@ export class ChemControllerCommands extends BoardCommands {
         catch (err) { return Promise.reject(err); }
     }
     public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
-        // NOTE: This will not add, delete, flip isVirtual, or change the type of a chemController.  
+        // NOTE: This will not add, delete, or change the type of a chemController.  
         // You cannot change the basis of operation for the controller with this method. This method will
         // however update state values for each of the types we are using in njspc.  
         // These include:
@@ -3298,63 +3362,69 @@ export class ChemControllerCommands extends BoardCommands {
         // At this point we know if our chemController exists, how it is controlled and what its identifiers are. Marshall it off
         // to the appropriate party.  The board will get a crack at it first then send it back here when it is IntelliChem virtual.
         if (sys.board.valueMaps.chemControllerTypes.getValue('intellichem') === chem.type) return await this.setIntelliChemStateAsync(data);
-        // So here we are.  We fell into the world of homegrown and REM Chem.  At this point we know all the information we need
-        // to validate the data and set the options.  Some of it will require talking to REM to activate the equipment up and others
-        // will simply require setting attributes.  For the most part though we are not controlling equipment from this method.
-        let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-        let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
-        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
-        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
-        // Do a final validation pass so we dont send this off in a mess.
-        if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
-        if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
-        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
-        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
-        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
-        let schem = state.chemControllers.getItemById(chem.id, true);
-        chem.address = address;
-        chem.ph.setpoint = pHSetpoint;
-        chem.orp.setpoint = orpSetpoint;
-        chem.calciumHardness = calciumHardness;
-        chem.cyanuricAcid = cyanuricAcid;
-        chem.alkalinity = alkalinity;
-        chem.body = body;
 
-        // Alright we are down to the equipment items.
+        // Send this off to Nixie to process.  She has the last crack at it because she is the master of it.
+        await ncp.chemControllers.setControllerAsync(chem, data);
+        let schem = state.chemControllers.getItemById(data.id, true);
 
-        // ORP Settings
-        if (typeof data.orp !== 'undefined') {
-            // ORP Probe: The data here is read only so we are not calling out to equipment.
-            if (typeof data.orp.probe !== 'undefined') {
-                schem.orp.probe.level = typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : schem.orp.probe.level;
-                schem.orp.probe.saltLevel = typeof data.orp.probe.saltLevel !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : schem.orp.probe.saltLevel;
-            }
-            // ORP Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
-            if (typeof data.orp.tank !== 'undefined') {
-                schem.orp.tank.level = typeof data.orp.tank.level !== 'undefined' ? parseFloat(data.orp.tank.level) : schem.orp.tank.level;
-                chem.orp.tank.capacity = schem.orp.tank.capacity = typeof data.orp.tank.capacity !== 'undefined' ? parseFloat(data.orp.tank.capacity) : schem.orp.tank.capacity;
-                chem.orp.tank.units = schem.orp.tank.units = typeof data.orp.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.orp.tank.units) : chem.orp.tank.units;
-            }
-            // For now let's not dose with this method so we are not going to change anything with the pump.
-        }
-        if (typeof data.ph !== 'undefined') {
-            // pH Probe: the data here is read only so we are not calling out to equipment.
-            if (typeof data.ph.probe !== 'undefined') {
-                schem.ph.probe.level = typeof data.ph.probe.level !== 'undefined' ? parseFloat(data.ph.probe.level) : schem.ph.probe.level;
-                schem.ph.probe.temperature = typeof data.ph.probe.temperature !== 'undefined' ? parseFloat(data.ph.probe.temperature) : schem.ph.probe.temperature;
-                schem.ph.probe.tempUnits = typeof data.ph.probe.tempUnits !== 'undefined' ? data.ph.probe.tempUnits : schem.ph.probe.tempUnits;
-            }
-            // Acid Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
-            if (typeof data.ph.tank !== 'undefined') {
-                schem.ph.tank.level = typeof data.ph.tank.level !== 'undefined' ? parseFloat(data.ph.tank.level) : schem.ph.tank.level;
-                chem.ph.tank.capacity = schem.ph.tank.capacity = typeof data.ph.tank.capacity !== 'undefined' ? parseFloat(data.ph.tank.capacity) : schem.ph.tank.capacity;
-                chem.ph.tank.units = schem.ph.tank.units = typeof data.ph.tank.units !== 'undefined' ? data.ph.tank.units : chem.ph.tank.units;
-            }
-            // For now let's not dose with this method so we are not going to change anything with the pump.
-        }
+
+        //// So here we are.  We fell into the world of homegrown and REM Chem.  At this point we know all the information we need
+        //// to validate the data and set the options.  Some of it will require talking to REM to activate the equipment up and others
+        //// will simply require setting attributes.  For the most part though we are not controlling equipment from this method.
+        //let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+        //let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+        //let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+        //let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+        //let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+        //let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+        //if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+        //// Do a final validation pass so we dont send this off in a mess.
+        //if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
+        //if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
+        //if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+        //if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+        //if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+        //let schem = state.chemControllers.getItemById(chem.id, true);
+        //chem.address = address;
+        //chem.ph.setpoint = pHSetpoint;
+        //chem.orp.setpoint = orpSetpoint;
+        //chem.calciumHardness = calciumHardness;
+        //chem.cyanuricAcid = cyanuricAcid;
+        //chem.alkalinity = alkalinity;
+        //chem.body = body;
+
+        //// Alright we are down to the equipment items.
+
+        //// ORP Settings
+        //if (typeof data.orp !== 'undefined') {
+        //    // ORP Probe: The data here is read only so we are not calling out to equipment.
+        //    if (typeof data.orp.probe !== 'undefined') {
+        //        schem.orp.probe.level = typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : schem.orp.probe.level;
+        //        schem.orp.probe.saltLevel = typeof data.orp.probe.saltLevel !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : schem.orp.probe.saltLevel;
+        //    }
+        //    // ORP Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+        //    if (typeof data.orp.tank !== 'undefined') {
+        //        schem.orp.tank.level = typeof data.orp.tank.level !== 'undefined' ? parseFloat(data.orp.tank.level) : schem.orp.tank.level;
+        //        chem.orp.tank.capacity = schem.orp.tank.capacity = typeof data.orp.tank.capacity !== 'undefined' ? parseFloat(data.orp.tank.capacity) : schem.orp.tank.capacity;
+        //        chem.orp.tank.units = schem.orp.tank.units = typeof data.orp.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.orp.tank.units) : chem.orp.tank.units;
+        //    }
+        //    // For now let's not dose with this method so we are not going to change anything with the pump.
+        //}
+        //if (typeof data.ph !== 'undefined') {
+        //    // pH Probe: the data here is read only so we are not calling out to equipment.
+        //    if (typeof data.ph.probe !== 'undefined') {
+        //        schem.ph.probe.level = typeof data.ph.probe.level !== 'undefined' ? parseFloat(data.ph.probe.level) : schem.ph.probe.level;
+        //        schem.ph.probe.temperature = typeof data.ph.probe.temperature !== 'undefined' ? parseFloat(data.ph.probe.temperature) : schem.ph.probe.temperature;
+        //        schem.ph.probe.tempUnits = typeof data.ph.probe.tempUnits !== 'undefined' ? data.ph.probe.tempUnits : schem.ph.probe.tempUnits;
+        //    }
+        //    // Acid Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
+        //    if (typeof data.ph.tank !== 'undefined') {
+        //        schem.ph.tank.level = typeof data.ph.tank.level !== 'undefined' ? parseFloat(data.ph.tank.level) : schem.ph.tank.level;
+        //        chem.ph.tank.capacity = schem.ph.tank.capacity = typeof data.ph.tank.capacity !== 'undefined' ? parseFloat(data.ph.tank.capacity) : schem.ph.tank.capacity;
+        //        chem.ph.tank.units = schem.ph.tank.units = typeof data.ph.tank.units !== 'undefined' ? data.ph.tank.units : chem.ph.tank.units;
+        //    }
+        //    // For now let's not dose with this method so we are not going to change anything with the pump.
+        //}
         return Promise.resolve(schem);
     }
     public calculateSaturationIndex(chem: ChemController, schem: ChemControllerState): void {
@@ -3432,7 +3502,25 @@ export class ChemControllerCommands extends BoardCommands {
         if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
         return chlorInstalled ? 12.2 : 12.1;
     }
-
+    public async pollIntelliChem(address: number): Promise<boolean> {
+        try {
+            // Send a 210 message out and see if we get an ACK or an action 18 from the controller address. Either will suffice
+            // to indicate that the controller exists.
+            let found = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    source: 16, dest: address, action: 210, payload: [210], retries: 1, protocol: Protocol.IntelliChem,
+                    response: true,
+                    onComplete: (err) => {
+                        if (err) resolve(false);
+                        else { resolve(true); }
+                    }
+                });
+                conn.queueSendMessage(out);
+            });
+            return Promise.resolve(found);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
     public async initChem(chem: ChemController) {
         // init chem controller here
         /* on EasyTouch2 8p
@@ -3460,7 +3548,6 @@ export class ChemControllerCommands extends BoardCommands {
 
         // this mimics another control panel asking OCP for chem controller status
         // return new Promise((resolve, reject)=> {
-
         let out = Outbound.create({
             source: 16,
             dest: chem.address,

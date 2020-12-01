@@ -188,7 +188,7 @@ export class IntelliChemStateMessage {
         // scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
         scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
         scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
-        scontroller.flowDelay = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
+        scontroller.ph.flowDelay = scontroller.orp.flowDelay = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
         scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
         scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
         controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;

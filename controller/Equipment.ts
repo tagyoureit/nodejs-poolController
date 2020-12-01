@@ -18,7 +18,6 @@ import * as path from "path";
 import * as fs from "fs";
 import * as extend from "extend";
 import * as util from "util";
-
 import { setTimeout } from "timers";
 import { logger } from "../logger/Logger";
 import { state, CommsState } from "./State";
@@ -30,6 +29,7 @@ import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
+import { NixieControlPanel } from "./nixie/Nixie";
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -193,7 +193,8 @@ export class PoolSystem implements IPoolSystem {
         }  
 
      }
-    public board: SystemBoard=new SystemBoard(this);
+    public board: SystemBoard = new SystemBoard(this);
+    public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
     public checkConfiguration() { this.board.checkConfiguration(); }
     public cfgPath: string;
@@ -264,28 +265,6 @@ export class PoolSystem implements IPoolSystem {
             });
         }
         return srv;
-    }
-    public async getREMServers() {
-        try {
-            let srv = [];
-            let servers = webApp.findServersByType('rem');
-            for (let i = 0; i < servers.length; i++) {
-                let server = servers[i];
-                // Sometimes I hate type safety.
-                let devices = typeof server['getDevices'] === 'function' ? await server['getDevices']() : [];
-                //console.log(devices);
-                srv.push({
-                    uuid: servers[i].uuid,
-                    name: servers[i].name,
-                    type: servers[i].type,
-                    isRunning: servers[i].isRunning,
-                    isConnected: servers[i].isConnected,
-                    devices: devices
-                });
-            }
-            return srv;
-        } catch (err) { logger.error(err); }
-
     }
     protected onchange=(obj, fn) => {
         const handler = {
@@ -372,6 +351,8 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
             sys._hasChanged = true;
         }
     }
+    public get master(): number | any { return this.data.master || 0; }
+    public set master(val: number | any) { this.setDataVal('master', sys.board.valueMaps.equipmentMaster.encode(val)); }
     ctor(data, name?: string): EqItem { return new EqItem(data, name); }
     constructor(data, name?: string) {
         if (typeof name !== 'undefined') {
@@ -381,9 +362,10 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
             this.initData();
         } else {
             this.data = data;
+            this.initData();
         }
     }
-    public initData() {}
+    public initData() { if (typeof this.data.master === 'undefined') this.data.master = sys.board.equipmentMaster; }
     public get(bCopy?: boolean): any {
         // RSG: 7/2/20 - extend was deep copying arrays (eg pump circuits) by reference
         // return bCopy ? extend(true, {}, this.data) : this.data;
@@ -396,7 +378,7 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
         }
     }
     // This is a tricky endeavor.  If we run into a collection then we need to obliterate the existing data and add in our data.
-     public set(data: any) {
+    public set(data: any) {
         let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
         for (let i in op) {
             let prop = op[i];
@@ -1683,6 +1665,7 @@ export class ChemController extends EqItem {
         //        }
         //    }
         //}
+        super.initData();
     }
     public dataName = 'chemControllerConfig';
     public get id(): number { return this.data.id; }
@@ -1743,7 +1726,7 @@ export class Chemical extends ChildEqItem {
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
         if (typeof this.data.dosingMethod === 'undefined') this.data.dosingMethod = 0;
         if (typeof this.data.startDelay === 'undefined') this.data.startDelay = 1.5;
-
+        super.initData();
     }
     public get chemType(): string { return this.data.chemType; }
     public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
@@ -1776,10 +1759,13 @@ export class ChemicalPh extends Chemical {
         if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 7.2;
         if (typeof this.data.phSupply === 'undefined') this.data.phSupply = 1;
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
+        if (typeof this.data.acidType === 'undefined') this.data.acidType = 0;
         super.initData();
     }
-    public get phSupply(): number | any { return this.data.units; }
+    public get phSupply(): number | any { return this.data.phSupply; }
     public set phSupply(val: number | any) { this.setDataVal('phSupply', sys.board.valueMaps.phSupplyTypes.encode(val)); }
+    public get acidType(): number | any { return this.data.acidType; }
+    public set acidType(val: number | any) { this.setDataVal('acidType', sys.board.valueMaps.acidTypes.encode(val)); }
     public get probe(): ChemicalPhProbe { return new ChemicalPhProbe(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
@@ -1829,6 +1815,7 @@ export class Filter extends EqItem {
 export class ChemicalProbe extends ChildEqItem {
     public initData() {
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        super.initData();
     }
     public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
@@ -1853,6 +1840,7 @@ export class ChemicalPump extends ChildEqItem {
         if (typeof this.data.type === 'undefined') this.data.type = 0;
         if (typeof this.data.ratedFlow === 'undefined') this.data.ratedFlow = 0;
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        super.initData();
     }
     public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
@@ -1875,6 +1863,7 @@ export class ChemicalTank extends ChildEqItem {
     public initData() {
         if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
         if (typeof this.data.units === 'undefined') this.data.units = 0;
+        super.initData();
     }
     public get capacity(): number { return this.data.capacity; }
     public set capacity(val: number) { this.setDataVal('capacity', val); }

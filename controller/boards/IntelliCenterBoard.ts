@@ -3479,6 +3479,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                         else {
                             chem = sys.chemControllers.getItemById(chem.id, true);
                             let cstate = state.chemControllers.getItemById(chem.id, true);
+                            chem.master = sys.board.equipmentMaster;
                             chem.isActive = true;
                             chem.isVirtual = false;
                             //chem.address = address;

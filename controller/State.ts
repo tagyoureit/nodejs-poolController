@@ -1472,72 +1472,14 @@ export class ChemControllerState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get flowDelay(): boolean { return utils.makeBool(this.data.flowDelay); }
-    public set flowDelay(val: boolean) { this.data.flowDelay = val; }
     public get saturationIndex(): number { return this.data.saturationIndex; }
     public set saturationIndex(val: number) { this.setDataVal('saturationIndex', val || 0); }
     public get firmware(): string { return this.data.firmware; }
     public set firmware(val: string) { this.setDataVal('firmware', val); }
     public get ph(): ChemicalPhState { return new ChemicalPhState(this.data, 'ph', this); }
     public get orp(): ChemicalORPState { return new ChemicalORPState(this.data, 'orp', this); }
-    public get chemistryStatus(): number { if (typeof this.data.chemistryStatus !== 'undefined') return this.data.chemistryStatus.val; }
-    public set chemistryStatus(val: number) {
-        // specific check for the data val here because we can return the body temp units if undefined
-        if (this.data.chemistryStatus !== val) {
-            this.data.chemistryStatus = sys.board.valueMaps.chemControllerWarnings.transform(val);
-            this.hasChanged = true;
-        }
-    }
-    public get flowDetected(): boolean { return utils.makeBool(this.data.flowDetected); }
-    public set flowDetected(val: boolean) { this.setDataVal('flowDetected', val); }
-
-    //public get pHLevel(): number { return this.data.pHLevel; }
-    //public set pHLevel(val: number) { this.setDataVal('pHLevel', val); }
-    //public get orpLevel(): number { return this.data.orpLevel; }
-    //public set orpLevel(val: number) { this.setDataVal('orpLevel', val); }
-    //public get saltLevel(): number { return this.data.saltLevel; }
-    //public set saltLevel(val: number) { this.setDataVal('saltLevel', val); }
-    //public get acidTankLevel(): number { return this.data.acidTankLevel || 0; }
-    //public set acidTankLevel(val: number) { this.setDataVal('acidTankLevel', val); }
-    //public get orpTankLevel(): number { return this.data.orpTankLevel || 0; }
-    //public set orpTankLevel(val: number) { this.setDataVal('orpTankLevel', val); }
-    //public get pHDosingStatus(): number { return typeof (this.data.pHDosingStatus) !== 'undefined' ? this.data.pHDosingStatus.val : undefined; }
-    //public set pHDosingStatus(val: number) {
-    //    if (this.pHDosingStatus !== val) {
-    //        this.data.pHDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
-    //        this.hasChanged = true;
-    //    }
-    //}
-    //public get orpDosingStatus(): number { return typeof (this.data.orpDosingStatus) !== 'undefined' ? this.data.orpDosingStatus.val : undefined; }
-    //public set orpDosingStatus(val: number) {
-    //    if (this.orpDosingStatus !== val) {
-    //        this.data.orpDosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
-    //        this.hasChanged = true;
-    //    }
-    //}
-    //public get pHDosingTime(): number { return this.data.pHDosingTime; }
-    //public set pHDosingTime(val: number) { this.setDataVal('pHDosingTime', val); }
-    //public get orpDosingTime(): number { return this.data.orpDosingTime; }
-    //public set orpDosingTime(val: number) { this.setDataVal('orpDosingTime', val); }
-    //public get pHDosingVolume(): number { return this.data.pHDosingVolume; }
-    //public set pHDosingVolume(val: number) { this.setDataVal('pHDosingVolume', val); }
-    //public get orpDosingVolume(): number { return this.data.orpDosingVolume; }
-    //public set orpDosingVolume(val: number) { this.setDataVal('orpDosingVolume', val); }
     public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
     public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
-    //public get temp(): number { return this.data.temp; }
-    //public set temp(val: number) { this.setDataVal('temp', val); }
-    //public get tempUnits(): number {
-    //    if (typeof this.data.tempUnits !== 'undefined') return this.data.tempUnits.val;
-    //    else return state.temps.units;
-    //}
-    //public set tempUnits(val: number) {
-    //    // specific check for the data val here because we can return the body temp units if undefined
-    //    if (this.data.tempUnits !== val) {
-    //        this.data.tempUnits = sys.board.valueMaps.tempUnits.transform(val);
-    //        this.hasChanged = true;
-    //    }
-    //}
     public get virtualControllerStatus(): number {
         return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
     }
@@ -1553,27 +1495,11 @@ export class ChemControllerState extends EqState {
         obj.address = chem.address;
         obj.saturationIndex = this.saturationIndex || 0;
         obj.alkalinity = chem.alkalinity;
-        //obj.body = sys.board.valueMaps.bodies.transform(chem.body);
         obj.calciumHardness = chem.calciumHardness;
         obj.cyanuricAcid = chem.cyanuricAcid;
-        //obj.orpSetpoint = chem.orp.setpoint;
-        //obj.pHSetpoint = chem.ph.setpoint;
-        //obj.type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-        //obj.orpTankLevel = this.orpTankLevel || 0;
-        //obj.acidTankLevel = this.acidTankLevel || 0;
-        //obj.pHLevel = this.pHLevel || 0;
-        //obj.orpLevel = this.orpLevel || 0;
         obj.ph = this.ph.getExtended();
         obj.orp = this.orp.getExtended();
-        //obj.acidTankCapacity = chem.ph.tank.capacity;
-        //obj.acidTankUnits = chem.ph.tank.units;
-        //obj.orpTankCapacity = chem.orp.tank.capacity;
-        //obj.orpTankUnits = chem.orp.tank.units;
         obj = extend(true, obj, chem.getExtended());
-        //obj.ph = extend(true, obj.ph, chem.ph.getExtended());
-        //obj.orp = extend(true, obj.orp, chem.orp.getExtended());
-        //obj.ph.tank.units = sys.board.valueMaps.volumeUnits.transform(chem.ph.tank.units);
-        //obj.orp.tank.units = sys.board.valueMaps.volumeUnits.transform(chem.ph.tank.units);
         return obj;
     }
 }
@@ -1581,14 +1507,25 @@ export class ChemicalState extends ChildEqState {
     public initData() {
         if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
         if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
+        if (typeof this.data.delayTimeRemaining === 'undefined') this.data.delayTimeRemaining = 0;
         if (typeof this.data.dosingVolumeRemaining === 'undefined') this.data.dosingVolumeRemaining = 0;
+        if (typeof this.data.doseVolume === 'undefined') this.data.doseVolume = 0;
+        if (typeof this.data.doseTime === 'undefined') this.data.doseTime = 0;
         if (typeof this.data.lockout === 'undefined') this.data.lockout = false;
         if (typeof this.data.level == 'undefined') this.data.level = 0;
         if (typeof this.data.mixTimeRemaining === 'undefined') this.data.mixTimeRemaining = 0;
         if (typeof this.data.dailyLimitReached === 'undefined') this.data.dailyLimitReached = false;
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
+        if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
+
     }
     public get chemType(): string { return this.data.chemType; }
+    public get delayTimeRemaining(): number { return this.data.delayTimeRemaining; }
+    public set delayTimeRemaining(val: number) { this.setDataVal('delayTimeRemaining', val); }
+    public get doseTime(): number { return this.data.doseTime; }
+    public set doseTime(val: number) { this.setDataVal('doseTime', val); }
+    public get doseVolume(): number { return this.data.doseVolume; }
+    public set doseVolume(val: number) { this.setDataVal('doseVolume', val); }
     public get dosingTimeRemaining(): number { return this.data.dosingTimeRemaining; }
     public set dosingTimeRemaining(val: number) { this.setDataVal('dosingTimeRemaining', val); }
     public get dosingVolumeRemaining(): number { return this.data.dosingVolumeRemaining; }
@@ -1602,10 +1539,10 @@ export class ChemicalState extends ChildEqState {
             this.hasChanged = true;
         }
     }
-    public get level(): number { return this.data.level; }
-    public set level(val: number) { this.setDataVal('level', val); }
     public get lockout(): boolean { return utils.makeBool(this.data.lockout); }
     public set lockout(val: boolean) { this.setDataVal('lockout', val); }
+    public get flowDelay(): boolean { return utils.makeBool(this.data.flowDelay); }
+    public set flowDelay(val: boolean) { this.data.flowDelay = val; }
     public get manualDosing(): boolean { return utils.makeBool(this.data.manualDosing); }
     public set manualDosing(val: boolean) { this.setDataVal('manualDosing', val); }
     public get dailyLimitReached(): boolean { return utils.makeBool(this.data.dailyLimitReached); }
@@ -1625,6 +1562,7 @@ export class ChemicalPhState extends ChemicalState {
         if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';
         super.initData();
     }
+    public get chemType() { return 'acid'; }
     public get probe(): ChemicalProbePHState { return new ChemicalProbePHState(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
@@ -1638,6 +1576,7 @@ export class ChemicalORPState extends ChemicalState {
         if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
         super.initData();
     }
+    public get chemType() { return 'orp'; }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
@@ -1759,7 +1698,7 @@ export class ChemControllerStateWarnings extends EqState {
     public get chlorinatorCommError(): number { return this.data.chlorinatorCommError; }
     public set chlorinatorCommError(val: number) {
         if (this.chlorinatorCommError !== val) {
-            this.data.chlorinatorCommError = sys.board.valueMaps.chemControllerLimits.transform(val);
+            this.data.chlorinatorCommError = sys.board.valueMaps.chemControllerWarnings.transform(val);
             this.hasChanged = true;
         }
     }

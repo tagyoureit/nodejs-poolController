@@ -24,16 +24,18 @@ import { sys, ControllerType } from "./controller/Equipment";
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
+import { ncp } from "./controller/nixie/Nixie";
 
 export async function initAsync() {
     return Promise.resolve()
-        .then(function() { config.init(); })
-        .then(function() { logger.init(); })
-        .then(function() { conn.init(); })
+        .then(function () { config.init(); })
+        .then(function () { logger.init(); })
+        .then(function () { conn.init(); })
         //.then(function () { }) Add in any initialization for no controller board here but I think we have that covered with the standard SystemBoard object.
-        .then(function() { state.init(); })
-        .then(function() { sys.init(); })
-        .then(function() { webApp.init(); });
+        .then(function () { state.init(); })
+        .then(function () { sys.init(); })
+        .then(function () { webApp.init(); })
+        .then(function () { ncp.initAsync(sys); });
 }
 
 export async function startPacketCapture(bResetLogs: boolean) {

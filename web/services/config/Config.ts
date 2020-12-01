@@ -205,7 +205,8 @@ export class ConfigRoute {
                     dosingMethods: sys.board.valueMaps.chemDosingMethods.toArray(),
                     orpProbeTypes: sys.board.valueMaps.chemORPProbeTypes.toArray(),
                     phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
-                    remServers: await sys.getREMServers(),
+                    acidTypes: sys.board.valueMaps.acidTypes.toArray(),
+                    remServers: await sys.ncp.getREMServers(),
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
                     alarms,
                     warnings,
@@ -220,7 +221,7 @@ export class ConfigRoute {
         app.get('/config/options/rem', async (req, res, next) => {
             try {
                 let opts = {
-                    servers: await sys.getREMServers()
+                    servers: await sys.ncp.getREMServers()
                 }
                 return res.status(200).send(opts);
             } catch (err) { next(err); }

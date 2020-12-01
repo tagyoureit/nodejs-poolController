@@ -44,6 +44,7 @@ import { MqttInterfaceBindings } from './interfaces/mqttInterface';
 import { Timestamp } from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
+import { Interface } from "readline";
 
 
 // This class serves data and pages for
@@ -159,7 +160,8 @@ export class WebServer {
         return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac;
     }
     public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
-    public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type);  }
+    public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type); }
+    public findServerByGuid(uuid: string) { return this._servers.find(elem => elem.uuid === uuid); }
 }
 class ProtoServer {
     constructor(name: string, type: string) { this.name = name; this.type = type; }
@@ -781,6 +783,16 @@ export class MqttInterfaceServer extends ProtoServer {
         }
     }
 }
+export class InterfaceServerResponse {
+    constructor(statusCode?: number, statusMessage?: string) {
+        if (typeof statusCode !== 'undefined') this.status.code = statusCode;
+        if (typeof statusMessage !== 'undefined') this.status.message = statusMessage;
+    }
+    status: { code: number, message: string } = { code: -1, message: '' };
+    error: Error;
+    data: string;
+    obj: any;
+}
 export class REMInterfaceServer extends ProtoServer {
     public init(cfg) {
         this.cfg = cfg;
@@ -793,12 +805,14 @@ export class REMInterfaceServer extends ProtoServer {
     public sockClient;
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
     private _sockets: socketio.Socket[] = [];
-    private async sendClientRequest(method: string, url: string, data?: any): Promise<string> {
+    private async sendClientRequest(method: string, url: string, data?: any): Promise<InterfaceServerResponse> {
         try {
+            let ret = new InterfaceServerResponse();
             let opts = extend(true, { headers: {} }, this.cfg.options);
             if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
-                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
-                return;
+                ret.error = new Error(`Interface: ${this.cfg.name} has not resolved to a valid host.`)
+                logger.warn(ret.error);
+                return ret;
             }
             let sbody = typeof data === 'undefined' ? '' : typeof data === 'string' ? data : typeof data === 'object' ? JSON.stringify(data) : data.toString();
             if (typeof sbody !== 'undefined') {
@@ -807,34 +821,48 @@ export class REMInterfaceServer extends ProtoServer {
             }
             opts.path = url;
             opts.method = method || 'GET';
-            let ret = await new Promise<any>((resolve, reject) => {
+            ret.data = '';
+            await new Promise((resolve, reject) => {
                 let req: http.ClientRequest;
-                let result = '';
                 if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                     opts.protocol = 'https:';
                     req = https.request(opts, (response: http.IncomingMessage) => {
-                        response.on('error', (err) => { reject(err); });
-                        response.on('data', (data) => { result += data; });
-                        response.on('end', () => { resolve(result); });
+                        ret.status.code = response.statusCode;
+                        ret.status.message = response.statusMessage;
+                        response.on('error', (err) => { ret.error = err; resolve(); });
+                        response.on('data', (data) => { ret.data += data; });
+                        response.on('end', () => { resolve(); });
                     });
+                    
                 }
                 else {
                     opts.protocol = undefined;
                     req = http.request(opts, (response: http.IncomingMessage) => {
-                        response.on('error', (err) => { logger.error(err); reject(err); });
-                        response.on('data', (data) => {
-                            result += data;
-                        });
-                        response.on('end', () => { resolve(result); });
+                        ret.status.code = response.statusCode;
+                        ret.status.message = response.statusMessage;
+                        response.on('error', (err) => { ret.error = err; resolve(); });
+                        response.on('data', (data) => { ret.data += data; });
+                        response.on('end', () => { resolve(); });
                     });
                 }
-                req.on('error', (err, req, res) => { logger.error(err); reject(err); });
+                req.on('error', (err, req, res) => { logger.error(err); ret.error = err; });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
-                req.end();
-            }).catch((err) => { logger.error(err); });
-            return Promise.resolve(ret);
+                req.end(sbody);
+            }).catch((err) => { ret = new InterfaceServerResponse(); });
+            if (ret.status.code > 200) {
+                // We have an http error so let's parse it up.
+                try {
+                    ret.error = JSON.parse(ret.data);
+                } catch (err) { ret.error = new Error(`Unidentified ${ret.status.code} Error: ${ret.status.message}`) }
+                ret.data = '';
+            }
+            else if (ret.status.code === 200 && this.isJSONString(ret.data)) {
+                try { ret.obj = JSON.parse(ret.data); }
+                catch (err) {}
+            }
+            return ret;
         }
-        catch (err) { logger.error(err); return Promise.reject(err); }
+        catch (err) { return Promise.reject(`Http ${method} Error ${url}:${err.message}`); }
     }
     private initSockets() {
         try {
@@ -866,45 +894,35 @@ export class REMInterfaceServer extends ProtoServer {
         }
         catch (err) { logger.error(err); }
     }
-    public async setDevice(binding: string, data): Promise<boolean> {
+    private isJSONString(s: string): boolean {
+        if (typeof s !== 'string') return false;
+        if (typeof s.startsWith('{') || typeof s.startsWith('[')) return true;
+        return false;
+    }
+    public async getApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try {
-            let req: http.ClientRequest;
-            let opts = extend(true, { headers: {} }, this.cfg.options);
-            if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
-                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
-                return;
-            }
-
-            let sbody = JSON.stringify(data);
-            // We should now have all the tokens.  Put together the request.
-            if (typeof sbody !== 'undefined') {
-                if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
-                opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-            }
-            if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
-                req = https.request(opts, (response: http.IncomingMessage) => {
-                    //console.log(response);
-                });
-            }
-            else {
-                req = http.request(opts, (response: http.IncomingMessage) => {
-                    //console.log(response.statusCode);
-                });
-            }
-            req.on('error', (err, req, res) => { logger.error(err); });
-            if (typeof sbody !== 'undefined') {
-                req.write(sbody);
-            }
-            req.end();
-
-        }
+        try { return await this.sendClientRequest('GET', url, data); }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async putApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+        // Calls a rest service on the REM to set the state of a connected device.
+        try { return await this.sendClientRequest('PUT', url, data); }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async searchApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+        // Calls a rest service on the REM to set the state of a connected device.
+        try { return await this.sendClientRequest('SEARCH', url, data); }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async deleteApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+        // Calls a rest service on the REM to set the state of a connected device.
+        try { return await this.sendClientRequest('DELETE', url, data); }
         catch (err) { return Promise.reject(err); }
     }
     public async getDevices() {
         try {
             let response = await this.sendClientRequest('GET', '/devices/all');
-            return Promise.resolve(typeof response !== 'undefined' ? JSON.parse(response) : response);
+            return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
         catch (err) { logger.error(err); }
     }
