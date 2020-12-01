@@ -77,6 +77,12 @@
           "enabled": false
         },
         {
+          "topic": "state/circuits/@bind=data.id;/@bind=data.name;/lightingTheme",
+          "message": "{\"lightingTheme\":@bind=data.lightingTheme;}",
+          "description": "SAMPLE: Bind the lighting theme to the topic.",
+          "filter": "@bind=typeof data.lightingTheme === 'undefined' || data.type.isLight === true;"
+        },
+        {
           "topic": "state/circuits/@bind=data.id;/customTopicFormatter/@bind=data.name;/isOn",
           "message": "@bind=data.isOn;",
           "description": "SAMPLE: Bind the isOn as a message to the topic with a custom replacer, qos and retain setting.",

@@ -427,7 +427,7 @@ export class NixieChemDose {
     public log(chem: NixieChemical) {
         if (typeof chem !== 'undefined' && typeof chem.chemController !== 'undefined' && typeof this.schem !== 'undefined')
             chem.chemController.logData(`chemDosage_${this.schem.chemType}.log`,
-                `{"id":${chem.chemController.chem.id},"chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","level":${this.level},"volume":${this.volume},"volumeDosed":"${this.volumeDosed}","timeDosed":"${utils.formatDuration(this.timeDosed)}"}`);
+                `{"id":${chem.chemController.chem.id},"chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","level":${this.level},"volume":${this.volume},"volumeDosed":"${this.volumeDosed}","timeDosed":"${utils.formatDuration(this.timeDosed/1000)}"}`);
     }
     public set(obj: any) {
         if (typeof obj.method === 'string') this.method = obj.method;
