@@ -3366,65 +3366,6 @@ export class ChemControllerCommands extends BoardCommands {
         // Send this off to Nixie to process.  She has the last crack at it because she is the master of it.
         await ncp.chemControllers.setControllerAsync(chem, data);
         let schem = state.chemControllers.getItemById(data.id, true);
-
-
-        //// So here we are.  We fell into the world of homegrown and REM Chem.  At this point we know all the information we need
-        //// to validate the data and set the options.  Some of it will require talking to REM to activate the equipment up and others
-        //// will simply require setting attributes.  For the most part though we are not controlling equipment from this method.
-        //let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-        //let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
-        //let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
-        //let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-        //let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-        //let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-        //if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
-        //// Do a final validation pass so we dont send this off in a mess.
-        //if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
-        //if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
-        //if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
-        //if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
-        //if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
-        //let schem = state.chemControllers.getItemById(chem.id, true);
-        //chem.address = address;
-        //chem.ph.setpoint = pHSetpoint;
-        //chem.orp.setpoint = orpSetpoint;
-        //chem.calciumHardness = calciumHardness;
-        //chem.cyanuricAcid = cyanuricAcid;
-        //chem.alkalinity = alkalinity;
-        //chem.body = body;
-
-        //// Alright we are down to the equipment items.
-
-        //// ORP Settings
-        //if (typeof data.orp !== 'undefined') {
-        //    // ORP Probe: The data here is read only so we are not calling out to equipment.
-        //    if (typeof data.orp.probe !== 'undefined') {
-        //        schem.orp.probe.level = typeof data.orp.probe.level !== 'undefined' ? parseFloat(data.orp.probe.level) : schem.orp.probe.level;
-        //        schem.orp.probe.saltLevel = typeof data.orp.probe.saltLevel !== 'undefined' ? parseFloat(data.orp.probe.saltLevel) : schem.orp.probe.saltLevel;
-        //    }
-        //    // ORP Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
-        //    if (typeof data.orp.tank !== 'undefined') {
-        //        schem.orp.tank.level = typeof data.orp.tank.level !== 'undefined' ? parseFloat(data.orp.tank.level) : schem.orp.tank.level;
-        //        chem.orp.tank.capacity = schem.orp.tank.capacity = typeof data.orp.tank.capacity !== 'undefined' ? parseFloat(data.orp.tank.capacity) : schem.orp.tank.capacity;
-        //        chem.orp.tank.units = schem.orp.tank.units = typeof data.orp.tank.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.orp.tank.units) : chem.orp.tank.units;
-        //    }
-        //    // For now let's not dose with this method so we are not going to change anything with the pump.
-        //}
-        //if (typeof data.ph !== 'undefined') {
-        //    // pH Probe: the data here is read only so we are not calling out to equipment.
-        //    if (typeof data.ph.probe !== 'undefined') {
-        //        schem.ph.probe.level = typeof data.ph.probe.level !== 'undefined' ? parseFloat(data.ph.probe.level) : schem.ph.probe.level;
-        //        schem.ph.probe.temperature = typeof data.ph.probe.temperature !== 'undefined' ? parseFloat(data.ph.probe.temperature) : schem.ph.probe.temperature;
-        //        schem.ph.probe.tempUnits = typeof data.ph.probe.tempUnits !== 'undefined' ? data.ph.probe.tempUnits : schem.ph.probe.tempUnits;
-        //    }
-        //    // Acid Tank: The data here is potentially not read only.  We may be telling REM to set the pump tank data.
-        //    if (typeof data.ph.tank !== 'undefined') {
-        //        schem.ph.tank.level = typeof data.ph.tank.level !== 'undefined' ? parseFloat(data.ph.tank.level) : schem.ph.tank.level;
-        //        chem.ph.tank.capacity = schem.ph.tank.capacity = typeof data.ph.tank.capacity !== 'undefined' ? parseFloat(data.ph.tank.capacity) : schem.ph.tank.capacity;
-        //        chem.ph.tank.units = schem.ph.tank.units = typeof data.ph.tank.units !== 'undefined' ? data.ph.tank.units : chem.ph.tank.units;
-        //    }
-        //    // For now let's not dose with this method so we are not going to change anything with the pump.
-        //}
         return Promise.resolve(schem);
     }
     public calculateSaturationIndex(chem: ChemController, schem: ChemControllerState): void {

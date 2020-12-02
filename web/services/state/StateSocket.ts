@@ -89,6 +89,7 @@ export class StateSocket {
                     controller = sys.chemControllers.getItemByAddress(address);
                 if (typeof controller !== 'undefined' && controller.isActive === true) {
                     let scontroller = state.chemControllers.getItemById(controller.id);
+                    let isBodyOn = scontroller.flowDetected; //sys.board.bodies.isBodyOn(controller.body);
                     if (typeof data.pHLevel !== 'undefined') {
                         if (!isNaN(parseFloat(data.pHLevel))) scontroller.ph.probe.level = parseFloat(data.pHLevel);
                         else if (typeof data.pHLevel === 'object') {
@@ -96,8 +97,15 @@ export class StateSocket {
                             if (!isNaN(parseFloat(data.pHLevel.temperature))) scontroller.ph.probe.temperature = parseFloat(data.pHLevel.temperature);
                             if (['C', 'F', 'c', 'f'].includes(data.pHLevel.tempUnits)) scontroller.ph.probe.tempUnits = data.pHLevel.tempUnits;
                         }
+                        if (isBodyOn || !controller.ph.flowReadingsOnly) scontroller.ph.level = scontroller.ph.probe.level;
                     }
-                    if (typeof data.orpLevel !== 'undefined') scontroller.orp.probe.level = data.orpLevel;
+                    if (typeof data.orpLevel !== 'undefined') {
+                        if (!isNaN(parseFloat(data.orpLevel))) scontroller.orp.probe.level = parseFloat(data.orpLevel);
+                        else if (typeof data.orpLevel === 'object') {
+                            if (!isNaN(parseFloat(data.orpLevel.orp))) scontroller.orp.probe.level = parseFloat(data.orpLevel.orp);
+                        }
+                        if (isBodyOn || !controller.orp.flowReadingsOnly) scontroller.orp.level = scontroller.orp.probe.level;
+                    }
                     if (typeof data.temperature !== 'undefined') scontroller.ph.probe.temperature = data.temperauture;
                     if (typeof data.tempUnits !== 'undefined') scontroller.ph.probe.tempUnits = data.tempUnits;
                     if (typeof data.acidTank !== 'undefined') {

@@ -1726,6 +1726,7 @@ export class Chemical extends ChildEqItem {
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
         if (typeof this.data.dosingMethod === 'undefined') this.data.dosingMethod = 0;
         if (typeof this.data.startDelay === 'undefined') this.data.startDelay = 1.5;
+        if (typeof this.data.flowReadingsOnly === 'undefined') this.data.flowReadingsOnly = true;
         super.initData();
     }
     public get chemType(): string { return this.data.chemType; }
@@ -1752,6 +1753,8 @@ export class Chemical extends ChildEqItem {
         chem.dosingMethod = sys.board.valueMaps.chemDosingMethods.transform(this.dosingMethod);
         return chem;
     }
+    public get flowReadingsOnly(): boolean { return utils.makeBool(this.data.flowReadingsOnly); }
+    public set flowReadingsOnly(val: boolean) { this.setDataVal('flowReadingsOnly', val); }
 }
 export class ChemicalPh extends Chemical {
     public initData() {

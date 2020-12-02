@@ -1521,9 +1521,12 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 1;
         if (typeof this.data.enabled === 'undefined') this.data.enabeled = true;
+        if (typeof this.data.level === 'undefined') this.data.level = 0;
     }
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.data.enabled = val; }
+    public get level(): number { return this.data.level; }
+    public set level(val: number) { this.setDataVal('level', val); }
     public get chemController(): ChemControllerState { return this.getParent() as ChemControllerState; }
     public get chemType(): string { return this.data.chemType; }
     public get delayTimeRemaining(): number { return this.data.delayTimeRemaining; }

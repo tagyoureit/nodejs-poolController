@@ -142,8 +142,8 @@ export class IntelliChemStateMessage {
         controller.ph.tank.units = controller.orp.tank.units = '';
         
         scontroller.address = controller.address;
-        scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
-        scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
+        scontroller.ph.level = scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
+        scontroller.orp.level = scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
         controller.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
         controller.orp.setpoint = msg.extractPayloadIntBE(6);
 
