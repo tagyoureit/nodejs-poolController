@@ -146,12 +146,12 @@ export class NixieChemController extends NixieEquipment {
     public calculateSaturationIndex(): void {
         // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
         let schem = state.chemControllers.getItemById(this.chem.id, true);
-        let SI = Math.round(
+        let SI = Math.round((
             schem.ph.probe.level +
             this.calciumHardnessFactor +
             this.carbonateAlkalinity +
             this.calculateTemperatureFactor(schem) -
-            this.dissolvedSolidsFactor * 1000) / 1000;
+            this.dissolvedSolidsFactor) * 1000) / 1000;
         schem.saturationIndex = isNaN(SI) ? undefined : SI;
     }
     private get dissolvedSolidsFactor() { return this.chem.orp.useChlorinator ? 12.2 : 12.1; }
