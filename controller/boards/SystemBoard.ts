@@ -526,7 +526,7 @@ export class byteValueMaps {
     ]);
     public chemControllerLimits: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No limits reached' }],
-        [1, { name: 'phlockout', desc: 'pH Lockout' }],
+        [1, { name: 'phlockout', desc: 'pH Lockout - ORP will not dose' }],
         [2, { name: 'phdailylimit', desc: 'pH Daily Limit Reached' }],
         [4, { name: 'orpdailylimit', desc: 'orp Daily Limit Reached' }],
         [128, { name: 'commslost', desc: 'Communications with Chem Controller Lost' }] // to be verified

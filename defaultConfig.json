@@ -132,7 +132,10 @@
         "options": {
           "protocol": "http://",
           "host": "raspberrypi",
-          "port": 8080
+          "port": 8080,
+          "headers": {
+            "content-type": "application/json"
+          }
         },
         "socket": {
           "transports": [

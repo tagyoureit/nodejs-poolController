@@ -1449,6 +1449,8 @@ export class ChemControllerState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
+    public get flowDetected(): boolean { return this.data.flowDetected; }
+    public set flowDetected(val: boolean) { this.data.flowDetected = val; }
     public get status(): number {
         return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1;
     }
@@ -1518,8 +1520,11 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 1;
-
+        if (typeof this.data.enabled === 'undefined') this.data.enabeled = true;
     }
+    public get enabled(): boolean { return this.data.enabled; }
+    public set enabled(val: boolean) { this.data.enabled = val; }
+    public get chemController(): ChemControllerState { return this.getParent() as ChemControllerState; }
     public get chemType(): string { return this.data.chemType; }
     public get delayTimeRemaining(): number { return this.data.delayTimeRemaining; }
     public set delayTimeRemaining(val: number) { this.setDataVal('delayTimeRemaining', val); }

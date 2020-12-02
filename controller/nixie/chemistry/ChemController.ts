@@ -8,6 +8,7 @@ import { ChemControllerState, ChemicalState, ChemicalORPState, ChemicalPhState, 
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { warn } from 'winston';
+import { webApp } from "../../../web/Server";
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemController> {
     public async setControllerAsync(chem: ChemController, data: any) {
@@ -138,6 +139,7 @@ export class NixieChemController extends NixieEquipment {
             await this.orp.setORPAsync(schem.orp, data.orp);
             // Ph Settings
             await this.ph.setPhAsync(schem.ph, data.ph);
+            await this.processAlarms(schem);
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -186,32 +188,68 @@ export class NixieChemController extends NixieEquipment {
                 schem.alarms.comms = 0;
                 schem.status = 0;
                 schem.lastComm = new Date().getTime();
+                let val = await this.validateSetup(this.chem);
+                schem.warnings.invalidSetup = val.isValid ? 0 : 8;
                 // We are not processing Homegrown at this point.
                 // Check each piece of equipment to make sure it is doing its thing.
                 //await this.orp.checkDosing();
+                this.calculateSaturationIndex();
+                await this.processAlarms(schem);
                 await this.ph.checkDosing(this.chem, schem.ph);
-                // Calculate all the alarms.  These are only informational at this point.
-                schem.alarms.flow = this.isBodyOn() ? 0 : 1;
-                schem.alarms.pH = schem.ph.probe.level < 7.2 ? 4 : schem.ph.probe.level > 7.6 ? 2 : 0;
-                schem.alarms.orp = schem.orp.probe.level < 650 ? 16 : schem.orp.probe.level > 800 ? 8 : 0;
-                schem.alarms.pHTank = schem.ph.tank.level <= 0 ? 32 : 0;
-                schem.alarms.orpTank = schem.orp.tank.level <= 0 ? 64 : 0;
-                schem.warnings.waterChemistry = schem.saturationIndex < 0.3 ? 1 : schem.saturationIndex > 0.3 ? 2 : 0;
-                schem.warnings.chlorinatorCommError = this.chem.orp.useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 8 : 0;
-                //schem.warnings.invalidSetup = 
-                // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
-                // based upon 2ppm of chemical for the type of chemical.  Honestly it is pretty dumb.
-                schem.warnings.orpDailyLimitReached = 0;
-                schem.warnings.pHDailyLimitReached = 0;
-                schem.warnings.pHLockout = schem.ph.probe.level > 7.8 ? 1 : 0;
-                let val = await this.validateSetup(this.chem);
-                schem.warnings.invalidSetup = val.isValid ? 0 : 8;
             }
         }
         catch (err) { logger.error(`Error polling Chem Controller`); }
         finally { this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval); }
     }
+    public async processAlarms(schem: ChemControllerState) {
+        // Calculate all the alarms.  These are only informational at this point.
+        schem.flowDetected = this.isBodyOn();
+        schem.alarms.flow = schem.flowDetected ? 0 : 1;
+        let chem = this.chem;
+        schem.orp.enabled = this.chem.orp.enabled;
+        schem.ph.enabled = this.chem.ph.enabled;
+        if (this.chem.orp.enabled) {
+            let useChlorinator = chem.orp.useChlorinator;
+            let pumpType = chem.orp.pump.type;
+            let probeType = chem.orp.probe.type;
+            schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
+            schem.warnings.orpDailyLimitReached = 0;
+            if (schem.flowDetected) {
+                schem.alarms.orp = schem.orp.probe.level < 650 && probeType !== 0 ? 16 : schem.orp.probe.level > 800 && probeType !== 0 ? 8 : 0;
+                schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 8 : 0;
+                schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.probe.level > 7.8 ? 1 : 0;
+            }
+            else {
+                schem.alarms.orp = 0;
+                schem.warnings.chlorinatorCommError = 0;
+                schem.warnings.pHLockout = 0;
+            }
+        }
+        else {
+            schem.warnings.chlorinatorCommError = 0;
+            schem.alarms.orpTank = 0;
+            schem.warnings.orpDailyLimitReached = 0;
+            schem.alarms.orp;
+        }
+        if (this.chem.ph.enabled) {
+            let pumpType = chem.ph.pump.type;
+            let probeType = chem.ph.probe.type;
+            schem.alarms.pHTank = pumpType !== 0  && schem.ph.tank.level <= 0 ? 32 : 0;
+            schem.warnings.pHDailyLimitReached = 0;
+            if (schem.flowDetected) {
+                schem.alarms.pH = probeType !== 0 && schem.ph.probe.level < 7.2 ? 4 : schem.ph.probe.level && probeType !== 0 > 7.6 ? 2 : 0;
+            }
+            else {
+                schem.alarms.pH = 0;
+            }
+        }
+        schem.warnings.waterChemistry = schem.saturationIndex < 0.3 ? 1 : schem.saturationIndex > 0.3 ? 2 : 0;
+        // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
+        // based upon 2ppm of chemical for the type of chemical.  Honestly it is pretty dumb.
+        schem.warnings.pHDailyLimitReached = 0;
+    }
     public async validateSetup(chem: ChemController) {
+        // The validation will be different if the body is on or not.  So lets get that information.
         let eq = {
             isValid: true,
             orp: {
@@ -414,6 +452,7 @@ export class NixieChemDose {
     public startDate: number;
     public setpoint: number;
     public level: number;
+    public demand: number;
     public volume: number;
     public time: number;
     public maxVolume: number;
@@ -427,7 +466,7 @@ export class NixieChemDose {
     public log(chem: NixieChemical) {
         if (typeof chem !== 'undefined' && typeof chem.chemController !== 'undefined' && typeof this.schem !== 'undefined')
             chem.chemController.logData(`chemDosage_${this.schem.chemType}.log`,
-                `{"id":${chem.chemController.chem.id},"chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","level":${this.level},"volume":${this.volume},"volumeDosed":"${this.volumeDosed}","timeDosed":"${utils.formatDuration(this.timeDosed/1000)}"}`);
+                `{"id":${chem.chemController.chem.id},"chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","demand":${this.demand}, "level": ${ this.level }, "volume": ${ this.volume }, "volumeDosed": ${ this.volumeDosed }, "timeDosed": "${utils.formatDuration(this.timeDosed/1000)}"}`);
     }
     public set(obj: any) {
         if (typeof obj.method === 'string') this.method = obj.method;
@@ -439,6 +478,7 @@ export class NixieChemDose {
         if (typeof obj.volumeDosed === 'number') this.volumeDosed = obj.volumeDosed;
         if (typeof obj.timeDosed === 'number') this.timeDosed = obj.timeDosed;
         if (typeof obj.schem !== 'undefined') this.schem = obj.schem;
+        if (typeof obj.demand !== 'undefined') this.demand = obj.demand;
         this.startDate = typeof obj.startDate === 'undefined' ? new Date() : obj.startDate;
     }
 }
@@ -486,6 +526,7 @@ export class NixieChemPump extends NixieChildEquipment {
     }
     public async dose(dosage: NixieChemDose) {
         try {
+            let scontroller = dosage.schem.chemController;
             if (this._dosingTimer) clearTimeout(this._dosingTimer);
             let type = sys.board.valueMaps.chemPumpTypes.getName(this.pump.type);
             if (type === 'none') {
@@ -495,7 +536,8 @@ export class NixieChemPump extends NixieChildEquipment {
                 // We are a relay pump so we need to turn on the pump for a timed interval
                 // then check it on each iteration.  If the pump does not receive a request
                 // from us then the relay will turn off.
-                let isBodyOn = this.chemical.chemController.isBodyOn();
+                this.chemical.chemController.processAlarms(dosage.schem.chemController);
+                let isBodyOn = scontroller.flowDetected;
                 let delay = 0;
                 // Check to see if we are in delay.  The start delay for the configuration is in minutes.
                 if (isBodyOn) {
@@ -513,6 +555,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 }
                 // Send a request to latch the relay for 3 seconds.  If we don't send another request within 3 seconds of the latch
                 // expiring it will turn the relay back off again. This makes sure we don't leave the pump running on failure.
+                //console.log({ status: dosage.schem.dosingStatus, time: dosage.time, timeDosed: dosage.timeDosed / 1000, volume: dosage.volume, volumeDosed: dosage.volumeDosed });
                 if (dosage.time - (dosage.timeDosed / 1000) > 0 && dosage.volume - dosage.volumeDosed > 0 && isBodyOn) {
                     if (delay <= 0) {
                         let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
@@ -563,20 +606,13 @@ export class NixieChemPump extends NixieChildEquipment {
                 logger.info(`Attempting to dose ezo pump`);
                 await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
             }
-            // Check to see if we reached our max dosing time or volume.
+            // Check to see if we reached our max dosing time or volume or the tank is empty mix it up.
             let status = dosage.schem.dosingStatus;
             if (status === 0) {
-                if (dosage.maxTime < (dosage.timeDosed / 1000)) {
-                    status = status === 0 ? 2 : 1;
-                }
-                else if (dosage.maxVolume < dosage.volumeDosed) {
-                    status = status === 0 ? 2 : 1;
-                }
-                else if (dosage.schem.tank.level <= 0) {
-                    // The chem tank is empty we wont be dosing any more.
-                    status = 1;
-                }
-                if (status !== 0) {
+                if (dosage.maxTime < (dosage.timeDosed / 1000) ||
+                    dosage.maxVolume < dosage.volumeDosed ||
+                    dosage.schem.tank.level <= 0) {
+                    status = 2;
                     await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                 }
             }
@@ -653,6 +689,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.probe.setProbePhAsync(sph.probe, data.probe);
                 await this.tank.setTankAsync(sph.tank, data.tank);
                 await this.pump.setPumpAsync(sph.pump, data.pump);
+                sph.enabled = this.ph.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.ph.enabled;
                 this.ph.setpoint = typeof data.setpoint !== 'undefined' ? parseFloat(data.setpoint) : this.ph.setpoint;
                 this.ph.phSupply = typeof data.phSupply !== 'undefined' ? data.phSupply : this.ph.phSupply;
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
@@ -664,12 +701,13 @@ export class NixieChemicalPh extends NixieChemical {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
             if (status === 'monitoring') {
+                // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way
+                // let the system clean these up.
                 this.currentDose = undefined;
                 this.currentMix = undefined;
             }
-            if (status === 'mixing') {
+            if (status === 'mixing')
                 await this.mixChemicals(sph);
-            }
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
@@ -700,24 +738,61 @@ export class NixieChemicalPh extends NixieChemical {
                     else {
                         if (chg < 0) {
                             let at = sys.board.valueMaps.acidTypes.transform(this.ph.acidType);
-                            dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
-                            let time = Math.round(dose / (this.pump.pump.ratedFlow / 60));
+                            let pump = this.pump.pump;
+                            let demand = dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
+                            let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0: Math.round(dose / (pump.ratedFlow / 60));
                             let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+                            // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
+                            switch (meth) {
+                                case 'time':
+                                    if (time > this.ph.maxDosingTime) {
+                                        time = this.ph.maxDosingTime;
+                                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                                    }
+                                    break;
+                                case 'volume':
+                                    if (dose > this.ph.maxDosingVolume) {
+                                        dose = this.ph.maxDosingVolume;
+                                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                                    }
+                                    break;
+                                case 'volumeTime':
+                                default:
+                                    // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
+                                    // you will never get to the volume limit if the rated flow can't keep up to the time.
+                                    if (dose > this.ph.maxDosingVolume) {
+                                        dose = this.ph.maxDosingVolume;
+                                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                                    }
+                                    if (time > this.ph.maxDosingTime) {
+                                        time = this.ph.maxDosingTime;
+                                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                                    }
+                                    break;
+                            }
                             let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
-                            dosage.set({startDate:new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.probe.level, volume: Math.round(dose), time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: Math.max(meth.indexOf('time') !== -1 ? this.ph.maxDosingTime : time) });
+                            dosage.set({startDate:new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.probe.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: Math.max(meth.indexOf('time') !== -1 ? this.ph.maxDosingTime : time) });
                             sph.doseTime = dosage.time;
                             sph.doseVolume = dosage.volume;
                             if (typeof this.currentDose === 'undefined') {
-                                // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                                // when for instance njspc is interrupted and restarted.
-                                dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
-                                dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
+                                // We will include this with the dose demand because our limits may reduce it.
+                                dosage.demand = demand;
+                                if (sph.dosingStatus === 0) { // 0 is dosing.
+                                    // We need to finish off a dose that was interrupted by regular programming.  This occurs
+                                    // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
+                                    // mixing before we will never get here.
+                                    dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
+                                    dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
+                                } 
                             }
                             // Now let's determine what we need to do with our pump to satisfy our acid demand.
                             if (sph.tank.level > 0) {
-                                
                                 await this.pump.dose(dosage);
                                 this.currentDose = dosage;
+                            }
+                            else if (sph.dosingStatus === 0) { // We were dosing.  Start mixing this is likely unattended
+                                await this.pump.stopDosing();
+                                await this.mixChemicals(sph);
                             }
                         }
                         else {
@@ -788,6 +863,7 @@ export class NixieChemicalORP extends NixieChemical {
         try {
             if (typeof data !== 'undefined') {
                 this.orp.useChlorinator = typeof data.useChlorinator !== 'undefined' ? utils.makeBool(data.useChlorinator) : this.orp.useChlorinator;
+                sorp.enabled = this.orp.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.orp.enabled;
                 await this.setDosing(this.orp, data);
                 await this.setMixing(this.orp, data);
                 await this.probe.setProbeORPAsync(sorp.probe, data.probe);
