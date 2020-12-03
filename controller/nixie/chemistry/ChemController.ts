@@ -943,6 +943,7 @@ export class NixieChemProbePh extends NixieChemProbe {
         try {
             if (typeof data !== 'undefined') {
                 await this.setProbeAsync(this.probe, sprobe, data);
+                this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
                 sprobe.temperature = typeof data.temperature !== 'undefined' ? parseFloat(data.temperature) : sprobe.temperature;
                 sprobe.tempUnits = typeof data.tempUnits !== 'undefined' ? data.tempUnits : sprobe.tempUnits;
             }
@@ -960,6 +961,7 @@ export class NixieChemProbeORP extends NixieChemProbe {
         try {
             if (typeof data !== 'undefined') {
                 await this.setProbeAsync(this.probe, sprobe, data);
+                this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
                 sprobe.saltLevel = typeof data.saltLevel !== 'undefined' ? parseFloat(data.saltLevel) : sprobe.saltLevel;
             }
         } catch (err) { return Promise.reject(err); }
