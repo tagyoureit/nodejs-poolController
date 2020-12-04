@@ -722,7 +722,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.mixChemicals(sph);
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
-                sph.level = 7.61;
+                //sph.level = 7.61;
                 // Check the setpoint and the current level to see if we need to dose.
                 let dose = 0;
                 if (sph.level !== this.ph.setpoint) {
