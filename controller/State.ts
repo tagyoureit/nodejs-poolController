@@ -504,17 +504,15 @@ class ChildEqState extends EqState implements IEqStateCreator<EqState> {
     }
     public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
-        // If we are not already on the dirty list add us.        
+        // Bubble up to the parent state.
         if (val) {
-            let parent = this._pmap['parent'];
+            let parent = this.getParent();
             if (typeof parent !== 'undefined' && typeof parent['hasChanged'] !== 'undefined') {
                 parent.hasChanged = true;
             }
         }
     }
-    public getParent() {
-        return this._pmap['parent'];
-    }
+    public getParent() { return this._pmap['parent'];  }
 }
 class EqStateCollection<T> {
     protected data: any;

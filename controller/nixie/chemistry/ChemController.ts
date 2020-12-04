@@ -427,7 +427,7 @@ class NixieChemical extends NixieChildEquipment {
                     } catch (err) { logger.error(err); }
                 }, 1000);
             }
-
+            schem.chemController.emitEquipmentChange();
         } catch (err) { logger.error(`Error mixing chemicals.`) }
 
     }
@@ -598,8 +598,8 @@ export class NixieChemPump extends NixieChildEquipment {
                     // Clear both dosage remaining if either is zero. This can occur when the flow rate when calculated overlaps.
                     if (dosage.schem.dosingTimeRemaining === 0 || dosage.schem.dosingVolumeRemaining === 0) {
                         dosage.schem.dosingVolumeRemaining = dosage.schem.dosingTimeRemaining = 0;
-                        dosage.timeDosed = dosage.time;
-                        dosage.volumeDosed = dosage.volume;
+                        //dosage.timeDosed = dosage.time * 1000;
+                        //dosage.volumeDosed = dosage.volume;
                         dosage.schem.dosingStatus = 2; // Start mixing
                         await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                     }
@@ -634,6 +634,7 @@ export class NixieChemPump extends NixieChildEquipment {
             return Promise.reject(err);
         }
         finally {
+            dosage.schem.chemController.emitEquipmentChange();
             // Add a check to tell the chem when we are done.
             if (dosage.schem.dosingStatus === 0) {
                 this._dosingTimer = setTimeout(async () => {
