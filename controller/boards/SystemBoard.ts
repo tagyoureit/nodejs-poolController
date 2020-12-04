@@ -459,11 +459,11 @@ export class byteValueMaps {
         [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
     ]);
     public chemControllerTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'None', hasAddress: false }],
-        [1, { name: 'unknown', desc: 'Unknown', hasAddress: false }],
-        [2, { name: 'intellichem', desc: 'IntelliChem', hasAddress: true }],
-        [3, { name: 'homegrown', desc: 'Homegrown', hasAddress: false }],
-        [4, { name: 'rem', desc: 'REM Chem', hasAddress: false}]
+        [0, { name: 'none', desc: 'None', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
+        [1, { name: 'unknown', desc: 'Unknown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
+        [2, { name: 'intellichem', desc: 'IntelliChem', ph: { min: 7.2, max: 7.6 }, hasAddress: true }],
+        [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
+        [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false}]
     ]);
     public chemPumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No Pump', ratedFlow: false, tank: false, remAddress: false }],

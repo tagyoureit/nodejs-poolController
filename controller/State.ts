@@ -505,11 +505,12 @@ class ChildEqState extends EqState implements IEqStateCreator<EqState> {
     public get hasChanged(): boolean { return this._hasChanged; }
     public set hasChanged(val: boolean) {
         // If we are not already on the dirty list add us.        
-        if (!this._hasChanged && val) {
+        if (val) {
             let parent = this._pmap['parent'];
-            if (typeof parent !== 'undefined' && typeof parent['hasChanged'] !== 'undefined') parent.hasChanged = true;
+            if (typeof parent !== 'undefined' && typeof parent['hasChanged'] !== 'undefined') {
+                parent.hasChanged = true;
+            }
         }
-        this._hasChanged = val;
     }
     public getParent() {
         return this._pmap['parent'];
@@ -1369,6 +1370,10 @@ export class ChemControllerState extends EqState {
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
         if (typeof this.data.ph === 'undefined') this.data.ph = {};
+        if (typeof this.data.type === 'undefined') { this.type = 1; }
+        else if (typeof this.data.type.ph === 'undefined') {
+            this.data.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
+        }
         //var chemControllerState = {
         //    lastComm: 'number',             // The unix time the chem controller sent its status.
         //    id: 'number',                   // Id of the chemController.
@@ -1520,7 +1525,7 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 1;
-        if (typeof this.data.enabled === 'undefined') this.data.enabeled = true;
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
         if (typeof this.data.level === 'undefined') this.data.level = 0;
     }
     public get enabled(): boolean { return this.data.enabled; }
@@ -1597,6 +1602,11 @@ export class ChemicalPumpState extends ChildEqState {
     public initData() {
         if (typeof this.data.isDosing === 'undefined') this.data.isDosing = false;
     }
+    public get chemical(): ChemicalState { return this.getParent() as ChemicalState; }
+    public get chemController(): ChemControllerState {
+        let p = this.chemical;
+        return typeof p !== 'undefined' ? p.getParent() as ChemControllerState : undefined;
+    }
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : undefined; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -1615,6 +1625,11 @@ export class ChemicalPumpState extends ChildEqState {
 export class ChemicalProbeState extends ChildEqState {
     public initData() {
         if (typeof this.data.level === 'undefined') this.data.level = null;
+    }
+    public get chemical(): ChemicalState { return this.getParent() as ChemicalState; }
+    public get chemController(): ChemControllerState {
+        let p = this.chemical;
+        return typeof p !== 'undefined' ? p.getParent() as ChemControllerState : undefined;
     }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }
@@ -1649,6 +1664,11 @@ export class ChemicalTankState extends ChildEqState {
         if (typeof this.data.level === 'undefined') this.data.level == 0;
         if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
         if (typeof this.data.units === 'undefined') this.data.units = 0;
+    }
+    public get chemical(): ChemicalState { return this.getParent() as ChemicalState; }
+    public get chemController(): ChemControllerState {
+        let p = this.chemical;
+        return typeof p !== 'undefined' ? p.getParent() as ChemControllerState : undefined;
     }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }

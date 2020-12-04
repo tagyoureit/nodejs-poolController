@@ -803,6 +803,7 @@ export class REMInterfaceServer extends ProtoServer {
     }
     public cfg;
     public sockClient;
+    protected agent = new http.Agent({ keepAlive: true });
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
     private _sockets: socketio.Socket[] = [];
     private async sendClientRequest(method: string, url: string, data?: any): Promise<InterfaceServerResponse> {
@@ -822,8 +823,10 @@ export class REMInterfaceServer extends ProtoServer {
             opts.path = url;
             opts.method = method || 'GET';
             ret.data = '';
+            opts.agent = this.agent;
             await new Promise((resolve, reject) => {
                 let req: http.ClientRequest;
+               
                 if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                     opts.protocol = 'https:';
                     req = https.request(opts, (response: http.IncomingMessage) => {
@@ -845,7 +848,7 @@ export class REMInterfaceServer extends ProtoServer {
                         response.on('end', () => { resolve(); });
                     });
                 }
-                req.on('error', (err, req, res) => { logger.error(err); ret.error = err; });
+                req.on('error', (err, req, res) => { logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
             }).catch((err) => { ret = new InterfaceServerResponse(); });

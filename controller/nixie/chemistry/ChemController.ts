@@ -199,7 +199,10 @@ export class NixieChemController extends NixieEquipment {
             }
         }
         catch (err) { logger.error(`Error polling Chem Controller`); }
-        finally { this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval); }
+        finally {
+            if (typeof this._pollTimer !== 'undefined' && this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval || 10000);
+        }
     }
     public async processAlarms(schem: ChemControllerState) {
         // Calculate all the alarms.  These are only informational at this point.
@@ -216,7 +219,7 @@ export class NixieChemController extends NixieEquipment {
             schem.warnings.orpDailyLimitReached = 0;
             if (schem.flowDetected) {
                 schem.alarms.orp = schem.orp.level < 650 && probeType !== 0 ? 16 : schem.orp.level > 800 && probeType !== 0 ? 8 : 0;
-                schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 8 : 0;
+                schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
                 schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level > 7.8 ? 1 : 0;
             }
             else {
@@ -243,7 +246,7 @@ export class NixieChemController extends NixieEquipment {
                 schem.alarms.pH = 0;
             }
         }
-        schem.warnings.waterChemistry = schem.saturationIndex < 0.3 ? 1 : schem.saturationIndex > 0.3 ? 2 : 0;
+        schem.warnings.waterChemistry = schem.saturationIndex < -0.3 ? 1 : schem.saturationIndex > 0.3 ? 2 : 0;
         // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
         // based upon 2ppm of chemical for the type of chemical.  Honestly it is pretty dumb.
         schem.warnings.pHDailyLimitReached = 0;
@@ -326,7 +329,7 @@ export class NixieChemController extends NixieEquipment {
                 }
             }
             return eq;
-        } catch (err) { return Promise.reject(err); }
+        } catch (err) { logger.error(`Error validating setup ${err.message}`); return Promise.reject(err); }
     }
     public async closeAsync() {
         try {
@@ -520,6 +523,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 this._dosingTimer = undefined;
                 if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
                 this.chemical.currentDose = undefined;
+                
                 await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
             }
         } catch (err) { return Promise.reject(err); }
@@ -556,7 +560,17 @@ export class NixieChemPump extends NixieChildEquipment {
                 // Send a request to latch the relay for 3 seconds.  If we don't send another request within 3 seconds of the latch
                 // expiring it will turn the relay back off again. This makes sure we don't leave the pump running on failure.
                 //console.log({ status: dosage.schem.dosingStatus, time: dosage.time, timeDosed: dosage.timeDosed / 1000, volume: dosage.volume, volumeDosed: dosage.volumeDosed });
-                if (dosage.time - (dosage.timeDosed / 1000) > 0 && dosage.volume - dosage.volumeDosed > 0 && isBodyOn) {
+                if (!isBodyOn) {
+                    // Make sure the pump is off.
+                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
+                    dosage.schem.pump.isDosing = this.isOn = false;
+                }
+                else if (dosage.schem.tank.level <= 0 || dosage.timeRemaining <= 0 || dosage.volumeRemaining <= 0) {
+                    // If we ran the tank dry or we completed the dose. Start mixing.
+                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
+                    dosage.schem.dosingStatus = 2;
+                }
+                else if (dosage.timeRemaining > 0 && dosage.volumeRemaining > 0) {
                     if (delay <= 0) {
                         let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
                         let relay = res.obj;
@@ -571,7 +585,7 @@ export class NixieChemPump extends NixieChildEquipment {
                                 dosage.schem.tank.level = Math.max(0, lvl);
                             }
                         }
-                        logger.info(`Chem Controller dosed ${dosage.volumeDosed.toFixed(2)}mL of ${dosage.volume}mL ${utils.formatDuration(dosage.timeRemaining)} remaining`)
+                        logger.info(`Chem Controller dosed ${dosage.volumeDosed.toFixed(2)}mL of ${dosage.volume}mL ${utils.formatDuration(dosage.timeRemaining)} remaining`);
                         dosage.schem.pump.isDosing = this.isOn = relay.state;
                     }
                     else 
@@ -593,18 +607,14 @@ export class NixieChemPump extends NixieChildEquipment {
                         dosage.schem.dosingStatus = 0;
                     dosage.lastLatchTime = new Date().getTime();
                 }
-                else if (!isBodyOn) {
-                    // Make sure the pump is off.
+                else {
                     await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                     dosage.schem.pump.isDosing = this.isOn = false;
-                }
-                else {
-                    dosage.schem.pump.isDosing = this.isOn = true;
                 }
             }
             else if (type === 'ezo-pmp') {
                 logger.info(`Attempting to dose ezo pump`);
-                await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
+                await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 5000 });
             }
             // Check to see if we reached our max dosing time or volume or the tank is empty mix it up.
             let status = dosage.schem.dosingStatus;
@@ -712,7 +722,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.mixChemicals(sph);
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
-                //sph.level = 7.61;
+                sph.level = 7.61;
                 // Check the setpoint and the current level to see if we need to dose.
                 let dose = 0;
                 if (sph.level !== this.ph.setpoint) {
