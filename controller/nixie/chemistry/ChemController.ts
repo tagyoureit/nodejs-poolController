@@ -809,6 +809,7 @@ export class NixieChemicalPh extends NixieChemical {
                         }
                         else {
                             await this.pump.stopDosing();
+                            if (sph.dosingStatus === 0) await this.mixChemicals(sph);
                         }
                     }
                 }
