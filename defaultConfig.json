@@ -229,7 +229,8 @@
     "app": {
       "enabled": true,
       "level": "info",
-      "captureForReplay": false
+      "captureForReplay": false,
+      "logToFile":  false
     }
   },
   "appVersion": "0.0.1"

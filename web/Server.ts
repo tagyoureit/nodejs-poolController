@@ -824,6 +824,7 @@ export class REMInterfaceServer extends ProtoServer {
             opts.method = method || 'GET';
             ret.data = '';
             opts.agent = this.agent;
+            logger.verbose(`REM server request initiated. ${opts.method} ${opts.path} ${sbody}`);
             await new Promise((resolve, reject) => {
                 let req: http.ClientRequest;
                
@@ -851,7 +852,7 @@ export class REMInterfaceServer extends ProtoServer {
                 req.on('error', (err, req, res) => { logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
-            }).catch((err) => { ret = new InterfaceServerResponse(); });
+            }).catch((err) => { logger.error(`Error initializing REM Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
             if (ret.status.code > 200) {
                 // We have an http error so let's parse it up.
                 try {

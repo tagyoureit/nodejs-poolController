@@ -92,7 +92,7 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                     }
                     if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
                     // opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-                    logger.verbose(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
+                    logger.debug(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
                     let req: http.ClientRequest;
                     // We should now have all the tokens.  Put together the request.
                     if (typeof sbody !== 'undefined') {

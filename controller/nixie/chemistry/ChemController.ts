@@ -427,6 +427,10 @@ class NixieChemical extends NixieChildEquipment {
                 // Reflect any changes to the configuration.
                 this.currentMix.time = this.chemical.mixingTime;
                 schem.mixTimeRemaining = this.currentMix.timeRemaining;
+                logger.verbose(`Chem mixing remaining: ${utils.formatDuration(schem.mixTimeRemaining)}`);
+            }
+            else {
+                logger.verbose(`Chem mixing paused because body is not on.`);
             }
             this.currentMix.lastChecked = dt;
             if (schem.mixTimeRemaining === 0) {
@@ -558,8 +562,10 @@ export class NixieChemPump extends NixieChildEquipment {
             let type = sys.board.valueMaps.chemPumpTypes.getName(this.pump.type);
             if (type === 'none') {
                 // We aren't going to do anything.
+                logger.verbose(`Chem pump dose ignore pump ${type}`);
             }
             else if (type === 'relay') {
+
                 // We are a relay pump so we need to turn on the pump for a timed interval
                 // then check it on each iteration.  If the pump does not receive a request
                 // from us then the relay will turn off.
@@ -573,7 +579,8 @@ export class NixieChemPump extends NixieChildEquipment {
                     delay = Math.max(0, ((this.chemical.chemical.startDelay * 60) * 1000) - timeElapsed);
                     dosage.schem.delayTimeRemaining = Math.round(delay/1000);
                     if (delay > 0) {
-                        if (!dosage.schem.flowDelay) logger.info(`Chem Controller delay dosing for ${utils.formatDuration(delay/1000)}`)
+                        if (!dosage.schem.flowDelay) logger.info(`Chem Controller delay dosing for ${utils.formatDuration(delay / 1000)}`)
+                        else logger.verbose(`Chem pump delay dosing for ${utils.formatDuration(delay / 1000)}`);
                         dosage.schem.flowDelay = true;
                     }
                     else {
@@ -585,18 +592,28 @@ export class NixieChemPump extends NixieChildEquipment {
                 //console.log({ status: dosage.schem.dosingStatus, time: dosage.time, timeDosed: dosage.timeDosed / 1000, volume: dosage.volume, volumeDosed: dosage.volumeDosed });
                 if (!isBodyOn) {
                     // Make sure the pump is off.
+                    logger.verbose(`Chem pump flow not detected. Body is not running.`);
                     await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                     dosage.schem.pump.isDosing = this.isOn = false;
                 }
                 else if (dosage.schem.tank.level <= 0 || dosage.timeRemaining <= 0 || dosage.volumeRemaining <= 0) {
                     // If we ran the tank dry or we completed the dose. Start mixing.
+                    logger.verbose(`Chem tank ran dry with ${dosage.volumeRemaining}mL remaining`);
                     await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                     dosage.schem.dosingStatus = 2;
                 }
                 else if (dosage.timeRemaining > 0 && dosage.volumeRemaining > 0) {
                     if (delay <= 0) {
+                        logger.verbose(`Sending command to activate chem pump...`);
                         let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
+                        if (typeof res.status === 'undefined' || res.status.code !== 200) {
+                            let status = res.status || { code: res.status.code, message: res.status.message };
+                            logger.error(`Chem pump could not activate relay ${status.code}: ${status.message}`);
+                        }
                         let relay = res.obj;
+                        try {
+                            logger.verbose(`Chem pump response ${JSON.stringify(relay)}`);
+                        } catch (err) { logger.error(`Invalid chem pump response`); }
                         if (typeof dosage.lastLatchTime !== 'undefined') {
                             let time = new Date().getTime() - dosage.lastLatchTime;
                             // Run our math out to 7 sig figs to keep in the ballpark for very slow pumps.
@@ -611,8 +628,9 @@ export class NixieChemPump extends NixieChildEquipment {
                         logger.info(`Chem Controller dosed ${dosage.volumeDosed.toFixed(2)}mL of ${dosage.volume}mL ${utils.formatDuration(dosage.timeRemaining)} remaining`);
                         dosage.schem.pump.isDosing = this.isOn = relay.state;
                     }
-                    else 
+                    else {
                         dosage.schem.pump.isDosing = this.isOn = false;
+                    }
 
                     // Set the volume and time remaining to the second and 4 sig figs.
                     dosage.schem.dosingVolumeRemaining = dosage.volumeRemaining;
@@ -758,6 +776,7 @@ export class NixieChemicalPh extends NixieChemical {
                     if (chem.body === 2 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
                     if (chem.body === 3) totalGallons += sys.bodies.getItemById(3).capacity;
                     if (chem.body === 4) totalGallons += sys.bodies.getItemById(4).capacity;
+                    logger.verbose(`Chem begin calculating dose current: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
                     //let pv = utils.convert.volume.convertUnits(totalGallons, 'gal', 'L');
                     let chg = this.ph.setpoint - sph.level;
                     let delta = chg * totalGallons;
@@ -778,6 +797,7 @@ export class NixieChemicalPh extends NixieChemical {
                             let demand = dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
                             let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0: Math.round(dose / (pump.ratedFlow / 60));
                             let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+                            logger.verbose(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sph.tank.level}`);
                             // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
                             switch (meth) {
                                 case 'time':
@@ -806,8 +826,9 @@ export class NixieChemicalPh extends NixieChemical {
                                     }
                                     break;
                             }
+                            logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
                             let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
-                            dosage.set({startDate:new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: Math.max(meth.indexOf('time') !== -1 ? this.ph.maxDosingTime : time) });
+                            dosage.set({ startDate: new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: time });
                             sph.doseTime = dosage.time;
                             sph.doseVolume = dosage.volume;
                             if (typeof this.currentDose === 'undefined') {
@@ -823,6 +844,7 @@ export class NixieChemicalPh extends NixieChemical {
                             }
                             // Now let's determine what we need to do with our pump to satisfy our acid demand.
                             if (sph.tank.level > 0) {
+                                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                                 await this.pump.dose(dosage);
                                 this.currentDose = dosage;
                             }

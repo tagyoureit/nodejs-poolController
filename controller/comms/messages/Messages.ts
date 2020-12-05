@@ -355,7 +355,7 @@ export class Inbound extends Message {
                 if (this.header.length < 6) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.verbose(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.debug(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -368,7 +368,7 @@ export class Inbound extends Message {
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
                 if (this.datalen > 75) {
                     //this.isValid = false;
-                    logger.verbose(`Broadcast length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message rewound ${this.header}`);
+                    logger.debug(`Broadcast length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message rewound ${this.header}`);
                     this.padding.push(...this.preamble);
                     this.padding.push(...this.header.slice(0, 1));
                     this.preamble = [];
@@ -389,7 +389,7 @@ export class Inbound extends Message {
                 if (this.header.length < 4) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.verbose(`We have an incoming chlorinator message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.debug(`We have an incoming chlorinator message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -432,7 +432,7 @@ export class Inbound extends Message {
                     this.payload.push(bytes[ndx++]);
                     if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
-                        logger.verbose(`Chlorinator message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
+                        logger.debug(`Chlorinator message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
                         break;
                     }
                 }

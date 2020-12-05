@@ -10,12 +10,15 @@ export class NixieEquipment {
     constructor(ncp: INixieControlPanel) { this._pmap['ncp'] = ncp; }
     public get controlPanel(): INixieControlPanel { return this._pmap['ncp']; }
     public get id(): number { return -1; }
-    public static async putDeviceService(uuid: string, url: string, data?:any): Promise<any> {
+    public static async putDeviceService(uuid: string, url: string, data?: any): Promise<InterfaceServerResponse> {
         try {
             let result: InterfaceServerResponse;
             let server = webApp.findServerByGuid(uuid);
             if (typeof server === 'undefined') return Promise.reject(new Error(`Error sending device command: Server [${uuid}] not found.`));
-            if (!server.isConnected) return Promise.reject(new Error(`Error sending device command: [${server.name}] not connected.`));
+            if (!server.isConnected) {
+                logger.warn(`Cannot send PUT ${url} to ${server.name} server is not connected.`);
+                return Promise.reject(new Error(`Error sending device command: [${server.name}] not connected.`));
+            }
             if (server.type === 'rem') {
                 let rem = server as REMInterfaceServer;
                 result = await rem.putApiService(url, data);
