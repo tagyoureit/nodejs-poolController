@@ -17,8 +17,13 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
         if (typeof c === 'undefined') {
             chem.master = 1;
             c = new NixieChemController(this.controlPanel, chem);
+            this.push(c);
+            await c.setControllerAsync(data);
+            setTimeout(() => c.pollEquipment(), 5000);
         }
-        await c.setControllerAsync(data);
+        else {
+            await c.setControllerAsync(data);
+        }
     }
     public async initAsync(controllers: ChemControllerCollection) {
         try {
@@ -335,6 +340,9 @@ export class NixieChemController extends NixieEquipment {
         try {
             if (typeof this._pollTimer !== 'undefined') clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            await this.ph.closeAsync();
+            await this.orp.closeAsync();
+
         }
         catch (err) { logger.error(err); return Promise.reject(err); }
     }
@@ -363,6 +371,12 @@ class NixieChemical extends NixieChildEquipment {
         this.chemical = chemical;
         this.pump = new NixieChemPump(this, chemical.pump);
         this.tank = new NixieChemTank(this, chemical.tank);
+    }
+    protected async setHardware(chemical: Chemical, data: any) {
+        try {
+
+        }
+        catch (err) { return Promise.reject(err); }
     }
     protected async setDosing(chemical: Chemical, data: any) {
         try {
@@ -430,6 +444,15 @@ class NixieChemical extends NixieChildEquipment {
             schem.chemController.emitEquipmentChange();
         } catch (err) { logger.error(`Error mixing chemicals.`) }
 
+    }
+    public async closeAsync() {
+        try {
+            if (typeof this._mixTimer !== 'undefined') clearTimeout(this._mixTimer);
+            this._mixTimer = undefined;
+            await this.pump.stopDosing();
+            await super.closeAsync();
+        }
+        catch (err) { logger.error(err); }
     }
 }
 export class NixieChemTank extends NixieChildEquipment {
@@ -852,6 +875,10 @@ export class NixieChemicalORP extends NixieChemical {
                 // let the system clean these up.
                 this.currentDose = undefined;
                 this.currentMix = undefined;
+                if (typeof this._mixTimer !== 'undefined') {
+                    clearTimeout(this._mixTimer)
+                    this._mixTimer = undefined;
+                }
             }
             if (status === 'mixing')
                 await this.mixChemicals(sorp);
@@ -938,6 +965,10 @@ class NixieChemProbe extends NixieChildEquipment {
         try {
             if (typeof data !== 'undefined') {
                 sprobe.level = typeof data.level !== 'undefined' ? parseFloat(data.level) : sprobe.level;
+                // Alright first we must remove any references to the old connection if it exists.
+                //if (typeof data.connectionId !== 'undefined' && typeof data.deviceBinding !== 'undefined' && data.connectionId !== '' && data.deviceBinding !== 'undefined') {
+                //    let res = await NixieEquipment.deleteDeviceService(probe.connectionId, `/state/device/feed/${probe.deviceBinding}`, { id: <controllerId> });
+                //}
                 probe.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : probe.connectionId;
                 probe.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : probe.deviceBinding;
             }

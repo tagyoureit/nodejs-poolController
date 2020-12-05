@@ -1581,12 +1581,20 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
         return this.createItem(data || { id:this.data.length + 1, address: address });
     }
-    public nextAvailableChemController(): number {
-        for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
-            let chem = sys.chemControllers.getItemById(i);
-                if (!chem.isActive) return i;
+    //public nextAvailableChemController(): number {
+    //    for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
+    //        let chem = sys.chemControllers.getItemById(i);
+    //            if (!chem.isActive) return i;
+    //    }
+    //    return undefined;
+    //}
+    public getNextControllerId(type: number): number {
+        let arr = this.toArray();
+        let id = type === 2 ? 0 : 49;
+        for (let i = 0; i < arr.length; i++) {
+            if (arr[i].type === type) id = Math.max(id, arr[i].id);
         }
-        return undefined;
+        return id + 1;
     }
 }
 export class ChemController extends EqItem {

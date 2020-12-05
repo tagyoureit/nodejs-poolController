@@ -47,7 +47,7 @@ export class NixieEquipment {
         try {
 
         }
-        catch (err) { return Promise.reject(err); }
+        catch (err) { logger.error(err); }
     }
 }
 export class NixieChildEquipment extends NixieEquipment {

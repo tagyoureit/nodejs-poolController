@@ -512,7 +512,7 @@ class ChildEqState extends EqState implements IEqStateCreator<EqState> {
             }
         }
     }
-    public getParent() { return this._pmap['parent'];  }
+    public getParent() { return typeof this._pmap !== 'undefined' ? this._pmap['parent'] : undefined; }
 }
 class EqStateCollection<T> {
     protected data: any;

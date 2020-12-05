@@ -2741,11 +2741,11 @@ export class ChemControllerCommands extends BoardCommands {
         let chem = sys.chemControllers.getItemById(id);
         if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
             sys.board.virtualChemControllers.stop();
-        chem.isActive = false;
+        let schem = state.chemControllers.getItemById(chem.id);
+        schem.isActive = chem.isActive = false;
         await ncp.chemControllers.removeById(chem.id);
         sys.chemControllers.removeItemById(chem.id);
         state.chemControllers.removeItemById(chem.id);
-        
         sys.emitEquipmentChange();
         return Promise.resolve(chem);
     }
@@ -2896,7 +2896,8 @@ export class ChemControllerCommands extends BoardCommands {
                 // this is an add will be based upon finding the id in the chemControllers array.
                 type = sys.board.valueMaps.chemControllerTypes.encode(parseInt(data.type, 10), undefined);
                 isAdd = true;
-                data.id = (sys.chemControllers.getMaxId() || 0) + 1;
+                if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
+                data.id = sys.chemControllers.getNextControllerId(type.val);
                 chem = sys.chemControllers.getItemById(data.id);
             }
             if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));

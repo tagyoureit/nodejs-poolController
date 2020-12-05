@@ -3516,7 +3516,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
         let chem = sys.chemControllers.getItemById(id);
-        if (chem.isVirtual) return super.deleteChemControllerAsync(data);
+        if (chem.master === 1) return super.deleteChemControllerAsync(data);
         return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
