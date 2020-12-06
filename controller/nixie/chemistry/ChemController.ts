@@ -324,10 +324,10 @@ export class NixieChemController extends NixieEquipment {
             }
             else {
                 let totalGallons = 0;
-                if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-                if (chem.body === 2 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
-                if (chem.body === 3) totalGallons += sys.bodies.getItemById(3).capacity;
-                if (chem.body === 4) totalGallons += sys.bodies.getItemById(4).capacity;
+                if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+                if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+                if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+                if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
                 if (isNaN(totalGallons) || totalGallons === 0) {
                     eq.isValid = false;
                     eq.errors.push(`The total gallons for the associated body are ${totalGallons}`);
@@ -772,10 +772,10 @@ export class NixieChemicalPh extends NixieChemical {
                     // 1. Get the total gallons of water that the chem controller is in
                     // control of.
                     let totalGallons = 0;
-                    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-                    if (chem.body === 2 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
-                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(3).capacity;
-                    if (chem.body === 4) totalGallons += sys.bodies.getItemById(4).capacity;
+                    if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+                    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+                    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
                     logger.verbose(`Chem begin calculating dose current: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
                     //let pv = utils.convert.volume.convertUnits(totalGallons, 'gal', 'L');
                     let chg = this.ph.setpoint - sph.level;
@@ -911,10 +911,10 @@ export class NixieChemicalORP extends NixieChemical {
                     // 1. Get the total gallons of water that the chem controller is in
                     // control of.
                     let totalGallons = 0;
-                    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-                    if (chem.body === 2 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
-                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(3).capacity;
-                    if (chem.body === 4) totalGallons += sys.bodies.getItemById(4).capacity;
+                    if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+                    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+                    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
                     let pump = this.pump.pump;
                     let demand = dose = Math.round(utils.convert.volume.convertUnits(0, 'oz', 'mL'));
                     let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));

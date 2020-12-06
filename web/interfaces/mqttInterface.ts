@@ -80,7 +80,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             `${this.rootTopic()}/config/tempSensors`
         ];
         topics.forEach(topic => {
-            this.client.unsubscribe(topic, console.log);
+            this.client.unsubscribe(topic, (err, packet) => {
+                if (err) logger.error(`Error unsubscribing to MQTT topic ${topic}: ${err.message}`);
+                else logger.debug(`Unsubscribed from MQTT topic ${topic}`);
+            });
             this.client.subscribe(topic, (err, granted) => {
                 if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`)
                 else logger.error(`MQTT Subscribe: ${err}`)
