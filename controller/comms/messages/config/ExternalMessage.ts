@@ -313,8 +313,7 @@ export class ExternalMessage {
     }
 
     private static processCircuitState(start: number, msg: Inbound) {
-        let circuitId = sys.board.equipmentIds.circuits.start;
-        let body = 0; // Off
+        let circuitId = 1;//sys.board.equipmentIds.circuits.start;
         for (let i = start; i < msg.payload.length && sys.board.equipmentIds.circuits.isInRange(circuitId); i++) {
             let byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
