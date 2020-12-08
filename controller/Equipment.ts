@@ -1699,22 +1699,6 @@ export class ChemController extends EqItem {
     
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
-    //public get pHSetpoint(): number { return this.data.pHSetpoint; }
-    //public set pHSetpoint(val: number) { this.setDataVal('pHSetpoint', val); }
-    //public get orpSetpoint(): number { return this.data.orpSetpoint; }
-    //public set orpSetpoint(val: number) { this.setDataVal('orpSetpoint', val); }
-    //public get isFlowDelayMode(): boolean { return this.data.isFlowDelayMode; }
-    //public set isFlowDelayMode(val: boolean) { this.setDataVal('isFlowDelayMode', val); }
-    //public get isIntelliChlorUsed(): boolean { return this.data.isIntelliChlorUsed; }
-    //public set isIntelliChlorUsed(val: boolean) { this.setDataVal('isIntelliChlorUsed', val); }
-    //public get isAcidBaseDosing(): boolean { return this.data.isAcidBaseDosing; }
-    //public set isAcidBaseDosing(val: boolean) { this.setDataVal('isAcidBaseDosing', val); }
-    //public get ispHDoseByVolume(): boolean { return this.data.ispHDoseByVolume; }
-    //public set ispHDoseByVolume(val: boolean) { this.setDataVal('ispHDoseByVolume', val); }
-    //public get isorpDoseByVolume(): boolean { return this.data.isorpDoseByVolume; }
-    //public set isorpDoseByVolume(val: boolean) { this.setDataVal('isorpDoseByVolume', val); }
-    //public get pHManualDosing(): boolean { return this.data.pHManualDosing; }
-    //public set pHManualDosing(val: boolean) { this.setDataVal('pHManualDosing', val); }
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
     public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
     public getExtended() {
@@ -1725,6 +1709,19 @@ export class ChemController extends EqItem {
         chem.orp = this.orp.getExtended();
         return chem;
     }
+    // Chem controller alarms
+    // Controller
+    // 1. LSI Out of range.
+    //
+    // Chemical
+    // 1. Chemical out of range. -- Need to be able to set the range and the warning tolerance.
+    //    Probe: Probe not reporting
+    //    Tank: Tank Empty
+    //    Dosing: Max Dose limit
+    // ORP
+    // 1. Chlorinator Comms Lost.
+
+    
 }
 export class Chemical extends ChildEqItem {
     public dataName = 'chemicalConfig';
@@ -1885,5 +1882,16 @@ export class ChemicalTank extends ChildEqItem {
         tank.units = sys.board.valueMaps.volumeUnits.transform(this.units);
         return tank;
     }
+}
+export class ChemicalAlarmRange extends ChildEqItem {
+    public dataName = 'chemicalAlarmRangeConfig';
+    public initData() {
+        if (typeof this.data.low === 'undefined') this.data.low = 0;
+        if (typeof this.data.high === 'undefined') this.data.high = 0;
+    }
+    public get low(): number { return this.data.low; }
+    public set low(val: number) { this.setDataVal('low', val); }
+    public get high(): number { return this.data.high; }
+    public set high(val: number) { this.setDataVal('high', val); }
 }
 export let sys = new PoolSystem();

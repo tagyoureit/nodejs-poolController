@@ -115,11 +115,13 @@ export class IntelliCenterBoard extends SystemBoard {
             [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
             [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [6, { name: 'i10x', part: '522997Z', desc: 'i10x Expansion Module', circuits: 10 }],
             [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 1, chemControllers: 1 }], // We have witnessed this in the wild
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
             [9, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
-            [10, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // This is a guess
+            [10, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }] // This is a guess
         ]);
+
         this.valueMaps.virtualCircuits = new byteValueMap([
             [237, { name: 'heatBoost', desc: 'Heat Boost' }],
             [238, { name: 'heatEnable', desc: 'Heat Enable' }],
@@ -265,9 +267,9 @@ export class IntelliCenterBoard extends SystemBoard {
         this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);
         // Here we need to set the start id should we have a single body system.
         if (!inv.shared && !inv.dual) { sys.board.equipmentIds.circuits.start = 2; } // We are a single body system.
-        this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0, inv);
-        this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0, inv);
-        this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), ocp1A, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), ocp2A, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), ocp3A, 0, inv);
         if (inv.bodies !== sys.equipment.maxBodies ||
             inv.circuits !== sys.equipment.maxCircuits ||
             inv.chlorinators !== sys.equipment.maxChlorinators ||
@@ -275,9 +277,9 @@ export class IntelliCenterBoard extends SystemBoard {
             inv.valves !== sys.equipment.maxValves) {
             sys.resetData();
             this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(1, true).modules, ocp1A, 0);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(2, true).modules, ocp2A, 0);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(3, true).modules, ocp3A, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), ocp1A, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), ocp2A, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), ocp3A, 0);
         }
         sys.equipment.maxBodies = inv.bodies;
         sys.equipment.maxValves = inv.valves;
@@ -407,19 +409,27 @@ export class IntelliCenterBoard extends SystemBoard {
             if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
         }
     }
-    public processExpansionModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
+    public processExpansionModules(panel: ExpansionPanel, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
+        let modules: ExpansionModuleCollection = panel.modules;
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         let slot0 = ocpA & 0x0F;
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
-        // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.
-        if (slot0 === 0) modules.removeItemById(0);
+        // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.  At this point we only know that an i10x = 6 for
+        // slot 0.
+        if (slot0 === 0) {
+            modules.removeItemById(0);
+            panel.isActive = false;
+        }
         else {
+            // At this point we only know that an i10x = 6 for
+            // slot 0.  It is suspected that this will likely be some other value if the 10x isn't installed in slot 0.
             let mod = modules.getItemById(0, true);
             let mt = this.valueMaps.expansionBoards.transform(slot0);
+            panel.isActive = true;
             mod.name = mt.name;
             mod.desc = mt.desc;
             mod.type = slot0;
