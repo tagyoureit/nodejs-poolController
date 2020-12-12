@@ -139,6 +139,11 @@ export class NixieChemController extends NixieEquipment {
             schem.name = chem.name = data.name || chem.name || `Chem Controller ${chem.id}`;
             schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('rem');
             schem.isActive = chem.isActive = true;
+            if (typeof data.lsiRange !== 'undefined') {
+                if (typeof data.lsiRange.enabled !== 'undefined') chem.lsiRange.enabled = utils.makeBool(data.lsiRange.enabled);
+                if (typeof data.lsiRange.low === 'number') chem.lsiRange.low = data.lsiRange.low;
+                if (typeof data.lsiRange.high === 'number') chem.lsiRange.high = data.lsiRange.high;
+            }
             // Alright we are down to the equipment items all validation should have been completed by now.
             // ORP Settings
             await this.orp.setORPAsync(schem.orp, data.orp);
@@ -223,8 +228,11 @@ export class NixieChemController extends NixieEquipment {
             schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
             schem.warnings.orpDailyLimitReached = 0;
             if (schem.flowDetected) {
-                schem.alarms.orp = schem.orp.level < 650 && probeType !== 0 ? 16 : schem.orp.level > 800 && probeType !== 0 ? 8 : 0;
+                if (probeType !== 0 && chem.orp.tolerance.enabled)
+                    schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 4 : schem.orp.level > chem.orp.tolerance.high ? 2 : 0;
+                else schem.alarms.orp = 0;
                 schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
+                // TODO: The pH lockout should be settable in the ORP Settings.
                 schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level > 7.8 ? 1 : 0;
             }
             else {
@@ -237,7 +245,7 @@ export class NixieChemController extends NixieEquipment {
             schem.warnings.chlorinatorCommError = 0;
             schem.alarms.orpTank = 0;
             schem.warnings.orpDailyLimitReached = 0;
-            schem.alarms.orp;
+            schem.alarms.orp = 0;
         }
         if (this.chem.ph.enabled) {
             let pumpType = chem.ph.pump.type;
@@ -245,15 +253,18 @@ export class NixieChemController extends NixieEquipment {
             schem.alarms.pHTank = pumpType !== 0  && schem.ph.tank.level <= 0 ? 32 : 0;
             schem.warnings.pHDailyLimitReached = 0;
             if (schem.flowDetected) {
-                schem.alarms.pH = probeType !== 0 && schem.ph.level < 7.2 ? 4 : schem.ph.level && probeType !== 0 > 7.6 ? 2 : 0;
+                if (probeType !== 0 && chem.ph.tolerance.enabled)
+                    schem.alarms.pH = schem.ph.level < chem.ph.tolerance.low ? 4 : schem.ph.level > chem.ph.tolerance.high ? 2 : 0;
+                else schem.alarms.pH = 0;
             }
-            else {
-                schem.alarms.pH = 0;
-            }
+            else schem.alarms.pH = 0;
         }
-        schem.warnings.waterChemistry = schem.saturationIndex < -0.3 ? 1 : schem.saturationIndex > 0.3 ? 2 : 0;
+        if (chem.lsiRange.enabled) {
+            schem.warnings.waterChemistry = schem.saturationIndex < chem.lsiRange.low ? 1 : schem.saturationIndex > chem.lsiRange.high ? 2 : 0;
+        }
         // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
-        // based upon 2ppm of chemical for the type of chemical.  Honestly it is pretty dumb.
+        // based upon 2ppm of chemical for the type of chemical.  Right now this seems to be pretty dumb but that might change when we see what
+        // is happening live.
         schem.warnings.pHDailyLimitReached = 0;
     }
     public async validateSetup(chem: ChemController) {
@@ -747,6 +758,11 @@ export class NixieChemicalPh extends NixieChemical {
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
                 this.ph.flowReadingsOnly = typeof data.flowReadingsOnly !== 'undefined' ? utils.makeBool(data.flowReadingsOnly) : this.ph.flowReadingsOnly;
                 sph.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sph.level;
+                if (typeof data.tolerance !== 'undefined') {
+                    if (typeof data.tolerance.enabled !== 'undefined') this.ph.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
+                    if (typeof data.tolerance.low === 'number') this.ph.tolerance.low = data.tolerance.low;
+                    if (typeof data.tolerance.high === 'number') this.ph.tolerance.high = data.tolerance.high;
+                }
             }
         }
         catch (err) { return Promise.reject(err); }
@@ -885,6 +901,11 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.tank.setTankAsync(sorp.tank, data.tank);
                 await this.pump.setPumpAsync(sorp.pump, data.pump);
                 this.orp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
+                if (typeof data.tolerance !== 'undefined') {
+                    if (typeof data.tolerance.enabled !== 'undefined') this.orp.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
+                    if (typeof data.tolerance.low === 'number') this.orp.tolerance.low = data.tolerance.low;
+                    if (typeof data.tolerance.high === 'number') this.orp.tolerance.high = data.tolerance.high;
+                }
             }
         }
         catch (err) { return Promise.reject(err); }

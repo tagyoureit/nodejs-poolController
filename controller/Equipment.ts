@@ -1673,6 +1673,7 @@ export class ChemController extends EqItem {
         //        }
         //    }
         //}
+        if (typeof this.data.lsiRange === 'undefined') this.data.lsiRange = { low: -.5, high: .5, enabled: true };
         super.initData();
     }
     public dataName = 'chemControllerConfig';
@@ -1701,6 +1702,7 @@ export class ChemController extends EqItem {
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
     public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
+    public get lsiRange(): AlarmSetting { return new AlarmSetting(this.data, 'lsiRange', this); }
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
@@ -1720,8 +1722,6 @@ export class ChemController extends EqItem {
     //    Dosing: Max Dose limit
     // ORP
     // 1. Chlorinator Comms Lost.
-
-    
 }
 export class Chemical extends ChildEqItem {
     public dataName = 'chemicalConfig';
@@ -1751,6 +1751,7 @@ export class Chemical extends ChildEqItem {
     public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
     public get setpoint(): number { return this.data.setpoint; }
     public set setpoint(val: number) { this.setDataVal('setpoint', val); }
+    public get tolerance(): AlarmSetting { return new AlarmSetting(this.data, 'tolerance', this); }
     public getExtended() {
         let chem = this.get(true);
         chem.tank = this.tank.getExtended();
@@ -1768,6 +1769,7 @@ export class ChemicalPh extends Chemical {
         if (typeof this.data.phSupply === 'undefined') this.data.phSupply = 1;
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.acidType === 'undefined') this.data.acidType = 0;
+        if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 7.2, high: 7.6, enabled: true };
         super.initData();
     }
     public get phSupply(): number | any { return this.data.phSupply; }
@@ -1788,6 +1790,7 @@ export class ChemicalORP extends Chemical {
         if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 600;
         if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
+        if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 650, high: 800, enabled: true };
         super.initData();
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
@@ -1883,12 +1886,14 @@ export class ChemicalTank extends ChildEqItem {
         return tank;
     }
 }
-export class ChemicalAlarmRange extends ChildEqItem {
-    public dataName = 'chemicalAlarmRangeConfig';
+export class AlarmSetting extends ChildEqItem {
+    public dataName = 'AlarmSettingConfig';
     public initData() {
         if (typeof this.data.low === 'undefined') this.data.low = 0;
         if (typeof this.data.high === 'undefined') this.data.high = 0;
     }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
     public get low(): number { return this.data.low; }
     public set low(val: number) { this.setDataVal('low', val); }
     public get high(): number { return this.data.high; }
