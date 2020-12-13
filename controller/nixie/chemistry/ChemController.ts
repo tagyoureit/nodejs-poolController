@@ -141,7 +141,7 @@ export class NixieChemController extends NixieEquipment {
             if (typeof schem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not initiate ${data.chemType} manual dose state not found.`, 'chemController', data.chemType));
             // Now we can tell the chemical to dose.
             if (chemType === 'ph') await this.ph.manualDoseAsync(schem, vol);
-            //else if(chemType === 'orp') await this.orp.manualDoseAsync(this.chem, schem, vol);
+            else if(chemType === 'orp') await this.orp.manualDoseAsync(schem, vol);
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -156,11 +156,10 @@ export class NixieChemController extends NixieEquipment {
             if (typeof schem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not cancel ${data.chemType} dose state not found.`, 'chemController', data.chemType));
             // Now we can tell the chemical to dose.
             if (chemType === 'ph') await this.ph.cancelDosing(schem);
-            //else if(chemType === 'orp') await this.orp.manualDoseAsync(this.chem, schem, vol);
+            else if (chemType === 'orp') await this.orp.cancelDosing(schem);
         }
         catch (err) { return Promise.reject(err); }
     }
-
     public async setControllerAsync(data: any) {
         try {
             let chem = this.chem;
@@ -1012,7 +1011,6 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(err); }
     }
-
 }
 export class NixieChemicalORP extends NixieChemical {
     public orp: ChemicalORP;
@@ -1044,6 +1042,50 @@ export class NixieChemicalORP extends NixieChemical {
         }
         catch (err) { return Promise.reject(err); }
     }
+    public async manualDoseAsync(sorp: ChemicalORPState, volume: number) {
+        try {
+            let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus);
+            if (status === 'monitoring') {
+                // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way
+                // let the system clean these up.
+                this.currentDose = undefined;
+                this.currentMix = undefined;
+                sorp.manualDosing = false;
+            }
+            if (status === 'mixing') {
+                // We are mixing so we need to stop that.
+                await this.stopMixing(sorp);
+            }
+            else if (status === 'dosing') {
+                // We are dosing so we need to stop that.
+                await this.cancelDosing(sorp);
+            }
+            let pump = this.pump.pump;
+            let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(volume / (pump.ratedFlow / 60));
+            // We should now be monitoring.
+            logger.verbose(`Chem begin calculating manual dose current: ${sorp.level} setpoint: ${this.orp.setpoint} volume:${volume}`);
+            let dosage: NixieChemDose = new NixieChemDose();
+            let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
+            dosage.set({ startDate: new Date(), isManual: true, schem: sorp, demand: 0, method: meth, setpoint: this.orp.setpoint, level: sorp.level, volume: volume, time: time, maxVolume: volume, maxTime: time });
+            sorp.doseTime = dosage.time;
+            sorp.doseVolume = dosage.volume;
+            sorp.manualDosing = true;
+            // Now let's determine what we need to do with our pump to satisfy our acid demand.
+            if (sorp.tank.level > 0) {
+                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                await this.pump.dose(dosage);
+                this.currentDose = dosage;
+            }
+        }
+        catch (err) { logger.error(err); }
+    }
+    public async cancelDosing(sorp: ChemicalORPState) {
+        try {
+            // Just stop the pump for now but we will do some logging later.
+            await this.pump.stopDosing();
+            await this.mixChemicals(sorp);
+        } catch (err) { return Promise.reject(err); }
+    }
     public async checkDosing(chem: ChemController, sorp: ChemicalORPState) {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus);
@@ -1056,9 +1098,31 @@ export class NixieChemicalORP extends NixieChemical {
                     clearTimeout(this._mixTimer)
                     this._mixTimer = undefined;
                 }
+                sorp.manualDosing = false;
+                sorp.dosingTimeRemaining = 0;
+                sorp.dosingVolumeRemaining = 0;
             }
             if (status === 'mixing')
                 await this.mixChemicals(sorp);
+            else if (sorp.manualDosing) {
+                // We are manually dosing.  We are not going to dynamically change the dose.
+                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                if (typeof this.currentDose === 'undefined') {
+                    // This will only happen when njspc is killed in the middle of a dose.
+                    let dose = sorp.dosingVolumeRemaining;
+                    let time = sorp.dosingTimeRemaining;
+                    dosage.set({
+                        startDate: new Date(), schem: sorp, method: sys.board.valueMaps.chemDosingMethods.transformByName('volume'), setpoint: this.orp.setpoint, level: sorp.level,
+                        volume: dose, time: time, maxVolume: dose, maxTime: time, isManual: true
+                    });
+                    // For a manual dose we will pick up where we left off.
+                    this.currentDose = dosage;
+                }
+                if (sorp.tank.level > 0) {
+                    logger.verbose(`Chem orp dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                    await this.pump.dose(dosage);
+                }
+            }
             else if (status === 'monitoring' || status === 'dosing' && !this.orp.useChlorinator) {
                 let dose = 0;
                 if (this.orp.setpoint < sorp.level && !sorp.lockout) {
