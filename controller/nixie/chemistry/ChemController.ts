@@ -11,6 +11,21 @@ import { warn } from 'winston';
 import { webApp } from "../../../web/Server";
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemController> {
+    public async manualDoseAsync(id: number, data: any) {
+        try {
+            let c: NixieChemController = this.find(elem => elem.id === id) as NixieChemController;
+            if (typeof c === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Nixie could not find a chem controller at id ${id}`, id, 'chemController'));
+            await c.manualDoseAsync(data);
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async cancelDoseAsync(id: number, data: any) {
+        try {
+            let c: NixieChemController = this.find(elem => elem.id === id) as NixieChemController;
+            if (typeof c === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Nixie could not find a chem controller at id ${id}`, id, 'chemController'));
+            await c.cancelDosingAsync(data);
+        } catch (err) { return Promise.reject(err); }
+    }
+
     public async setControllerAsync(chem: ChemController, data: any) {
         // By the time we get here we know that we are in control and this is a REMChem.
         let c: NixieChemController = this.find(elem => elem.id === chem.id) as NixieChemController;
@@ -112,6 +127,40 @@ export class NixieChemController extends NixieEquipment {
         return 2.9;
     }
     public get correctedAlkalinity(): number { return this.chem.alkalinity - (this.chem.cyanuricAcid / 3); }
+    public async manualDoseAsync(data: any) {
+        try {
+            // Check to see that we are a rem chem.
+            let vol = parseInt(data.volume, 10);
+            if (isNaN(vol)) return Promise.reject(new InvalidEquipmentDataError(`Volume was not supplied for the manual chem dose`, 'chemController', data.volume));
+            // Determine which chemical we are dosing.  This will be ph or orp.
+            let chemType = typeof data.chemType === 'string' ? data.chemType.toLowerCase() : '';
+            if (typeof this[chemType] === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`A valid Chem type was not supplied for the manual chem dose ${data.chemType}`, 'chemController', data.chemType));
+            let chem = this.chem[chemType];
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not initiate ${data.chemType} manual dose config not found.`, 'chemController', data.chemType));
+            let schem = state.chemControllers.getItemById(this.chem.id, true)[chemType];
+            if (typeof schem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not initiate ${data.chemType} manual dose state not found.`, 'chemController', data.chemType));
+            // Now we can tell the chemical to dose.
+            if (chemType === 'ph') await this.ph.manualDoseAsync(schem, vol);
+            //else if(chemType === 'orp') await this.orp.manualDoseAsync(this.chem, schem, vol);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async cancelDosingAsync(data: any) {
+        try {
+            // Determine which chemical we are cancelling.  This will be ph or orp.
+            let chemType = typeof data.chemType === 'string' ? data.chemType.toLowerCase() : '';
+            if (typeof this[chemType] === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`A valid Chem type was not supplied for the manual chem dose ${data.chemType}`, 'chemController', data.chemType));
+            let chem = this.chem[chemType];
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not cancel ${data.chemType} dose config not found.`, 'chemController', data.chemType));
+            let schem = state.chemControllers.getItemById(this.chem.id, true)[chemType];
+            if (typeof schem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Could not cancel ${data.chemType} dose state not found.`, 'chemController', data.chemType));
+            // Now we can tell the chemical to dose.
+            if (chemType === 'ph') await this.ph.cancelDosing(schem);
+            //else if(chemType === 'orp') await this.orp.manualDoseAsync(this.chem, schem, vol);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+
     public async setControllerAsync(data: any) {
         try {
             let chem = this.chem;
@@ -417,6 +466,17 @@ class NixieChemical extends NixieChildEquipment {
             }
         } catch (err) { return Promise.reject(err); }
     }
+    protected async stopMixing(schem: ChemicalState) {
+        try {
+            let chem = this.chemController.chem;
+            schem.pump.isDosing = false;
+            if (typeof this._mixTimer !== 'undefined') {
+                clearTimeout(this._mixTimer);
+                this._mixTimer = undefined;
+            }
+            this.currentMix = undefined;
+        } catch (err) { logger.error(`Error stopping chemical mix`); }
+    }
     public async mixChemicals(schem: ChemicalState) {
         try {
             let chem = this.chemController.chem;
@@ -502,12 +562,13 @@ export class NixieChemDose {
     public timeDosed: number = 0;
     public lastLatchTime: number;
     public schem: ChemicalState;
+    public isManual: boolean = false;
     public get timeRemaining(): number { return Math.floor(Math.max(0, this.time - (this.timeDosed / 1000))); }
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }
     public log(chem: NixieChemical) {
         if (typeof chem !== 'undefined' && typeof chem.chemController !== 'undefined' && typeof this.schem !== 'undefined')
             chem.chemController.logData(`chemDosage_${this.schem.chemType}.log`,
-                `{"id":${chem.chemController.chem.id},"chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","demand":${this.demand}, "level": ${ this.level }, "volume": ${ this.volume }, "volumeDosed": ${ this.volumeDosed }, "timeDosed": "${utils.formatDuration(this.timeDosed/1000)}"}`);
+                `{"id":${chem.chemController.chem.id},"method":"${this.isManual ? 'manual' : 'auto'}","chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${ Timestamp.toISOLocal(new Date()) }","demand":${this.demand},"level": ${ this.level },"volume": ${ this.volume },"volumeDosed": ${ this.volumeDosed },"timeDosed": "${ utils.formatDuration(this.timeDosed / 1000) }"}`);
     }
     public set(obj: any) {
         if (typeof obj.method === 'string') this.method = obj.method;
@@ -520,6 +581,7 @@ export class NixieChemDose {
         if (typeof obj.timeDosed === 'number') this.timeDosed = obj.timeDosed;
         if (typeof obj.schem !== 'undefined') this.schem = obj.schem;
         if (typeof obj.demand !== 'undefined') this.demand = obj.demand;
+        if (typeof obj.isManual !== 'undefined') this.isManual = utils.makeBool(obj.isManual);
         this.startDate = typeof obj.startDate === 'undefined' ? new Date() : obj.startDate;
     }
 }
@@ -559,9 +621,13 @@ export class NixieChemPump extends NixieChildEquipment {
             if (this._dosingTimer) {
                 clearTimeout(this._dosingTimer);
                 this._dosingTimer = undefined;
-                if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
+                if (typeof this.chemical.currentDose !== 'undefined') {
+                    this.chemical.currentDose.log(this.chemical);
+                    this.chemical.currentDose.schem.manualDosing = false;
+                    this.chemical.currentDose.schem.dosingTimeRemaining = 0;
+                    this.chemical.currentDose.schem.dosingVolumeRemaining = 0;
+                }
                 this.chemical.currentDose = undefined;
-                
                 await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
             }
         } catch (err) { return Promise.reject(err); }
@@ -653,6 +719,7 @@ export class NixieChemPump extends NixieChildEquipment {
                         //dosage.timeDosed = dosage.time * 1000;
                         //dosage.volumeDosed = dosage.volume;
                         dosage.schem.dosingStatus = 2; // Start mixing
+                        dosage.schem.manualDosing = false;
                         await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                     }
                     else
@@ -674,6 +741,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 if (dosage.maxTime < (dosage.timeDosed / 1000) ||
                     dosage.maxVolume < dosage.volumeDosed ||
                     dosage.schem.tank.level <= 0) {
+                    dosage.schem.manualDosing = false;
                     status = 2;
                     await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                 }
@@ -701,12 +769,14 @@ export class NixieChemPump extends NixieChildEquipment {
                 if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
                 this.chemical.currentDose = undefined;
                 dosage.schem.pump.isDosing = this.isOn = false;
+                dosage.schem.manualDosing = false;
                 await this.chemical.mixChemicals(dosage.schem);
             }
             else if (dosage.schem.dosingStatus === 1) {
                 if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
                 this.chemical.currentDose = undefined;
                 dosage.schem.pump.isDosing = this.isOn = false;
+                dosage.schem.manualDosing = false;
             }
         }
     }
@@ -775,9 +845,29 @@ export class NixieChemicalPh extends NixieChemical {
                 // let the system clean these up.
                 this.currentDose = undefined;
                 this.currentMix = undefined;
+                sph.manualDosing = false;
             }
             if (status === 'mixing')
                 await this.mixChemicals(sph);
+            else if (sph.manualDosing) {
+                // We are manually dosing.  We are not going to dynamically change the dose.
+                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                if (typeof this.currentDose === 'undefined') {
+                    // This will only happen when njspc is killed in the middle of a dose.
+                    let dose = sph.dosingVolumeRemaining;
+                    let time = sph.dosingTimeRemaining;
+                    dosage.set({
+                        startDate: new Date(), schem: sph, method: sys.board.valueMaps.chemDosingMethods.transformByName('volume'), setpoint: this.ph.setpoint, level: sph.level,
+                        volume: dose, time: time, maxVolume: dose, maxTime: time, isManual: true
+                    });
+                    // For a manual dose we will pick up where we left off.
+                    this.currentDose = dosage;
+                }
+                if (sph.tank.level > 0) {
+                    logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                    await this.pump.dose(dosage);
+                }
+            }
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
@@ -879,6 +969,50 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(err); }
     }
+    public async cancelDosing(sph: ChemicalPhState) {
+        try {
+            // Just stop the pump for now but we will do some logging later.
+            await this.pump.stopDosing();
+            await this.mixChemicals(sph);
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async manualDoseAsync(sph: ChemicalPhState, volume: number) {
+        try {
+            let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
+            if (status === 'monitoring') {
+                // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way
+                // let the system clean these up.
+                this.currentDose = undefined;
+                this.currentMix = undefined;
+            }
+            if (status === 'mixing') {
+                // We are mixing so we need to stop that.
+                await this.stopMixing(sph);
+            }
+            else if (status === 'dosing') {
+                // We are dosing so we need to stop that.
+                await this.cancelDosing(sph);
+            }
+            let pump = this.pump.pump;
+            let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(volume / (pump.ratedFlow / 60));
+            // We should now be monitoring.
+            logger.verbose(`Chem begin calculating manual dose current: ${sph.level} setpoint: ${this.ph.setpoint} volume:${volume}`);
+            let dosage: NixieChemDose = new NixieChemDose();
+            let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+            dosage.set({ startDate: new Date(), isManual: true, schem: sph, demand: 0, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: volume, time: time, maxVolume: volume, maxTime: time });
+            sph.doseTime = dosage.time;
+            sph.doseVolume = dosage.volume;
+            sph.manualDosing = true;
+            // Now let's determine what we need to do with our pump to satisfy our acid demand.
+            if (sph.tank.level > 0) {
+                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                await this.pump.dose(dosage);
+                this.currentDose = dosage;
+            }
+        }
+        catch (err) { logger.error(err); }
+    }
+
 }
 export class NixieChemicalORP extends NixieChemical {
     public orp: ChemicalORP;

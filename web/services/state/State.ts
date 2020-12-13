@@ -33,6 +33,20 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/chemController/manualDose', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemControllers.manualDoseAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemController/cancelDosing', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemControllers.cancelDosingAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
         app.get('/state/chlorinator/:id', (req, res) => {
             res.status(200).send(state.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
         });
