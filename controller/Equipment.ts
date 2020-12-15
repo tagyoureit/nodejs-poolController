@@ -1839,6 +1839,8 @@ export class ChemicalProbe extends ChildEqItem {
 export class ChemicalPhProbe extends ChemicalProbe {
     public get type(): number | any { return this.data.type; }
     public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemPhProbeTypes.encode(val)); }
+    public get feedBodyTemp(): boolean { return utils.makeBool(this.data.feedBodyTemp); }
+    public set feedBodyTemp(val: boolean) { this.setDataVal('feedBodyTemp', val); }
 }
 export class ChemicalORPProbe extends ChemicalProbe {
     public get type(): number | any { return this.data.type; }

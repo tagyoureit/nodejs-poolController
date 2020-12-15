@@ -247,13 +247,14 @@ export class NixieChemController extends NixieEquipment {
                 schem.status = 0;
                 schem.lastComm = new Date().getTime();
                 let val = await this.validateSetup(this.chem);
+                if (this.chem.ph.enabled) await this.ph.probe.setTempCompensation(schem.ph.probe);
                 schem.warnings.invalidSetup = val.isValid ? 0 : 8;
                 // We are not processing Homegrown at this point.
                 // Check each piece of equipment to make sure it is doing its thing.
-                //await this.orp.checkDosing();
                 this.calculateSaturationIndex();
                 await this.processAlarms(schem);
-                await this.ph.checkDosing(this.chem, schem.ph);
+                if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
+                if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
             }
         }
         catch (err) { logger.error(`Error polling Chem Controller`); }
@@ -1011,6 +1012,7 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(err); }
     }
+    
 }
 export class NixieChemicalORP extends NixieChemical {
     public orp: ChemicalORP;
@@ -1223,6 +1225,7 @@ export class NixieChemProbePh extends NixieChemProbe {
         this.probe = probe;
         probe.master = 1;
     }
+    public get chemical(): NixieChemical { return this.getParent() as NixieChemical; }
     public async setProbePhAsync(sprobe: ChemicalProbePHState, data: any) {
         try {
             if (typeof data !== 'undefined') {
@@ -1230,8 +1233,23 @@ export class NixieChemProbePh extends NixieChemProbe {
                 this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
                 sprobe.temperature = typeof data.temperature !== 'undefined' ? parseFloat(data.temperature) : sprobe.temperature;
                 sprobe.tempUnits = typeof data.tempUnits !== 'undefined' ? data.tempUnits : sprobe.tempUnits;
+                this.probe.feedBodyTemp = typeof data.feedBodyTemp !== 'undefined' ? utils.makeBool(data.feedBodyTemp) : utils.makeBool(this.probe.feedBodyTemp);
             }
         } catch (err) { return Promise.reject(err); }
+    }
+    public async setTempCompensation(sprobe: ChemicalProbePHState) {
+        if (this.probe.feedBodyTemp) {
+            if (this.probe.type !== 0) {
+                // Set the current body so that it references the temperature of the current running body.
+                let body = sys.board.bodies.getBodyState(this.chemical.chemController.chem.body);
+                if (typeof body !== 'undefined' && body.isOn) {
+                    let units = sys.board.valueMaps.tempUnits.transform(sys.general.options.units);
+                    let obj = {};
+                    obj[`temp${units.name.toUpperCase()}`] = body.temp;
+                    let res = await NixieEquipment.putDeviceService(this.probe.connectionId, `/feed/device/${this.probe.deviceBinding}`, obj);
+                }
+            }
+        }
     }
 }
 export class NixieChemProbeORP extends NixieChemProbe {

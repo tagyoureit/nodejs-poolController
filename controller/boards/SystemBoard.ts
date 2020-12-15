@@ -1146,6 +1146,31 @@ export class BodyCommands extends BoardCommands {
         }
         return arrSpas;
     }
+    public getBodyState(bodyCode: number): BodyTempState {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1);
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2);
+            case 'body3':
+                return state.temps.bodies.getItemById(3);
+            case 'body4':
+                return state.temps.bodies.getItemById(4);
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    let body = state.temps.bodies.getItemById(1);
+                    if (body.isOn) return body;
+                    body = state.temps.bodies.getItemById(2);
+                    if (body.isOn) return body;
+                    return state.temps.bodies.getItemById(1);
+                }
+                else
+                    return state.temps.bodies.getItemById(1);
+        }
+    }
     public isBodyOn(bodyCode: number): boolean {
         let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
         switch (assoc.name) {
