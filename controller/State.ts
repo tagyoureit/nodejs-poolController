@@ -1312,7 +1312,8 @@ export class ChlorinatorState extends EqState {
     public get saltRequired(): number { return this.data.saltRequired; }
     public get saltLevel(): number { return this.data.saltLevel; }
     public set saltLevel(val: number) {
-        this.data.saltLevel = val;
+        this.setDataVal('saltLevel', val);
+        //this.data.saltLevel = val;
         // Calculate the salt required.
         let capacity = 0;
         for (let i = 0; i < sys.bodies.length; i++) {

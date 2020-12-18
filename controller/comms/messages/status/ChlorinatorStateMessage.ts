@@ -88,7 +88,9 @@ export class ChlorinatorStateMessage {
                 case 18: {
                     // Response to Set Salt Output (17 & 20)
                     let cstate = state.chlorinators.getItemById(1, true);
-                    cstate.saltLevel = msg.extractPayloadByte(0) * 50;
+                    // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
+                    // source like REM.
+                    cstate.saltLevel = msg.extractPayloadByte(0) * 50 || cstate.saltLevel || 0;
                     cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
                     cstate.currentOutput = cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();
@@ -143,7 +145,9 @@ export class ChlorinatorStateMessage {
                 chlor.superChlorHours = msg.extractPayloadByte(5);
                 chlor.name = msg.extractPayloadString(6, 16);
                 let schlor = state.chlorinators.getItemById(chlorId, true);
-                schlor.saltLevel = msg.extractPayloadByte(3) * 50;
+                // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
+                // source like REM.
+                schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel || 0;
                 schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
                 schlor.lastComm = new Date().getTime();  // rely solely on "true" chlor messages for this?
                 schlor.poolSetpoint = chlor.poolSetpoint;

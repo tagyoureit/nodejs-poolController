@@ -74,6 +74,31 @@ export class StateSocket {
             }
             catch (err) { logger.error(err); }
         });
+        sock.on('/chlorinator', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = parseInt(data.id, 10);
+                let chlor = sys.chlorinators.getItemById(id);
+                if (chlor.isActive) {
+                    let isBodyOn = sys.board.bodies.isBodyOn(chlor.body);
+                    let schlor = state.chlorinators.getItemById(id, true);
+                    // Ignore the salt level feed when the body is not on.
+                    if (isBodyOn) {
+                        if (typeof data.saltLevel !== 'undefined') {
+                            let saltLevel = parseInt(data.saltLevel, 10);
+                            if (!isNaN(saltLevel) && schlor.saltLevel !== saltLevel) {
+                                schlor.saltLevel = saltLevel;
+                            }
+                        }
+                    }
+                    if (typeof data.poolSetpoint !== 'undefined' || data.spaSetpoint !== 'undefined') {
+                        sys.board.chlorinator.setChlorAsync(data);
+                    }
+                    schlor.emitEquipmentChange();
+                }
+            }
+            catch (err) { logger.error(err); }
+        });
         sock.on('/chemController', async (data: any) => {
             try {
                 //console.log(`chemController: ${data}`);
