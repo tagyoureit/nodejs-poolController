@@ -517,6 +517,15 @@ export class byteValueMaps {
         [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
         [128, { name: 'probefault', desc: 'Probe Fault' }]
     ]);
+    public chemControllerHardwareFaults: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Faults' }],
+        [1, { name: 'phprobe', desc: 'pH Probe Fault' }],
+        [2, { name: 'phpump', desc: 'pH Pump Fault' }],
+        [3, { name: 'orpprobe', desc: 'ORP Probe Fault' }],
+        [4, { name: 'orppump', desc: 'ORP Pump Fault' }],
+        [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
+        [6, { name: 'invalidbody', desc: 'Body capacity not valid' }]
+    ]);
     public chemControllerWarnings: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Warning' }],
         [1, { name: 'corrosive', desc: 'Corrosion May Occur' }],

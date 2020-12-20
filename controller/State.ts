@@ -1484,8 +1484,8 @@ export class ChemControllerState extends EqState {
     public set firmware(val: string) { this.setDataVal('firmware', val); }
     public get ph(): ChemicalPhState { return new ChemicalPhState(this.data, 'ph', this); }
     public get orp(): ChemicalORPState { return new ChemicalORPState(this.data, 'orp', this); }
-    public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings'); }
-    public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms'); }
+    public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings', this); }
+    public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms', this); }
     public get virtualControllerStatus(): number {
         return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
     }
@@ -1582,6 +1582,10 @@ export class ChemicalPhState extends ChemicalState {
         chem.probe = this.probe.getExtended();
         return chem;
     }
+    public get suspendDosing(): boolean {
+        let cc = this.chemController;
+        return cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;
+    }
 }
 export class ChemicalORPState extends ChemicalState {
     public initData() {
@@ -1591,6 +1595,10 @@ export class ChemicalORPState extends ChemicalState {
     }
     public get chemType() { return 'orp'; }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
+    public get suspendDosing(): boolean {
+        let cc = this.chemController;
+        return cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
+    }
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
@@ -1684,8 +1692,8 @@ export class ChemicalTankState extends ChildEqState {
 }
 
 
-export class ChemControllerStateWarnings extends EqState {
-    ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }
+export class ChemControllerStateWarnings extends ChildEqState {
+    ///ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }
     public dataName = 'chemControllerWarnings';
     public get waterChemistry(): number { return typeof this.data.waterChemistry === 'undefined' ? undefined : this.data.waterChemistry.val; }
     public set waterChemistry(val: number) {
@@ -1732,8 +1740,8 @@ export class ChemControllerStateWarnings extends EqState {
     }
 
 }
-export class ChemControllerStateAlarms extends EqState {
-    ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'alarms'); }
+export class ChemControllerStateAlarms extends ChildEqState {
+    //ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'alarms'); }
     public dataName = 'chemControllerAlarms';
     public get flow(): number { return typeof this.data.flow === 'undefined' ? undefined : this.data.flow.val; }
     public set flow(val: number) {
@@ -1777,6 +1785,49 @@ export class ChemControllerStateAlarms extends EqState {
             this.hasChanged = true;
         }
     }
+    public get pHPumpFault(): number { return typeof this.data.pHPumpFault === 'undefined' ? undefined : this.data.pHPumpFault.val; }
+    public set pHPumpFault(val: number) {
+        if (this.pHPumpFault !== val) {
+            this.data.pHPumpFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get orpPumpFault(): number { return typeof this.data.orpPumpFault === 'undefined' ? undefined : this.data.orpPumpFault.val; }
+    public set orpPumpFault(val: number) {
+        if (this.orpPumpFault !== val) {
+            this.data.orpPumpFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get pHProbeFault(): number { return typeof this.data.pHProbeFault === 'undefined' ? undefined : this.data.pHProbeFault.val; }
+    public set pHProbeFault(val: number) {
+        if (this.pHProbeFault !== val) {
+            this.data.pHProbeFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get orpProbeFault(): number { return typeof this.data.orpProbeFault === 'undefined' ? undefined : this.data.orpProbeFault.val; }
+    public set orpProbeFault(val: number) {
+        if (this.orpProbeFault !== val) {
+            this.data.orpProbeFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get chlorFault(): number { return typeof this.data.chlorFault === 'undefined' ? undefined : this.data.chlorFault.val; }
+    public set chlorFault(val: number) {
+        if (this.chlorFault !== val) {
+            this.data.chlorFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get bodyFault(): number { return typeof this.data.bodyFault === 'undefined' ? undefined : this.data.bodyFault.val; }
+    public set bodyFault(val: number) {
+        if (this.bodyFault !== val) {
+            this.data.bodyFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
     public get comms(): number { return typeof this.data.comms === 'undefined' ? undefined : this.data.comms.val; }
     public set comms(val: number) {
         if (this.comms !== val) {

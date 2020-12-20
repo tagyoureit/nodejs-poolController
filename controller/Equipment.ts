@@ -1674,6 +1674,7 @@ export class ChemController extends EqItem {
         //    }
         //}
         if (typeof this.data.lsiRange === 'undefined') this.data.lsiRange = { low: -.5, high: .5, enabled: true };
+        if (typeof this.data.borates === 'undefined') this.data.borates = 0;
         super.initData();
     }
     public dataName = 'chemControllerConfig';
@@ -1697,6 +1698,8 @@ export class ChemController extends EqItem {
     public set cyanuricAcid(val: number) { this.setDataVal('cyanuricAcid', val); }
     public get alkalinity(): number { return this.data.alkalinity; }
     public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
+    public get borates(): number { return this.data.borates; }
+    public set borates(val: number) { this.setDataVal('borates', val); }
     
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
