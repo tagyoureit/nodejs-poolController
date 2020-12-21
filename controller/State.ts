@@ -1586,6 +1586,10 @@ export class ChemicalPhState extends ChemicalState {
         let cc = this.chemController;
         return cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;
     }
+    public get chlorPoolSetpoint(): number { return this.data.chlorPoolSetpoint; }
+    public set chlorPoolSetpoint(val: number) { this.setDataVal('chlorPoolSetpoint', val); }
+    public get chlorSpaSetpoint(): number { return this.data.chlorSpaSetpoint; }
+    public set chlorSpaSetpoint(val: number) { this.setDataVal('chlorSpaSetpoint', val); }
 }
 export class ChemicalORPState extends ChemicalState {
     public initData() {

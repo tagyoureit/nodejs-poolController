@@ -8,7 +8,8 @@ import { ChemControllerState, ChemicalState, ChemicalORPState, ChemicalPhState, 
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { warn } from 'winston';
-import { webApp } from "../../../web/Server";
+import { webApp, InterfaceServerResponse } from "../../../web/Server";
+import { Interface } from 'readline';
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemController> {
     public async manualDoseAsync(id: number, data: any) {
@@ -390,9 +391,11 @@ export class NixieChemController extends NixieEquipment {
         try {
             if (typeof this._pollTimer !== 'undefined') clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            let schem = state.chemControllers.getItemById(this.chem.id);
+            await this.ph.cancelDosing(schem.ph);
+            await this.orp.cancelDosing(schem.orp);
             await this.ph.closeAsync();
             await this.orp.closeAsync();
-
         }
         catch (err) { logger.error(err); return Promise.reject(err); }
     }
@@ -480,7 +483,7 @@ class NixieChemical extends NixieChildEquipment {
             if (typeof this.currentMix === 'undefined') {
                 this.currentMix = new NixieChemMix();
                 this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: this.chemical.mixingTime - (this.chemical.mixingTime - schem.mixTimeRemaining) });
-                logger.info(`Chem Controller begin mixing for ${utils.formatDuration(this.currentMix.timeRemaining)}`)
+                logger.info(`Chem Controller begin mixing ${schem.chemType} for ${ utils.formatDuration(this.currentMix.timeRemaining) }`)
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
             }
             let dt = new Date().getTime();
@@ -489,14 +492,14 @@ class NixieChemical extends NixieChildEquipment {
                 // Reflect any changes to the configuration.
                 this.currentMix.time = this.chemical.mixingTime;
                 schem.mixTimeRemaining = this.currentMix.timeRemaining;
-                logger.verbose(`Chem mixing remaining: ${utils.formatDuration(schem.mixTimeRemaining)}`);
+                logger.verbose(`Chem mixing ${schem.chemType} remaining: ${ utils.formatDuration(schem.mixTimeRemaining) }`);
             }
             else {
                 logger.verbose(`Chem mixing paused because body is not on.`);
             }
             this.currentMix.lastChecked = dt;
             if (schem.mixTimeRemaining === 0) {
-                logger.info(`Chem Controller mixing Complete after ${utils.formatDuration(this.currentMix.timeMixed)}`)
+                logger.info(`Chem Controller ${schem.chemType} mixing Complete after ${ utils.formatDuration(this.currentMix.timeMixed) }`)
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('monitoring');
                 this.currentMix = undefined;
             }
@@ -511,14 +514,22 @@ class NixieChemical extends NixieChildEquipment {
         } catch (err) { logger.error(`Error mixing chemicals.`) }
 
     }
+    public async initDose(dosage: NixieChemDose) { }
     public async closeAsync() {
         try {
             if (typeof this._mixTimer !== 'undefined') clearTimeout(this._mixTimer);
             this._mixTimer = undefined;
-            await this.pump.stopDosing();
             await super.closeAsync();
         }
         catch (err) { logger.error(err); }
+    }
+    public async cancelDosing(schem: ChemicalState) {
+        try {
+            // Just stop the pump for now but we will do some logging later.
+            await this.pump.stopDosing(schem);
+            if (schem.dosingStatus === 0)
+                await this.mixChemicals(schem);
+        } catch (err) { return Promise.reject(err); }
     }
 }
 export class NixieChemTank extends NixieChildEquipment {
@@ -607,7 +618,7 @@ export class NixieChemPump extends NixieChildEquipment {
         } catch (err) { return Promise.reject(err); }
 
     }
-    public async stopDosing() {
+    public async stopDosing(schem: ChemicalState) {
         try {
             if (this._dosingTimer) {
                 clearTimeout(this._dosingTimer);
@@ -620,7 +631,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 }
                 this.chemical.currentDose = undefined;
             }
-            if (this.pump.type !== 0) await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
+            if (this.pump.type !== 0) await this.turnOff(schem);
         } catch (err) { return Promise.reject(err); }
     }
     public async dose(dosage: NixieChemDose) {
@@ -633,12 +644,12 @@ export class NixieChemPump extends NixieChildEquipment {
                 logger.verbose(`Chem pump dose ignore pump ${type}`);
             }
             else if (type === 'relay') {
-
                 // We are a relay pump so we need to turn on the pump for a timed interval
                 // then check it on each iteration.  If the pump does not receive a request
                 // from us then the relay will turn off.
                 this.chemical.chemController.processAlarms(dosage.schem.chemController);
                 let isBodyOn = scontroller.flowDetected;
+                await this.chemical.initDose(dosage);
                 let delay = 0;
                 // Check to see if we are in delay.  The start delay for the configuration is in minutes.
                 if (isBodyOn) {
@@ -661,19 +672,22 @@ export class NixieChemPump extends NixieChildEquipment {
                 if (!isBodyOn) {
                     // Make sure the pump is off.
                     logger.verbose(`Chem pump flow not detected. Body is not running.`);
-                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-                    dosage.schem.pump.isDosing = this.isOn = false;
+                    // We originally thought that we could wait to turn the dosing on but instead we will cancel the dose.  This will allow
+                    // the chlorinator to work more smoothly.
+                    await this.chemical.cancelDosing(dosage.schem);
                 }
-                else if (dosage.schem.tank.level <= 0 || dosage.timeRemaining <= 0 || dosage.volumeRemaining <= 0) {
-                    // If we ran the tank dry or we completed the dose. Start mixing.
+                else if (dosage.schem.tank.level <= 0) {
                     logger.verbose(`Chem tank ran dry with ${dosage.volumeRemaining}mL remaining`);
-                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-                    dosage.schem.dosingStatus = 2;
+                    await this.chemical.cancelDosing(dosage.schem);
                 }
-                else if (dosage.timeRemaining > 0 && dosage.volumeRemaining > 0) {
+                else if (dosage.timeRemaining <= 0 || dosage.volumeRemaining <= 0) {
+                    logger.verbose(`Dose completed ${dosage.volumeDosed}mL`);
+                    await this.chemical.cancelDosing(dosage.schem);
+                }
+                else if (dosage.timeRemaining > 0 && dosage.volumeRemaining > 0) { // We are actually dosing here
                     if (delay <= 0) {
                         logger.verbose(`Sending command to activate chem pump...`);
-                        let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 3000 });
+                        let res = await this.turnOn(dosage.schem, 300);
                         if (typeof res.status === 'undefined' || res.status.code !== 200) {
                             let status = res.status || { code: res.status.code, message: res.status.message };
                             logger.error(`Chem pump could not activate relay ${status.code}: ${status.message}`);
@@ -694,32 +708,21 @@ export class NixieChemPump extends NixieChildEquipment {
                             }
                         }
                         logger.info(`Chem Controller dosed ${dosage.volumeDosed.toFixed(2)}mL of ${dosage.volume}mL ${utils.formatDuration(dosage.timeRemaining)} remaining`);
+                        dosage.lastLatchTime = new Date().getTime();
                         dosage.schem.pump.isDosing = this.isOn = relay.state;
+                        dosage.schem.dosingStatus = 0;
                     }
-                    else {
-                        dosage.schem.pump.isDosing = this.isOn = false;
-                    }
-
+                    else { await this.turnOff(dosage.schem); }
                     // Set the volume and time remaining to the second and 4 sig figs.
                     dosage.schem.dosingVolumeRemaining = dosage.volumeRemaining;
                     // Time dosed is in ms.  This is to accommodate the slow pumps.
                     dosage.schem.dosingTimeRemaining = dosage.timeRemaining;
-                    // Clear both dosage remaining if either is zero. This can occur when the flow rate when calculated overlaps.
-                    if (dosage.schem.dosingTimeRemaining === 0 || dosage.schem.dosingVolumeRemaining === 0) {
-                        dosage.schem.dosingVolumeRemaining = dosage.schem.dosingTimeRemaining = 0;
-                        //dosage.timeDosed = dosage.time * 1000;
-                        //dosage.volumeDosed = dosage.volume;
-                        dosage.schem.dosingStatus = 2; // Start mixing
-                        dosage.schem.manualDosing = false;
-                        await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-                    }
-                    else
-                        dosage.schem.dosingStatus = 0;
-                    dosage.lastLatchTime = new Date().getTime();
                 }
                 else {
-                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-                    dosage.schem.pump.isDosing = this.isOn = false;
+                    console.log('The dose isnt getting off the ground');
+                    await this.turnOff(dosage.schem);
+                    //await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
+                    //dosage.schem.pump.isDosing = this.isOn = false;
                 }
             }
             else if (type === 'ezo-pmp') {
@@ -732,9 +735,9 @@ export class NixieChemPump extends NixieChildEquipment {
                 if (dosage.maxTime < (dosage.timeDosed / 1000) ||
                     dosage.maxVolume < dosage.volumeDosed ||
                     dosage.schem.tank.level <= 0) {
-                    dosage.schem.manualDosing = false;
-                    status = 2;
-                    await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
+                    await this.chemical.cancelDosing(dosage.schem);
+                    //status = 2;
+                    //await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                 }
             }
             dosage.schem.dosingStatus = status;
@@ -771,29 +774,25 @@ export class NixieChemPump extends NixieChildEquipment {
             }
         }
     }
-    public async turnOff(schem: ChemicalState) {
+    public async turnOff(schem: ChemicalState): Promise<InterfaceServerResponse> {
         try {
             // We need to be turning this pig off.  If the REM service has been interrupted
             // then we will assume that the relay is off since any request to turn it on will be based upon
             // the idea that the socket remains open.  If it fails then it will have gone off.  If we are talking
             // about an EZO pump all the values are maintained anyway through the state settings.
             let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-
+            this.isOn = schem.pump.isDosing = false;
+            return res;
         }
         catch (err) { return Promise.reject(err); }
     }
-    public async keepOn(schem: ChemicalState) {
+    public async turnOn(schem: ChemicalState, latchTimeout?: number): Promise<InterfaceServerResponse> {
         try {
-
+            let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, typeof latchTimeout !== 'undefined' ? { isOn: true, latch: latchTimeout } : { isOn: true });
+            this.isOn = schem.pump.isDosing = false;
+            return res;
         }
         catch (err) { return Promise.reject(err); }
-    }
-    public async turnOn(schem: ChemicalState) {
-        try {
-            await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { isOn: true });
-        }
-        catch (err) { return Promise.reject(err); }
-
     }
 }
 export class NixieChemicalPh extends NixieChemical {
@@ -833,7 +832,7 @@ export class NixieChemicalPh extends NixieChemical {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
             if (sph.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
-                await this.pump.stopDosing();
+                await this.cancelDosing(sph);
                 return;
             }
             if (status === 'monitoring') {
@@ -842,10 +841,10 @@ export class NixieChemicalPh extends NixieChemical {
                 this.currentDose = undefined;
                 this.currentMix = undefined;
                 sph.manualDosing = false;
-                await this.pump.stopDosing();
+                await this.cancelDosing(sph);
             }
             if (status === 'mixing') {
-                await this.pump.stopDosing();
+                await this.cancelDosing(sph);
                 await this.mixChemicals(sph);
             }
             else if (sph.manualDosing) {
@@ -866,6 +865,7 @@ export class NixieChemicalPh extends NixieChemical {
                     logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                     await this.pump.dose(dosage);
                 }
+                else await this.cancelDosing(sph);
             }
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
@@ -953,14 +953,10 @@ export class NixieChemicalPh extends NixieChemical {
                                 await this.pump.dose(dosage);
                                 this.currentDose = dosage;
                             }
-                            else if (sph.dosingStatus === 0) { // We were dosing.  Start mixing this is likely unattended
-                                await this.pump.stopDosing();
-                                await this.mixChemicals(sph);
-                            }
+                            else await this.cancelDosing(sph);
                         }
                         else {
-                            await this.pump.stopDosing();
-                            if (sph.dosingStatus === 0) await this.mixChemicals(sph);
+                            await this.cancelDosing(sph);
                         }
                     }
                 }
@@ -971,8 +967,13 @@ export class NixieChemicalPh extends NixieChemical {
     public async cancelDosing(sph: ChemicalPhState) {
         try {
             // Just stop the pump for now but we will do some logging later.
-            await this.pump.stopDosing();
-            await this.mixChemicals(sph);
+            await this.pump.stopDosing(sph);
+            if (sph.dosingStatus === 0) {
+                await this.mixChemicals(sph);
+                // Set the setpoints back to the original.
+                await sys.board.chlorinator.setChlorAsync({ id: 1, poolSetpoint: sph.chlorPoolSetpoint, spaSetpoint: sph.chlorSpaSetpoint });
+            }
+            sph.manualDosing = false;
         } catch (err) { return Promise.reject(err); }
     }
     public async manualDoseAsync(sph: ChemicalPhState, volume: number) {
@@ -1011,7 +1012,19 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(err); }
     }
-    
+    public async initDose(dosage: NixieChemDose) {
+        try {
+            // We need to do a couple of things here.  First we should disable the chlorinator.
+            let chlor = state.chlorinators.getItemById(1);
+            if (chlor.poolSetpoint !== 0 || chlor.spaSetpoint !== 0) {
+                let sph = dosage.schem as ChemicalPhState;
+                sph.chlorPoolSetpoint = chlor.poolSetpoint;
+                sph.chlorSpaSetpoint = chlor.spaSetpoint;
+                await sys.board.chlorinator.setChlorAsync({ id: 1, poolSetpoint: 0, spaSetpoint: 0 });
+            }
+        }
+        catch (err) { return Promise.reject(err); }
+    }
 }
 export class NixieChemicalORP extends NixieChemical {
     public orp: ChemicalORP;
@@ -1083,8 +1096,9 @@ export class NixieChemicalORP extends NixieChemical {
     public async cancelDosing(sorp: ChemicalORPState) {
         try {
             // Just stop the pump for now but we will do some logging later.
-            await this.pump.stopDosing();
-            await this.mixChemicals(sorp);
+            await this.pump.stopDosing(sorp);
+            if (sorp.dosingStatus === 0)
+                await this.mixChemicals(sorp);
         } catch (err) { return Promise.reject(err); }
     }
     public async checkDosing(chem: ChemController, sorp: ChemicalORPState) {
@@ -1092,7 +1106,7 @@ export class NixieChemicalORP extends NixieChemical {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus);
             if (sorp.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
-                await this.pump.stopDosing();
+                await this.cancelDosing(sorp);
                 return;
             }
             if (status === 'monitoring') {
@@ -1107,10 +1121,10 @@ export class NixieChemicalORP extends NixieChemical {
                 sorp.manualDosing = false;
                 sorp.dosingTimeRemaining = 0;
                 sorp.dosingVolumeRemaining = 0;
-                await this.pump.stopDosing();
+                await this.cancelDosing(sorp);
             }
             if (status === 'mixing') {
-                await this.pump.stopDosing();
+                await this.cancelDosing(sorp);
                 await this.mixChemicals(sorp);
             }
             else if (sorp.manualDosing) {
@@ -1195,17 +1209,10 @@ export class NixieChemicalORP extends NixieChemical {
                         await this.pump.dose(dosage);
                         this.currentDose = dosage;
                     }
-                    else if (sorp.dosingStatus === 0) { // We were dosing.  Start mixing this is likely unattended
-                        await this.pump.stopDosing();
-                        await this.mixChemicals(sorp);
-                    }
-                    else {
-                        await this.pump.stopDosing();
-                    }
+                    else await this.cancelDosing(sorp);
                 }
-                else {
-                    await this.pump.stopDosing();
-                }
+                else
+                    await this.cancelDosing(sorp);
             }
         }
         catch (err) { logger.error(err); }
