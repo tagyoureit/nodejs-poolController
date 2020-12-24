@@ -1191,7 +1191,10 @@ export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     public createItem(data: any): Chlorinator { return new Chlorinator(data); }
 }
 export class Chlorinator extends EqItem {
-    public dataName='chlorinatorConfig';
+    public dataName = 'chlorinatorConfig';
+    public initData() {
+        if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get type(): number | any { return this.data.type; }
@@ -1213,7 +1216,9 @@ export class Chlorinator extends EqItem {
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get isVirtual() { return this.data.isVirtual; }
-    public set isVirtual(val: boolean){ this.setDataVal('isVirtual', val); }
+    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get disabled(): boolean { return this.data.disabled; }
+    public set disabled(val: boolean) { this.setDataVal('disabled', val); }
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }

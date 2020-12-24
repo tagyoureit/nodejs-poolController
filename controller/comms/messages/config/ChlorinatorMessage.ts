@@ -37,8 +37,12 @@ export class ChlorinatorMessage {
                     else {
                         chlor.body = msg.extractPayloadByte(i + 2);
                         chlor.type = msg.extractPayloadByte(i + 6);
-                        chlor.poolSetpoint = msg.extractPayloadByte(i + 10);
-                        chlor.spaSetpoint = msg.extractPayloadByte(i + 14);
+                        if (!chlor.disabled) {
+                            // RKS: We don't want to change the setpoints if our chem controller disabled
+                            // the chlorinator.  These should be 0.
+                            chlor.poolSetpoint = msg.extractPayloadByte(i + 10);
+                            chlor.spaSetpoint = msg.extractPayloadByte(i + 14);
+                        }
                         chlor.superChlor = msg.extractPayloadByte(i + 18) === 1;
                         chlor.isActive = msg.extractPayloadByte(i + 22) === 1;
                         chlor.superChlorHours = msg.extractPayloadByte(i + 26);

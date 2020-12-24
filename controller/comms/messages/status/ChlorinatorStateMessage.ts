@@ -20,23 +20,27 @@ import { sys, ControllerType } from "../../../Equipment";
 
 export class ChlorinatorStateMessage {
     public static process(msg: Inbound) {
-
         if (msg.protocol === Protocol.Chlorinator) {
+            let chlor;
+            let cstate;
             if (msg.dest >= 1 && msg.dest <= 4) {
-                let cstate = state.chlorinators.getItemById(msg.dest, true);
+                // RKS: The dest for these message are 80+ in raw terms.  The msg object translates these into 1-4 for the installed chlorinators.  This message
+                // is from the OCP to the chlorinator.
+                cstate = state.chlorinators.getItemById(msg.dest, true);
                 if (typeof cstate.lastComm === 'undefined') cstate.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
                 // RG: I was getting some time deltas of 25-30s and bumped this up
                 else if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
                     // We have not talked to the chlorinator in 30 seconds so we have lost communication.
                     cstate.status = 128;
                 }
-                let chlor = sys.chlorinators.getItemById(msg.dest, true);
+                chlor = sys.chlorinators.getItemById(msg.dest, true);
                 chlor.address = msg.dest + 79;
                 if (typeof chlor.isActive === 'undefined') cstate.isActive = chlor.isActive = true;
             }
             else {
-                // message from controller
-                let cstate = state.chlorinators.getItemById(1, true);
+                // Message from chlorinator
+                cstate = state.chlorinators.getItemById(msg.dest + 1, true);
+                chlor = sys.chlorinators.getItemById(msg.dest + 1, true);
                 cstate.lastComm = new Date().getTime();
             }
             switch (msg.action) {
@@ -56,51 +60,54 @@ export class ChlorinatorStateMessage {
                     //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
                     //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
                     // This is the model number of the chlorinator and the address is actually the second byte.
-                    let cstate = state.chlorinators.getItemById(1, true);
-                    let chlor = sys.chlorinators.getItemById(1, true);
-                    if (typeof chlor.name === 'undefined' || chlor.name === '')
-                        chlor.name = msg.extractPayloadString(1, 16);
+                    if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = msg.extractPayloadString(1, 16);
                     cstate.name = chlor.name;
                     cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
                     break;
                 }
                 case 17: {
-                    let cstate = state.chlorinators.getItemById(1);
                     // If the chlorinator is no longer talking to us then clear the current output.
                     if (cstate.status === 128) cstate.currentOutput = 0;
                     cstate.targetOutput = msg.extractPayloadByte(0);
+                    if (chlor.disabled && cstate.targetOutput !== 0) {
+                        // Some dumbass is trying to change our output.  We need to set it back to 0.
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                    }
                     state.emitEquipmentChanges();
                     break;
                 }
                 case 21: {
-                    // Set Salt Output / 10
+                    // Set Cell Output / 10
                     // This packet is coming through differently on the IntelliConnect.
                     // eg 13:42:31.304 VERBOSE Msg# 1531   Controller --> Salt cell: Set current output to 1.6 %: 16,2,80,21,0,119,16,3
-                    let cstate = state.chlorinators.getItemById(1, true);
                     // The current output here is not correct.  The reason that is is because this is a request from the OCP to the Chlorinator.
                     //cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
-                    cstate.currentOutput = msg.extractPayloadByte(0) / 10;
-                    cstate.targetOutput = cstate.setPointForCurrentBody;
+                    cstate.targetOutput = msg.extractPayloadByte(0) / 10;
+                    if (chlor.disabled && cstate.targetOutput !== 0) {
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                    }
                     state.emitEquipmentChanges();
                     break;
                 }
                 case 18: {
                     // Response to Set Salt Output (17 & 20)
-                    let cstate = state.chlorinators.getItemById(1, true);
                     // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
                     // source like REM.
                     cstate.saltLevel = msg.extractPayloadByte(0) * 50 || cstate.saltLevel || 0;
                     cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
-                    cstate.currentOutput = cstate.setPointForCurrentBody;
+                    cstate.currentOutput = chlor.disabled ? 0 : cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();
+                    break;
+                }
+                case 19: {
+                    // This is an iChlor message with no payload.  Perhaps simply a keep alive for the iChlor.
+                    // [16, 2, 80, 19][117, 16, 3]
                     break;
                 }
                 case 20: {
                     // Get version
-                    let c = sys.chlorinators.getItemById(1, true);
-                    let chlor = state.chlorinators.getItemById(1, true);
-                    chlor.type = c.type = msg.extractPayloadByte(0);
+                    chlor.type = cstate.type = msg.extractPayloadByte(0);
                     state.emitEquipmentChanges();
                     break;
                 }
@@ -111,10 +118,13 @@ export class ChlorinatorStateMessage {
                     // [16, 2, 16, 22], [00, 15, 73, 00, 5, 16], [133, 16, 3]
                     // I was at 15% and the temp was 73 F
                     // 0f49 - 15 and 73
-                    let chlor = state.chlorinators.getItemById(1, true);
-                    chlor.currentOutput = msg.extractPayloadByte(1);
+                    cstate.currentOutput = msg.extractPayloadByte(1);
+                    if (chlor.disabled && cstate.currentOutput !== 0) {
+                        // Set it back to disabled.  Some asshole is futzing with the chlorinator output.
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                    }
                     const tbody: BodyTempState = state.temps.bodies.getBodyIsOn();
-                    if (msg.extractPayloadByte(2) >=40) tbody.temp = msg.extractPayloadByte(2);
+                    if (msg.extractPayloadByte(2) >= 40) tbody.temp = msg.extractPayloadByte(2);
                     state.emitEquipmentChanges();
                     break;
                 }
@@ -138,8 +148,12 @@ export class ChlorinatorStateMessage {
                 // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
                 // eg. a value of 41 is 00101001
                 // spa percent = 0010100(b) so 10100 = 20
-                chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
-                chlor.poolSetpoint = msg.extractPayloadByte(1);
+                if (!chlor.disabled) {
+                    // RKS: We don't want these setpoints if our chem controller disabled the
+                    // chlorinator.  These should be 0 anyway.
+                    chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
+                    chlor.poolSetpoint = msg.extractPayloadByte(1);
+                }
                 chlor.address = chlor.id + 79;
                 chlor.superChlor = msg.extractPayloadByte(5) > 0;
                 chlor.superChlorHours = msg.extractPayloadByte(5);
@@ -156,8 +170,8 @@ export class ChlorinatorStateMessage {
                 schlor.superChlorHours = chlor.superChlorHours;
                 schlor.name = chlor.name;
                 schlor.body = chlor.body;
-                if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.poolSetpoint;
-                else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.spaSetpoint;
+                if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
+                else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
                 state.emitEquipmentChanges();
             }
             else {

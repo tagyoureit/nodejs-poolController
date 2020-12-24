@@ -971,7 +971,7 @@ export class NixieChemicalPh extends NixieChemical {
             if (sph.dosingStatus === 0) {
                 await this.mixChemicals(sph);
                 // Set the setpoints back to the original.
-                await sys.board.chlorinator.setChlorAsync({ id: 1, poolSetpoint: sph.chlorPoolSetpoint, spaSetpoint: sph.chlorSpaSetpoint });
+                await sys.board.chlorinator.setChlorAsync({ id: 1, disabled: false });
             }
             sph.manualDosing = false;
         } catch (err) { return Promise.reject(err); }
@@ -1015,12 +1015,9 @@ export class NixieChemicalPh extends NixieChemical {
     public async initDose(dosage: NixieChemDose) {
         try {
             // We need to do a couple of things here.  First we should disable the chlorinator.
-            let chlor = state.chlorinators.getItemById(1);
-            if (chlor.poolSetpoint !== 0 || chlor.spaSetpoint !== 0) {
-                let sph = dosage.schem as ChemicalPhState;
-                sph.chlorPoolSetpoint = chlor.poolSetpoint;
-                sph.chlorSpaSetpoint = chlor.spaSetpoint;
-                await sys.board.chlorinator.setChlorAsync({ id: 1, poolSetpoint: 0, spaSetpoint: 0 });
+            let chlor = sys.chlorinators.getItemById(1);
+            if (chlor.disabled !== true) {
+                await sys.board.chlorinator.setChlorAsync({ id: 1, disabled: true });
             }
         }
         catch (err) { return Promise.reject(err); }

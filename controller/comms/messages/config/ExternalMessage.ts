@@ -570,8 +570,12 @@ export class ExternalMessage {
 
             cfg.body = msg.extractPayloadByte(3);
             cfg.poolSetpoint = msg.extractPayloadByte(5);
-            cfg.spaSetpoint = msg.extractPayloadByte(6);
-            cfg.superChlor = msg.extractPayloadByte(7) > 0;
+            if (!cfg.disabled) {
+                // RKS: We don't want theses setpoints if our chem controller
+                // disabled the chlorinator.
+                cfg.spaSetpoint = msg.extractPayloadByte(6);
+                cfg.superChlor = msg.extractPayloadByte(7) > 0;
+            }
             cfg.superChlorHours = msg.extractPayloadByte(8);
             s.poolSetpoint = cfg.poolSetpoint;
             s.spaSetpoint = cfg.spaSetpoint;

@@ -1204,11 +1204,12 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         else chlor.body = body.val;
         if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        let disabled = utils.makeBool(chlor.disabled);
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 dest: 16,
                 action: 153,
-                payload: [(chlor.spaSetpoint << 1) + 1, chlor.poolSetpoint, chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
+                payload: [disabled ? 0 : (chlor.spaSetpoint << 1) + 1, disabled ? 0 : chlor.poolSetpoint, chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
                 retries: 3,
                 response: true,
                 onComplete: (err) => {

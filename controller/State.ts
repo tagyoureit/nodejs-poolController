@@ -1246,6 +1246,9 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public lastDispatchSuperChlor: number = 0;
 }
 export class ChlorinatorState extends EqState {
+    public initData() {
+        if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
+    }
     public dataName: string = 'chlorinator';
     // The lastComm property has a fundamental flaw.  Although, the structure is
     // not dirtied where the emitter sends out a message on each lastComm, the persistence proxy is
@@ -1287,6 +1290,7 @@ export class ChlorinatorState extends EqState {
         if (this.virtualControllerStatus !== val) {
             this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
             this.hasChanged = true;
+
         }
     }
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
@@ -1586,10 +1590,6 @@ export class ChemicalPhState extends ChemicalState {
         let cc = this.chemController;
         return cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;
     }
-    public get chlorPoolSetpoint(): number { return this.data.chlorPoolSetpoint; }
-    public set chlorPoolSetpoint(val: number) { this.setDataVal('chlorPoolSetpoint', val); }
-    public get chlorSpaSetpoint(): number { return this.data.chlorSpaSetpoint; }
-    public set chlorSpaSetpoint(val: number) { this.setDataVal('chlorSpaSetpoint', val); }
 }
 export class ChemicalORPState extends ChemicalState {
     public initData() {

@@ -91,7 +91,7 @@ export class StateSocket {
                             }
                         }
                     }
-                    if (typeof data.poolSetpoint !== 'undefined' || data.spaSetpoint !== 'undefined') {
+                    if (typeof data.poolSetpoint !== 'undefined' || typeof data.spaSetpoint !== 'undefined') {
                         sys.board.chlorinator.setChlorAsync(data);
                     }
                     schlor.emitEquipmentChange();

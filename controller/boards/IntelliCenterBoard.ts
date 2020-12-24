@@ -2347,12 +2347,6 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
 
 }
 class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
-    //public setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
-    //    let out = Outbound.createMessage(168, [7, 0, cstate.id - 1, cstate.body, 1, poolSetpoint, spaSetpoint, superChlor ? 1 : 0, superChlorHours, 0, 1], 3,
-    //        new Response(Protocol.Broadcast, 16, Message.pluginAddress, 1, [168]));
-    //    conn.queueSendMessage(out);
-    //    super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours);
-    //}
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         let isAdd = false;
@@ -2378,6 +2372,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         let spaSetpoint = parseInt(obj.spaSetpoint, 10);
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         let superChlorinate = typeof obj.superChlorinate === 'undefined' ? undefined : utils.makeBool(obj.superChlorinate);
+        let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
             if (isNaN(spaSetpoint)) spaSetpoint = 10;
@@ -2390,7 +2385,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
             if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
             if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
         }
-
+        if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
         if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
         // Verify the data.
         let body = sys.board.bodies.mapBodyAssociation(chlor.body);
@@ -2400,7 +2395,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
-                payload: [7, 0, id - 1, body.val, 1, poolSetpoint, spaSetpoint, superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+                payload: [7, 0, id - 1, body.val, 1, disabled ? 0 : poolSetpoint, disabled ? 0 : spaSetpoint, superChlorinate ? 1 : 0, superChlorHours, 0, 1],
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries: 5,
                 onComplete: (err, msg) => {
@@ -2408,6 +2403,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                     else {
                         let schlor = state.chlorinators.getItemById(id, true);
                         let cchlor = sys.chlorinators.getItemById(id, true);
+                        chlor.disabled = disabled;
                         schlor.isActive = cchlor.isActive = true;
                         schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
                         schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;
