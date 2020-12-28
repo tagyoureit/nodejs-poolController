@@ -480,6 +480,12 @@ export class byteValueMaps {
         [1, { name: 'ezo-orp', desc: 'Atlas EZO-ORP', remAddress: true }],
         [2, { name: 'other', desc: 'Other' }]
     ]);
+    public flowSensorTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Sensor' }],
+        [1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
+        [2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
+        [4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
+    ]);
 
     public chemDosingMethods: byteValueMap = new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }],
@@ -508,11 +514,11 @@ export class byteValueMaps {
     ]);
     public chemControllerAlarms: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No alarm' }],
-        [1, { name: 'noflow', desc: 'No Flow' }],
-        [2, { name: 'phhigh', desc: 'pH High' }],
-        [4, { name: 'phlow', desc: 'pH Low' }],
-        [8, { name: 'orphigh', desc: 'orp High' }],
-        [16, { name: 'orplow', desc: 'orp Low' }],
+        [1, { name: 'noflow', desc: 'No Flow Detected' }],
+        [2, { name: 'phhigh', desc: 'pH Level High' }],
+        [4, { name: 'phlow', desc: 'pH Level Low' }],
+        [8, { name: 'orphigh', desc: 'orp Level High' }],
+        [16, { name: 'orplow', desc: 'orp Level Low' }],
         [32, { name: 'phtankempty', desc: 'pH Tank Empty' }],
         [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
         [128, { name: 'probefault', desc: 'Probe Fault' }]
@@ -524,7 +530,8 @@ export class byteValueMaps {
         [3, { name: 'orpprobe', desc: 'ORP Probe Fault' }],
         [4, { name: 'orppump', desc: 'ORP Pump Fault' }],
         [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
-        [6, { name: 'invalidbody', desc: 'Body capacity not valid' }]
+        [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
+        [7, { name: 'flowsensor', desc: 'Flow Sensor Fault'}]
     ]);
     public chemControllerWarnings: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Warning' }],

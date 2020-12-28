@@ -596,6 +596,10 @@ export class TempSensorCollection extends EqItemCollection<TempSensor> {
         return sensor.calibration || 0;
     }
 }
+export class FlowSensorCollection extends EqItemCollection<TempSensor> {
+    constructor(data: any, name?: string) { super(data, name || "flowSensors"); }
+    public createItem(data: any): TempSensor { return new TempSensor(data); }
+}
 export class TempSensor extends EqItem {
     public dataName='sensorConfig';
     public set id(val: string) { this.setDataVal('id', val); }
@@ -691,7 +695,10 @@ export class ExpansionPanel extends EqItem {
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
 }
 export class Equipment extends EqItem {
-    public dataName='equipmentConfig';
+    public dataName = 'equipmentConfig';
+    public initData() {
+        
+    }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get type(): number { return this.data.type; }
@@ -733,8 +740,7 @@ export class Equipment extends EqItem {
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
     public set maxCustomNames(val: number) { this.setDataVal('maxCustomNames', val); }
     public get tempSensors(): TempSensorCollection { return new TempSensorCollection(this.data); }
-
-    // Looking for IntelliCenter 1.029
+    public get flowSensors(): FlowSensorCollection { return new FlowSensorCollection(this.data); }
     public set controllerFirmware(val: string) { this.setDataVal('softwareVersion', val); }
     public get controllerFirmware(): string { return this.data.softwareVersion; }
     public set bootloaderVersion(val: string) { this.setDataVal('bootloaderVersion', val); }
@@ -1602,6 +1608,27 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
         return id + 1;
     }
 }
+export class FlowSensor extends ChildEqItem {
+    public dataName = 'flowSensorConfig';
+    public initData() {
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        super.initData();
+    }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chemPumpTypes.encode(val)); }
+    public getExtended() {
+        let sensor = this.get(true);
+        sensor.type = sys.board.valueMaps.flowSensorTypes.transform(this.type);
+        return sensor;
+    }
+}
 export class ChemController extends EqItem {
     public initData() {
         //var chemController = {
@@ -1705,7 +1732,7 @@ export class ChemController extends EqItem {
     public set alkalinity(val: number) { this.setDataVal('alkalinity', val); }
     public get borates(): number { return this.data.borates; }
     public set borates(val: number) { this.setDataVal('borates', val); }
-    
+    public get flowSensor(): ChemFlowSensor { return new ChemFlowSensor(this.data, 'flowSensor', this); }
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
@@ -1717,6 +1744,7 @@ export class ChemController extends EqItem {
         chem.body = sys.board.valueMaps.bodies.transform(this.body);
         chem.ph = this.ph.getExtended();
         chem.orp = this.orp.getExtended();
+        chem.flowSensor = this.flowSensor.getExtended();
         return chem;
     }
     // Chem controller alarms
@@ -1730,6 +1758,21 @@ export class ChemController extends EqItem {
     //    Dosing: Max Dose limit
     // ORP
     // 1. Chlorinator Comms Lost.
+}
+export class ChemFlowSensor extends FlowSensor {
+    public dataName = 'flowSensorConfig';
+    public initData() {
+        super.initData();
+    }
+    public get minimumFlow(): number { return this.data.minimumFlow || 0; }
+    public set minimumFlow(val: number) { this.setDataVal('minimumFlow', val); }
+    public get minimumPressure(): number { return this.data.minimumPressure || 0; }
+    public set minimumPressure(val: number) { this.setDataVal('minimumPressure', val); }
+    public getExtended() {
+        let sensor = this.get(true);
+        sensor.type = sys.board.valueMaps.flowSensorTypes.transform(this.type);
+        return sensor;
+    }
 }
 export class Chemical extends ChildEqItem {
     public dataName = 'chemicalConfig';

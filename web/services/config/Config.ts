@@ -205,6 +205,7 @@ export class ConfigRoute {
                     dosingMethods: sys.board.valueMaps.chemDosingMethods.toArray(),
                     orpProbeTypes: sys.board.valueMaps.chemORPProbeTypes.toArray(),
                     phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
+                    flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
                     acidTypes: sys.board.valueMaps.acidTypes.toArray(),
                     remServers: await sys.ncp.getREMServers(),
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),

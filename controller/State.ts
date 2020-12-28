@@ -1754,7 +1754,7 @@ export class ChemControllerStateAlarms extends ChildEqState {
             this.hasChanged = true;
         }
     }
-    public get pH(): number { return typeof this.data.pH === 'undefined' ? undefined : this.data.pH.val.pH; }
+    public get pH(): number { return typeof this.data.pH === 'undefined' ? undefined : this.data.pH.val; }
     public set pH(val: number) {
         if (this.pH !== val) {
             this.data.pH = sys.board.valueMaps.chemControllerAlarms.transform(val);
@@ -1828,6 +1828,13 @@ export class ChemControllerStateAlarms extends ChildEqState {
     public set bodyFault(val: number) {
         if (this.bodyFault !== val) {
             this.data.bodyFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get flowSensorFault(): number { return typeof this.data.flowSensorFault === 'undefined' ? undefined : this.data.flowSensorFault.val; }
+    public set flowSensorFault(val: number) {
+        if (this.flowSensorFault !== val) {
+            this.data.flowSensorFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(val);
             this.hasChanged = true;
         }
     }

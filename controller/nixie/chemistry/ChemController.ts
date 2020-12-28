@@ -3,7 +3,7 @@ import { utils, Timestamp } from '../../Constants';
 import { logger } from '../../../logger/Logger';
 
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
-import { ChemController, Chemical, ChemicalPh, ChemicalORP, ChemicalPhProbe, ChemicalORPProbe, ChemicalTank, ChemicalPump, sys, ChemicalProbe, ChemControllerCollection } from "../../../controller/Equipment";
+import { ChemController, Chemical, ChemicalPh, ChemicalORP, ChemicalPhProbe, ChemicalORPProbe, ChemicalTank, ChemicalPump, sys, ChemicalProbe, ChemControllerCollection, ChemFlowSensor } from "../../../controller/Equipment";
 import { ChemControllerState, ChemicalState, ChemicalORPState, ChemicalPhState, state, ChemicalProbeState, ChemicalProbePHState, ChemicalProbeORPState, ChemicalTankState, ChemicalPumpState } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
@@ -90,12 +90,15 @@ export class NixieChemController extends NixieEquipment {
     public chem: ChemController;
     public orp: NixieChemicalORP;
     public ph: NixieChemicalPh;
+    public flowSensor: NixieChemFlowSensor;
     public bodyOnTime: number;
+    public flowDetected: boolean = false;
     constructor(ncp: INixieControlPanel, chem: ChemController) {
         super(ncp);
         this.chem = chem;
         this.orp = new NixieChemicalORP(this, chem.orp);
         this.ph = new NixieChemicalPh(this, chem.ph);
+        this.flowSensor = new NixieChemFlowSensor(this, chem.flowSensor);
         this.pollEquipment();
     }
     public get id(): number { return typeof this.chem !== 'undefined' ? this.chem.id : -1; }
@@ -196,6 +199,7 @@ export class NixieChemController extends NixieEquipment {
                 if (typeof data.lsiRange.low === 'number') chem.lsiRange.low = data.lsiRange.low;
                 if (typeof data.lsiRange.high === 'number') chem.lsiRange.high = data.lsiRange.high;
             }
+            await this.flowSensor.setSensorAsync(data.flowSensor);
             // Alright we are down to the equipment items all validation should have been completed by now.
             // ORP Settings
             await this.orp.setORPAsync(schem.orp, data.orp);
@@ -215,6 +219,36 @@ export class NixieChemController extends NixieEquipment {
             this.calculateTemperatureFactor(schem) -
             this.dissolvedSolidsFactor) * 1000) / 1000;
         schem.saturationIndex = isNaN(SI) ? undefined : SI;
+    }
+    public async checkFlow(schem: ChemControllerState): Promise<boolean> {
+        try {
+            if (!this.isBodyOn()) this.flowDetected = schem.flowDetected = false;
+            else if (this.flowSensor.sensor.type === 0) this.flowDetected = schem.flowDetected = true;
+            else {
+                // Call out to REM to see if we have flow.
+                let ret = await this.flowSensor.getState();
+
+                // We should have state from the sensor but we want to keep this somewhat generic.
+                //[1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
+                //[2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
+                //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
+                if (this.flowSensor.sensor.type === 1) {
+                    // This is a flow switch.  The expectation is that it should be 0 or 1.
+                    this.flowDetected = schem.flowDetected = utils.makeBool(ret.obj.state);
+                }
+                else if (this.flowSensor.sensor.type == 2) {
+                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
+                }
+                else if (this.flowSensor.sensor.type == 4) {
+                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
+                }
+                else 
+                    this.flowDetected = schem.flowDetected = false;
+                schem.alarms.flowSensorFault = 0;
+            }
+            return schem.flowDetected;
+        }
+        catch (err) { schem.alarms.flowSensorFault = 7; return this.flowDetected = schem.flowDetected = false; }
     }
     private get dissolvedSolidsFactor() { return this.chem.orp.useChlorinator ? 12.2 : 12.1; }
     private calculateTemperatureFactor(schem: ChemControllerState): number {
@@ -250,6 +284,7 @@ export class NixieChemController extends NixieEquipment {
                 schem.alarms.comms = 0;
                 schem.status = 0;
                 schem.lastComm = new Date().getTime();
+                await this.checkFlow(schem);
                 await this.validateSetup(this.chem, schem);
                 if (this.chem.ph.enabled) await this.ph.probe.setTempCompensation(schem.ph.probe);
                 // We are not processing Homegrown at this point.
@@ -268,7 +303,7 @@ export class NixieChemController extends NixieEquipment {
     }
     public async processAlarms(schem: ChemControllerState) {
         // Calculate all the alarms.  These are only informational at this point.
-        schem.flowDetected = this.isBodyOn();
+        schem.flowDetected = this.flowDetected;
         schem.alarms.flow = schem.flowDetected ? 0 : 1;
         let chem = this.chem;
         schem.orp.enabled = this.chem.orp.enabled;
@@ -281,7 +316,7 @@ export class NixieChemController extends NixieEquipment {
             schem.warnings.orpDailyLimitReached = 0;
             if (schem.flowDetected) {
                 if (probeType !== 0 && chem.orp.tolerance.enabled)
-                    schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 4 : schem.orp.level > chem.orp.tolerance.high ? 2 : 0;
+                    schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
                 else schem.alarms.orp = 0;
                 schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
                 // TODO: The pH lockout should be settable in the ORP Settings.
@@ -305,8 +340,9 @@ export class NixieChemController extends NixieEquipment {
             schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.level <= 0 ? 32 : 0;
             schem.warnings.pHDailyLimitReached = 0;
             if (schem.flowDetected) {
-                if (probeType !== 0 && chem.ph.tolerance.enabled)
+                if (probeType !== 0 && chem.ph.tolerance.enabled) {
                     schem.alarms.pH = schem.ph.level < chem.ph.tolerance.low ? 4 : schem.ph.level > chem.ph.tolerance.high ? 2 : 0;
+                }
                 else schem.alarms.pH = 0;
             }
             else schem.alarms.pH = 0;
@@ -405,6 +441,7 @@ export class NixieChemController extends NixieEquipment {
             this.bodyOnTime = new Date().getTime();
         }
         else if (!isOn) this.bodyOnTime = undefined;
+        // Check the flow sensor
         return isOn;
     }
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
@@ -473,7 +510,7 @@ class NixieChemical extends NixieChildEquipment {
     public async mixChemicals(schem: ChemicalState) {
         try {
             let chem = this.chemController.chem;
-            let isBodyOn = this.chemController.isBodyOn();
+            let isBodyOn = this.chemController.flowDetected;
             schem.pump.isDosing = false;
             
             if (typeof this._mixTimer !== 'undefined') {
@@ -1281,5 +1318,31 @@ export class NixieChemProbeORP extends NixieChemProbe {
                 sprobe.saltLevel = typeof data.saltLevel !== 'undefined' ? parseFloat(data.saltLevel) : sprobe.saltLevel;
             }
         } catch (err) { return Promise.reject(err); }
+    }
+}
+export class NixieChemFlowSensor extends NixieChildEquipment {
+    public sensor: ChemFlowSensor;
+    constructor(parent: NixieChemController, sensor: ChemFlowSensor) {
+        super(parent);
+        this.sensor = sensor;
+        sensor.master = 1;
+    }
+    public async setSensorAsync(data: any) {
+        try {
+            if (typeof data !== 'undefined') {
+                this.sensor.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : this.sensor.connectionId;
+                this.sensor.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : this.sensor.deviceBinding;
+                this.sensor.minimumFlow = typeof data.minimumFlow !== 'undefined' ? data.minimumFlow : this.sensor.minimumFlow;
+                this.sensor.minimumPressure = typeof data.minimumPressure !== 'undefined' ? data.minimumPressure : this.sensor.minimumPressure;
+                this.sensor.type = typeof data.type !== 'undefined' ? data.type : this.sensor.type;
+            }
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async getState() {
+        try {
+            let dev = await NixieEquipment.getDeviceService(this.sensor.connectionId, `/state/device/${this.sensor.deviceBinding}`);
+            return dev;
+        }
+        catch (err) { return Promise.reject(err); }
     }
 }
