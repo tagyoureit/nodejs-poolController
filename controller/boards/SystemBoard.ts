@@ -2839,12 +2839,13 @@ export class ChemControllerCommands extends BoardCommands {
             if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
             if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
 
-            let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-            let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
             let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            if (isNaN(body)) body = sys.equipment.shared ? 32 : 0;
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
             // Do a final validation pass so we dont send this off in a mess.
             if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
@@ -2855,6 +2856,7 @@ export class ChemControllerCommands extends BoardCommands {
             let schem = state.chemControllers.getItemById(chem.id);
             schem.ph.tank.capacity = schem.orp.tank.capacity = chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
             schem.ph.tank.units = schem.orp.tank.units = chem.ph.tank.units = chem.orp.tank.units = '';
+
             let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
             let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
             if (isNaN(orpTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', orpTankLevel));
@@ -2888,6 +2890,7 @@ export class ChemControllerCommands extends BoardCommands {
                             schem.orp.tank.level = orpTankLevel;
                             chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
                             chem.isActive = schem.isActive = true;
+                            schem.body = chem.body = body;
                             resolve(); // let IntelliChem status packet set values
                         }
                     }
@@ -3344,8 +3347,9 @@ export class ChemControllerCommands extends BoardCommands {
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-            let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+            // Apparently the body is not relevant for IntelliChem attached to *Touch controllers.
+            //let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            //if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
             // Do a final validation pass so we dont send this off in a mess.
             if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
             if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));

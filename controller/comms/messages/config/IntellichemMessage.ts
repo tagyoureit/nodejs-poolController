@@ -53,8 +53,8 @@ export class IntellichemMessage {
                         if (typeof scontroller.name === 'undefined') controller.name = 'IntelliChem ' + (i + 1);
                         scontroller.name = controller.name;
                         controller.cyanuricAcid = msg.extractPayloadInt((i * 2) + 26);
-                        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
-                        controller.ph.tank.units = controller.orp.tank.units = '';
+                        scontroller.ph.tank.capacity = scontroller.orp.tank.capacity = controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
+                        scontroller.ph.tank.units = scontroller.orp.tank.units = controller.ph.tank.units = controller.orp.tank.units = '';
                         
                         //if (typeof scontroller.acidTankLevel === 'undefined') scontroller.acidTankLevel = 0;
                         //if (typeof scontroller.orpTankLevel === 'undefined') scontroller.orpTankLevel = 0;

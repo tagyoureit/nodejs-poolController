@@ -3382,8 +3382,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             if (chem.isVirtual) return super.setIntelliChemStateAsync(data);
             let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
             if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
-            let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-            let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
@@ -3415,7 +3415,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                             chem.cyanuricAcid = cyanuricAcid;
                             chem.alkalinity = alkalinity;
                             chem.type = 2;
-                            chem.name = name;
+                            chem.name = typeof chem.name === 'undefined' ? `IntelliChem ${chem.id}` : chem.name;
                             chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
                             chem.ph.tank.units = chem.orp.tank.units = '';
                             cstate.body = chem.body;
@@ -3488,7 +3488,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                             chem.master = sys.board.equipmentMaster;
                             chem.isActive = true;
                             chem.isVirtual = false;
-                            //chem.address = address;
+                            chem.address = address;
                             chem.body = body;
                             chem.calciumHardness = calciumHardness;
                             chem.orp.setpoint = orpSetpoint;
@@ -3528,7 +3528,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                 action: 168,
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries: 3,
-                payload: [8, 0, id - 1, 0, 1, chem.address, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
+                payload: [8, 0, id - 1, 0, 1, chem.address || 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
                 onComplete: (err) => {
                     if (err) { reject(err); }
                     else {

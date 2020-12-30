@@ -366,8 +366,8 @@ export class NixieChemController extends NixieEquipment {
             }
             else schem.alarms.orpPumpFault = 0;
             if (chem.orp.useChlorinator) {
-                let chlor = sys.chlorinators.getItemById(1);
-                schem.alarms.chlorFault = (chlor.body !== chem.body) ? 5 : 0;
+                let chlors = sys.chlorinators.getByBody(chem.body);
+                schem.alarms.chlorFault = chlors.length === 0 ? 5 : 0;
                 schem.alarms.orpPumpFault = 0;
             }
             else if (chem.orp.pump.type !== 0) {
@@ -379,7 +379,8 @@ export class NixieChemController extends NixieEquipment {
                 }
                 else schem.alarms.orpPumpFault = 0;
             }
-            else schem.alarms.orpPumpFault = schem.alarms.chlorFault = 0;
+            else
+                schem.alarms.orpPumpFault = schem.alarms.chlorFault = 0;
         }
         else schem.alarms.orpPumpFault = schem.alarms.chlorFault = schem.alarms.orpProbeFault = 0;
         if (chem.ph.enabled) {
