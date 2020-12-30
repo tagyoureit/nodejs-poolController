@@ -1326,6 +1326,8 @@ export class NixieChemProbePh extends NixieChemProbe {
                     let units = sys.board.valueMaps.tempUnits.transform(sys.general.options.units);
                     let obj = {};
                     obj[`temp${units.name.toUpperCase()}`] = body.temp;
+                    sprobe.tempUnits = units.val;
+                    sprobe.temperature = body.temp; // set temp for lsi calc
                     let res = await NixieEquipment.putDeviceService(this.probe.connectionId, `/feed/device/${this.probe.deviceBinding}`, obj);
                 }
             }
