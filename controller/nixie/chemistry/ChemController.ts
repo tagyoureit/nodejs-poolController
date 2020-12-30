@@ -35,7 +35,6 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
             c = new NixieChemController(this.controlPanel, chem);
             this.push(c);
             await c.setControllerAsync(data);
-            setTimeout(() => c.pollEquipment(), 5000);
         }
         else {
             await c.setControllerAsync(data);
@@ -50,7 +49,6 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                     logger.info(`Initializing chemController ${cc.name}`);
                     let ncc = new NixieChemController(this.controlPanel, cc);
                     this.push(ncc);
-                    setTimeout(() => ncc.pollEquipment(), 5000);
                 }
             }
         }
@@ -86,7 +84,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
 }
 export class NixieChemController extends NixieEquipment {
     public pollingInterval: number = 10000;
-    private _pollTimer: NodeJS.Timeout;
+    private _pollTimer: NodeJS.Timeout = null;
     public chem: ChemController;
     public orp: NixieChemicalORP;
     public ph: NixieChemicalPh;
@@ -269,10 +267,8 @@ export class NixieChemController extends NixieEquipment {
     }
     public async pollEquipment() {
         try {
-            if (typeof this._pollTimer !== 'undefined') {
-                clearTimeout(this._pollTimer);
-                this._pollTimer = null;
-            }
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
             let success = false;
             let schem = state.chemControllers.getItemById(this.chem.id, true);
             // We need to check on the equipment to make sure it is solid.
@@ -296,10 +292,7 @@ export class NixieChemController extends NixieEquipment {
             }
         }
         catch (err) { logger.error(`Error polling Chem Controller`); }
-        finally {
-            if (typeof this._pollTimer !== 'undefined' && this._pollTimer) clearTimeout(this._pollTimer);
-            this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval || 10000);
-        }
+        finally { this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval || 10000); }
     }
     public async processAlarms(schem: ChemControllerState) {
         // Calculate all the alarms.  These are only informational at this point.
@@ -319,8 +312,7 @@ export class NixieChemController extends NixieEquipment {
                     schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
                 else schem.alarms.orp = 0;
                 schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
-                // TODO: The pH lockout should be settable in the ORP Settings.
-                schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level > 7.8 ? 1 : 0;
+                schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level >= chem.orp.phLockout ? 1 : 0;
             }
             else {
                 schem.alarms.orp = 0;
@@ -425,7 +417,7 @@ export class NixieChemController extends NixieEquipment {
     }
     public async closeAsync() {
         try {
-            if (typeof this._pollTimer !== 'undefined') clearTimeout(this._pollTimer);
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let schem = state.chemControllers.getItemById(this.chem.id);
             await this.ph.cancelDosing(schem.ph);
@@ -860,6 +852,31 @@ export class NixieChemicalPh extends NixieChemical {
                     if (typeof data.tolerance.low === 'number') this.ph.tolerance.low = data.tolerance.low;
                     if (typeof data.tolerance.high === 'number') this.ph.tolerance.high = data.tolerance.high;
                 }
+                if (typeof data.dosePriority !== 'undefined') {
+                    let b = utils.makeBool(data.dosePriority);
+                    if (this.ph.dosePriority !== b) {
+                        // We may need to re-enable the chlorinator.
+                        let chlors = sys.chlorinators.getByBody(this.chemController.chem.body);
+                        if (!b) {
+                            for (let i = 0; i < chlors.length; i++) {
+                                let chlor = chlors.getItemByIndex(i);
+                                if (chlor.disabled) await sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: false });
+                            }
+                        }
+                        else if (sph.pump.isDosing) {
+                            // The pH is currently dosing so we need to disable the chlorinator.
+                            let sorp = sph.chemController.orp;
+                            for (let i = 0; i < chlors.length; i++) {
+                                let chlor = chlors.getItemByIndex(i);
+                                if (!chlor.disabled) await sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                            }
+                            // If we are currently dosing ORP then we need to stop that because pH is currently dosing.
+                            if (sorp.pump.isDosing) await this.chemController.orp.cancelDosing(sorp);
+                        }
+                        this.ph.dosePriority = b;
+                    }
+                    
+                }
             }
         }
         catch (err) { return Promise.reject(err); }
@@ -1008,7 +1025,13 @@ export class NixieChemicalPh extends NixieChemical {
             if (sph.dosingStatus === 0) {
                 await this.mixChemicals(sph);
                 // Set the setpoints back to the original.
-                await sys.board.chlorinator.setChlorAsync({ id: 1, disabled: false });
+                if (this.ph.dosePriority) {
+                    let chlors = sys.chlorinators.getByBody(this.chemController.chem.body);
+                    for (let i = 0; i < chlors.length; i++) {
+                        let chlor = chlors.getItemByIndex(i);
+                        if (chlor.disabled) await sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: false });
+                    }
+                }
             }
             sph.manualDosing = false;
         } catch (err) { return Promise.reject(err); }
@@ -1052,9 +1075,15 @@ export class NixieChemicalPh extends NixieChemical {
     public async initDose(dosage: NixieChemDose) {
         try {
             // We need to do a couple of things here.  First we should disable the chlorinator.
-            let chlor = sys.chlorinators.getItemById(1);
-            if (chlor.disabled !== true) {
-                await sys.board.chlorinator.setChlorAsync({ id: 1, disabled: true });
+            if (this.ph.dosePriority) {
+                let chlors = sys.chlorinators.getByBody(this.chemController.chem.body);
+                for (let i = 0; i < chlors.length; i++) {
+                    let chlor = chlors.getItemByIndex(i);
+                    if (!chlor.disabled) await sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                }
+                // Now we need to stop dosing on orp but I don't want to hold on to the state object so get it from weak references.
+                let schem = state.chemControllers.getItemById(this.chemController.id, false);
+                if (schem.orp.pump.isDosing) await this.chemController.orp.cancelDosing(schem.orp);
             }
         }
         catch (err) { return Promise.reject(err); }
@@ -1074,6 +1103,7 @@ export class NixieChemicalORP extends NixieChemical {
                 this.orp.useChlorinator = typeof data.useChlorinator !== 'undefined' ? utils.makeBool(data.useChlorinator) : this.orp.useChlorinator;
                 sorp.enabled = this.orp.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.orp.enabled;
                 sorp.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sorp.level;
+                this.orp.phLockout = typeof data.phLockout !== 'undefined' && !isNaN(parseFloat(data.phLockout)) ? parseFloat(data.phLockout) : this.orp.phLockout;
                 this.orp.flowReadingsOnly = typeof data.flowReadingsOnly !== 'undefined' ? utils.makeBool(data.flowReadingsOnly) : this.orp.flowReadingsOnly;
                 await this.setDosing(this.orp, data);
                 await this.setMixing(this.orp, data);
@@ -1251,7 +1281,6 @@ export class NixieChemicalORP extends NixieChemical {
         }
         catch (err) { logger.error(err); }
     }
-
 }
 class NixieChemProbe extends NixieChildEquipment {
     constructor(parent: NixieChemical) { super(parent); }

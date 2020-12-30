@@ -560,7 +560,6 @@ export class byteValueMaps {
         [4, { name: 'a15.7', desc: '15.7% - 10 Baume', dosingFactor: 2.0 }],
         [5, { name: 'a14.5', desc: '14.5% - 9.8 Baume', dosingFactor: 2.16897 }],
     ]);
-
     public filterTypes: byteValueMap = new byteValueMap([
         [0, { name: 'sand', desc: 'Sand Filter', hasBackwash: true }],
         [1, { name: 'cartridge', desc: 'Cartridge Filter', hasBackwash: false }],

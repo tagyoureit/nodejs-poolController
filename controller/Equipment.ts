@@ -483,7 +483,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         if (typeof itm !== 'undefined') return this.createItem(itm);
     }
     // This will return a new collection of this type. NOTE: This is a separate object but the data is still attached to the
-    // overall configuration.  This meanse that changes made to the objects in the collection will reflect in the configuration.
+    // overall configuration.  This means that changes made to the objects in the collection will reflect in the configuration.
     // HOWEVER, any of the array manipulation methods like removeItemBy..., add..., or creation methods will not modify the configuration.
     public filter(f: (value: T, index?: any, array?: any[]) => boolean): EqItemCollection<T> {
         return new EqItemCollection<T>(this.data.filter(f));
@@ -1195,6 +1195,14 @@ export class PumpCircuit extends EqItem {
 export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     constructor(data: any, name?: string) { super(data, name || "chlorinators"); }
     public createItem(data: any): Chlorinator { return new Chlorinator(data); }
+    public filter(f: (value: Chlorinator, index?: any, array?: any[]) => boolean): ChlorinatorCollection {
+        return new ChlorinatorCollection({ chlorinators: this.data.filter(f) });
+    }
+    public getByBody(body: number): EqItemCollection<Chlorinator> {
+        return this.filter(elem => elem.body === body ||
+            body === 32 && elem.body <= 2 ||
+            elem.body === 32 && body <= 2);
+    }
 }
 export class Chlorinator extends EqItem {
     public dataName = 'chlorinatorConfig';
@@ -1821,12 +1829,15 @@ export class ChemicalPh extends Chemical {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.acidType === 'undefined') this.data.acidType = 0;
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 7.2, high: 7.6, enabled: true };
+        if (typeof this.data.dosePriority === 'undefined') this.data.dosePriority = true;
         super.initData();
     }
     public get phSupply(): number | any { return this.data.phSupply; }
     public set phSupply(val: number | any) { this.setDataVal('phSupply', sys.board.valueMaps.phSupplyTypes.encode(val)); }
     public get acidType(): number | any { return this.data.acidType; }
     public set acidType(val: number | any) { this.setDataVal('acidType', sys.board.valueMaps.acidTypes.encode(val)); }
+    public get dosePriority(): boolean { return this.data.dosePriority; }
+    public set dosePriority(val: boolean) { this.setDataVal('dosePriority', val); }
     public get probe(): ChemicalPhProbe { return new ChemicalPhProbe(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
@@ -1842,10 +1853,13 @@ export class ChemicalORP extends Chemical {
         if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 650, high: 800, enabled: true };
+        if (typeof this.data.phLockout === 'undefined') this.data.phLockout = 7.8;
         super.initData();
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
     public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
+    public get phLockout(): number { return this.data.phLockout; }
+    public set phLockout(val: number) { this.setDataVal('phLockout', val); }
     public get probe(): ChemicalORPProbe { return new ChemicalORPProbe(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
