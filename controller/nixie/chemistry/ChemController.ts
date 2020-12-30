@@ -717,7 +717,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 else if (dosage.timeRemaining > 0 && dosage.volumeRemaining > 0) { // We are actually dosing here
                     if (delay <= 0) {
                         logger.verbose(`Sending command to activate chem pump...`);
-                        let res = await this.turnOn(dosage.schem, 300);
+                        let res = await this.turnOn(dosage.schem, 3000);
                         if (typeof res.status === 'undefined' || res.status.code !== 200) {
                             let status = res.status || { code: res.status.code, message: res.status.message };
                             logger.error(`Chem pump could not activate relay ${status.code}: ${status.message}`);
