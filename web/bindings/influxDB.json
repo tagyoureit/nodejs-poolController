@@ -89,6 +89,10 @@
               "value": "@bind=data.name;"
             },
             {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
               "name": "type",
               "value": "@bind=data.type.desc;"
             },
@@ -97,43 +101,43 @@
               "value": "@bind=data.status.desc;"
             },
             {
-              "name": "status1",
-              "value": "@bind=data.status1.desc;"
+              "name": "pHDosingStatus",
+              "value": "@bind=data.ph.dosingStatus.desc;"
             },
             {
-              "name": "status2",
-              "value": "@bind=data.status2.desc;"
+              "name": "orpDosingStatus",
+              "value": "@bind=data.orp.dosingStatus.desc;"
             }
           ],
           "fields": [
             {
               "name": "pHLevel",
-              "value": "@bind=data.pHLevel;",
+              "value": "@bind=data.ph.probe.level;",
               "type": "float"
             },
             {
               "name": "pHSetpoint",
-              "value": "@bind=data.pHSetpoint;",
+              "value": "@bind=data.ph.setpoint;",
               "type": "float"
             },
             {
               "name": "orpLevel",
-              "value": "@bind=data.orpLevel;",
+              "value": "@bind=data.orp.probe.level;",
               "type": "float"
             },
             {
               "name": "orpSetpoint",
-              "value": "@bind=data.orpSetpoint;",
+              "value": "@bind=data.orp.setpoint;",
               "type": "float"
             },
             {
               "name": "acidTankLevel",
-              "value": "@bind=data.acidTankLevel;",
+              "value": "@bind=data.ph.tank.level;",
               "type": "int"
             },
             {
               "name": "orpTankLevel",
-              "value": "@bind=data.orpTankLevel;",
+              "value": "@bind=data.orp.tank.level;",
               "type": "int"
             },
             {
@@ -158,12 +162,72 @@
             },
             {
               "name": "phDosingTime",
-              "value": "@bind=data.pHDosingTime;",
+              "value": "@bind=data.ph.doseTime;",
               "type": "float"
             },
             {
+              "name": "phPumpIsDosing",
+              "value": "@bind=data.ph.pump.isDosing;",
+              "type": "boolean"
+            },
+            {
+              "name": "phPumpIsDosingInt",
+              "value": "@bind=data.ph.pump.isDosing?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "phPumpDoseTimeRemaining",
+              "value": "@bind=data.ph.dosingTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "phDoseVolume",
+              "value": "@bind=data.ph.doseVolume;",
+              "type": "int"
+            },
+            {
+              "name": "phDoseVolumeRemaining",
+              "value": "@bind=data.ph.dosingVolumeRemaining;",
+              "type": "int"
+            },
+            {
+              "name": "phTank Level",
+              "value": "@bind=data.ph.tank.level;",
+              "type": "int"
+            },
+            {
+              "name": "orpTank Level",
+              "value": "@bind=data.orp.tank.level;",
+              "type": "int"
+            },
+            {
               "name": "orpDosingTime",
-              "value": "@bind=data.orpDosingTime;",
+              "value": "@bind=data.orp.doseTime;",
+              "type": "float"
+            },
+            {
+              "name": "flowDetected",
+              "value": "@bind=data.flowDetected;",
+              "type": "float"
+            },
+            {
+              "name": "mixTimeRemaining",
+              "value": "@bind=data.ph.mixTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "delayTimeRemaining",
+              "value": "@bind=data.ph.delayTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "pH Tank Level",
+              "value": "@bind=data.ph.tank.level;",
+              "type": "float"
+            },
+            {
+              "name": "Flow Sensor State",
+              "value": "@bind=data.flowSensor.state;",
               "type": "float"
             }
           ]

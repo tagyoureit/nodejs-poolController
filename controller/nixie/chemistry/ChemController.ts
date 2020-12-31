@@ -236,9 +236,11 @@ export class NixieChemController extends NixieEquipment {
                 }
                 else if (this.flowSensor.sensor.type == 2) {
                     this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
+                    schem.flowSensor.state = ret.obj.state;
                 }
                 else if (this.flowSensor.sensor.type == 4) {
                     this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
+                    schem.flowSensor.state = ret.obj.state;
                 }
                 else 
                     this.flowDetected = schem.flowDetected = false;

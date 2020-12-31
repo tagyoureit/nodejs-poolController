@@ -1373,6 +1373,7 @@ export class ChemControllerState extends EqState {
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
         if (typeof this.data.ph === 'undefined') this.data.ph = {};
+        if (typeof this.data.flowSensor === 'undefined') this.data.flowSensor = {};
         if (typeof this.data.type === 'undefined') { this.type = 1; }
         else if (typeof this.data.type.ph === 'undefined') {
             this.data.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
@@ -1488,6 +1489,7 @@ export class ChemControllerState extends EqState {
     public set firmware(val: string) { this.setDataVal('firmware', val); }
     public get ph(): ChemicalPhState { return new ChemicalPhState(this.data, 'ph', this); }
     public get orp(): ChemicalORPState { return new ChemicalORPState(this.data, 'orp', this); }
+    public get flowSensor(): ChemicalFlowSensorState { return new ChemicalFlowSensorState(this.data, 'flowSensor', this); }
     public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings', this); }
     public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms', this); }
     public get virtualControllerStatus(): number {
@@ -1608,6 +1610,13 @@ export class ChemicalORPState extends ChemicalState {
         chem.probe = this.probe.getExtended();
         return chem;
     }
+}
+export class ChemicalFlowSensorState extends ChemicalState {
+    public initData() {
+        if (typeof this.data.state === 'undefined') this.data.state = 0;
+    }
+    public get state(): number { return this.data.state || 0; }
+    public set state(val: number) { this.setDataVal('state', val); }
 }
 export class ChemicalPumpState extends ChildEqState {
     public initData() {
