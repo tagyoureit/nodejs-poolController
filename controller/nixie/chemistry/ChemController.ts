@@ -244,6 +244,8 @@ export class NixieChemController extends NixieEquipment {
                     this.flowDetected = schem.flowDetected = false;
                 schem.alarms.flowSensorFault = 0;
             }
+            if (!schem.flowDetected) this.bodyOnTime = undefined;
+            else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
             return schem.flowDetected;
         }
         catch (err) { schem.alarms.flowSensorFault = 7; return this.flowDetected = schem.flowDetected = false; }
@@ -686,7 +688,7 @@ export class NixieChemPump extends NixieChildEquipment {
                     // The remaining delay = delay time - (current time - on time).
                     let timeElapsed = new Date().getTime() - this.chemical.chemController.bodyOnTime;
                     delay = Math.max(0, ((this.chemical.chemical.startDelay * 60) * 1000) - timeElapsed);
-                    dosage.schem.delayTimeRemaining = Math.round(delay/1000);
+                    dosage.schem.delayTimeRemaining = Math.max(0, Math.round(delay/1000));
                     if (delay > 0) {
                         if (!dosage.schem.flowDelay) logger.info(`Chem Controller delay dosing for ${utils.formatDuration(delay / 1000)}`)
                         else logger.verbose(`Chem pump delay dosing for ${utils.formatDuration(delay / 1000)}`);
@@ -740,13 +742,13 @@ export class NixieChemPump extends NixieChildEquipment {
                         logger.info(`Chem Controller dosed ${dosage.volumeDosed.toFixed(2)}mL of ${dosage.volume}mL ${utils.formatDuration(dosage.timeRemaining)} remaining`);
                         dosage.lastLatchTime = new Date().getTime();
                         dosage.schem.pump.isDosing = this.isOn = relay.state;
-                        dosage.schem.dosingStatus = 0;
                     }
                     else { await this.turnOff(dosage.schem); }
                     // Set the volume and time remaining to the second and 4 sig figs.
                     dosage.schem.dosingVolumeRemaining = dosage.volumeRemaining;
                     // Time dosed is in ms.  This is to accommodate the slow pumps.
                     dosage.schem.dosingTimeRemaining = dosage.timeRemaining;
+                    dosage.schem.dosingStatus = 0;
                 }
                 else {
                     console.log('The dose isnt getting off the ground');
