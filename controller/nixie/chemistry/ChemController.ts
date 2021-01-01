@@ -299,57 +299,59 @@ export class NixieChemController extends NixieEquipment {
         finally { this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval || 10000); }
     }
     public async processAlarms(schem: ChemControllerState) {
-        // Calculate all the alarms.  These are only informational at this point.
-        schem.flowDetected = this.flowDetected;
-        schem.alarms.flow = schem.flowDetected ? 0 : 1;
-        let chem = this.chem;
-        schem.orp.enabled = this.chem.orp.enabled;
-        schem.ph.enabled = this.chem.ph.enabled;
-        if (this.chem.orp.enabled) {
-            let useChlorinator = chem.orp.useChlorinator;
-            let pumpType = chem.orp.pump.type;
-            let probeType = chem.orp.probe.type;
-            schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
-            schem.warnings.orpDailyLimitReached = 0;
-            if (schem.flowDetected) {
-                if (probeType !== 0 && chem.orp.tolerance.enabled)
-                    schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
-                else schem.alarms.orp = 0;
-                schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
-                schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level >= chem.orp.phLockout ? 1 : 0;
+        try {
+            // Calculate all the alarms.  These are only informational at this point.
+            schem.flowDetected = this.flowDetected;
+            schem.alarms.flow = schem.flowDetected ? 0 : 1;
+            let chem = this.chem;
+            schem.orp.enabled = this.chem.orp.enabled;
+            schem.ph.enabled = this.chem.ph.enabled;
+            if (this.chem.orp.enabled) {
+                let useChlorinator = chem.orp.useChlorinator;
+                let pumpType = chem.orp.pump.type;
+                let probeType = chem.orp.probe.type;
+                schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
+                schem.warnings.orpDailyLimitReached = 0;
+                if (schem.flowDetected) {
+                    if (probeType !== 0 && chem.orp.tolerance.enabled)
+                        schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
+                    else schem.alarms.orp = 0;
+                    schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
+                    schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level >= chem.orp.phLockout ? 1 : 0;
+                }
+                else {
+                    schem.alarms.orp = 0;
+                    schem.warnings.chlorinatorCommError = 0;
+                    schem.warnings.pHLockout = 0;
+                }
             }
             else {
-                schem.alarms.orp = 0;
                 schem.warnings.chlorinatorCommError = 0;
-                schem.warnings.pHLockout = 0;
+                schem.alarms.orpTank = 0;
+                schem.warnings.orpDailyLimitReached = 0;
+                schem.alarms.orp = 0;
             }
-        }
-        else {
-            schem.warnings.chlorinatorCommError = 0;
-            schem.alarms.orpTank = 0;
-            schem.warnings.orpDailyLimitReached = 0;
-            schem.alarms.orp = 0;
-        }
-        if (this.chem.ph.enabled) {
-            let pumpType = chem.ph.pump.type;
-            let probeType = chem.ph.probe.type;
-            schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.level <= 0 ? 32 : 0;
-            schem.warnings.pHDailyLimitReached = 0;
-            if (schem.flowDetected) {
-                if (probeType !== 0 && chem.ph.tolerance.enabled) {
-                    schem.alarms.pH = schem.ph.level < chem.ph.tolerance.low ? 4 : schem.ph.level > chem.ph.tolerance.high ? 2 : 0;
+            if (this.chem.ph.enabled) {
+                let pumpType = chem.ph.pump.type;
+                let probeType = chem.ph.probe.type;
+                schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.level <= 0 ? 32 : 0;
+                schem.warnings.pHDailyLimitReached = 0;
+                if (schem.flowDetected) {
+                    if (probeType !== 0 && chem.ph.tolerance.enabled) {
+                        schem.alarms.pH = schem.ph.level < chem.ph.tolerance.low ? 4 : schem.ph.level > chem.ph.tolerance.high ? 2 : 0;
+                    }
+                    else schem.alarms.pH = 0;
                 }
                 else schem.alarms.pH = 0;
             }
-            else schem.alarms.pH = 0;
-        }
-        if (chem.lsiRange.enabled) {
-            schem.warnings.waterChemistry = schem.saturationIndex < chem.lsiRange.low ? 1 : schem.saturationIndex > chem.lsiRange.high ? 2 : 0;
-        }
-        // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
-        // based upon 2ppm of chemical for the type of chemical.  Right now this seems to be pretty dumb but that might change when we see what
-        // is happening live.
-        schem.warnings.pHDailyLimitReached = 0;
+            if (chem.lsiRange.enabled) {
+                schem.warnings.waterChemistry = schem.saturationIndex < chem.lsiRange.low ? 1 : schem.saturationIndex > chem.lsiRange.high ? 2 : 0;
+            }
+            // RKS: TODO: Need to calculate what a valid daily limit would be for this controller.  This should be
+            // based upon 2ppm of chemical for the type of chemical.  Right now this seems to be pretty dumb but that might change when we see what
+            // is happening live.
+            schem.warnings.pHDailyLimitReached = 0;
+        } catch (err) { logger.error(`Error processing chem controller ${this.chem.name} alarms: ${err.message}`); return Promise.reject(err); }
     }
     private async checkHardwareStatus(connectionId: string, deviceBinding: string) {
         try {
@@ -358,67 +360,70 @@ export class NixieChemController extends NixieEquipment {
         } catch (err) { return { hasFault: true } }
     }
     public async validateSetup(chem: ChemController, schem: ChemControllerState) {
-        // The validation will be different if the body is on or not.  So lets get that information.
-        if (chem.orp.enabled) {
-            if (chem.orp.probe.type !== 0) {
-                let type = sys.board.valueMaps.chemORPProbeTypes.transform(chem.orp.probe.type);
-                if (type.remAddress) {
-                    let dev = await this.checkHardwareStatus(chem.orp.probe.connectionId, chem.orp.probe.deviceBinding);
-                    schem.alarms.orpProbeFault = dev.hasFault ? 3 : 0;
-                }
-                else schem.alarms.orpProbeFault = 0;
-            }
-            else schem.alarms.orpPumpFault = 0;
-            if (chem.orp.useChlorinator) {
-                let chlors = sys.chlorinators.getByBody(chem.body);
-                schem.alarms.chlorFault = chlors.length === 0 ? 5 : 0;
-                schem.alarms.orpPumpFault = 0;
-            }
-            else if (chem.orp.pump.type !== 0) {
-                let type = sys.board.valueMaps.chemPumpTypes.transform(chem.orp.pump.type);
-                schem.alarms.chlorFault = 0;
-                if (type.remAddress) {
-                    let dev = await this.checkHardwareStatus(chem.orp.pump.connectionId, chem.orp.pump.deviceBinding);
-                    schem.alarms.orpPumpFault = dev.hasFault ? 4 : 0;
+        try {
+            // The validation will be different if the body is on or not.  So lets get that information.
+            if (chem.orp.enabled) {
+                if (chem.orp.probe.type !== 0) {
+                    let type = sys.board.valueMaps.chemORPProbeTypes.transform(chem.orp.probe.type);
+                    if (type.remAddress) {
+                        let dev = await this.checkHardwareStatus(chem.orp.probe.connectionId, chem.orp.probe.deviceBinding);
+                        schem.alarms.orpProbeFault = dev.hasFault ? 3 : 0;
+                    }
+                    else schem.alarms.orpProbeFault = 0;
                 }
                 else schem.alarms.orpPumpFault = 0;
+                if (chem.orp.useChlorinator) {
+                    let chlors = sys.chlorinators.getByBody(chem.body);
+                    schem.alarms.chlorFault = chlors.length === 0 ? 5 : 0;
+                    schem.alarms.orpPumpFault = 0;
+                }
+                else if (chem.orp.pump.type !== 0) {
+                    let type = sys.board.valueMaps.chemPumpTypes.transform(chem.orp.pump.type);
+                    schem.alarms.chlorFault = 0;
+                    if (type.remAddress) {
+                        let dev = await this.checkHardwareStatus(chem.orp.pump.connectionId, chem.orp.pump.deviceBinding);
+                        schem.alarms.orpPumpFault = dev.hasFault ? 4 : 0;
+                    }
+                    else schem.alarms.orpPumpFault = 0;
+                }
+                else
+                    schem.alarms.orpPumpFault = schem.alarms.chlorFault = 0;
             }
-            else
-                schem.alarms.orpPumpFault = schem.alarms.chlorFault = 0;
-        }
-        else schem.alarms.orpPumpFault = schem.alarms.chlorFault = schem.alarms.orpProbeFault = 0;
-        if (chem.ph.enabled) {
-            if (chem.ph.probe.type !== 0) {
-                let type = sys.board.valueMaps.chemPhProbeTypes.transform(chem.ph.probe.type);
-                if (type.remAddress) {
-                    let dev = await this.checkHardwareStatus(chem.ph.probe.connectionId, chem.ph.probe.deviceBinding);
-                    schem.alarms.pHProbeFault = dev.hasFault ? 1 : 0;
+            else schem.alarms.orpPumpFault = schem.alarms.chlorFault = schem.alarms.orpProbeFault = 0;
+            if (chem.ph.enabled) {
+                if (chem.ph.probe.type !== 0) {
+                    let type = sys.board.valueMaps.chemPhProbeTypes.transform(chem.ph.probe.type);
+                    if (type.remAddress) {
+                        let dev = await this.checkHardwareStatus(chem.ph.probe.connectionId, chem.ph.probe.deviceBinding);
+                        schem.alarms.pHProbeFault = dev.hasFault ? 1 : 0;
+                    }
+                    else schem.alarms.pHProbeFault = 0;
                 }
                 else schem.alarms.pHProbeFault = 0;
-            }
-            else schem.alarms.pHProbeFault = 0;
-            if (chem.ph.pump.type !== 0) {
-                let type = sys.board.valueMaps.chemPumpTypes.transform(chem.ph.probe.type);
-                if (type.remAddress) {
-                    let dev = await this.checkHardwareStatus(chem.ph.pump.connectionId, chem.ph.pump.deviceBinding);
-                    schem.alarms.pHPumpFault = dev.hasFault ? 2 : 0;
+                if (chem.ph.pump.type !== 0) {
+                    let type = sys.board.valueMaps.chemPumpTypes.transform(chem.ph.probe.type);
+                    if (type.remAddress) {
+                        let dev = await this.checkHardwareStatus(chem.ph.pump.connectionId, chem.ph.pump.deviceBinding);
+                        schem.alarms.pHPumpFault = dev.hasFault ? 2 : 0;
+                    }
+                    else schem.alarms.pHPumpFault = 0;
                 }
                 else schem.alarms.pHPumpFault = 0;
             }
-            else schem.alarms.pHPumpFault = 0;
-        }
-        else schem.alarms.pHPumpFault = schem.alarms.pHProbeFault = 0;
-        if (!chem.isActive) {
-            // We need to shut down the pumps.
-        }
-        else {
-            let totalGallons = 0;
-            if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-            if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
-            if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
-            if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-            schem.alarms.bodyFault = (isNaN(totalGallons) || totalGallons === 0) ? 6 : 0;
-        }
+            else schem.alarms.pHPumpFault = schem.alarms.pHProbeFault = 0;
+            if (!chem.isActive) {
+                // We need to shut down the pumps.
+            }
+            else {
+                let totalGallons = 0;
+                if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+                if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+                if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+                if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
+                schem.alarms.bodyFault = (isNaN(totalGallons) || totalGallons === 0) ? 6 : 0;
+            }
+            schem.alarms.comms = 0;
+        } catch (err) { logger.error(`Error checking Chem Controller Hardware ${this.chem.name}: ${err.message}`); schem.alarms.comms = 2; return Promise.reject(err); }
     }
     public async closeAsync() {
         try {

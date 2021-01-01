@@ -1590,7 +1590,7 @@ export class ChemicalPhState extends ChemicalState {
     }
     public get suspendDosing(): boolean {
         let cc = this.chemController;
-        return cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;
+        return cc.alarms.comms !== 0 || cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;
     }
 }
 export class ChemicalORPState extends ChemicalState {
@@ -1603,7 +1603,7 @@ export class ChemicalORPState extends ChemicalState {
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
     public get suspendDosing(): boolean {
         let cc = this.chemController;
-        return cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
+        return cc.alarms.comms !== 0 || cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
     }
     public getExtended() {
         let chem = super.getExtended();
