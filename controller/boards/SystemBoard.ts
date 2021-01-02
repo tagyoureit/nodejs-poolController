@@ -1973,7 +1973,7 @@ export class CircuitCommands extends BoardCommands {
         try {
             grp.circuits.clear();
             for (let i = 0; i < group.circuits.length; i++) {
-                let circuit = group.circuits.getItemByIndex(i);
+                let circuit = grp.circuits.getItemByIndex(i);
                 grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
             }
             let sgrp = state.lightGroups.getItemById(group.id);
