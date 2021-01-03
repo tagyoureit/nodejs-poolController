@@ -2102,8 +2102,24 @@ export class FeatureCommands extends BoardCommands {
             let sgrp = state.circuitGroups.getItemById(grp.id);
             sgrp.isOn = bIsOn && grp.isActive;
             sys.board.valves.syncValveStates();
-            state.emitEquipmentChanges();
         }
+        // I am guessing that there will only be one here but iterate
+        // just in case we expand.
+        for (let i = 0; i < sys.lightGroups.length; i++) {
+            let grp: LightGroup = sys.lightGroups.getItemByIndex(i);
+            let bIsOn = false;
+            if (grp.isActive) {
+                let circuits = grp.circuits.toArray();
+                for (let j = 0; j < circuits.length; j++) {
+                    let circuit = grp.circuits.getItemByIndex(j).circuit;
+                    let cstate = state.circuits.getInterfaceById(circuit);
+                    if (cstate.isOn) bIsOn = true;
+                }
+            }
+            let sgrp = state.lightGroups.getItemById(grp.id);
+            sgrp.isOn = bIsOn;
+        }
+        state.emitEquipmentChanges();
     }
 
 }  // tacowaco93915212
