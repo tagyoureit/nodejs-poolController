@@ -506,6 +506,7 @@ class NixieChemical extends NixieChildEquipment {
                 clearTimeout(this._mixTimer);
                 this._mixTimer = undefined;
             }
+            schem.mixTimeRemaining = 0;
             this.currentMix = undefined;
         } catch (err) { logger.error(`Error stopping chemical mix`); }
     }
@@ -542,14 +543,7 @@ class NixieChemical extends NixieChildEquipment {
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('monitoring');
                 this.currentMix = undefined;
             }
-            else {
-                schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
-                //this._mixTimer = setTimeout(async () => {
-                //    try {
-                //        await this.mixChemicals(schem);
-                //    } catch (err) { logger.error(err); }
-                //}, 1000);
-            }
+            else { schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing'); }
             schem.chemController.emitEquipmentChange();
         } catch (err) { logger.error(`Error mixing chemicals.`) }
         finally { if (schem.mixTimeRemaining > 0) this._mixTimer = setTimeout(() => { this.mixChemicals(schem); }, 1000); }
@@ -776,11 +770,12 @@ export class NixieChemPump extends NixieChildEquipment {
                     dosage.maxVolume < dosage.volumeDosed ||
                     dosage.schem.tank.level <= 0) {
                     await this.chemical.cancelDosing(dosage.schem);
+                    await this.chemical.mixChemicals(dosage.schem);
                     //status = 2;
                     //await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                 }
             }
-            dosage.schem.dosingStatus = status;
+            //dosage.schem.dosingStatus = status;
         } catch (err) {
             // If we have an error then we want to clear the latch time.  Theoretically we could add 3 seconds of latch time but who knows when the failure
             // occurred.
@@ -792,9 +787,7 @@ export class NixieChemPump extends NixieChildEquipment {
             // Add a check to tell the chem when we are done.
             if (dosage.schem.dosingStatus === 0) {
                 this._dosingTimer = setTimeout(async () => {
-                    try {
-                        await this.dose(dosage)
-                    }
+                    try { await this.dose(dosage);  }
                     catch (err) { logger.error(err); }
                 }, 1000);
             }
@@ -804,7 +797,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 this.chemical.currentDose = undefined;
                 dosage.schem.pump.isDosing = this.isOn = false;
                 dosage.schem.manualDosing = false;
-                await this.chemical.mixChemicals(dosage.schem);
+                //await this.chemical.mixChemicals(dosage.schem);
             }
             else if (dosage.schem.dosingStatus === 1) {
                 if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
@@ -906,6 +899,10 @@ export class NixieChemicalPh extends NixieChemical {
                 this.currentDose = undefined;
                 this.currentMix = undefined;
                 sph.manualDosing = false;
+                sph.mixTimeRemaining = 0;
+                sph.dosingVolumeRemaining = 0;
+                sph.dosingTimeRemaining = 0;
+                await this.stopMixing(sph);
                 await this.cancelDosing(sph);
             }
             if (status === 'mixing') {
@@ -928,6 +925,7 @@ export class NixieChemicalPh extends NixieChemical {
                 }
                 if (sph.tank.level > 0) {
                     logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                    await this.stopMixing(sph);
                     await this.pump.dose(dosage);
                 }
                 else await this.cancelDosing(sph);
@@ -1044,6 +1042,8 @@ export class NixieChemicalPh extends NixieChemical {
                     }
                 }
             }
+            sph.dosingTimeRemaining = 0;
+            sph.dosingVolumeRemaining = 0;
             sph.manualDosing = false;
         } catch (err) { return Promise.reject(err); }
     }
