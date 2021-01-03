@@ -7,9 +7,7 @@ import { ChemController, Chemical, ChemicalPh, ChemicalORP, ChemicalPhProbe, Che
 import { ChemControllerState, ChemicalState, ChemicalORPState, ChemicalPhState, state, ChemicalProbeState, ChemicalProbePHState, ChemicalProbeORPState, ChemicalTankState, ChemicalPumpState } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
-import { warn } from 'winston';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
-import { Interface } from 'readline';
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemController> {
     public async manualDoseAsync(id: number, data: any) {
@@ -522,7 +520,7 @@ class NixieChemical extends NixieChildEquipment {
             }
             if (typeof this.currentMix === 'undefined') {
                 this.currentMix = new NixieChemMix();
-                this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: this.chemical.mixingTime - (this.chemical.mixingTime - schem.mixTimeRemaining) });
+                this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, this.chemical.mixingTime - schem.mixTimeRemaining) });
                 logger.info(`Chem Controller begin mixing ${schem.chemType} for ${utils.formatDuration(this.currentMix.timeRemaining)}`)
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
             }
