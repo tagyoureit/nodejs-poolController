@@ -514,7 +514,7 @@ class NixieChemical extends NixieChildEquipment {
             let chem = this.chemController.chem;
             let isBodyOn = this.chemController.flowDetected;
             schem.pump.isDosing = false;
-            
+
             if (typeof this._mixTimer !== 'undefined') {
                 clearTimeout(this._mixTimer);
                 this._mixTimer = undefined;
@@ -522,7 +522,7 @@ class NixieChemical extends NixieChildEquipment {
             if (typeof this.currentMix === 'undefined') {
                 this.currentMix = new NixieChemMix();
                 this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: this.chemical.mixingTime - (this.chemical.mixingTime - schem.mixTimeRemaining) });
-                logger.info(`Chem Controller begin mixing ${schem.chemType} for ${ utils.formatDuration(this.currentMix.timeRemaining) }`)
+                logger.info(`Chem Controller begin mixing ${schem.chemType} for ${utils.formatDuration(this.currentMix.timeRemaining)}`)
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
             }
             let dt = new Date().getTime();
@@ -531,27 +531,28 @@ class NixieChemical extends NixieChildEquipment {
                 // Reflect any changes to the configuration.
                 this.currentMix.time = this.chemical.mixingTime;
                 schem.mixTimeRemaining = this.currentMix.timeRemaining;
-                logger.verbose(`Chem mixing ${schem.chemType} remaining: ${ utils.formatDuration(schem.mixTimeRemaining) }`);
+                logger.verbose(`Chem mixing ${schem.chemType} remaining: ${utils.formatDuration(schem.mixTimeRemaining)}`);
             }
             else {
                 logger.verbose(`Chem mixing paused because body is not on.`);
             }
             this.currentMix.lastChecked = dt;
             if (schem.mixTimeRemaining === 0) {
-                logger.info(`Chem Controller ${schem.chemType} mixing Complete after ${ utils.formatDuration(this.currentMix.timeMixed) }`)
+                logger.info(`Chem Controller ${schem.chemType} mixing Complete after ${utils.formatDuration(this.currentMix.timeMixed)}`)
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('monitoring');
                 this.currentMix = undefined;
             }
             else {
-                this._mixTimer = setTimeout(async () => {
-                    try {
-                        await this.mixChemicals(schem);
-                    } catch (err) { logger.error(err); }
-                }, 1000);
+                schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
+                //this._mixTimer = setTimeout(async () => {
+                //    try {
+                //        await this.mixChemicals(schem);
+                //    } catch (err) { logger.error(err); }
+                //}, 1000);
             }
             schem.chemController.emitEquipmentChange();
         } catch (err) { logger.error(`Error mixing chemicals.`) }
-
+        finally { if (schem.mixTimeRemaining > 0) this._mixTimer = setTimeout(() => { this.mixChemicals(schem); }, 1000); }
     }
     public async initDose(dosage: NixieChemDose) { }
     public async closeAsync() {
@@ -1052,8 +1053,8 @@ export class NixieChemicalPh extends NixieChemical {
             if (status === 'monitoring') {
                 // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way
                 // let the system clean these up.
-                this.currentDose = undefined;
-                this.currentMix = undefined;
+                if (typeof this.currentDose !== 'undefined') await this.cancelDosing(sph);
+                if (typeof this.currentMix !== 'undefined') await this.stopMixing(sph);
             }
             if (status === 'mixing') {
                 // We are mixing so we need to stop that.
@@ -1073,11 +1074,10 @@ export class NixieChemicalPh extends NixieChemical {
             sph.doseTime = dosage.time;
             sph.doseVolume = dosage.volume;
             sph.manualDosing = true;
-            // Now let's determine what we need to do with our pump to satisfy our acid demand.
             if (sph.tank.level > 0) {
-                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
-                await this.pump.dose(dosage);
+                logger.verbose(`Chem acid manual dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                 this.currentDose = dosage;
+                await this.pump.dose(dosage);
             }
         }
         catch (err) { logger.error(err); }
