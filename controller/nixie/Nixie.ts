@@ -53,6 +53,19 @@ export class NixieControlPanel implements INixieControlPanel {
         }
         catch (err) { return Promise.reject(err); }
     }
+    public async readLogFile(logFile: string): Promise<string[]> {
+        try {
+            let logPath = path.join(process.cwd(), '/logs');
+            if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
+            logPath += (`/${logFile}`);
+            let lines = [];
+            if (fs.existsSync(logPath)) {
+                let buff = fs.readFileSync(logPath);
+                lines = buff.toString().split('\n');
+            }
+            return lines;
+        } catch (err) { logger.error(err); }
+    }
     public async logData(logFile: string, data: any) {
         try {
             let logPath = path.join(process.cwd(), '/logs');

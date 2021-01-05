@@ -1458,6 +1458,8 @@ export class ChemControllerState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
+    public get isBodyOn(): boolean { return this.data.isBodyOn; }
+    public set isBodyOn(val: boolean) { this.data.isBodyOn = val; }
     public get flowDetected(): boolean { return this.data.flowDetected; }
     public set flowDetected(val: boolean) { this.data.flowDetected = val; }
     public get status(): number {

@@ -423,6 +423,33 @@ export class Utils {
         if (sec > 0) fmt += ' ' + (sec + 'sec');
         return fmt.trim();
     }
+    public parseNumber(val: string): number {
+        if (typeof val === 'number') return val;
+        else if (typeof val === 'undefined' || val === null) return;
+        let tval = val.replace(/[^0-9\.\-]+/g, '');
+        let v;
+        if (tval.indexOf('.') !== -1) {
+            v = parseFloat(tval);
+            v = this.roundNumber(v, tval.length - tval.indexOf('.'));
+        }
+        else v = parseInt(tval, 10);
+        return v;
+    }
+    public roundNumber(num, dec) { return +(Math.round(+(num + 'e+' + dec)) + 'e-' + dec); };
+    public parseDuration(duration: string): number {
+        if (typeof duration === 'number') return parseInt(duration, 10);
+        else if (typeof duration !== 'string') return 0;
+        let seconds = 0;
+        let arr = duration.split(' ');
+        for (let i = 0; i < arr.length; i++) {
+            let s = arr[i];
+            if (s.endsWith('sec')) seconds += this.parseNumber(s);
+            if (s.endsWith('min')) seconds += (this.parseNumber(s) * 60);
+            if (s.endsWith('hr')) seconds += (this.parseNumber(s) * 3600);
+            if (s.endsWith('hrs')) seconds += (this.parseNumber(s) * 3600);
+        }
+        return seconds;
+    }
 }
 
 export const utils = new Utils();

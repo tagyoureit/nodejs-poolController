@@ -1791,6 +1791,8 @@ export class Chemical extends ChildEqItem {
         if (typeof this.data.dosingMethod === 'undefined') this.data.dosingMethod = 0;
         if (typeof this.data.startDelay === 'undefined') this.data.startDelay = 1.5;
         if (typeof this.data.flowReadingsOnly === 'undefined') this.data.flowReadingsOnly = true;
+        if (typeof this.data.flowOnlyMixing === 'undefined') this.data.flowOnlyMixing = true;
+        if (typeof this.data.maxDailyVolume === 'undefined') this.data.maxDailyVolume = 500;
         super.initData();
     }
     public get chemType(): string { return this.data.chemType; }
@@ -1800,8 +1802,13 @@ export class Chemical extends ChildEqItem {
     public set maxDosingTime(val: number) { this.setDataVal('maxDosingTime', val); }
     public get maxDosingVolume(): number { return this.data.maxDosingVolume; }
     public set maxDosingVolume(val: number) { this.setDataVal('maxDosingVolume', val); }
+    public get maxDailyVolume(): number { return this.data.maxDailyVolume; }
+    public set maxDailyVolume(val: number) { this.setDataVal('maxDailyVolume', val); }
+    
     public get mixingTime(): number { return this.data.mixingTime; }
     public set mixingTime(val: number) { this.setDataVal('mixingTime', val); }
+    public get flowOnlyMixing(): boolean { return utils.makeBool(this.data.flowOnlyMixing); }
+    public set flowOnlyMixing(val: boolean) { this.setDataVal('flowOnlyMixing', val); }
     public get dosingMethod(): number | any { return this.data.dosingMethod; }
     public set dosingMethod(val: number | any) { this.setDataVal('dosingMethod', sys.board.valueMaps.chemDosingMethods.encode(val)); }
     public get startDelay(): number { return this.data.startDelay; }

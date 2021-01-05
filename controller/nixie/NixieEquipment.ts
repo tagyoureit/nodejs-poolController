@@ -3,6 +3,7 @@ import { logger } from "../../logger/Logger";
 export interface INixieControlPanel {
     getREMServers();
     logData(file: string, data: any);
+    readLogFile(file: string);
 }
 export class NixieEquipment {
     protected _pmap = new WeakSet();
