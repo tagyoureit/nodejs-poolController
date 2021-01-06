@@ -615,9 +615,9 @@ class NixieChemical extends NixieChildEquipment {
                 this.doseHistory.splice(i, 1);
             }
         }
-        if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
-            total += this.currentDose.volumeDosed;
-        }
+        //if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
+        //    total += this.currentDose.volumeDosed;
+        //}
         return total;
     }
 }
