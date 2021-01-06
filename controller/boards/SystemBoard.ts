@@ -490,8 +490,8 @@ export class byteValueMaps {
     public chemDosingMethods: byteValueMap = new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }],
         [1, { name: 'time', desc: 'Time' }],
-        [2, { name: 'volume', desc: 'Volume' }],
-        [3, { name: 'volumeTime', desc: 'Volume/Time' }]
+        [2, { name: 'volume', desc: 'Volume' }]
+        //,[3, { name: 'volumeTime', desc: 'Volume/Time' }]  Deprecated as it does not make sense at this time or volume.
     ]);
     public phSupplyTypes: byteValueMap = new byteValueMap([
         [0, { name: 'base', desc: 'Base pH+' }],
