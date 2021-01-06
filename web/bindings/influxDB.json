@@ -453,18 +453,18 @@
               "type": "float"
             },
             {
-              "name": "cya",
-              "value": "@bind=data.cyanuricAcid;",
+              "name": "cyanuric acid",
+              "value": "@bind=sys.chemControllers.getItemById(data.id).cyanuricAcid;",
               "type": "int"
             },
             {
-              "name": "ch",
-              "value": "@bind=data.calciumHardness;",
+              "name": "calcium hardness",
+              "value": "@bind=sys.chemControllers.getItemById(data.id).calciumHardness;",
               "type": "int"
             },
             {
-              "name": "alk",
-              "value": "@bind=data.alkalinity;",
+              "name": "alkalinity",
+              "value": "@bind=sys.chemControllers.getItemById(data.id).alkalinity;",
               "type": "int"
             },
             {
@@ -484,7 +484,7 @@
             },
             {
               "name": "alarm: flow",
-              "value": "@bind: fata.alarms.flow.val",
+              "value": "@bind:data.alarms.flow.val",
               "type": "int"
             },
             {
