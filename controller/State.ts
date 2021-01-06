@@ -1553,6 +1553,10 @@ export class ChemicalState extends ChildEqState {
     public set dosingTimeRemaining(val: number) { this.setDataVal('dosingTimeRemaining', val); }
     public get dosingVolumeRemaining(): number { return this.data.dosingVolumeRemaining; }
     public set dosingVolumeRemaining(val: number) { this.setDataVal('dosingVolumeRemaining', val); }
+    public get volumeDosed(): number { return this.data.volumeDosed; }
+    public set volumeDosed(val: number) { this.setDataVal('volumeDosed', val); }
+    public get dailyVolumeDosed(): number { return this.data.dailyVolumeDosed; }
+    public set dailyVolumeDosed(val: number) { this.setDataVal('dailyVolumeDosed', val); }
     public get mixTimeRemaining(): number { return this.data.mixTimeRemaining; }
     public set mixTimeRemaining(val: number) { this.setDataVal('mixTimeRemaining', val); }
     public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
@@ -1592,6 +1596,8 @@ export class ChemicalPhState extends ChemicalState {
         chem.probe = this.probe.getExtended();
         return chem;
     }
+    public get demand(): number { return this.data.demand || 0; }
+    public set demand(val: number) { this.setDataVal('demand', val); }
     public get suspendDosing(): boolean {
         let cc = this.chemController;
         return cc.alarms.comms !== 0 || cc.alarms.pHProbeFault !== 0 || cc.alarms.pHPumpFault !== 0 || cc.alarms.bodyFault !== 0;

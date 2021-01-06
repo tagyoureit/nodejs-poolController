@@ -302,7 +302,8 @@ export class NixieChemController extends NixieEquipment {
             // Calculate all the alarms.  These are only informational at this point.
             if (!schem.isBodyOn) schem.alarms.flow = 0;
             else schem.alarms.flow = schem.flowDetected ? 0 : 1;
-
+            schem.ph.dailyVolumeDosed = this.ph.calcTotalDosed(24, true);
+            schem.orp.dailyVolumeDosed = this.orp.calcTotalDosed(24, true);
             let chem = this.chem;
             schem.orp.enabled = this.chem.orp.enabled;
             schem.ph.enabled = this.chem.ph.enabled;
@@ -311,7 +312,7 @@ export class NixieChemController extends NixieEquipment {
                 let pumpType = chem.orp.pump.type;
                 let probeType = chem.orp.probe.type;
                 schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
-                if (this.chem.orp.maxDailyVolume < this.orp.calcTotalDosed(24, true)) {
+                if (this.chem.orp.maxDailyVolume < schem.orp.dailyVolumeDosed) {
                     schem.warnings.orpDailyLimitReached = 4;
                     schem.orp.dailyLimitReached = true;
                 }
@@ -343,7 +344,7 @@ export class NixieChemController extends NixieEquipment {
                 let probeType = chem.ph.probe.type;
                 schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.level <= 0 ? 32 : 0;
                 schem.warnings.pHDailyLimitReached = 0;
-                if (this.chem.ph.maxDailyVolume < this.ph.calcTotalDosed(24, true)) {
+                if (this.chem.ph.maxDailyVolume < schem.ph.dailyVolumeDosed) {
                     schem.warnings.pHDailyLimitReached = 2;
                     schem.ph.dailyLimitReached = true;
                 }
@@ -614,6 +615,9 @@ class NixieChemical extends NixieChildEquipment {
                 this.doseHistory.splice(i, 1);
             }
         }
+        if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
+            total += this.currentDose.volumeDosed;
+        }
         return total;
     }
 }
@@ -683,8 +687,9 @@ export class NixieChemDoseLog {
     }
 }
 export class NixieChemDose {
+    constructor(dt: Date) { this.startDate = new Date(); }
     public method: string;
-    public startDate: number;
+    public startDate: Date;
     public setpoint: number;
     public level: number;
     public demand: number;
@@ -763,6 +768,7 @@ export class NixieChemPump extends NixieChildEquipment {
                     this.chemical.currentDose.schem.manualDosing = false;
                     this.chemical.currentDose.schem.dosingTimeRemaining = 0;
                     this.chemical.currentDose.schem.dosingVolumeRemaining = 0;
+                    this.chemical.currentDose.schem.volumeDosed = 0;
                 }
                 this.chemical.currentDose = undefined;
             }
@@ -837,6 +843,7 @@ export class NixieChemPump extends NixieChildEquipment {
                             let vol = Math.round((this.pump.ratedFlow * (time / 1000) / 60) * 1000000) / 1000000;
                             dosage.timeDosed += time;
                             dosage.volumeDosed += vol;
+                            dosage.schem.volumeDosed = dosage.volumeDosed;
                             if (dosage.schem.tank.units > 0) {
                                 let lvl = dosage.schem.tank.level - utils.convert.volume.convertUnits(vol, 'mL', sys.board.valueMaps.volumeUnits.getName(dosage.schem.tank.units));
                                 dosage.schem.tank.level = Math.max(0, lvl);
@@ -987,9 +994,43 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { return Promise.reject(err); }
     }
+    public calcDemand(sph: ChemicalPhState): number {
+        let chem = this.chemController.chem;
+        // Calculate how many mL are required to raise to our pH level.
+        // 1. Get the total gallons of water that the chem controller is in
+        // control of.
+        let totalGallons = 0;
+        if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+        if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+        if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+        if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
+        logger.verbose(`Chem begin calculating demand: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
+        let chg = this.ph.setpoint - sph.level;
+        let delta = chg * totalGallons;
+        let temp = (sph.level + this.ph.setpoint) / 2;
+        let adj = (192.1626 + -60.1221 * temp + 6.0752 * temp * temp + -0.1943 * temp * temp * temp) * (chem.alkalinity + 13.91) / 114.6;
+        let extra = (-5.476259 + 2.414292 * temp + -0.355882 * temp * temp + 0.01755 * temp * temp * temp) * (chem.borates || 0);
+        extra *= delta;
+        delta *= adj;
+        let dose = 0;
+        if (this.ph.phSupply === 0) {  // We are dispensing base so we need to calculate the demand here.
+            if (chg > 0) {
+
+            }
+        }
+        else {
+            if (chg < 0) {
+                let at = sys.board.valueMaps.acidTypes.transform(this.ph.acidType);
+                dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
+            }
+        }
+        sph.demand = dose;
+        return dose;
+    }
     public async checkDosing(chem: ChemController, sph: ChemicalPhState) {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
+            let demand = this.calcDemand(sph);
             if (sph.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
                 await this.cancelDosing(sph);
@@ -1013,7 +1054,7 @@ export class NixieChemicalPh extends NixieChemical {
             }
             else if (sph.manualDosing) {
                 // We are manually dosing.  We are not going to dynamically change the dose.
-                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose(new Date()) : this.currentDose;
                 if (typeof this.currentDose === 'undefined') {
                     // This will only happen when njspc is killed in the middle of a dose.
                     let dose = sph.dosingVolumeRemaining;
@@ -1039,95 +1080,153 @@ export class NixieChemicalPh extends NixieChemical {
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
                 // Check the setpoint and the current level to see if we need to dose.
-                let dose = 0;
-                if (sph.level !== this.ph.setpoint) {
-                    // Calculate how many mL are required to raise to our pH level.
-                    // 1. Get the total gallons of water that the chem controller is in
-                    // control of.
-                    let totalGallons = 0;
-                    if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-                    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
-                    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
-                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-                    logger.verbose(`Chem begin calculating dose current: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
-                    //let pv = utils.convert.volume.convertUnits(totalGallons, 'gal', 'L');
-                    let chg = this.ph.setpoint - sph.level;
-                    let delta = chg * totalGallons;
-                    let temp = (sph.level + this.ph.setpoint) / 2;
-                    let adj = (192.1626 + -60.1221 * temp + 6.0752 * temp * temp + -0.1943 * temp * temp * temp) * (chem.alkalinity + 13.91) / 114.6;
-                    let extra = (-5.476259 + 2.414292 * temp + -0.355882 * temp * temp + 0.01755 * temp * temp * temp) * (chem.borates || 0);
-                    extra *= delta;
-                    delta *= adj;
-                    if (sys.board.valueMaps.phSupplyTypes.getName(this.ph.phSupply) === 'base') {
-                        if (chg > 0) {
-
+                if (demand > 0) {
+                    let pump = this.pump.pump;
+                    let dose = Math.max(0, Math.min(this.chemical.maxDailyVolume - sph.dailyVolumeDosed, demand));
+                    let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                    let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+                    logger.info(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sph.tank.level}`);
+                    // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
+                    switch (meth) {
+                        case 'time':
+                            if (time > this.ph.maxDosingTime) {
+                                time = this.ph.maxDosingTime;
+                                dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                            }
+                            break;
+                        case 'volume':
+                            if (dose > this.ph.maxDosingVolume) {
+                                dose = this.ph.maxDosingVolume;
+                                time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                            }
+                            break;
+                        case 'volumeTime':
+                        default:
+                            // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
+                            // you will never get to the volume limit if the rated flow can't keep up to the time.
+                            if (dose > this.ph.maxDosingVolume) {
+                                dose = this.ph.maxDosingVolume;
+                                time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                            }
+                            if (time > this.ph.maxDosingTime) {
+                                time = this.ph.maxDosingTime;
+                                dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                            }
+                            break;
+                    }
+                    logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
+                    let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose(new Date()) : this.currentDose;
+                    dosage.set({ schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: time });
+                    sph.doseTime = dosage.time;
+                    sph.doseVolume = dosage.volume;
+                    if (typeof this.currentDose === 'undefined') {
+                        // We will include this with the dose demand because our limits may reduce it.
+                        dosage.demand = demand;
+                        if (sph.dosingStatus === 0) { // 0 is dosing.
+                            // We need to finish off a dose that was interrupted by regular programming.  This occurs
+                            // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
+                            // mixing before we will never get here.
+                            dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
+                            dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
                         }
                     }
-                    else {
-                        if (chg < 0) {
-                            let at = sys.board.valueMaps.acidTypes.transform(this.ph.acidType);
-                            let pump = this.pump.pump;
-                            let demand = dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
-                            let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0: Math.round(dose / (pump.ratedFlow / 60));
-                            let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
-                            logger.verbose(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sph.tank.level}`);
-                            // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
-                            switch (meth) {
-                                case 'time':
-                                    if (time > this.ph.maxDosingTime) {
-                                        time = this.ph.maxDosingTime;
-                                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                                    }
-                                    break;
-                                case 'volume':
-                                    if (dose > this.ph.maxDosingVolume) {
-                                        dose = this.ph.maxDosingVolume;
-                                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
-                                    }
-                                    break;
-                                case 'volumeTime':
-                                default:
-                                    // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
-                                    // you will never get to the volume limit if the rated flow can't keep up to the time.
-                                    if (dose > this.ph.maxDosingVolume) {
-                                        dose = this.ph.maxDosingVolume;
-                                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
-                                    }
-                                    if (time > this.ph.maxDosingTime) {
-                                        time = this.ph.maxDosingTime;
-                                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                                    }
-                                    break;
-                            }
-                            logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
-                            let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
-                            dosage.set({ startDate: new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: time });
-                            sph.doseTime = dosage.time;
-                            sph.doseVolume = dosage.volume;
-                            if (typeof this.currentDose === 'undefined') {
-                                // We will include this with the dose demand because our limits may reduce it.
-                                dosage.demand = demand;
-                                if (sph.dosingStatus === 0) { // 0 is dosing.
-                                    // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                                    // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
-                                    // mixing before we will never get here.
-                                    dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
-                                    dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
-                                } 
-                            }
-                            // Now let's determine what we need to do with our pump to satisfy our acid demand.
-                            if (sph.tank.level > 0) {
-                                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
-                                await this.pump.dose(dosage);
-                                this.currentDose = dosage;
-                            }
-                            else await this.cancelDosing(sph);
-                        }
-                        else {
-                            await this.cancelDosing(sph);
-                        }
+                    // Now let's determine what we need to do with our pump to satisfy our acid demand.
+                    if (sph.tank.level > 0) {
+                        logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                        await this.pump.dose(dosage);
+                        this.currentDose = dosage;
                     }
+                    else await this.cancelDosing(sph);
                 }
+                //if (sph.level !== this.ph.setpoint) {
+                //    // Calculate how many mL are required to raise to our pH level.
+                //    // 1. Get the total gallons of water that the chem controller is in
+                //    // control of.
+                //    let totalGallons = 0;
+                //    if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
+                //    if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+                //    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+                //    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
+                //    logger.verbose(`Chem begin calculating dose current: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
+                //    //let pv = utils.convert.volume.convertUnits(totalGallons, 'gal', 'L');
+                //    let chg = this.ph.setpoint - sph.level;
+                //    let delta = chg * totalGallons;
+                //    let temp = (sph.level + this.ph.setpoint) / 2;
+                //    let adj = (192.1626 + -60.1221 * temp + 6.0752 * temp * temp + -0.1943 * temp * temp * temp) * (chem.alkalinity + 13.91) / 114.6;
+                //    let extra = (-5.476259 + 2.414292 * temp + -0.355882 * temp * temp + 0.01755 * temp * temp * temp) * (chem.borates || 0);
+                //    extra *= delta;
+                //    delta *= adj;
+                //    if (sys.board.valueMaps.phSupplyTypes.getName(this.ph.phSupply) === 'base') {
+                //        if (chg > 0) {
+
+
+                //        }
+                //    }
+                //    else {
+                //        if (chg < 0) {
+                //            let at = sys.board.valueMaps.acidTypes.transform(this.ph.acidType);
+                //            let pump = this.pump.pump;
+                //            let demand = dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
+                //            let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0: Math.round(dose / (pump.ratedFlow / 60));
+                //            let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+                //            logger.verbose(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sph.tank.level}`);
+                //            // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
+                //            switch (meth) {
+                //                case 'time':
+                //                    if (time > this.ph.maxDosingTime) {
+                //                        time = this.ph.maxDosingTime;
+                //                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                //                    }
+                //                    break;
+                //                case 'volume':
+                //                    if (dose > this.ph.maxDosingVolume) {
+                //                        dose = this.ph.maxDosingVolume;
+                //                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                //                    }
+                //                    break;
+                //                case 'volumeTime':
+                //                default:
+                //                    // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
+                //                    // you will never get to the volume limit if the rated flow can't keep up to the time.
+                //                    if (dose > this.ph.maxDosingVolume) {
+                //                        dose = this.ph.maxDosingVolume;
+                //                        time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
+                //                    }
+                //                    if (time > this.ph.maxDosingTime) {
+                //                        time = this.ph.maxDosingTime;
+                //                        dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                //                    }
+                //                    break;
+                //            }
+                //            logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
+                //            let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                //            dosage.set({ startDate: new Date(), schem: sph, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.ph.maxDosingVolume : dose), maxTime: time });
+                //            sph.doseTime = dosage.time;
+                //            sph.doseVolume = dosage.volume;
+                //            if (typeof this.currentDose === 'undefined') {
+                //                // We will include this with the dose demand because our limits may reduce it.
+                //                dosage.demand = demand;
+                //                if (sph.dosingStatus === 0) { // 0 is dosing.
+                //                    // We need to finish off a dose that was interrupted by regular programming.  This occurs
+                //                    // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
+                //                    // mixing before we will never get here.
+                //                    dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
+                //                    dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
+                //                } 
+                //            }
+                //            // Now let's determine what we need to do with our pump to satisfy our acid demand.
+                //            if (sph.tank.level > 0) {
+                //                logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+                //                await this.pump.dose(dosage);
+                //                this.currentDose = dosage;
+                //            }
+                //            else await this.cancelDosing(sph);
+                //        }
+                //        else {
+                //            await this.cancelDosing(sph);
+                //        }
+                //    }
+                //}
             }
         }
         catch (err) { logger.error(err); }
@@ -1173,7 +1272,7 @@ export class NixieChemicalPh extends NixieChemical {
             let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(volume / (pump.ratedFlow / 60));
             // We should now be monitoring.
             logger.verbose(`Chem begin calculating manual dose current: ${sph.level} setpoint: ${this.ph.setpoint} volume:${volume}`);
-            let dosage: NixieChemDose = new NixieChemDose();
+            let dosage: NixieChemDose = new NixieChemDose(new Date());
             let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
             dosage.set({ startDate: new Date(), isManual: true, schem: sph, demand: 0, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: volume, time: time, maxVolume: volume, maxTime: time });
             sph.doseTime = dosage.time;
@@ -1259,7 +1358,7 @@ export class NixieChemicalORP extends NixieChemical {
             let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(volume / (pump.ratedFlow / 60));
             // We should now be monitoring.
             logger.verbose(`Chem begin calculating manual dose current: ${sorp.level} setpoint: ${this.orp.setpoint} volume:${volume}`);
-            let dosage: NixieChemDose = new NixieChemDose();
+            let dosage: NixieChemDose = new NixieChemDose(new Date());
             let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
             dosage.set({ startDate: new Date(), isManual: true, schem: sorp, demand: 0, method: meth, setpoint: this.orp.setpoint, level: sorp.level, volume: volume, time: time, maxVolume: volume, maxTime: time });
             sorp.doseTime = dosage.time;
@@ -1308,7 +1407,7 @@ export class NixieChemicalORP extends NixieChemical {
             }
             else if (sorp.manualDosing) {
                 // We are manually dosing.  We are not going to dynamically change the dose.
-                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose(new Date()) : this.currentDose;
                 if (typeof this.currentDose === 'undefined') {
                     // This will only happen when njspc is killed in the middle of a dose.
                     let dose = sorp.dosingVolumeRemaining;
@@ -1372,7 +1471,7 @@ export class NixieChemicalORP extends NixieChemical {
                             }
                             break;
                     }
-                    let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose() : this.currentDose;
+                    let dosage: NixieChemDose = typeof this.currentDose === 'undefined' || status === 'monitoring' ? new NixieChemDose(new Date()) : this.currentDose;
                     dosage.set({ startDate: new Date(), schem: sorp, method: meth, setpoint: this.orp.setpoint, level: sorp.level, volume: dose, time: time, maxVolume: Math.max(meth.indexOf('vol') !== -1 ? this.orp.maxDosingVolume : dose), maxTime: Math.max(meth.indexOf('time') !== -1 ? this.orp.maxDosingTime : time) });
                     sorp.doseTime = dosage.time;
                     sorp.doseVolume = dosage.volume;
