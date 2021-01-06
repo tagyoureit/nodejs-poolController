@@ -79,10 +79,331 @@
     },
     {
       "name": "chemController",
-      "description": "Bind chemController emit",
       "points": [
         {
-          "measurement": "chemControllers",
+          "measurement": "chemControllersPh",
+          "description": "Bind chemController emit and save pH",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "dosing status desc",
+              "value": "@bind=data.ph.dosingStatus.desc;"
+            },
+            {
+              "name": "pump is dosing",
+              "value": "@bind=data.ph.pump.isDosing?'true':'false';"
+            },
+            {
+              "name": "dosing method desc",
+              "value": "@bind=data.ph.dosingMethod.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "level",
+              "value": "@bind=data.ph.probe.level;",
+              "type": "float"
+            },
+            {
+              "name": "temperature",
+              "value": "@bind=data.ph.probe.temperature;",
+              "type": "float"
+            },
+            {
+              "name": "setpoint",
+              "value": "@bind=data.ph.setpoint;",
+              "type": "float"
+            },
+            {
+              "name": "dosing time",
+              "value": "@bind=data.ph.doseTime;",
+              "type": "float"
+            },
+            {
+              "name": "pump is dosing",
+              "value": "@bind=data.ph.pump.isDosing?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "lockout",
+              "value": "@bind=data.ph.locokout;",
+              "type": "boolean"
+            },
+            {
+              "name": "pump dose time remaining",
+              "value": "@bind=data.ph.dosingTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "mix time remaining",
+              "value": "@bind=data.ph.mixTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "delay time remaining",
+              "value": "@bind=data.ph.delayTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "dose volume",
+              "value": "@bind=data.ph.doseVolume;",
+              "type": "int"
+            },
+            {
+              "name": "dose volume remaining",
+              "value": "@bind=data.ph.dosingVolumeRemaining;",
+              "type": "int"
+            },
+            {
+              "name": "tank level",
+              "value": "@bind=data.ph.tank.level;",
+              "type": "float"
+            },
+            {
+              "name": "tank capacity",
+              "value": "@bind=data.ph.tank.capacity;",
+              "type": "float"
+            },
+            {
+              "name": "dosing status",
+              "value": "@bind=data.ph.dosingStatus.val;",
+              "type": "int"
+            },
+            {
+              "name": "dosing method",
+              "value": "@bind=data.ph.dosingMethod.val;",
+              "type": "int"
+            },
+            {
+              "name": "start delay",
+              "value": "@bind=data.ph.startDelay;",
+              "type": "int"
+            },
+            {
+              "name": "max dosing time",
+              "value": "@bind=data.ph.maxDosingTime;",
+              "type": "int"
+            },
+            {
+              "name": "max dosing volume",
+              "value": "@bind=data.ph.maxDosingVolume;",
+              "type": "int"
+            },
+            {
+              "name": "mixing time",
+              "value": "@bind=data.ph.mixingTime;",
+              "type": "int"
+            },
+            {
+              "name": "flow readings only int",
+              "value": "@bind=data.ph.flowReadingsOnly?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "low tolerance",
+              "value": "@bind=data.ph.tolerance.low;",
+              "type": "int"
+            },
+            {
+              "name": "high tolerance",
+              "value": "@bind=data.ph.tolerance.high;",
+              "type": "int"
+            },
+            {
+              "name": "tolerance enabled int",
+              "value": "@bind=data.ph.tolerance.enabled?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "dose priority int",
+              "value": "@bind=data.ph.dosePriority?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "flow only mixing int",
+              "value": "@bind=data.ph.flowOnlyMixing?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "max daily volume",
+              "value": "@bind=data.ph.maxDailyVolumen;",
+              "type": "int"
+            }
+            
+          ]
+        },
+        {
+          "measurement": "chemControllersOrp",
+          "description": "Bind chemController emit and save orp",
+          "storePrevState": true,
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "dosing status desc",
+              "value": "@bind=data.orp.dosingStatus.desc;"
+            },
+            {
+              "name": "pump is dosing",
+              "value": "@bind=data.orp.pump.isDosing?'true':'false';"
+            },
+            {
+              "name": "dosing method desc",
+              "value": "@bind=data.orp.dosingMethod.desc;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "level",
+              "value": "@bind=data.orp.probe.level;",
+              "type": "float"
+            },
+            {
+              "name": "temperature",
+              "value": "@bind=data.orp.probe.temperature;",
+              "type": "float"
+            },
+            {
+              "name": "setpoint",
+              "value": "@bind=data.orp.setpoint;",
+              "type": "float"
+            },
+            {
+              "name": "dosing time",
+              "value": "@bind=data.orp.doseTime;",
+              "type": "float"
+            },
+            {
+              "name": "pump is dosing",
+              "value": "@bind=data.orp.pump.isDosing?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "lockout",
+              "value": "@bind=data.orp.locokout;",
+              "type": "boolean"
+            },
+            {
+              "name": "pump dose time remaining",
+              "value": "@bind=data.orp.dosingTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "mix time remaining",
+              "value": "@bind=data.orp.mixTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "delay time remaining",
+              "value": "@bind=data.orp.delayTimeRemaining;",
+              "type": "float"
+            },
+            {
+              "name": "dose volume",
+              "value": "@bind=data.orp.doseVolume;",
+              "type": "int"
+            },
+            {
+              "name": "dose volume remaining",
+              "value": "@bind=data.orp.dosingVolumeRemaining;",
+              "type": "int"
+            },
+            {
+              "name": "tank level",
+              "value": "@bind=data.orp.tank.level;",
+              "type": "float"
+            },
+            {
+              "name": "tank capacity",
+              "value": "@bind=data.orp.tank.capacity;",
+              "type": "float"
+            },
+            {
+              "name": "dosing status",
+              "value": "@bind=data.orp.dosingStatus.val;",
+              "type": "int"
+            },
+            {
+              "name": "dosing method",
+              "value": "@bind=data.orp.dosingMethod.val;",
+              "type": "int"
+            },
+            {
+              "name": "start delay",
+              "value": "@bind=data.orp.startDelay;",
+              "type": "int"
+            },
+            {
+              "name": "max dosing time",
+              "value": "@bind=data.orp.maxDosingTime;",
+              "type": "int"
+            },
+            {
+              "name": "max dosing volume",
+              "value": "@bind=data.orp.maxDosingVolume;",
+              "type": "int"
+            },
+            {
+              "name": "mixing time",
+              "value": "@bind=data.orp.mixingTime;",
+              "type": "int"
+            },
+            {
+              "name": "flow readings only int",
+              "value": "@bind=data.orp.flowReadingsOnly?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "low tolerance",
+              "value": "@bind=data.orp.tolerance.low;",
+              "type": "int"
+            },
+            {
+              "name": "high tolerance",
+              "value": "@bind=data.orp.tolerance.high;",
+              "type": "int"
+            },
+            {
+              "name": "tolerance enabled int",
+              "value": "@bind=data.orp.tolerance.enabled?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "dose priority int",
+              "value": "@bind=data.orp.dosePriority?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "flow only mixing int",
+              "value": "@bind=data.orp.flowOnlyMixing?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "max daily volume",
+              "value": "@bind=data.orp.maxDailyVolumen;",
+              "type": "int"
+            }
+            
+          ]
+        },
+        {
+          "description": "Bind chemController emit",
+          "measurement": "chemControllersGen",
+          "storePrevState": true,
           "tags": [
             {
               "name": "name",
@@ -101,139 +422,117 @@
               "value": "@bind=data.status.desc;"
             },
             {
-              "name": "pHDosingStatus",
-              "value": "@bind=data.ph.dosingStatus.desc;"
+              "name": "alarm: comms desc",
+              "value": "@bind=data.alarms.comms.desc;"
             },
             {
-              "name": "orpDosingStatus",
-              "value": "@bind=data.orp.dosingStatus.desc;"
+              "name": "alarm: flow desc",
+              "value": "@bind=data.alarms.flow.desc;"
+            },
+            {
+              "name": "alarm: body fault desc",
+              "value": "@bind=data.alarms.bodyFault.desc;"
+            },
+            {
+              "name": "alarm: flow sensor fault desc",
+              "value": "@bind=data.alarms.flowSensorFault.desc;"
+            },
+            {
+              "name": "warning: orp daily limit reached desc",
+              "value": "@bind=data.warnings.orpDailyLimitReached.desc;"
+            },
+            {
+              "name": "warning: water chemistry desc",
+              "value": "@bind=data.warnings.waterChemistry.desc;"
             }
           ],
           "fields": [
             {
-              "name": "pHLevel",
-              "value": "@bind=data.ph.probe.level;",
-              "type": "float"
-            },
-            {
-              "name": "pHSetpoint",
-              "value": "@bind=data.ph.setpoint;",
-              "type": "float"
-            },
-            {
-              "name": "orpLevel",
-              "value": "@bind=data.orp.probe.level;",
-              "type": "float"
-            },
-            {
-              "name": "orpSetpoint",
-              "value": "@bind=data.orp.setpoint;",
-              "type": "float"
-            },
-            {
-              "name": "acidTankLevel",
-              "value": "@bind=data.ph.tank.level;",
-              "type": "int"
-            },
-            {
-              "name": "orpTankLevel",
-              "value": "@bind=data.orp.tank.level;",
-              "type": "int"
-            },
-            {
-              "name": "saturationIndex",
+              "name": "saturation index",
               "value": "@bind=data.saturationIndex;",
               "type": "float"
             },
             {
-              "name": "CYA",
+              "name": "cya",
               "value": "@bind=data.cyanuricAcid;",
               "type": "int"
             },
             {
-              "name": "CH",
+              "name": "ch",
               "value": "@bind=data.calciumHardness;",
               "type": "int"
             },
             {
-              "name": "Alk",
+              "name": "alk",
               "value": "@bind=data.alkalinity;",
               "type": "int"
             },
             {
-              "name": "phDosingTime",
-              "value": "@bind=data.ph.doseTime;",
-              "type": "float"
-            },
-            {
-              "name": "phPumpIsDosing",
-              "value": "@bind=data.ph.pump.isDosing;",
-              "type": "boolean"
-            },
-            {
-              "name": "phPumpIsDosingInt",
-              "value": "@bind=data.ph.pump.isDosing?1:0;",
-              "type": "int"
-            },
-            {
-              "name": "phPumpDoseTimeRemaining",
-              "value": "@bind=data.ph.dosingTimeRemaining;",
-              "type": "float"
-            },
-            {
-              "name": "phDoseVolume",
-              "value": "@bind=data.ph.doseVolume;",
-              "type": "int"
-            },
-            {
-              "name": "phDoseVolumeRemaining",
-              "value": "@bind=data.ph.dosingVolumeRemaining;",
-              "type": "int"
-            },
-            {
-              "name": "phTank Level",
-              "value": "@bind=data.ph.tank.level;",
-              "type": "int"
-            },
-            {
-              "name": "orpTank Level",
-              "value": "@bind=data.orp.tank.level;",
-              "type": "int"
-            },
-            {
-              "name": "orpDosingTime",
-              "value": "@bind=data.orp.doseTime;",
-              "type": "float"
-            },
-            {
-              "name": "flowDetected",
+              "name": "flow detected",
               "value": "@bind=data.flowDetected;",
               "type": "float"
             },
             {
-              "name": "mixTimeRemaining",
-              "value": "@bind=data.ph.mixTimeRemaining;",
-              "type": "float"
-            },
-            {
-              "name": "delayTimeRemaining",
-              "value": "@bind=data.ph.delayTimeRemaining;",
-              "type": "float"
-            },
-            {
-              "name": "pH Tank Level",
-              "value": "@bind=data.ph.tank.level;",
-              "type": "float"
-            },
-            {
-              "name": "Flow Sensor State",
+              "name": "flow sensor state",
               "value": "@bind=data.flowSensor.state;",
               "type": "float"
+            },
+            {
+              "name": "alarm: comms",
+              "value": "@bind=data.alarms.comms.val",
+              "type": "int"
+            },
+            {
+              "name": "alarm: flow",
+              "value": "@bind: fata.alarms.flow.val",
+              "type": "int"
+            },
+            {
+              "name": "alarm: body fault",
+              "value": "@bind=data.alarms.bodyFault.val;",
+              "type": "int"
+            },
+            {
+              "name": "alarm: flow sensor fault",
+              "value": "@bind=data.alarms.flowSensorFault.val;",
+              "type": "int"
+            },
+            {
+              "name": "warning: orp daily limit reached",
+              "value": "@bind=data.warnings.orpDailyLimitReached.val;",
+              "type": "int"
+            },
+            {
+              "name": "warning: water chemistry",
+              "value": "@bind=data.warnings.waterChemistry.val;",
+              "type": "int"
+            },
+            {
+              "name": "lsi range low",
+              "value": "@bind=data.lsiRange.low.val;",
+              "type": "int"
+            },
+            {
+              "name": "lsi range enabled",
+              "value": "@bind=data.lsiRange.enabled?1:0;",
+              "type": "int"
+            },
+            {
+              "name": "range high",
+              "value": "@bind=data.lsiRange.high.val;",
+              "type": "int"
+            },
+            {
+              "name": "borates",
+              "value": "@bind=data.borates;",
+              "type": "int"
             }
           ]
         }
       ]
     },
+
+
     {
       "name": "circuit",
       "description": "Bind circuit emit",

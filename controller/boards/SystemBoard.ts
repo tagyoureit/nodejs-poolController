@@ -2898,8 +2898,8 @@ export class ChemControllerCommands extends BoardCommands {
                             chem.master = sys.board.equipmentMaster;
                             schem = state.chemControllers.getItemById(data.id, true);
                             chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
-                            chem.ph.setpoint = pHSetpoint;
-                            chem.orp.setpoint = orpSetpoint;
+                            chem.ph.setpoint = schem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = schem.orp.setpoint = orpSetpoint;
                             chem.calciumHardness = calciumHardness;
                             chem.alkalinity = alkalinity;
                             schem.ph.tank.level = acidTankLevel;
@@ -3395,8 +3395,8 @@ export class ChemControllerCommands extends BoardCommands {
                             _reject(err);
                         }
                         else {
-                            chem.ph.setpoint = pHSetpoint;
-                            chem.orp.setpoint = orpSetpoint;
+                            chem.ph.setpoint = schem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = schem.orp.setpoint = orpSetpoint;
                             chem.calciumHardness = calciumHardness;
                             chem.alkalinity = alkalinity;
                             schem.ph.tank.level = acidTankLevel;

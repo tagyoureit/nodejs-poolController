@@ -3410,8 +3410,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                             //chem.address = address;
                             chem.body = body;
                             chem.calciumHardness = calciumHardness;
-                            chem.orp.setpoint = orpSetpoint;
-                            chem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = cstate.orp.setpoint = orpSetpoint;
+                            chem.ph.setpoint = cstate.ph.setpoint = pHSetpoint;
                             chem.cyanuricAcid = cyanuricAcid;
                             chem.alkalinity = alkalinity;
                             chem.type = 2;
@@ -3491,8 +3491,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                             chem.address = address;
                             chem.body = body;
                             chem.calciumHardness = calciumHardness;
-                            chem.orp.setpoint = orpSetpoint;
-                            chem.ph.setpoint = pHSetpoint;
+                            chem.orp.setpoint = cstate.orp.setpoint = orpSetpoint;
+                            chem.ph.setpoint = cstate.ph.setpoint = pHSetpoint;
                             chem.cyanuricAcid = cyanuricAcid;
                             chem.alkalinity = alkalinity;
                             chem.type = 2;

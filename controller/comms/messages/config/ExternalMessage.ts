@@ -91,8 +91,8 @@ export class ExternalMessage {
             scontroller.name = controller.name = (controller.name || 'IntelliChem' + id);
             scontroller.body = controller.body = msg.extractPayloadByte(3);
             scontroller.address = controller.address = msg.extractPayloadByte(5);
-            controller.ph.setpoint = msg.extractPayloadInt(7) / 100;
-            controller.orp.setpoint = msg.extractPayloadInt(9);
+            controller.ph.setpoint = scontroller.ph.setpoint = msg.extractPayloadInt(7) / 100;
+            controller.orp.setpoint = scontroller.orp.setpoint = msg.extractPayloadInt(9);
             controller.calciumHardness = msg.extractPayloadInt(13);
             controller.cyanuricAcid = msg.extractPayloadInt(15);
             controller.alkalinity = msg.extractPayloadInt(17);

@@ -1539,6 +1539,8 @@ export class ChemicalState extends ChildEqState {
     public set enabled(val: boolean) { this.data.enabled = val; }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }
+    public get setpoint(): number { return this.data.setpoint; }
+    public set setpoint(val: number) { this.setDataVal('setpoint', val); }
     public get chemController(): ChemControllerState { return this.getParent() as ChemControllerState; }
     public get chemType(): string { return this.data.chemType; }
     public get delayTimeRemaining(): number { return this.data.delayTimeRemaining; }

@@ -943,7 +943,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.tank.setTankAsync(sph.tank, data.tank);
                 await this.pump.setPumpAsync(sph.pump, data.pump);
                 sph.enabled = this.ph.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.ph.enabled;
-                this.ph.setpoint = typeof data.setpoint !== 'undefined' ? parseFloat(data.setpoint) : this.ph.setpoint;
+                this.ph.setpoint = sph.setpoint = typeof data.setpoint !== 'undefined' ? parseFloat(data.setpoint) : this.ph.setpoint;
                 this.ph.phSupply = typeof data.phSupply !== 'undefined' ? data.phSupply : this.ph.phSupply;
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
                 this.ph.flowReadingsOnly = typeof data.flowReadingsOnly !== 'undefined' ? utils.makeBool(data.flowReadingsOnly) : this.ph.flowReadingsOnly;
@@ -1222,7 +1222,7 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.probe.setProbeORPAsync(sorp.probe, data.probe);
                 await this.tank.setTankAsync(sorp.tank, data.tank);
                 await this.pump.setPumpAsync(sorp.pump, data.pump);
-                this.orp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
+                this.orp.setpoint = sorp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.orp.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
                     if (typeof data.tolerance.low === 'number') this.orp.tolerance.low = data.tolerance.low;

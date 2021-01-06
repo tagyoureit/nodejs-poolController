@@ -71,9 +71,10 @@ export class IntellichemMessage {
             case 1:
                 for (let i = 0; i < 4; i++) {
                     let controller = sys.chemControllers.getItemById(i + 1, false);
+                    let scontroller = state.chemControllers.getItemById(i + 1, false);
                     if (controller.isActive) {
-                        controller.ph.setpoint = msg.extractPayloadInt((i * 2) + 2) / 100;
-                        controller.orp.setpoint = msg.extractPayloadInt((i * 2) + 10);
+                        controller.ph.setpoint = scontroller.ph.setpoint = msg.extractPayloadInt((i * 2) + 2) / 100;
+                        controller.orp.setpoint = scontroller.orp.setpoint = msg.extractPayloadInt((i * 2) + 10);
                         controller.calciumHardness = msg.extractPayloadInt((i * 2) + 18);
                         controller.alkalinity = msg.extractPayloadInt((i * 2) + 26);
                     }
