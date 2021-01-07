@@ -1813,7 +1813,13 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let msgs = this.createLightGroupMessages(grp);
             // Set all the info in the messages.
             for (let i = 0; i < 16; i++) {
-                let circuit = i < group.circuits.length ? group.circuits.getItemByIndex(i) : null;
+                let circuit = i < group.circuits.length ? group.circuits[i] : null;
+                if (circuit) {
+                    circuit.circuit = parseInt(circuit.circuit, 10);
+                    circuit.swimDelay = parseInt(circuit.swimDelay, 10) || 0;
+                    circuit.color = parseInt(circuit.color, 10) || 0;
+                    if (isNaN(circuit.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Circuit id is not valid ${circuit.circuit}`, 'lightGroup', circuit));
+                }
                 msgs.msg0.payload[i + 6] = circuit ? circuit.circuit - 1 : 255;
                 msgs.msg0.payload[i + 22] = circuit ? circuit.swimDelay || 0 : 0;
                 msgs.msg1.payload[i + 3] = circuit ? circuit.color || 0 : 255;
@@ -1825,9 +1831,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 msgs.msg0.onComplete = (err) => {
                     if (!err) {
                         for (let i = 0; i < group.circuits.length; i++) {
-                            let circuit = group.circuits.getItemByIndex(i, true);
-                            grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+                            let c = group.circuits[i];
+                            let circuit = grp.circuits.getItemByIndex(i, true);
+                            circuit.circuit = parseInt(c.circuit, 10);
+                            circuit.swimDelay = parseInt(c.swimDelay, 10);
+                            circuit.color = parseInt(c.color, 10);
+                            circuit.position = i + 1;
+                            //grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
                         }
+                        // Trim anything that was removed.
+                        grp.circuits.length = group.circuits.length;
                         resolve();
                     }
                     else reject(err);
@@ -1852,7 +1865,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 }
                 conn.queueSendMessage(msgs.msg2);
             });
-            return Promise.resolve(group);
+            return Promise.resolve(grp);
         }
         catch (err) { return Promise.reject(err); }
     }

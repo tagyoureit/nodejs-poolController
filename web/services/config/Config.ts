@@ -656,9 +656,10 @@ export class ConfigRoute {
         });
         app.put('/config/lightGroup/:id/setColors', async (req, res, next) => {
             try {
-                let grp = extend(true, { id: parseInt(req.params.id, 10) }, req.body);
+                let id = parseInt(req.params.id, 10);
+                let grp = extend(true, { id: id }, req.body);
                 await sys.board.circuits.setLightGroupAttribsAsync(grp);
-                return res.status(200).send(grp.getExtended());
+                return res.status(200).send(sys.lightGroups.getItemById(id).getExtended());
             }
             catch (err) { next(err); }
         });
