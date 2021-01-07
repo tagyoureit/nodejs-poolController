@@ -236,6 +236,16 @@
               "name": "max daily volume",
               "value": "@bind=data.ph.maxDailyVolumen;",
               "type": "int"
+            },
+            {
+              "name": "daily volume dosed",
+              "value": "@bind=data.ph.dailyVolumeDosed;",
+              "type": "int"
+            },
+            {
+              "name": "volume dosed",
+              "value": "@bind=data.ph.volumeDosed;",
+              "type": "int"
             }
             
           ]
@@ -396,8 +406,17 @@
               "name": "max daily volume",
               "value": "@bind=data.orp.maxDailyVolumen;",
               "type": "int"
+            },
+            {
+              "name": "daily volume dosed",
+              "value": "@bind=data.ph.dailyVolumeDosed;",
+              "type": "int"
+            },
+            {
+              "name": "volume dosed",
+              "value": "@bind=data.ph.volumeDosed;",
+              "type": "int"
             }
-            
           ]
         },
         {
