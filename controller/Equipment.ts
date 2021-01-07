@@ -1948,10 +1948,16 @@ export class ChemicalTank extends ChildEqItem {
     public initData() {
         if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
         if (typeof this.data.units === 'undefined') this.data.units = 0;
+        if (typeof this.data.alarmEmptyEnabled === 'undefined') this.data.alarmEmptyEnabled = true;
+        if (typeof this.data.alarmEmptyLevel === 'undefined') this.data.alarmEmptyLevel = 20;
         super.initData();
     }
     public get capacity(): number { return this.data.capacity; }
     public set capacity(val: number) { this.setDataVal('capacity', val); }
+    public get alarmEmptyEnabled(): boolean { return this.data.alarmEmptyEnabled; }
+    public set alarmEmptyEnabled(val: boolean) { this.setDataVal('alarmEmptyEnabled', val); }
+    public get alarmEmptyLevel(): number { return this.data.alarmEmptyLevel; }
+    public set alarmEmptyLevel(val: number) { this.setDataVal('alarmEmptyLevel', val); }
     public get units(): number | any { return this.data.units; }
     public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.volumeUnits.encode(val)); }
     public getExtended() {

@@ -996,7 +996,7 @@ export class BodyTempState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get temp(): number { return this.data.temp; }
     public set temp(val: number) { this.setDataVal('temp', val); }
-    public get type():number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
+    public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.bodyTypes.transform(val);
@@ -1694,6 +1694,8 @@ export class ChemicalTankState extends ChildEqState {
         if (typeof this.data.level === 'undefined') this.data.level == 0;
         if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
         if (typeof this.data.units === 'undefined') this.data.units = 0;
+        if (typeof this.data.alarmEmptyEnabled === 'undefined') this.data.alarmEmptyEnabled = true;
+        if (typeof this.data.alarmEmptyLevel === 'undefined') this.data.alarmEmptyLevel = 20;
     }
     public get chemical(): ChemicalState { return this.getParent() as ChemicalState; }
     public get chemController(): ChemControllerState {
@@ -1704,6 +1706,10 @@ export class ChemicalTankState extends ChildEqState {
     public set level(val: number) { this.setDataVal('level', val); }
     public get capacity(): number { return this.data.capacity; }
     public set capacity(val: number) { this.setDataVal('capacity', val); }
+    public get alarmEmptyEnabled(): boolean { return this.data.alarmEmptyEnabled; }
+    public set alarmEmptyEnabled(val: boolean) { this.setDataVal('alarmEmptyEnabled', val); }
+    public get alarmEmptyLevel(): number { return this.data.alarmEmptyLevel; }
+    public set alarmEmptyLevel(val: number) { this.setDataVal('alarmEmptyLevel', val); }
     public get units(): number | any { return typeof this.data.units !== 'undefined' ? this.data.units.val : undefined; }
     public set units(val: number | any) {
         let v = sys.board.valueMaps.volumeUnits.encode(val);
@@ -1788,7 +1794,7 @@ export class ChemControllerStateAlarms extends ChildEqState {
         }
     }
     public get pHTank(): number { return typeof this.data.pHTank === 'undefined' ? undefined : this.data.pHTank.val; }
-    public set pHTank(val: number) { 
+    public set pHTank(val: number) {
         if (this.pHTank !== val) {
             this.data.pHTank = sys.board.valueMaps.chemControllerAlarms.transform(val);
             this.hasChanged = true;
@@ -1866,7 +1872,7 @@ export class ChemControllerStateAlarms extends ChildEqState {
         }
     }
 }
-export class AppVersionState extends EqState{
+export class AppVersionState extends EqState {
     public get nextCheckTime(): string { return this.data.nextCheckTime; }
     public set nextCheckTime(val: string) { this.setDataVal('nextCheckTime', val); }
     public get isDismissed(): boolean { return this.data.isDismissed; }
@@ -1876,7 +1882,7 @@ export class AppVersionState extends EqState{
     public get githubRelease(): string { return this.data.githubRelease; }
     public set githubRelease(val: string) { this.setDataVal('githubRelease', val); }
     public get status(): number { return typeof this.data.status === 'undefined' ? undefined : this.data.status.val; }
-    public set status(val: number) { 
+    public set status(val: number) {
         if (this.status !== val) {
             this.data.status = sys.board.valueMaps.appVersionStatus.transform(val);
             this.hasChanged = true;
@@ -1903,7 +1909,7 @@ export class FilterState extends EqState {
         }
     }
     public get filterType(): number { return typeof this.data.filterType === 'undefined' ? undefined : this.data.filterType.val; }
-    public set filterType(val: number) { 
+    public set filterType(val: number) {
         if (this.filterType !== val) {
             this.data.filterType = sys.board.valueMaps.filterTypes.transform(val);
             this.hasChanged = true;

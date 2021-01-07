@@ -311,7 +311,8 @@ export class NixieChemController extends NixieEquipment {
                 let useChlorinator = chem.orp.useChlorinator;
                 let pumpType = chem.orp.pump.type;
                 let probeType = chem.orp.probe.type;
-                schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.level <= 0 ? 64 : 0;
+                let currLevelPercent = schem.orp.tank.level / schem.orp.tank.capacity * 100;
+                schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.alarmEmptyEnabled && currLevelPercent <= schem.orp.tank.alarmEmptyLevel ? 64 : 0;
                 if (this.chem.orp.maxDailyVolume < schem.orp.dailyVolumeDosed) {
                     schem.warnings.orpDailyLimitReached = 4;
                     schem.orp.dailyLimitReached = true;
@@ -342,7 +343,8 @@ export class NixieChemController extends NixieEquipment {
             if (this.chem.ph.enabled) {
                 let pumpType = chem.ph.pump.type;
                 let probeType = chem.ph.probe.type;
-                schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.level <= 0 ? 32 : 0;
+                let currLevelPercent = schem.ph.tank.level / schem.ph.tank.capacity * 100;
+                schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.alarmEmptyEnabled && currLevelPercent <= schem.ph.tank.alarmEmptyLevel ? 32 : 0;
                 schem.warnings.pHDailyLimitReached = 0;
                 if (this.chem.ph.maxDailyVolume < schem.ph.dailyVolumeDosed) {
                     schem.warnings.pHDailyLimitReached = 2;
@@ -634,6 +636,8 @@ export class NixieChemTank extends NixieChildEquipment {
                 stank.level = typeof data.level !== 'undefined' ? parseFloat(data.level) : stank.level;
                 stank.capacity = this.tank.capacity = typeof data.capacity !== 'undefined' ? parseFloat(data.capacity) : stank.capacity;
                 stank.units = this.tank.units = typeof data.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.units) : this.tank.units;
+                stank.alarmEmptyEnabled = this.tank.alarmEmptyEnabled = typeof data.alarmEmptyEnabled !== 'undefined' ? data.alarmEmptyEnabled : stank.alarmEmptyEnabled;
+                stank.alarmEmptyLevel = this.tank.alarmEmptyLevel = typeof data.alarmEmptyLevel !== 'undefined' ? data.alarmEmptyLevel : stank.alarmEmptyLevel;
             }
         }
         catch (err) { return Promise.reject(err); }
