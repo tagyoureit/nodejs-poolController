@@ -1052,11 +1052,12 @@ export class NixieChemicalPh extends NixieChemical {
                     let dose = sph.dosingVolumeRemaining;
                     let time = sph.dosingTimeRemaining;
                     dosage.set({
-                        startDate: new Date(), schem: sph, method: sys.board.valueMaps.chemDosingMethods.transformByName('volume'), setpoint: this.ph.setpoint, level: sph.level,
+                        schem: sph, method: sys.board.valueMaps.chemDosingMethods.transformByName('volume'), setpoint: this.ph.setpoint, level: sph.level,
                         volume: dose, time: time, maxVolume: dose, maxTime: time, isManual: true
                     });
                     // For a manual dose we will pick up where we left off.
                     this.currentDose = dosage;
+                    dosage.demand = demand;
                 }
                 if (sph.tank.level > 0) {
                     logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
@@ -1267,6 +1268,7 @@ export class NixieChemicalPh extends NixieChemical {
             let dosage: NixieChemDose = new NixieChemDose(new Date());
             let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
             dosage.set({ startDate: new Date(), isManual: true, schem: sph, demand: 0, method: meth, setpoint: this.ph.setpoint, level: sph.level, volume: volume, time: time, maxVolume: volume, maxTime: time });
+            dosage.demand = this.calcDemand(sph);
             sph.doseTime = dosage.time;
             sph.doseVolume = dosage.volume;
             sph.manualDosing = true;
