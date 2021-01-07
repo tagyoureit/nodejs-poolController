@@ -615,9 +615,9 @@ class NixieChemical extends NixieChildEquipment {
                 this.doseHistory.splice(i, 1);
             }
         }
-        //if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
-        //    total += this.currentDose.volumeDosed;
-        //}
+        if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
+            total += this.currentDose.volumeDosed;
+        }
         return total;
     }
 }
@@ -860,11 +860,8 @@ export class NixieChemPump extends NixieChildEquipment {
                     dosage.schem.dosingTimeRemaining = dosage.timeRemaining;
                     dosage.schem.dosingStatus = 0;
                 }
-                else {
-                    await this.turnOff(dosage.schem);
-                    //await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
-                    //dosage.schem.pump.isDosing = this.isOn = false;
-                }
+                else 
+                    await this.chemical.cancelDosing(dosage.schem);
             }
             else if (type === 'ezo-pmp') {
                 logger.info(`Attempting to dose ezo pump`);
@@ -873,13 +870,8 @@ export class NixieChemPump extends NixieChildEquipment {
             // Check to see if we reached our max dosing time or volume or the tank is empty mix it up.
             let status = dosage.schem.dosingStatus;
             if (status === 0) {
-                if (dosage.maxTime < (dosage.timeDosed / 1000) ||
-                    dosage.maxVolume < dosage.volumeDosed ||
-                    dosage.schem.tank.level <= 0) {
+                if (dosage.maxTime < (dosage.timeDosed / 1000) || dosage.maxVolume < dosage.volumeDosed || dosage.schem.tank.level <= 0) {
                     await this.chemical.cancelDosing(dosage.schem);
-                    await this.chemical.mixChemicals(dosage.schem);
-                    //status = 2;
-                    //await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
                 }
             }
             //dosage.schem.dosingStatus = status;
