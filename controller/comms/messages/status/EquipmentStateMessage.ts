@@ -346,10 +346,13 @@ export class EquipmentStateMessage {
                 // We have determined that the 204 message now contains the information
                 // related to the installed expansion boards.
                 console.log(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
+                // Master = 13-14
+                // EXP1 = 15-16
+                // EXP2 = 17-18
                 board.initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
-                    msg.extractPayloadByte(15),
-                    msg.extractPayloadByte(16),
-                    msg.extractPayloadByte(17));
+                    msg.extractPayloadByte(15), msg.extractPayloadByte(16),
+                    msg.extractPayloadByte(17), msg.extractPayloadByte(18),
+                    msg.extractPayloadByte(19), msg.extractPayloadByte(20));
                 sys.equipment.setEquipmentIds();
             }
             else return;
