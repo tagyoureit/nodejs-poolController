@@ -63,10 +63,10 @@ export class EquipmentStateMessage {
                 sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
                 sys.equipment.maxCircuitGroups = 0;
                 break;
-            case 0:
+            case 0: // Intellitouch i5+3
                 sys.controllerType = ControllerType.IntelliTouch;
                 sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-                sys.equipment.model = 'IntelliTouch i5+3S';
+                sys.equipment.model = 'IntelliTouch i5+3';
                 sys.equipment.maxBodies = 2;
                 sys.equipment.maxFeatures = 10;
                 sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.

@@ -157,7 +157,7 @@ export class Heliotrope {
             this.isCalculated = true;
         }
         else {
-            logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.`);
+            logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.  See https://github.com/tagyoureit/nodejs-poolController/issues/245`);
             this.isValid = false;
             this._dtSunset = undefined;
             this._dtSunrise = undefined;
