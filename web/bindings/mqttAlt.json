@@ -85,7 +85,7 @@
         },
         {
           "topic": "state/circuits/@bind=data.id;/showInFeatures",
-          "message": "@bind=data.showInFeatures;}",
+          "message": "@bind=data.showInFeatures;",
           "description": "Indicates wether the item should show in features."
         }
       ]
@@ -111,7 +111,7 @@
         },
         {
           "topic": "state/features/@bind=data.id;/showInFeatures",
-          "message": "@bind=data.showInFeatures;}",
+          "message": "@bind=data.showInFeatures;",
           "description": "Indicates wether the item should show in features."
         }
       ]
@@ -159,13 +159,15 @@
           "description": "Bind the on/off status to the topic."
         },
         {
-          "topic": "state/circuitGroups/@bind=data.id;/action",
-          "message": "@bind=data.action;"
-        },
-        {
           "topic": "state/circuitGroups/@bind=data.id;/type",
           "message": "@bind=data.type;"
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/showInFeatures",
+          "message": "@bind=data.showInFeatures;",
+          "description": "Indicates wether the item should show in features."
         }
+
       ]
     },
     {
@@ -194,38 +196,37 @@
       "description": "Populate the valve topics",
       "topics": [
         {
-          "topic": "state/valve/@bind=data.id;",
+          "topic": "state/valves/@bind=data.id;",
           "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isDiverted?'\"on\"':'\"off\"';,\"isVirtual\":@bind=data.isVirtual? true: false;,\"pinId\": @bind=data.pinId;}",
           "description": "Bind 'on'/'off' as a message to the valve state topic.",
           "enabled": false
         },
         {
-          "topic": "state/valve/@bind=data.id;/name",
+          "topic": "state/valves/@bind=data.id;/name",
           "message": "@bind=data.name;",
           "description": "The name of the valve"
         },
         {
-          "topic": "state/valve/@bind=data.id;/type",
+          "topic": "state/valves/@bind=data.id;/type",
           "message": "@bind=data.type;",
           "description": "The type of valve we are dealing with."
         },
         {
-          "topic": "state/valve/@bind=data.id;/isDiverted",
+          "topic": "state/valves/@bind=data.id;/isDiverted",
           "message": "@bind=data.isDiverted;",
           "description": "Indicates whether the valve is diverted"
         },
         {
-          "topic": "state/valve/@bind=data.id;/isVirtual",
+          "topic": "state/valves/@bind=data.id;/isVirtual",
           "message": "@bind=data.isVirtual;",
           "description": "Indicates whether the valve is virtual"
         },
         {
-          "topic": "state/valve/@bind=data.id;/pinId",
+          "topic": "state/valves/@bind=data.id;/pinId",
           "message": "@bind=data.pinId;",
           "description": "The pin id that is set on the valve",
           "filter": "@bind=data.isVirtual === true;"
         }
-
       ]
     },
     {
@@ -239,7 +240,7 @@
         },
         {
           "topic": "state/temps/solar",
-          "message": "{\"temp\":@bind=data.solar;}",
+          "message": "@bind=data.solar;",
           "description": "Solar temp",
           "filter": "@bind=typeof data.solar !== 'undefined';"
         },
