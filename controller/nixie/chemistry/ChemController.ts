@@ -55,7 +55,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
     public async searchIntelliChem() {
         try {
             for (let i = 0; i < sys.equipment.maxChemControllers; i++) {
-                let found = await sys.board.chemControllers.pollIntelliChem(144 + i);
+                let found = await sys.board.chemControllers.pollIntelliChemAsync(144 + i);
                 if (found) {
                     let chem = sys.chemControllers.getItemByAddress(144 + 1, true);
                     chem.isActive = true;
@@ -95,7 +95,7 @@ export class NixieChemController extends NixieEquipment {
         this.orp = new NixieChemicalORP(this, chem.orp);
         this.ph = new NixieChemicalPh(this, chem.ph);
         this.flowSensor = new NixieChemFlowSensor(this, chem.flowSensor);
-        this.pollEquipment();
+        this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.chem !== 'undefined' ? this.chem.id : -1; }
     public get calciumHardnessFactor(): number {
@@ -216,40 +216,41 @@ export class NixieChemController extends NixieEquipment {
             this.dissolvedSolidsFactor) * 1000) / 1000;
         schem.saturationIndex = isNaN(SI) ? undefined : SI;
     }
-    public async checkFlow(schem: ChemControllerState): Promise<boolean> {
-        try {
-            schem.isBodyOn = this.isBodyOn();
-            if (!schem.isBodyOn) this.flowDetected = schem.flowDetected = false;
-            else if (this.flowSensor.sensor.type === 0) this.flowDetected = schem.flowDetected = true;
-            else {
-                // Call out to REM to see if we have flow.
-                let ret = await this.flowSensor.getState();
-
-                // We should have state from the sensor but we want to keep this somewhat generic.
-                //[1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
-                //[2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
-                //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
-                if (this.flowSensor.sensor.type === 1) {
-                    // This is a flow switch.  The expectation is that it should be 0 or 1.
-                    this.flowDetected = schem.flowDetected = utils.makeBool(ret.obj.state);
-                }
-                else if (this.flowSensor.sensor.type == 2) {
-                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
+    public async checkFlowAsync(schem: ChemControllerState): Promise<boolean> {
+            try {
+                schem.isBodyOn = this.isBodyOn();
+                // rsg - we were not returning the flow sensor state when the body was off.  
+                // first, this would not allow us to retrieve a pressure of 0 to update flowSensor.state
+                // second, we can set a flow alarm if the expected flow doesn't match actual flow
+                if (this.flowSensor.sensor.type === 0) this.flowDetected = schem.flowDetected = true;
+                else {
+                    let ret = await this.flowSensor.getState();
                     schem.flowSensor.state = ret.obj.state;
-                }
-                else if (this.flowSensor.sensor.type == 4) {
-                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
-                    schem.flowSensor.state = ret.obj.state;
-                }
-                else 
+                    // Call out to REM to see if we have flow.
+                    
+                    // We should have state from the sensor but we want to keep this somewhat generic.
+                    //[1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
+                    //[2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
+                    //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
+                    if (this.flowSensor.sensor.type === 1) {
+                        // This is a flow switch.  The expectation is that it should be 0 or 1.
+                        this.flowDetected = schem.flowDetected = utils.makeBool(ret.obj.state);
+                    }
+                    else if (this.flowSensor.sensor.type == 2) {
+                        this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
+                    }
+                    else if (this.flowSensor.sensor.type == 4) {
+                        this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
+                    }
+                    else
                     this.flowDetected = schem.flowDetected = false;
-                schem.alarms.flowSensorFault = 0;
+                    schem.alarms.flowSensorFault = 0;
+                }
+                if (!schem.flowDetected) this.bodyOnTime = undefined;
+                else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
+                return schem.flowDetected;
             }
-            if (!schem.flowDetected) this.bodyOnTime = undefined;
-            else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
-            return schem.flowDetected;
-        }
-        catch (err) { schem.alarms.flowSensorFault = 7; return this.flowDetected = schem.flowDetected = false; }
+            catch (err) { schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; }
     }
     private get dissolvedSolidsFactor() { return this.chem.orp.useChlorinator ? 12.2 : 12.1; }
     private calculateTemperatureFactor(schem: ChemControllerState): number {
@@ -268,7 +269,7 @@ export class NixieChemController extends NixieEquipment {
         else if (tempC <= 34.4) return 0.8;
         return 0.9;
     }
-    public async pollEquipment() {
+    public async pollEquipmentAsync() {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
@@ -276,32 +277,47 @@ export class NixieChemController extends NixieEquipment {
             let schem = state.chemControllers.getItemById(this.chem.id, true);
             // We need to check on the equipment to make sure it is solid.
             if (sys.board.valueMaps.chemControllerTypes.getName(this.chem.type) === 'intellichem') {
-                success = await sys.board.chemControllers.pollIntelliChem(this.chem.address);
+                success = await sys.board.chemControllers.pollIntelliChemAsync(this.chem.address);
                 schem.alarms.comms = sys.board.valueMaps.chemControllerStatus.encode(success ? 'ok' : 'nocomms');
             }
             else if (sys.board.valueMaps.chemControllerTypes.getName(this.chem.type) === 'rem') {
-                schem.alarms.comms = 0;
-                schem.status = 0;
-                schem.lastComm = new Date().getTime();
-                await this.checkFlow(schem);
-                await this.validateSetup(this.chem, schem);
-                if (this.chem.ph.enabled) await this.ph.probe.setTempCompensation(schem.ph.probe);
-                // We are not processing Homegrown at this point.
-                // Check each piece of equipment to make sure it is doing its thing.
-                this.calculateSaturationIndex();
-                await this.processAlarms(schem);
-                if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
-                if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
+                if ( NixieEquipment.isConnected) {
+                    schem.alarms.comms = 0;
+                    schem.status = 0;
+                    schem.lastComm = new Date().getTime();
+                    await this.checkFlowAsync(schem);
+                    await this.validateSetupAsync(this.chem, schem);
+                    if (this.chem.ph.enabled) await this.ph.probe.setTempCompensationAsync(schem.ph.probe);
+                    // We are not processing Homegrown at this point.
+                    // Check each piece of equipment to make sure it is doing its thing.
+                    this.calculateSaturationIndex();
+                    this.processAlarms(schem);
+                    if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
+                    if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
+                }
             }
         }
-        catch (err) { logger.error(`Error polling Chem Controller`); }
-        finally { this._pollTimer = setTimeout(() => this.pollEquipment(), this.pollingInterval || 10000); }
+        catch (err) { logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err);}
+        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
-    public async processAlarms(schem: ChemControllerState) {
+    public processAlarms(schem: ChemControllerState) {
         try {
             // Calculate all the alarms.  These are only informational at this point.
-            if (!schem.isBodyOn) schem.alarms.flow = 0;
-            else schem.alarms.flow = schem.flowDetected ? 0 : 1;
+            if (this.flowSensor.sensor.type === 0) {
+                if (!schem.isBodyOn) schem.alarms.flow = 0;
+            }
+            else {
+                if (this.flowSensor.sensor.type === 1) {
+                    schem.alarms.flow = schem.isBodyOn === schem.flowDetected ? 0 : 1;
+                }
+                else {
+                    // both flow and pressure sensors (type 2 & 4)
+                    if (schem.isBodyOn && schem.flowSensor.state === 0 || !schem.isBodyOn && schem.flowSensor.state > 0) {
+                        schem.alarms.flow = 1;
+                    }
+                    else schem.alarms.flow = 0;
+                }
+            }
             schem.ph.dailyVolumeDosed = this.ph.calcTotalDosed(24, true);
             schem.orp.dailyVolumeDosed = this.orp.calcTotalDosed(24, true);
             let chem = this.chem;
@@ -367,20 +383,20 @@ export class NixieChemController extends NixieEquipment {
             }
         } catch (err) { logger.error(`Error processing chem controller ${this.chem.name} alarms: ${err.message}`); return Promise.reject(err); }
     }
-    private async checkHardwareStatus(connectionId: string, deviceBinding: string) {
+    private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
             let dev = await NixieEquipment.getDeviceService(connectionId, `/status/device/${deviceBinding}`);
             return dev;
         } catch (err) { return { hasFault: true } }
     }
-    public async validateSetup(chem: ChemController, schem: ChemControllerState) {
+    public async validateSetupAsync(chem: ChemController, schem: ChemControllerState) {
         try {
             // The validation will be different if the body is on or not.  So lets get that information.
             if (chem.orp.enabled) {
                 if (chem.orp.probe.type !== 0) {
                     let type = sys.board.valueMaps.chemORPProbeTypes.transform(chem.orp.probe.type);
                     if (type.remAddress) {
-                        let dev = await this.checkHardwareStatus(chem.orp.probe.connectionId, chem.orp.probe.deviceBinding);
+                        let dev = await this.checkHardwareStatusAsync(chem.orp.probe.connectionId, chem.orp.probe.deviceBinding);
                         schem.alarms.orpProbeFault = dev.hasFault ? 3 : 0;
                     }
                     else schem.alarms.orpProbeFault = 0;
@@ -395,7 +411,7 @@ export class NixieChemController extends NixieEquipment {
                     let type = sys.board.valueMaps.chemPumpTypes.transform(chem.orp.pump.type);
                     schem.alarms.chlorFault = 0;
                     if (type.remAddress) {
-                        let dev = await this.checkHardwareStatus(chem.orp.pump.connectionId, chem.orp.pump.deviceBinding);
+                        let dev = await this.checkHardwareStatusAsync(chem.orp.pump.connectionId, chem.orp.pump.deviceBinding);
                         schem.alarms.orpPumpFault = dev.hasFault ? 4 : 0;
                     }
                     else schem.alarms.orpPumpFault = 0;
@@ -408,7 +424,7 @@ export class NixieChemController extends NixieEquipment {
                 if (chem.ph.probe.type !== 0) {
                     let type = sys.board.valueMaps.chemPhProbeTypes.transform(chem.ph.probe.type);
                     if (type.remAddress) {
-                        let dev = await this.checkHardwareStatus(chem.ph.probe.connectionId, chem.ph.probe.deviceBinding);
+                        let dev = await this.checkHardwareStatusAsync(chem.ph.probe.connectionId, chem.ph.probe.deviceBinding);
                         schem.alarms.pHProbeFault = dev.hasFault ? 1 : 0;
                     }
                     else schem.alarms.pHProbeFault = 0;
@@ -417,7 +433,7 @@ export class NixieChemController extends NixieEquipment {
                 if (chem.ph.pump.type !== 0) {
                     let type = sys.board.valueMaps.chemPumpTypes.transform(chem.ph.probe.type);
                     if (type.remAddress) {
-                        let dev = await this.checkHardwareStatus(chem.ph.pump.connectionId, chem.ph.pump.deviceBinding);
+                        let dev = await this.checkHardwareStatusAsync(chem.ph.pump.connectionId, chem.ph.pump.deviceBinding);
                         schem.alarms.pHPumpFault = dev.hasFault ? 2 : 0;
                     }
                     else schem.alarms.pHPumpFault = 0;
@@ -712,7 +728,7 @@ export class NixieChemDose {
         if (typeof chem !== 'undefined' && typeof chem.chemController !== 'undefined' && typeof this.schem !== 'undefined') {
             let log = NixieChemDoseLog.fromDose(this);
             chem.chemController.logData(`chemDosage_${this.schem.chemType}.log`, log.toLog());
-                //`{"id":${chem.chemController.chem.id},"method":"${this.isManual ? 'manual' : 'auto'}","chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","demand":${this.demand},"level": ${this.level},"volume": ${this.volume},"volumeDosed": ${this.volumeDosed},"timeDosed": "${utils.formatDuration(this.timeDosed / 1000)}"}`);
+            //`{"id":${chem.chemController.chem.id},"method":"${this.isManual ? 'manual' : 'auto'}","chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","demand":${this.demand},"level": ${this.level},"volume": ${this.volume},"volumeDosed": ${this.volumeDosed},"timeDosed": "${utils.formatDuration(this.timeDosed / 1000)}"}`);
             chem.doseHistory.unshift(log);
         }
     }
@@ -864,7 +880,7 @@ export class NixieChemPump extends NixieChildEquipment {
                     dosage.schem.dosingTimeRemaining = dosage.timeRemaining;
                     dosage.schem.dosingStatus = 0;
                 }
-                else 
+                else
                     await this.chemical.cancelDosing(dosage.schem);
             }
             else if (type === 'ezo-pmp') {
@@ -984,7 +1000,7 @@ export class NixieChemicalPh extends NixieChemical {
                         }
                         this.ph.dosePriority = b;
                     }
-                    
+
                 }
             }
         }
@@ -1135,6 +1151,7 @@ export class NixieChemicalPh extends NixieChemical {
                     }
                     else await this.cancelDosing(sph);
                 }
+                return true;
                 //if (sph.level !== this.ph.setpoint) {
                 //    // Calculate how many mL are required to raise to our pH level.
                 //    // 1. Get the total gallons of water that the chem controller is in
@@ -1533,21 +1550,26 @@ export class NixieChemProbePh extends NixieChemProbe {
             }
         } catch (err) { return Promise.reject(err); }
     }
-    public async setTempCompensation(sprobe: ChemicalProbePHState) {
-        if (this.probe.feedBodyTemp) {
-            if (this.probe.type !== 0) {
-                // Set the current body so that it references the temperature of the current running body.
-                let body = sys.board.bodies.getBodyState(this.chemical.chemController.chem.body);
-                if (typeof body !== 'undefined' && body.isOn) {
-                    let units = sys.board.valueMaps.tempUnits.transform(sys.general.options.units);
-                    let obj = {};
-                    obj[`temp${units.name.toUpperCase()}`] = body.temp;
-                    sprobe.tempUnits = units.val;
-                    sprobe.temperature = body.temp; // set temp for lsi calc
-                    let res = await NixieEquipment.putDeviceService(this.probe.connectionId, `/feed/device/${this.probe.deviceBinding}`, obj);
+    public async setTempCompensationAsync(sprobe: ChemicalProbePHState) {
+        try {
+
+            if (this.probe.feedBodyTemp) {
+                if (this.probe.type !== 0) {
+                    // Set the current body so that it references the temperature of the current running body.
+                    let body = sys.board.bodies.getBodyState(this.chemical.chemController.chem.body);
+                    if (typeof body !== 'undefined' && body.isOn) {
+                        let units = sys.board.valueMaps.tempUnits.transform(sys.general.options.units);
+                        let obj = {};
+                        obj[`temp${units.name.toUpperCase()}`] = body.temp;
+                        sprobe.tempUnits = units.val;
+                        sprobe.temperature = body.temp; // set temp for lsi calc
+                        let res = await NixieEquipment.putDeviceService(this.probe.connectionId, `/feed/device/${this.probe.deviceBinding}`, obj);
+        
+                    }
                 }
             }
         }
+        catch (err) { return Promise.reject(err);}
     }
 }
 export class NixieChemProbeORP extends NixieChemProbe {

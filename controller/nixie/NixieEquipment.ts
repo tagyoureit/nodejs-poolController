@@ -11,6 +11,7 @@ export class NixieEquipment {
     constructor(ncp: INixieControlPanel) { this._pmap['ncp'] = ncp; }
     public get controlPanel(): INixieControlPanel { return this._pmap['ncp']; }
     public get id(): number { return -1; }
+    public static get isConnected(): boolean {let server = webApp.findServer('Relay Equipment Manager'); return server.isConnected}
     public static async putDeviceService(uuid: string, url: string, data?: any): Promise<InterfaceServerResponse> {
         try {
             let result: InterfaceServerResponse;

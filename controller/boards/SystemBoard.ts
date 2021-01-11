@@ -3533,7 +3533,7 @@ export class ChemControllerCommands extends BoardCommands {
         if (sys.chlorinators.length && sys.chlorinators.getItemById(1).isActive) chlorInstalled = true;
         return chlorInstalled ? 12.2 : 12.1;
     }
-    public async pollIntelliChem(address: number): Promise<boolean> {
+    public async pollIntelliChemAsync(address: number): Promise<boolean> {
         try {
             // Send a 210 message out and see if we get an ACK or an action 18 from the controller address. Either will suffice
             // to indicate that the controller exists.
