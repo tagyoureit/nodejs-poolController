@@ -263,13 +263,13 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public async stopAsync() { this._configQueue.close(); return super.stopAsync();}
-    public initExpansionModules(ocp0A: number, ocp0B: number, ocp1A: number, ocp1B: number, ocp2A: number, ocp2B: number, ocp3A: number, ocp3B: number) {
+    public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);
         // Here we need to set the start id should we have a single body system.
         if (!inv.shared && !inv.dual) { sys.board.equipmentIds.circuits.start = 2; } // We are a single body system.
-        this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), ocp1A, ocp1B, inv);
-        this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), ocp2A, ocp2B, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), xcp1A, xcp1B, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), xcp2A, xcp2B, inv);
         // We are still unsure how the 3rd power center is encoded.  For now we are simply un-installing it.
         this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), 0, 0, inv);
         if (inv.bodies !== sys.equipment.maxBodies ||
@@ -279,8 +279,8 @@ export class IntelliCenterBoard extends SystemBoard {
             inv.valves !== sys.equipment.maxValves) {
             sys.resetData();
             this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), ocp1A, ocp1B);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), ocp2A, ocp2B);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), xcp1A, xcp1B);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), xcp2A, xcp2B);
             this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), 0, 0);
         }
         sys.equipment.maxBodies = inv.bodies;

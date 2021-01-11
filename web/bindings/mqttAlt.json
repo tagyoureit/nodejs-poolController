@@ -1,0 +1,553 @@
+{
+    "context": {
+        "name": "MQTT",
+        "options": {
+            "formatter": [
+                {
+                    "transform": ".toLowerCase()"
+                },
+                {
+                    "regexkey": "\\s",
+                    "replace": "",
+                    "description": "Remove whitespace"
+                },
+                {
+                    "regexkey": "\\/",
+                    "replace": "",
+                    "description": "Remove /"
+                },
+                {
+                    "regexkey": "\\+",
+                    "replace": "",
+                    "description": "Remove +"
+                },
+                {
+                    "regexkey": "\\$",
+                    "replace": "",
+                    "description": "Remove $"
+                },
+                {
+                    "regexkey": "\\#",
+                    "replace": "",
+                    "description": "Remove #"
+                }
+            ],
+            "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
+            "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
+            "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
+        }
+    },
+  "events": [
+    {
+      "name": "config",
+      "description": "Don't flood the MQTT bus.",
+      "enabled": false
+    },
+    {
+      "name": "controller",
+      "description": "Emit time every minute",
+      "enabled": true,
+      "topics": [
+        {
+          "topic": "state/time",
+          "message": "@bind=data.time;"
+        },
+        {
+          "topic": "alias",
+          "message": "@bind=data.alias;"
+        }
+      ]
+    },
+    {
+      "name": "circuit",
+      "description": "Populate the circuits topics",
+      "topics": [
+        {
+          "topic": "state/circuits/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name."
+        },
+        {
+          "topic": "state/circuits/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/circuits/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "The type of circuit we are dealing with."
+        },
+        {
+          "topic": "state/circuits/@bind=data.id;/lightingTheme",
+          "message": "@bind=data.lightingTheme;",
+          "description": "Bind the lighting theme to the topic.",
+          "filter": "@bind=data.type.isLight === true;"
+        },
+        {
+          "topic": "state/circuits/@bind=data.id;/showInFeatures",
+          "message": "@bind=data.showInFeatures;}",
+          "description": "Indicates wether the item should show in features."
+        }
+      ]
+    },
+    {
+      "name": "feature",
+      "description": "Populate the features topics",
+      "topics": [
+        {
+          "topic": "state/features/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "The type of feature we are dealing with."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/showInFeatures",
+          "message": "@bind=data.showInFeatures;}",
+          "description": "Indicates wether the item should show in features."
+        }
+      ]
+    },
+    {
+      "name": "lightGroup",
+      "description": "Populate the lightGroup topic",
+      "topics": [
+        {
+          "topic": "state/lightGroups/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind name to the state topic."
+        },
+        {
+          "topic": "state/lightGroups/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/lightGroups/@bind=data.id;/action",
+          "message": "@bind=data.action;"
+        },
+        {
+          "topic": "state/lightGroups/@bind=data.id;/lightingTheme",
+          "message": "@bind=data.lightingTheme;"
+        },
+        {
+          "topic": "state/lightGroups/@bind=data.id;/type",
+          "message": "@bind=data.type;"
+        }
+      ]
+    },
+    {
+      "name": "circuitGroup",
+      "description": "Populate the circuitGroup topic",
+      "topics": [
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind name to the state topic."
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/action",
+          "message": "@bind=data.action;"
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/type",
+          "message": "@bind=data.type;"
+        }
+      ]
+    },
+    {
+      "name": "virtualCircuit",
+      "description": "Populate the virtual circuits topics",
+      "topics": [
+        {
+          "topic": "state/virtualCircuits/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name."
+        },
+        {
+          "topic": "state/virtualCircuits/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/virtualCircuits/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "The type of circuit we are dealing with."
+        }
+      ]
+    },
+    {
+      "name": "valve",
+      "description": "Populate the valve topics",
+      "topics": [
+        {
+          "topic": "state/valve/@bind=data.id;",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isDiverted?'\"on\"':'\"off\"';,\"isVirtual\":@bind=data.isVirtual? true: false;,\"pinId\": @bind=data.pinId;}",
+          "description": "Bind 'on'/'off' as a message to the valve state topic.",
+          "enabled": false
+        },
+        {
+          "topic": "state/valve/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "The name of the valve"
+        },
+        {
+          "topic": "state/valve/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "The type of valve we are dealing with."
+        },
+        {
+          "topic": "state/valve/@bind=data.id;/isDiverted",
+          "message": "@bind=data.isDiverted;",
+          "description": "Indicates whether the valve is diverted"
+        },
+        {
+          "topic": "state/valve/@bind=data.id;/isVirtual",
+          "message": "@bind=data.isVirtual;",
+          "description": "Indicates whether the valve is virtual"
+        },
+        {
+          "topic": "state/valve/@bind=data.id;/pinId",
+          "message": "@bind=data.pinId;",
+          "description": "The pin id that is set on the valve",
+          "filter": "@bind=data.isVirtual === true;"
+        }
+
+      ]
+    },
+    {
+      "name": "temps",
+      "description": "Populate the temps topics",
+      "topics": [
+        {
+          "topic": "state/temps/air",
+          "message": "@bind=data.air;",
+          "description": "Air temp."
+        },
+        {
+          "topic": "state/temps/solar",
+          "message": "{\"temp\":@bind=data.solar;}",
+          "description": "Solar temp",
+          "filter": "@bind=typeof data.solar !== 'undefined';"
+        },
+        {
+          "topic": "state/temps/units",
+          "message": "@bind=data.units;"
+        }
+      ]
+    },
+    {
+      "name": "body",
+      "description": "Populate the body topic",
+      "filter": "@bind=data.isActive;",
+      "topics": [
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/isOn",
+          "message": "@bind=data.isOn;",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/circuit",
+          "message": "@bind=data.circuit;",
+          "description": "Bind the associated circuit."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/heatMode",
+          "message": "@bind=data.heatMode;",
+          "description": "Heat mode."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/heatStatus",
+          "message": "@bind=data.heatStatus;",
+          "description": "Heat status."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/setPoint",
+          "message": "@bind=data.setPoint;",
+          "description": "Setpoint."
+        },
+        {
+          "topic": "state/temps/bodies/@bind=data.id;/temp",
+          "message": "@bind=data.temp;",
+          "description": "Body Temp."
+        }
+      ]
+    },
+    {
+      "name": "chlorinator",
+      "description": "Populate the chlorinator topic",
+      "topics": [
+        {
+          "topic": "state/chlorinators/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name topic."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/isOn",
+          "message": "@bind=data.currentOutput > 0;",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/currentOutput",
+          "message": "@bind=data.currentOutput;",
+          "description": "Send current output."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/poolSetpoint",
+          "message": "@bind=data.poolSetpoint;",
+          "description": "Send pool setpoint."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/spaSetpoint",
+          "message": "@bind=data.spaSetpoint;",
+          "description": "Send set point."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/status",
+          "message": "@bind=data.status;",
+          "description": "Send status."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/superChlor",
+          "message": "@bind=data.superChlor;",
+          "description": "Send superChlor."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/superChlorHours",
+          "message": "@bind=data.superChlorHours;",
+          "description": "Send superChlorHours."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/saltLevel",
+          "message": "@bind=data.saltLevel;",
+          "description": "Send salt level."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/type",
+          "message": "@bind=data.type;",
+          "description": "Send type."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/targetOutput",
+          "message": "@bind=data.targetOutput;",
+          "description": "Send targetOutput."
+        },
+        {
+          "topic": "state/chlorinators/@bind=data.id;/virtualControllerStatus",
+          "message": "@bind=data.virtualControllerStatus;",
+          "description": "Send virtualControllerStatus."
+        }
+      ]
+    },
+    {
+      "name": "pump",
+      "description": "Populate the pumps topic",
+      "topics": [
+        {
+          "topic": "state/pumps/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind name to the state topic."
+        },
+        {
+          "topic": "state/pumps/@bind=data.id;/isOn",
+          "message": "@bind=data.rpm + data.flow > 0;"
+        },
+        {
+          "topic": "state/pumps/@bind=data.id;/rpm",
+          "message": "@bind=data.rpm;"
+        },
+        {
+          "topic": "state/pumps/@bind=data.id;/flow",
+          "message": "@bind=data.flow;"
+        },
+        {
+          "topic": "state/pumps/@bind=data.id;/watts",
+          "message": "@bind=data.watts;"
+        },
+        {
+          "topic": "state/pumps/@bind=data.id;/status",
+          "message": "@bind=data.status;"
+        }
+      ]
+    },
+    {
+      "name": "chemController",
+      "description": "Populate the chemControllers topic",
+      "topics": [
+        {
+          "topic": "state/chemControllers/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/ph/tankLevel",
+          "message": "@bind=data.ph.tank.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/ph/setpoint",
+          "message": "@bind=data.ph.setpoint;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/ph/level",
+          "message": "@bind=data.ph.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/ph/doseTime",
+          "message": "@bind=data.ph.doseTime;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/ph/doseVolume",
+          "message": "@bind=data.ph.doseVolume;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/tankLevel",
+          "message": "@bind=data.orp.tank.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/setpoint",
+          "message": "@bind=data.orp.setpoint;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/level",
+          "message": "@bind=data.orp.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/doseTime",
+          "message": "@bind=data.orp.doseTime;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/doseVolume",
+          "message": "@bind=data.orp.doseVolume;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/orp/saltLevel",
+          "message": "@bind=data.orp.saltLevel;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/saturationIndex",
+          "message": "@bind=data.saturationIndex;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/status",
+          "message": "@bind=data.status;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/type",
+          "message": "@bind=data.type;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/alkalinity",
+          "message": "@bind=sys.chemControllers.getItemById(data.id).alkalinity;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/calciumHardness",
+          "message": "@bind=sys.chemControllers.getItemById(data.id).calciumHardness;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/cyanuricAcid",
+          "message": "@bind=sys.chemControllers.getItemById(data.id).cyanuricAcid;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/borates",
+          "message": "@bind=sys.chemControllers.getItemById(data.id).borates;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/virtualControllerStatus",
+          "message": "@bind=data.virtualControllerStatus;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/flow",
+          "message": "@bind=data.alarms.flow;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/ph",
+          "message": "@bind=data.alarms.pH;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/orp",
+          "message": "@bind=data.alarms.orp;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/phTank",
+          "message": "@bind=data.alarms.pHTank;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/orpTank",
+          "message": "@bind=data.alarms.orpTank;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/orpProbeFault",
+          "message": "@bind=data.alarms.orpProbeFault;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/alarms/pHProbeFault",
+          "message": "@bind=data.alarms.pHProbeFault;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/waterChemistry",
+          "message": "@bind=data.warnings.waterChemistry;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/pHLockout",
+          "message": "@bind=data.warnings.pHLockout;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/pHDailyLimitReached",
+          "message": "@bind=data.warnings.pHDailyLimitReached;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/orpDailyLimitReached",
+          "message": "@bind=data.warnings.orpDailyLimitReached;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/invalidSetup",
+          "message": "@bind=data.warnings.invalidSetup;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/warnings/chlorinatorCommError",
+          "message": "@bind=data.warnings.chlorinatorCommError;"
+        }
+      ]
+    },
+    {
+      "name": "*",
+      "description": "DEFAULT: Sends the entire emitted response.",
+      "body": "@bind=data;",
+      "enabled": false
+    }
+  ]
+}

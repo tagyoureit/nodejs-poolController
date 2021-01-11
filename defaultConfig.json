@@ -122,9 +122,29 @@
           "password": "",
           "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
           "retain": true,
-          "qos": 0
+          "qos": 0,
+          "changesOnly": true
         }
       },
+      "mqttAlt": {
+        "name": "MQTTAlt",
+        "type": "mqtt",
+        "enabled": false,
+        "fileName": "mqttAlt.json",
+        "globals": {},
+        "options": {
+          "protocol": "mqtt://",
+          "host": "192.168.0.1",
+          "port": 1883,
+          "username": "",
+          "password": "",
+          "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();Alt",
+          "retain": true,
+          "qos": 0,
+          "changesOnly": true
+        }
+      },
+
       "rem": {
         "name": "Relay Equipment Manager",
         "type": "rem",

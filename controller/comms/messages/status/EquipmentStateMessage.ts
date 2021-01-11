@@ -349,10 +349,11 @@ export class EquipmentStateMessage {
                 // Master = 13-14
                 // EXP1 = 15-16
                 // EXP2 = 17-18
+                let pc = msg.extractPayloadByte(40);
                 board.initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
-                    msg.extractPayloadByte(15), msg.extractPayloadByte(16),
-                    msg.extractPayloadByte(17), msg.extractPayloadByte(18),
-                    msg.extractPayloadByte(19), msg.extractPayloadByte(20));
+                    pc & 0x01 ? msg.extractPayloadByte(15) : 0x00, pc & 0x01 ? msg.extractPayloadByte(16) : 0x00,
+                    pc & 0x02 ? msg.extractPayloadByte(17) : 0x00, pc & 0x02 ? msg.extractPayloadByte(18) : 0x00,
+                    pc & 0x04 ? msg.extractPayloadByte(19) : 0x00, pc & 0x04 ? msg.extractPayloadByte(20) : 0x00);
                 sys.equipment.setEquipmentIds();
             }
             else return;

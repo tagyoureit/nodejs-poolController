@@ -101,7 +101,7 @@
               "description": "Remove / and replace with __"
             }
           ],
-          "qos": 2,
+          "options": { "qos": 2 },
           "enabled": false
         },
         {
@@ -314,52 +314,103 @@
       "description": "Populate the chemControllers topic",
       "topics": [
         {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/tankLevel",
+          "message": "@bind=data.ph.tank.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/setpoint",
+          "message": "@bind=data.ph.setpoint;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/level",
+          "message": "@bind=data.ph.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/doseTime",
+          "message": "@bind=data.ph.doseTime;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/doseVolume",
+          "message": "@bind=data.ph.doseVolume;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/tankLevel",
+          "message": "@bind=data.orp.tank.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/setpoint",
+          "message": "@bind=data.orp.setpoint;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/level",
+          "message": "@bind=data.orp.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/doseTime",
+          "message": "@bind=data.orp.doseTime;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/doseVolume",
+          "message": "@bind=data.orp.doseVolume;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/saltLevel",
+          "message": "@bind=data.orp.saltLevel;",
+          "enabled": true
+        },
+        {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/acidTankLevel",
-          "message": "{\"acidTankLevel\":@bind=data.acidTankLevel;}"
-        },
-        {
-          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/alkalinity",
-          "message": "{\"alkalinity\":@bind=data.alkalinity;}"
-        },
-        {
-          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/calciumHardness",
-          "message": "{\"calciumHardness\":@bind=data.calciumHardness;}"
-        },
-        {
-          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/cyanuricAcid",
-          "message": "{\"cyanuricAcid\":@bind=data.cyanuricAcid;}"
-        },
-        {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpDosingTime",
-          "message": "{\"orpDosingTime\":@bind=data.orpDosingTime;}"
-        },
-        {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpLevel",
-          "message": "{\"orpLevel\":@bind=data.orpLevel;}"
-        },
-        {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpSetpoint",
-          "message": "{\"orpSetpoint\":@bind=data.orpSetpoint;}"
+          "message": "{\"acidTankLevel\":@bind=data.ph.tank.level;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpTankLevel",
-          "message": "{\"orpTankLevel\":@bind=data.orpTankLevel;}"
+          "message": "{\"orpTankLevel\":@bind=data.orp.tank.level;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpDosingTime",
+          "message": "{\"orpDosingTime\":@bind=data.orp.doseTime;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHDosingTime",
-          "message": "{\"pHDosingTime\":@bind=data.pHDosingTime;}"
+          "message": "{\"pHDosingTime\":@bind=data.ph.doseTime;}"
         },
         {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHLevel",
-          "message": "{\"pHLevel\":@bind=data.pHLevel;}"
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHDosingVolume",
+          "message": "{\"orpDosingVolume\":@bind=data.ph.doseVolume;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpDosingVolume",
+          "message": "{\"pHDosingVolume\":@bind=data.orp.doseVolume;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpSetpoint",
+          "message": "{\"orpSetpoint\":@bind=data.orp.setpoint;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHSetpoint",
-          "message": "{\"pHSetpoint\":@bind=data.pHSetpoint;}"
+          "message": "{\"pHSetpoint\":@bind=data.ph.setpoint;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpLevel",
+          "message": "{\"orpLevel\":@bind=data.orp.level;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHLevel",
+          "message": "{\"pHLevel\":@bind=data.ph.level;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/saltLevel",
-          "message": "{\"saltLevel\":@bind=data.saltLevel;}"
+          "message": "{\"saltLevel\":@bind=data.orp.probe.saltLevel;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/saturationIndex",
@@ -367,63 +418,82 @@
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/status",
-          "message": "{\"status\":@bind=data.status;}"
+          "message": "@bind=data.status;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/type",
-          "message": "{\"type\":@bind=data.type;}"
+          "message": "@bind=data.type;"
+        },
+
+        {
+          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/alkalinity",
+          "message": "{\"alkalinity\":@bind=data.alkalinity;}"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/calciumHardness",
+          "message": "@bind=data.calciumHardness;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/cyanuricAcid",
+          "message": "@bind=data.cyanuricAcid;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
-          "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}"
+          "message": "@bind=data.virtualControllerStatus;"
         },
+
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/flow",
-          "message": "{\"flow\":@bind=data.flow;}"
+          "message": "@bind=data.alarms.flow;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/ph",
-          "message": "{\"ph\":@bind=data.ph;}"
+          "message": "@bind=data.alarms.pH;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/orp",
-          "message": "{\"orp\":@bind=data.orp;}"
+          "message": "@bind=data.alarms.orp;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/phTank",
-          "message": "{\"phTank\":@bind=data.phTank;}"
+          "message": "@bind=data.alarms.pHTank;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/orpTank",
-          "message": "{\"orpTank\":@bind=data.orpTank;}"
+          "message": "@bind=data.alarms.orpTank;"
         },
         {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/probeFault",
-          "message": "{\"probeFault\":@bind=data.probeFault;}"
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/orpProbeFault",
+          "message": "@bind=data.alarms.orpProbeFault;"
         },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/pHProbeFault",
+          "message": "@bind=data.alarms.pHProbeFault;"
+        },
+
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/waterChemistry",
-          "message": "{\"waterChemistry\":@bind=data.waterChemistry;}"
+          "message": "@bind=data.warnings.waterChemistry;"
         },
         {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/phLockout",
-          "message": "{\"phLockout\":@bind=data.phLockout;}"
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/pHLockout",
+          "message": "@bind=data.warnings.pHLockout;"
         },
         {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/phDailLimitReached",
-          "message": "{\"phDailLimitReached\":@bind=data.phDailLimitReached;}"
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/pHDailyLimitReached",
+          "message": "@bind=data.warnings.pHDailyLimitReached;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/orpDailyLimitReached",
-          "message": "{\"orpDailyLimitReached\":@bind=data.orpDailyLimitReached;}"
+          "message": "@bind=data.warnings.orpDailyLimitReached;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/invalidSetup",
-          "message": "{\"invalidSetup\":@bind=data.invalidSetup;}"
+          "message": "@bind=data.warnings.invalidSetup;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/chlorinatorCommError",
-          "message": "{\"chlorinatorCommError\":@bind=data.chlorinatorCommError;}"
+          "message": "@bind=data.warnings.chlorinatorCommError;"
         }
       ]
     },

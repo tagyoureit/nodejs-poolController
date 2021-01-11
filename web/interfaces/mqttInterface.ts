@@ -14,7 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { connect, MqttClient, Client } from 'mqtt';
+import { connect, MqttClient, Client, IClientPublishOptions } from 'mqtt';
 import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
@@ -28,6 +28,7 @@ import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
 import { utils } from "../../controller/Constants";
 import { ServiceParameterError } from '../../controller/Errors';
+import { publicDecrypt } from 'crypto';
 
 export class MqttInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
@@ -199,16 +200,35 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         this.buildTokens(t.message, evt, topicToks, e, data[0]);
                         message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
 
-                        let retain = baseOpts.retain;
-                        if (typeof t.retain !== 'undefined') retain = t.retain;
-                        let qos = baseOpts.qos;
-                        if (typeof t.qos !== 'undefined') qos = t.qos;
-                        let publishOptions = {
-                            retain,
-                            qos
+                        let publishOptions: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
+                        let changesOnly = typeof baseOpts.changesOnly !== 'undefined' ? baseOpts.changesOnly : true;
+                        if (typeof e.options !== 'undefined') {
+                            if (typeof e.options.retain !== 'undefined') publishOptions.retain = e.options.retain;
+                            if (typeof e.options.qos !== 'undefined') publishOptions.retain = e.options.qos;
+                            if (typeof e.options.changesOnly !== 'undefined') changesOnly = e.options.changesOnly;
                         }
-                        logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`)
-                        this.client.publish(topic, message, { retain: true, qos: 2 });
+                        if (typeof t.options !== 'undefined') {
+                            if (typeof t.options.retain !== 'undefined') publishOptions.retain = t.options.retain;
+                            if (typeof t.options.qos !== 'undefined') publishOptions.qos = t.options.qos;
+                            if (typeof t.options.changeOnly !== 'undefined') changesOnly = t.options.changesOnly;
+                        }
+                        if (changesOnly) {
+                            if (typeof t.lastSent === 'undefined') t.lastSent = [];
+                            let lm = t.lastSent.find(elem => elem.topic === topic);
+                            if (typeof lm === 'undefined' || lm.message !== message) {
+                                this.client.publish(topic, message, publishOptions);
+                                logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
+                            }
+                            if (typeof lm === 'undefined') t.lastSent.push({ topic: topic, message: message });
+                            else lm.message = message;
+
+                        }
+                        else {
+                            logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
+                            this.client.publish(topic, message, publishOptions);
+                            if (typeof t.lastSent !== 'undefined') t.lastSent = undefined;
+                        }
+                        
                     })
                 }
             }
@@ -394,4 +414,10 @@ export interface IMQTT {
     retain: boolean;
     enabled?: boolean;
     filter?: string;
+    lastSent: MQTTMessage[];
+    options: any;
+}
+class MQTTMessage {
+    topic: string;
+    message: string;
 }
