@@ -329,7 +329,9 @@ export class NixieChemController extends NixieEquipment {
                 let probeType = chem.orp.probe.type;
                 let currLevelPercent = schem.orp.tank.level / schem.orp.tank.capacity * 100;
                 schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.alarmEmptyEnabled && currLevelPercent <= schem.orp.tank.alarmEmptyLevel ? 64 : 0;
-                if (this.chem.orp.maxDailyVolume < schem.orp.dailyVolumeDosed) {
+                // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
+                let padj = this.chem.orp.pump.type > 0 && !this.chem.orp.useChlorinator ? (this.chem.orp.pump.ratedFlow / 60) * 3 : 0;
+                if (this.chem.orp.maxDailyVolume <= schem.orp.dailyVolumeDosed) {
                     schem.warnings.orpDailyLimitReached = 4;
                     schem.orp.dailyLimitReached = true;
                 }
@@ -362,7 +364,9 @@ export class NixieChemController extends NixieEquipment {
                 let currLevelPercent = schem.ph.tank.level / schem.ph.tank.capacity * 100;
                 schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.alarmEmptyEnabled && currLevelPercent <= schem.ph.tank.alarmEmptyLevel ? 32 : 0;
                 schem.warnings.pHDailyLimitReached = 0;
-                if (this.chem.ph.maxDailyVolume < schem.ph.dailyVolumeDosed) {
+                // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
+                let padj = this.chem.ph.pump.type > 0 ? (this.chem.ph.pump.ratedFlow / 60) * 3 : 0;
+                if (this.chem.ph.maxDailyVolume <= schem.ph.dailyVolumeDosed + padj) {
                     schem.warnings.pHDailyLimitReached = 2;
                     schem.ph.dailyLimitReached = true;
                 }
@@ -381,7 +385,7 @@ export class NixieChemController extends NixieEquipment {
             if (chem.lsiRange.enabled) {
                 schem.warnings.waterChemistry = schem.saturationIndex < chem.lsiRange.low ? 1 : schem.saturationIndex > chem.lsiRange.high ? 2 : 0;
             }
-        } catch (err) { logger.error(`Error processing chem controller ${this.chem.name} alarms: ${err.message}`); return Promise.reject(err); }
+        } catch (err) { logger.error(`Error processing chem controller ${this.chem.name} alarms: ${err.message}`); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -623,7 +627,7 @@ class NixieChemical extends NixieChildEquipment {
     public calcTotalDosed(hours: number, trim: boolean = false): number {
         let total = 0;
         let dt = new Date().getTime() - (hours * 3600000);
-        for (let i = this.doseHistory.length - 1; i > 0; i--) {
+        for (let i = this.doseHistory.length - 1; i >= 0; i--) {
             let log = this.doseHistory[i];
             if (log.end.getTime() > dt) {
                 // TODO: calculate out a partial timeslot.
@@ -633,10 +637,10 @@ class NixieChemical extends NixieChildEquipment {
                 this.doseHistory.splice(i, 1);
             }
         }
-        if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining !== 0) {
+        if (typeof this.currentDose !== 'undefined' && this.currentDose.volumeRemaining > 0 && this.currentDose.timeRemaining > 0) {
             total += this.currentDose.volumeDosed;
         }
-        return total;
+        return Math.round(total);
     }
 }
 export class NixieChemTank extends NixieChildEquipment {
@@ -764,6 +768,7 @@ export class NixieChemPump extends NixieChildEquipment {
     public isOn: boolean;
     public _lastOnStatus: number;
     protected _dosingTimer: NodeJS.Timeout;
+    private _isStopping = false;
     constructor(chemical: NixieChemical, pump: ChemicalPump) { super(chemical); this.pump = pump; }
     public get chemical(): NixieChemical { return this.getParent() as NixieChemical; }
     public async setPumpAsync(spump: ChemicalPumpState, data: any) {
@@ -783,17 +788,22 @@ export class NixieChemPump extends NixieChildEquipment {
             if (this._dosingTimer) {
                 clearTimeout(this._dosingTimer);
                 this._dosingTimer = undefined;
-                if (typeof this.chemical.currentDose !== 'undefined') {
-                    this.chemical.currentDose.log(this.chemical);
-                    this.chemical.currentDose.schem.manualDosing = false;
-                    this.chemical.currentDose.schem.dosingTimeRemaining = 0;
-                    this.chemical.currentDose.schem.dosingVolumeRemaining = 0;
-                    this.chemical.currentDose.schem.volumeDosed = 0;
-                }
-                this.chemical.currentDose = undefined;
             }
+            if (this._isStopping) return;  // We have to semaphore here just in case the pump is not stopping as we would like.
+            this._isStopping = true;
             if (this.pump.type !== 0) await this.turnOff(schem);
-        } catch (err) { return Promise.reject(err); }
+            let dose = this.chemical.currentDose;
+            this.chemical.currentDose = undefined;
+            if (typeof dose !== 'undefined') {
+                dose.log(this.chemical);
+                schem.manualDosing = false;
+                schem.dosingTimeRemaining = 0;
+                schem.dosingVolumeRemaining = 0;
+                schem.volumeDosed = 0;
+                schem.dailyVolumeDosed = this.chemical.calcTotalDosed(24, true);
+            }
+        } catch (err) { logger.error(`Error stopping ${schem.chemType} dosing: ${err.message}`); return Promise.reject(err); }
+        finally { this._isStopping = false; }
     }
     public async dose(dosage: NixieChemDose) {
         try {
@@ -906,23 +916,17 @@ export class NixieChemPump extends NixieChildEquipment {
             // Add a check to tell the chem when we are done.
             if (dosage.schem.dosingStatus === 0) {
                 this._dosingTimer = setTimeout(async () => {
-                    try { await this.dose(dosage);  }
+                    try { await this.dose(dosage); }
                     catch (err) { logger.error(err); }
                 }, 1000);
             }
-            else if (dosage.schem.dosingStatus === 2) {
+            else {
                 // Tell whichever chemical we are dealing with to begin mixing.
-                if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
-                this.chemical.currentDose = undefined;
-                dosage.schem.pump.isDosing = this.isOn = false;
-                dosage.schem.manualDosing = false;
-                //await this.chemical.mixChemicals(dosage.schem);
-            }
-            else if (dosage.schem.dosingStatus === 1) {
-                if (typeof this.chemical.currentDose !== 'undefined') this.chemical.currentDose.log(this.chemical);
-                this.chemical.currentDose = undefined;
-                dosage.schem.pump.isDosing = this.isOn = false;
-                dosage.schem.manualDosing = false;
+                if (typeof this.chemical.currentDose !== 'undefined') {
+                    await this.chemical.cancelDosing(this.chemical.currentDose.schem);
+                    dosage.schem.pump.isDosing = this.isOn = false;
+                    dosage.schem.manualDosing = false;
+                }
             }
         }
     }
@@ -1141,13 +1145,13 @@ export class NixieChemicalPh extends NixieChemical {
                             // mixing before we will never get here.
                             dosage.timeDosed = (dosage.time - (dosage.time - sph.dosingTimeRemaining)) * 1000;
                             dosage.volumeDosed = dosage.volume - (dosage.volume - sph.dosingVolumeRemaining);
+                            if (sph.tank.level > 0) this.currentDose = dosage;
                         }
                     }
                     // Now let's determine what we need to do with our pump to satisfy our acid demand.
                     if (sph.tank.level > 0) {
                         logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                         await this.pump.dose(dosage);
-                        this.currentDose = dosage;
                     }
                     else await this.cancelDosing(sph);
                 }
