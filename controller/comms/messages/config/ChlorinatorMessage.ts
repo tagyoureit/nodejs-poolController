@@ -63,4 +63,42 @@ export class ChlorinatorMessage {
                 break;
         }
     }
+    public static processTouch(msg: Inbound) {
+        // This is for the 25 message that is broadcast from the OCP.
+        let isActive = (msg.extractPayloadByte(1) & 0x01) === 1;
+        let chlor = sys.chlorinators.getItemById(1, isActive);
+        let schlor = state.chlorinators.getItemById(1, isActive);
+        chlor.isActive = schlor.isActive = isActive;
+        if (isActive) {
+            if (!chlor.disabled) {
+                // RKS: We don't want these setpoints if our chem controller disabled the
+                // chlorinator.  These should be 0 anyway.
+                schlor.poolSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
+                schlor.spaSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
+                chlor.address = chlor.id + 79;
+                schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
+            }
+            schlor.name = chlor.name = msg.extractPayloadString(6, 16);
+            schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
+            schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
+            chlor.superChlor = msg.extractPayloadByte(5) > 0;
+            if (chlor.superChlor) {
+                if (!schlor.superChlor) {
+                    schlor.superChlor = true;
+                    schlor.superChlorHours = chlor.superChlorHours = msg.extractPayloadByte(5);
+                    schlor.superChlorRemaining = schlor.superChlorHours;
+                }
+                else {
+                    schlor.superChlor = false;
+                    schlor.superChlorRemaining = 0;
+                }
+            }
+            if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
+            else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
+        }
+        else {
+            sys.chlorinators.removeItemById(1);
+            state.chlorinators.removeItemById(1);
+        }
+    }
 }

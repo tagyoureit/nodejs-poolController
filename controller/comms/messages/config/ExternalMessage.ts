@@ -824,4 +824,39 @@ export class ExternalMessage {
                 break;
         }
     }
+    public static processTouchChlorinator(msg: Inbound) {
+        let isActive = (msg.extractPayloadByte(1) & 0x01) === 1;
+        let chlor = sys.chlorinators.getItemById(1, isActive);
+        let schlor = state.chlorinators.getItemById(1, isActive);
+        chlor.isActive = schlor.isActive = isActive;
+        if (isActive) {
+            if (!chlor.disabled) {
+                // RKS: We don't want these setpoints if our chem controller disabled the
+                // chlorinator.  These should be 0 anyway.
+                schlor.poolSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
+                schlor.spaSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
+                chlor.address = chlor.id + 79;
+                schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
+            }
+            chlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
+            if (chlor.superChlor) {
+                // We are now resetting the super chlor hours.
+                if (!schlor.superChlor) {
+                    schlor.superChlorHours = chlor.superChlorHours - 128;
+                    schlor.superChlor = true;
+                    schlor.superChlorRemaining = schlor.superChlorHours * 3600;
+                }
+            }
+            else {
+                schlor.superChlor = false;
+                schlor.superChlorRemaining = 0;
+            }
+            if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
+            else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
+        }
+        else {
+            sys.chlorinators.removeItemById(1);
+            state.chlorinators.removeItemById(1);
+        }
+    }
 }

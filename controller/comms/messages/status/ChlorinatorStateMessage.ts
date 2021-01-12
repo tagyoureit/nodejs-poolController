@@ -133,51 +133,51 @@ export class ChlorinatorStateMessage {
         // question: does IntelliCenter ever broadcast Chlorinator packet?  Answer: Never.  My guess is that this is actually 
         // a configuration message rather than a status message.  Also, IntelliCenter has a 204 extension status that contains
         // the current countdown timer for the superChlor in the last 2 bytes.  Perhaps this is the equivalent.
-        else if (msg.protocol === Protocol.Broadcast) {
-            if (!state.isInitialized) return;
-            // sample packet
-            // [165,33,15,16,25,22],[1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48],[7,231]
-            let chlorId = 1;
-            let chlor = sys.chlorinators.getItemById(chlorId, true);
-            if (chlor.isVirtual) { return; } // shouldn't get here except for testing Chlor on *Touch system.
-            // installed = (aaaaaaa)1 so 1 = installed
-            chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
-            if (chlor.isActive) {
-                // RSG : making the assumption here that the chlorinator will be tied to the pool in any system that is not a shared body
-                sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? chlor.body = 32 : chlor.body = 0;
-                // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
-                // eg. a value of 41 is 00101001
-                // spa percent = 0010100(b) so 10100 = 20
-                if (!chlor.disabled) {
-                    // RKS: We don't want these setpoints if our chem controller disabled the
-                    // chlorinator.  These should be 0 anyway.
-                    chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
-                    chlor.poolSetpoint = msg.extractPayloadByte(1);
-                }
-                chlor.address = chlor.id + 79;
-                chlor.superChlor = msg.extractPayloadByte(5) > 0;
-                chlor.superChlorHours = msg.extractPayloadByte(5);
-                chlor.name = msg.extractPayloadString(6, 16);
-                let schlor = state.chlorinators.getItemById(chlorId, true);
-                // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
-                // source like REM.
-                schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel || 0;
-                schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
-                schlor.lastComm = new Date().getTime();  // rely solely on "true" chlor messages for this?
-                schlor.poolSetpoint = chlor.poolSetpoint;
-                schlor.spaSetpoint = chlor.spaSetpoint;
-                schlor.superChlor = chlor.superChlor;
-                schlor.superChlorHours = chlor.superChlorHours;
-                schlor.name = chlor.name;
-                schlor.body = chlor.body;
-                if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
-                else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
-                state.emitEquipmentChanges();
-            }
-            else {
-                sys.chlorinators.removeItemById(chlorId);
-                state.chlorinators.removeItemById(chlorId);
-            }
-        }
+        //else if (msg.protocol === Protocol.Broadcast) {
+        //    if (!state.isInitialized) return;
+        //    // sample packet
+        //    // [165,33,15,16,25,22],[1,10,128,29,132,0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,52,48],[7,231]
+        //    let chlorId = 1;
+        //    let chlor = sys.chlorinators.getItemById(chlorId, true);
+        //    if (chlor.isVirtual) { return; } // shouldn't get here except for testing Chlor on *Touch system.
+        //    // installed = (aaaaaaa)1 so 1 = installed
+        //    chlor.isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
+        //    if (chlor.isActive) {
+        //        // RSG : making the assumption here that the chlorinator will be tied to the pool in any system that is not a shared body
+        //        sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? chlor.body = 32 : chlor.body = 0;
+        //        // outputSpaPercent field is aaaaaaab (binary) where aaaaaaa = % and b===installed (0=no,1=yes)
+        //        // eg. a value of 41 is 00101001
+        //        // spa percent = 0010100(b) so 10100 = 20
+        //        if (!chlor.disabled) {
+        //            // RKS: We don't want these setpoints if our chem controller disabled the
+        //            // chlorinator.  These should be 0 anyway.
+        //            chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
+        //            chlor.poolSetpoint = msg.extractPayloadByte(1);
+        //        }
+        //        chlor.address = chlor.id + 79;
+        //        chlor.superChlor = msg.extractPayloadByte(5) > 0;
+        //        chlor.superChlorHours = msg.extractPayloadByte(5);
+        //        chlor.name = msg.extractPayloadString(6, 16);
+        //        let schlor = state.chlorinators.getItemById(chlorId, true);
+        //        // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
+        //        // source like REM.
+        //        schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel || 0;
+        //        schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
+        //        schlor.lastComm = new Date().getTime();  // rely solely on "true" chlor messages for this?
+        //        schlor.poolSetpoint = chlor.poolSetpoint;
+        //        schlor.spaSetpoint = chlor.spaSetpoint;
+        //        schlor.superChlor = chlor.superChlor;
+        //        schlor.superChlorHours = chlor.superChlorHours;
+        //        schlor.name = chlor.name;
+        //        schlor.body = chlor.body;
+        //        if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
+        //        else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
+        //        state.emitEquipmentChanges();
+        //    }
+        //    else {
+        //        sys.chlorinators.removeItemById(chlorId);
+        //        state.chlorinators.removeItemById(chlorId);
+        //    }
+        //}
     }
 }

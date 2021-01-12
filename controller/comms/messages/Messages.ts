@@ -20,6 +20,7 @@ import { VersionMessage } from "./status/VersionMessage";
 import { PumpStateMessage } from "./status/PumpStateMessage";
 import { EquipmentStateMessage } from "./status/EquipmentStateMessage";
 import { ChlorinatorStateMessage } from "./status/ChlorinatorStateMessage";
+import { ChlorinatorMessage } from "./config/ChlorinatorMessage";
 import { ExternalMessage } from "./config/ExternalMessage";
 import { Timestamp, ControllerType } from "../../Constants";
 import { CircuitMessage } from "./config/CircuitMessage";
@@ -543,6 +544,12 @@ export class Inbound extends Message {
                     case 11:
                         CircuitMessage.processTouch(this);
                         break;
+                    case 25:
+                        ChlorinatorMessage.processTouch(this);
+                        break;
+                    case 135:
+                        ExternalMessage.processTouchChlorinator(this);
+                        break;
                     case 17:
                     case 145:
                         ScheduleMessage.process(this);
@@ -555,9 +562,6 @@ export class Inbound extends Message {
                     case 152:
                     case 155:
                         PumpMessage.process(this);
-                        break;
-                    case 25:
-                        ChlorinatorStateMessage.process(this);
                         break;
                     case 30:
                         if (sys.controllerType !== ControllerType.Unknown) OptionsMessage.process(this);
