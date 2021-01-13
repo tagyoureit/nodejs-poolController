@@ -547,7 +547,7 @@ export class Inbound extends Message {
                     case 25:
                         ChlorinatorMessage.processTouch(this);
                         break;
-                    case 135:
+                    case 153:
                         ExternalMessage.processTouchChlorinator(this);
                         break;
                     case 17:

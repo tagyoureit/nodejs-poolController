@@ -1347,14 +1347,27 @@ export class ChlorinatorState extends EqState {
     }
     public get superChlorRemaining(): number { return this.data.superChlorRemaining || 0; }
     public set superChlorRemaining(val: number) {
-        // Trim the seconds off both of these as we will be keeping the seconds separately since this
-        // only reports in minutes.  That way our seconds become self healing.
-        if (Math.ceil(this.superChlorRemaining / 60) * 60 !== val) {
-            state.chlorinators.superChlorReference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
-            this.hasChanged = true;
+        let remaining: number;
+        if (sys.controllerType === 'intellicenter') {
+            // Trim the seconds off both of these as we will be keeping the seconds separately since this
+            // only reports in minutes.  That way our seconds become self healing.
+            if (Math.ceil(this.superChlorRemaining / 60) * 60 !== val) {
+                state.chlorinators.superChlorReference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
+                this.hasChanged = true;
+            }
+            let secs = Math.floor(new Date().getTime() / 1000) - state.chlorinators.superChlorReference;
+            remaining = Math.max(0, val - Math.min(secs, 60));
         }
-        let secs = Math.floor(new Date().getTime() / 1000) - state.chlorinators.superChlorReference;
-        let remaining = Math.max(0, val - Math.min(secs, 60));
+        else {
+            // *Touch only reports superchlor hours remaining. 
+            // If we have the same hours as existing, retain the mins + secs
+            if (Math.ceil(this.superChlorRemaining / 3600) * 60 !== val / 60) {
+                state.chlorinators.superChlorReference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
+                this.hasChanged = true;
+            }
+            let secs = Math.floor(new Date().getTime() / 1000) - state.chlorinators.superChlorReference;
+            remaining = Math.max(0, val - Math.min(secs, 3600));
+        }
         if (state.chlorinators.lastDispatchSuperChlor - 5 > remaining) this.hasChanged = true;
         if (this.hasChanged) state.chlorinators.lastDispatchSuperChlor = remaining;
         this.data.superChlorRemaining = remaining;

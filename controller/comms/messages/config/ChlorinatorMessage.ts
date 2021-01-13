@@ -65,7 +65,7 @@ export class ChlorinatorMessage {
     }
     public static processTouch(msg: Inbound) {
         // This is for the 25 message that is broadcast from the OCP.
-        let isActive = (msg.extractPayloadByte(1) & 0x01) === 1;
+        let isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
         let chlor = sys.chlorinators.getItemById(1, isActive);
         let schlor = state.chlorinators.getItemById(1, isActive);
         chlor.isActive = schlor.isActive = isActive;
@@ -81,17 +81,14 @@ export class ChlorinatorMessage {
             schlor.name = chlor.name = msg.extractPayloadString(6, 16);
             schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
             schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
-            chlor.superChlor = msg.extractPayloadByte(5) > 0;
-            if (chlor.superChlor) {
-                if (!schlor.superChlor) {
-                    schlor.superChlor = true;
-                    schlor.superChlorHours = chlor.superChlorHours = msg.extractPayloadByte(5);
-                    schlor.superChlorRemaining = schlor.superChlorHours;
-                }
-                else {
-                    schlor.superChlor = false;
-                    schlor.superChlorRemaining = 0;
-                }
+            schlor.superChlor = msg.extractPayloadByte(5) > 0;
+            schlor.superChlorHours = msg.extractPayloadByte(5);
+            if (schlor.superChlor) {
+                schlor.superChlorRemaining = schlor.superChlorHours * 3600;                // }
+            }
+            else {
+                schlor.superChlorRemaining = 0;
+                chlor.superChlorHours = 1;
             }
             if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
             else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;

@@ -1196,6 +1196,12 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (isNaN(id)) obj.id = 1;
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
+        if (typeof obj.superChlorinate !== 'undefined') {
+            chlor.superChlor = obj.superChlorinate;
+            if (typeof obj.superChlorHours !== 'undefined') chlor.superChlorHours = 1;            
+        }
+        if (typeof obj.superChlorHours !== 'undefined') chlor.superChlorHours = obj.superChlorHours;
+        
         if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
         if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
         // Verify the data.

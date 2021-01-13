@@ -825,7 +825,7 @@ export class ExternalMessage {
         }
     }
     public static processTouchChlorinator(msg: Inbound) {
-        let isActive = (msg.extractPayloadByte(1) & 0x01) === 1;
+        let isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
         let chlor = sys.chlorinators.getItemById(1, isActive);
         let schlor = state.chlorinators.getItemById(1, isActive);
         chlor.isActive = schlor.isActive = isActive;
@@ -838,18 +838,14 @@ export class ExternalMessage {
                 chlor.address = chlor.id + 79;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
-            chlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
-            if (chlor.superChlor) {
-                // We are now resetting the super chlor hours.
-                if (!schlor.superChlor) {
-                    schlor.superChlorHours = chlor.superChlorHours - 128;
-                    schlor.superChlor = true;
+            schlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
+            schlor.superChlorHours = msg.extractPayloadByte(2) - 128;
+            if (schlor.superChlor) {
                     schlor.superChlorRemaining = schlor.superChlorHours * 3600;
-                }
             }
             else {
-                schlor.superChlor = false;
                 schlor.superChlorRemaining = 0;
+                chlor.superChlorHours = 1;
             }
             if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
             else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;

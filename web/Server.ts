@@ -905,22 +905,22 @@ export class REMInterfaceServer extends ProtoServer {
     }
     public async getApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { return await this.sendClientRequest('GET', url, data); }
-        catch (err) { return Promise.reject(err); }
+        try { let ret = await this.sendClientRequest('GET', url, data); return ret; }
+        catch (err) {  return Promise.reject(err); }
     }
     public async putApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { return await this.sendClientRequest('PUT', url, data); }
+        try { let ret = await this.sendClientRequest('PUT', url, data); return ret;}
         catch (err) { return Promise.reject(err); }
     }
     public async searchApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { return await this.sendClientRequest('SEARCH', url, data); }
+        try { let ret = await this.sendClientRequest('SEARCH', url, data); return ret;}
         catch (err) { return Promise.reject(err); }
     }
     public async deleteApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { return await this.sendClientRequest('DELETE', url, data); }
+        try { let ret = await this.sendClientRequest('DELETE', url, data); return ret;}
         catch (err) { return Promise.reject(err); }
     }
     public async getDevices() {

@@ -39,13 +39,17 @@ export class NixieEquipment {
             if (!server.isConnected) return Promise.reject(new Error(`Error sending device command: [${server.name}] not connected.`));
             if (server.type === 'rem') {
                 let rem = server as REMInterfaceServer;
+                console.log(`CALLING GET FROM GETDEVSER`);
+                
                 result = await rem.getApiService(url, data);
+                console.log(`RETURNING GET FROM GETDEVSER`);
                 // If the result code is > 200 we have an issue.
                 if (result.status.code > 200) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
             }
             return result;
         }
-        catch (err) { return Promise.reject(err); }
+        catch (err) { console.log(`CAUGHT ERROR IN GETDEVSER`);
+           return Promise.reject(err); }
     }
 
     public async closeAsync() {

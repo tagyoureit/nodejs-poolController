@@ -130,7 +130,7 @@ export class Connection {
                 // for a successul connect and false otherwise.
                 sp.on('open', () => {
                     if (typeof conn._port !== 'undefined') logger.info(`Serial Port: ${this._cfg.rs485Port} recovered from lost connection.`)
-                    else logger.info(`Serial port: ${this._cfg.rs485Port} request to open succeeded without error`);
+                    else logger.info(`Serial port: ${this._cfg.rs485Port} request to open successful`);
                     this._port = sp;
                     this.isOpen = true;
                     sp.on('data', (data) => { if (!this.mockPort && !this.isPaused) this.emitter.emit('packetread', data); this.resetConnTimer(); });

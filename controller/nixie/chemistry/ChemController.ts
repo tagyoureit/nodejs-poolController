@@ -297,7 +297,7 @@ export class NixieChemController extends NixieEquipment {
                 }
             }
         }
-        catch (err) { logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err);}
+        catch (err) { logger.error(`Error polling Chem Controller - ${err}`);}
         finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     public processAlarms(schem: ChemControllerState) {
