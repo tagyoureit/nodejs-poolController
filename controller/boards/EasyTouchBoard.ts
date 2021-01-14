@@ -1197,8 +1197,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         if (typeof obj.superChlorinate !== 'undefined') {
-            chlor.superChlor = obj.superChlorinate;
-            if (typeof obj.superChlorHours !== 'undefined') chlor.superChlorHours = 1;            
+            chlor.superChlor = obj.superChlorinate;         
         }
         if (typeof obj.superChlorHours !== 'undefined') chlor.superChlorHours = obj.superChlorHours;
         
@@ -1211,7 +1210,6 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         
-
         let disabled = utils.makeBool(chlor.disabled);
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
@@ -1234,6 +1232,20 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                         if (prop in schlor) schlor[prop] = chlor[prop];
                         if (prop in cchlor) cchlor[prop] = chlor[prop];
                     }
+                    let request25Packet = Outbound.create({
+                        dest: 16,
+                        action: 217,
+                        payload: [0],
+                        retries: 3,
+                        response: true,
+                        onComplete: (err) => {
+                            if (err) {
+                                logger.error(`Error requesting chlor status: ${err.message}`);
+                                reject(err);
+                            }
+                        }
+                    });
+                    conn.queueSendMessage(request25Packet);
                     state.emitEquipmentChanges();
                     resolve(schlor);
                 }

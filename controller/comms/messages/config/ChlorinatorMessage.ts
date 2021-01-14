@@ -81,14 +81,12 @@ export class ChlorinatorMessage {
             schlor.name = chlor.name = msg.extractPayloadString(6, 16);
             schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
             schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
-            schlor.superChlor = msg.extractPayloadByte(5) > 0;
-            schlor.superChlorHours = msg.extractPayloadByte(5);
+            schlor.superChlor = chlor.superChlor = msg.extractPayloadByte(5) > 0;
             if (schlor.superChlor) {
-                schlor.superChlorRemaining = schlor.superChlorHours * 3600;                // }
+                schlor.superChlorRemaining = msg.extractPayloadByte(5) * 3600;                // }
             }
             else {
                 schlor.superChlorRemaining = 0;
-                chlor.superChlorHours = 1;
             }
             if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
             else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;

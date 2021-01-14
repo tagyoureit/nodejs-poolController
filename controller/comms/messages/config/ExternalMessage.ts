@@ -227,7 +227,7 @@ export class ExternalMessage {
                             let circuit = group.circuits.getItemById(i + 1, circuitId !== 255);
                             if (circuitId === 255) group.circuits.removeItemById(i + 1);
                             circuit.circuit = circuitId + 1;
-                            
+
                         }
                     }
                     group.eggTimer = (msg.extractPayloadByte(38) * 60) + msg.extractPayloadByte(39);
@@ -305,7 +305,7 @@ export class ExternalMessage {
             hstate.name = heater.name;
             hstate.type = heater.type;
         }
-        
+
         sys.board.heaters.updateHeaterServices();
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);
@@ -325,8 +325,8 @@ export class ExternalMessage {
                     cstate.name = circuit.name;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-/*                     if (cstate.isOn && circuit.type === 12) body = 6;
-                    if (cstate.isOn && circuit.type === 13) body = 1; */
+                    /*                     if (cstate.isOn && circuit.type === 12) body = 6;
+                                        if (cstate.isOn && circuit.type === 13) body = 1; */
                     switch (circuit.type) {
                         case 6: // Globrite
                         case 5: // Magicstream
@@ -372,7 +372,7 @@ export class ExternalMessage {
                         sstate.endTimeType = schedule.endTimeType;
                     }
                 }
-                else 
+                else
                     state.schedules.removeItemById(scheduleId);
                 scheduleId++;
             }
@@ -615,7 +615,7 @@ export class ExternalMessage {
             }
             else if (cpump.type === 1) {
                 cpump.circuits.clear();
-                cpump.circuits.add({id: 1, body: msg.extractPayloadByte(18)});
+                cpump.circuits.add({ id: 1, body: msg.extractPayloadByte(18) });
             }
             if (cpump.type === 0) {
                 sys.pumps.removeItemById(cpump.id);
@@ -838,14 +838,12 @@ export class ExternalMessage {
                 chlor.address = chlor.id + 79;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
-            schlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
-            schlor.superChlorHours = msg.extractPayloadByte(2) - 128;
+            schlor.superChlor = chlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
             if (schlor.superChlor) {
-                    schlor.superChlorRemaining = schlor.superChlorHours * 3600;
+                schlor.superChlorRemaining = (msg.extractPayloadByte(2) - 128) * 3600;
             }
             else {
                 schlor.superChlorRemaining = 0;
-                chlor.superChlorHours = 1;
             }
             if (state.temps.bodies.getItemById(1).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.poolSetpoint;
             else if (state.temps.bodies.getItemById(2).isOn) schlor.targetOutput = chlor.disabled ? 0 : chlor.spaSetpoint;
