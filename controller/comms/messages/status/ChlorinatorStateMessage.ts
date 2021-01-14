@@ -42,6 +42,7 @@ export class ChlorinatorStateMessage {
                 cstate = state.chlorinators.getItemById(msg.dest + 1, true);
                 chlor = sys.chlorinators.getItemById(msg.dest + 1, true);
                 cstate.lastComm = new Date().getTime();
+                if (cstate.status === 128) cstate.status = 0;
             }
             switch (msg.action) {
                 case 0: // request status (0): [16,2,80,0][0][98,16,3]

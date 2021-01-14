@@ -1097,7 +1097,10 @@ export class NixieChemicalPh extends NixieChemical {
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
                 // Check the setpoint and the current level to see if we need to dose.
-                if (demand > 0) {
+                if (!sph.chemController.isBodyOn || !sph.chemController.flowDetected || demand <= 0) {
+                    await this.cancelDosing(sph);
+                }
+                else if (demand > 0) {
                     let pump = this.pump.pump;
                     let dose = Math.max(0, Math.min(this.chemical.maxDailyVolume - sph.dailyVolumeDosed, demand));
                     let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
