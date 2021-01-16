@@ -69,13 +69,13 @@ export class IntelliCenterBoard extends SystemBoard {
             [12, { name: 'solarpref', desc: 'Solar Preferred' }]
         ]);
         this.valueMaps.scheduleDays = new byteValueMap([
-            [1, { name: 'mon', desc: 'Monday', dow: 1 }],
-            [2, { name: 'tue', desc: 'Tuesday', dow: 2 }],
-            [3, { name: 'wed', desc: 'Wednesday', dow: 3 }],
-            [4, { name: 'thu', desc: 'Thursday', dow: 4 }],
-            [5, { name: 'fri', desc: 'Friday', dow: 5 }],
-            [6, { name: 'sat', desc: 'Saturday', dow: 6 }],
-            [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
+            [1, { name: 'mon', desc: 'Monday', dow: 1, bitval: 1 }],
+            [2, { name: 'tue', desc: 'Tuesday', dow: 2, bitval: 2 }],
+            [3, { name: 'wed', desc: 'Wednesday', dow: 3, bitval: 4 }],
+            [4, { name: 'thu', desc: 'Thursday', dow: 4, bitval: 8 }],
+            [5, { name: 'fri', desc: 'Friday', dow: 5, bitval: 16 }],
+            [6, { name: 'sat', desc: 'Saturday', dow: 6, bitval: 32 }],
+            [7, { name: 'sun', desc: 'Sunday', dow: 0, bitval: 64 }]
         ]);
         this.valueMaps.groupCircuitStates = new byteValueMap([
             [1, { name: 'on', desc: 'On' }],
