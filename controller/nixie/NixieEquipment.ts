@@ -12,7 +12,7 @@ export class NixieEquipment {
     public get controlPanel(): INixieControlPanel { return this._pmap['ncp']; }
     public get id(): number { return -1; }
     public static get isConnected(): boolean {let server = webApp.findServer('Relay Equipment Manager'); return server.isConnected}
-    public static async putDeviceService(uuid: string, url: string, data?: any): Promise<InterfaceServerResponse> {
+    public static async putDeviceService(uuid: string, url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         try {
             let result: InterfaceServerResponse;
             let server = webApp.findServerByGuid(uuid);
@@ -23,7 +23,7 @@ export class NixieEquipment {
             }
             if (server.type === 'rem') {
                 let rem = server as REMInterfaceServer;
-                result = await rem.putApiService(url, data);
+                result = await rem.putApiService(url, data, timeout);
                 // If the result code is > 200 we have an issue.
                 if (result.status.code > 200) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
             }
@@ -31,7 +31,7 @@ export class NixieEquipment {
         }
         catch (err) { return Promise.reject(err); }
     }
-    public static async getDeviceService(uuid: string, url: string, data?: any): Promise<any> {
+    public static async getDeviceService(uuid: string, url: string, data?: any, timeout:number = 3600): Promise<any> {
         try {
             let result: InterfaceServerResponse;
             let server = webApp.findServerByGuid(uuid);
@@ -39,19 +39,17 @@ export class NixieEquipment {
             if (!server.isConnected) return Promise.reject(new Error(`Error sending device command: [${server.name}] not connected.`));
             if (server.type === 'rem') {
                 let rem = server as REMInterfaceServer;
-                console.log(`CALLING GET FROM GETDEVSER`);
+                //console.log(`CALLING GET FROM GETDEVSER`);
                 
-                result = await rem.getApiService(url, data);
-                console.log(`RETURNING GET FROM GETDEVSER`);
+                result = await rem.getApiService(url, data, timeout);
+                //console.log(`RETURNING GET FROM GETDEVSER`);
                 // If the result code is > 200 we have an issue.
                 if (result.status.code > 200) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
             }
             return result;
         }
-        catch (err) { console.log(`CAUGHT ERROR IN GETDEVSER`);
-           return Promise.reject(err); }
+        catch (err) { return Promise.reject(err); }
     }
-
     public async closeAsync() {
         try {
 

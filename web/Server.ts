@@ -806,7 +806,7 @@ export class REMInterfaceServer extends ProtoServer {
     protected agent = new http.Agent({ keepAlive: true });
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
     private _sockets: socketio.Socket[] = [];
-    private async sendClientRequest(method: string, url: string, data?: any): Promise<InterfaceServerResponse> {
+    private async sendClientRequest(method: string, url: string, data?: any, timeout:number = 10000): Promise<InterfaceServerResponse> {
         try {
             let ret = new InterfaceServerResponse();
             let opts = extend(true, { headers: {} }, this.cfg.options);
@@ -827,7 +827,6 @@ export class REMInterfaceServer extends ProtoServer {
             logger.verbose(`REM server request initiated. ${opts.method} ${opts.path} ${sbody}`);
             await new Promise((resolve, reject) => {
                 let req: http.ClientRequest;
-               
                 if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                     opts.protocol = 'https:';
                     req = https.request(opts, (response: http.IncomingMessage) => {
@@ -837,7 +836,6 @@ export class REMInterfaceServer extends ProtoServer {
                         response.on('data', (data) => { ret.data += data; });
                         response.on('end', () => { resolve(); });
                     });
-                    
                 }
                 else {
                     opts.protocol = undefined;
@@ -849,10 +847,12 @@ export class REMInterfaceServer extends ProtoServer {
                         response.on('end', () => { resolve(); });
                     });
                 }
+                req.setTimeout(timeout, () => { reject(new Error('Request timeout')); });
                 req.on('error', (err, req, res) => { logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
-            }).catch((err) => { logger.error(`Error initializing REM Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
+                logger.verbose(`REM server request returned. ${opts.method} ${opts.path} ${sbody}`);
+            }).catch((err) => { logger.error(`Error Sending REM Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
             if (ret.status.code > 200) {
                 // We have an http error so let's parse it up.
                 try {
@@ -903,29 +903,29 @@ export class REMInterfaceServer extends ProtoServer {
         if (typeof s.startsWith('{') || typeof s.startsWith('[')) return true;
         return false;
     }
-    public async getApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+    public async getApiService(url: string, data?: any, timeout:number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('GET', url, data); return ret; }
+        try { let ret = await this.sendClientRequest('GET', url, data, timeout); return ret; }
         catch (err) {  return Promise.reject(err); }
     }
-    public async putApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+    public async putApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('PUT', url, data); return ret;}
+        try { let ret = await this.sendClientRequest('PUT', url, data, timeout); return ret;}
         catch (err) { return Promise.reject(err); }
     }
-    public async searchApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+    public async searchApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('SEARCH', url, data); return ret;}
+        try { let ret = await this.sendClientRequest('SEARCH', url, data, timeout); return ret;}
         catch (err) { return Promise.reject(err); }
     }
-    public async deleteApiService(url: string, data?: any): Promise<InterfaceServerResponse> {
+    public async deleteApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('DELETE', url, data); return ret;}
+        try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret;}
         catch (err) { return Promise.reject(err); }
     }
     public async getDevices() {
         try {
-            let response = await this.sendClientRequest('GET', '/devices/all');
+            let response = await this.sendClientRequest('GET', '/devices/all', 10000);
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
         catch (err) { logger.error(err); }
