@@ -183,8 +183,7 @@
         {
           "topic": "state/temps/solar",
           "message": "{\"temp\":@bind=data.solar;}",
-          "description": "Send solar temp.",
-          "filter": "@bind=typeof data.solar !== 'undefined';"
+          "description": "Send solar temp."
         },
         {
           "topic": "state/temps/solarSensor2",
