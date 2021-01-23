@@ -37,20 +37,17 @@ export class BaseInterfaceBindings {
             }
             catch (err) {
                 // leave value undefined so it isn't sent to bindings
-                tok[bind] = null;
+                toks[bind] = null;
             }
         }
         return toks;
-
     }
-    protected escapeRegex(reg: string) {
-        return reg.replace(/[-[\]{}()*+?.,\\^$]/g, '\\$&');
-    }
+    protected escapeRegex(reg: string) { return reg.replace(/[-[\]{}()*+?.,\\^$]/g, '\\$&'); }
     protected replaceTokens(input: string, toks: any) {
         let s = input;
         for (let exp in toks) {
             let tok = toks[exp];
-            if (typeof tok.reg === 'undefined') continue;
+            if (!tok || typeof tok.reg === 'undefined') continue;
             tok.reg.lastIndex = 0; // Start over if we used this before.
             if (typeof tok.value === 'string') s = s.replace(tok.reg, tok.value);
             else if (typeof tok.value === 'undefined') s = s.replace(tok.reg, 'null');

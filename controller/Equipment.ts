@@ -141,25 +141,25 @@ export class PoolSystem implements IPoolSystem {
         }
     }
     public resetData() {
-        this.circuitGroups.clear();
-        this.lightGroups.clear();
-        this.circuits.clear();
-        this.bodies.clear();
-        this.chlorinators.clear();
+        this.circuitGroups.clear(0);
+        this.lightGroups.clear(0);
+        this.circuits.clear(0);
+        this.bodies.clear(0);
+        this.chlorinators.clear(0);
         this.configVersion.clear();
-        this.covers.clear();
-        this.customNames.clear();
+        this.covers.clear(0);
+        this.customNames.clear(0);
         this.equipment.clear();
-        this.features.clear();
+        this.features.clear(0);
         this.data.general = {};
-        this.heaters.clear();
-        this.pumps.clear();
-        this.remotes.clear();
-        this.schedules.clear();
+        this.heaters.clear(0);
+        this.pumps.clear(0);
+        this.remotes.clear(0);
+        this.schedules.clear(0);
         this.security.clear();
-        this.valves.clear();
-        this.chemControllers.clear();
-        this.filters.clear();
+        this.valves.clear(0);
+        this.chemControllers.clear(0);
+        this.filters.clear(0);
         if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
     }
     public async stopAsync() {
@@ -341,6 +341,7 @@ interface IEqItem {
     clear();
     hasChanged: boolean;
     get(bCopy: boolean);
+    master: number;
 }
 class EqItem implements IEqItemCreator<EqItem>, IEqItem {
     public dataName: string;
@@ -498,7 +499,16 @@ class EqItemCollection<T> implements IEqItemCollection {
         return arr;
     }
     public createItem(data: any): T { return (new EqItem(data) as unknown) as T; }
-    public clear() { this.data.length = 0; }
+    public clear(master: number = -1) {
+        if (master === -1)
+            this.data.length = 0;
+        else {
+            for (let i = this.data.length - 1; i >= 0; i--) {
+                if (this.data[i].master === master) this.data.splice(i, 1);
+                console.log(this.data.length);
+            }
+        }
+    }
     public get length(): number { return typeof this.data !== 'undefined' ? this.data.length : 0; }
     public set length(val: number) { if (typeof val !== 'undefined' && typeof this.data !== 'undefined') this.data.length = val; }
     public add(obj: any): T { this.data.push(obj); return this.createItem(obj); }
@@ -878,12 +888,15 @@ export class ScheduleCollection extends EqItemCollection<Schedule> {
     public createItem(data: any): Schedule { return new Schedule(data); }
 }
 export class Schedule extends EqItem {
-    constructor(data: any) {
-        super(data);
-        if (typeof data.startDate === 'undefined') this._startDate = new Date();
-        else this._startDate = new Date(data.startDate);
+    constructor(data: any) { super(data); }
+    public initData() {
+        if (typeof this.data.startDate === 'undefined') this._startDate = new Date();
+        else this._startDate = new Date(this.data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
+        if (typeof this.data.startTimeType === 'undefined') this.data.startTimeType = 0;
+        if (typeof this.data.endTimeType === 'undefined') this.data.endTimeType = 0;
     }
+
     // todo: investigate schedules having startDate and _startDate
     private _startDate: Date=new Date();
     public dataName='scheduleConfig';
@@ -1252,7 +1265,7 @@ export class Valve extends EqItem {
     public set isIntake(val: boolean) { this.setDataVal('isIntake', val); }
     public get isReturn(): boolean { return utils.makeBool(this.data.isReturn); }
     public set isReturn(val: boolean) { this.setDataVal('isReturn', val); }
-    public get isVirtual(): boolean { return utils.makeBool(this.data.isReturn); }
+    public get isVirtual(): boolean { return utils.makeBool(this.data.isVirtual); }
     public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get pinId(): number { return this.data.pinId || 0; }
     public set pinId(val: number) { this.setDataVal('pinId', val); }

@@ -52,12 +52,18 @@ export class EquipmentMessage {
                     case 1:
                         pnl = sys.equipment.expansions.getItemById(2);
                         pnl.name = msg.extractPayloadString(2, 16);
-                        body = sys.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                        sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                        sbody.type = body.type = msg.extractPayloadByte(35);
-                        body.capacity = msg.extractPayloadByte(34) * 1000;
-                        if (body.isActive && sys.equipment.maxBodies < 1) sys.bodies.removeItemById(2);
-                        body.isActive = sys.equipment.maxBodies > 1;
+                        bodyId = 2;
+                        if (sys.equipment.maxBodies >= bodyId) {
+                            body = sys.bodies.getItemById(bodyId, true);
+                            sbody = state.temps.bodies.getItemById(bodyId, true);
+                            sbody.type = body.type = msg.extractPayloadByte(35);
+                            body.capacity = msg.extractPayloadByte(34) * 1000;
+                            body.isActive = true;
+                        }
+                        else {
+                            sys.bodies.removeItemById(bodyId);
+                            state.temps.bodies.removeItemById(bodyId);
+                        }
                         pnl = sys.equipment.expansions.getItemById(3);
                         pnl.name = msg.extractPayloadString(18, 16);
                         break;
@@ -68,40 +74,60 @@ export class EquipmentMessage {
                         sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                         sbody.name = body.name = msg.extractPayloadString(2, 16);
                         bodyId = 3;
-                        body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody.type = body.type = msg.extractPayloadByte(35);
-                        body.capacity = msg.extractPayloadByte(34) * 1000;
-                        if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
-                        body.isActive = bodyId <= sys.equipment.maxBodies;
-                        sbody.name = body.name = msg.extractPayloadString(18, 16);
-                        body.isActive = bodyId <= sys.equipment.maxBodies;
+                        if (sys.equipment.maxBodies >= bodyId) {
+                            body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody.type = body.type = msg.extractPayloadByte(35);
+                            body.capacity = msg.extractPayloadByte(34) * 1000;
+                            body.isActive = bodyId <= sys.equipment.maxBodies;
+                            sbody.name = body.name = msg.extractPayloadString(18, 16);
+                            body.isActive = bodyId <= sys.equipment.maxBodies;
+                        }
+                        else {
+                            sys.bodies.removeItemById(bodyId);
+                            state.temps.bodies.removeItemById(bodyId);
+                        }
                         break;
                     case 3:
                         // The first name is the second body and the 2nd is the 4th.  This packet also contains
                         // any additional information related to bodies 3 & 4 that were not previously included.
                         bodyId = 2;
-                        body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody.name = body.name = msg.extractPayloadString(2, 16);
-
+                        if (sys.equipment.maxBodies <= bodyId) {
+                            body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody.name = body.name = msg.extractPayloadString(2, 16);
+                        }
+                        else {
+                            sys.bodies.removeItemById(bodyId);
+                            state.temps.bodies.removeItemById(bodyId);
+                        }
                         bodyId = 4;
-                        body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody.name = body.name = msg.extractPayloadString(18, 16);
-                        sbody.type = body.type = msg.extractPayloadByte(37);
-                        body.capacity = msg.extractPayloadByte(36) * 1000;
-                        if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
-                        body.isActive = bodyId <= sys.equipment.maxBodies;
-
+                        if (sys.equipment.maxBodies <= bodyId) {
+                            body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody.name = body.name = msg.extractPayloadString(18, 16);
+                            sbody.type = body.type = msg.extractPayloadByte(37);
+                            body.capacity = msg.extractPayloadByte(36) * 1000;
+                            if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
+                            body.isActive = bodyId <= sys.equipment.maxBodies;
+                        }
+                        else {
+                            sys.bodies.removeItemById(bodyId);
+                            state.temps.bodies.removeItemById(bodyId);
+                        }
                         bodyId = 3;
-                        body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                        sbody.type = body.type = msg.extractPayloadByte(35);
-                        body.capacity = msg.extractPayloadByte(34) * 1000;
-                        if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
-                        body.isActive = bodyId <= sys.equipment.maxBodies;
-
+                        if (sys.equipment.maxBodies <= bodyId) {
+                            body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
+                            sbody.type = body.type = msg.extractPayloadByte(35);
+                            body.capacity = msg.extractPayloadByte(34) * 1000;
+                            if (body.isActive && bodyId > sys.equipment.maxBodies) sys.bodies.removeItemById(bodyId);
+                            body.isActive = bodyId <= sys.equipment.maxBodies;
+                        }
+                        else {
+                            sys.bodies.removeItemById(bodyId);
+                            state.temps.bodies.removeItemById(bodyId);
+                        }
                         state.equipment.shared = sys.equipment.shared;
                         state.equipment.model = sys.equipment.model;
                         state.equipment.controllerType = sys.controllerType;

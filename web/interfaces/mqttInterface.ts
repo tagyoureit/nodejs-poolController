@@ -78,7 +78,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             `${this.rootTopic()}/state/+/settheme`,
             `${this.rootTopic()}/state/chlorinator`,
             `${this.rootTopic()}/state/temps`,
-            `${this.rootTopic()}/config/tempSensors`
+            `${this.rootTopic()}/config/tempSensors`,
+            `${this.rootTopic()}/state/chemController`
         ];
         topics.forEach(topic => {
             this.client.unsubscribe(topic, (err, packet) => {
@@ -197,6 +198,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         // across all topics
                         this.buildTokensWithFormatter(t.topic, evt, topicToks, e, data[0], topicFormatter);
                         topic = `${rootTopic}/${this.replaceTokens(t.topic, topicToks)}`;
+                        // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
+                        if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
+
+
                         this.buildTokens(t.message, evt, topicToks, e, data[0]);
                         message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
 
@@ -367,6 +372,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     {
                         try {
                             let schlor = await sys.board.chlorinator.setChlorAsync(msg);
+                        }
+                        catch (err) { logger.error(err); }
+                        break;
+                    }
+                case 'chemController':
+                    {
+                        try {
+                            await sys.board.chemControllers.setChemControllerAsync(msg);
                         }
                         catch (err) { logger.error(err); }
                         break;

@@ -925,7 +925,7 @@ export class REMInterfaceServer extends ProtoServer {
     }
     public async getDevices() {
         try {
-            let response = await this.sendClientRequest('GET', '/devices/all', 10000);
+            let response = await this.sendClientRequest('GET', '/devices/all', undefined, 10000);
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
         catch (err) { logger.error(err); }

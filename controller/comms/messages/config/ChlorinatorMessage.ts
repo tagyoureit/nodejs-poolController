@@ -27,14 +27,10 @@ export class ChlorinatorMessage {
                 chlorId = 1;
                 for (let i = 0; i < 4 && i + 30 < msg.payload.length; i++) {
                     let isActive = msg.extractPayloadByte(i + 22) === 1;
-                    let chlor = sys.chlorinators.getItemById(chlorId, isActive);
-                    let schlor = state.chlorinators.getItemById(chlor.id, isActive);
-                    chlor.isActive = schlor.isActive = isActive;
-                    if (i >= sys.equipment.maxChlorinators || !isActive) {
-                        sys.chlorinators.removeItemById(chlorId);
-                        state.chlorinators.removeItemById(chlorId);
-                    }
-                    else {
+                    if (isActive) {
+                        let chlor = sys.chlorinators.getItemById(chlorId, true);
+                        let schlor = state.chlorinators.getItemById(chlor.id, true);
+                        chlor.isActive = schlor.isActive = true;
                         chlor.body = msg.extractPayloadByte(i + 2);
                         chlor.type = msg.extractPayloadByte(i + 6);
                         if (!chlor.disabled) {
@@ -55,6 +51,10 @@ export class ChlorinatorMessage {
                         schlor.superChlorHours = chlor.superChlorHours;
                         state.emitEquipmentChanges();
                     }
+                    else {
+                        sys.chlorinators.removeItemById(chlorId);
+                        state.chlorinators.removeItemById(chlorId);
+                    }
                     chlorId++;
                 }
                 break;
@@ -66,10 +66,10 @@ export class ChlorinatorMessage {
     public static processTouch(msg: Inbound) {
         // This is for the 25 message that is broadcast from the OCP.
         let isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
-        let chlor = sys.chlorinators.getItemById(1, isActive);
-        let schlor = state.chlorinators.getItemById(1, isActive);
-        chlor.isActive = schlor.isActive = isActive;
         if (isActive) {
+            let chlor = sys.chlorinators.getItemById(1, true);
+            let schlor = state.chlorinators.getItemById(1, true);
+            chlor.isActive = schlor.isActive = isActive;
             if (!chlor.disabled) {
                 // RKS: We don't want these setpoints if our chem controller disabled the
                 // chlorinator.  These should be 0 anyway.

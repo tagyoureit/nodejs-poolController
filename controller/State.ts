@@ -455,11 +455,12 @@ class EqState implements IEqStateCreator<EqState> {
     public initData() { }
     public emitEquipmentChange() {
         if (typeof (webApp) !== 'undefined' && webApp) {
-            if (this.hasChanged) this.emitData(this.dataName, this.data);
+            if (this.hasChanged) this.emitData(this.dataName, this.getEmitData());
             this.hasChanged = false;
             state._dirtyList.removeEqState(this);
         }
     }
+    public getEmitData() { return this.data; }
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
     protected setDataVal(name, val, persist?: boolean): any {
         if (this.data[name] !== val) {
@@ -570,6 +571,10 @@ class EqStateCollection<T> {
     public find(f: (value: any, index?: number, obj?: any) => boolean): T {
         let itm = this.data.find(f);
         if (typeof itm !== 'undefined') return this.createItem(itm);
+    }
+    public exists(f: (value: any, index?: number, obj?: any) => boolean): boolean {
+        let itm = this.find(f);
+        return typeof itm === 'object';
     }
     public toArray() {
         let arr = [];
@@ -762,12 +767,15 @@ export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
     public createItem(data: any): ScheduleState { return new ScheduleState(data); }
 }
 export class ScheduleState extends EqState {
-    constructor(data: any, dataName?: string) {
-        super(data, dataName);
-        if (typeof (data.startDate) === 'undefined') this._startDate = new Date();
-        else this._startDate = new Date(data.startDate);
+    constructor(data: any, dataName?: string) { super(data, dataName); }
+    public initData() {
+        if (typeof this.data.startDate === 'undefined') this._startDate = new Date();
+        else this._startDate = new Date(this.data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
+        if (typeof this.data.startTimeType === 'undefined') this.data.startTimeType = 0;
+        if (typeof this.data.endTimeType === 'undefined') this.data.endTimeType = 0;
     }
+
     private _startDate: Date = new Date();
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; this._saveStartDate(); }

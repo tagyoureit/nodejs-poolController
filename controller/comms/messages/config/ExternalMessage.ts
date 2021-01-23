@@ -80,10 +80,11 @@ export class ExternalMessage {
     public static processIntelliChem(msg: Inbound) {
         let id = msg.extractPayloadByte(2) + 1;
         let isActive = utils.makeBool(msg.extractPayloadByte(6));
-        let controller = sys.chemControllers.getItemById(id, isActive);
-        let scontroller = state.chemControllers.getItemById(id, isActive);
-        controller.isActive = scontroller.isActive = isActive;
+        //let scontroller = state.chemControllers.getItemById(id, isActive);
+        //controller.isActive = scontroller.isActive = isActive;
         if (isActive) {
+            let controller = sys.chemControllers.getItemById(id, true);
+            let scontroller = state.chemControllers.getItemById(id, true);
             controller.isVirtual = false;
             controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
             controller.ph.tank.units = controller.orp.tank.units = '';

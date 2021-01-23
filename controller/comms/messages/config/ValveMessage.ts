@@ -113,12 +113,9 @@ export class ValveMessage {
     }
     private static getName(cir: number) {
         if (cir <= 50)
-        {
             return sys.circuits.getInterfaceById(cir).name;
-        }
         else
             return sys.board.valueMaps.virtualCircuits.transform(cir).desc;
-
     }
     private static processCircuit(msg: Inbound) {
         // When it comes to valves there are some interesting numberings
@@ -127,7 +124,7 @@ export class ValveMessage {
         // for i10d.
         let ndx: number = 2;
         let id = 1;
-        for (let i = 0; i < sys.equipment.maxValves; i++) {
+        for (let i = 0; i < sys.equipment.maxValves - 1; i++) {
             if (id === 3 && !sys.equipment.shared) {
                 // The intake/return valves are skipped for non-shared systems.
                 sys.valves.removeItemById(3);
@@ -146,7 +143,7 @@ export class ValveMessage {
                 id += 2;
                 ndx += 2;
             }
-            let valve: Valve = sys.valves.getItemById(id, i < sys.equipment.maxValves);
+            let valve: Valve = sys.valves.getItemById(id, true);
             valve.isVirtual = false;
             if (id === 3 || id === 5) {
                 valve.circuit = 247; // Hardcode the intake/return to pool/spa;
@@ -163,7 +160,10 @@ export class ValveMessage {
                 valve.isIntake = false;
                 valve.isReturn = false;
             }
-            valve.type = 0;
+            if (valve.isActive) {
+                let svalve = state.valves.getItemById(valve.id, true);
+                svalve.type = valve.type = 0;
+            }
             valve.isActive = i < sys.equipment.maxValves;
             ndx++;
             id++;
@@ -178,7 +178,11 @@ export class ValveMessage {
         // byte = 3 == 5
         // 0 + 5
         let valveId = byte <= 2 ? ((byte - 1) * 2) + 1 : (byte - 3) * 2 + 5;
-        state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
-        state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
+        if (typeof sys.valves.find(elem => elem.id === valveId) !== 'undefined') {
+            state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(2, 16);
+        }
+        if (typeof sys.valves.find(elem => elem.id === valveId) !== 'undefined') {
+            state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
+        }
     }
 }

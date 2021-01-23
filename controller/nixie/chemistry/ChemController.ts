@@ -303,6 +303,7 @@ export class NixieChemController extends NixieEquipment {
     public processAlarms(schem: ChemControllerState) {
         try {
             // Calculate all the alarms.  These are only informational at this point.
+            let setupValid = true;
             if (this.flowSensor.sensor.type === 0) {
                 if (!schem.isBodyOn) schem.alarms.flow = 0;
             }
@@ -324,11 +325,16 @@ export class NixieChemController extends NixieEquipment {
             schem.orp.enabled = this.chem.orp.enabled;
             schem.ph.enabled = this.chem.ph.enabled;
             if (this.chem.orp.enabled) {
+                
                 let useChlorinator = chem.orp.useChlorinator;
                 let pumpType = chem.orp.pump.type;
                 let probeType = chem.orp.probe.type;
                 let currLevelPercent = schem.orp.tank.level / schem.orp.tank.capacity * 100;
-                schem.alarms.orpTank = !useChlorinator && pumpType !== 0 && schem.orp.tank.alarmEmptyEnabled && currLevelPercent <= schem.orp.tank.alarmEmptyLevel ? 64 : 0;
+                if (pumpType !== 0) {
+                    if (currLevelPercent <= 0) schem.alarms.orpTank = 64;
+                    else schem.alarms.orpTank = schem.orp.tank.alarmEmptyEnabled && currLevelPercent <= schem.orp.tank.alarmEmptyLevel ? 130 : 0;
+                }
+                else schem.alarms.orpTank = 0;
                 // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
                 let padj = this.chem.orp.pump.type > 0 && !this.chem.orp.useChlorinator ? (this.chem.orp.pump.ratedFlow / 60) * 3 : 0;
                 if (this.chem.orp.maxDailyVolume <= schem.orp.dailyVolumeDosed) {
@@ -357,12 +363,17 @@ export class NixieChemController extends NixieEquipment {
                 schem.alarms.orpTank = 0;
                 schem.warnings.orpDailyLimitReached = 0;
                 schem.alarms.orp = 0;
+                schem.warnings.pHLockout = 0;
             }
             if (this.chem.ph.enabled) {
                 let pumpType = chem.ph.pump.type;
                 let probeType = chem.ph.probe.type;
                 let currLevelPercent = schem.ph.tank.level / schem.ph.tank.capacity * 100;
-                schem.alarms.pHTank = pumpType !== 0 && schem.ph.tank.alarmEmptyEnabled && currLevelPercent <= schem.ph.tank.alarmEmptyLevel ? 32 : 0;
+                if (pumpType !== 0) {
+                    if (currLevelPercent <= 0) schem.alarms.pHTank = 32;
+                    else schem.alarms.pHTank = schem.ph.tank.alarmEmptyEnabled && currLevelPercent <= schem.ph.tank.alarmEmptyLevel ? 129 : 0;
+                }
+                else schem.alarms.pHTank = 0;
                 schem.warnings.pHDailyLimitReached = 0;
                 // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
                 let padj = this.chem.ph.pump.type > 0 ? (this.chem.ph.pump.ratedFlow / 60) * 3 : 0;

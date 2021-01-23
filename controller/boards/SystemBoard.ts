@@ -521,7 +521,9 @@ export class byteValueMaps {
         [16, { name: 'orplow', desc: 'orp Level Low' }],
         [32, { name: 'phtankempty', desc: 'pH Tank Empty' }],
         [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
-        [128, { name: 'probefault', desc: 'Probe Fault' }]
+        [128, { name: 'probefault', desc: 'Probe Fault' }],
+        [129, { name: 'phtanklow', desc: 'pH Tank Low' }],
+        [130, { name: 'orptanklow', desc: 'orp Tank Low'}]
     ]);
     public chemControllerHardwareFaults: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Faults' }],
@@ -2777,15 +2779,19 @@ export class ValveCommands extends BoardCommands {
     }
 
     public syncValveStates() {
-        for (let i = 0; i < sys.valves.length; i++) {
+        for (let i = 0; i < sys.valves.length - 1; i++) {
             // Run through all the valves to see whether they should be triggered or not.
             let valve = sys.valves.getItemByIndex(i);
-            if (valve.circuit > 0) {
-                let circ = state.circuits.getInterfaceById(valve.circuit);
+            if (valve.isActive) {
                 let vstate = state.valves.getItemById(valve.id, true);
+                if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+                    let circ = state.circuits.getInterfaceById(valve.circuit);
+                    vstate.isDiverted = utils.makeBool(circ.isOn);
+                }
+                else
+                    vstate.isDiverted = false;
                 vstate.type = valve.type;
                 vstate.name = valve.name;
-                vstate.isDiverted = utils.makeBool(circ.isOn);
             }
         }
     }
@@ -2860,6 +2866,8 @@ export class ChemControllerCommands extends BoardCommands {
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+            let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
+
             let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
             if (isNaN(body)) body = sys.equipment.shared ? 32 : 0;
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
@@ -2869,7 +2877,9 @@ export class ChemControllerCommands extends BoardCommands {
             if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
             if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
             if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+            if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
             let schem = state.chemControllers.getItemById(chem.id);
+          
             schem.ph.tank.capacity = schem.orp.tank.capacity = chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
             schem.ph.tank.units = schem.orp.tank.units = chem.ph.tank.units = chem.orp.tank.units = '';
 
@@ -2902,6 +2912,7 @@ export class ChemControllerCommands extends BoardCommands {
                             chem.orp.setpoint = schem.orp.setpoint = orpSetpoint;
                             chem.calciumHardness = calciumHardness;
                             chem.alkalinity = alkalinity;
+                            chem.borates = borates;
                             schem.ph.tank.level = acidTankLevel;
                             schem.orp.tank.level = orpTankLevel;
                             chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;

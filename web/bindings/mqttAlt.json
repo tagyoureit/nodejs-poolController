@@ -222,6 +222,16 @@
           "description": "Indicates whether the valve is virtual"
         },
         {
+          "topic": "state/valves/@bind=data.id;/isIntake",
+          "message": "@bind=data.isIntake ? true : false;",
+          "description": "Indicates whether the valve is for the intake in a shared system"
+        },
+        {
+          "topic": "state/valves/@bind=data.id;/isReturn",
+          "message": "@bind=data.isReturn ? true : false;",
+          "description": "Indicates whether the valve is for the return in a shared system"
+        },
+        {
           "topic": "state/valves/@bind=data.id;/pinId",
           "message": "@bind=data.pinId;",
           "description": "The pin id that is set on the valve",

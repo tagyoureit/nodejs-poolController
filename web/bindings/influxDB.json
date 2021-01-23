@@ -109,7 +109,7 @@
           "fields": [
             {
               "name": "level",
-              "value": "@bind=data.ph.probe.level;",
+              "value": "@bind=data.ph.level;",
               "type": "float"
             },
             {
@@ -234,7 +234,7 @@
             },
             {
               "name": "max daily volume",
-              "value": "@bind=data.ph.maxDailyVolumen;",
+              "value": "@bind=data.ph.maxDailyVolume;",
               "type": "int"
             },
             {
@@ -279,12 +279,7 @@
           "fields": [
             {
               "name": "level",
-              "value": "@bind=data.orp.probe.level;",
-              "type": "float"
-            },
-            {
-              "name": "temperature",
-              "value": "@bind=data.orp.probe.temperature;",
+              "value": "@bind=data.orp.level;",
               "type": "float"
             },
             {

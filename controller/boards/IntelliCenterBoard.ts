@@ -264,6 +264,7 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public async stopAsync() { this._configQueue.close(); return super.stopAsync();}
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
+        state.equipment.controllerType = 'intellicenter';
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B, inv);
         // Here we need to set the start id should we have a single body system.
@@ -306,13 +307,12 @@ export class IntelliCenterBoard extends SystemBoard {
         state.equipment.maxValves = sys.equipment.maxValves;
         state.equipment.shared = sys.equipment.shared;
         state.equipment.dual = sys.equipment.dual;
-        let pb = sys.equipment.modules.getItemById(0);
-        if (pb.type === 0 || pb.type > 7)
-            sys.equipment.model = 'IntelliCenter i5P';
-        else
-            sys.equipment.model = 'IntelliCenter ' + pb.name;
+        //let pb = sys.equipment.modules.getItemById(0);
+        //if (pb.type === 0 || pb.type > 7)
+        //    sys.equipment.model = 'IntelliCenter i5P';
+        //else
+        //    sys.equipment.model = 'IntelliCenter ' + pb.name;
         state.equipment.model = sys.equipment.model;
-        state.equipment.controllerType = 'intellicenter';
         sys.board.heaters.initTempSensors();
         this.modulesAcquired = true;
         this.checkConfiguration();
@@ -339,6 +339,11 @@ export class IntelliCenterBoard extends SystemBoard {
         mod.get().covers = mt.covers;
         mod.get().chlorinators = mt.chlorinators;
         mod.get().chemControllers = mt.chemControllers;
+        if (mod.type === 0 || mod.type > 7)
+            sys.equipment.model = 'IntelliCenter i5P';
+        else
+            sys.equipment.model = 'IntelliCenter ' + mod.name;
+        state.equipment.model = sys.equipment.model;
         if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
         if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
         if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
