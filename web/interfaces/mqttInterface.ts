@@ -376,7 +376,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         catch (err) { logger.error(err); }
                         break;
                     }
-                case 'chemController':
+                case 'chemcontroller':
                     {
                         try {
                             await sys.board.chemControllers.setChemControllerAsync(msg);
