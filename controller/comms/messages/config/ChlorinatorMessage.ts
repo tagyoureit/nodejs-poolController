@@ -73,8 +73,8 @@ export class ChlorinatorMessage {
             if (!chlor.disabled) {
                 // RKS: We don't want these setpoints if our chem controller disabled the
                 // chlorinator.  These should be 0 anyway.
-                schlor.poolSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
-                schlor.spaSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
+                schlor.spaSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
+                schlor.poolSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
                 chlor.address = chlor.id + 79;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }

@@ -79,7 +79,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             `${this.rootTopic()}/state/chlorinator`,
             `${this.rootTopic()}/state/temps`,
             `${this.rootTopic()}/config/tempSensors`,
-            `${this.rootTopic()}/state/chemController`
+            `${this.rootTopic()}/config/chemController`,
+            `${this.rootTopic()}/state/chemController`,
+            `${this.rootTopic()}/config/chlorinator`,
+            `${this.rootTopic()}/state/chlorinator`
         ];
         topics.forEach(topic => {
             this.client.unsubscribe(topic, (err, packet) => {
@@ -183,7 +186,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     let rootTopic = this.rootTopic();
                     if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
                     if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
-                     let topicToks = {};
+                        let topicToks = {};
                         if (typeof t.enabled !== 'undefined' && !t.enabled) return;
                         if (typeof t.filter !== 'undefined') {
                             this.buildTokens(t.filter, evt, topicToks, e, data[0]);
@@ -233,7 +236,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             this.client.publish(topic, message, publishOptions);
                             if (typeof t.lastSent !== 'undefined') t.lastSent = undefined;
                         }
-                        
+
                     })
                 }
             }
@@ -387,9 +390,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 case 'settheme':
                     {
                         try {
-                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));   
+                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
                         }
-                        catch (err) {logger.error(err); }
+                        catch (err) { logger.error(err); }
                         break;
                     }
                 case 'temp':
@@ -406,6 +409,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     }
                     catch (err) { logger.error(err); }
                     break;
+                case 'chemController': {
+                    try {
+                        logger.debug(`MQTT: Inbound CHEMCONTROLLER: ${JSON.stringify(msg)}`);
+                        await sys.board.chemControllers.setChemControllerAsync(msg);
+                    }
+                    catch (err) { logger.error(err); }
+                    break;
+                }
                 default:
                     logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
                     break;
