@@ -76,7 +76,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             `${this.rootTopic()}/state/body/heatmode`,
             `${this.rootTopic()}/state/+/setTheme`,
             `${this.rootTopic()}/state/+/settheme`,
-            `${this.rootTopic()}/state/chlorinator`,
             `${this.rootTopic()}/state/temps`,
             `${this.rootTopic()}/config/tempSensors`,
             `${this.rootTopic()}/config/chemController`,
