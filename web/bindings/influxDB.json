@@ -493,12 +493,12 @@
             },
             {
               "name": "alarm: comms",
-              "value": "@bind=data.alarms.comms.val",
+              "value": "@bind=data.alarms.comms.val;",
               "type": "int"
             },
             {
               "name": "alarm: flow",
-              "value": "@bind:data.alarms.flow.val",
+              "value": "@bind=data.alarms.flow.val;",
               "type": "int"
             },
             {
@@ -532,7 +532,7 @@
               "type": "int"
             },
             {
-              "name": "range high",
+              "name": "lsi range high",
               "value": "@bind=data.lsiRange.high.val;",
               "type": "int"
             },

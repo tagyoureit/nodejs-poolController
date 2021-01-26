@@ -1182,7 +1182,10 @@ export class NixieChemicalPh extends NixieChemical {
                         logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                         await this.pump.dose(dosage);
                     }
-                    else await this.cancelDosing(sph);
+                    else {
+                        logger.verbose(`Chem acid NOT dosed because tank level is level ${sph.tank.level}.`);
+                        await this.cancelDosing(sph);
+                    }
                 }
                 return true;
             }
