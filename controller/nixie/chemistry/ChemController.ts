@@ -295,7 +295,7 @@ export class NixieChemController extends NixieEquipment {
                     // We are not processing Homegrown at this point.
                     // Check each piece of equipment to make sure it is doing its thing.
                     this.calculateSaturationIndex();
-                    this.processAlarms(schem);
+                    await this.processAlarms(schem);
                     if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
                     if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
                 }
@@ -520,20 +520,25 @@ class NixieChemical extends NixieChildEquipment {
         // Load up the dose history so we can do our 24 hour thingy.
         (async () => {
             let lines = await this.chemController.controlPanel.readLogFile(this.logFilename);
-            let dt = new Date().getTime();
+            let dt = new Date().getTime() - 86400000;
             let total = 0;
             for (let i = 0; i < lines.length; i++) {
                 try {
-                    //console.log(lines[i]);
                     let log = NixieChemDoseLog.fromLog(lines[i]);
-                    if (dt - 86400000 < log.end.getTime()) {
+                    if (log.end.getTime() > dt) {
                         this.doseHistory.push(log);
                     }
-                    else break;
+                    else break;  // The file should be ordered where the latest dose is at the top.
                 } catch (err) { logger.error(`read chemController Dose History: ${err.message}`); }
             }
+            /*  This will spit out the evaluated values for the dose history.
+            console.log(`Min Date: ${new Date(dt).toISOString()}`);
+            for (let i = 0; i < this.doseHistory.length; i++) {
+                let log = this.doseHistory[i];
+                console.log(`${(log.end.getTime() - dt)/1000} ${log.end.toISOString()} ${utils.formatDuration((log.end.getTime() - dt) / 1000)}`);
+            }
+            */
         })();
-
     }
     protected async setHardware(chemical: Chemical, data: any) {
         try {
@@ -646,10 +651,7 @@ class NixieChemical extends NixieChildEquipment {
         let dt = new Date().getTime() - (hours * 3600000);
         for (let i = this.doseHistory.length - 1; i >= 0; i--) {
             let log = this.doseHistory[i];
-            if (log.end.getTime() > dt) {
-                // TODO: calculate out a partial timeslot.
-                total += log.volumeDosed;
-            }
+            if (log.end.getTime() > dt) total += log.volumeDosed;
             else if (trim) {
                 this.doseHistory.splice(i, 1);
             }
@@ -750,7 +752,7 @@ export class NixieChemDose {
             let log = NixieChemDoseLog.fromDose(this);
             chem.chemController.logData(`chemDosage_${this.schem.chemType}.log`, log.toLog());
             //`{"id":${chem.chemController.chem.id},"method":"${this.isManual ? 'manual' : 'auto'}","chem":"${this.schem.chemType}",start":${Timestamp.toISOLocal(this.startDate)},"end":"${Timestamp.toISOLocal(new Date())}","demand":${this.demand},"level": ${this.level},"volume": ${this.volume},"volumeDosed": ${this.volumeDosed},"timeDosed": "${utils.formatDuration(this.timeDosed / 1000)}"}`);
-            chem.doseHistory.unshift(log);
+            chem.doseHistory.unshift(log);  // Add our dose to the start of the history.
         }
     }
     public set(obj: any) {
@@ -839,7 +841,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 // We are a relay pump so we need to turn on the pump for a timed interval
                 // then check it on each iteration.  If the pump does not receive a request
                 // from us then the relay will turn off.
-                this.chemical.chemController.processAlarms(dosage.schem.chemController);
+                await this.chemical.chemController.processAlarms(dosage.schem.chemController);
                 let isBodyOn = scontroller.flowDetected;
                 await this.chemical.initDose(dosage);
                 let delay = 0;

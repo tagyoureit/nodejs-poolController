@@ -416,8 +416,8 @@ export class Utils {
         let hrs = Math.floor(seconds / 3600);
         let min = Math.floor((seconds - (hrs * 3600)) / 60);
         let sec = seconds - ((hrs * 3600) + (min * 60));
-        if (hrs > 1) fmt += (hrs + 'hrs');
-        else if (hrs > 0) fmt += (hrs + 'hr');
+        if (hrs > 1) fmt += (hrs.toString() + 'hrs');
+        else if (hrs > 0) fmt += (hrs.toString() + 'hr');
 
         if (min > 0) fmt += ' ' + (min + 'min');
         if (sec > 0) fmt += ' ' + (sec + 'sec');
