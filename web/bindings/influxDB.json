@@ -138,7 +138,7 @@
               "type": "boolean"
             },
             {
-              "name": "pump dose time remaining",
+              "name": "dose time remaining",
               "value": "@bind=data.ph.dosingTimeRemaining;",
               "type": "float"
             },
