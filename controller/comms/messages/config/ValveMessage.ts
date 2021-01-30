@@ -160,11 +160,11 @@ export class ValveMessage {
                 valve.isIntake = false;
                 valve.isReturn = false;
             }
+            valve.isActive = i < sys.equipment.maxValves;
             if (valve.isActive) {
                 let svalve = state.valves.getItemById(valve.id, true);
                 svalve.type = valve.type = 0;
             }
-            valve.isActive = i < sys.equipment.maxValves;
             ndx++;
             id++;
         }

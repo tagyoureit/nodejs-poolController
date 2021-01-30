@@ -14,7 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { connect, MqttClient, Client, IClientPublishOptions } from 'mqtt';
+import { connect, MqttClient, Client, IClientPublishOptions, CloseCallback } from 'mqtt';
 import * as http2 from "http2";
 import * as http from "http";
 import * as https from "https";
@@ -36,6 +36,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         this.subscribed = false;
     }
     private client: MqttClient;
+    private topics: string[] = [];
     public events: MqttInterfaceEvent[];
     private subscribed: boolean; // subscribed to events or not
     private sentInitialMessages = false;
@@ -57,44 +58,84 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         //this.client = new Client(net.Socket,opts);
         this.client = connect(url, opts);
 
-        this.client.on('connect', () => {
-            logger.info(`MQTT connected to ${url}`);
-            this.subscribe();
-        })
+        this.client.on('connect', async () => {
+            try {
+                logger.info(`MQTT connected to ${url}`);
+                await this.subscribe();
+            } catch (err) { logger.error(err); }
+        });
 
     }
+    public async stopAsync() {
+        try {
+            if (typeof this.client !== 'undefined') {
+                await this.unsubscribe();
+                await new Promise((resolve, reject) => {
+                    this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
+                        logger.info(`Successfully shut down MQTT Client`);
+                        resolve();
+                    });
+                });
+            }
+        } catch (err) { logger.error(`Error stopping MQTT Client: ${err.message}`); }
+    }
+    private async unsubscribe() {
+        try {
+            while (this.topics.length > 0) {
+                let topic = this.topics.pop();
+                if (typeof topic !== 'undefined') {
+                    await new Promise((resolve, reject) => {
+                        this.client.unsubscribe(topic, (err, packet) => {
+                            if (err) reject(new Error(`Error unsubscribing from MQTT topic ${topic}`));
+                            else {
+                                logger.debug(`Unsubscribed from MQTT topic ${topic}`);
+                                resolve();
+                            }
+                        });
+                    });
+                }
+            } 
+        } catch (err) { logger.error(`Error unsubcribing to MQTT topic: ${err.message}`); }
+    }
+    private async subscribe() {
+        try {
+            if (this.topics.length > 0) await this.unsubscribe();
+            let root = this.rootTopic();
+            this.topics.push(`${root}/state/+/setState`,
+                `${root}/state/+/setstate`,
+                `${root}/state/+/toggleState`,
+                `${root}/state/+/togglestate`,
+                `${root}/state/body/setPoint`,
+                `${root}/state/body/setpoint`,
+                `${root}/state/body/heatMode`,
+                `${root}/state/body/heatmode`,
+                `${root}/state/+/setTheme`,
+                `${root}/state/+/settheme`,
+                `${root}/state/temps`,
+                `${root}/config/tempSensors`,
+                `${root}/config/chemController`,
+                `${root}/state/chemController`,
+                `${root}/config/chlorinator`,
+                `${root}/state/chlorinator`);
+            for (let i = 0; i < this.topics.length; i++) {
+                let topic = this.topics[i];
+                await new Promise((resolve, reject) => {
+                    this.client.subscribe(topic, (err, granted) => {
+                        if (!err) {
+                            logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`);
+                            resolve();
+                        }
+                        else {
+                            logger.error(`MQTT Subscribe: ${err}`);
+                            reject(err);
+                        }
+                    });
+                });
 
-    private subscribe = () => {
-        let topics = [
-            `${this.rootTopic()}/state/+/setState`,
-            `${this.rootTopic()}/state/+/setstate`,
-            `${this.rootTopic()}/state/+/toggleState`,
-            `${this.rootTopic()}/state/+/togglestate`,
-            `${this.rootTopic()}/state/body/setPoint`,
-            `${this.rootTopic()}/state/body/setpoint`,
-            `${this.rootTopic()}/state/body/heatMode`,
-            `${this.rootTopic()}/state/body/heatmode`,
-            `${this.rootTopic()}/state/+/setTheme`,
-            `${this.rootTopic()}/state/+/settheme`,
-            `${this.rootTopic()}/state/temps`,
-            `${this.rootTopic()}/config/tempSensors`,
-            `${this.rootTopic()}/config/chemController`,
-            `${this.rootTopic()}/state/chemController`,
-            `${this.rootTopic()}/config/chlorinator`,
-            `${this.rootTopic()}/state/chlorinator`
-        ];
-        topics.forEach(topic => {
-            this.client.unsubscribe(topic, (err, packet) => {
-                if (err) logger.error(`Error unsubscribing to MQTT topic ${topic}: ${err.message}`);
-                else logger.debug(`Unsubscribed from MQTT topic ${topic}`);
-            });
-            this.client.subscribe(topic, (err, granted) => {
-                if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`)
-                else logger.error(`MQTT Subscribe: ${err}`)
-            })
-        })
-        this.client.on('message', this.messageHandler)
-        this.subscribed = true;
+            }
+            this.client.on('message', this.messageHandler)
+            this.subscribed = true;
+        } catch (err) { logger.error(`Error subcribing to MQTT topics`); }
     }
 
     // this will take in the MQTT Formatter options and format each token that is bound

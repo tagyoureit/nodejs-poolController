@@ -123,20 +123,22 @@ export class State implements IState {
         }
     }
     public async stopAsync() {
-        if (this._timerDirty) clearTimeout(this._timerDirty);
-        this.persist();
-        if (sys.controllerType === ControllerType.Virtual) {
-            for (let i = 0; i < state.temps.bodies.length; i++) {
-                state.temps.bodies.getItemByIndex(i).isOn = false;
+        try {
+            if (this._timerDirty) clearTimeout(this._timerDirty);
+            this.persist();
+            if (sys.controllerType === ControllerType.Virtual) {
+                for (let i = 0; i < state.temps.bodies.length; i++) {
+                    state.temps.bodies.getItemByIndex(i).isOn = false;
+                }
+                for (let i = 0; i < state.circuits.length; i++) {
+                    state.circuits.getItemByIndex(i).isOn = false;
+                }
+                for (let i = 0; i < state.features.length; i++) {
+                    state.features.getItemByIndex(i).isOn = false;
+                }
             }
-            for (let i = 0; i < state.circuits.length; i++) {
-                state.circuits.getItemByIndex(i).isOn = false;
-            }
-            for (let i = 0; i < state.features.length; i++) {
-                state.features.getItemByIndex(i).isOn = false;
-            }
-        }
-        return Promise.resolve();
+            logger.info('State process shut down');
+        } catch (err) { logger.error(`Error shutting down state process: ${err.message}`); }
     }
     private _emitTimerDirty: NodeJS.Timeout;
     private _hasChanged = false;

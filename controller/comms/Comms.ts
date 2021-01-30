@@ -230,17 +230,19 @@ export class Connection {
     //        conn.isOpen = false;
     //    });
     //}
-    public close() {
-        if (conn.connTimer) clearTimeout(conn.connTimer);
-        if (typeof (conn._port) !== 'undefined' && conn._cfg.netConnect) {
-            if (typeof (conn._port.destroy) !== 'function')
-                conn._port.close(function(err) {
-                    if (err) logger.error('Error closing %s:%s', conn._cfg.netHost, conn._cfg.netPort);
-                });
-            else
-                conn._port.destroy();
-        }
-        conn.buffer.close();
+    public closeAsync() {
+        try {
+            if (conn.connTimer) clearTimeout(conn.connTimer);
+            if (typeof (conn._port) !== 'undefined' && conn._cfg.netConnect) {
+                if (typeof (conn._port.destroy) !== 'function')
+                    conn._port.close(function (err) {
+                        if (err) logger.error('Error closing %s:%s', conn._cfg.netHost, conn._cfg.netPort);
+                    });
+                else
+                    conn._port.destroy();
+            }
+            conn.buffer.close();
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
     }
     public drain(cb: Function) {
         if (typeof (conn._port.drain) === 'function')
@@ -258,9 +260,10 @@ export class Connection {
             conn._port.write(bytes, cb);
     }
     public async stopAsync() {
-        Promise.resolve()
-            .then(function() { conn.close(); })
-            .then(function() { console.log('closed connection'); });
+        try {
+            await conn.closeAsync();
+            logger.info(`Closed serial communications connection.`);
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
     }
     public init() {
         conn._cfg = config.getSection('controller.comms', {
@@ -297,7 +300,7 @@ export class Connection {
             inactivityRetry: 10
         }, cfg);
         if (JSON.stringify(c) !== JSON.stringify(this._cfg)) {
-            this.close();
+            this.closeAsync();
             this._cfg = c;
             this.openAsync();
         }

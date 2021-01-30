@@ -83,17 +83,20 @@ class Logger {
         }
     }
     public async stopAsync() {
-        this.info(`Stopping logger.`);
-        if (this.cfg.app.captureForReplay) {
-            return this.stopCaptureForReplayAsync();
-        }
-        // Free up the file handles.  This is yet another goofiness with winston.  Not sure why they
-        // need to exclusively lock the file handles when the process always appends.  Just stupid.
-        if (typeof this.transports.consoleFile !== 'undefined') {
-            this._logger.remove(this.transports.consoleFile);
-            this.transports.consoleFile.close();
-            this.transports.consoleFile = undefined;
-        }
+        try {
+            this.info(`Stopping logger Process.`);
+            if (this.cfg.app.captureForReplay) {
+                return await this.stopCaptureForReplayAsync();
+            }
+            // Free up the file handles.  This is yet another goofiness with winston.  Not sure why they
+            // need to exclusively lock the file handles when the process always appends.  Just stupid.
+            if (typeof this.transports.consoleFile !== 'undefined') {
+                this._logger.remove(this.transports.consoleFile);
+                this.transports.consoleFile.close();
+                this.transports.consoleFile = undefined;
+            }
+            console.log(`Logger Process Stopped`);
+        } catch (err) { console.log(`Error shutting down logger: ${err.message}`); }
     }
     public get options(): any { return this.cfg; }
     public info(...args: any[]) { logger._logger.info.apply(logger._logger, arguments); }

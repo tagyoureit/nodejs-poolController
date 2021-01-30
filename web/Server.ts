@@ -44,7 +44,6 @@ import { MqttInterfaceBindings } from './interfaces/mqttInterface';
 import { Timestamp } from '../controller/Constants';
 import extend = require("extend");
 import { ConfigSocket } from "./services/config/ConfigSocket";
-import { Interface } from "readline";
 
 
 // This class serves data and pages for
@@ -131,10 +130,20 @@ export class WebServer {
     }
     public get mdnsServer(): MdnsServer { return this._servers.find(elem => elem instanceof MdnsServer) as MdnsServer; }
     public deviceXML() { } // override in SSDP
-    public stop() {
-        for (let s in this._servers) {
-            if (typeof this._servers[s].stop() === 'function') this._servers[s].stop();
-        }
+    public async stopAsync() {
+        try {
+            // We want to stop all the servers in reverse order so let's pop them out.
+            for (let s in this._servers) {
+                try {
+                    let serv = this._servers[s];
+                    if (typeof serv.stopAsync === 'function') {
+                        await serv.stopAsync();
+                    }
+                    this._servers[s] = undefined;
+                } catch (err) { console.log(`Error stopping server ${s}: ${err.message}`); }
+            }
+        } catch (err) {`Error stopping servers`}
+
     }
     private getInterface() {
         const networkInterfaces = os.networkInterfaces();
@@ -173,7 +182,7 @@ class ProtoServer {
     public get isConnected() { return this.isRunning; }
     public emitToClients(evt: string, ...data: any) { }
     public emitToChannel(channel: string, evt: string, ...data: any) { }
-    public stop() { }
+    public async stopAsync() { }
     protected _dev: boolean = process.env.NODE_ENV !== 'production';
     // todo: how do we know if the client is using IPv4/IPv6?
 }
@@ -510,8 +519,11 @@ export class SsdpServer extends ProtoServer {
                         </root>`;
         return XML;
     }
-    public stop() {
-        this.server.stop();
+    public async stopAsync() {
+        try {
+            this.server.stop();
+            logger.info(`Stopped SSDP server: ${this.name}`);
+        } catch (err) { logger.error(`Error stopping SSDP server ${err.message}`); }
     }
 }
 export class MdnsServer extends ProtoServer {
@@ -583,6 +595,17 @@ export class MdnsServer extends ProtoServer {
             this.queries.push(query);
         }
         this.server.query({ questions: [query] });
+    }
+    public async stopAsync() {
+        try {
+            await new Promise((resolve, reject) => {
+                this.server.destroy((err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            logger.info(`Shut down MDNS Server ${this.name}`);
+        } catch (err) { logger.error(`Error shutting down MDNS Server ${this.name}: ${err.message}`); }
     }
 }
 export class HttpInterfaceServer extends ProtoServer {
@@ -657,6 +680,12 @@ export class HttpInterfaceServer extends ProtoServer {
             // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
             this.bindings.bindEvent(evt, ...data);
         }
+    }
+    public async stopAsync() {
+        try {
+            logger.info(`${this.name} Interface Server Shut down`);
+        }
+        catch (err) { }
     }
 }
 
@@ -782,6 +811,11 @@ export class MqttInterfaceServer extends ProtoServer {
             this.bindings.bindEvent(evt, ...data);
         }
     }
+    public async stopAsync() {
+        try {
+            if (typeof this.bindings !== 'undefined') await this.bindings.stopAsync();
+        } catch (err) { logger.error(`Error shutting down MQTT Server ${this.name}: ${err.message}`); }
+    }
 }
 export class InterfaceServerResponse {
     constructor(statusCode?: number, statusMessage?: string) {
@@ -801,13 +835,21 @@ export class REMInterfaceServer extends ProtoServer {
             this.initSockets();
         }
     }
+    public async stopAsync() {
+        try {
+            if (typeof this.agent !== 'undefined') this.agent.destroy();
+            if (typeof this.sockClient !== 'undefined') this.sockClient.destroy();
+            logger.info(`Stopped REM Interface Server ${this.name}`);
+        } catch (err) { logger.error(`Error closing REM Server ${this.name}: ${err.message}`); }
+    }
     public cfg;
     public sockClient;
-    protected agent = new http.Agent({ keepAlive: true });
+    protected agent: http.Agent = new http.Agent({ keepAlive: true });
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
     private _sockets: socketio.Socket[] = [];
     private async sendClientRequest(method: string, url: string, data?: any, timeout:number = 10000): Promise<InterfaceServerResponse> {
         try {
+           
             let ret = new InterfaceServerResponse();
             let opts = extend(true, { headers: {} }, this.cfg.options);
             if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
@@ -922,13 +964,6 @@ export class REMInterfaceServer extends ProtoServer {
         // Calls a rest service on the REM to set the state of a connected device.
         try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret;}
         catch (err) { return Promise.reject(err); }
-    }
-    public async getDevices() {
-        try {
-            let response = await this.sendClientRequest('GET', '/devices/all', undefined, 10000);
-            return (response.status.code === 200) ? JSON.parse(response.data) : [];
-        }
-        catch (err) { logger.error(err); }
     }
 }
 export const webApp = new WebServer();

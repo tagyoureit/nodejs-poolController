@@ -165,6 +165,7 @@ export class PoolSystem implements IPoolSystem {
     public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
         if (this._timerDirty) clearTimeout(this._timerDirty);
+        logger.info(`Shut down sys (config) object timers`);
         return this.board.stopAsync();
     }
     public searchForAdditionalDevices() {
@@ -1252,7 +1253,10 @@ export class ValveCollection extends EqItemCollection<Valve> {
     public createItem(data: any): Valve { return new Valve(data); }
 }
 export class Valve extends EqItem {
-    public dataName='valveConfig';
+    public dataName = 'valveConfig';
+    public initData() {
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get type(): number | any { return this.data.type; }

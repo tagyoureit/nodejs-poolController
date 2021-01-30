@@ -59,6 +59,7 @@ export class BaseInterfaceBindings {
         this.buildTokens(input, eventName, toks, e, data);
         return this.replaceTokens(input, toks);
     }
+    public async stopAsync() { }
 }
 
 export class InterfaceEvent {

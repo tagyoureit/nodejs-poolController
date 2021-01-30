@@ -62,11 +62,14 @@ export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
         // await sys.board.virtualPumpControllers.stopAsync();
-        await logger.stopAsync();
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();
+        await webApp.stopAsync();
         config.update();
+        await logger.stopAsync();
+        // RKS: Uncomment below to see the shutdown process
+        //await new Promise((resolve, reject) => { setTimeout(() => { resolve(); }, 10000); });
     }
     catch (err) {
         console.error(`Error stopping processes: ${ err.message }`);
@@ -77,10 +80,14 @@ export async function stopAsync(): Promise<void> {
 }
 if (process.platform === 'win32') {
     let rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.on('SIGINT', async function() { stopAsync(); });
+    rl.on('SIGINT', async function () {
+        try { await stopAsync(); } catch (err) { console.log(`Error shutting down processes ${err.message}`); }
+    });
 }
 else {
     process.stdin.resume();
-    process.on('SIGINT', async function() { return stopAsync(); });
+    process.on('SIGINT', async function () {
+        try { return await stopAsync(); } catch (err) { console.log(`Error shutting down processes ${err.message}`); }
+    });
 }
 initAsync();
