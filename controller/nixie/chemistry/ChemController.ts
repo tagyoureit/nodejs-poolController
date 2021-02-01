@@ -1043,8 +1043,9 @@ export class NixieChemicalPh extends NixieChemical {
         // 1. Get the total gallons of water that the chem controller is in
         // control of.
         let totalGallons = 0;
-        if (chem.body === 0 || chem.body === 32) totalGallons += sys.bodies.getItemById(1).capacity;
-        if (chem.body === 1 || chem.body === 32) totalGallons += sys.bodies.getItemById(2).capacity;
+
+        if (chem.body === 0 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(1).capacity;
+        if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
         if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
         if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
         logger.verbose(`Chem begin calculating demand: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);

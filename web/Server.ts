@@ -965,5 +965,12 @@ export class REMInterfaceServer extends ProtoServer {
         try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret;}
         catch (err) { return Promise.reject(err); }
     }
+    public async getDevices() {
+        try {
+            let response = await this.sendClientRequest('GET', '/devices/all', undefined, 10000);
+            return (response.status.code === 200) ? JSON.parse(response.data) : [];
+        }
+        catch (err) { logger.error(err); }
+    }
 }
 export const webApp = new WebServer();
