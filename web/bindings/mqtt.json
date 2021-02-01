@@ -288,7 +288,7 @@
       "topics": [
         {
           "topic": "state/pumps/@bind=data.id;/@bind=data.name;",
-          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.flow > 0 || data.rpm > 0?'\"on\"':'\"off\"';}",
           "description": "Bind 'on'/'off' as a message to the state topic."
         },
         {

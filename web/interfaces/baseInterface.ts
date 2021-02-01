@@ -42,7 +42,7 @@ export class BaseInterfaceBindings {
         }
         return toks;
     }
-    protected escapeRegex(reg: string) { return reg.replace(/[-[\]{}()*+?.,\\^$]/g, '\\$&'); }
+    protected escapeRegex(reg: string) { return reg.replace(/[-[\]{}()*+?.|,\\^$]/g, '\\$&'); }
     protected replaceTokens(input: string, toks: any) {
         let s = input;
         for (let exp in toks) {

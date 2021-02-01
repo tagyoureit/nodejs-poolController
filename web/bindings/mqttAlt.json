@@ -384,7 +384,7 @@
         },
         {
           "topic": "state/pumps/@bind=data.id;/isOn",
-          "message": "@bind=data.rpm + data.flow > 0;"
+          "message": "@bind=(data.rpm + data.flow > 0)?true:false;"
         },
         {
           "topic": "state/pumps/@bind=data.id;/rpm",
