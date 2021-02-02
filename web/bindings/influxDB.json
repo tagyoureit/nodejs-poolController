@@ -79,6 +79,9 @@
     },
     {
       "name": "chemController",
+      "vars": {
+        "cfg": "@bind=sys.chemControllers.getItemById(data.id).get();"
+      },
       "points": [
         {
           "measurement": "chemControllersPh",
@@ -179,12 +182,12 @@
             },
             {
               "name": "dosing method",
-              "value": "@bind=data.ph.dosingMethod.val;",
+              "value": "@bind=vars.cfg.dosingMethod;",
               "type": "int"
             },
             {
               "name": "start delay",
-              "value": "@bind=data.ph.startDelay;",
+              "value": "@bind=vars.cfg.ph.startDelay;",
               "type": "int"
             },
             {
@@ -204,37 +207,37 @@
             },
             {
               "name": "flow readings only int",
-              "value": "@bind=data.ph.flowReadingsOnly?1:0;",
+              "value": "@bind=vars.cfg.ph.flowReadingsOnly?1:0;",
               "type": "int"
             },
             {
               "name": "low tolerance",
-              "value": "@bind=data.ph.tolerance.low;",
+              "value": "@bind=vars.cfg.ph.tolerance.low;",
               "type": "int"
             },
             {
               "name": "high tolerance",
-              "value": "@bind=data.ph.tolerance.high;",
+              "value": "@bind=vars.cfg.ph.tolerance.high;",
               "type": "int"
             },
             {
               "name": "tolerance enabled int",
-              "value": "@bind=data.ph.tolerance.enabled?1:0;",
+              "value": "@bind=vars.cfg.ph.tolerance.enabled?1:0;",
               "type": "int"
             },
             {
               "name": "dose priority int",
-              "value": "@bind=data.ph.dosePriority?1:0;",
+              "value": "@bind=vars.cfg.ph.dosePriority?1:0;",
               "type": "int"
             },
             {
               "name": "flow only mixing int",
-              "value": "@bind=data.ph.flowOnlyMixing?1:0;",
+              "value": "@bind=vars.cfg.ph.flowOnlyMixing?1:0;",
               "type": "int"
             },
             {
               "name": "max daily volume",
-              "value": "@bind=data.ph.maxDailyVolume;",
+              "value": "@bind=vars.cfg.ph.maxDailyVolume;",
               "type": "int"
             },
             {
@@ -246,8 +249,12 @@
               "name": "volume dosed",
               "value": "@bind=data.ph.volumeDosed;",
               "type": "int"
+            },
+            {
+              "name": "acid demand",
+              "value": "@bind=data.ph.demand;",
+              "type": "int"
             }
-            
           ]
         },
         {
@@ -344,47 +351,47 @@
             },
             {
               "name": "dosing method",
-              "value": "@bind=data.orp.dosingMethod.val;",
+              "value": "@bind=vars.cfg.orp.dosingMethod.val;",
               "type": "int"
             },
             {
               "name": "start delay",
-              "value": "@bind=data.orp.startDelay;",
+              "value": "@bind=vars.cfg.orp.startDelay;",
               "type": "int"
             },
             {
               "name": "max dosing time",
-              "value": "@bind=data.orp.maxDosingTime;",
+              "value": "@bind=vars.cfg.orp.maxDosingTime;",
               "type": "int"
             },
             {
               "name": "max dosing volume",
-              "value": "@bind=data.orp.maxDosingVolume;",
+              "value": "@bind=vars.cfg.orp.maxDosingVolume;",
               "type": "int"
             },
             {
               "name": "mixing time",
-              "value": "@bind=data.orp.mixingTime;",
+              "value": "@bind=vars.cfg.orp.mixingTime;",
               "type": "int"
             },
             {
               "name": "flow readings only int",
-              "value": "@bind=data.orp.flowReadingsOnly?1:0;",
+              "value": "@bind=vars.cfg.orp.flowReadingsOnly?1:0;",
               "type": "int"
             },
             {
               "name": "low tolerance",
-              "value": "@bind=data.orp.tolerance.low;",
+              "value": "@bind=vars.cfg.orp.tolerance.low;",
               "type": "int"
             },
             {
               "name": "high tolerance",
-              "value": "@bind=data.orp.tolerance.high;",
+              "value": "@bind=vars.cfg.orp.tolerance.high;",
               "type": "int"
             },
             {
               "name": "tolerance enabled int",
-              "value": "@bind=data.orp.tolerance.enabled?1:0;",
+              "value": "@bind=vars.cfg.orp.tolerance.enabled?1:0;",
               "type": "int"
             },
             {
@@ -399,7 +406,7 @@
             },
             {
               "name": "max daily volume",
-              "value": "@bind=data.orp.maxDailyVolumen;",
+              "value": "@bind=data.orp.maxDailyVolume;",
               "type": "int"
             },
             {
@@ -468,17 +475,22 @@
             },
             {
               "name": "cyanuric acid",
-              "value": "@bind=sys.chemControllers.getItemById(data.id).cyanuricAcid;",
+              "value": "@bind=vars.cfg.cyanuricAcid;",
               "type": "int"
             },
             {
               "name": "calcium hardness",
-              "value": "@bind=sys.chemControllers.getItemById(data.id).calciumHardness;",
+              "value": "@bind=vars.cfg.calciumHardness;",
               "type": "int"
             },
             {
               "name": "alkalinity",
-              "value": "@bind=sys.chemControllers.getItemById(data.id).alkalinity;",
+              "value": "@bind=vars.cfg.alkalinity;",
+              "type": "int"
+            },
+            {
+              "name": "borates",
+              "value": "@bind=vars.cfg.borates;",
               "type": "int"
             },
             {
@@ -523,22 +535,17 @@
             },
             {
               "name": "lsi range low",
-              "value": "@bind=data.lsiRange.low.val;",
+              "value": "@bind=vars.cfg.lsiRange.low.val;",
               "type": "int"
             },
             {
               "name": "lsi range enabled",
-              "value": "@bind=data.lsiRange.enabled?1:0;",
+              "value": "@bind=vars.cfg.lsiRange.enabled?1:0;",
               "type": "int"
             },
             {
               "name": "lsi range high",
-              "value": "@bind=data.lsiRange.high.val;",
-              "type": "int"
-            },
-            {
-              "name": "borates",
-              "value": "@bind=data.borates;",
+              "value": "@bind=vars.cfg.lsiRange.high.val;",
               "type": "int"
             }
           ]

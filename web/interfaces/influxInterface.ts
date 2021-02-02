@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import extend = require("extend");
-import { ClientOptions, InfluxDB, Point, WritePrecision } from '@influxdata/influxdb-client';
+import { ClientOptions, InfluxDB, Point, WritePrecision, WriteApi } from '@influxdata/influxdb-client';
 import { utils } from '../../controller/Constants';
 import { logger } from "../../logger/Logger";
 import { BaseInterfaceBindings, InterfaceContext, InterfaceEvent } from "./baseInterface";
@@ -24,7 +24,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
         super(cfg);
     }
-    private writeApi;
+    private writeApi: WriteApi;
     public context: InterfaceContext;
     public cfg;
     public events: InfluxInterfaceEvent[];
@@ -50,7 +50,8 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
         }
         const influxDB = new InfluxDB(clientOptions);
         this.writeApi = influxDB.getWriteApi('', bucket, 'ms' as WritePrecision);
-
+        
+       
         // set global tags from context
         let baseTags = {}
         baseOpts.tags.forEach(tag => {
@@ -100,12 +101,13 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.tag(sname, svalue);
                             }
                             else {
-                                console.log(`failed on ${_tag.name}/${_tag.value}`);
+                                //console.log(`failed on ${_tag.name}/${_tag.value}`);
                             }
                         })
                         _point.fields.forEach(_field => {
                             let sname = _field.name;
                             this.buildTokens(sname, evt, toks, e, data[0]);
+                            //console.log(toks);
                             sname = this.replaceTokens(sname, toks);
                             let svalue = _field.value;
                             this.buildTokens(svalue, evt, toks, e, data[0]);
@@ -150,7 +152,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                             }
                             if (typeof point.toLineProtocol() !== 'undefined') {
                                 this.writeApi.writePoint(point);
-                                logger.info(`INFLUX: ${point.toLineProtocol()}`)
+                                //logger.info(`INFLUX: ${point.toLineProtocol()}`)
                             }
                             else {
                                 logger.silly(`Skipping INFLUX write because some data is missing with ${e.name} event on measurement ${_point.measurement}.`)
