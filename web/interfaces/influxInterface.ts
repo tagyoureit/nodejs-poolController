@@ -101,7 +101,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.tag(sname, svalue);
                             }
                             else {
-                                //console.log(`failed on ${_tag.name}/${_tag.value}`);
+                                console.log(`failed on ${evt}:${_tag.name}/${_tag.value} ${JSON.stringify(data[0])}`);
                             }
                         })
                         _point.fields.forEach(_field => {

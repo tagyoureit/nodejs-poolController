@@ -537,7 +537,7 @@ class EqStateCollection<T> {
     }
     public removeItemById(id: number): T {
         let rem: T = null;
-        for (let i = 0; i < this.data.length; i++) {
+        for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof (this.data[i].id) !== 'undefined' && this.data[i].id === id) {
                 rem = this.data.splice(i, 1);
             }

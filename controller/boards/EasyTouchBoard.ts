@@ -1193,6 +1193,104 @@ class TouchFeatureCommands extends FeatureCommands {
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
+        let isAdd = false;
+        let isVirtual = false;
+        if (id <= 0 || isNaN(id)) id = 1;
+        let chlor = sys.chlorinators.getItemById(id);
+        if (id < 0 || isNaN(id)) {
+            isAdd = true;
+            isVirtual = utils.makeBool(obj.isVirtual);
+            // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
+            // cannot be set by the MUX.  This will have to wait.
+            id = 1;
+        }
+        else {
+            isVirtual = utils.makeBool(chlor.isVirtual);
+        }
+
+        //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
+        // If this is a virtual chlorinator then go to the base class and handle it from there.
+        if (isVirtual) return super.setChlorAsync(obj);
+        let name = obj.name || 'IntelliChlor' + id;
+        let poolSetpoint = parseInt(obj.poolSetpoint, 10);
+        let spaSetpoint = parseInt(obj.spaSetpoint, 10);
+        let superChlorHours = parseInt(obj.superChlorHours, 10);
+        if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
+        let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
+        let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        if (isAdd) {
+            if (isNaN(poolSetpoint)) poolSetpoint = 50;
+            if (isNaN(spaSetpoint)) spaSetpoint = 10;
+            if (isNaN(superChlorHours)) superChlorHours = 8;
+            if (typeof superChlorinate === 'undefined') superChlorinate = false;
+        }
+        else {
+            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint;
+            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint;
+            if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
+            if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
+        }
+        if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
+        if (typeof chlor.body === 'undefined') chlor.body = parseInt(obj.body, 10) || 32;
+        // Verify the data.
+        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+        if (typeof body === 'undefined') {
+            if (sys.equipment.shared) body = 32;
+            else if (!sys.equipment.dual) body = 1;
+            else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
+        }
+        if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+        if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        return new Promise<ChlorinatorState>((resolve, reject) => {
+            let out = Outbound.create({
+                dest: 16,
+                action: 153,
+                payload: [disabled ? 0 : (chlor.spaSetpoint << 1) + 1, disabled ? 0 : chlor.poolSetpoint,
+                utils.makeBool(chlor.superChlor) && chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                    0, 0, 0, 0, 0, 0, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.error(`Error setting Chlorinator values: ${err.message}`);
+                        reject(err);
+                    }
+                    let schlor = state.chlorinators.getItemById(id, true);
+                    let cchlor = sys.chlorinators.getItemById(id, true);
+                    schlor.isActive = cchlor.isActive = true;
+                    schlor.superChlor = cchlor.superChlor = superChlorinate;
+                    schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
+                    schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;
+                    schlor.superChlorHours = cchlor.superChlorHours = superChlorHours;
+                    schlor.body = cchlor.body = body;
+                    cchlor.address = 79 + id;
+
+                    let request25Packet = Outbound.create({
+                        dest: 16,
+                        action: 217,
+                        payload: [0],
+                        retries: 3,
+                        response: true,
+                        onComplete: (err) => {
+                            if (err) {
+                                logger.error(`Error requesting chlor status: ${err.message}`);
+                                reject(err);
+                            }
+                            else
+                                resolve(state.chlorinators.getItemById(id));
+                            state.emitEquipmentChanges();
+                        }
+                    });
+                    conn.queueSendMessage(request25Packet);
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+
+    /*
+    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
+        let id = parseInt(obj.id, 10);
         if (isNaN(id)) obj.id = 1;
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
@@ -1227,11 +1325,17 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     }
                     let schlor = state.chlorinators.getItemById(id, true);
                     let cchlor = sys.chlorinators.getItemById(id, true);
-                    schlor.isActive = cchlor.isActive = true;
                     for (let prop in chlor) {
                         if (prop in schlor) schlor[prop] = chlor[prop];
                         if (prop in cchlor) cchlor[prop] = chlor[prop];
                     }
+                    schlor.isActive = cchlor.isActive = true;
+                    schlor.superChlor = cchlor.superChlor = utils.makeBool(chlor.superChlor);
+
+                    let hours = typeof chlor.superChlorHours === 'undefined' ? parseInt(chlor.superChlorHours, 10) : 24;
+                    if (isNaN(hours)) hours = 24;
+                    schlor.superChlorHours = cchlor.superChlorHours = hours;
+                    
                     let request25Packet = Outbound.create({
                         dest: 16,
                         action: 217,
@@ -1253,34 +1357,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             conn.queueSendMessage(out);
         });
     }
-
-
-    //public async setChlor(cstate: ChlorinatorState, poolSetpoint: number = cstate.poolSetpoint, spaSetpoint: number = cstate.spaSetpoint, superChlorHours: number = cstate.superChlorHours, superChlor: boolean = cstate.superChlor) {
-    //    return new Promise((resolve, reject) => {
-    //        // if chlorinator is controlled by thas app; call super();
-    //        let vc = sys.chlorinators.getItemById(1);
-    //        if (vc.isActive && vc.isVirtual) return super.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-    //        // There is only one message here so setChlor can handle every chlorinator function.  The other methods in the base object are just for ease of use.  They
-    //        // all map here unless overridden.
-    //        let out = Outbound.create({
-    //            dest: 16,
-    //            action: 153,
-    //            payload: [(spaSetpoint << 1) + 1, poolSetpoint, superChlorHours > 0 ? superChlorHours + 128 : 0, 0, 0, 0, 0, 0, 0, 0],
-    //            retries: 3,
-    //            response: true,
-    //            onComplete: (err) => {
-    //                if (err) {
-    //                    logger.error(`Error with setChlor: ${ err.message }`
-    //                    );
-    //                    reject(err);
-    //                }
-    //                sys.board.chlorinator.setChlor(cstate, poolSetpoint, spaSetpoint, superChlorHours, superChlor);
-    //                resolve();
-    //            }
-    //        });
-    //        conn.queueSendMessage(out);
-    //    });
-    //}
+    */
 }
 class TouchPumpCommands extends PumpCommands {
     public setPump(pump: Pump, obj?: any) {

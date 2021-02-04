@@ -1375,7 +1375,7 @@ export class LightGroupCircuitCollection extends EqItemCollection<LightGroupCirc
     }
     public removeItemByCircuitId(id: number): LightGroupCircuit {
         let rem: LightGroupCircuit = null;
-        for (let i = 0; i < this.data.length; i++)
+        for (let i = this.data.length - 1; i >= 0; i--)
             if (typeof this.data[i].circuit !== 'undefined' && this.data[i].circuit === id) {
                 rem = this.data.splice(i, 1);
             }

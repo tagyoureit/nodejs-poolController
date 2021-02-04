@@ -226,7 +226,10 @@ export class NixieChemController extends NixieEquipment {
                 // rsg - we were not returning the flow sensor state when the body was off.  
                 // first, this would not allow us to retrieve a pressure of 0 to update flowSensor.state
                 // second, we can set a flow alarm if the expected flow doesn't match actual flow
-                if (this.flowSensor.sensor.type === 0) this.flowDetected = schem.flowDetected = true;
+                if (this.flowSensor.sensor.type === 0) {
+                    this.flowDetected = schem.flowDetected = true;
+                    schem.alarms.flowSensorFault = 0;
+                }
                 else {
                     let ret = await this.flowSensor.getState();
                     schem.flowSensor.state = ret.obj.state;

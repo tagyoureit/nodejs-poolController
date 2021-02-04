@@ -92,7 +92,7 @@ export class EquipmentMessage {
                         // The first name is the second body and the 2nd is the 4th.  This packet also contains
                         // any additional information related to bodies 3 & 4 that were not previously included.
                         bodyId = 2;
-                        if (sys.equipment.maxBodies <= bodyId) {
+                        if (sys.equipment.maxBodies >= bodyId) {
                             body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody.name = body.name = msg.extractPayloadString(2, 16);
@@ -102,7 +102,7 @@ export class EquipmentMessage {
                             state.temps.bodies.removeItemById(bodyId);
                         }
                         bodyId = 4;
-                        if (sys.equipment.maxBodies <= bodyId) {
+                        if (sys.equipment.maxBodies >= bodyId) {
                             body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody.name = body.name = msg.extractPayloadString(18, 16);
@@ -116,7 +116,7 @@ export class EquipmentMessage {
                             state.temps.bodies.removeItemById(bodyId);
                         }
                         bodyId = 3;
-                        if (sys.equipment.maxBodies <= bodyId) {
+                        if (sys.equipment.maxBodies >= bodyId) {
                             body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody.type = body.type = msg.extractPayloadByte(35);

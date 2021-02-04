@@ -106,7 +106,7 @@
             },
             {
               "name": "dosing method desc",
-              "value": "@bind=data.ph.dosingMethod.desc;"
+              "value": "@bind=vars.cfg.ph.dosingMethod.desc;"
             }
           ],
           "fields": [
@@ -280,7 +280,7 @@
             },
             {
               "name": "dosing method desc",
-              "value": "@bind=data.orp.dosingMethod.desc;"
+              "value": "@bind=vars.cfg.orp.dosingMethod.desc;"
             }
           ],
           "fields": [

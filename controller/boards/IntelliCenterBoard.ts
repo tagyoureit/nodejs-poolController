@@ -2389,7 +2389,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         let poolSetpoint = parseInt(obj.poolSetpoint, 10);
         let spaSetpoint = parseInt(obj.spaSetpoint, 10);
         let superChlorHours = parseInt(obj.superChlorHours, 10);
-        if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = obj.superChlorinate;
+        if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         if (isAdd) {
