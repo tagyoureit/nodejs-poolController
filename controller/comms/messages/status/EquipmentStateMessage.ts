@@ -488,6 +488,10 @@ export class EquipmentStateMessage {
                     }
                     else {
                         state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
+                        state.temps.air = fnTempFromByte(msg.extractPayloadByte(18));
+                        let solar: Heater = sys.heaters.getItemById(2);
+                        if (solar.isActive) state.temps.solar = fnTempFromByte(msg.extractPayloadByte(19));
+
                         // RKS: Added check for i10d for water sensor 2.
                         if (sys.bodies.length > 2 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         if (sys.bodies.length > 0) {
