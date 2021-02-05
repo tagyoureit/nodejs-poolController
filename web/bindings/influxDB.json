@@ -86,7 +86,6 @@
         {
           "measurement": "chemControllersPh",
           "description": "Bind chemController emit and save pH",
-          "storePrevState": true,
           "tags": [
             {
               "name": "name",
@@ -99,10 +98,6 @@
             {
               "name": "dosing status desc",
               "value": "@bind=data.ph.dosingStatus.desc;"
-            },
-            {
-              "name": "pump is dosing",
-              "value": "@bind=data.ph.pump.isDosing?'true':'false';"
             },
             {
               "name": "dosing method desc",
@@ -137,7 +132,7 @@
             },
             {
               "name": "lockout",
-              "value": "@bind=data.ph.locokout;",
+              "value": "@bind=data.ph.lockout;",
               "type": "boolean"
             },
             {
@@ -260,7 +255,6 @@
         {
           "measurement": "chemControllersOrp",
           "description": "Bind chemController emit and save orp",
-          "storePrevState": true,
           "tags": [
             {
               "name": "name",
@@ -273,10 +267,6 @@
             {
               "name": "dosing status desc",
               "value": "@bind=data.orp.dosingStatus.desc;"
-            },
-            {
-              "name": "pump is dosing",
-              "value": "@bind=data.orp.pump.isDosing?'true':'false';"
             },
             {
               "name": "dosing method desc",
@@ -306,7 +296,7 @@
             },
             {
               "name": "lockout",
-              "value": "@bind=data.orp.locokout;",
+              "value": "@bind=data.orp.lockout;",
               "type": "boolean"
             },
             {
