@@ -332,11 +332,12 @@ export class TouchConfigQueue extends ConfigQueue {
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime);
-            this.queueItems(GetTouchConfigCategories.heatTemperature);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
+            // moved heat/solar request items after circuits to allow bodies to be discovered
+            this.queueItems(GetTouchConfigCategories.heatTemperature);  
+            this.queueItems(GetTouchConfigCategories.solarHeatPump);
             this.queueItems(GetTouchConfigCategories.delays);
             this.queueItems(GetTouchConfigCategories.settings);
             this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes);
