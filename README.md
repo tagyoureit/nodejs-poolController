@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 6.1.1
+# nodejs-poolController - Version 6.5.0
 
 ## What is nodejs-poolController
 
@@ -74,16 +74,22 @@ And @andylippitt contributed docker, docker-compose and kubernetes/helm support 
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).
 
- 
-
 # Clients & Bindings
 To do anything with this app, you need a client to connect to it.  A client can be a web application or Home Automation system.
 
 <a name="module_nodejs-poolController--clients"></a>
 
+## REM (Relay Equipment Manager)
+[Relay Equipment Manager](https://github.com/rstrouse/relayEquipmentManager) is a companion app developed by @rstrouse that integrates standalone hardware control.  Controls GPIO, i2c, and SPI devices including:
+* Atlas Scientific pH, orp, ec, hum, prs, pmp, rtd
+* ADS1x15 a/d converters
+* Pressure Tranducers
+* Flow sensors
+* Temperature sensors (10k, NTC)
+
 ## Web Clients
-1. [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  This is built primarily around the IntelliCenter but will work with *Touch.
-1. [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
+1. RECOMMENDED - [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  Full compatibility with IntelliCenter, *Touch, REM (RelayEquipmentManager).
+1. Limited functionality - [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
 
 * This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
 
@@ -98,6 +104,7 @@ Available for 6.x:
 * [Homebridge/Siri/EVE](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
 * InfluxDB - [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#influx)
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) original release by @crsherman, re-write by @kkzonie, testing by @baudfather and others.  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#mqtt)
+   * [Homeseer](https://github.com/tagyoureit/nodejs-poolController/wiki/Homeseer-Setup-Instructions) - Integration directions by @miamijerry to integrate Homeseer through MQTT
 
 Need to be updated:
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
@@ -117,7 +124,7 @@ v6 adds all new configuration and support for virtual pumps, chlorinators (and s
 * Virtual Chem Controller
 
 # Changes
-See Changelog
+See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
 
 
 <a name="module_nodejs-poolController--config.json"></a>
