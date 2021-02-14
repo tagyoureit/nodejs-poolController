@@ -998,6 +998,9 @@ export class BodyHeaterTypeState extends EqState {
 }
 export class BodyTempState extends EqState {
     public dataName = 'bodyTempState';
+    public initData() {
+        if (typeof this.data.heaterOptions === 'undefined') this.data.heaterOptions = { total: 0 };
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -1036,7 +1039,7 @@ export class BodyTempState extends EqState {
     // here as the heater types are specific to the installed equipment.  The reason is because it has no meaning without the body and the calculation of it should
     // be performed when the body or heater options change.  However, it shouldn't emit unless
     // there truly is a change but the emit needs to occur at the body temp state level.
-    public get heaterOptions(): any { return typeof this.data.heaterOptions === 'undefined' ? this.setDataVal('heaterOptions', {}) : this.data.heaterOptions; }
+    public get heaterOptions(): any { return typeof this.data.heaterOptions === 'undefined' ? this.setDataVal('heaterOptions', { total: 0 }) : this.data.heaterOptions; }
     public set heaterOptions(val: any) {
         // We are doing this simply to maintain the proper automatic emits. We don't want the emit to happen unnecessarily so lets
         // get creative on the object and dirty up the body only when needed.

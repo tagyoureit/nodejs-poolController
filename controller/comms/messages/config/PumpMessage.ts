@@ -40,21 +40,28 @@ export class PumpMessage {
             sys.pumps.removeItemById(pumpId);
             pump = sys.pumps.getItemById(pumpId, true);
         }
-        pump.type = msg.extractPayloadByte(1);
+        let type = msg.extractPayloadByte(1);  // Avoid setting this then setting it back if we are mapping to a different value.
         pump.address = pumpId + 95;
-        pump.isActive = pump.type !== 0;
-        switch (pump.type) {
+        pump.isActive = type !== 0;
+        switch (type) {
             case 0: // none
+                pump.type = 0;
                 pump.isActive = false;
                 break;
             case 64: // vsf
+                pump.type = type;
                 PumpMessage.processVSF_IT(msg);
                 break;
             case 128: // vs
-            case 169: // vs+svrs
+            case 134: // vs Ultra Efficiency
+                pump.type = 128;
                 PumpMessage.processVS_IT(msg);
                 break;
-            default: // vf - pumpId is background circuit
+            case 169: // vs+svrs
+                pump.type = 169;
+                PumpMessage.processVS_IT(msg);
+                break;
+            default: // vf - type is the background circuit
                 pump.type = 1; // force to type 1?
                 PumpMessage.processVF_IT(msg);
                 break;

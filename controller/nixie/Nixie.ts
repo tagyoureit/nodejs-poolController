@@ -7,13 +7,18 @@ import { INixieControlPanel } from "./NixieEquipment";
 import { NixieChemControllerCollection } from "./chemistry/ChemController";
 
 import { sys, PoolSystem } from "../../controller/Equipment";
+import { NixieCircuitCollection } from './circuits/Circuit';
+import { NixieBodyCollection } from './bodies/Body';
+import { NixieValveCollection } from './valves/Valve';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
  * can extend an existing *Touch or Center control panel.  Or it can run
  * standalone as a master controller.  The NixieControlPanel will always
  * be instantiated to control equipment when that equipment is not
- * supported or controlled by a traditional OCP.
+ * supported or controlled by a traditional OCP.  However, if a traditional
+ * OCP exists, it will be subordinate to that OCP in regard to controlling
+ * pool bodies.
  * 
  * Equipment: Equipment identified as ncp (Nixie Control Panel) will be
  * managed by the Nixie controller.  It works hand-in-glove with the REM
@@ -45,9 +50,19 @@ export class NixieControlPanel implements INixieControlPanel {
     // other equipment is required this should be sent back through the original controller.
     // Command sequence is <OCP>Board -> SystemBoard -> NixieController whenever the master is not identified as Nixie.
     chemControllers: NixieChemControllerCollection = new NixieChemControllerCollection(this);
+    circuits: NixieCircuitCollection = new NixieCircuitCollection(this);
+    bodies: NixieBodyCollection = new NixieBodyCollection(this);
+    valves: NixieValveCollection = new NixieValveCollection(this);
     public async initAsync(equipment: PoolSystem) {
         try {
+            // We need to tell Nixie what her place is.  If there is an existing OCP she needs to be a partner.  However, if
+            // she is the only master then she needs to step up and take command.  The way we will signify this is
+            // by using settings in config.json.
+            // The controller types define the number of bodies and whether they are shared.
             logger.info(`Initializing Nixie Controller`);
+            await this.bodies.initAsync(equipment.bodies);
+            await this.circuits.initAsync(equipment.circuits);
+            await this.valves.initAsync(equipment.valves);
             await this.chemControllers.initAsync(equipment.chemControllers);
             logger.info(`Nixie Controller Initialized`)
         }
@@ -83,6 +98,11 @@ export class NixieControlPanel implements INixieControlPanel {
             fs.writeFileSync(logPath, lines.join('\n'));
         } catch (err) { logger.error(err); }
     }
+    /*
+     * This method is used to obtain a list of existing REM servers for configuration.  This returns all servers and 
+     * their potential devices and is not designed to be used at run-time or to detect failure.
+     *  
+     */
     public async getREMServers() {
         try {
             let srv = [];
