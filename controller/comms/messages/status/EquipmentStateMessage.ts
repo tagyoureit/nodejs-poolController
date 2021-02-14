@@ -24,7 +24,6 @@ import { BodyTempState, ScheduleState, State, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message } from '../Messages';
 
-
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
         sys.controllerType = ControllerType.IntelliCenter;
@@ -269,6 +268,18 @@ export class EquipmentStateMessage {
         heater.name = "Gas Heater";
         sys.equipment.shared ? heater.body = 32 : heater.body = 0;
         sys.equipment.setEquipmentIds();
+        // Initialize the bodies.  We will need these very soon.
+        for (let i = 1; i <= sys.equipment.maxBodies; i++) {
+            // Add in the bodies for the configuration.  These need to be set.
+            let cbody = sys.bodies.getItemById(i, true);
+            let tbody = state.temps.bodies.getItemById(i, true);
+            // If the body doesn't represent a spa then we set the type.
+            tbody.type = cbody.type = i > 1 && !sys.equipment.shared ? 1 : 0;
+        }
+        if (!sys.equipment.shared && !sys.equipment.dual) {
+            sys.bodies.removeItemById(2);
+            state.temps.bodies.removeItemById(2);
+        }
         sys.board.heaters.initTempSensors();
         // time defaults
         sys.general.options.clockMode = sys.general.options.clockMode || 12;
