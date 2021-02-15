@@ -502,6 +502,25 @@ export class EquipmentStateMessage {
                         state.temps.air = fnTempFromByte(msg.extractPayloadByte(18));
                         let solar: Heater = sys.heaters.getItemById(2);
                         if (solar.isActive) state.temps.solar = fnTempFromByte(msg.extractPayloadByte(19));
+                        // Heat Modes
+                        // 1 = Heater
+                        // 2 = Solar Preferred
+                        // 3 = Solar Only
+
+                        // Pool Heat Mode.
+                        // When temp setpoint and pool in heater mode went above the current pool temp byte 10 went from 67 to 71.  The upper two bits of the
+                        // lower nibble changed on bit 3.  So 0100 0111 from 0100 0011
+
+                        // Spa Heat Mode
+                        // When switching from pool to spa with both heat modes set to off byte 10 went from 67 to 75 and byte(16) changed from 0 to 32.  The upper two bits of the lower nibble
+                        // changed on byte(10) bit 4.  So to 0100 1011 from 0100 0011.  Interestingly this seems to indicate that the spa turned on.  This almost appears as if the heater engaged
+                        // automatically like the spa has manual heat turned off.
+                        // When the heat mode was changed to solar only byte 10 went to 75 from 67 so bit 4 switched off and byte(16) changed to 0.  At this point the water temp is 86 and the
+                        // solar temp is 79 so the solar should not be coming on.
+                        // When the setpoint was dropped below the water temp bit 5 on byte(10) swiched back off and byte(16) remained at 0.  I think there is no bearing here on this.
+                        // When the heat mode was changed to solar preferred and the setpoint was raised to 104F the heater kicked on and bit 5 changed from 0 to 1.  So byte(10) went from
+                        // 0100 0011 to 0100 1011 this is consistent with the heater coming on for the spa.  In this instance byte(16) also changed back to 32 which would be consistent with
+                        // an OCP where the manual heat was turned off.
 
                         // RKS: Added check for i10d for water sensor 2.
                         if (sys.bodies.length > 2 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
@@ -519,8 +538,10 @@ export class EquipmentStateMessage {
                             tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x03;
                             let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x04) === 4;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x10) === 10;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
@@ -543,8 +564,11 @@ export class EquipmentStateMessage {
                             tbody.circuit = cbody.circuit = 1;
                             let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x08) === 8;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x20) === 32;
+
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
@@ -602,6 +626,11 @@ export class EquipmentStateMessage {
             case 8: {
                 // IntelliTouch only.  Heat status
                 // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
+                // Heat Modes
+                // 1 = Heater
+                // 2 = Solar Preferred
+                // 3 = Solar Only
+
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
                 state.temps.air = msg.extractPayloadByte(2);
                 let solar: Heater = sys.heaters.getItemById(2);
