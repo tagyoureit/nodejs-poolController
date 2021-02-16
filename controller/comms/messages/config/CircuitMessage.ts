@@ -108,6 +108,8 @@ export class CircuitMessage {
         lg.name = sgrp.name = 'Intellibrite';
         lg.type = sgrp.type = 3;
         sgrp.action = 0;
+        if (typeof lg.lightingTheme === 'undefined') lg.lightingTheme = 0;
+        sgrp.lightingTheme = lg.lightingTheme;
         if ((msg.datalen === 25 && msg.extractPayloadByte(0) === 0) || msg.datalen === 32) {
             for (let i = 0; i < lg.circuits.length; i++) {
                 let lgCircuit = lg.circuits.getItemByIndex(i);
