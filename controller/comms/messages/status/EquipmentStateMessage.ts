@@ -276,6 +276,10 @@ export class EquipmentStateMessage {
             // If the body doesn't represent a spa then we set the type.
             tbody.type = cbody.type = i > 1 && !sys.equipment.shared ? 1 : 0;
             cbody.isActive = true;
+            if (typeof cbody.name === 'undefined') {
+                let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
+                tbody.name = cbody.name = bt.name;
+            }
         }
         if (!sys.equipment.shared && !sys.equipment.dual) {
             sys.bodies.removeItemById(2);
