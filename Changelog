@@ -1,6 +1,9 @@
 # Changelog
 
 ## 6.5.0
+1. Init Touch bodies upon startup
+
+## 6.5.0
 1. Full compatibility with REM (Relay Equipment Manager) for hardware control (ph sensors, orp sensors, pumps, relays, flow sensors)
 1. Upgrades to Influx binding
 1. MQTT alternate bindings
