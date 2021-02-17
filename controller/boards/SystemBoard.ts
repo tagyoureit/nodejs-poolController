@@ -20,7 +20,7 @@ import { webApp } from '../../web/Server';
 import { conn } from '../comms/Comms';
 import { ncp } from "../nixie/Nixie"
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
-import { utils, Heliotrope } from '../Constants';
+import { utils, Heliotrope, Timestamp } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState } from '../State';
@@ -463,7 +463,7 @@ export class byteValueMaps {
         [1, { name: 'unknown', desc: 'Unknown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
         [2, { name: 'intellichem', desc: 'IntelliChem', ph: { min: 7.2, max: 7.6 }, hasAddress: true }],
         [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
-        [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false}]
+        [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false }]
     ]);
     public chemPumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No Pump', ratedFlow: false, tank: false, remAddress: false }],
@@ -510,7 +510,7 @@ export class byteValueMaps {
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'nocomms', desc: 'No Communication' }],
-        [2, { name: 'config', desc: 'Invalid Configuration'}]
+        [2, { name: 'config', desc: 'Invalid Configuration' }]
     ]);
     public chemControllerAlarms: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No alarm' }],
@@ -523,7 +523,7 @@ export class byteValueMaps {
         [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
         [128, { name: 'probefault', desc: 'Probe Fault' }],
         [129, { name: 'phtanklow', desc: 'pH Tank Low' }],
-        [130, { name: 'orptanklow', desc: 'orp Tank Low'}]
+        [130, { name: 'orptanklow', desc: 'orp Tank Low' }]
     ]);
     public chemControllerHardwareFaults: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Faults' }],
@@ -533,7 +533,7 @@ export class byteValueMaps {
         [4, { name: 'orppump', desc: 'ORP Pump Fault' }],
         [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
         [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
-        [7, { name: 'flowsensor', desc: 'Flow Sensor Fault'}]
+        [7, { name: 'flowsensor', desc: 'Flow Sensor Fault' }]
     ]);
     public chemControllerWarnings: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok - No Warning' }],
@@ -557,7 +557,7 @@ export class byteValueMaps {
     public acidTypes: byteValueMap = new byteValueMap([
         [0, { name: 'a34.6', desc: '34.6% - 22 Baume', dosingFactor: 0.909091 }],
         [1, { name: 'a31.45', desc: '31.45% - 20 Baume', dosingFactor: 1 }],
-        [2, { name: 'a29', desc: '29% - 19 Baume', dosingFactor:1.08448 }],
+        [2, { name: 'a29', desc: '29% - 19 Baume', dosingFactor: 1.08448 }],
         [3, { name: 'a28', desc: '28.3% - 18 Baume', dosingFactor: 1.111111 }],
         [4, { name: 'a15.7', desc: '15.7% - 10 Baume', dosingFactor: 2.0 }],
         [5, { name: 'a14.5', desc: '14.5% - 9.8 Baume', dosingFactor: 2.16897 }],
@@ -568,7 +568,7 @@ export class byteValueMaps {
         [2, { name: 'de', desc: 'DE Filter', hasBackwash: true }],
         [3, { name: 'unknown', desc: 'unknown' }]
     ]);
-   
+
     // public filterPSITargetTypes: byteValueMap = new byteValueMap([
     //     [0, { name: 'none', desc: 'Do not use filter PSI' }],
     //     [1, { name: 'value', desc: 'Change filter at value' }],
@@ -2314,76 +2314,79 @@ export class ScheduleCommands extends BoardCommands {
         };
     }
     public async setScheduleAsync(data: any): Promise<Schedule> {
-        if (typeof data.id !== 'undefined') {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-            let sched = sys.schedules.getItemById(id, data.id <= 0);
-            let ssched = state.schedules.getItemById(id, data.id <= 0);
-            let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-            if (typeof schedType === 'undefined') schedType = 0; // Repeats
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id, data.id <= 0);
+        let ssched = state.schedules.getItemById(id, data.id <= 0);
+        let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+        if (typeof schedType === 'undefined') schedType = 0; // Repeats
 
-            let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
-            let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-            let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-            if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-            let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
-            let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
-            let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
-            let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
-            let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
-            let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
+        let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+        let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+        let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+        if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+        let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+        let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+        let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+        let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+        let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+        let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+        let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
 
-            // Ensure all the defaults.
-            if (isNaN(startDate.getTime())) startDate = new Date();
-            if (typeof startTime === 'undefined') startTime = 480; // 8am
-            if (typeof endTime === 'undefined') endTime = 1020; // 5pm
-            if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
-            if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+        // Ensure all the defaults.
+        if (isNaN(startDate.getTime())) startDate = new Date();
+        if (typeof startTime === 'undefined') startTime = 480; // 8am
+        if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+        if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+        if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
 
-            // At this point we should have all the data.  Validate it.
-            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
-            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-            if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
-            if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-                return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
-            if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+        if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+        if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+        if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
+            return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+        if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
-
-            sched.circuit = ssched.circuit = circuit;
-            sched.scheduleDays = ssched.scheduleDays = schedDays;
-            sched.scheduleType = ssched.scheduleType = schedType;
-            sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
-            sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-            sched.heatSource = ssched.heatSource = heatSource;
-            sched.startTime = ssched.startTime = startTime;
-            sched.endTime = ssched.endTime = endTime;
-            sched.startTimeType = ssched.startTimeType = startTimeType;
-            sched.endTimeType = ssched.endTimeType = endTimeType;
-            sched.startDate = ssched.startDate = startDate;
-            ssched.emitEquipmentChange();
-            return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
-        }
-        else
-            return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
+        sched.circuit = ssched.circuit = circuit;
+        sched.scheduleDays = ssched.scheduleDays = schedDays;
+        sched.scheduleType = ssched.scheduleType = schedType;
+        sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
+        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+        sched.heatSource = ssched.heatSource = heatSource;
+        sched.startTime = ssched.startTime = startTime;
+        sched.endTime = ssched.endTime = endTime;
+        sched.startTimeType = ssched.startTimeType = startTimeType;
+        sched.endTimeType = ssched.endTimeType = endTimeType;
+        sched.startDate = ssched.startDate = startDate;
+        ssched.emitEquipmentChange();
+        return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
     }
     public deleteScheduleAsync(data: any): Promise<Schedule> {
-        if (typeof data.id !== 'undefined') {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-            let sched = sys.schedules.getItemById(id, false);
-            let ssched = state.schedules.getItemById(id, false);
-            sys.schedules.removeItemById(id);
-            state.schedules.removeItemById(id);
-            ssched.emitEquipmentChange();
-            return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
-        }
-        else
-            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id, false);
+        let ssched = state.schedules.getItemById(id, false);
+        sys.schedules.removeItemById(id);
+        state.schedules.removeItemById(id);
+        ssched.emitEquipmentChange();
+        return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
     }
+    public syncScheduleStates() {
+        let dt = new Date();
+        let ts = dt.getHours() * 60 + dt.getMinutes();
+        for (let i = 0; i < state.schedules.length; i++) {
+            let ssched = state.schedules.getItemByIndex(i);
+            if (ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
+            else ssched.isOn = false;
+            ssched.emitEquipmentChange();
+        }
+    }
+    public async setEggTimerAsync(data?: any):Promise<EggTimer>{return Promise.resolve(sys.eggTimers.getItemByIndex(1));}
+    public async deleteEggTimerAsync(data?: any):Promise<EggTimer>{return Promise.resolve(sys.eggTimers.getItemByIndex(1));}
 }
 export class HeaterCommands extends BoardCommands {
     public getInstalledHeaterTypes(body?: number): any {
@@ -2879,7 +2882,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
             if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
             let schem = state.chemControllers.getItemById(chem.id);
-          
+
             schem.ph.tank.capacity = schem.orp.tank.capacity = chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
             schem.ph.tank.units = schem.orp.tank.units = chem.ph.tank.units = chem.orp.tank.units = '';
 
@@ -3321,7 +3324,7 @@ export class ChemControllerCommands extends BoardCommands {
         //        schem.ph.dosingTimeRemaining = isNaN(dosingTime) ? schem.ph.dosingTimeRemaining : dosingTime;
         //        dosingTime = typeof data.orp !== 'undefined' ? parseInt(data.orp.dosingTimeRemaining, 10) : parseInt(data.orpDosingTime, 10);
         //        schem.orp.dosingTimeRemaining = isNaN(dosingTime) ? schem.orp.dosingTimeRemaining : dosingTime;
-                
+
         //        //if (typeof data.pHDosingTime !== 'undefined') schem.pHDosingTime = parseInt(data.pHDosingTime, 10);
         //        //if (typeof data.orpDosingTime !== 'undefined') schem.orpDosingTime = parseInt(data.orpDosingTime, 10);
         //        let dosingVolume = typeof data.ph !== 'undefined' ? parseInt(data.ph.dosingVolumeRemaing, 10) : parseInt(data.pHDosingVolume, 10);
@@ -3901,7 +3904,7 @@ export class FilterCommands extends BoardCommands {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
         let filter = sys.filters.getItemById(id, id > 0);
         let sfilter = state.filters.getItemById(id, id > 0);
-        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType,10) : filter.filterType;
+        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
         if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
 
         if (typeof data.isActive !== 'undefined') {

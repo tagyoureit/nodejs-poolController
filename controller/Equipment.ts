@@ -554,7 +554,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     }
 }
 export class General extends EqItem {
-    ctor(data): General { return new General(data, name || 'pool'); }
+    ctor(data:any, name?: any): General { return new General(data, name || 'pool'); }
     public get alias(): string { return this.data.alias; }
     public set alias(val: string) { this.setDataVal('alias', val); }
     public get owner(): Owner { return new Owner(this.data, 'owner'); }
@@ -887,6 +887,14 @@ export class Body extends EqItem {
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }
     public createItem(data: any): Schedule { return new Schedule(data); }
+    public getNextEquipmentId(range: EquipmentIdRange): number {
+    let data = [...this.data, ...sys.eggTimers.get()]
+        for (let i = range.start; i <= range.end; i++) {
+            let eq = data.find(elem => elem.id === i);
+            if (typeof eq === 'undefined') return i;
+        }
+    }
+    
 }
 export class Schedule extends EqItem {
     constructor(data: any) { super(data); }
@@ -961,14 +969,6 @@ export class EggTimer extends EqItem {
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public setEggTimer(obj?: any) { sys.board.schedules.setSchedule(this, obj); }
-    public deleteEggTimer() {
-        const circuit = sys.circuits.getInterfaceById(this.circuit);
-        circuit.eggTimer = 720;
-        this.circuit = 0;
-        sys.board.schedules.setSchedule(this);
-    }
-
 }
 export class CircuitCollection extends EqItemCollection<Circuit> {
     constructor(data: any, name?: string) { super(data, name || "circuits"); }
@@ -1017,7 +1017,7 @@ export class Circuit extends EqItem implements ICircuit {
     public set level(val: number) { this.setDataVal('level', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public get dontStop(): boolean { return utils.makeBool(this.data.dontStop); }
+    public get dontStop(): boolean { return this.data.dontStop; }
     public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
     public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false};
     public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }

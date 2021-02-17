@@ -237,7 +237,7 @@ export class CircuitMessage {
         const id = msg.extractPayloadByte(0);
         const functionId = msg.extractPayloadByte(1);
         const nameId = msg.extractPayloadByte(2);
-        let _isActive = functionId !== sys.board.valueMaps.circuitFunctions.getValue('notused') && nameId !== 0;
+        let _isActive = functionId !== sys.board.valueMaps.circuitFunctions.getValue('notused') && nameId !== sys.board.valueMaps.circuitNames.getValue('notused');
         if (!sys.board.equipmentIds.invalidIds.isValidId(id)) { _isActive = false; }
         if (_isActive) {
             const type = functionId & 63;
@@ -249,7 +249,8 @@ export class CircuitMessage {
             circuit.freeze = (functionId & 64) === 64;
             circuit.showInFeatures = typeof circuit.showInFeatures === 'undefined' ? true : circuit.showInFeatures;
             circuit.isActive = _isActive;
-            if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 0;
+            if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 720;
+            if (typeof circuit.dontStop === 'undefined') circuit.dontStop = circuit.eggTimer === 1620;
             if ([9, 10, 16, 17].includes(circuit.type)) {
                 const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);
                 const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);

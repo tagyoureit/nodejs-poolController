@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController, Circuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState } from '../State';
 import { logger } from '../../logger/Logger';
@@ -257,7 +257,7 @@ export class EasyTouchBoard extends SystemBoard {
             let days = [];
             let b = byte & 0x007F;
             for (let bit = 7; bit >= 0; bit--) {
-                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, { val: 1 << (bit - 1)  }, this.get((byte & 1 << (bit - 1)))));
+                if ((byte & 1 << (bit - 1)) > 0) days.push(extend(true, { val: 1 << (bit - 1) }, this.get((byte & 1 << (bit - 1)))));
             }
             return { val: b, days: days };
         };
@@ -336,7 +336,7 @@ export class TouchConfigQueue extends ConfigQueue {
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
             // moved heat/solar request items after circuits to allow bodies to be discovered
-            this.queueItems(GetTouchConfigCategories.heatTemperature);  
+            this.queueItems(GetTouchConfigCategories.heatTemperature);
             this.queueItems(GetTouchConfigCategories.solarHeatPump);
             this.queueItems(GetTouchConfigCategories.delays);
             this.queueItems(GetTouchConfigCategories.settings);
@@ -421,7 +421,7 @@ export class TouchConfigQueue extends ConfigQueue {
     }
 }
 export class TouchScheduleCommands extends ScheduleCommands {
-    public setSchedule(sched: Schedule | EggTimer, obj?: any) {
+    /* public setSchedule(sched: Schedule | EggTimer, obj?: any) {
         super.setSchedule(sched, obj);
         let msgs: Outbound[] = this.createSchedConfigMessages(sched);
         for (let i = 0; i <= msgs.length; i++) {
@@ -465,130 +465,198 @@ export class TouchScheduleCommands extends ScheduleCommands {
         });
 
         return [setSchedConfig, schedConfigRequest];
-    }
+    } */
     public async setScheduleAsync(data: any): Promise<Schedule> {
-        if (typeof data.id !== 'undefined') {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-            let sched = sys.schedules.getItemById(id, id > 0);
-            let ssched = state.schedules.getItemById(id, id > 0);
-            let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-            if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
+
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id, id > 0);
+        let ssched = state.schedules.getItemById(id, id > 0);
+        let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+        if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
 
 
-            let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
-            let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-            // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-            // if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-            let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 32;
-            let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
-            let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
-            let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
-            let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
-            let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
+        let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+        let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+        // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+        // if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+        let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 32;
+        let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+        let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+        let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+        let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+        let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
+        let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
 
-            // Ensure all the defaults.
-            // if (isNaN(startDate.getTime())) startDate = new Date();
-            if (typeof startTime === 'undefined') startTime = 480; // 8am
-            if (typeof endTime === 'undefined') endTime = 1020; // 5pm
-            if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
-            if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
-            if (typeof circuit === 'undefined') circuit = 6; // pool
-            if (typeof heatSource !== 'undefined' && typeof heatSetpoint === 'undefined') heatSetpoint = state.temps.units === sys.board.valueMaps.tempUnits.getValue('C') ? 26 : 80;
-            if (typeof changeHeatSetpoint === 'undefined') changeHeatSetpoint = false;
+        // Ensure all the defaults.
+        // if (isNaN(startDate.getTime())) startDate = new Date();
+        if (typeof startTime === 'undefined') startTime = 480; // 8am
+        if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+        if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+        if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+        if (typeof circuit === 'undefined') circuit = 6; // pool
+        if (typeof heatSource !== 'undefined' && typeof heatSetpoint === 'undefined') heatSetpoint = state.temps.units === sys.board.valueMaps.tempUnits.getValue('C') ? 26 : 80;
+        if (typeof changeHeatSetpoint === 'undefined') changeHeatSetpoint = false;
 
-            // At this point we should have all the data.  Validate it.
-            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));}
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));}
-            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));}
-            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));}
-            if (heatSetpoint < 0 || heatSetpoint > 104) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));}
-            if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-                { sys.schedules.removeItemById(id); state.schedules.removeItemById(id);  return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));}
-            // if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
-            if (typeof heatSource !== 'undefined' && !sys.circuits.getItemById(circuit).hasHeatSource) heatSource = undefined;
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType)); }
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType)); }
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType)); }
+        if (!sys.board.valueMaps.heatSources.valExists(heatSource)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource)); }
+        if (heatSetpoint < 0 || heatSetpoint > 104) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint)); }
+        if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit)); }
+        // if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+        if (typeof heatSource !== 'undefined' && !sys.circuits.getItemById(circuit).hasHeatSource) heatSource = undefined;
 
-            // If we make it here we can make it anywhere.
-            // let runOnce = (schedDays || (schedType !== 0 ? 0 : 0x80));
-            if (schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) {
-                // make sure only 1 day is selected
-                let scheduleDays = sys.board.valueMaps.scheduleDays.transform(schedDays);
-                let s2 = sys.board.valueMaps.scheduleDays.toArray();
-                if (scheduleDays.days.length > 1) {
-                    schedDays = scheduleDays.days[scheduleDays.days.length - 1].val;  // get the earliest day in the week
-                }
-                else if (scheduleDays.days.length === 0){
-                    for (let i = 0; i < s2.length; i++){
-                        if (s2[i].days[0].name==='sun') schedDays = s2[i].val;
-                    }
-                }
-                // update end time incase egg timer changed
-                const eggTimer = sys.circuits.getInterfaceById(circuit).eggTimer || 720;
-                endTime = (startTime + eggTimer) % 1440; // remove days if we go past midnight
+        // If we make it here we can make it anywhere.
+        // let runOnce = (schedDays || (schedType !== 0 ? 0 : 0x80));
+        if (schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) {
+            // make sure only 1 day is selected
+            let scheduleDays = sys.board.valueMaps.scheduleDays.transform(schedDays);
+            let s2 = sys.board.valueMaps.scheduleDays.toArray();
+            if (scheduleDays.days.length > 1) {
+                schedDays = scheduleDays.days[scheduleDays.days.length - 1].val;  // get the earliest day in the week
             }
+            else if (scheduleDays.days.length === 0) {
+                for (let i = 0; i < s2.length; i++) {
+                    if (s2[i].days[0].name === 'sun') schedDays = s2[i].val;
+                }
+            }
+            // update end time incase egg timer changed
+            const eggTimer = sys.circuits.getInterfaceById(circuit).eggTimer || 720;
+            endTime = (startTime + eggTimer) % 1440; // remove days if we go past midnight
+        }
 
 
-            // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
-            if (state.heliotrope.isCalculated) {
-                const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
-                const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
-                if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
-                else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
-                if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
-                else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;            }
+        // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
+        if (state.heliotrope.isCalculated) {
+            const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+            const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
+            if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
+            else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
+            if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
+            else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
+        }
 
+        let out = Outbound.create({
+            action: 145,
+            payload: [
+                id,
+                circuit,
+                Math.floor(startTime / 60),
+                startTime - (Math.floor(startTime / 60) * 60),
+                schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
+                endTime - (Math.floor(endTime / 60) * 60),
+                schedDays],
+            retries: 2
+            // ,response: Response.create({ action: 1, payload: [145] })
+        });
+        return new Promise<Schedule>((resolve, reject) => {
+            out.onComplete = (err, msg) => {
+                if (!err) {
+                    sched.circuit = ssched.circuit = circuit;
+                    sched.scheduleDays = ssched.scheduleDays = schedDays;
+                    sched.scheduleType = ssched.scheduleType = schedType;
+                    sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
+                    sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+                    sched.heatSource = ssched.heatSource = heatSource;
+                    sched.startTime = ssched.startTime = startTime;
+                    sched.endTime = ssched.endTime = endTime;
+                    sched.startTimeType = ssched.startTimeType = startTimeType;
+                    sched.endTimeType = ssched.endTimeType = endTimeType;
+                    sched.isActive = ssched.isActive = true;
+                    ssched.emitEquipmentChange();
+                    // For good measure russ is sending out a config request for
+                    // the schedule in question.  If there was a failure on the
+                    // OCP side this will resolve it.
+                    let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                    conn.queueSendMessage(req);
+                    state.schedules.sortById();
+                    resolve(sched);
+                }
+                else reject(err);
+            };
+            conn.queueSendMessage(out); // Send it off in a letter to yourself.
+        });
+    }
+    public async deleteScheduleAsync(data: any): Promise<Schedule> {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id);
+        let ssched = state.schedules.getItemById(id);
+        // RKS: Assuming you just send 0s for the schedule and it will delete it.
+        let out = Outbound.create({
+            action: 145,
+            payload: [
+                id,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0],
+            retries: 3
+        });
+        return new Promise<Schedule>((resolve, reject) => {
+            out.onComplete = (err, msg) => {
+                if (!err) {
+                    sys.schedules.removeItemById(id);
+                    state.schedules.removeItemById(id);
+                    ssched.emitEquipmentChange();
+                    sched.isActive = false;
+                    let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                    conn.queueSendMessage(req);
+                    resolve(sched);
+                }
+                else reject(err);
+            };
+            conn.queueSendMessage(out);
+        });
+    }
+    public async setEggTimerAsync(data?: any): Promise<EggTimer> {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule/eggTimer id: ${data.id} or all schedule/eggTimer ids filled (${sys.eggTimers.length + sys.schedules.length} used out of ${sys.equipment.maxSchedules})`, data.id, 'Schedule'));
+        let circuit = sys.circuits.getInterfaceById(data.circuit);
+        if (typeof circuit === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.circuit} for schedule id ${data.id}`, data.id, 'Schedule'));
+        return new Promise<EggTimer>((resolve, reject) => {
             let out = Outbound.create({
                 action: 145,
                 payload: [
                     id,
-                    circuit,
-                    Math.floor(startTime / 60),
-                    startTime - (Math.floor(startTime / 60) * 60),
-                    schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
-                    endTime - (Math.floor(endTime / 60) * 60),
-                    schedDays],
-                retries: 2
-                // ,response: Response.create({ action: 1, payload: [145] })
-            });
-            return new Promise<Schedule>((resolve, reject) => {
-                out.onComplete = (err, msg) => {
+                    circuit.id,
+                    25,
+                    0,
+                    utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
+                    utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
+                    0],
+                onComplete: (err, msg) => {
                     if (!err) {
-                        sched.circuit = ssched.circuit = circuit;
-                        sched.scheduleDays = ssched.scheduleDays = schedDays;
-                        sched.scheduleType = ssched.scheduleType = schedType;
-                        sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
-                        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-                        sched.heatSource = ssched.heatSource = heatSource;
-                        sched.startTime = ssched.startTime = startTime;
-                        sched.endTime = ssched.endTime = endTime;
-                        sched.startTimeType = ssched.startTimeType = startTimeType;
-                        sched.endTimeType = ssched.endTimeType = endTimeType;
-                        sched.isActive = ssched.isActive = true;
-                        ssched.emitEquipmentChange();
+                        let eggTimer = sys.eggTimers.getItemById(id, true);
+                        eggTimer.circuit = circuit.id;
+                        eggTimer.runTime = circuit.eggTimer = typeof data.runTime !== 'undefined' ? data.runTime : circuit.eggTimer || 720;
+                        circuit.dontStop = typeof data.dontStop !== 'undefined' ? utils.makeBool(data.dontStop) : eggTimer.runTime === 1620;
+                        eggTimer.isActive = true;
                         // For good measure russ is sending out a config request for
                         // the schedule in question.  If there was a failure on the
                         // OCP side this will resolve it.
-                        let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                        let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
                         conn.queueSendMessage(req);
-                        state.schedules.sortById();
-                        resolve(sched);
+                        resolve(eggTimer);
                     }
                     else reject(err);
-                };
-                conn.queueSendMessage(out); // Send it off in a letter to yourself.
+                },
+                retries: 2
             });
-        }
-        else
-            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+            conn.queueSendMessage(out); // Send it off in a letter to yourself.
+        });
     }
-    public async deleteScheduleAsync(data: any): Promise<Schedule> {
-        if (typeof data.id !== 'undefined') {
+    public async deleteEggTimerAsync(data: any): Promise<EggTimer> {
+        return new Promise<EggTimer>((resolve, reject) => {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-            let sched = sys.schedules.getItemById(id);
-            let ssched = state.schedules.getItemById(id);
+            if (isNaN(id) || id < 0) reject(new InvalidEquipmentIdError(`Invalid eggTimer id: ${data.id}`, data.id, 'Schedule'));
+            let eggTimer = sys.eggTimers.getItemById(id);
             // RKS: Assuming you just send 0s for the schedule and it will delete it.
             let out = Outbound.create({
                 action: 145,
@@ -600,26 +668,23 @@ export class TouchScheduleCommands extends ScheduleCommands {
                     0,
                     0,
                     0],
-                retries: 3
-            });
-            return new Promise<Schedule>((resolve, reject) => {
-                out.onComplete = (err, msg) => {
+                onComplete: (err, msg) => {
                     if (!err) {
-                        sys.schedules.removeItemById(id);
-                        state.schedules.removeItemById(id);
-                        ssched.emitEquipmentChange();
-                        sched.isActive = false;
-                        let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                        const circuit = sys.circuits.getInterfaceById(data.circuit);
+                        circuit.eggTimer = 720;
+                        circuit.dontStop = circuit.eggTimer === 1620;
+                        sys.eggTimers.removeItemById(id);
+                        eggTimer.isActive = false;
+                        let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
                         conn.queueSendMessage(req);
-                        resolve(sched);
+                        resolve(eggTimer);
                     }
                     else reject(err);
-                };
-                conn.queueSendMessage(out);
+                },
+                retries: 3
             });
-        }
-        else
-            return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+            conn.queueSendMessage(out);
+        });
     }
 }
 
@@ -860,31 +925,48 @@ class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
-        // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
-        // set circuit 17 to function 14 and name 209
-        // response: [255,0,255][165,33,34,16,1,1][139][1,133]
-        let circuit = sys.circuits.getInterfaceById(data.id);
-        let typeByte = data.type || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
-        let nameByte = 3; // set default `Aux 1`
-        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
-        else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
         return new Promise<ICircuit>((resolve, reject) => {
+            // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
+            // set circuit 17 to function 14 and name 209
+            // response: [255,0,255][165,33,34,16,1,1][139][1,133]
+            if (isNaN(parseInt(data.id, 10))) return Promise.reject(new InvalidEquipmentIdError('Circuit Id is invalid', data.id, 'Feature'));
+            let circuit = sys.circuits.getInterfaceById(data.id);
+            let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let nameByte = 3; // set default `Aux 1`
+            if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+            else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
             let out = Outbound.create({
                 action: 139,
-                payload: [data.id, typeByte, nameByte],
+                payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg) => {
+                onComplete: async (err, msg) => {
                     if (err) reject(err);
                     else {
                         let circuit = sys.circuits.getInterfaceById(data.id);
                         let cstate = state.circuits.getInterfaceById(data.id);
                         circuit.nameId = cstate.nameId = nameByte;
                         circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                        circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures;
-                        //circuit.showInCircuits = typeof data.showInCircuits !== 'undefined' ? data.showInCircuits : circuit.showInCircuits; // cstate.showInCircuits?
-                        circuit.freeze = typeof data.freeze !== 'undefined' ? data.freeze : circuit.freeze;
+                        circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
+                        circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
                         circuit.type = cstate.type = typeByte;
+                        circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
+                        circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
+                        let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
+                        try {
+                            if (circuit.eggTimer === 720) {
+                                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                            }
+                            else {
+                                await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                            }
+                        }
+                        catch (err) {
+                            // fail silently if there are no slots to fill in the schedules
+                            logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
+                            circuit.eggTimer = 720;
+                            circuit.dontStop = false;
+                        }
                         state.emitEquipmentChanges();
                         resolve(circuit);
                     }
@@ -900,6 +982,7 @@ class TouchCircuitCommands extends CircuitCommands {
     }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
+        if (id === 192) return sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
         return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.create({
@@ -1162,34 +1245,65 @@ class TouchFeatureCommands extends FeatureCommands {
         return this.board.circuits.toggleCircuitStateAsync(id);
     }
     public async setFeatureAsync(data: any): Promise<Feature> {
-        let feature = sys.features.getItemById(data.id);
-        let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
-        let nameByte = 3; // set default `Aux 1`
-        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
-        else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
         return new Promise<Feature>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            let feature: Feature;
+            if (id <= 0) {
+                id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+                feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
+            }
+            else
+                feature = sys.features.getItemById(id, false);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
+            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
+            let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let nameByte = 3; // set default `Aux 1`
+            if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+            else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
+            // [165,23,16,34,139,5],[17,0,1,0,0],[1,144]
             let out = Outbound.create({
                 action: 139,
-                payload: [data.id, typeByte, nameByte],
+                payload: [id, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
                 retries: 3,
                 response: true,
-                onComplete: (err, msg) => {
+                onComplete: async (err, msg) => {
                     if (err) reject(err);
                     else {
-                        let circuit = sys.features.getItemById(data.id);
-                        let cstate = state.features.getItemById(data.id);
-                        circuit.nameId = cstate.nameId = nameByte;
+                        let feature = sys.features.getItemById(id);
+                        let fstate = state.features.getItemById(data.id);
+                        feature.nameId = fstate.nameId = nameByte;
                         // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                        circuit.type = cstate.type = typeByte;
+                        feature.name = fstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                        feature.type = fstate.type = typeByte;
+
+                        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
+                        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
+                        feature.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer || 720;
+                        feature.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : feature.eggTimer === 1620;
+                        let eggTimer = sys.eggTimers.find(elem => elem.circuit === id);
+                        try {
+                            if (feature.eggTimer === 720) {
+                                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                            }
+                            else {
+                                await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: feature.eggTimer, dontStop: feature.dontStop, circuit: feature.id });
+                            }
+                        }
+                        catch (err) {
+                            // fail silently if there are no slots to fill in the schedules
+                            logger.info(`Cannot set/delete eggtimer on feature ${feature.id}.  Error: ${err.message}`);
+                            feature.eggTimer = 720;
+                            feature.dontStop = false;
+                        }
                         state.emitEquipmentChanges();
-                        resolve(circuit);
+                        resolve(feature);
                     }
                 }
             });
             conn.queueSendMessage(out);
         });
     }
+
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public setChlorAsync(obj: any): Promise<ChlorinatorState> {

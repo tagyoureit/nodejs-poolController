@@ -611,6 +611,7 @@ export class EquipmentStateMessage {
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.heaters.syncHeaterStates();
+                                sys.board.schedules.syncScheduleStates();
                                 break;
                             }
                     }
