@@ -904,6 +904,7 @@ export class Schedule extends EqItem {
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
         if (typeof this.data.startTimeType === 'undefined') this.data.startTimeType = 0;
         if (typeof this.data.endTimeType === 'undefined') this.data.endTimeType = 0;
+        if (typeof this.data.display === 'undefined') this.data.display = 0;
     }
 
     // todo: investigate schedules having startDate and _startDate
@@ -941,7 +942,8 @@ export class Schedule extends EqItem {
     public set startTimeType(val: number | any) { this.setDataVal('startTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
     public get endTimeType(): number | any { return this.data.endTimeType; }
     public set endTimeType(val: number | any) { this.setDataVal('endTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
-
+    public get display() { return this.data.display; }
+    public set display(val: number | any) { this.setDataVal('display', sys.board.valueMaps.scheduleDisplayTypes.encode(val)); }
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate)); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }

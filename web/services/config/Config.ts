@@ -153,6 +153,7 @@ export class ConfigRoute {
                 circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
                 schedules: sys.schedules.get(),
                 clockMode: sys.general.options.clockMode || 12,
+                displayTypes: sys.board.valueMaps.scheduleDisplayTypes.toArray(),
                 eggTimers: sys.eggTimers.get() // needed for *Touch to not overwrite real schedules
             };
             return res.status(200).send(opts);

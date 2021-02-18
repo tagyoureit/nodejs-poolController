@@ -305,6 +305,11 @@ export class byteValueMaps {
     public scheduleTimeTypes: byteValueMap = new byteValueMap([
         [0, { name: 'manual', desc: 'Manual' }]
     ]);
+    public scheduleDisplayTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'always', desc: 'Always' }],
+        [1, { name: 'active', desc: 'When Active' }],
+        [2, { name: 'never', desc: 'Never' }]
+    ]);
 
     public pumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],

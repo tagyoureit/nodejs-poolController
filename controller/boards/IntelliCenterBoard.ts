@@ -3001,6 +3001,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
             let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+            let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
             // Ensure all the defaults.
             if (isNaN(startDate.getTime())) startDate = new Date();
@@ -3069,6 +3070,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                         sched.startDay = startDate.getDate();
                         ssched.startDate = startDate;
                         ssched.isActive = sched.isActive = true;
+                        ssched.display = sched.display = display;
                         ssched.emitEquipmentChange();
                         resolve(sched);
                     }

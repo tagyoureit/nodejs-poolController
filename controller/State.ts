@@ -776,8 +776,8 @@ export class ScheduleState extends EqState {
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
         if (typeof this.data.startTimeType === 'undefined') this.data.startTimeType = 0;
         if (typeof this.data.endTimeType === 'undefined') this.data.endTimeType = 0;
+        if (typeof this.data.display === 'undefined') this.display = 0;
     }
-
     private _startDate: Date = new Date();
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; this._saveStartDate(); }
@@ -831,6 +831,14 @@ export class ScheduleState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get display(): number { return typeof (this.data.display) !== 'undefined' ? this.data.display.val : undefined; }
+    public set display(val: number) {
+        if (this.display !== val) {
+            this.data.display = sys.board.valueMaps.scheduleDisplayTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
     public get changeHeatSetpoint(): boolean { return this.data.changeHeatSetpoint; }
     public set changeHeatSetpoint(val: boolean) { this.setDataVal('changeHeatSetpoint', val); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
