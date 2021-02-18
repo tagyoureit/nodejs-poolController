@@ -2159,7 +2159,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // Circuits are always contiguous so we don't have to worry about
         // them having a strange offset like features and groups. However, in
         // single body systems they start with 2.
-        for (let i = 0; i <= state.data.circuits.length; i++) {
+        for (let i = 0; i < state.data.circuits.length; i++) {
             // We are using the index and setting the circuits based upon
             // the index.  This way it doesn't matter what the sort happens to
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
@@ -2173,7 +2173,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             out.payload[ndx + 3] = byte;
         }
         // Set the bits for the features.
-        for (let i = 0; i <= state.data.features.length; i++) {
+        for (let i = 0; i < state.data.features.length; i++) {
             // We are using the index and setting the features based upon
             // the index.  This way it doesn't matter what the sort happens to
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
@@ -2187,7 +2187,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             out.payload[ndx + 9] = byte;
         }
         // Set the bits for the circuit groups.
-        for (let i = 0; i <= state.data.circuitGroups.length; i++) {
+        for (let i = 0; i < state.data.circuitGroups.length; i++) {
             let group = state.circuitGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
             let ndx = Math.floor(ordinal / 8);
@@ -2198,7 +2198,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             out.payload[ndx + 13] = byte;
         }
         // Set the bits for the light groups.
-        for (let i = 0; i <= state.data.lightGroups.length; i++) {
+        for (let i = 0; i < state.data.lightGroups.length; i++) {
             let group = state.lightGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
             let ndx = Math.floor(ordinal / 8);

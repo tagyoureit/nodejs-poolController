@@ -2789,7 +2789,7 @@ export class ValveCommands extends BoardCommands {
     }
 
     public syncValveStates() {
-        for (let i = 0; i < sys.valves.length - 1; i++) {
+        for (let i = 0; i < sys.valves.length; i++) {
             // Run through all the valves to see whether they should be triggered or not.
             let valve = sys.valves.getItemByIndex(i);
             if (valve.isActive) {

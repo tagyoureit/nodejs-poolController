@@ -141,7 +141,7 @@ export class HeaterMessage {
                     hstate.name = heatPump.name;
                     hstate.isVirtual = false;
                 }
-                for (var i = 0; i <= sys.heaters.length; i++){
+                for (var i = 0; i < sys.heaters.length; i++){
                     let heater = sys.heaters.getItemByIndex(i);
                     if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
                 }
