@@ -359,7 +359,6 @@ export class ExternalMessage {
                 if (schedule.isActive) {
                     if (schedule.circuit > 0) { // Don't get the schedule state if we haven't determined the entire config for it yet.
                         let sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
-                        //if (scheduleId > 3) console.log(sstate);
                         sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
                         sstate.circuit = schedule.circuit;
                         sstate.endTime = schedule.endTime;

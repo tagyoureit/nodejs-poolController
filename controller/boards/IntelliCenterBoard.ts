@@ -2233,7 +2233,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
         }
         // Set the bits for the schedules.
-        for (let i = 0; i <= state.data.schedules.length; i++) {
+        for (let i = 0; i < state.data.schedules.length; i++) {
             let sched = state.schedules.getItemByIndex(i);
             let ordinal = sched.id - 1;
             let ndx = Math.floor(ordinal / 8);
