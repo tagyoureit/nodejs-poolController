@@ -2338,7 +2338,7 @@ export class ScheduleCommands extends BoardCommands {
         let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
         let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
         let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
-        let display = typeof data.display !== 'undefined' ? data.display ? sched.display || 0;
+        let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
         // Ensure all the defaults.
         if (isNaN(startDate.getTime())) startDate = new Date();
