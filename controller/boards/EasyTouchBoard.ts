@@ -476,7 +476,6 @@ export class TouchScheduleCommands extends ScheduleCommands {
         let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
         if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
 
-
         let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
         let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
         // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
@@ -488,6 +487,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
         let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
         let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
         let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
+        let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
         // Ensure all the defaults.
         // if (isNaN(startDate.getTime())) startDate = new Date();
@@ -566,6 +566,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
                     sched.startTimeType = ssched.startTimeType = startTimeType;
                     sched.endTimeType = ssched.endTimeType = endTimeType;
                     sched.isActive = ssched.isActive = true;
+                    ssched.display = sched.display = display;
                     ssched.emitEquipmentChange();
                     // For good measure russ is sending out a config request for
                     // the schedule in question.  If there was a failure on the
