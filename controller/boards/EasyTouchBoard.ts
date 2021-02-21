@@ -1361,8 +1361,8 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             let out = Outbound.create({
                 dest: 16,
                 action: 153,
-                payload: [disabled ? 0 : (chlor.spaSetpoint << 1) + 1, disabled ? 0 : chlor.poolSetpoint,
-                utils.makeBool(chlor.superChlor) && chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                payload: [disabled ? 0 : (spaSetpoint << 1) + 1, disabled ? 0 : poolSetpoint,
+                utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
                     0, 0, 0, 0, 0, 0, 0],
                 retries: 3,
                 response: true,

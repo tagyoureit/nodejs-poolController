@@ -81,9 +81,23 @@ export class ChlorinatorMessage {
             schlor.name = chlor.name = msg.extractPayloadString(6, 16);
             schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
             schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
-            schlor.superChlor = chlor.superChlor = msg.extractPayloadByte(5) > 0;
+            // Pull the hours from the 25 message.
+            let hours = msg.extractPayloadByte(5);
+            // If we are not currently running a superChlor cycle this will be our initial hours so
+            // set the superChlorHours when:
+            // 1. We are not superChlorinating and the hours > 0
+            // 2. We don't have any superChlor hours yet.  This is when superChlorHours is undefined.
+            if ((!schlor.superChlor && hours > 0)) {
+                schlor.superChlorHours = chlor.superChlorHours = hours;
+            }
+            else if (typeof chlor.superChlorHours === 'undefined') {
+                // The hours could be 0 because Touch doesn't persist this value out of the gate so we
+                // will initialize this to a modest 8 hours.
+                schlor.superChlorHours = chlor.superChlorHours = hours || 8;
+            }
+            schlor.superChlor = chlor.superChlor = hours > 0;
             if (schlor.superChlor) {
-                schlor.superChlorRemaining = msg.extractPayloadByte(5) * 3600;                // }
+                schlor.superChlorRemaining = hours * 3600;
             }
             else {
                 schlor.superChlorRemaining = 0;
