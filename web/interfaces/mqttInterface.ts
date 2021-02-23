@@ -286,7 +286,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         let msg = message.toString();
         if (msg[0] === '{') msg = JSON.parse(msg);
         const topics = topic.split('/');
-        if (topics[0] === this.rootTopic() && typeof msg === 'object') {
+        logger.debug(`MQTT: Inbound ${topic}: ${message.toString()}`);
+        if (topic.startsWith(this.rootTopic() + '/') && typeof msg === 'object') {
             // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
             // between them so it doesn't matter but it will become an issue.
             switch (topics[topics.length - 1].toLowerCase()) {
@@ -300,7 +301,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         case 'circuits':
                         case 'circuit': {
                             try {
-                                logger.debug(`MQTT: Inbound CIRCUIT SETSTATE: ${JSON.stringify(msg)}`);
                                 if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
                             }
                             catch (err) { logger.error(err); }
@@ -309,7 +309,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         case 'features':
                         case 'feature': {
                             try {
-                                logger.debug(`MQTT: Inbound FEATURE SETSTATE: ${JSON.stringify(msg)}`);
                                 if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                             }
                             catch (err) { logger.error(err); }
@@ -318,7 +317,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         case 'lightgroups':
                         case 'lightgroup': {
                             try {
-                                logger.debug(`MQTT: Inbound LIGHTGROUP SETSTATE: ${JSON.stringify(msg)}`);
                                 await sys.board.circuits.setLightGroupStateAsync(id, isOn);
                             }
                             catch (err) { logger.error(err); }
@@ -327,7 +325,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         case 'circuitgroups':
                         case 'circuitgroup': {
                             try {
-                                logger.debug(`MQTT: Inbound CIRCUITGROUP SETSTATE: ${JSON.stringify(msg)}`);
                                 await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
                             }
                             catch (err) { logger.error(err); }
@@ -347,94 +344,77 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         switch (topics[topics.length - 2].toLowerCase()) {
                             case 'circuits':
                             case 'circuit':
-                                {
-                                    try {
-                                        logger.debug(`MQTT: Inbound CIRCUIT TOGGLESTATE: ${JSON.stringify(msg)}`);
-                                        await sys.board.circuits.toggleCircuitStateAsync(id);
-                                    }
-                                    catch (err) { logger.error(err); }
-                                    break;
+                                try {
+                                    await sys.board.circuits.toggleCircuitStateAsync(id);
                                 }
+                                catch (err) { logger.error(err); }
+                                break;
                             case 'features':
                             case 'feature':
-                                {
-                                    try {
-                                        logger.debug(`MQTT: Inbound FEATURE TOGGLESTATE: ${JSON.stringify(msg)}`);
-                                        await sys.board.features.toggleFeatureStateAsync(id);
-                                    }
-                                    catch (err) { logger.error(err); }
-                                    break;
+                                try {
+                                    await sys.board.features.toggleFeatureStateAsync(id);
                                 }
+                                catch (err) { logger.error(err); }
+                                break;
                             default:
                                 logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
                         }
                         break;
                     }
                 case 'setpoint':
-                    {
-                        try {
-                            let body = sys.bodies.findByObject(msg);
-                            if (topics[topics.length - 2].toLowerCase() === 'body') {
-                                if (typeof body === 'undefined') {
-                                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
-                                    return;
-                                }
-                                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
-                            }
-                        }
-                        catch (err) { logger.error(err); }
-
-                        break;
-                    }
-                case 'heatmode':
-                    {
-                        try {
-                            if (topics[topics.length - 2].toLowerCase() !== 'body') return;
-                            // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
-                            let mode = parseInt(msg.mode, 10);
-                            let val;
-                            if (isNaN(mode)) mode = parseInt(msg.heatMode, 10);
-                            if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                            else val = sys.board.valueMaps.heatModes.transformByName(msg.mode || msg.heatMode);
-                            if (typeof val.val === 'undefined') {
-                                logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.mode}`, 'body', 'heatMode', mode));
-                                return;
-                            }
-                            mode = val.val;
-                            let body = sys.bodies.findByObject(msg);
+                    try {
+                        let body = sys.bodies.findByObject(msg);
+                        if (topics[topics.length - 2].toLowerCase() === 'body') {
                             if (typeof body === 'undefined') {
-                                logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
+                                logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
                                 return;
                             }
-                            let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
+                            let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
                         }
-                        catch (err) { logger.error(err); }
-                        break;
                     }
+                    catch (err) { logger.error(err); }
+                    break;
+                case 'heatmode':
+                    try {
+                        if (topics[topics.length - 2].toLowerCase() !== 'body') return;
+                        // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
+                        let mode = parseInt(msg.mode, 10);
+                        let val;
+                        if (isNaN(mode)) mode = parseInt(msg.heatMode, 10);
+                        if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
+                        else val = sys.board.valueMaps.heatModes.transformByName(msg.mode || msg.heatMode);
+                        if (typeof val.val === 'undefined') {
+                            logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.mode}`, 'body', 'heatMode', mode));
+                            return;
+                        }
+                        mode = val.val;
+                        let body = sys.bodies.findByObject(msg);
+                        if (typeof body === 'undefined') {
+                            logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
+                            return;
+                        }
+                        let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
+                    }
+                    catch (err) { logger.error(err); }
+                    break;
                 case 'chlorinator':
-                    {
-                        try {
-                            let schlor = await sys.board.chlorinator.setChlorAsync(msg);
-                        }
-                        catch (err) { logger.error(err); }
-                        break;
+                    try {
+                        let schlor = await sys.board.chlorinator.setChlorAsync(msg);
                     }
+                    catch (err) { logger.error(err); }
+                    break;
                 case 'chemcontroller':
-                    {
-                        try {
-                            await sys.board.chemControllers.setChemControllerAsync(msg);
-                        }
-                        catch (err) { logger.error(err); }
-                        break;
+                    try {
+                        await sys.board.chemControllers.setChemControllerAsync(msg);
                     }
+                    catch (err) { logger.error(err); }
+                    break;
                 case 'settheme':
-                    {
-                        try {
-                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
-                        }
-                        catch (err) { logger.error(err); }
-                        break;
+                    try {
+                        let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
                     }
+                    catch (err) { logger.error(err); }
+                    break;
                 case 'temp':
                 case 'temps':
                     try {
@@ -449,14 +429,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     }
                     catch (err) { logger.error(err); }
                     break;
-                case 'chemController': {
-                    try {
-                        logger.debug(`MQTT: Inbound CHEMCONTROLLER: ${JSON.stringify(msg)}`);
-                        await sys.board.chemControllers.setChemControllerAsync(msg);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                }
                 default:
                     logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
                     break;
