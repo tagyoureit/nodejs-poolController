@@ -312,6 +312,9 @@
     {
       "name": "chemController",
       "description": "Populate the chemControllers topic",
+      "vars": {
+        "cfg": "@bind=sys.chemControllers.getItemById(data.id).get();"
+      },
       "topics": [
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/ph/tankLevel",
@@ -386,11 +389,11 @@
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/pHDosingVolume",
-          "message": "{\"orpDosingVolume\":@bind=data.ph.doseVolume;}"
+          "message": "{\"pHDosingVolume\":@bind=data.ph.doseVolume;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpDosingVolume",
-          "message": "{\"pHDosingVolume\":@bind=data.orp.doseVolume;}"
+          "message": "{\"orpDosingVolume\":@bind=data.orp.doseVolume;}"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpSetpoint",
@@ -424,22 +427,45 @@
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/type",
           "message": "@bind=data.type;"
         },
-
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alkalinity",
+          "message": "@bind=vars.cfg.alkalinity;"
+        },
         {
           "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/alkalinity",
-          "message": "{\"alkalinity\":@bind=data.alkalinity;}"
+          "message": "{\"alkalinity\":@bind=vars.cfg.alkalinity;}"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/calciumHardness",
+          "message": "@bind=vars.cfg.calciumHardness;"
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/calciumHardness",
-          "message": "@bind=data.calciumHardness;"
+          "message": "@bind=vars.cfg.calciumHardness;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/cyanuricAcid",
+          "message": "@bind=vars.cfg.cyanuricAcid;"
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/cyanuricAcid",
-          "message": "@bind=data.cyanuricAcid;"
+          "message": "@bind=vars.cfg.cyanuricAcid;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/borates",
+          "message": "@bind=vars.cfg.borates;"
+        },
+        {
+          "topic": "config/chemControllers/@bind=data.id;/@bind=data.name;/borates",
+          "message": "@bind=vars.cfg.borates;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
           "message": "@bind=data.virtualControllerStatus;"
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/acidDemand",
+          "message": "@bind=data.ph.demand;"
         },
 
         {

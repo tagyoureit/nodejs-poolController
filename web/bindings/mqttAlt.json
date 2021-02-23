@@ -407,6 +407,9 @@
     {
       "name": "chemController",
       "description": "Populate the chemControllers topic",
+      "vars": {
+        "cfg": "@bind=sys.chemControllers.getItemById(data.id).get();"
+      },
       "topics": [
         {
           "topic": "state/chemControllers/@bind=data.id;/name",
@@ -482,19 +485,19 @@
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/alkalinity",
-          "message": "@bind=sys.chemControllers.getItemById(data.id).alkalinity;"
+          "message": "@bind=vars.cfg.alkalinity;"
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/calciumHardness",
-          "message": "@bind=sys.chemControllers.getItemById(data.id).calciumHardness;"
+          "message": "@bind=vars.cfg.calciumHardness;"
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/cyanuricAcid",
-          "message": "@bind=sys.chemControllers.getItemById(data.id).cyanuricAcid;"
+          "message": "@bind=vars.cfg.cyanuricAcid;"
         },
         {
           "topic": "config/chemControllers/@bind=data.id;/borates",
-          "message": "@bind=sys.chemControllers.getItemById(data.id).borates;"
+          "message": "@bind=vars.cfg.borates;"
         },
         {
           "topic": "state/chemControllers/@bind=data.id;/virtualControllerStatus",
