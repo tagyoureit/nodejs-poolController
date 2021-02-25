@@ -237,7 +237,7 @@ export class CircuitMessage {
         const id = msg.extractPayloadByte(0);
         const functionId = msg.extractPayloadByte(1);
         const nameId = msg.extractPayloadByte(2);
-        let _isActive = functionId !== sys.board.valueMaps.circuitFunctions.getValue('notused') && nameId !== sys.board.valueMaps.circuitNames.getValue('notused');
+        let _isActive = functionId !== sys.board.valueMaps.circuitFunctions.getValue('notused') && nameId !== 0;
         if (!sys.board.equipmentIds.invalidIds.isValidId(id)) { _isActive = false; }
         if (_isActive) {
             const type = functionId & 63;
