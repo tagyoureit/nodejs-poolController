@@ -2383,7 +2383,7 @@ export class ScheduleCommands extends BoardCommands {
         return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
     }
     public syncScheduleStates() {
-        let dt = new Date();
+        let dt = state.time.toDate();
         let dow = dt.getDay();
         // Convert the dow to the bit value.
         let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
