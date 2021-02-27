@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 6.5.1
+# nodejs-poolController - Version 6.5.2
 
 ## What is nodejs-poolController
 
