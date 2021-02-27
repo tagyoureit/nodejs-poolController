@@ -2384,10 +2384,17 @@ export class ScheduleCommands extends BoardCommands {
     }
     public syncScheduleStates() {
         let dt = new Date();
+        let dow = dt.getDay();
+        // Convert the dow to the bit value.
+        let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
+        let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
         let ts = dt.getHours() * 60 + dt.getMinutes();
         for (let i = 0; i < state.schedules.length; i++) {
             let ssched = state.schedules.getItemByIndex(i);
-            if (ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
+            let circ = state.circuits.getInterfaceById(ssched.circuit);
+            if (circ.isOn &&
+                (ssched.scheduleDays & dayVal) > 0 &&
+                ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
             else ssched.isOn = false;
             ssched.emitEquipmentChange();
         }
