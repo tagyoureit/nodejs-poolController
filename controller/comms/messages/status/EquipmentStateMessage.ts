@@ -536,7 +536,7 @@ export class EquipmentStateMessage {
                         // 19   | 91  | Solar sensor 2 temperature (this mirrors solar sensor 1 in shared system)
                         // 20   | 0   | Unknown (this could be water sensor 3)
                         // 21   | 0   | Unknown (this could be water sensor 4)
-                        // 22   | 7   | Body 1 & 2 heat mode
+                        // 22   | 7   | Body 1 & 2 heat mode (body 1 = Solar Only body 2 = Heater)
                         // 23   | 4   | Body 3 & 4 heat mode
                         // 24   | 0   | Unknown
                         // 25   | 77  | Unknown
@@ -550,11 +550,17 @@ export class EquipmentStateMessage {
                         // 2 = Solar Preferred
                         // 3 = Solar Only
 
-                        // Pool Heat Mode.
+                        // Heat Status
+                        // 0 = Off
+                        // 1 = Heater
+                        // 2 = Cooling
+                        // 3 = Solar/Heat Pump
+
+                        // Pool Heat Mode/Status.
                         // When temp setpoint and pool in heater mode went above the current pool temp byte 10 went from 67 to 71.  The upper two bits of the
                         // lower nibble changed on bit 3.  So 0100 0111 from 0100 0011
 
-                        // Spa Heat Mode
+                        // Spa Heat Mode/Status
                         // When switching from pool to spa with both heat modes set to off byte 10 went from 67 to 75 and byte(16) changed from 0 to 32.  The upper two bits of the lower nibble
                         // changed on byte(10) bit 4.  So to 0100 1011 from 0100 0011.  Interestingly this seems to indicate that the spa turned on.  This almost appears as if the heater engaged
                         // automatically like the spa has manual heat turned off.
