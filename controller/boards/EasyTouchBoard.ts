@@ -838,6 +838,12 @@ class TouchBodyCommands extends BodyCommands {
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+            //  [85, 97, 7, 0]
+            // byte | val | 
+            // 0    | 85  | Pool Setpoint
+            // 1    | 97  | Spa setpoint
+            // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
+            // 3    | 0   | Unknown (I believe this to be an indicator for the first 2 bodies if there are other bodies active this will be 1 for 2 & 4)
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
             const temp1 = body1.setPoint || 100;

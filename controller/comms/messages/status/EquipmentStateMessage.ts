@@ -266,6 +266,11 @@ export class EquipmentStateMessage {
         heater.isActive = true;
         heater.type = 1;
         heater.name = "Gas Heater";
+        let sheater = state.heaters.getItemById(1, true);
+        sheater.type = heater.type;
+        sheater.name = heater.name;
+        sheater.isVirtual = heater.isVirtual = false;
+
         sys.equipment.shared ? heater.body = 32 : heater.body = 0;
         sys.equipment.setEquipmentIds();
         // Initialize the bodies.  We will need these very soon.
@@ -507,6 +512,39 @@ export class EquipmentStateMessage {
                         state.temps.air = fnTempFromByte(msg.extractPayloadByte(18));
                         let solar: Heater = sys.heaters.getItemById(2);
                         if (solar.isActive) state.temps.solar = fnTempFromByte(msg.extractPayloadByte(19));
+                        //[15, 34, 32, 0, 0, 0, 0, 0, 0, 0, 83, 0, 0, 0, 81, 81, 32, 91, 82, 91, 0, 0, 7, 4, 0, 77, 163, 1, 0][4, 78]
+                        // byte | val |
+                        // 0    | 15  | Hours
+                        // 1    | 34  | Minutes
+                        // 2    | 32  | Circuits 1-8 bit 6 = Pool on.
+                        // 3    | 0   | Circuits 9-16
+                        // 4    | 0   | Circuits 17-24
+                        // 5    | 0   | Circuits 24-32
+                        // 6    | 0   | Circuits 33-40
+                        // 7    | 0   | Unknown
+                        // 8    | 0   | Unknown
+                        // 9    | 0   | Panel Mode bit flags
+                        // 10   | 83  | Heat status for body 1 & 2 (This says solar is on for the pool and spa because this is the body that is running)
+                        // 11   | 0   | Unknown (This could be the heat status for body 3 & 4)
+                        // 12   | 0   | Unknown
+                        // 13   | 0   | Unknown
+                        // 14   | 81  | Water sensor 1 temperature
+                        // 15   | 81  | Water sensor 2 temperature (This mirrors water sensor 1 in shared system)
+                        // 16   | 32  | Unknown
+                        // 17   | 91  | Solar sensor 1 temperature
+                        // 18   | 82  | Air temp
+                        // 19   | 91  | Solar sensor 2 temperature (this mirrors solar sensor 1 in shared system)
+                        // 20   | 0   | Unknown (this could be water sensor 3)
+                        // 21   | 0   | Unknown (this could be water sensor 4)
+                        // 22   | 7   | Body 1 & 2 heat mode
+                        // 23   | 4   | Body 3 & 4 heat mode
+                        // 24   | 0   | Unknown
+                        // 25   | 77  | Unknown
+                        // 26   | 163 | Unknown
+                        // 27   | 1   | Byte 2 of OCP identifier
+                        // 28   | 0   | Byte 1 of OCP identifier
+                       
+
                         // Heat Modes
                         // 1 = Heater
                         // 2 = Solar Preferred
@@ -545,8 +583,8 @@ export class EquipmentStateMessage {
                             if (tbody.isOn) {
                                 //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x04) === 4;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x10) === 10;
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x04) === 0x04;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x10) === 0x10;
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                 if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
@@ -563,7 +601,7 @@ export class EquipmentStateMessage {
                                 tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
-                            tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0c) >> 2;
+                            tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0C) >> 2;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
@@ -571,8 +609,8 @@ export class EquipmentStateMessage {
                             if (tbody.isOn) {
                                 //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
                                 //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x08) === 8;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x20) === 32;
+                                const heaterActive = (msg.extractPayloadByte(10) & 0x08) === 0x08;
+                                const solarActive = (msg.extractPayloadByte(10) & 0x20) === 0x20;
 
                                 const cooling = solarActive && tbody.temp > tbody.setPoint;
                                 if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
@@ -636,7 +674,24 @@ export class EquipmentStateMessage {
                 // 1 = Heater
                 // 2 = Solar Preferred
                 // 3 = Solar Only
-
+                //[81, 81, 82, 85, 97, 7, 0, 0, 0, 100, 100, 4, 0][3, 87]
+                // byte | val |
+                // 0    | 81  | Water sensor 1
+                // 1    | 81  | Unknown (Probably water sensor 2 on a D)
+                // 2    | 82  | Air sensor
+                // 3    | 85  | Body 1 setpoint
+                // 4    | 97  | Body 2 setpoint
+                // 5    | 7   | Body 1 & 2 heat mode. (0111) (Pool = 11 Solar only/Spa = 01 Heater)
+                // 6    | 0   | Unknown (Water Sensor 3)
+                // 7    | 0   | Unknown (Water Sensor 4)
+                // 8    | 0   | Unknown -- Reserved air sensor
+                // 9    | 100 | Unknown (Body 3 setpoint)
+                // 10   | 100 | Unknown (Body 4 setpoint)
+                // 11   | 4   | Unknown (Body 3 & 4 head mode. (0010) (Pool = 00 = Off/ 10 = Solar Preferred)
+                // 12   | 0   | Unknown
+                // There are two messages sent when the OCP tries to tse a heat mode in IntelliTouch.  The first one on the action 136 is for the first 2 bodies and the second
+                // is for the remaining 2 bodies.  The second half of this message mirrors the values for the second 136 message.
+                // [255, 0, 255][165, 1, 16, 32, 136, 4][100, 100, 4, 1][2, 47]
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
                 state.temps.air = msg.extractPayloadByte(2);
                 let solar: Heater = sys.heaters.getItemById(2);

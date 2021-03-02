@@ -40,6 +40,9 @@ export class PumpMessage {
             sys.pumps.removeItemById(pumpId);
             pump = sys.pumps.getItemById(pumpId, true);
         }
+
+
+
         let type = msg.extractPayloadByte(1);  // Avoid setting this then setting it back if we are mapping to a different value.
         pump.address = pumpId + 95;
         pump.isActive = type !== 0;
@@ -272,6 +275,32 @@ export class PumpMessage {
         // [255, 0, 255], [165, 33, 15, 16, 27, 46], [1, 128, 1, 2, 0, 1, 6, 2, 12, 4, 9, 11, 7, 6, 7, 128, 8, 132, 3, 15, 5, 3, 234, 128, 46, 108, 58, 2, 232, 220, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [8, 5]
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
+        // [1, 128, 0, 2, 0, 6, 5, 1, 5, 158, 9, 2, 10, 0, 3, 0, 3, 0, 3, 0, 3, 3, 120, 20, 146, 240, 232, 232, 232, 232, 232]
+        // byte | val |
+        // 0    | 1   | PumpId = 1
+        // 1    | 128 | Pump Type = VS
+        // 2    | 0   | Priming Time = 0
+        // 3    | 2   | Unknown
+        // 4    | 0   | Unknown
+        // 5    | 6   | Circuit Speed #1 = Pool
+        // 6    | 5   | Big endian for the speed (1400 rpm with byte(22))
+        // 7    | 1   | Circuit Speed #2 = Spa
+        // 8    | 5   | Big endian for the speed (1300 rpm with byte(23))
+        // 9    | 158 | Circuit Speed #3 = Solar
+        // 10   | 9   | Big endian for the speed (2450 rpm with byte(24))
+        // 11   | 2   | Circuit Speed #4 = Air blower (Aux-2)
+        // 12   | 10  | Big endian speed for the speed (2800 rpm with byte(25))
+        // 13   | 0   | Circuit Speed #5 = No circuit
+        // 14   | 3   | Big endian speed for the speed (1000 rpm with byte(26))
+        // 15   | 0   | Circuit speed #6 = No circuit
+        // 16   | 3   | Big endian speed for the speed (1000 rpm with byte(27))
+        // 17   | 0   | Circuit speed #7 = No circuit
+        // 18   | 3   | Big endian speed for the speed (1000 rpm with byte(28))
+        // 19   | 0   | Circuit speed #8 = No circuit
+        // 20   | 3   | Big endian speed for the speed (1000 rpm with byte(29))
+        // 21   | 3   | Big eniand speed for the priming speed (1000 rpm with byte(30))
+        // All 30 bytes on this message are accounted for except for byte 3 & 4.
+
         if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3); 
