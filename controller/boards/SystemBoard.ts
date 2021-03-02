@@ -418,7 +418,7 @@ export class byteValueMaps {
         [4, { name: 'highcurrent', desc: 'High Current' }],
         [5, { name: 'clean', desc: 'Clean Cell' }],
         [6, { name: 'lowvoltage', desc: 'Low Voltage' }],
-        [7, { name: 'lowtemp', dest: 'Water Temp Low' }],
+        [7, { name: 'lowtemp', desc: 'Water Temp Low' }],
         [8, { name: 'commlost', desc: 'Communication Lost' }]
     ]);
     public chlorinatorType: byteValueMap = new byteValueMap([
