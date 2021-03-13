@@ -890,7 +890,11 @@ export class REMInterfaceServer extends ProtoServer {
                     });
                 }
                 req.setTimeout(timeout, () => { reject(new Error('Request timeout')); });
-                req.on('error', (err, req, res) => { logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
+                req.on('error', (err, req, res) => {
+                    logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`);
+                    ret.error = err;
+                    reject(new Error(`Error sending Request: ${opts.method} ${url} ${err.message}`));
+                });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
                 logger.verbose(`REM server request returned. ${opts.method} ${opts.path} ${sbody}`);
@@ -908,7 +912,10 @@ export class REMInterfaceServer extends ProtoServer {
             }
             return ret;
         }
-        catch (err) { return Promise.reject(`Http ${method} Error ${url}:${err.message}`); }
+        catch (err) {
+            logger.error(`Error sending HTTP ${method} command to ${url}: ${err.message}`);
+            return Promise.reject(`Http ${method} Error ${url}:${err.message}`);
+        }
     }
     private initSockets() {
         try {
