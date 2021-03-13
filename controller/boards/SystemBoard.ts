@@ -470,6 +470,10 @@ export class byteValueMaps {
         [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
         [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false }]
     ]);
+    public siCalcTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'lsi', desc: 'Langelier Saturation Index' }],
+        [1, { name: 'csi', desc: 'Calcite Saturation Index' }]
+    ]);
     public chemPumpTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'No Pump', ratedFlow: false, tank: false, remAddress: false }],
         [1, { name: 'relay', desc: 'Relay Pump', ratedFlow: true, tank: true, remAddress: true }],

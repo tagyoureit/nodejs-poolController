@@ -30,6 +30,18 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         this.equipmentIds.features.start = 41;
         this.equipmentIds.features.end = 50;
         this._configQueue = new ITTouchConfigQueue();
+        //this.equipmentIds.virtualCircuits = new EquipmentIdRange(133, 159);
+        //this.valueMaps.virtualCircuits = new byteValueMap([
+        //    [158, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+        //    [157, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
+        //    [155, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
+        //    [156, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
+        //    [159, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+        //    [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
+        //    [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
+        //    [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
+        //    [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }]
+        //]);
     }
 }
 class ITTouchConfigQueue extends TouchConfigQueue {

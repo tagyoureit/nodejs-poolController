@@ -1681,6 +1681,9 @@ class TouchPumpCommands extends PumpCommands {
         });
         if (pump.type === 128) {
             // vs
+            //[165, 1, 16, 33, 155, 47]
+            //[1, 128, 0, 0, 0, 6, 10, 1, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 190, 134, 0, 0, 0, 0, 0, 0, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            //[4, 109]
             setPumpConfig.payload[2] = pump.primingTime || 0;
             setPumpConfig.payload[21] = Math.floor(pump.primingSpeed / 256) || 3;
             setPumpConfig.payload[30] =

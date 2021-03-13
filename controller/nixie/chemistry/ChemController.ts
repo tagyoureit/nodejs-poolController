@@ -199,6 +199,7 @@ export class NixieChemController extends NixieEquipment {
                 if (typeof data.lsiRange.low === 'number') chem.lsiRange.low = data.lsiRange.low;
                 if (typeof data.lsiRange.high === 'number') chem.lsiRange.high = data.lsiRange.high;
             }
+            if (typeof data.siCalcType !== 'undefined') chem.siCalcType = data.siCalcType;
             await this.flowSensor.setSensorAsync(data.flowSensor);
             // Alright we are down to the equipment items all validation should have been completed by now.
             // ORP Settings
@@ -210,15 +211,41 @@ export class NixieChemController extends NixieEquipment {
         catch (err) { logger.error(`setControllerAsync: ${err.message}`); return Promise.reject(err); }
     }
     public calculateSaturationIndex(): void {
-        // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
         let schem = state.chemControllers.getItemById(this.chem.id, true);
-        let SI = Math.round((
-            schem.ph.level +
-            this.calciumHardnessFactor +
-            this.carbonateAlkalinity +
-            this.calculateTemperatureFactor(schem) -
-            this.dissolvedSolidsFactor) * 1000) / 1000;
-        schem.saturationIndex = isNaN(SI) ? undefined : SI;
+        if (this.chem.siCalcType === 1) {
+            try {
+                let saltLevel = schem.orp.probe.saltLevel || state.chlorinators.getItemById(1).saltLevel || 0;
+                let extraSalt = Math.max(0, saltLevel - 1.168 * this.chem.calciumHardness);
+                let ph = schem.ph.level;
+                let tempK = utils.convert.temperature.convertUnits(
+                    schem.ph.probe.temperature,
+                    typeof schem.ph.probe.tempUnits !== 'undefined' ? sys.board.valueMaps.tempUnits.getName(schem.ph.probe.tempUnits) : 'C',
+                    'K');
+                let I = ((1.5 * this.chem.calciumHardness + this.chem.alkalinity)) / 50045 + extraSalt / 58440;
+                let carbAlk = this.chem.alkalinity - 0.38772 * this.chem.cyanuricAcid / (1 + Math.pow(10, 6.83 - schem.ph.level)) - 4.63 * this.chem.borates / (1 + Math.pow(10, 9.11 - ph));
+//                console.log({ msg: 'Calculating CSI', saltLevel: saltLevel, extraSalt: extraSalt, tempK: tempK, I: I, pH: ph, carbAlk: carbAlk });
+                let SI = Math.round((
+                    ph 
+                    - 6.9395
+                    + Math.log10(this.chem.calciumHardness)
+                    + Math.log10(carbAlk)
+                    - 2.56 * Math.sqrt(I) / (1 + 1.65 * Math.sqrt(I))
+                    - 1412.5 / tempK
+                ) * 1000) / 1000;
+                schem.saturationIndex = isNaN(SI) ? undefined : SI;
+            }
+            catch (err) { logger.error(`Error calculating CSI: ${err.message}`); schem.saturationIndex = undefined; }
+        }
+        else {
+            // Saturation Index = SI = pH + CHF + AF + TF - TDSF   
+            let SI = Math.round((
+                schem.ph.level +
+                this.calciumHardnessFactor +
+                this.carbonateAlkalinity +
+                this.calculateTemperatureFactor(schem) -
+                this.dissolvedSolidsFactor) * 1000) / 1000;
+            schem.saturationIndex = isNaN(SI) ? undefined : SI;
+        }
     }
     public async checkFlowAsync(schem: ChemControllerState): Promise<boolean> {
             try {

@@ -1734,6 +1734,7 @@ export class ChemController extends EqItem {
         //}
         if (typeof this.data.lsiRange === 'undefined') this.data.lsiRange = { low: -.5, high: .5, enabled: true };
         if (typeof this.data.borates === 'undefined') this.data.borates = 0;
+        if (typeof this.data.siCalcType === 'undefined') this.data.siCalcType = 0;
         super.initData();
     }
     public dataName = 'chemControllerConfig';
@@ -1762,6 +1763,8 @@ export class ChemController extends EqItem {
     public get flowSensor(): ChemFlowSensor { return new ChemFlowSensor(this.data, 'flowSensor', this); }
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
+    public get siCalcType(): number | any { return this.data.siCalcType; }
+    public set siCalcType(val : number | any) { this.setDataVal('siCalcType', sys.board.valueMaps.siCalcTypes.encode(val));  }
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
     public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
     public get lsiRange(): AlarmSetting { return new AlarmSetting(this.data, 'lsiRange', this); }

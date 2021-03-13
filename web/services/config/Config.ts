@@ -210,6 +210,7 @@ export class ConfigRoute {
                     acidTypes: sys.board.valueMaps.acidTypes.toArray(),
                     remServers: await sys.ncp.getREMServers(),
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
+                    siCalcTypes: sys.board.valueMaps.siCalcTypes.toArray(),
                     alarms,
                     warnings,
                     // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
