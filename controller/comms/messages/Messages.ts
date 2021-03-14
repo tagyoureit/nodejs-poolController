@@ -356,7 +356,7 @@ export class Inbound extends Message {
                 if (this.header.length < 6) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    // logger.debug(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
