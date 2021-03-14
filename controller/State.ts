@@ -1117,6 +1117,13 @@ export class HeaterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get commStatus(): number { return this.data.commStatus; }
+    public set commStatus(val: number) {
+        if (this.commStatus !== val) {
+            this.data.commStatus = sys.board.valueMaps.equipmentCommStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
@@ -1211,6 +1218,13 @@ export class CircuitState extends EqState implements ICircuitState {
     }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }
+    public get commStatus(): number { return this.data.commStatus; }
+    public set commStatus(val: number) {
+        if (this.commStatus !== val) {
+            this.data.commStatus = sys.board.valueMaps.equipmentCommStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
@@ -1230,6 +1244,13 @@ export class ValveState extends EqState {
     }
     public get isDiverted(): boolean { return utils.makeBool(this.data.isDiverted); }
     public set isDiverted(val: boolean) { this.setDataVal('isDiverted', val); }
+    public get commStatus(): number { return this.data.commStatus; }
+    public set commStatus(val: number) {
+        if (this.commStatus !== val) {
+            this.data.commStatus = sys.board.valueMaps.equipmentCommStatus.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public getExtended(): any {
         let valve = sys.valves.getItemById(this.id);
         let vstate = this.get(true);

@@ -141,26 +141,29 @@ export class PoolSystem implements IPoolSystem {
         }
     }
     public resetData() {
-        this.circuitGroups.clear(0);
-        this.lightGroups.clear(0);
-        this.circuits.clear(0);
-        this.bodies.clear(0);
-        this.chlorinators.clear(0);
-        this.configVersion.clear();
-        this.covers.clear(0);
-        this.customNames.clear(0);
-        this.equipment.clear();
-        this.features.clear(0);
-        this.data.general = {};
-        this.heaters.clear(0);
-        this.pumps.clear(0);
-        this.remotes.clear(0);
-        this.schedules.clear(0);
-        this.security.clear();
-        this.valves.clear(0);
-        this.chemControllers.clear(0);
-        this.filters.clear(0);
-        if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
+        if (sys.controllerType !== ControllerType.Virtual && sys.controllerType !== ControllerType.Nixie) {
+            // Do not clear this out if it is a virtual controller this causes problems.
+            this.circuitGroups.clear(0);
+            this.lightGroups.clear(0);
+            this.circuits.clear(0);
+            this.bodies.clear(0);
+            this.chlorinators.clear(0);
+            this.configVersion.clear();
+            this.covers.clear(0);
+            this.customNames.clear(0);
+            this.equipment.clear();
+            this.features.clear(0);
+            this.data.general = {};
+            this.heaters.clear(0);
+            this.pumps.clear(0);
+            this.remotes.clear(0);
+            this.schedules.clear(0);
+            this.security.clear();
+            this.valves.clear(0);
+            this.chemControllers.clear(0);
+            this.filters.clear(0);
+            if (typeof this.data.eggTimers !== 'undefined') this.eggTimers.clear();
+        }
     }
     public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
@@ -1021,7 +1024,11 @@ export class Circuit extends EqItem implements ICircuit {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get dontStop(): boolean { return this.data.dontStop; }
     public set dontStop(val: boolean) { this.setDataVal('dontStop', val); }
-    public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false};
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false };
     public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
@@ -1037,6 +1044,13 @@ export class FeatureCollection extends EqItemCollection<Feature> {
     public createItem(data: any): Feature { return new Feature(data); }
 }
 export class Feature extends EqItem implements ICircuit {
+    public initData() {
+        if (typeof this.data.freeze === 'undefined') this.data.freeze = false;
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
+        if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
+        if (typeof this.data.eggTimer === 'undefined') this.data.eggTimer = 720;
+        if (typeof this.data.showInFeatures === 'undefined') this.data.showInFeatures = true;
+    }
     public dataName='featureConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1277,6 +1291,10 @@ export class Valve extends EqItem {
     public set pinId(val: number) { this.setDataVal('pinId', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
 }
 export class HeaterCollection extends EqItemCollection<Heater> {
     constructor(data: any, name?: string) { super(data, name || "heaters"); }
@@ -1318,7 +1336,10 @@ export class Heater extends EqItem {
     public set freeze(val: boolean) { this.setDataVal('freeze', val); }
     public get economyTime(): number { return this.data.economyTime; }
     public set economyTime(val: number) { this.setDataVal('economyTime', val); }
-
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
 }
 export class CoverCollection extends EqItemCollection<Cover> {
     constructor(data: any, name?: string) { super(data, name || "covers"); }

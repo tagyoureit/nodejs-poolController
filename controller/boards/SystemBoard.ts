@@ -212,6 +212,10 @@ export class byteValueMaps {
         [0, { val: 0, name: 'ocp', desc: 'Outdoor Control Panel' }],
         [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }]
     ]);
+    public equipmentCommStatus: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'ready', desc: 'Ready' }],
+        [1, { val: 1, name: 'commerr', desc: 'Communication Error'}]
+    ]);
     public panelModes: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'auto', desc: 'Auto' }],
         [1, { val: 1, name: 'service', desc: 'Service' }],
@@ -222,7 +226,8 @@ export class byteValueMaps {
     public controllerStatus: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'initializing', desc: 'Initializing', percent: 0 }],
         [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
-        [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }]
+        [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }],
+        [3, { val: 255, name: 'Error', desc: 'Error', percent: 0 }]
     ]);
 
     public circuitFunctions: byteValueMap = new byteValueMap([
@@ -1049,7 +1054,7 @@ export class SystemCommands extends BoardCommands {
 export class BodyCommands extends BoardCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
         return new Promise<Body>(function (resolve, reject) {
-            let id = parseInt(obj.id, 10);
+            let id = parseInt(obj.id, 10);1
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
             let body = sys.bodies.getItemById(id, false);
             body.set(obj);
@@ -2038,30 +2043,29 @@ export class CircuitCommands extends BoardCommands {
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);
+        if (id <= 0 || isNaN(id)) {
+            id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+        }
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
         if (!sys.board.equipmentIds.features.isInRange(obj.id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
-        if (typeof obj.id !== 'undefined') {
-            let feature = sys.features.getItemById(obj.id, true);
-            let sfeature = state.features.getItemById(obj.id, true);
-            feature.isActive = true;
-            sfeature.isOn = false;
-            if (obj.nameId) {
-                feature.nameId = sfeature.nameId = obj.nameId;
-                feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
-            }
-            else if (obj.name) feature.name = sfeature.name = obj.name;
-            else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
-            if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
-            else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
-            if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
-            if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
-            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
-            if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
-            feature.dontStop = feature.eggTimer === 1440;
-            return new Promise<Feature>((resolve, reject) => { resolve(feature); });
+        let feature = sys.features.getItemById(obj.id, true);
+        let sfeature = state.features.getItemById(obj.id, true);
+        feature.isActive = true;
+        sfeature.isOn = false;
+        if (obj.nameId) {
+            feature.nameId = sfeature.nameId = obj.nameId;
+            feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
         }
-        else
-            Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
+        else if (obj.name) feature.name = sfeature.name = obj.name;
+        else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
+        if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
+        else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
+        if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
+        if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
+        if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+        if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
+        feature.dontStop = feature.eggTimer === 1440;
+        return new Promise<Feature>((resolve, reject) => { resolve(feature); });
     }
     public async deleteFeatureAsync(obj: any): Promise<Feature> {
         let id = parseInt(obj.id, 10);

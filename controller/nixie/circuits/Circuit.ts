@@ -33,13 +33,23 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
             for (let i = 0; i < circuits.length; i++) {
                 let circuit = circuits.getItemByIndex(i);
                 if (circuit.master === 1) {
-                    logger.info(`Initializing circuit ${circuit.name}`);
+                    logger.info(`Initializing Nixie circuit ${circuit.name}`);
                     let ncircuit = new NixieCircuit(this.controlPanel, circuit);
                     this.push(ncircuit);
                 }
             }
         }
         catch (err) { logger.error(`Nixie Circuit initAsync: ${err.message}`); return Promise.reject(err); }
+    }
+    public async initCircuitAsync(circuit: Circuit): Promise<NixieCircuit> {
+        try {
+            let c: NixieCircuit = this.find(elem => elem.id === circuit.id) as NixieCircuit;
+            if (typeof c === 'undefined') {
+                c = new NixieCircuit(this.controlPanel, circuit);
+                this.push(c);
+            }
+            return c;
+        } catch (err) { logger.error(`initCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
 }
 export class NixieCircuit extends NixieEquipment {
@@ -73,10 +83,20 @@ export class NixieCircuit extends NixieEquipment {
             return dev;
         } catch (err) { logger.error(`Nixie Circuit checkHardwareStatusAsync: ${err.message}`); return { hasFault: true } }
     }
-    public async validateSetupAsync(circuit: Circuit, temp: CircuitState) {
+    public async validateSetupAsync(circuit: Circuit, cstate: CircuitState) {
         try {
+            if (typeof circuit.connectionId !== 'undefined' && circuit.connectionId !== ''
+                && typeof circuit.deviceBinding !== 'undefined' && circuit.deviceBinding !== '') {
+                try {
+                    let stat = await this.checkHardwareStatusAsync(circuit.connectionId, circuit.deviceBinding);
+                    // If we have a status check the return.
+                    cstate.commStatus = stat.hasFault ? 1 : 0;
+                } catch (err) { cstate.commStatus = 1; }
+            }
+            else
+                cstate.commStatus = 0;
             // The validation will be different if the circuit is on or not.  So lets get that information.
-        } catch (err) { logger.error(`Nixie Error checking Circuit Hardware ${this.circuit.name}: ${err.message}`); return Promise.reject(err); }
+        } catch (err) { logger.error(`Nixie Error checking Circuit Hardware ${this.circuit.name}: ${err.message}`); cstate.commStatus = 1; return Promise.reject(err); }
     }
     public async closeAsync() {
         try {

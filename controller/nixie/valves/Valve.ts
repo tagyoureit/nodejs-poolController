@@ -11,7 +11,7 @@ import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
     public async setValveAsync(valve: Valve, data: any) {
-        // By the time we get here we know that we are in control and this is a REMChem.
+        // By the time we get here we know that we are in control and this is a Nixie valve.
         try {
             let c: NixieValve = this.find(elem => elem.id === valve.id) as NixieValve;
             if (typeof c === 'undefined') {
@@ -39,8 +39,19 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
                 }
             }
         }
-        catch (err) { logger.error(`Nixie Valve initAsync: ${err.message}`); return Promise.reject(err); }
+        catch (err) { logger.error(`Nixie Valve initAsync Error: ${err.message}`); return Promise.reject(err); }
     }
+    public async initValveAsync(valve: Valve): Promise<NixieValve> {
+        try {
+            let c: NixieValve = this.find(elem => elem.id === valve.id) as NixieValve;
+            if (typeof c === 'undefined') {
+                c = new NixieValve(this.controlPanel, valve);
+                this.push(c);
+            }
+            return c;
+        } catch (err) { logger.error(`initValveAsync Error: ${err.message}`); return Promise.reject(err); }
+    }
+
 }
 export class NixieValve extends NixieEquipment {
     public pollingInterval: number = 10000;
@@ -73,10 +84,20 @@ export class NixieValve extends NixieEquipment {
             return dev;
         } catch (err) { logger.error(`Nixie Valve checkHardwareStatusAsync: ${err.message}`); return { hasFault: true } }
     }
-    public async validateSetupAsync(valve: Valve, temp: ValveState) {
+    public async validateSetupAsync(valve: Valve, vstate: ValveState) {
         try {
+            if (typeof valve.connectionId !== 'undefined' && valve.connectionId !== ''
+                && typeof valve.deviceBinding !== 'undefined' && valve.deviceBinding !== '') {
+                try {
+                    let stat = await this.checkHardwareStatusAsync(valve.connectionId, valve.deviceBinding);
+                    // If we have a status check the return.
+                    vstate.commStatus = stat.hasFault ? 1 : 0;
+                } catch (err) { vstate.commStatus = 1; }
+            }
+            else
+                vstate.commStatus = 0;
             // The validation will be different if the valve is on or not.  So lets get that information.
-        } catch (err) { logger.error(`Nixie Error checking Valve Hardware ${this.valve.name}: ${err.message}`); return Promise.reject(err); }
+        } catch (err) { logger.error(`Nixie Error checking Valve Hardware ${this.valve.name}: ${err.message}`); vstate.commStatus = 1; return Promise.reject(err); }
     }
     public async closeAsync() {
         try {

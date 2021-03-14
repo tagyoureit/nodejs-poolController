@@ -10,6 +10,7 @@ import { sys, PoolSystem } from "../../controller/Equipment";
 import { NixieCircuitCollection } from './circuits/Circuit';
 import { NixieBodyCollection } from './bodies/Body';
 import { NixieValveCollection } from './valves/Valve';
+import { NixieHeaterCollection } from './heaters/Heater';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -53,6 +54,7 @@ export class NixieControlPanel implements INixieControlPanel {
     circuits: NixieCircuitCollection = new NixieCircuitCollection(this);
     bodies: NixieBodyCollection = new NixieBodyCollection(this);
     valves: NixieValveCollection = new NixieValveCollection(this);
+    heaters: NixieHeaterCollection = new NixieHeaterCollection(this);
     public async initAsync(equipment: PoolSystem) {
         try {
             // We need to tell Nixie what her place is.  If there is an existing OCP she needs to be a partner.  However, if
@@ -63,6 +65,7 @@ export class NixieControlPanel implements INixieControlPanel {
             await this.bodies.initAsync(equipment.bodies);
             await this.circuits.initAsync(equipment.circuits);
             await this.valves.initAsync(equipment.valves);
+            await this.heaters.initAsync(equipment.heaters);
             await this.chemControllers.initAsync(equipment.chemControllers);
             logger.info(`Nixie Controller Initialized`)
         }
