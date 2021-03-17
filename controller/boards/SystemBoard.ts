@@ -2781,6 +2781,7 @@ export class ValveCommands extends BoardCommands {
             if (id < 50) reject(new InvalidEquipmentDataError('Virtual valves must be defined with an id >= 50.', obj.id, 'Valve'));
             let valve = sys.valves.getItemById(id, true);
             obj.id = id;
+            valve.isActive = true;
             for (var s in obj) valve[s] = obj[s];
             sys.board.valves.syncValveStates();
             resolve(valve);
