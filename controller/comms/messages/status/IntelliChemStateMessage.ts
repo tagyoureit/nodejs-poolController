@@ -27,7 +27,6 @@ export class IntelliChemStateMessage {
 
             // ---------- IntelliChem set get ----------- //
             case 18: // IntelliChem is sending us it's status.
-
                 IntelliChemStateMessage.processState(msg);
                 break;
             case 210: // OCP is asking IntelliChem controller for it's current status info.
@@ -72,12 +71,131 @@ export class IntelliChemStateMessage {
         state.emitEquipmentChanges();
     }
     private static processControllerChange(msg: Inbound) {
-        // this inb
+        // We don't do anything with this inbound action 147 message.
         logger.info(`Incoming message from IntelliChem ${msg.toShortPacket()}`);
         msg.isProcessed = true;
     }
     private static processState(msg: Inbound) {
         if (msg.source < 144 || msg.source > 158) return;
+        // This is an action 18 that comes from IntelliChem.  There is also a 147 that comes from an OCP but this is the raw data.
+        //[165, 0, 16, 144, 18, 41][2,228,3,2,2,228,2,188,0,0,0,16,0,0,0,0,0,35,0,0,6,6,3,0,250,0,44,0,160,20,0,81,8,0,149,0,80,1,0,0,0]
+        //      Bytes - Descrption
+        //      0-1 : pH 2x256 + 228 / 100 = 7.4
+        //      2-3 : ORP 3x256 + 2 = 770
+        //      4-5 : pH Setpoint : 2x256 + 228 / 100 = 7.4
+        //      6-7 : ORP Setpoint : 2x256 + 188 = 700
+        //      8 : Unknown = 0
+        //      9 : Unknown = 0
+        //      10 : Unknown = 0
+        //      11-12 : pH Dose time
+        //      13 : Unknown
+        //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started.
+        //      16-17 : pH Dose volume (unknown units) = 35
+        //      18-19 : ORP Dose volume (unknown units) = 0
+        //      20 : pH tank level 1-7 = 6
+        //      21 : ORP tank level 1-7 = 6
+        //      22 : LSI = 3 & 0x80 === 0x80 ? 256 - 3 / -100 : 3/100 = .03
+        //      23-24 : Calcium Hardness = 0x256+250 = 250
+        //      25 : Unknown = 0
+        //      26 : CYA = 44
+        //      27-28 : Alkalinity = 0x256+160
+        //      29 : Salt level = 20 
+        //      30 : Unknown
+        //      31 : Temperature = 81
+        //      32 : Alarms = 8 = (no alarm)
+        //      33 : pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
+        //      34 : Dosing Status = 149 = (pH Monitoring, ORP Mixing)
+        //      35 : Delays = 0
+        //      36-37 : Firmware = 80,1 = 1.080
+        //      38 : Water Chemistry Warning
+        //      39 : Unknown
+        //      40 : Unknown
+        let address = msg.source;
+        // The address is king here.  The id is not.
+        let controller = sys.chemControllers.getItemByAddress(address, true);
+        let scontroller = state.chemControllers.getItemById(controller.id, true);
+        scontroller.isActive = controller.isActive = true;
+        scontroller.status = 0;
+        scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
+        controller.name = controller.name || `IntelliChem ${controller.address - 143}`; // default to true id if no name is set
+        scontroller.lastComm = new Date().getTime();
+        scontroller.status = scontroller.alarms.comms = 0; 
+        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
+        controller.ph.tank.units = controller.orp.tank.units = '';
+        
+        scontroller.address = controller.address;
+        scontroller.ph.level = scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
+        scontroller.orp.level = scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
+        controller.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
+        controller.orp.setpoint = msg.extractPayloadIntBE(6);
+        // Missing information on the related bytes.
+        // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
+
+        //      11-12 : pH Dose time
+        scontroller.ph.doseTime = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12);
+        //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started.
+        scontroller.orp.doseTime = (msg.extractPayloadByte(14) * 256) + msg.extractPayloadByte(15);
+        //      16-17 : pH Dose volume (unknown units) = 35
+        scontroller.ph.doseVolume = (msg.extractPayloadByte(16) * 256) + msg.extractPayloadByte(17);
+        //      18-19 : ORP Dose volume (unknown units) = 0
+        scontroller.orp.doseVolume = (msg.extractPayloadByte(18) * 256) + msg.extractPayloadByte(19);
+        //      20 : pH tank level 1-7 = 6
+        scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
+        //      21 : ORP tank level 1-7 = 6
+        scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+        //      22 : LSI = 3 & 0x80 === 0x80 ? 256 - 3 / -100 : 3/100 = .03
+        let lsi = msg.extractPayloadByte(22);
+        scontroller.saturationIndex = (lsi & 0x80) ? 256 - lsi / -100 : lsi / 100;
+        //      23-24 : Calcium Hardness = 0x256+250 = 250
+        controller.calciumHardness = (msg.extractPayloadByte(23) * 256) + msg.extractPayloadByte(24);
+        //      26 : CYA = 44
+        controller.cyanuricAcid = msg.extractPayloadByte(26);
+        //      27-28 : Alkalinity
+        controller.alkalinity = (msg.extractPayloadByte(27) * 256) + msg.extractPayloadByte(28);
+        //      29 : Salt level = 20 
+        if (sys.chlorinators.length > 0) {
+            let chlor = state.chlorinators.find(elem => elem.id === 1);
+            scontroller.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+        }
+        else scontroller.orp.probe.saltLevel = 0;
+        //      31 : Temperature = 81
+        scontroller.ph.probe.temperature = msg.extractPayloadByte(31);
+        scontroller.ph.probe.tempUnits = state.temps.units;
+        //      32 : Alarms = 8 = (no alarm)
+        const alarms = scontroller.alarms;
+        alarms.flow = msg.extractPayloadByte(32) & 0x01;
+        alarms.pH = msg.extractPayloadByte(32) & 0x06;
+        alarms.orp = msg.extractPayloadByte(32) & 0x18;
+        alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
+        alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
+        alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
+        //      33 : Warnings -- pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
+        const warnings = scontroller.warnings;
+        warnings.pHLockout = msg.extractPayloadByte(33) & 0x01;
+        warnings.pHDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
+        warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
+        warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
+        warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
+        //      34 : Dosing Status = 149 = (pH Monitoring, ORP Mixing)
+        scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift bit 5 & 6
+        scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift bit 7 & 8
+        //      35 : Delays = 0
+        scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
+        scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
+        controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
+        controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
+        controller.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
+        //      36-37 : Firmware = 80,1 = 1.080
+        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
+        //      38 : Water Chemistry Warning
+        scontroller.warnings.waterChemistry = msg.extractPayloadByte(38);
+        scontroller.lastComm = new Date().getTime();
+
+        // manually emit extended values
+        webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
+        scontroller.hasChanged = false; // try to avoid duplicate emits
+        msg.isProcessed = true;
+
         /*
         //Status 0x12 (18) - Intellichem Status (length 41)
         example:
@@ -128,93 +246,69 @@ export class IntelliChemStateMessage {
         20 Nothing
         22 Dosing Chlorine(?)
         */
-        let address = msg.source;
-        // The address is king here.  The id is not.
-        let controller = sys.chemControllers.getItemByAddress(address, true);
-        let scontroller = state.chemControllers.getItemById(controller.id, true);
-        scontroller.isActive = controller.isActive = true;
-        scontroller.status = 0;
-        scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
-        controller.name = controller.name || `Chem Controller ${controller.address - 143}`; // default to true id if no name is set
-        scontroller.lastComm = new Date().getTime();
-        scontroller.status = scontroller.alarms.comms = 0; 
-        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
-        controller.ph.tank.units = controller.orp.tank.units = '';
-        
-        scontroller.address = controller.address;
-        scontroller.ph.level = scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
-        scontroller.orp.level = scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
-        controller.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
-        controller.orp.setpoint = msg.extractPayloadIntBE(6);
 
-        // These are a guess as the byte mapping is not yet complete.
-        scontroller.ph.dosingTimeRemaining = (msg.extractPayloadByte(9) * 60) + msg.extractPayloadByte(11);
-        scontroller.orp.dosingTimeRemaining = (msg.extractPayloadByte(13) * 60) + msg.extractPayloadByte(15);
 
-        // Missing information on the related bytes.
-        // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
-        // controller.waterVolume = msg.extractPayloadByte(15) * 1000;
-        // Bytes 16-19
-        scontroller.ph.dosingVolumeRemaining = msg.extractPayloadByte(17); // Previous pH Dose volume
-        scontroller.orp.dosingVolumeRemaining = msg.extractPayloadByte(19); // Previous ORP Dose volume
-        scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
-        scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
-        let SIRaw = msg.extractPayloadByte(22);
-        if ((SIRaw & 0x80) === 0x80) {
-            // negative SI
-            scontroller.saturationIndex = (256 - SIRaw) / -100;
-        }
-        else {
-            scontroller.saturationIndex = msg.extractPayloadByte(22) / 100;
-        }
-        controller.calciumHardness = msg.extractPayloadIntBE(23);
+        //// Missing information on the related bytes.
+        //// Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
+        //// controller.waterVolume = msg.extractPayloadByte(15) * 1000;
+        //// Bytes 16-19
+        //scontroller.ph.dosingVolumeRemaining = msg.extractPayloadByte(17); // Previous pH Dose volume
+        //scontroller.orp.dosingVolumeRemaining = msg.extractPayloadByte(19); // Previous ORP Dose volume
+        //scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
+        //scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+        //let SIRaw = msg.extractPayloadByte(22);
+        //if ((SIRaw & 0x80) === 0x80) {
+        //    // negative SI
+        //    scontroller.saturationIndex = (256 - SIRaw) / -100;
+        //}
+        //else {
+        //    scontroller.saturationIndex = msg.extractPayloadByte(22) / 100;
+        //}
+        //controller.calciumHardness = msg.extractPayloadIntBE(23);
 
-        // scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
-        controller.cyanuricAcid = msg.extractPayloadByte(26);
-        controller.alkalinity = msg.extractPayloadIntBE(27);
+        //// scontroller.status2 = msg.extractPayloadByte(25); // remove/unsure?
+        //controller.cyanuricAcid = msg.extractPayloadByte(26);
+        //controller.alkalinity = msg.extractPayloadIntBE(27);
 
-        // scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
-        scontroller.ph.probe.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
-        scontroller.ph.probe.temperature = msg.extractPayloadByte(31);
+        //// scontroller.waterFlow = msg.extractPayloadByte(30); // This is probably the temp units.
+        //scontroller.ph.probe.tempUnits = 0;//msg.extractPayloadByte(30);  See Above.  This is probably the units.
+        //scontroller.ph.probe.temperature = msg.extractPayloadByte(31);
 
-        const alarms = scontroller.alarms;
-        alarms.flow = msg.extractPayloadByte(32) & 0x01;
-        alarms.pH = msg.extractPayloadByte(32) & 0x06;
-        alarms.orp = msg.extractPayloadByte(32) & 0x18;
-        alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
-        alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
-        alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
-        msg.extractPayloadByte(33);
-        // scontroller.status1 = msg.extractPayloadByte(34); // remove/unsure?
-        scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift
-        scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift
-        scontroller.ph.flowDelay = scontroller.orp.flowDelay = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
-        scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
-        scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
-        controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
-        controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
-        controller.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
-        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
+        //msg.extractPayloadByte(33);
 
-        const warnings = scontroller.warnings;
-        warnings.waterChemistry = msg.extractPayloadByte(38);
-        warnings.pHLockout = msg.extractPayloadByte(33) & 0x01;
-        warnings.pHDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
-        warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
-        warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
-        warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
+        ////   [0, { name: 'dosing', desc: 'Dosing' }],
+        ////   [1, { name: 'monitoring', desc: 'Monitoring' }],
+        ////   [2, { name: 'mixing', desc: 'Mixing' }]
 
-        // RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
-        // RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
-        if (sys.chlorinators.length > 0) {
-            let chlor = state.chlorinators.find(elem => elem.id === 1);
-            scontroller.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
-        }
-        else scontroller.orp.probe.saltLevel = 0;
+        //scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift bit 5 & 6
+        //scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift bit 7 & 8
+        //scontroller.ph.flowDelay = scontroller.orp.flowDelay = (msg.extractPayloadByte(35) & 0x02) === 1 ? true : false;
+        //scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
+        //scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
+        //controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
+        //controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
+        //controller.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
+        //scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
 
-        // manually emit extended values
-        webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
-        scontroller.hasChanged = false; // try to avoid duplicate emits
-        msg.isProcessed = true;
+        //const warnings = scontroller.warnings;
+        //warnings.waterChemistry = msg.extractPayloadByte(38);
+        //warnings.pHLockout = msg.extractPayloadByte(33) & 0x01;
+        //warnings.pHDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
+        //warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
+        //warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
+        //warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
+
+        //// RKS: This should really match against the body for the chlorinator when *Chem thinks it has been provided TDS.
+        //// RG: Byte 35, bit 4 indicates IntelliChlor is used.  Until we know more, this logic suffices.
+        //if (sys.chlorinators.length > 0) {
+        //    let chlor = state.chlorinators.find(elem => elem.id === 1);
+        //    scontroller.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+        //}
+        //else scontroller.orp.probe.saltLevel = 0;
+
+        //// manually emit extended values
+        //webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
+        //scontroller.hasChanged = false; // try to avoid duplicate emits
+        //msg.isProcessed = true;
     }
 }

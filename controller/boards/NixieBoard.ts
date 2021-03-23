@@ -290,6 +290,15 @@ export class NixieBoard extends SystemBoard {
 
         } catch (err) { logger.error(`Error verifying setup`); }
     }
+    /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
+    /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
+    /// equipment polling functions.
+    public async processStatusAsync() {
+        try {
+
+
+        } catch (err) {}
+    }
 }
 export class NixieSystemCommands extends SystemCommands {
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }

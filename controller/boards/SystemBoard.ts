@@ -3388,8 +3388,24 @@ export class ChemControllerCommands extends BoardCommands {
         //})
     }
     protected async setIntelliChemStateAsync(data: any): Promise<ChemControllerState> {
-        // We will land here whenever the chem controller is not attached to an IntelliCenter.  Apparently
-        // *Touch controllers communicate directly with the IntelliChem controller and the OCP has no play in it.
+        // Changing TA to 160 from 120.
+        // Settings:
+        //    CYA: 44
+        //    CH: 250
+        //    ORP Tank: 6
+        //    pH Tank: 6
+        // Changing a value on the IntelliChem
+        //[255, 0, 255][165, 0, 144, 16, 146, 21][2,228,2,188,6,6,0,250,0,44,0,120,20,0,0,0,0,0,0,0,0][5, 78]
+        //      Bytes - Description
+        //      0-1 : pH Setpoint 2x256 + 228 / 100 = 7.4
+        //      2-3 : ORP Setpoint 2x256 + 188 = 700
+        //      4 : pH Tank level
+        //      5 : ORP Tank level
+        //      6-7 : Calcium Hardness = 0x256 + 250 = 250
+        //      8 : Unknown (This is probably the first byte of CYA) 0x256 = 0.
+        //      9 : CYA = 44
+        //      10-12 : TA = 0x256 + 20 = 20
+        //      11 : Unknown 120
         try {
             let chem = sys.chemControllers.find(elem => elem.id === data.id);
             if (typeof chem === 'undefined') return Promise.reject(`A valid IntelliChem controller could not be found at id ${data.id}`);
@@ -3424,7 +3440,8 @@ export class ChemControllerCommands extends BoardCommands {
                     action: 146,
                     payload: [],
                     retries: 1,
-                    response: true,
+                    response: Response.create({ dest: 16, action: 1, payload: [146] }),
+                    //response: true,  This is not correct.  The response is actually an ack a message will never come with this.
                     protocol: Protocol.IntelliChem,
                     onComplete: (err, msg) => {
                         if (err) {
@@ -3455,8 +3472,8 @@ export class ChemControllerCommands extends BoardCommands {
                 out.setPayloadByte(7, Math.round(calciumHardness % 256) || 0);
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
                 out.setPayloadByte(10, Math.floor(alkalinity / 256) || 0);
-                out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
-                // out.setPayloadByte(12, 20);  // fixed value?
+                out.setPayloadByte(11, Math.round(alkalinity % 256) || 0); // RKS: This was incorrect and was using 12 as the lower encoded byte.
+                out.setPayloadByte(12, 20);  // fixed value?
                 conn.queueSendMessage(out);
             })
             return Promise.resolve(schem);
