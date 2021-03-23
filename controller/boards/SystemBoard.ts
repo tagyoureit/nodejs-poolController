@@ -2824,18 +2824,20 @@ export class ValveCommands extends BoardCommands {
 }
 export class ChemControllerCommands extends BoardCommands {
     public async deleteChemControllerAsync(data: any): Promise<ChemController> {
-        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
-        if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
-        let chem = sys.chemControllers.getItemById(id);
-        if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
-            sys.board.virtualChemControllers.stop();
-        let schem = state.chemControllers.getItemById(chem.id);
-        schem.isActive = chem.isActive = false;
-        await ncp.chemControllers.removeById(chem.id);
-        sys.chemControllers.removeItemById(chem.id);
-        state.chemControllers.removeItemById(chem.id);
-        sys.emitEquipmentChange();
-        return Promise.resolve(chem);
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+            if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+            let chem = sys.chemControllers.getItemById(id);
+            if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
+                sys.board.virtualChemControllers.stop();
+            let schem = state.chemControllers.getItemById(id);
+            schem.isActive = chem.isActive = false;
+            await ncp.chemControllers.removeById(id);
+            sys.chemControllers.removeItemById(id);
+            state.chemControllers.removeItemById(id);
+            sys.emitEquipmentChange();
+            return Promise.resolve(chem);
+        } catch (err) { logger.error(`Error deleting chem controller ${err.message}`); }
     }
     public async manualDoseAsync(data: any): Promise<ChemControllerState> {
         try {
@@ -3409,10 +3411,11 @@ export class ChemControllerCommands extends BoardCommands {
         try {
             let chem = sys.chemControllers.find(elem => elem.id === data.id);
             if (typeof chem === 'undefined') return Promise.reject(`A valid IntelliChem controller could not be found at id ${data.id}`);
+            chem = sys.chemControllers.getItemById(chem.id, true); // Make sure we persist it.
             let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
             if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
-            let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-            let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;

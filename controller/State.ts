@@ -1425,6 +1425,7 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
 
 export class ChemControllerState extends EqState {
     public initData() {
+        if (typeof this.data.saturationIndex === 'undefined') this.data.saturationIndex = 0;
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
         if (typeof this.data.ph === 'undefined') this.data.ph = {};
@@ -1574,6 +1575,7 @@ export class ChemControllerState extends EqState {
 }
 export class ChemicalState extends ChildEqState {
     public initData() {
+        if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
         if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
         if (typeof this.data.delayTimeRemaining === 'undefined') this.data.delayTimeRemaining = 0;

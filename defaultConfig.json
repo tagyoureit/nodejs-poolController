@@ -1,6 +1,7 @@
 ﻿{
   "controller": {
     "comms": {
+      "enabled":  true,
       "rs485Port": "/dev/ttyUSB0",
       "mockPort": false,
       "netConnect": false,

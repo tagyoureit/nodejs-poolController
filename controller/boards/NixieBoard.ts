@@ -185,7 +185,7 @@ export class NixieBoard extends SystemBoard {
             //[0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 2, shared: false, dual: false }],
             //[1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 4, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             //[2, { name: 'nxpd', part: 'NXPD', desc: 'Nixe Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
-            //[255, { name: 'nxu', part: 'Unspecified', desc: 'Unspecified Nixie Controller', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
+            //[255, { name: 'nxu', part: 'Unspecified', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
             let type = typeof mod.type !== 'undefined' ? this.valueMaps.expansionBoards.get(mod.type) : this.valueMaps.expansionBoards.get(255);
             sys.equipment.shared = type.shared;
             sys.equipment.dual = type.dual;

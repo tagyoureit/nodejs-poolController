@@ -80,34 +80,34 @@ export class IntelliChemStateMessage {
         // This is an action 18 that comes from IntelliChem.  There is also a 147 that comes from an OCP but this is the raw data.
         //[165, 0, 16, 144, 18, 41][2,228,3,2,2,228,2,188,0,0,0,16,0,0,0,0,0,35,0,0,6,6,3,0,250,0,44,0,160,20,0,81,8,0,149,0,80,1,0,0,0]
         //      Bytes - Descrption
-        //      0-1 : pH 2x256 + 228 / 100 = 7.4
-        //      2-3 : ORP 3x256 + 2 = 770
-        //      4-5 : pH Setpoint : 2x256 + 228 / 100 = 7.4
-        //      6-7 : ORP Setpoint : 2x256 + 188 = 700
+        //      0-1 : pH byte(0) x 256 + byte(1) / 100
+        //      2-3 : ORP byte(2) x 256 + byte(3)
+        //      4-5 : pH Setpoint : byte(4) x 256 + byte(5) / 100
+        //      6-7 : ORP Setpoint : byte(6) x 256 + byte(7)
         //      8 : Unknown = 0
         //      9 : Unknown = 0
         //      10 : Unknown = 0
-        //      11-12 : pH Dose time
+        //      11-12 : pH Dose time seconds. The number of seconds since the dose started. byte(11) x 256 + byte(12)
         //      13 : Unknown
-        //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started.
-        //      16-17 : pH Dose volume (unknown units) = 35
-        //      18-19 : ORP Dose volume (unknown units) = 0
-        //      20 : pH tank level 1-7 = 6
-        //      21 : ORP tank level 1-7 = 6
-        //      22 : LSI = 3 & 0x80 === 0x80 ? 256 - 3 / -100 : 3/100 = .03
-        //      23-24 : Calcium Hardness = 0x256+250 = 250
-        //      25 : Unknown = 0
-        //      26 : CYA = 44
-        //      27-28 : Alkalinity = 0x256+160
-        //      29 : Salt level = 20 
+        //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started. byte(14) x 256 + byte(15)
+        //      16-17 : pH Dose volume (unknown units) - These appear to be mL.
+        //      18-19 : ORP Dose volume (unknown units) - These appear to be mL
+        //      20 : pH tank level 1-7
+        //      21 : ORP tank level 1-7
+        //      22 : LSI. (byte(22) & 0x80) === 0x80 ? (256 - byte(22) / -100 : byte(22)/100
+        //      23-24 : Calcium Hardness = byte(23) x 256 + byte(24) = 250
+        //      25 : Unknown = 0 (probably reserved CYA byte so the controller is always dealing with integers)
+        //      26 : CYA Max value = 210.
+        //      27-28 : Alkalinity = byte(27) x 256 + byte(28)
+        //      29 : Salt level = byte(29) x 50
         //      30 : Unknown
-        //      31 : Temperature = 81
-        //      32 : Alarms = 8 = (no alarm)
-        //      33 : pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
-        //      34 : Dosing Status = 149 = (pH Monitoring, ORP Mixing)
-        //      35 : Delays = 0
+        //      31 : Temperature
+        //      32 : Alarms
+        //      33 : Warnings pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
+        //      34 : Dosing Status (pH Monitoring, ORP Mixing)
+        //      35 : Delays
         //      36-37 : Firmware = 80,1 = 1.080
-        //      38 : Water Chemistry Warning
+        //      38 : Water Chemistry Warning (Corrosion...)
         //      39 : Unknown
         //      40 : Unknown
         let address = msg.source;
@@ -143,9 +143,9 @@ export class IntelliChemStateMessage {
         scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
         //      21 : ORP tank level 1-7 = 6
         scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
-        //      22 : LSI = 3 & 0x80 === 0x80 ? 256 - 3 / -100 : 3/100 = .03
+        //      22 : LSI = 3 & 0x80 === 0x80 ? (256 - 3) / -100 : 3/100 = .03
         let lsi = msg.extractPayloadByte(22);
-        scontroller.saturationIndex = (lsi & 0x80) ? 256 - lsi / -100 : lsi / 100;
+        scontroller.saturationIndex = (lsi & 0x80) === 0x80 ? (256 - lsi) / -100 : lsi / 100;
         //      23-24 : Calcium Hardness = 0x256+250 = 250
         controller.calciumHardness = (msg.extractPayloadByte(23) * 256) + msg.extractPayloadByte(24);
         //      26 : CYA = 44

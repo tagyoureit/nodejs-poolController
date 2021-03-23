@@ -41,6 +41,7 @@ export class Connection {
     }
     public isRTS: boolean=true;
     public emitter: EventEmitter;
+    public get enabled(): boolean { return typeof this._cfg !== 'undefined' && this._cfg.enabled; }
     public async openAsync(): Promise<boolean> {
         if (typeof (this.buffer) === 'undefined') {
             this.buffer = new SendRecieveBuffer();
@@ -149,87 +150,6 @@ export class Connection {
             });
         }
     }
-    //public open(timeOut?: string) {
-    //    if (conn._cfg.netConnect && !conn._cfg.mockPort) {
-    //        if (typeof conn._port !== 'undefined' !&& conn._port.destroyed) conn._port.destroy();
-    //        let nc = conn._port = new net.Socket();
-    //        nc.connect(conn._cfg.netPort, conn._cfg.netHost, function () {
-    //            if (timeOut === 'retry_timeout' || timeOut === 'timeout')
-    //                logger.warn('Net connect (socat) trying to recover from lost connection.');
-    //        });
-    //        nc.on('data', function (data) {
-    //            conn.isOpen = true;
-    //            if (timeOut === 'retry_timeout' || timeOut === 'timeout') {
-    //                logger.info(`Net connect (socat) connected to: ${conn._cfg.netHost}:${conn._cfg.netPort}`);
-    //                timeOut = undefined;
-    //            }
-    //            if (data.length > 0 && !conn.isPaused) conn.emitter.emit('packetread', data);
-    //            conn.resetConnTimer('timeout');
-    //        });
-    //    }
-    //    else {
-    //        var sp: SerialPort = null;
-    //        if (conn._cfg.mockPort) {
-    //            this.mockPort = true;
-    //            SerialPort.Binding = MockBinding;
-    //            let portPath = 'FAKE_PORT';
-    //            MockBinding.createPort(portPath, { echo: false, record: true });
-    //            sp = new SerialPort(portPath, { autoOpen: false });
-    //        }
-    //        else {
-    //            this.mockPort = false;
-    //            sp = new SerialPort(conn._cfg.rs485Port, conn._cfg.portSettings);
-    //        }
-
-    //        conn._port = sp;
-    //        sp.open(function(err) {
-    //            if (err) {
-    //                conn.resetConnTimer();
-    //                conn.isOpen = false;
-    //                logger.error(`Error opening port: ${err.message}. ${conn._cfg.inactivityRetry > 0 ? `Retry in ${conn._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${conn._cfg.inactivityRetry}`}`);
-    //            }
-    //            else
-    //                logger.info(`Serial port: ${ this.path } request to open succeeded without error`);
-    //        });
-    //        sp.on('open', function() {
-    //            if (timeOut === 'retry_timeout' || timeOut === 'timeout')
-    //                logger.error('Serial port %s recovering from lost connection', conn._cfg.rs485Port);
-    //            else
-    //                logger.info(`Serial port: ${ this.path } opened`);
-    //            conn.isOpen = true;
-    //        });
-    //        // RKS: 06-16-20 -- Unsure why we are using a stream event here.  The data
-    //        // is being sent via the data event and I can find no reference to the readable event.
-    //        sp.on('data', function (data) {
-    //            if (!this.mockPort) {
-    //                if (!conn.isPaused) conn.emitter.emit('packetread', data);
-    //            }
-    //            conn.resetConnTimer();
-    //        });
-    //        //sp.on('readable', function () {
-    //        //    if (!this.mockPort) {
-    //        //        // If we are paused just read the port and do nothing with it.
-    //        //        if (conn.isPaused)
-    //        //            sp.read();
-    //        //        else
-    //        //            conn.emitter.emit('packetread', sp.read());
-    //        //        conn.resetConnTimer();
-    //        //    }
-    //        //});
-
-    //    }
-    //    if (typeof (conn.buffer) === 'undefined') {
-    //        conn.buffer = new SendRecieveBuffer();
-    //        conn.emitter.on('packetread', function(pkt) { conn.buffer.pushIn(pkt); });
-    //        conn.emitter.on('messagewrite', function(msg) { conn.buffer.pushOut(msg); });
-    //    }
-    //    conn.resetConnTimer('retry_timeout');
-    //    conn._port.on('error', function(err) {
-    //        logger.error(`Error opening port: ${err.message}. ${conn._cfg.inactivityRetry > 0 ? `Retry in ${conn._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${conn._cfg.inactivityRetry}`}`);
-    //        conn.resetConnTimer();
-    //        conn.isOpen = false;
-    //    });
-    //}
     public closeAsync() {
         try {
             if (conn.connTimer) clearTimeout(conn.connTimer);
@@ -275,7 +195,7 @@ export class Connection {
             netPort: 9801,
             inactivityRetry: 10
         });
-        conn.openAsync();
+        if (conn._cfg.enabled) conn.openAsync();
         config.emitter.on('reloaded', () => {
             console.log('Config reloaded');
             this.reloadConfig(config.getSection('controller.comms', {
@@ -302,7 +222,7 @@ export class Connection {
         if (JSON.stringify(c) !== JSON.stringify(this._cfg)) {
             this.closeAsync();
             this._cfg = c;
-            this.openAsync();
+            if(this._cfg.enabled) this.openAsync();
         }
     }
     public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }

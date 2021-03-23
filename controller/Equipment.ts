@@ -115,6 +115,7 @@ export class PoolSystem implements IPoolSystem {
         }
         return cfg;
     }
+    
     public resetSystem() {
         conn.pause();
         this.resetData();
@@ -143,6 +144,7 @@ export class PoolSystem implements IPoolSystem {
     public resetData() {
         if (sys.controllerType !== ControllerType.Virtual && sys.controllerType !== ControllerType.Nixie) {
             // Do not clear this out if it is a virtual controller this causes problems.
+            this.equipment.reset();
             this.circuitGroups.clear(0);
             this.lightGroups.clear(0);
             this.circuits.clear(0);
@@ -759,6 +761,9 @@ export class Equipment extends EqItem {
     public get controllerFirmware(): string { return this.data.softwareVersion; }
     public set bootloaderVersion(val: string) { this.setDataVal('bootloaderVersion', val); }
     public get bootloaderVersion(): string { return this.data.bootloaderVersion; }
+    public reset() {
+
+    }
     setEquipmentIds() {
         this.data.equipmentIds = {
             circuits: { start: sys.board.equipmentIds.circuits.start, end: sys.board.equipmentIds.circuits.end },
