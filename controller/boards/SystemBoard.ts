@@ -3464,13 +3464,14 @@ export class ChemControllerCommands extends BoardCommands {
                         }
                     }
                 });
+                //[165, 0, 144, 16, 146, 21][2, 238, 2, 198][2, 2, 0, 249, 0, 43, 0, 150, 20, 0, 0, 0, 0, 0, 0, 0, 0][5, 118]
                 out.insertPayloadBytes(0, 0, 21);
                 out.setPayloadByte(0, Math.floor((pHSetpoint * 100) / 256) || 0);
                 out.setPayloadByte(1, Math.round((pHSetpoint * 100) % 256) || 0);
                 out.setPayloadByte(2, Math.floor(orpSetpoint / 256) || 0);
                 out.setPayloadByte(3, Math.round(orpSetpoint % 256) || 0);
-                out.setPayloadByte(4, acidTankLevel);
-                out.setPayloadByte(5, orpTankLevel);
+                out.setPayloadByte(4, acidTankLevel + 1);
+                out.setPayloadByte(5, orpTankLevel + 1);
                 out.setPayloadByte(6, Math.floor(calciumHardness / 256) || 0);
                 out.setPayloadByte(7, Math.round(calciumHardness % 256) || 0);
                 out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
