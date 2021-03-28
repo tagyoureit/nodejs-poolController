@@ -850,9 +850,13 @@ export class EquipmentStateMessage {
                     circ.isActive = false;
                     if (circ instanceof Circuit) {
                         sys.circuits.removeItemById(circuitId);
+                        // don't forget to remove from state #257
+                        state.circuits.removeItemById(circuitId); 
                     }
                     else if (circ instanceof Feature) {
                         sys.features.removeItemById(circuitId);
+                        // don't forget to remove from state #257
+                        state.features.removeItemById(circuitId);
                     }
                 }
                 if (circ.isActive) {
