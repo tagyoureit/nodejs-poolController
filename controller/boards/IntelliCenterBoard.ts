@@ -601,6 +601,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             if (this._failed) setTimeout(function () { sys.checkConfiguration(); }, 100);
             logger.info(`Configuration Complete`);
             sys.board.heaters.updateHeaterServices();
+            state.cleanupState();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();

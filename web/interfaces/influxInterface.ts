@@ -101,7 +101,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.tag(sname, svalue);
                             }
                             else {
-                                console.log(`failed on ${evt}:${_tag.name}/${_tag.value} ${JSON.stringify(data[0])}`);
+                                logger.error(`InfluxDB tag binding failure on ${evt}:${_tag.name}/${_tag.value} --> ${svalue || 'undefined'}  ${JSON.stringify(data[0])}`);
                             }
                         })
                         _point.fields.forEach(_field => {
@@ -135,8 +135,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                         break;
                                 }
                             else {
-                                console.log(`failed on ${_field.name}/${_field.value}`);
-
+                                logger.error(`InfluxDB point binding failure on ${evt}:${_field.name}/${_field.value} --> ${svalue || 'undefined'}`);
                             }
                         })
                         point.timestamp(new Date());

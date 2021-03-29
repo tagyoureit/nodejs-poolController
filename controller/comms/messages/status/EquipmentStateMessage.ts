@@ -290,6 +290,11 @@ export class EquipmentStateMessage {
             sys.bodies.removeItemById(2);
             state.temps.bodies.removeItemById(2);
         }
+        sys.bodies.removeItemById(3);
+        sys.bodies.removeItemById(4);
+        state.temps.bodies.removeItemById(3);
+        state.temps.bodies.removeItemById(4);
+
         sys.board.heaters.initTempSensors();
         // time defaults
         sys.general.options.clockMode = sys.general.options.clockMode || 12;

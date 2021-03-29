@@ -384,9 +384,7 @@ export class TouchConfigQueue extends ConfigQueue {
             state.status = sys.board.valueMaps.controllerStatus.transform(2, this.percent);
         }
         // Shift to the next config queue item.
-        logger.verbose(
-            `Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`
-        );
+        logger.verbose(`Config Queue Completed... ${this.percent}% (${this.remainingItems} remaining)`);
         while (
             this.queue.length > 0 && this.curr.isComplete
         ) {
@@ -415,6 +413,7 @@ export class TouchConfigQueue extends ConfigQueue {
             // set a timer for 20 mins; if we don't get the config request it again.  This most likely happens if there is no other indoor/outdoor remotes or ScreenLogic.
             // this._configQueueTimer = setTimeout(()=>{sys.board.checkConfiguration();}, 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
+            state.cleanupState();
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();

@@ -23,6 +23,7 @@ export class ChlorinatorStateMessage {
         if (msg.protocol === Protocol.Chlorinator) {
             let chlor;
             let cstate;
+            
             if (msg.dest >= 1 && msg.dest <= 4) {
                 // RKS: The dest for these message are 80+ in raw terms.  The msg object translates these into 1-4 for the installed chlorinators.  This message
                 // is from the OCP to the chlorinator.
@@ -44,6 +45,7 @@ export class ChlorinatorStateMessage {
                 cstate.lastComm = new Date().getTime();
                 if (cstate.status === 128) cstate.status = 0;
             }
+            cstate.body = chlor.body;
             switch (msg.action) {
                 case 0: // request status (0): [16,2,80,0][0][98,16,3]
                     break;

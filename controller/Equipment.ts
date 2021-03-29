@@ -148,14 +148,15 @@ export class PoolSystem implements IPoolSystem {
             this.circuitGroups.clear(0);
             this.lightGroups.clear(0);
             this.circuits.clear(0);
-            this.bodies.clear(0);
+            //this.bodies.clear(0); RKS: We no longer want to clear out the body data.  Each controller is responsible for setting the bodies.  Previously
+            // this used to clear out the bodies which would kill the capacity on the body for *Touch controllers we don't want that.
             this.chlorinators.clear(0);
             this.configVersion.clear();
             this.covers.clear(0);
             this.customNames.clear(0);
             this.equipment.clear();
             this.features.clear(0);
-            this.data.general = {};
+            this.general.clear(0);
             this.heaters.clear(0);
             this.pumps.clear(0);
             this.remotes.clear(0);
@@ -511,7 +512,6 @@ class EqItemCollection<T> implements IEqItemCollection {
         else {
             for (let i = this.data.length - 1; i >= 0; i--) {
                 if (this.data[i].master === master) this.data.splice(i, 1);
-                console.log(this.data.length);
             }
         }
     }
@@ -565,6 +565,10 @@ export class General extends EqItem {
     public get owner(): Owner { return new Owner(this.data, 'owner'); }
     public get options(): Options { return new Options(this.data, 'options'); }
     public get location(): Location { return new Location(this.data, 'location'); }
+    public clear(master: number = -1) {
+        if (master === -1)
+            super.clear();
+    }
 }
 // Custom Names are IntelliTouch Only
 export class CustomNameCollection extends EqItemCollection<CustomName> {
@@ -713,7 +717,6 @@ export class ExpansionPanel extends EqItem {
 export class Equipment extends EqItem {
     public dataName = 'equipmentConfig';
     public initData() {
-        
     }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }

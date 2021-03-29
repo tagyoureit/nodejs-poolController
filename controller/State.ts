@@ -366,7 +366,6 @@ export class State implements IState {
         this.filters.clear();
         this.chemControllers.clear();
     }
-
     public equipment: EquipmentState;
     public temps: TemperatureState;
     public pumps: PumpStateCollection;
@@ -398,6 +397,28 @@ export class State implements IState {
             }
         }
         return state;
+    }
+    public cleanupState() {
+        // Chem Controllers
+        this.chemControllers.cleanupState();
+        // Valves
+        this.valves.cleanupState();
+        // Heaters
+        this.heaters.cleanupState();
+        // Features
+        this.features.cleanupState();
+        // Circuits
+        this.circuits.cleanupState();
+        // CircuitGroups
+        this.circuitGroups.cleanupState();
+        // Light Groups
+        this.lightGroups.cleanupState();
+        // Chlorinators
+        this.chlorinators.cleanupState();
+        // Pumps
+        this.pumps.cleanupState();
+        // Bodies
+        this.temps.cleanupState();
     }
 }
 interface IState {
@@ -666,6 +687,12 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
         return this.createItem(data || { id: this.data.length + 1, address: address });
     }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
+
 }
 export class PumpState extends EqState {
     public dataName: string = 'pump';
@@ -882,6 +909,11 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
         if (iGroup.isActive === false) iGroup = state.lightGroups.getItemById(id, false, { id: id, isActive: false });
         return iGroup;
     }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.circuitGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     public dataName: string = 'circuitGroup';
@@ -928,6 +960,11 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
 }
 export class LightGroupStateCollection extends EqStateCollection<LightGroupState> {
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.lightGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
     public dataName = 'lightGroup';
@@ -992,6 +1029,12 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
         }
         return undefined;
     }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.bodies.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
+
 }
 // RKS: This is an interesting object.  We are doing some gymnastics with it to comply
 // with type safety.
@@ -1096,9 +1139,18 @@ export class TemperatureState extends EqState {
             this.hasChanged = true;
         }
     }
+    public cleanupState() {
+        this.bodies.cleanupState();
+    }
+
 }
 export class HeaterStateCollection extends EqStateCollection<HeaterState> {
     public createItem(data: any): HeaterState { return new HeaterState(data); }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.heaters.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class HeaterState extends EqState {
     public dataName: string = 'heater';
@@ -1129,7 +1181,13 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
     public async setFeatureStateAsync(id: number, val: boolean) { return sys.board.features.setFeatureStateAsync(id, val); }
     public async toggleFeatureStateAsync(id: number) { return sys.board.features.toggleFeatureStateAsync(id); }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.features.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
+
 export class FeatureState extends EqState implements ICircuitState {
     public dataName: string = 'feature';
     public get id(): number { return this.data.id; }
@@ -1189,6 +1247,11 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
             iCircuit = state.circuits.getItemById(id, add);
         return iCircuit;
     }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.circuits.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class CircuitState extends EqState implements ICircuitState {
     public dataName = 'circuit';
@@ -1228,6 +1291,11 @@ export class CircuitState extends EqState implements ICircuitState {
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.valves.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class ValveState extends EqState {
     public dataName: string = 'valve';
@@ -1286,6 +1354,11 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
     public superChlorReference: number = 0;
     public lastDispatchSuperChlor: number = 0;
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.chlorinators.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 export class ChlorinatorState extends EqState {
     public initData() {
@@ -1421,6 +1494,11 @@ export class ChlorinatorState extends EqState {
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
+    public cleanupState() {
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof sys.chemControllers.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+    }
 }
 
 export class ChemControllerState extends EqState {

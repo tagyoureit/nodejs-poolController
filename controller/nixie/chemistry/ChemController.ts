@@ -639,7 +639,7 @@ class NixieChemical extends NixieChildEquipment {
                 this.currentMix.lastChecked = dt;
             }
             // rsg - added isBodyOn check because flowDetected will be true if the spa is on but nixie is set to pool only
-            if (schem.chemController.isBodyOn &&  flowDetected || !this.chemical.flowOnlyMixing) {
+            if ((schem.chemController.isBodyOn && flowDetected) || !this.chemical.flowOnlyMixing) {
                 this.currentMix.timeMixed += Math.round((dt - this.currentMix.lastChecked) / 1000);
                 // Reflect any changes to the configuration.
                 this.currentMix.time = this.chemical.mixingTime;
