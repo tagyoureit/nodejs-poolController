@@ -1781,6 +1781,15 @@ export class ChemicalTankState extends ChildEqState {
 export class ChemControllerStateWarnings extends ChildEqState {
     ///ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }
     public dataName = 'chemControllerWarnings';
+    public initData() {
+        if (typeof this.data.waterChemistry === 'undefined') this.waterChemistry = 0;
+        if (typeof this.data.pHLockout === 'undefined') this.pHLockout = 0;
+        if (typeof this.data.pHDailyLimitReached === 'undefined') this.pHDailyLimitReached = 0;
+        if (typeof this.data.orpDailyLimitReached === 'undefined') this.orpDailyLimitReached = 0;
+        if (typeof this.data.invalidSetup === 'undefined') this.invalidSetup = 0;
+        if (typeof this.data.chlorinatorCommError === 'undefined') this.chlorinatorCommError = 0;
+    }
+
     public get waterChemistry(): number { return typeof this.data.waterChemistry === 'undefined' ? undefined : this.data.waterChemistry.val; }
     public set waterChemistry(val: number) {
         if (this.waterChemistry !== val) {
@@ -1788,7 +1797,6 @@ export class ChemControllerStateWarnings extends ChildEqState {
             this.hasChanged = true;
         }
     }
-
     public get pHLockout(): number { return this.data.pHLockout; }
     public set pHLockout(val: number) {
         if (this.pHLockout !== val) {
@@ -1829,6 +1837,22 @@ export class ChemControllerStateWarnings extends ChildEqState {
 export class ChemControllerStateAlarms extends ChildEqState {
     //ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'alarms'); }
     public dataName = 'chemControllerAlarms';
+    public initData() {
+        if (typeof this.data.flow === 'undefined') this.flow = 0;
+        if (typeof this.data.pH === 'undefined') this.pH = 0;
+        if (typeof this.data.orp === 'undefined') this.orp = 0;
+        if (typeof this.data.pHTank === 'undefined') this.pHTank = 0;
+        if (typeof this.data.orpTank === 'undefined') this.orpTank = 0;
+        if (typeof this.data.probeFault === 'undefined') this.probeFault = 0;
+        if (typeof this.data.pHProbeFault === 'undefined') this.pHProbeFault = 0;
+        if (typeof this.data.orpProbeFault === 'undefined') this.orpProbeFault = 0;
+        if (typeof this.data.pHPumpFault === 'undefined') this.pHPumpFault = 0;
+        if (typeof this.data.orpPumpFault === 'undefined') this.orpPumpFault = 0;
+        if (typeof this.data.chlorFault === 'undefined') this.chlorFault = 0;
+        if (typeof this.data.bodyFault === 'undefined') this.bodyFault = 0;
+        if (typeof this.data.flowSensorFault === 'undefined') this.flowSensorFault = 0;
+        if (typeof this.data.comms === 'undefined') this.comms = 0;
+    }
     public get flow(): number { return typeof this.data.flow === 'undefined' ? undefined : this.data.flow.val; }
     public set flow(val: number) {
         if (this.flow !== val) {
