@@ -2539,6 +2539,13 @@ class IntelliCenterPumpCommands extends PumpCommands {
         }
     } */
     public async setPumpAsync(data: any): Promise<Pump> {
+        //                                        0                    6              10   11  12           15
+        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
+        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9,   1,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 91]
+        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
+
+        //[255, 0, 255][165, 63, 15, 33, 168, 33][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 640, 255, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0][14, 231]
+        //[255, 0, 255][165, 63, 15, 33, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 300, 255,   3, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][12, 152]
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
         else if (id >= sys.equipment.maxPumps) return Promise.reject(new Error(`Pump id out of range: ${data.id}`));
@@ -2564,7 +2571,8 @@ class IntelliCenterPumpCommands extends PumpCommands {
             outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);   // 11
             outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize || 1); // 12
             outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
-            outc.appendPayloadByte(parseInt(data.speedStepSize, 10) / 10, pump.speedStepSize / 10 || 10); // 15
+            outc.appendPayloadByte(typeof data.speedStepSize !== 'undefined' ? parseInt(data.speedStepSize, 10) / 10 : pump.speedStepSize / 10, 1); // 15
+            outc.appendPayloadByte(255); //
             outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime || 0); // 17
             outc.appendPayloadBytes(255, 8);    // 18
             outc.appendPayloadBytes(0, 8);      // 26

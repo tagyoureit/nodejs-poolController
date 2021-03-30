@@ -601,8 +601,8 @@ export class ExternalMessage {
                 cpump.maxFlow = msg.extractPayloadByte(11);
                 cpump.flowStepSize = msg.extractPayloadByte(12);
                 cpump.primingSpeed = msg.extractPayloadInt(13);
-                cpump.speedStepSize = msg.extractPayloadInt(15) * 10;
-                cpump.primingTime = msg.extractPayloadByte(17);
+                cpump.speedStepSize = msg.extractPayloadByte(15) * 10;
+                cpump.primingTime = msg.extractPayloadByte(16);
                 cpump.circuits.clear();
                 for (let i = 18; i < msg.payload.length && i <= 25; i++) {
                     let circuitId = msg.extractPayloadByte(i);
