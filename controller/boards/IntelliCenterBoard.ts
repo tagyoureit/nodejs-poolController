@@ -2572,8 +2572,8 @@ class IntelliCenterPumpCommands extends PumpCommands {
             outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize || 1); // 12
             outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
             outc.appendPayloadByte(typeof data.speedStepSize !== 'undefined' ? parseInt(data.speedStepSize, 10) / 10 : pump.speedStepSize / 10, 1); // 15
-            outc.appendPayloadByte(255); //
             outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime || 0); // 17
+            outc.appendPayloadByte(255); //
             outc.appendPayloadBytes(255, 8);    // 18
             outc.appendPayloadBytes(0, 8);      // 26
             let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
