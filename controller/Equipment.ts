@@ -1099,6 +1099,7 @@ export interface ICircuit {
     macro?: boolean;
     getLightThemes?: () => {};
     get(copy?: boolean);
+    master: number;
 }
 export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
@@ -1382,6 +1383,7 @@ export interface ICircuitGroup {
     lightingTheme?: number;
     showInFeatures?: boolean;
     circuits: EqItemCollection<ICircuitGroupCircuit>;
+    master: number;
     get(copy?: boolean);
 }
 export interface ICircuitGroupCircuit {

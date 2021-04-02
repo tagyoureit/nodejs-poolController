@@ -826,6 +826,7 @@ export class InterfaceServerResponse {
     error: Error;
     data: string;
     obj: any;
+
 }
 export class REMInterfaceServer extends ProtoServer {
     public init(cfg) {

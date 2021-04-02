@@ -21,7 +21,9 @@ import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
-import {stopPacketCaptureAsync, startPacketCapture} from '../../../app';
+import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
+import { conn } from "../../../controller/comms/Comms";
+
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
         app.get('/config/body/:body/heatModes', (req, res) => {
@@ -50,6 +52,13 @@ export class ConfigRoute {
                 clockModes: sys.board.valueMaps.clockModes.toArray(),
                 pool: sys.general.get(true),
                 sensors: sys.board.system.getSensors()
+            };
+            return res.status(200).send(opts);
+        });
+        app.get('/config/options/rs485', (req, res) => {
+            let opts = {
+                port: config.getSection('comms', { enabled: false, netConnect: false }),
+                portStatus: conn.buffer.counter
             };
             return res.status(200).send(opts);
         });

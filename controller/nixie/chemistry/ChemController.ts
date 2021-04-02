@@ -215,7 +215,6 @@ export class NixieChemController extends NixieEquipment {
         }
         catch (err) { logger.error(`cancelDosingAsync: ${err.message}`); return Promise.reject(err); }
     }
-
     public async setControllerAsync(data: any) {
         try {
             let chem = this.chem;

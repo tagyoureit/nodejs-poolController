@@ -10,6 +10,13 @@ import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
+    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
+        try {
+            let valve: NixieValve = this.find(elem => elem.id === vstate.id) as NixieValve;
+            if (typeof valve === 'undefined') return Promise.reject(new Error(`Nixie Control Panel Error setValveState could not find valve ${vstate.id}-${vstate.name}`));
+            await valve.setValveStateAsync(vstate, isDiverted);
+        } catch (err) { return Promise.reject(new Error(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`)); }
+    }
     public async setValveAsync(valve: Valve, data: any) {
         // By the time we get here we know that we are in control and this is a Nixie valve.
         try {
@@ -49,7 +56,7 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
                 this.push(c);
             }
             return c;
-        } catch (err) { logger.error(`initValveAsync Error: ${err.message}`); return Promise.reject(err); }
+        } catch (err) { return Promise.reject(logger.error(`Nixie Controller: initValveAsync Error: ${err.message}`)); }
     }
 
 }
@@ -63,6 +70,12 @@ export class NixieValve extends NixieEquipment {
         this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.valve !== 'undefined' ? this.valve.id : -1; }
+    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
+        try {
+            // Here we go we need to set the valve state.
+         
+        } catch (err) { return Promise.reject(logger.error(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`)); }
+    }
     public async setValveAsync(data: any) {
         try {
             let valve = this.valve;

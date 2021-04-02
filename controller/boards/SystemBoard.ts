@@ -23,7 +23,7 @@ import { Message, Outbound, Protocol, Response } from '../comms/messages/Message
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState } from '../State';
+import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -829,7 +829,7 @@ export class SystemCommands extends BoardCommands {
             sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
         }
         if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj3));
+            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj4));
         }
         if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
             sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
@@ -841,7 +841,7 @@ export class SystemCommands extends BoardCommands {
             sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
         }
         if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
+            sys.equipment.tempSensors.setCalibration('solar4', parseFloat(obj.solarTempAdj4));
         }
         if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
             sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
@@ -950,6 +950,7 @@ export class SystemCommands extends BoardCommands {
                         break;
                 }
             }
+            sys.board.heaters.syncHeaterStates();
             resolve(state.temps);
         });
     }
@@ -1131,6 +1132,7 @@ export class BodyCommands extends BoardCommands {
         let bstate = state.temps.bodies.getItemById(body.id);
         bdy.heatMode = bstate.heatMode = mode;
         state.emitEquipmentChanges();
+        sys.board.heaters.syncHeaterStates();
         return Promise.resolve(bstate);
     }
     public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
@@ -1138,6 +1140,7 @@ export class BodyCommands extends BoardCommands {
         let bstate = state.temps.bodies.getItemById(body.id);
         bdy.setPoint = bstate.setPoint = setPoint;
         state.emitEquipmentChanges();
+        sys.board.heaters.syncHeaterStates();
         return Promise.resolve(bstate);
     }
     public getHeatModes(bodyId: number) {
@@ -1703,6 +1706,7 @@ export class CircuitCommands extends BoardCommands {
         sys.board.valves.syncValveStates();
         state.emitEquipmentChanges();
         sys.board.virtualPumpControllers.start();
+        sys.board.heaters.syncHeaterStates();
         return Promise.resolve(state.circuits.getInterfaceById(circ.id));
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
@@ -2488,6 +2492,9 @@ export class HeaterCommands extends BoardCommands {
             hstate.isVirtual = heater.isVirtual = true;
             hstate.name = heater.name;
             hstate.type = heater.type;
+            heater.master = 1;
+            sys.board.heaters.updateHeaterServices();
+            sys.board.heaters.syncHeaterStates();
             resolve(heater);
         });
     }
@@ -2499,6 +2506,8 @@ export class HeaterCommands extends BoardCommands {
             heater.isActive = false;
             sys.heaters.removeItemById(id);
             state.heaters.removeItemById(id);
+            sys.board.heaters.updateHeaterServices();
+            sys.board.heaters.syncHeaterStates();
             resolve(heater);
         });
     }
@@ -2771,6 +2780,7 @@ export class HeaterCommands extends BoardCommands {
     }
 }
 export class ValveCommands extends BoardCommands {
+    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) { vstate.isDiverted = isDiverted; }
     public async setValveAsync(obj: any): Promise<Valve> {
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         // The following code will make sure we do not encroach on any valves defined by the OCP.
@@ -2804,22 +2814,24 @@ export class ValveCommands extends BoardCommands {
         });
     }
 
-    public syncValveStates() {
-        for (let i = 0; i < sys.valves.length; i++) {
-            // Run through all the valves to see whether they should be triggered or not.
-            let valve = sys.valves.getItemByIndex(i);
-            if (valve.isActive) {
-                let vstate = state.valves.getItemById(valve.id, true);
-                if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-                    let circ = state.circuits.getInterfaceById(valve.circuit);
-                    vstate.isDiverted = utils.makeBool(circ.isOn);
+    public async syncValveStates() {
+        try {
+            for (let i = 0; i < sys.valves.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let valve = sys.valves.getItemByIndex(i);
+                if (valve.isActive) {
+                    let vstate = state.valves.getItemById(valve.id, true);
+                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+                        let circ = state.circuits.getInterfaceById(valve.circuit);
+                        sys.board.valves.setValveStateAsync(vstate, utils.makeBool(circ.isOn));
+                    }
+                    else
+                        sys.board.valves.setValveStateAsync(vstate, utils.makeBool(false));
+                    vstate.type = valve.type;
+                    vstate.name = valve.name;
                 }
-                else
-                    vstate.isDiverted = false;
-                vstate.type = valve.type;
-                vstate.name = valve.name;
             }
-        }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
     }
 }
 export class ChemControllerCommands extends BoardCommands {

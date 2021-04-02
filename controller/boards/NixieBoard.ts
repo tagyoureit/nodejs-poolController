@@ -17,12 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { ncp } from "../nixie/Nixie";
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
+import { utils, Heliotrope, Timestamp } from '../Constants';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, ChemControllerState, TemperatureState } from '../State';
-import { sys, Options, Owner, Location, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController } from '../Equipment';
+import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState } from '../State';
+import { sys, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError } from '../Errors';
+import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import {conn} from '../comms/Comms';
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
@@ -173,6 +174,7 @@ export class NixieBoard extends SystemBoard {
             [3, { name: 'quickTouch', desc: 'Quick Touch Remote', maxButtons: 4 }],
             [4, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
         ]);
+
     }
     public async initNixieBoard() {
         try {
@@ -299,6 +301,17 @@ export class NixieBoard extends SystemBoard {
 
         } catch (err) {}
     }
+    public system: NixieSystemCommands = new NixieSystemCommands(this);
+    public circuits: NixieCircuitCommands = new NixieCircuitCommands(this);
+    public features: NixieFeatureCommands = new NixieFeatureCommands(this);
+    //public chlorinator: NixieChlorinatorCommands = new NixieChlorinatorCommands(this);
+    //public bodies: NixieBodyCommands = new NixieBodyCommands(this);
+    //public pumps: NixiePumpCommands = new NixiePumpCommands(this);
+    //public schedules: NixieScheduleCommands = new NixieScheduleCommands(this);
+    public heaters: NixieHeaterCommands = new NixieHeaterCommands(this);
+    public valves: NixieValveCommands = new NixieValveCommands(this);
+    public chemControllers: NixieChemControllerCommands = new NixieChemControllerCommands(this);
+
 }
 export class NixieSystemCommands extends SystemCommands {
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
@@ -332,55 +345,570 @@ export class NixieSystemCommands extends SystemCommands {
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
         return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
     }
-    public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
-        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
-            sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
-        }
-        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-            sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
-        }
-        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-            sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
-        }
-        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj3));
-        }
-        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-            sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
-        }
-        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-            sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
-        }
-        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
-        }
-        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
-        }
-        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-            sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
-        }
-        return new Promise<TempSensorCollection>((resolve, reject) => { resolve(sys.equipment.tempSensors); });
-    }
-    public async setOptionsAsync(obj: any): Promise<Options> {
-        if (obj.clockSource === 'server') sys.board.system.setTZ();
-        sys.board.system.setTempSensorsAsync(obj);
-        sys.general.options.set(obj);
-        return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
-    }
-    public async setLocationAsync(obj: any): Promise<Location> {
+}
+export class NixieCircuitCommands extends CircuitCommands {
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         try {
-            sys.general.location.set(obj);
-            return sys.general.location;
+            let circuit: ICircuit = sys.circuits.getInterfaceById(id);
+            let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Nixie: Circuit or Feature id not valid', id, 'Circuit'));
+            let newState = utils.makeBool(val);
+            circuit.master = 1;
+            // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
+            // to turn off the other body first.
+            //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+            //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+            if (newState && (circuit.type === 12 || circuit.type === 13) && sys.equipment.shared === true) {
+                // If we are shared we need to turn off the other circuit.
+                let off: Circuit[];
+                let offType = circ.type === 12 ? 13 : 12;
+                off = sys.circuits.filter(elem => elem.type === offType).toArray();
+                // Turn the circuits off that are part of the shared system.  We are going back to the board
+                // just in case we got here for a circuit that isn't on the current defined panel.
+                for (let i = 0; i < off.length; i++) await sys.board.circuits.setCircuitStateAsync(off[i].id, false);
+            }
+            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
+            await ncp.circuits.setCircuitStateAsync(circ, newState);
+
+            // Alright our circuit is now in the correct state so we need to position valves and then change the pumps accordingly.
+            sys.board.valves.syncValveStates();
+
+            state.emitEquipmentChanges();
+            sys.board.virtualPumpControllers.start();
+            return state.circuits.getInterfaceById(circ.id);
         }
-        catch (err) { return err; }
+        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
     }
-    public async setOwnerAsync(obj: any): Promise<Owner> {
-        sys.general.owner.set(obj);
-        return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
+    public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
+        let circ = state.circuits.getInterfaceById(id);
+        return this.setCircuitStateAsync(id, !(circ.isOn || false));
+    }
+    public async setLightThemeAsync(id: number, theme: number) {
+        let cstate = state.circuits.getItemById(id);
+        cstate.lightingTheme = theme;
+        return Promise.resolve(cstate as ICircuitState);
+    }
+    public setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
+        let circ = state.circuits.getItemById(id);
+        circ.level = level;
+        return Promise.resolve(circ as ICircuitState);
+    }
+    public getCircuitReferences(includeCircuits?: boolean, includeFeatures?: boolean, includeVirtual?: boolean, includeGroups?: boolean) {
+        let arrRefs = [];
+        if (includeCircuits) {
+            // RSG: converted this to getItemByIndex because hasHeatSource isn't actually stored as part of the data
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId, hasHeatSource: c.hasHeatSource });
+            }
+        }
+        if (includeFeatures) {
+            let features = sys.features.get();
+            for (let i = 0; i < sys.features.length; i++) {
+                let c = features[i];
+                arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'feature', nameId: c.nameId });
+            }
+        }
+        if (includeVirtual) {
+            let vcs = sys.board.valueMaps.virtualCircuits.toArray();
+            for (let i = 0; i < vcs.length; i++) {
+                let c = vcs[i];
+                arrRefs.push({ id: c.val, name: c.desc, equipmentType: 'virtual', assignableToPumpCircuit: c.assignableToPumpCircuit });
+            }
+        }
+        if (includeGroups) {
+            let groups = sys.circuitGroups.get();
+            for (let i = 0; i < groups.length; i++) {
+                let c = groups[i];
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'circuitGroup', nameId: c.nameId });
+            }
+            groups = sys.lightGroups.get();
+            for (let i = 0; i < groups.length; i++) {
+                let c = groups[i];
+                arrRefs.push({ id: c.id, name: c.name, equipmentType: 'lightGroup', nameId: c.nameId });
+            }
+        }
+        arrRefs.sort((a, b) => { return a.id > b.id ? 1 : a.id === b.id ? 0 : -1; });
+        return arrRefs;
+    }
+    public getLightReferences() {
+        let circuits = sys.circuits.get();
+        let arrRefs = [];
+        for (let i = 0; i < circuits.length; i++) {
+            let c = circuits[i];
+            let type = sys.board.valueMaps.circuitFunctions.transform(c.type);
+            if (type.isLight) arrRefs.push({ id: c.id, name: c.name, type: c.type, equipmentType: 'circuit', nameId: c.nameId });
+        }
+        return arrRefs;
+    }
+    public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
+    public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
+    public getCircuitNames() {
+        return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
+    }
+    public async setCircuitAsync(data: any): Promise<ICircuit> {
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+        if (id === 6) return Promise.reject(new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id));
+
+        if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
+        if (typeof data.id !== 'undefined') {
+            let circuit = sys.circuits.getInterfaceById(id, true);
+            let scircuit = state.circuits.getInterfaceById(id, true);
+            circuit.isActive = true;
+            scircuit.isOn = false;
+            if (data.nameId) {
+                circuit.nameId = scircuit.nameId = data.nameId;
+                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId);
+            }
+            else if (data.name) circuit.name = scircuit.name = data.name;
+            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
+            if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+            if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
+            if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+            if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
+            if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+            circuit.dontStop = circuit.eggTimer === 1440;
+            sys.emitEquipmentChange();
+            state.emitEquipmentChanges();
+            return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
+        }
+        else
+            return Promise.reject(new Error('Circuit id has not been defined'));
+    }
+    public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
+        let group: CircuitGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+        }
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
+        group = sys.circuitGroups.getItemById(id, true);
+        return new Promise<CircuitGroup>((resolve, reject) => {
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.dontStop = group.eggTimer === 1440;
+            group.isActive = true;
+
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    let cobj = obj.circuits[i];
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    if (typeof cobj.desiredState !== 'undefined')
+                        c.desiredState = parseInt(cobj.desiredState, 10);
+                    else if (typeof cobj.desiredStateOn !== 'undefined') {
+                        // Shim for prior interfaces that send desiredStateOn.
+                        c.desiredState = utils.makeBool(cobj.desiredStateOn) ? 0 : 1;
+                        //c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
+                    }
+                    //RKS: 09-26-20 There is no such thing as a lighting theme on a circuit group circuit.  That is what lighGroups are for.
+                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                }
+                // group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
+            }
+            resolve(group);
+        });
+
+    }
+    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
+        let group: LightGroup = null;
+        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (id <= 0) {
+            // We are adding a circuit group.
+            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+        }
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
+        group = sys.lightGroups.getItemById(id, true);
+        return new Promise<LightGroup>((resolve, reject) => {
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            group.dontStop = group.eggTimer === 1440;
+            group.isActive = true;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let cobj = obj.circuits[i];
+                    let c: LightGroupCircuit;
+                    if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                    else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                    else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                    if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                    if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                    if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
+                }
+                // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
+            }
+            resolve(group);
+        });
+    }
+    public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
+        if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let group = sys.circuitGroups.getItemById(id, false);
+            let sgroup = state.circuitGroups.getItemById(id, false);
+            sys.circuitGroups.removeItemById(id);
+            state.circuitGroups.removeItemById(id);
+            group.isActive = false;
+            sgroup.isOn = false;
+            sgroup.isActive = false;
+            sgroup.emitEquipmentChange();
+            return new Promise<CircuitGroup>((resolve, reject) => { resolve(group); });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'CircuitGroup'));
+    }
+    public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'LightGroup'));
+        if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
+        if (typeof obj.id !== 'undefined') {
+            let group = sys.lightGroups.getItemById(id, false);
+            let sgroup = state.lightGroups.getItemById(id, false);
+            sys.lightGroups.removeItemById(id);
+            state.lightGroups.removeItemById(id);
+            group.isActive = false;
+            sgroup.isOn = false;
+            sgroup.isActive = false;
+            sgroup.emitEquipmentChange();
+            return new Promise<LightGroup>((resolve, reject) => { resolve(group); });
+        }
+        else
+            return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup'));
+    }
+    public async deleteCircuitAsync(data: any): Promise<ICircuit> {
+        if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit'));
+        let circuit = sys.circuits.getInterfaceById(data.id);
+        if (circuit instanceof Circuit) {
+            sys.circuits.removeItemById(data.id);
+            state.circuits.removeItemById(data.id);
+        }
+        if (circuit instanceof Feature) {
+            sys.features.removeItemById(data.id);
+            state.features.removeItemById(data.id);
+        }
+        return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
+    }
+    public deleteCircuit(data: any) {
+        if (typeof data.id !== 'undefined') {
+            let circuit = sys.circuits.getInterfaceById(data.id);
+            if (circuit instanceof Circuit) {
+                sys.circuits.removeItemById(data.id);
+                state.circuits.removeItemById(data.id);
+                return;
+            }
+            if (circuit instanceof Feature) {
+                sys.features.removeItemById(data.id);
+                state.features.removeItemById(data.id);
+                return;
+            }
+        }
+    }
+    public getNameById(id: number) {
+        if (id < 200)
+            return sys.board.valueMaps.circuitNames.transform(id).desc;
+        else
+            return sys.customNames.getItemById(id - 200).name;
+    }
+    public async setLightGroupThemeAsync(id: number, theme: number): Promise<ICircuitState> {
+        const grp = sys.lightGroups.getItemById(id);
+        const sgrp = state.lightGroups.getItemById(id);
+        grp.lightingTheme = sgrp.lightingTheme = theme;
+        for (let i = 0; i < grp.circuits.length; i++) {
+            let c = grp.circuits.getItemByIndex(i);
+            let cstate = state.circuits.getItemById(c.circuit);
+            // if theme is 'off' light groups should not turn on
+            if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off')
+                await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
+            else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+        }
+        sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+        // If we truly want to support themes in lightGroups we probably need to program
+        // the specific on/off toggles to enable that.  For now this will go through the motions but it's just a pretender.
+        switch (theme) {
+            case 0: // off
+            case 1: // on
+                break;
+            case 128: // sync
+                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync'); });
+                break;
+            case 144: // swim
+                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim'); });
+                break;
+            case 160: // swim
+                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set'); });
+                break;
+            case 190: // save
+            case 191: // recall
+                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
+                break;
+            default:
+                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
+            // other themes for magicstream?
+        }
+        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+        state.emitEquipmentChanges();
+        return Promise.resolve(sgrp);
+    }
+    public async setLightGroupAttribsAsync(group: LightGroup): Promise<LightGroup> {
+        let grp = sys.lightGroups.getItemById(group.id);
+        try {
+            grp.circuits.clear();
+            for (let i = 0; i < group.circuits.length; i++) {
+                let circuit = grp.circuits.getItemByIndex(i);
+                grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+            }
+            let sgrp = state.lightGroups.getItemById(group.id);
+            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            return Promise.resolve(grp);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
+        let sgroup = state.lightGroups.getItemById(id);
+        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        if (nop > 0) {
+            sgroup.action = nop;
+            sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            state.emitEquipmentChanges();
+            setTimeout(function () {
+                sgroup.action = 0;
+                sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+                state.emitEquipmentChanges();
+            }, 20000); // It takes 20 seconds to sequence.
+        }
+        return Promise.resolve(sgroup);
+    }
+    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        let circuits = grp.circuits.toArray();
+        gstate.isOn = val;
+        let arr = [];
+        for (let i = 0; i < circuits.length; i++) {
+            let circuit = circuits[i];
+            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
+        }
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            await Promise.all(arr).catch((err) => { reject(err) });
+            resolve(gstate);
+        });
+    }
+    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        return sys.board.circuits.setCircuitGroupStateAsync(id, val);
+    }
+    /*     public sequenceIntelliBrite(operation: string) {
+            state.intellibrite.hasChanged = true;
+            let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+            if (nop > 0) {
+                state.intellibrite.action = nop;
+                setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
+            }
+        } */
+}
+export class NixieFeatureCommands extends FeatureCommands {
+    public async setFeatureAsync(obj: any): Promise<Feature> {
+        let id = parseInt(obj.id, 10);
+        if (id <= 0 || isNaN(id)) {
+            id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+        }
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        let feature = sys.features.getItemById(obj.id, true);
+        let sfeature = state.features.getItemById(obj.id, true);
+        feature.isActive = true;
+        sfeature.isOn = false;
+        if (obj.nameId) {
+            feature.nameId = sfeature.nameId = obj.nameId;
+            feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
+        }
+        else if (obj.name) feature.name = sfeature.name = obj.name;
+        else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
+        if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
+        else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
+        if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
+        if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
+        if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+        if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
+        feature.dontStop = feature.eggTimer === 1440;
+        return new Promise<Feature>((resolve, reject) => { resolve(feature); });
+    }
+    public async deleteFeatureAsync(obj: any): Promise<Feature> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (typeof obj.id !== 'undefined') {
+            let feature = sys.features.getItemById(id, false);
+            let sfeature = state.features.getItemById(id, false);
+            sys.features.removeItemById(id);
+            state.features.removeItemById(id);
+            feature.isActive = false;
+            sfeature.isOn = false;
+            sfeature.showInFeatures = false;
+            sfeature.emitEquipmentChange();
+            return new Promise<Feature>((resolve, reject) => { resolve(feature); });
+        }
+        else
+            Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
+    }
+    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        let feature = sys.features.getItemById(id);
+        let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+        fstate.isOn = val;
+        sys.board.valves.syncValveStates();
+        sys.board.virtualPumpControllers.start();
+        state.emitEquipmentChanges();
+        return Promise.resolve(fstate.get(true));
+    }
+    public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
+        let feat = state.features.getItemById(id);
+        return this.setFeatureStateAsync(id, !(feat.isOn || false));
+    }
+    public syncGroupStates() {
+        for (let i = 0; i < sys.circuitGroups.length; i++) {
+            let grp: CircuitGroup = sys.circuitGroups.getItemByIndex(i);
+            let circuits = grp.circuits.toArray();
+            let bIsOn = false;
+            if (grp.isActive) {
+                for (let j = 0; j < circuits.length; j++) {
+                    let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
+                    let cstate = state.circuits.getInterfaceById(circuit.circuit);
+                    if (circuit.desiredState === 1 || circuit.desiredState === 0) {
+                        if (cstate.isOn === utils.makeBool(circuit.desiredState)) bIsOn = true;
+                    }
+                }
+            }
+            let sgrp = state.circuitGroups.getItemById(grp.id);
+            sgrp.isOn = bIsOn && grp.isActive;
+            sys.board.valves.syncValveStates();
+        }
+        // I am guessing that there will only be one here but iterate
+        // just in case we expand.
+        for (let i = 0; i < sys.lightGroups.length; i++) {
+            let grp: LightGroup = sys.lightGroups.getItemByIndex(i);
+            let bIsOn = false;
+            if (grp.isActive) {
+                let circuits = grp.circuits.toArray();
+                for (let j = 0; j < circuits.length; j++) {
+                    let circuit = grp.circuits.getItemByIndex(j).circuit;
+                    let cstate = state.circuits.getInterfaceById(circuit);
+                    if (cstate.isOn) bIsOn = true;
+                }
+            }
+            let sgrp = state.lightGroups.getItemById(grp.id);
+            sgrp.isOn = bIsOn;
+        }
+        state.emitEquipmentChanges();
+    }
+
+}
+export class NixieValveCommands extends ValveCommands {
+    public async setValveAsync(obj: any): Promise<Valve> {
+        try {
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            obj.master = 1;
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false), 49) + 1;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Nixie: Valve Id has not been defined', obj.id, 'Valve'));
+            if (id < 50) return Promise.reject(new InvalidEquipmentDataError('Nixie valves must be defined with an id >= 50.', obj.id, 'Valve'));
+            // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
+            let valve = sys.valves.getItemById(id, true);
+            await ncp.valves.setValveAsync(valve, obj);
+            sys.board.valves.syncValveStates();            
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
+    }
+    public async deleteValveAsync(obj: any): Promise<Valve> {
+        try {
+            let id = parseInt(obj.id, 10);
+            // The following code will make sure we do not encroach on any valves defined by the OCP.
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, false);
+            let vstate = state.valves.getItemById(id);
+            valve.isActive = false;
+            vstate.hasChanged = true;
+            vstate.emitEquipmentChange();
+            sys.valves.removeItemById(id);
+            state.valves.removeItemById(id);
+            ncp.valves.removeById(id);
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error removing valve from system ${obj.id}: ${err.message}`); return Promise.reject(new Error(`Nixie: Error removing valve from system ${ obj.id }: ${ err.message }`)); }
+    }
+    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
+        try {
+            let valve = sys.valves.getItemByIndex(vstate.id);
+            vstate.name = valve.name;
+            await ncp.valves.setValveStateAsync(vstate, isDiverted);
+        } catch (err) { logger.error(`Nixie: Error setting valve ${vstate.id}-${vstate.name} state to ${isDiverted}: ${err}`); return Promise.reject(err); }
+    }
+    public async syncValveStates() {
+        try {
+            for (let i = 0; i < sys.valves.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let valve = sys.valves.getItemByIndex(i);
+                if (valve.isActive) {
+                    let vstate = state.valves.getItemById(valve.id, true);
+                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+                        let circ = state.circuits.getInterfaceById(valve.circuit);
+                        vstate.isDiverted = utils.makeBool(circ.isOn);
+                    }
+                    else
+                        vstate.isDiverted = false;
+                    vstate.type = valve.type;
+                    vstate.name = valve.name;
+                }
+            }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
     }
 }
-
+export class NixieHeaterCommands extends HeaterCommands {
+    public async setHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            else if (id < 256 && id > 0) return reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+            let heater: Heater;
+            if (id <= 0) {
+                // We are adding a heater.  In this case all heaters are virtual.
+                let vheaters = sys.heaters.filter(h => h.isVirtual === true);
+                id = vheaters.length + 256;
+            }
+            heater = sys.heaters.getItemById(id, true);
+            if (typeof obj !== undefined) {
+                for (var s in obj) {
+                    if (s === 'id') continue;
+                    heater[s] = obj[s];
+                }
+            }
+            let hstate = state.heaters.getItemById(id, true);
+            hstate.isVirtual = heater.isVirtual = true;
+            hstate.name = heater.name;
+            hstate.type = heater.type;
+            heater.master = 1;
+            resolve(heater);
+        });
+    }
+    public async deleteHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            let heater = sys.heaters.getItemById(id);
+            heater.isActive = false;
+            sys.heaters.removeItemById(id);
+            state.heaters.removeItemById(id);
+            resolve(heater);
+        });
+    }
+}
 export class NixieChemControllerCommands extends ChemControllerCommands {
     protected async setIntelliChemAsync(data: any): Promise<ChemController> {
         try {

@@ -451,6 +451,7 @@ export class Utils {
         }
         return seconds;
     }
+    public isNullOrEmpty(val: any) {  return (typeof val === 'string') ? val === null || val === '' : typeof val === 'undefined' || val === null; }
 }
 
 export const utils = new Utils();

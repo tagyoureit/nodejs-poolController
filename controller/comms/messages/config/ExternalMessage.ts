@@ -644,7 +644,7 @@ export class ExternalMessage {
     }
     private static processFeature(msg: Inbound) {
         let featureId = msg.extractPayloadByte(2) + sys.board.equipmentIds.features.start;
-        let type = msg.extractPayloadByte(5);
+        let type = msg.extractPayloadByte(3);
         let feature = sys.features.getItemById(featureId, type !== 255);
         let fstate = state.features.getItemById(featureId, type !== 255);
         if (type === 255) {

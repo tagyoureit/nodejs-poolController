@@ -337,6 +337,7 @@ export class EquipmentStateMessage {
         sys.equipment.setEquipmentIds();
         state.emitControllerChange();
         sys.board.virtualPumpControllers.start();
+        sys.board.heaters.updateHeaterServices();
     }
     private static initController(msg: Inbound) {
         state.status = 1;
