@@ -329,7 +329,6 @@ export class EquipmentStateMessage {
         tbody.isOn = false;
         sys.general.options.clockMode = 12;
         sys.general.options.clockSource = 'server';
-        sys.board.system.keepManualTime();
         state.equipment.maxBodies = sys.equipment.maxBodies;
         state.mode = 0;
         state.status = 1;
@@ -337,7 +336,10 @@ export class EquipmentStateMessage {
         sys.equipment.setEquipmentIds();
         state.emitControllerChange();
         sys.board.virtualPumpControllers.start();
+        sys.board.heaters.initTempSensors();
         sys.board.heaters.updateHeaterServices();
+        sys.board.system.processStatusTimer();
+
     }
     private static initController(msg: Inbound) {
         state.status = 1;

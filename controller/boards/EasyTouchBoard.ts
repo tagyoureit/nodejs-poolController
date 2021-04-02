@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
-import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
+import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, HeaterCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
 import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController, Circuit } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState } from '../State';
@@ -34,6 +34,14 @@ export class EasyTouchBoard extends SystemBoard {
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
         this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
+        this.valueMaps.heatModes = new byteValueMap([]);
+        this.valueMaps.heatSources = new byteValueMap([]);
+        this.valueMaps.heatStatus = new byteValueMap([
+            [0, { name: 'off', desc: 'Off' }],
+            [1, { name: 'heater', desc: 'Heater' }],
+            [2, { name: 'cooling', desc: 'Cooling' }],
+            [3, { name: 'solar', desc: 'Solar' }]
+        ]);
         this.valueMaps.customNames = new byteValueMap(
             sys.customNames.get().map((el, idx) => {
                 return [idx + 200, { name: el.name, desc: el.name }];
@@ -279,6 +287,7 @@ export class EasyTouchBoard extends SystemBoard {
     public chlorinator: TouchChlorinatorCommands = new TouchChlorinatorCommands(this);
     public pumps: TouchPumpCommands = new TouchPumpCommands(this);
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
+    public heaters: TouchHeaterCommands = new TouchHeaterCommands(this);
     //public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
 
@@ -1750,6 +1759,142 @@ class TouchPumpCommands extends PumpCommands {
             spump.type = pump.type;
             spump.status = 0;
         } */
+}
+class TouchHeaterCommands extends HeaterCommands {
+    public getInstalledHeaterTypes(body?: number): any {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        let inst = { total: 0 };
+        for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && heater.body !== 'undefined') {
+                if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
+            }
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                if (inst[type.name] === 'undefined') inst[type.name] = 0;
+                inst[type.name] = inst[type.name] + 1;
+                inst.total++;
+            }
+        }
+        return inst;
+    }
+    public isSolarInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'solar':
+                        return true;
+                }
+            }
+        }
+    }
+    public isHeatPumpInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'heatpump':
+                        return true;
+                }
+            }
+        }
+    }
+    public setHeater(heater: Heater, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in obj)
+                heater[s] = obj[s];
+        }
+    }
+    // RKS: Not sure what to do with this as the heater data for Touch isn't actually processed anywhere.
+    public async setHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            let heater: Heater;
+            if (id <= 0) {
+                // We are adding a heater.  In this case all heaters are virtual.
+                let heaters = sys.heaters.filter(h => h.isVirtual === false);
+                id = heaters.getMaxId() + 1;
+            }
+            heater = sys.heaters.getItemById(id, true);
+            if (typeof obj !== undefined) {
+                for (var s in obj) {
+                    if (s === 'id') continue;
+                    heater[s] = obj[s];
+                }
+            }
+            let hstate = state.heaters.getItemById(id, true);
+            hstate.isVirtual = heater.isVirtual = true;
+            hstate.name = heater.name;
+            hstate.type = heater.type;
+            heater.master = 1;
+            sys.board.heaters.updateHeaterServices();
+            sys.board.heaters.syncHeaterStates();
+            resolve(heater);
+        });
+    }
+    public async deleteHeaterAsync(obj: any): Promise<Heater> {
+        return new Promise<Heater>((resolve, reject) => {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            let heater = sys.heaters.getItemById(id);
+            heater.isActive = false;
+            sys.heaters.removeItemById(id);
+            state.heaters.removeItemById(id);
+            sys.board.heaters.updateHeaterServices();
+            sys.board.heaters.syncHeaterStates();
+            resolve(heater);
+        });
+    }
+    public updateHeaterServices() {
+        let htypes = sys.board.heaters.getInstalledHeaterTypes();
+        let solarInstalled = htypes.solar > 0;
+        let heatPumpInstalled = htypes.heatpump > 0;
+        let gasHeaterInstalled = htypes.gas > 0;
+        sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });
+        sys.board.valueMaps.heatSources.set(0, { name: 'off', desc: 'Off' });
+        if (gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
+            sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
+        }
+        else {
+            // no heaters (virtual controller)
+            sys.board.valueMaps.heatModes.delete(1);
+            sys.board.valueMaps.heatSources.delete(2);
+        }
+        if (solarInstalled && gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(2, { name: 'solarpref', desc: 'Solar Preferred' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'solar', desc: 'Solar Only' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'solarpref', desc: 'Solar Preferred' });
+            sys.board.valueMaps.heatSources.set(21, { name: 'solar', desc: 'Solar Only' });
+        }
+        else if (heatPumpInstalled && gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+            sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
+        }
+        else {
+            // only gas
+            sys.board.valueMaps.heatModes.delete(2);
+            sys.board.valueMaps.heatModes.delete(3);
+            sys.board.valueMaps.heatSources.delete(5);
+            sys.board.valueMaps.heatSources.delete(21);
+        }
+        sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+        this.setActiveTempSensors();
+    }
 }
 
 // class TouchChemControllerCommands extends ChemControllerCommands {

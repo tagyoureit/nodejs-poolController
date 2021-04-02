@@ -69,7 +69,7 @@ export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean=false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
-        setTimeout(()=>{this.searchForAdditionalDevices();}, 7500);
+        setTimeout(() => { this.searchForAdditionalDevices(); }, 7500);
     }
     public init() {
         let cfg = this.loadConfigFile(this.cfgPath, {});
@@ -189,6 +189,7 @@ export class PoolSystem implements IPoolSystem {
                 sys.equipment.setEquipmentIds();
                 state.emitControllerChange();
             }
+
             // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
             sys.board.virtualPumpControllers.softStop();
             sys.board.virtualChlorinatorController.stop();
@@ -197,8 +198,10 @@ export class PoolSystem implements IPoolSystem {
             sys.board.virtualPumpControllers.start();
             sys.board.virtualChlorinatorController.start();
             sys.board.virtualChemControllers.start();
+            sys.board.heaters.initTempSensors();
+            sys.board.heaters.updateHeaterServices();
+            sys.board.system.processStatusTimer();
         }  
-
      }
     public board: SystemBoard = new SystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
