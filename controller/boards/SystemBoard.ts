@@ -2685,6 +2685,7 @@ export class HeaterCommands extends BoardCommands {
             for (let i = 0; i < bodies.length; i++) {
                 let body: BodyTempState = bodies[i];
                 let isHeating = false;
+                if (typeof body.setPoint === 'undefined') body.setPoint = 55;
                 if (body.isOn) {
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
