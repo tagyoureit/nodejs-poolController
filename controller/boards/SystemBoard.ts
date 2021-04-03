@@ -1152,12 +1152,12 @@ export class BodyCommands extends BoardCommands {
         }
         return ass;
     }
-    public setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+    public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
         let bdy = sys.bodies.getItemById(body.id);
         let bstate = state.temps.bodies.getItemById(body.id);
         bdy.heatMode = bstate.heatMode = mode;
-        state.emitEquipmentChanges();
         sys.board.heaters.syncHeaterStates();
+        state.emitEquipmentChanges();
         return Promise.resolve(bstate);
     }
     public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
