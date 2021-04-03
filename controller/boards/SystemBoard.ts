@@ -2546,7 +2546,7 @@ export class HeaterCommands extends BoardCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
-        // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.
+
         sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
         if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
@@ -2728,20 +2728,24 @@ export class HeaterCommands extends BoardCommands {
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                                isHeating = true;
                                             }
                                             else if (heater.coolingEnabled && body.temp > body.setPoint && state.heliotrope.isNight &&
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                                isHeating = true;
                                             }
-
                                             //else if (heater.coolingEnabled && state.time.isNight)
                                         }
                                         break;
                                     case 'gas':
                                         if (mode === 'heater') {
-                                            if (body.temp < body.setPoint) isOn = true;
-                                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                            if (body.temp < body.setPoint) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                isHeating = true;
+                                            }
                                         }
                                         else if (mode === 'solarpref' || mode === 'heatpumppref') {
                                             // If solar should be running gas heater should be off.
@@ -2750,6 +2754,7 @@ export class HeaterCommands extends BoardCommands {
                                             else if (body.temp < body.setPoint) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                isHeating = true;
                                             }
                                         }
                                         break;
@@ -2759,6 +2764,7 @@ export class HeaterCommands extends BoardCommands {
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                isHeating = true;
                                             }
                                         }
                                         break;
