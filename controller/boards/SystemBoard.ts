@@ -2713,6 +2713,7 @@ export class HeaterCommands extends BoardCommands {
                                 if (body.id === 4) isAssociated = true;
                                 break;
                         }
+                        logger.debug(`Heater ${heater.name} is ${isAssociated === true ? 'not ' : ''} associated with ${body.name}`);
                         if (isAssociated) {
                             let hstate = state.heaters.getItemById(heater.id, true);
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
@@ -2772,23 +2773,8 @@ export class HeaterCommands extends BoardCommands {
                                         isOn = utils.makeBool(hstate.isOn);
                                         break;
                                 }
-                            }
-                            else if (status.val > 0) {
-                                switch (htype.name) {
-                                    case 'solar':
-                                        if (status.name === 'solar') isOn = true;
-                                        break;
-                                    case 'gas':
-                                        if (status.name === 'heater') isOn = true;
-                                        break;
-                                    case 'heatpump':
-                                        if (status.name === 'heatpump') isOn = true;
-                                        break;
-                                    // TODO: Figure out what needs to be done with ultratemp and hybrid heaters.
-                                    default:
-                                        isOn = utils.makeBool(hstate.isOn);
-                                        break;
-                                }
+                                logger.debug(`Heater Type: ${htype.name} Temp: ${body.temp} Setpoint: ${body.setPoint} Status: ${body.heatStatus}`);
+
                             }
                             hstate.isOn = isOn;
                         }

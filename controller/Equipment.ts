@@ -1313,7 +1313,10 @@ export class HeaterCollection extends EqItemCollection<Heater> {
     public createItem(data: any): Heater { return new Heater(data); }
 }
 export class Heater extends EqItem {
-    public dataName='heaterConfig';
+    public dataName = 'heaterConfig';
+    public initData() {
+        if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get type(): number | any { return this.data.type; }
