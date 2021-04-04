@@ -2684,8 +2684,8 @@ export class HeaterCommands extends BoardCommands {
             let hon = [];
             for (let i = 0; i < bodies.length; i++) {
                 let body: BodyTempState = bodies[i];
+                let cfgBody: Body = sys.bodies.getItemById(body.id);
                 let isHeating = false;
-                if (typeof body.setPoint === 'undefined') body.setPoint = 55;
                 if (body.isOn) {
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
@@ -2713,25 +2713,25 @@ export class HeaterCommands extends BoardCommands {
                                 if (body.id === 4) isAssociated = true;
                                 break;
                         }
-                        logger.debug(`Heater ${heater.name} is ${isAssociated === true ? 'not ' : ''} associated with ${body.name}`);
+                        logger.debug(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
                         if (isAssociated) {
                             let hstate = state.heaters.getItemById(heater.id, true);
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
                             let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
                             if (heater.isVirtual === true) {
                                 // We need to do our own calculation as to whether it is on.
-                                let mode = sys.board.valueMaps.heatModes.transform(body.heatMode);
+                                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                                 switch (htype.name) {
                                     case 'solar':
                                         if (mode === 'solar' || mode === 'solarpref') {
                                             // Measure up against start and stop temp deltas for effective solar heating.
-                                            if (body.temp < body.setPoint &&
+                                            if (body.temp < cfgBody.setPoint &&
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                                                 isHeating = true;
                                             }
-                                            else if (heater.coolingEnabled && body.temp > body.setPoint && state.heliotrope.isNight &&
+                                            else if (heater.coolingEnabled && body.temp > cfgBody.setPoint && state.heliotrope.isNight &&
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
@@ -2742,7 +2742,7 @@ export class HeaterCommands extends BoardCommands {
                                         break;
                                     case 'gas':
                                         if (mode === 'heater') {
-                                            if (body.temp < body.setPoint) {
+                                            if (body.temp < cfgBody.setPoint) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                                 isHeating = true;
@@ -2750,9 +2750,9 @@ export class HeaterCommands extends BoardCommands {
                                         }
                                         else if (mode === 'solarpref' || mode === 'heatpumppref') {
                                             // If solar should be running gas heater should be off.
-                                            if (body.temp < body.setPoint &&
+                                            if (body.temp < cfgBody.setPoint &&
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
-                                            else if (body.temp < body.setPoint) {
+                                            else if (body.temp < cfgBody.setPoint) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                                 isHeating = true;
@@ -2761,7 +2761,7 @@ export class HeaterCommands extends BoardCommands {
                                         break;
                                     case 'heatpump':
                                         if (mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (body.temp < body.setPoint &&
+                                            if (body.temp < cfgBody.setPoint &&
                                                 state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
@@ -2773,7 +2773,7 @@ export class HeaterCommands extends BoardCommands {
                                         isOn = utils.makeBool(hstate.isOn);
                                         break;
                                 }
-                                logger.debug(`Heater Type: ${htype.name} Temp: ${body.temp} Setpoint: ${body.setPoint} Status: ${body.heatStatus}`);
+                                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
 
                             }
                             hstate.isOn = isOn;
