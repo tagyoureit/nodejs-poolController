@@ -319,7 +319,14 @@ export class NixieChemController extends NixieEquipment {
                     //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
                     if (this.flowSensor.sensor.type === 1) {
                         // This is a flow switch.  The expectation is that it should be 0 or 1.
-                        this.flowDetected = schem.flowDetected = utils.makeBool(ret.obj.state);
+                        let v;
+                        if (typeof ret.obj.state.boolean !== 'undefined') v = utils.makeBool(ret.obj.state.boolean);
+                        else if (typeof ret.obj.state === 'string') v = utils.makeBool(ret.obj.state);
+                        else if (typeof ret.obj.state === 'boolean') v = ret.obj.state;
+                        else if (typeof ret.obj.state === 'number') v = utils.makeBool(ret.obj.state);
+                        else if (typeof ret.obj.state.val === 'number') v = utils.makeBool(ret.obj.state.val);
+                        else v = false;
+                        this.flowDetected = schem.flowDetected = v;
                     }
                     else if (this.flowSensor.sensor.type == 2) {
                         this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;

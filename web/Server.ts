@@ -911,6 +911,7 @@ export class REMInterfaceServer extends ProtoServer {
                 try { ret.obj = JSON.parse(ret.data); }
                 catch (err) {}
             }
+            logger.debug(`REM server request returned. ${opts.method} ${opts.path} ${sbody} ${JSON.stringify(ret)}`);
             return ret;
         }
         catch (err) {
