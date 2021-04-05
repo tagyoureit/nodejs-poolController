@@ -23,6 +23,7 @@ import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
 import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
 import { conn } from "../../../controller/comms/Comms";
+import { webApp } from "../../Server";
 
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
@@ -218,6 +219,7 @@ export class ConfigRoute {
                     flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
                     acidTypes: sys.board.valueMaps.acidTypes.toArray(),
                     remServers: await sys.ncp.getREMServers(),
+                    interfaces: config.getSection('web.interfaces.rem'),
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
                     siCalcTypes: sys.board.valueMaps.siCalcTypes.toArray(),
                     alarms,
@@ -259,6 +261,26 @@ export class ConfigRoute {
             }
             return res.status(200).send(opts);
         });
+        app.get('/app/all/', (req, res) => {
+            let opts = config.getSection();
+            return res.status(200).send(opts);
+        });
+        app.get('/app/options/interfaces', (req, res) => {
+            // todo: move bytevaluemaps out to a proper location; add additional definitions
+            let opts = {
+                interfaces: config.getSection('web.interfaces'),
+                types: [
+                    {name: 'rem', desc: 'Relay Equipment Manager'},
+                    {name: 'mqtt', desc: 'MQTT'}
+                ],
+                protocols: [
+                    { val: 0, name: 'http://', desc: 'http://' },
+                    { val: 1, name: 'https://', desc: 'https://' },
+                    { val: 2, name: 'mqtt://', desc: 'mqtt://' },
+                ]
+            }
+            return res.status(200).send(opts);
+        });
         app.get('/config/options/tempSensors', (req, res) => {
             let opts = {
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
@@ -276,6 +298,13 @@ export class ConfigRoute {
         });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
+        app.put('/config/rem', async (req, res, next)=>{
+            try {
+                config.setSection('web.interfaces.rem', req.body);
+                
+            }
+            catch (err) {next(err);}
+        })
         app.put('/config/tempSensors', async (req, res, next) => {
             try {
                 await sys.board.system.setTempSensorsAsync(req.body);
@@ -741,6 +770,13 @@ export class ConfigRoute {
             sys.board.reloadConfig();
             return res.status(200).send('OK');
         });
+        app.put('/app/interface', async (req, res, next) => {
+           try{
+            await webApp.updateServerInterface(req.body);
+            return res.status(200).send('OK');
+        }
+        catch (err) {next(err);}
+        });
         app.get('/app/config/startPacketCapture', (req, res) => {
             startPacketCapture(true);
             return res.status(200).send('OK');
@@ -759,7 +795,5 @@ export class ConfigRoute {
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
         });
-
-
     }
 }

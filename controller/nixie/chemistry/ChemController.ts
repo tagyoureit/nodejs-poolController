@@ -383,7 +383,7 @@ export class NixieChemController extends NixieEquipment {
                     // We are not processing Homegrown at this point.
                     // Check each piece of equipment to make sure it is doing its thing.
                     this.calculateSaturationIndex();
-                    await this.processAlarms(schem);
+                    this.processAlarms(schem);
                     if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
                     if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
                 }

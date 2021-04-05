@@ -142,8 +142,7 @@ export class WebServer {
                     this._servers[s] = undefined;
                 } catch (err) { console.log(`Error stopping server ${s}: ${err.message}`); }
             }
-        } catch (err) {`Error stopping servers`}
-
+        } catch (err) { `Error stopping servers` }
     }
     private getInterface() {
         const networkInterfaces = os.networkInterfaces();
@@ -171,6 +170,12 @@ export class WebServer {
     public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
     public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type); }
     public findServerByGuid(uuid: string) { return this._servers.find(elem => elem.uuid === uuid); }
+    public async updateServerInterface(obj: any) {
+        config.setInterface(obj);
+        let srv = this.findServerByGuid(obj.uuid);
+        if (typeof srv !== 'undefined') await srv.stopAsync();
+        if (obj.enabled) srv.init(obj);
+    }
 }
 class ProtoServer {
     constructor(name: string, type: string) { this.name = name; this.type = type; }
@@ -182,6 +187,7 @@ class ProtoServer {
     public get isConnected() { return this.isRunning; }
     public emitToClients(evt: string, ...data: any) { }
     public emitToChannel(channel: string, evt: string, ...data: any) { }
+    public init(obj: any) { };
     public async stopAsync() { }
     protected _dev: boolean = process.env.NODE_ENV !== 'production';
     // todo: how do we know if the client is using IPv4/IPv6?
@@ -374,10 +380,15 @@ export class HttpServer extends ProtoServer {
             this.isRunning = true;
         }
     }
+    public addListenerOnce(event: any, f: (data: any) => void) {
+        for (let i = 0; i < this._sockets.length; i++) {
+            this._sockets[i].once(event, f);
+        }
+    }
 }
 export class HttpsServer extends HttpServer {
     public server: https.Server;
-    
+
     public init(cfg) {
         // const auth = require('http-auth');
         this.uuid = cfg.uuid;
@@ -385,17 +396,17 @@ export class HttpsServer extends HttpServer {
         try {
             this.app = express();
             // Enable Authentication (if configured)
-/*             if (cfg.authentication === 'basic') {
-                let basic = auth.basic({
-                    realm: "nodejs-poolController.",
-                    file: path.join(process.cwd(), cfg.authFile)
-                })
-                this.app.use(function(req, res, next) {
-                        (auth.connect(basic))(req, res, next);
-                });
-            } */
-            if (cfg.sslKeyFile === '' || cfg.sslCertFile === '' || !fs.existsSync(path.join(process.cwd(), cfg.sslKeyFile)) || !fs.existsSync(path.join(process.cwd(), cfg.sslCertFile))) { 
-                logger.warn(`HTTPS not enabled because key or crt file is missing.`); 
+            /*             if (cfg.authentication === 'basic') {
+                            let basic = auth.basic({
+                                realm: "nodejs-poolController.",
+                                file: path.join(process.cwd(), cfg.authFile)
+                            })
+                            this.app.use(function(req, res, next) {
+                                    (auth.connect(basic))(req, res, next);
+                            });
+                        } */
+            if (cfg.sslKeyFile === '' || cfg.sslCertFile === '' || !fs.existsSync(path.join(process.cwd(), cfg.sslKeyFile)) || !fs.existsSync(path.join(process.cwd(), cfg.sslCertFile))) {
+                logger.warn(`HTTPS not enabled because key or crt file is missing.`);
                 return;
             }
             let opts = {
@@ -834,6 +845,55 @@ export class REMInterfaceServer extends ProtoServer {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.initSockets();
+            setTimeout(async () => {
+                try {
+                    await this.initConnection();
+                }
+                catch (err) {
+                    logger.error(`Error establishing bi-directional Nixie/REM connection: ${err}`)
+                }
+            }, 5000);
+        }
+    }
+    private async initConnection() {
+        try {
+            // find HTTP server
+            return new Promise(async (resolve, reject) => {
+                // First, send the connection info for njsPC and see if a connection exists.
+                let url = '/config/checkconnection/';
+                // can & should extend for https/username-password/ssl
+                let data: any = { type: "njspc", isActive: true, id: null, name: "njsPC - automatic", protocol: "http:", ipAddress: webApp.ip(), port: config.getSection('web').servers.http.port || 4200, userName: "", password: "", sslKeyFile: "", sslCertFile: "" }
+                let result = await this.putApiService(url, data, 5000);
+                // If the result code is > 200 we have an issue. (-1 is for timeout)
+                if (result.status.code > 200 || result.status.code < 0) return reject(new Error(`initConnection: ${result.error.message}`));
+
+                // The passed connection has been setup/verified; now test for emit
+                // if this fails, it could be because the remote connection is disabled.  We will not 
+                // automatically re-enable it
+                url = '/config/checkemit'
+                data = { eventName: "checkemit", property: "result", value: 'success', connectionId: result.obj.id }
+                // wait for REM server to finish resetting
+                setTimeout(async () => {
+                    try {
+                        let _tmr = setTimeout(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 2000);
+                        let srv: HttpServer = webApp.findServer('http') as HttpServer;
+                        srv.addListenerOnce('/checkemit', (data: any) => {
+                            // if we receive the emit, data will work both ways.
+                            // console.log(data);
+                            clearTimeout(_tmr);
+                            logger.info(`REM bi-directional communications established.`)
+                            return resolve();
+                        });
+                        result = await this.putApiService(url, data, 1000);
+                        // If the result code is > 200 we have an issue.
+                        if (result.status.code > 200) return reject(new Error(`initConnection: ${result.error.message}`));
+                    }
+                    catch (err) {reject(new Error(`initConnection setTimeout: ${result.error.message}`));}
+                }, 3000);
+            });
+        }
+        catch (err) {
+            logger.error(`Error with REM Interface Server initConnection: ${err}`)
         }
     }
     public async stopAsync() {
@@ -850,7 +910,7 @@ export class REMInterfaceServer extends ProtoServer {
     private _sockets: socketio.Socket[] = [];
     private async sendClientRequest(method: string, url: string, data?: any, timeout:number = 10000): Promise<InterfaceServerResponse> {
         try {
-           
+
             let ret = new InterfaceServerResponse();
             let opts = extend(true, { headers: {} }, this.cfg.options);
             if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
@@ -898,8 +958,8 @@ export class REMInterfaceServer extends ProtoServer {
                 });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
-                logger.verbose(`REM server request returned. ${opts.method} ${opts.path} ${sbody}`);
             }).catch((err) => { logger.error(`Error Sending REM Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
+            logger.verbose(`REM server request returned. ${opts.method} ${opts.path} ${sbody}`);
             if (ret.status.code > 200) {
                 // We have an http error so let's parse it up.
                 try {

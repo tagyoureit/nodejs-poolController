@@ -130,5 +130,15 @@ class Config {
             });
         }
     }
+    public setInterface(obj: any){
+        let interfaces: any = this._cfg.web.interfaces;
+        for (var i in interfaces) {
+            if (interfaces[i].uuid === obj.uuid) {
+                interfaces[i] = obj;
+                break;
+            }
+        }
+        this.update();
+    }
 }
 export const config: Config = new Config();

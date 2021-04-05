@@ -1,7 +1,7 @@
 ﻿{
   "controller": {
     "comms": {
-      "enabled":  true,
+      "enabled": true,
       "rs485Port": "/dev/ttyUSB0",
       "mockPort": false,
       "netConnect": false,
@@ -45,7 +45,7 @@
         "enabled": false
       },
       "ssdp": {
-        "enabled": false
+        "enabled": true
       }
     },
     "services": {},
@@ -145,7 +145,6 @@
           "changesOnly": true
         }
       },
-
       "rem": {
         "name": "Relay Equipment Manager",
         "type": "rem",
@@ -167,18 +166,6 @@
           "reconnection": true,
           "reconnectionDelayMax": 20000
         }
-      },
-      "rulesManager": {
-        "name": "Rules Manager",
-        "type": "http",
-        "enabled": false,
-        "fileName": "rulesManager.json",
-        "globals": {},
-        "options": {
-          "host": "localhost",
-          "port": 4200
-        },
-        "uuid": "65ee2581-e652-427e-99c6-17c6aa02a6e3"
       }
     }
   },
@@ -251,7 +238,7 @@
       "enabled": true,
       "level": "info",
       "captureForReplay": false,
-      "logToFile":  false
+      "logToFile": false
     }
   },
   "appVersion": "0.0.1"
