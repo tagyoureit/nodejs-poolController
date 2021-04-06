@@ -135,10 +135,10 @@ class Config {
         for (var i in interfaces) {
             if (interfaces[i].uuid === obj.uuid) {
                 interfaces[i] = obj;
-                break;
+                this.update();
+                return {[i]: interfaces[i]};
             }
         }
-        this.update();
     }
 }
 export const config: Config = new Config();

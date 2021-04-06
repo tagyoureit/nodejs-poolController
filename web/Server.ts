@@ -84,9 +84,12 @@ export class WebServer {
                 srv = undefined;
             }
         }
-        for (let s in cfg.interfaces) {
+        this.initInterfaces(cfg.interfaces);
+    }
+    public initInterfaces(interfaces: any) {
+        for (let s in interfaces) {
             let int;
-            let c = cfg.interfaces[s];
+            let c = interfaces[s];
             if (typeof c.uuid === 'undefined') {
                 c.uuid = utils.uuid();
                 config.setSection(`web.interfaces.${s}`, c);
@@ -170,11 +173,26 @@ export class WebServer {
     public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
     public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type); }
     public findServerByGuid(uuid: string) { return this._servers.find(elem => elem.uuid === uuid); }
+    public removeServerByGuid(uuid: string) {
+        for (let i = 0; i < this._servers.length; i++) {
+            if (this._servers[i].uuid === uuid) this._servers.splice(i, 1);
+        }
+    }
     public async updateServerInterface(obj: any) {
-        config.setInterface(obj);
+        let int = config.setInterface(obj);
         let srv = this.findServerByGuid(obj.uuid);
-        if (typeof srv !== 'undefined') await srv.stopAsync();
-        if (obj.enabled) srv.init(obj);
+        // if server is not enabled; stop & remove it from local storage
+        if (typeof srv !== 'undefined') {
+            await srv.stopAsync();
+            this.removeServerByGuid(obj.uuid);
+        }
+        // if it's enabled, restart it or initialize it
+        if (obj.enabled) {
+            if (typeof srv === 'undefined') {
+                this.initInterfaces(int);
+            }
+            else srv.init(obj);
+        }
     }
 }
 class ProtoServer {
