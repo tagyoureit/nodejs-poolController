@@ -189,6 +189,7 @@ export class ConfigRoute {
         });
         app.get('/config/options/chemControllers', async (req, res, next) => {
             try {
+                let remServers = await sys.ncp.getREMServers();
                 let alarms = {
                     flow: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 1].includes(el.val)),
                     pH: sys.board.valueMaps.chemControllerAlarms.toArray().filter(el => [0, 2, 4].includes(el.val)),
@@ -218,8 +219,7 @@ export class ConfigRoute {
                     phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
                     flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
                     acidTypes: sys.board.valueMaps.acidTypes.toArray(),
-                    remServers: await sys.ncp.getREMServers(),
-                    interfaces: config.getSection('web.interfaces.rem'),
+                    remServers,
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
                     siCalcTypes: sys.board.valueMaps.siCalcTypes.toArray(),
                     alarms,
@@ -300,8 +300,10 @@ export class ConfigRoute {
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
         app.put('/config/rem', async (req, res, next)=>{
             try {
-                config.setSection('web.interfaces.rem', req.body);
-                
+                // RSG: this is problematic because we now enable multiple rem type interfaces that may not be called REM. 
+                // This is now also a dupe of PUT /app/interface and should be consolidated
+                // config.setSection('web.interfaces.rem', req.body);
+                config.setInterface(req.body);
             }
             catch (err) {next(err);}
         })
@@ -721,6 +723,13 @@ export class ConfigRoute {
             }
         });
         app.put('/config/chemController', async (req, res, next) => {
+            try {
+                let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
+                return res.status(200).send(chem.get());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/chemController/feed', async (req, res, next) => {
             try {
                 let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
                 return res.status(200).send(chem.get());

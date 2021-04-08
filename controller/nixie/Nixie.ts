@@ -11,6 +11,7 @@ import { NixieCircuitCollection } from './circuits/Circuit';
 import { NixieBodyCollection } from './bodies/Body';
 import { NixieValveCollection } from './valves/Valve';
 import { NixieHeaterCollection } from './heaters/Heater';
+import { config } from '../../config/Config';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -114,15 +115,19 @@ export class NixieControlPanel implements INixieControlPanel {
                 let server = servers[i];
                 // Sometimes I hate type safety.
                 let devices = typeof server['getDevices'] === 'function' ? await server['getDevices']() : [];
+                let int = config.getInterfaceByUuid(servers[i].uuid);
                 srv.push({
                     uuid: servers[i].uuid,
                     name: servers[i].name,
                     type: servers[i].type,
                     isRunning: servers[i].isRunning,
                     isConnected: servers[i].isConnected,
-                    devices: devices
+                    devices: devices,
+                    remoteConnectionId: servers[i].remoteConnectionId,
+                    interface: int
                 });
             }
+            await ncp.chemControllers.syncRemoteREMFeeds(srv);
             return srv;
         } catch (err) { logger.error(err); }
     }

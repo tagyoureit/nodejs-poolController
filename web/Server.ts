@@ -200,6 +200,7 @@ class ProtoServer {
     public name: string;
     public type: string;
     public uuid: string;
+    public remoteConnectionId: string;
     // base class for all servers.
     public isRunning: boolean = false;
     public get isConnected() { return this.isRunning; }
@@ -884,6 +885,7 @@ export class REMInterfaceServer extends ProtoServer {
                 let result = await this.putApiService(url, data, 5000);
                 // If the result code is > 200 we have an issue. (-1 is for timeout)
                 if (result.status.code > 200 || result.status.code < 0) return reject(new Error(`initConnection: ${result.error.message}`));
+                else {this.remoteConnectionId = result.obj.id};
 
                 // The passed connection has been setup/verified; now test for emit
                 // if this fails, it could be because the remote connection is disabled.  We will not 

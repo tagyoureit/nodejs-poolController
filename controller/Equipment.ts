@@ -1965,6 +1965,11 @@ export class ChemicalProbe extends ChildEqItem {
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }
     public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public get remFeedEnabled(): boolean { return this.data.remFeedEnabled; }
+    public set remFeedEnabled(val: boolean) { this.setDataVal('remFeedEnabled', val); }
+    public get remFeedId(): number { return this.data.remFeedId; }
+    public set remFeedId(val: number) { this.setDataVal('remFeedId', val); }
+
     public getExtended() { return this.get(true); }
 }
 export class ChemicalPhProbe extends ChemicalProbe {

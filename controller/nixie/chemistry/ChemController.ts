@@ -1,4 +1,4 @@
-﻿import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../../Errors';
+﻿import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../Errors';
 import { utils, Timestamp } from '../../Constants';
 import { logger } from '../../../logger/Logger';
 
@@ -6,7 +6,6 @@ import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieCo
 import { ChemController, Chemical, ChemicalPh, ChemicalORP, ChemicalPhProbe, ChemicalORPProbe, ChemicalTank, ChemicalPump, sys, ChemicalProbe, ChemControllerCollection, ChemFlowSensor } from "../../../controller/Equipment";
 import { ChemControllerState, ChemicalState, ChemicalORPState, ChemicalPhState, state, ChemicalProbeState, ChemicalProbePHState, ChemicalProbeORPState, ChemicalTankState, ChemicalPumpState } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
-import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemController> {
@@ -55,6 +54,13 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
             }
         }
         catch (err) { logger.error(`setControllerAsync: ${err.message}`); return Promise.reject(err); }
+    }
+    public async syncRemoteREMFeeds(servers) {
+        // update the controller probes, flowsensor with REM feed status
+        for (let i = 0; i < this.length; i++) {
+            let ncc = this[i] as NixieChemController;
+            ncc.syncRemoteREMFeeds(servers);
+        }
     }
     public async initAsync(controllers: ChemControllerCollection) {
         try {
@@ -274,9 +280,9 @@ export class NixieChemController extends NixieEquipment {
                     'K');
                 let I = ((1.5 * this.chem.calciumHardness + this.chem.alkalinity)) / 50045 + extraSalt / 58440;
                 let carbAlk = this.chem.alkalinity - 0.38772 * this.chem.cyanuricAcid / (1 + Math.pow(10, 6.83 - schem.ph.level)) - 4.63 * this.chem.borates / (1 + Math.pow(10, 9.11 - ph));
-//                console.log({ msg: 'Calculating CSI', saltLevel: saltLevel, extraSalt: extraSalt, tempK: tempK, I: I, pH: ph, carbAlk: carbAlk });
+                //                console.log({ msg: 'Calculating CSI', saltLevel: saltLevel, extraSalt: extraSalt, tempK: tempK, I: I, pH: ph, carbAlk: carbAlk });
                 let SI = Math.round((
-                    ph 
+                    ph
                     - 6.9395
                     + Math.log10(this.chem.calciumHardness)
                     + Math.log10(carbAlk)
@@ -299,50 +305,50 @@ export class NixieChemController extends NixieEquipment {
         }
     }
     public async checkFlowAsync(schem: ChemControllerState): Promise<boolean> {
-            try {
-                schem.isBodyOn = this.isBodyOn();
-                // rsg - we were not returning the flow sensor state when the body was off.  
-                // first, this would not allow us to retrieve a pressure of 0 to update flowSensor.state
-                // second, we can set a flow alarm if the expected flow doesn't match actual flow
-                if (this.flowSensor.sensor.type === 0) {
-                    this.flowDetected = schem.flowDetected = true;
-                    schem.alarms.flowSensorFault = 0;
-                }
-                else {
-                    let ret = await this.flowSensor.getState();
-                    schem.flowSensor.state = ret.obj.state;
-                    // Call out to REM to see if we have flow.
-                    
-                    // We should have state from the sensor but we want to keep this somewhat generic.
-                    //[1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
-                    //[2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
-                    //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
-                    if (this.flowSensor.sensor.type === 1) {
-                        // This is a flow switch.  The expectation is that it should be 0 or 1.
-                        let v;
-                        if (typeof ret.obj.state.boolean !== 'undefined') v = utils.makeBool(ret.obj.state.boolean);
-                        else if (typeof ret.obj.state === 'string') v = utils.makeBool(ret.obj.state);
-                        else if (typeof ret.obj.state === 'boolean') v = ret.obj.state;
-                        else if (typeof ret.obj.state === 'number') v = utils.makeBool(ret.obj.state);
-                        else if (typeof ret.obj.state.val === 'number') v = utils.makeBool(ret.obj.state.val);
-                        else v = false;
-                        this.flowDetected = schem.flowDetected = v;
-                    }
-                    else if (this.flowSensor.sensor.type == 2) {
-                        this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
-                    }
-                    else if (this.flowSensor.sensor.type == 4) {
-                        this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
-                    }
-                    else
-                    this.flowDetected = schem.flowDetected = false;
-                    schem.alarms.flowSensorFault = 0;
-                }
-                if (!schem.flowDetected) this.bodyOnTime = undefined;
-                else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
-                return schem.flowDetected;
+        try {
+            schem.isBodyOn = this.isBodyOn();
+            // rsg - we were not returning the flow sensor state when the body was off.  
+            // first, this would not allow us to retrieve a pressure of 0 to update flowSensor.state
+            // second, we can set a flow alarm if the expected flow doesn't match actual flow
+            if (this.flowSensor.sensor.type === 0) {
+                this.flowDetected = schem.flowDetected = true;
+                schem.alarms.flowSensorFault = 0;
             }
-            catch (err) { logger.error(`checkFlowAsync: ${err.message}`); schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; }
+            else {
+                let ret = await this.flowSensor.getState();
+                schem.flowSensor.state = ret.obj.state;
+                // Call out to REM to see if we have flow.
+
+                // We should have state from the sensor but we want to keep this somewhat generic.
+                //[1, { name: 'switch', desc: 'Flow Switch', remAddress: true }],
+                //[2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
+                //[4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
+                if (this.flowSensor.sensor.type === 1) {
+                    // This is a flow switch.  The expectation is that it should be 0 or 1.
+                    let v;
+                    if (typeof ret.obj.state.boolean !== 'undefined') v = utils.makeBool(ret.obj.state.boolean);
+                    else if (typeof ret.obj.state === 'string') v = utils.makeBool(ret.obj.state);
+                    else if (typeof ret.obj.state === 'boolean') v = ret.obj.state;
+                    else if (typeof ret.obj.state === 'number') v = utils.makeBool(ret.obj.state);
+                    else if (typeof ret.obj.state.val === 'number') v = utils.makeBool(ret.obj.state.val);
+                    else v = false;
+                    this.flowDetected = schem.flowDetected = v;
+                }
+                else if (this.flowSensor.sensor.type == 2) {
+                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumFlow;
+                }
+                else if (this.flowSensor.sensor.type == 4) {
+                    this.flowDetected = schem.flowDetected = ret.obj.state > this.flowSensor.sensor.minimumPressure;
+                }
+                else
+                    this.flowDetected = schem.flowDetected = false;
+                schem.alarms.flowSensorFault = 0;
+            }
+            if (!schem.flowDetected) this.bodyOnTime = undefined;
+            else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
+            return schem.flowDetected;
+        }
+        catch (err) { logger.error(`checkFlowAsync: ${err.message}`); schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; }
     }
     private get dissolvedSolidsFactor() { return this.chem.orp.useChlorinator ? 12.2 : 12.1; }
     private calculateTemperatureFactor(schem: ChemControllerState): number {
@@ -419,7 +425,7 @@ export class NixieChemController extends NixieEquipment {
             schem.orp.enabled = this.chem.orp.enabled;
             schem.ph.enabled = this.chem.ph.enabled;
             if (this.chem.orp.enabled) {
-                
+
                 let useChlorinator = chem.orp.useChlorinator;
                 let pumpType = chem.orp.pump.type;
                 let probeType = chem.orp.probe.type;
@@ -586,6 +592,10 @@ export class NixieChemController extends NixieEquipment {
         return isOn;
     }
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
+    public syncRemoteREMFeeds(servers) {
+        this.ph.probe.syncRemoteREMFeeds(this.chem, servers);
+        this.orp.probe.syncRemoteREMFeeds(this.chem, servers);
+    }
 }
 class NixieChemical extends NixieChildEquipment {
     public chemical: Chemical;
@@ -1601,9 +1611,11 @@ export class NixieChemProbePh extends NixieChemProbe {
             if (typeof data !== 'undefined') {
                 await this.setProbeAsync(this.probe, sprobe, data);
                 this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
+                this.probe.type === 0 ? this.probe.enabled = false : this.probe.enabled = true;
                 sprobe.temperature = typeof data.temperature !== 'undefined' ? parseFloat(data.temperature) : sprobe.temperature;
                 sprobe.tempUnits = typeof data.tempUnits !== 'undefined' ? data.tempUnits : sprobe.tempUnits;
                 this.probe.feedBodyTemp = typeof data.feedBodyTemp !== 'undefined' ? utils.makeBool(data.feedBodyTemp) : utils.makeBool(this.probe.feedBodyTemp);
+                await this.setRemoteREMFeed(data);
             }
         } catch (err) { logger.error(`setProbeAsync pH: ${err.message}`); return Promise.reject(err); }
     }
@@ -1621,12 +1633,65 @@ export class NixieChemProbePh extends NixieChemProbe {
                         sprobe.tempUnits = units.val;
                         sprobe.temperature = body.temp; // set temp for lsi calc
                         let res = await NixieEquipment.putDeviceService(this.probe.connectionId, `/feed/device/${this.probe.deviceBinding}`, obj);
-        
+
                     }
                 }
             }
         }
         catch (err) { logger.error(`setTempCompensation phProbe: ${err.message}`); return Promise.reject(err);}
+    }
+    public async setRemoteREMFeed(data: any) {
+        // Set/update remote feeds
+        try {
+            if (typeof this.probe.deviceBinding === 'undefined' || this.probe.type !== 1) return;
+            if (this.probe.remFeedEnabled !== data.remFeedEnabled) {
+                let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
+                let d = {
+                    id: this.probe.remFeedId,
+                    connectionId: remoteConnectionId,
+                    options: { id: this._pmap['parent'].chemController.id },
+                    deviceBinding: this.probe.deviceBinding,
+                    eventName: "chemController",
+                    property: "pHLevel",
+                    sendValue: 'pH',
+                    isActive: data.remFeedEnabled,
+                    sampling: 1,
+                    changesOnly: false,
+                    propertyDesc: '[chemController].pHLevel'
+                }
+                let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+                if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled;}
+                else {logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(`Cannot set REM feed for pH probe: ${JSON.stringify(res)}.`);}
+            }
+        }
+        catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); return Promise.reject(err); }
+    }
+    public syncRemoteREMFeeds(chem: ChemController, servers) {
+        // match any feeds and store the id/statusf
+        try {
+            if (this.probe.enabled === false || this.probe.type !== 1) return;
+            let pHProbe = this.probe;
+            for (let i = 0; i < servers.length; i++) {
+                let device = servers[i].devices.find(el => el.binding === pHProbe.deviceBinding);
+                if (typeof device !== 'undefined' && typeof device.feeds !== 'undefined')
+                    for (let j = 0; j < device.feeds.length; j++) {
+                        let feed = device.feeds[j];
+                        if (feed.options.id === chem.id &&
+                            feed.eventName === "chemController" &&
+                            feed.property === "pHLevel" &&
+                            (feed.sendValue === 'pH' || feed.sendValue === 'all')
+                        ) {
+                            this.probe.remFeedEnabled = feed.isActive;
+                            this.probe.remFeedId = feed.id;
+                            return;
+                        }
+                    }
+            }
+            // if we get this far, no feed was found. 
+            this.probe.remFeedEnabled = false;
+            this.probe.remFeedId = undefined;
+        }
+        catch (err) { logger.error(`syncRemoteREMFeeds error: ${err}`); }
     }
 }
 export class NixieChemProbeORP extends NixieChemProbe {
@@ -1641,9 +1706,64 @@ export class NixieChemProbeORP extends NixieChemProbe {
             if (typeof data !== 'undefined') {
                 await this.setProbeAsync(this.probe, sprobe, data);
                 this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
+                this.probe.type === 0 ? this.probe.enabled = false : this.probe.enabled = true;
                 sprobe.saltLevel = typeof data.saltLevel !== 'undefined' ? parseFloat(data.saltLevel) : sprobe.saltLevel;
+                await this.setRemoteREMFeed(data);
             }
         } catch (err) { logger.error(`setProbeAsync ORP: ${err.message}`); return Promise.reject(err); }
+    }
+    public async setRemoteREMFeed(data: any) {
+        // Set/update remote feeds
+        try {
+            if (typeof this.probe.deviceBinding === 'undefined' || this.probe.type !== 1) return;
+            if (this.probe.remFeedEnabled !== data.remFeedEnabled) {
+                let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
+                let d = {
+                    id: this.probe.remFeedId,
+                    connectionId: remoteConnectionId,
+                    options: { id: this._pmap['parent'].chemController.id },
+                    deviceBinding: this.probe.deviceBinding,
+                    eventName: 'chemController',
+                    property: 'orpLevel',
+                    sendValue: 'orp',
+                    isActive: data.remFeedEnabled,
+                    sampling: 1,
+                    changesOnly: false,
+                    propertyDesc: '[chemController].orpLevel'
+                }
+                let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+                if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled;}
+                else {logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`);  return Promise.reject(new InvalidOperationError(`Nixie could not set remote REM feed for the ORP probe.`, this.probe.dataName));}
+            }
+        }
+        catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); return Promise.reject(err); }
+    }
+    public syncRemoteREMFeeds(chem: ChemController, servers) {
+        // match any feeds and store the id/statusf
+        try {
+            if (this.probe.enabled === false || this.probe.type !== 1) return;
+            let pHProbe = this.probe;
+            for (let i = 0; i < servers.length; i++) {
+                let device = servers[i].devices.find(el => el.binding === pHProbe.deviceBinding);
+                if (typeof device !== 'undefined' && typeof device.feeds !== 'undefined')
+                    for (let j = 0; j < device.feeds.length; j++) {
+                        let feed = device.feeds[j];
+                        if (feed.options.id === chem.id &&
+                            feed.eventName === "chemController" &&
+                            feed.property === "orpLevel" &&
+                            (feed.sendValue === 'orp' || feed.sendValue === 'all')
+                        ) {
+                            this.probe.remFeedEnabled = feed.isActive;
+                            this.probe.remFeedId = feed.id;
+                            return;
+                        }
+                    }
+            }
+            // if we get this far, no feed was found. 
+            this.probe.remFeedEnabled = false;
+            this.probe.remFeedId = undefined;
+        }
+        catch (err) { logger.error(`syncRemoteREMFeeds error: ${err}`); }
     }
 }
 export class NixieChemFlowSensor extends NixieChildEquipment {

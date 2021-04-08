@@ -140,5 +140,13 @@ class Config {
             }
         }
     }
+    public getInterfaceByUuid(uuid: string){
+        let interfaces = this._cfg.web.interfaces
+        for (var i in interfaces) {
+            if (interfaces[i].uuid === uuid) {
+                return interfaces[i];
+            }
+        }
+    }
 }
 export const config: Config = new Config();
