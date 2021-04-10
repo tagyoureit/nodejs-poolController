@@ -397,7 +397,7 @@ export class NixieChemController extends NixieEquipment {
                     logger.warn('REM Server not Connected');
             }
         }
-        catch (err) { logger.error(`Error polling Chem Controller - ${err}`);}
+        catch (err) { logger.error(`Error polling Chem Controller - ${err}`); }
         finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     public processAlarms(schem: ChemControllerState) {
@@ -822,7 +822,7 @@ export class NixieChemDoseLog {
         this.timeDosed = utils.parseDuration(obj.timeDosed) * 1000; // Time dosed is in ms.
     }
     public toLog() {
-        return `{"id":${this.id},"method":"${this.method}","chem":"${this.chem}","start":"${Timestamp.toISOLocal(this.start)}","end":"${Timestamp.toISOLocal(this.end)}","demand":${this.demand},"level": ${this.level},"volume": ${this.volume},"volumeDosed":${this.volumeDosed},"timeDosed":"${utils.formatDuration(this.timeDosed/1000)}"}`;
+        return `{"id":${this.id},"method":"${this.method}","chem":"${this.chem}","start":"${Timestamp.toISOLocal(this.start)}","end":"${Timestamp.toISOLocal(this.end)}","demand":${this.demand},"level": ${this.level},"volume": ${this.volume},"volumeDosed":${this.volumeDosed},"timeDosed":"${utils.formatDuration(this.timeDosed / 1000)}"}`;
     }
     public static fromDose(dose: NixieChemDose): NixieChemDoseLog {
         let log = new NixieChemDoseLog();
@@ -967,7 +967,7 @@ export class NixieChemPump extends NixieChildEquipment {
                     // The remaining delay = delay time - (current time - on time).
                     let timeElapsed = new Date().getTime() - this.chemical.chemController.bodyOnTime;
                     delay = Math.max(0, ((this.chemical.chemical.startDelay * 60) * 1000) - timeElapsed);
-                    dosage.schem.delayTimeRemaining = Math.max(0, Math.round(delay/1000));
+                    dosage.schem.delayTimeRemaining = Math.max(0, Math.round(delay / 1000));
                     if (delay > 0) {
                         if (!dosage.schem.flowDelay) logger.info(`Chem Controller delay dosing for ${utils.formatDuration(delay / 1000)}`)
                         else logger.verbose(`Chem pump delay dosing for ${utils.formatDuration(delay / 1000)}`);
@@ -1100,7 +1100,7 @@ export class NixieChemicalPh extends NixieChemical {
     public probe: NixieChemProbePh;
     public mixStart: Date;
     public doseStart: Date;
-    public get logFilename() { return `chemDosage_${(this.chemical as ChemicalPh).phSupply === 1 ? 'acid' : 'base'}.log`;  }
+    public get logFilename() { return `chemDosage_${(this.chemical as ChemicalPh).phSupply === 1 ? 'acid' : 'base'}.log`; }
     constructor(controller: NixieChemController, chemical: ChemicalPh) {
         super(controller, chemical);
         this.chemType = 'acid';
@@ -1609,6 +1609,13 @@ export class NixieChemProbePh extends NixieChemProbe {
     public async setProbePhAsync(sprobe: ChemicalProbePHState, data: any) {
         try {
             if (typeof data !== 'undefined') {
+                // if probe is not Atlas, or binding changes, disable feed for existing probe
+                if (this.probe.type !== 1 || this.probe.deviceBinding !== data.deviceBinding) {
+                    let disabledFeed = this.probe;
+                    disabledFeed.remFeedEnabled = false;
+                    await this.setRemoteREMFeed(disabledFeed);
+                    this.probe.remFeedId = undefined;
+                }
                 await this.setProbeAsync(this.probe, sprobe, data);
                 this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
                 this.probe.type === 0 ? this.probe.enabled = false : this.probe.enabled = true;
@@ -1638,38 +1645,36 @@ export class NixieChemProbePh extends NixieChemProbe {
                 }
             }
         }
-        catch (err) { logger.error(`setTempCompensation phProbe: ${err.message}`); return Promise.reject(err);}
+        catch (err) { logger.error(`setTempCompensation phProbe: ${err.message}`); return Promise.reject(err); }
     }
     public async setRemoteREMFeed(data: any) {
         // Set/update remote feeds
         try {
-            if (typeof this.probe.deviceBinding === 'undefined' || this.probe.type !== 1) return;
-            if (this.probe.remFeedEnabled !== data.remFeedEnabled) {
-                let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
-                let d = {
-                    id: this.probe.remFeedId,
-                    connectionId: remoteConnectionId,
-                    options: { id: this._pmap['parent'].chemController.id },
-                    deviceBinding: this.probe.deviceBinding,
-                    eventName: "chemController",
-                    property: "pHLevel",
-                    sendValue: 'pH',
-                    isActive: data.remFeedEnabled,
-                    sampling: 1,
-                    changesOnly: false,
-                    propertyDesc: '[chemController].pHLevel'
-                }
-                let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
-                if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled;}
-                else {logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(`Cannot set REM feed for pH probe: ${JSON.stringify(res)}.`);}
+            // if no device binding, return (if this is switched from atlas no 0/2 it will still have a value)
+            if (typeof this.probe.deviceBinding === 'undefined') return;
+            let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
+            let d = {
+                id: this.probe.remFeedId,
+                connectionId: remoteConnectionId,
+                options: { id: this._pmap['parent'].chemController.id },
+                deviceBinding: this.probe.deviceBinding,
+                eventName: "chemController",
+                property: "pHLevel",
+                sendValue: 'pH',
+                isActive: data.remFeedEnabled,
+                sampling: 1,
+                changesOnly: false,
+                propertyDesc: '[chemController].pHLevel'
             }
+            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+            if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
+            else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(`Cannot set REM feed for pH probe: ${JSON.stringify(res)}.`); }
         }
         catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); return Promise.reject(err); }
     }
     public syncRemoteREMFeeds(chem: ChemController, servers) {
         // match any feeds and store the id/statusf
         try {
-            if (this.probe.enabled === false || this.probe.type !== 1) return;
             let pHProbe = this.probe;
             for (let i = 0; i < servers.length; i++) {
                 let device = servers[i].devices.find(el => el.binding === pHProbe.deviceBinding);
@@ -1681,6 +1686,12 @@ export class NixieChemProbePh extends NixieChemProbe {
                             feed.property === "pHLevel" &&
                             (feed.sendValue === 'pH' || feed.sendValue === 'all')
                         ) {
+                            // if feed is enabled, but probe is disabled; disable feed
+                            if (feed.isActive && this.probe.enabled === false) {
+                                chem.ph.probe.remFeedEnabled = false;
+                                this.setRemoteREMFeed(chem.ph.probe);
+                                return;
+                            }
                             this.probe.remFeedEnabled = feed.isActive;
                             this.probe.remFeedId = feed.id;
                             return;
@@ -1704,6 +1715,13 @@ export class NixieChemProbeORP extends NixieChemProbe {
     public async setProbeORPAsync(sprobe: ChemicalProbeORPState, data: any) {
         try {
             if (typeof data !== 'undefined') {
+                // if probe is not Atlas, or binding changes, disable feed for existing probe
+                if (this.probe.type !== 1 || this.probe.deviceBinding !== data.deviceBinding) {
+                    let disabledFeed = this.probe;
+                    disabledFeed.remFeedEnabled = false;
+                    await this.setRemoteREMFeed(disabledFeed);
+                    this.probe.remFeedId = undefined;
+                }
                 await this.setProbeAsync(this.probe, sprobe, data);
                 this.probe.type = typeof data.type !== 'undefined' ? data.type : this.probe.type;
                 this.probe.type === 0 ? this.probe.enabled = false : this.probe.enabled = true;
@@ -1715,33 +1733,31 @@ export class NixieChemProbeORP extends NixieChemProbe {
     public async setRemoteREMFeed(data: any) {
         // Set/update remote feeds
         try {
-            if (typeof this.probe.deviceBinding === 'undefined' || this.probe.type !== 1) return;
-            if (this.probe.remFeedEnabled !== data.remFeedEnabled) {
-                let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
-                let d = {
-                    id: this.probe.remFeedId,
-                    connectionId: remoteConnectionId,
-                    options: { id: this._pmap['parent'].chemController.id },
-                    deviceBinding: this.probe.deviceBinding,
-                    eventName: 'chemController',
-                    property: 'orpLevel',
-                    sendValue: 'orp',
-                    isActive: data.remFeedEnabled,
-                    sampling: 1,
-                    changesOnly: false,
-                    propertyDesc: '[chemController].orpLevel'
-                }
-                let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
-                if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled;}
-                else {logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`);  return Promise.reject(new InvalidOperationError(`Nixie could not set remote REM feed for the ORP probe.`, this.probe.dataName));}
+            // if no device binding, return (if this is switched from atlas no 0/2 it will still have a value)
+            if (typeof this.probe.deviceBinding === 'undefined') return;
+            let remoteConnectionId = webApp.findServerByGuid(this.probe.connectionId).remoteConnectionId;
+            let d = {
+                id: this.probe.remFeedId,
+                connectionId: remoteConnectionId,
+                options: { id: this._pmap['parent'].chemController.id },
+                deviceBinding: this.probe.deviceBinding,
+                eventName: 'chemController',
+                property: 'orpLevel',
+                sendValue: 'orp',
+                isActive: data.remFeedEnabled,
+                sampling: 1,
+                changesOnly: false,
+                propertyDesc: '[chemController].orpLevel'
             }
+            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+            if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
+            else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(new InvalidOperationError(`Nixie could not set remote REM feed for the ORP probe.`, this.probe.dataName)); }
         }
         catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); return Promise.reject(err); }
     }
     public syncRemoteREMFeeds(chem: ChemController, servers) {
         // match any feeds and store the id/statusf
         try {
-            if (this.probe.enabled === false || this.probe.type !== 1) return;
             let pHProbe = this.probe;
             for (let i = 0; i < servers.length; i++) {
                 let device = servers[i].devices.find(el => el.binding === pHProbe.deviceBinding);
@@ -1753,6 +1769,12 @@ export class NixieChemProbeORP extends NixieChemProbe {
                             feed.property === "orpLevel" &&
                             (feed.sendValue === 'orp' || feed.sendValue === 'all')
                         ) {
+                            // if feed is enabled, but probe is disabled; disable feed
+                            if (feed.isActive && this.probe.enabled === false) {
+                                chem.ph.probe.remFeedEnabled = false;
+                                this.setRemoteREMFeed(chem.ph.probe);
+                                return;
+                            }
                             this.probe.remFeedEnabled = feed.isActive;
                             this.probe.remFeedId = feed.id;
                             return;

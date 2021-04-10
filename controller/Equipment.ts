@@ -115,7 +115,7 @@ export class PoolSystem implements IPoolSystem {
         }
         return cfg;
     }
-    
+
     public resetSystem() {
         conn.pause();
         this.resetData();
@@ -138,7 +138,7 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
-            if (this.data.controllerType === ControllerType.Unknown) setTimeout(()=>{this.searchForAdditionalDevices();}, 7500);
+            if (this.data.controllerType === ControllerType.Unknown) setTimeout(() => { this.searchForAdditionalDevices(); }, 7500);
         }
     }
     public resetData() {
@@ -175,15 +175,15 @@ export class PoolSystem implements IPoolSystem {
         return this.board.stopAsync();
     }
     public searchForAdditionalDevices() {
-        if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort){    
+        if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
             logger.info("Searching chlorinators, pumps and chem controllers");
             EquipmentStateMessage.initVirtual();
             sys.board.virtualChlorinatorController.search();
             sys.board.virtualPumpControllers.search();
             sys.board.virtualChemControllers.search();
-        }  
+        }
         else {
-            if (this.controllerType === ControllerType.Virtual){
+            if (this.controllerType === ControllerType.Virtual) {
                 state.mode = 0;
                 state.status = 1;
                 sys.equipment.setEquipmentIds();
@@ -201,8 +201,8 @@ export class PoolSystem implements IPoolSystem {
             sys.board.heaters.initTempSensors();
             sys.board.heaters.updateHeaterServices();
             sys.board.system.processStatusTimer();
-        }  
-     }
+        }
+    }
     public board: SystemBoard = new SystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
@@ -211,7 +211,7 @@ export class PoolSystem implements IPoolSystem {
     public data: any;
     protected _lastUpdated: Date;
     protected _isDirty: boolean;
-    protected _timerDirty: NodeJS.Timeout=null;
+    protected _timerDirty: NodeJS.Timeout = null;
     protected _timerChanges: NodeJS.Timeout;
     protected _needsChanges: boolean;
     // All the equipment items below.
@@ -259,7 +259,7 @@ export class PoolSystem implements IPoolSystem {
         sys.emitEquipmentChange();
         Promise.resolve()
             .then(() => { fs.writeFileSync(sys.cfgPath, JSON.stringify(sys.data, undefined, 2)); })
-            .catch(function(err) { if (err) logger.error('Error writing pool config %s %s', err, sys.cfgPath); });
+            .catch(function (err) { if (err) logger.error('Error writing pool config %s %s', err, sys.cfgPath); });
     }
     // We are doing this because TS is lame. Accessing the app servers from the routes causes a cyclic include.
     public findServersByType(type: string) {
@@ -276,7 +276,7 @@ export class PoolSystem implements IPoolSystem {
         }
         return srv;
     }
-    protected onchange=(obj, fn) => {
+    protected onchange = (obj, fn) => {
         const handler = {
             get(target, property, receiver) {
                 // console.log(`getting prop: ${property} -- dataName? ${target.length}`)
@@ -400,7 +400,7 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
                 }
                 else if (this[prop] instanceof EqItem)
                     ((this[prop] as unknown) as IEqItem).set(data[prop]);
-                else{
+                else {
                     if (typeof this[prop] === null || typeof data[prop] === null) continue;
                     this[prop] = data[prop];
                     // RSG 7/13/2020 - type safety against a user sending the wrong type
@@ -410,10 +410,10 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
                     // for something like "type" anyway 
                     // RSG 7/16/2020 Rstrouse pointed out to me this would exclude us setting
                     // that was already undefined so relaxed the restriction a bit
-                } 
-             }
+                }
+            }
         }
-    } 
+    }
     protected setDataVal(name, val, persist?: boolean) {
         if (this.data[name] !== val) {
             // console.log(`Changing equipment: ${this.dataName} ${this.data.id} ${name}:${this.data[name]} --> ${val}`);
@@ -422,7 +422,7 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
         }
         else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
     }
-   
+
 }
 class ChildEqItem extends EqItem {
     private _pmap = new WeakSet();
@@ -489,7 +489,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         this.data.splice(ndx, 1);
     }
     // Finds an item and returns undefined if it doesn't exist.
-    public find(f: (value:any, index?:number, obj?:any) => boolean): T {
+    public find(f: (value: any, index?: number, obj?: any) => boolean): T {
         let itm = this.data.find(f);
         if (typeof itm !== 'undefined') return this.createItem(itm);
     }
@@ -540,7 +540,7 @@ class EqItemCollection<T> implements IEqItemCollection {
             if (typeof eq === 'undefined') return i;
         }
     }
-    public getMaxId(activeOnly?: boolean, defId?:number) {
+    public getMaxId(activeOnly?: boolean, defId?: number) {
         let maxId;
         for (let i = 0; i < this.data.length; i++) {
             if (typeof this.data[i].id !== 'undefined') {
@@ -550,7 +550,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         }
         return typeof maxId !== 'undefined' ? maxId : defId;
     }
-    public getMinId(activeOnly?: boolean, defId?:number) {
+    public getMinId(activeOnly?: boolean, defId?: number) {
         let minId;
         for (let i = 0; i < this.data.length; i++) {
             if (typeof this.data[i].id !== 'undefined') {
@@ -562,7 +562,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     }
 }
 export class General extends EqItem {
-    ctor(data:any, name?: any): General { return new General(data, name || 'pool'); }
+    ctor(data: any, name?: any): General { return new General(data, name || 'pool'); }
     public get alias(): string { return this.data.alias; }
     public set alias(val: string) { this.setDataVal('alias', val); }
     public get owner(): Owner { return new Owner(this.data, 'owner'); }
@@ -588,7 +588,7 @@ export class CustomName extends EqItem {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class Owner extends EqItem {
-    public dataName='ownerConfig';
+    public dataName = 'ownerConfig';
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get phone(): string { return this.data.phone; }
@@ -624,7 +624,7 @@ export class FlowSensorCollection extends EqItemCollection<TempSensor> {
     public createItem(data: any): TempSensor { return new TempSensor(data); }
 }
 export class TempSensor extends EqItem {
-    public dataName='sensorConfig';
+    public dataName = 'sensorConfig';
     public set id(val: string) { this.setDataVal('id', val); }
     public get id(): string { return this.data.id; }
     public get name(): string { return this.data.name; }
@@ -635,7 +635,7 @@ export class TempSensor extends EqItem {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class Options extends EqItem {
-    public dataName='optionsConfig';
+    public dataName = 'optionsConfig';
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
     public get units(): number | any { return this.data.units; }
@@ -666,7 +666,7 @@ export class Options extends EqItem {
     //public set solarTempAdj2(val: number) { this.setDataVal('solarTempAd2', val); }
 }
 export class Location extends EqItem {
-    public dataName='locationConfig';
+    public dataName = 'locationConfig';
     public get address(): string { return this.data.address; }
     public set address(val: string) { this.setDataVal('address', val); }
     public get city(): string { return this.data.city; }
@@ -708,7 +708,7 @@ export class ExpansionPanelCollection extends EqItemCollection<ExpansionPanel> {
     public createItem(data: any): ExpansionPanel { return new ExpansionPanel(data); }
 }
 export class ExpansionPanel extends EqItem {
-    public dataName='expansionPanelConfig';
+    public dataName = 'expansionPanelConfig';
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get type(): number { return this.data.type; }
@@ -865,7 +865,7 @@ export class BodyCollection extends EqItemCollection<Body> {
         // 3. Finally if nothing else is provided it will search by name.
         let body = this.find(elem => {
             if (typeof obj.id !== 'undefined') return obj.id === elem.id;
-            else if(typeof obj.circuit !== 'undefined') return obj.circuit === elem.circuit;
+            else if (typeof obj.circuit !== 'undefined') return obj.circuit === elem.circuit;
             else if (typeof obj.name !== 'undefined') return obj.name === body.name;
             else return false;
         });
@@ -873,7 +873,7 @@ export class BodyCollection extends EqItemCollection<Body> {
     }
 }
 export class Body extends EqItem {
-    public dataName='bodyConfig';
+    public dataName = 'bodyConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -902,13 +902,13 @@ export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }
     public createItem(data: any): Schedule { return new Schedule(data); }
     public getNextEquipmentId(range: EquipmentIdRange): number {
-    let data = [...this.data, ...sys.eggTimers.get()]
+        let data = [...this.data, ...sys.eggTimers.get()]
         for (let i = range.start; i <= range.end; i++) {
             let eq = data.find(elem => elem.id === i);
             if (typeof eq === 'undefined') return i;
         }
     }
-    
+
 }
 export class Schedule extends EqItem {
     constructor(data: any) { super(data); }
@@ -922,8 +922,8 @@ export class Schedule extends EqItem {
     }
 
     // todo: investigate schedules having startDate and _startDate
-    private _startDate: Date=new Date();
-    public dataName='scheduleConfig';
+    private _startDate: Date = new Date();
+    public dataName = 'scheduleConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get startTime(): number { return this.data.startTime; }
@@ -975,8 +975,8 @@ export class EggTimer extends EqItem {
         else this._startDate = new Date(data.startDate);
         if (isNaN(this._startDate.getTime())) this._startDate = new Date();
     }
-    public dataName='eggTimerConfig';
-    private _startDate: Date=new Date();
+    public dataName = 'eggTimerConfig';
+    private _startDate: Date = new Date();
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get runTime(): number { return this.data.runTime; }
@@ -1005,7 +1005,7 @@ export class CircuitCollection extends EqItemCollection<Circuit> {
     }
 }
 export class Circuit extends EqItem implements ICircuit {
-    public dataName='circuitConfig';
+    public dataName = 'circuitConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1062,7 +1062,7 @@ export class Feature extends EqItem implements ICircuit {
         if (typeof this.data.eggTimer === 'undefined') this.data.eggTimer = 720;
         if (typeof this.data.showInFeatures === 'undefined') this.data.showInFeatures = true;
     }
-    public dataName='featureConfig';
+    public dataName = 'featureConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1118,7 +1118,7 @@ export class PumpCollection extends EqItemCollection<Pump> {
     }
 }
 export class Pump extends EqItem {
-    public dataName='pumpConfig';
+    public dataName = 'pumpConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get address(): number { return this.data.address || this.data.id + 95; }
@@ -1166,13 +1166,13 @@ export class Pump extends EqItem {
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
     public get isVirtual() { return this.data.isVirtual; }
-    public set isVirtual(val: boolean){ this.setDataVal('isVirtual', val); }
-    public get defaultUnits() { 
+    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get defaultUnits() {
         if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vf')
             return sys.board.valueMaps.pumpUnits.getValue('gpm');
         else
             return sys.board.valueMaps.pumpUnits.getValue('rpm');
-        }
+    }
     // This is relevant only for single speed pumps.  All other pumps are driven from the circuits.  You cannot
     // identify a single speed pump in *Touch but the definition can be stored and the wattage is acquired by the model.
     public get body(): number | any { return this.data.body; }
@@ -1180,10 +1180,10 @@ export class Pump extends EqItem {
     public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
-/*     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
-    public setPumpCircuit(pumpCircuit: any) {
-        return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
-    } */
+    /*     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
+        public setPumpCircuit(pumpCircuit: any) {
+            return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
+        } */
     public deletePumpCircuit(pumpCircuitId: number) {
         return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }
@@ -1209,7 +1209,7 @@ export class Pump extends EqItem {
             return 15;
         else return gpm;
     }
-    public isRPMorGPM(rate: number): 'rpm'|'gpm'|'none' {
+    public isRPMorGPM(rate: number): 'rpm' | 'gpm' | 'none' {
         if (rate >= this.minFlow || rate <= this.maxFlow) return 'gpm';
         if (rate >= this.minSpeed || rate <= this.maxSpeed) return 'rpm';
         return 'none';
@@ -1220,7 +1220,7 @@ export class PumpCircuitCollection extends EqItemCollection<PumpCircuit> {
     public createItem(data: any): PumpCircuit { return new PumpCircuit(data); }
 }
 export class PumpCircuit extends EqItem {
-    public dataName='pumpCircuitConfig';
+    public dataName = 'pumpCircuitConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -1364,7 +1364,7 @@ export class CoverCollection extends EqItemCollection<Cover> {
     }
 }
 export class Cover extends EqItem {
-    public dataName='coverConfig';
+    public dataName = 'coverConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1394,7 +1394,7 @@ export interface ICircuitGroup {
 }
 export interface ICircuitGroupCircuit {
     id: number,
-    circuit:number
+    circuit: number
 }
 export class LightGroupCollection extends EqItemCollection<LightGroup> {
     constructor(data: any, name?: string) { super(data, name || "lightGroups"); }
@@ -1461,7 +1461,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         super(data, name);
         if (typeof obj !== 'undefined') extend(true, this.data, obj);
     }
-    public dataName='lightGroupConfig';
+    public dataName = 'lightGroupConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1502,7 +1502,7 @@ export class CircuitGroupCircuitCollection extends EqItemCollection<CircuitGroup
     public createItem(data: any): CircuitGroupCircuit { return new CircuitGroupCircuit(data); }
 }
 export class CircuitGroupCircuit extends EqItem implements ICircuitGroupCircuit {
-    public dataName='circuitGroupCircuitConfig';
+    public dataName = 'circuitGroupCircuitConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -1543,7 +1543,7 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
 
 }
 export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
-    public dataName='circuitGroupConfig';
+    public dataName = 'circuitGroupConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1627,7 +1627,7 @@ export class SecurityRoleCollection extends EqItemCollection<SecurityRole> {
     public createItem(data: any): SecurityRole { return new SecurityRole(data); }
 }
 export class SecurityRole extends EqItem {
-    public dataName='roleConfig';
+    public dataName = 'roleConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1642,7 +1642,7 @@ export class SecurityRole extends EqItem {
     public set pin(val: string) { this.setDataVal('pin', val); }
 }
 export class Security extends EqItem {
-    public dataName='securityConfig';
+    public dataName = 'securityConfig';
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
     public get roles(): SecurityRoleCollection { return new SecurityRoleCollection(this.data, "roles"); }
@@ -1654,7 +1654,7 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
         let itm = this.find(elem => elem.address === address && typeof elem.address !== 'undefined');
         if (typeof itm !== 'undefined') return itm;
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
-        return this.createItem(data || { id:this.data.length + 1, address: address });
+        return this.createItem(data || { id: this.data.length + 1, address: address });
     }
     //public nextAvailableChemController(): number {
     //    for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
@@ -1801,7 +1801,7 @@ export class ChemController extends EqItem {
     public get HMIAdvancedDisplay(): boolean { return this.data.HMIAdvancedDisplay; }
     public set HMIAdvancedDisplay(val: boolean) { this.setDataVal('HMIAdvancedDisplay', val); }
     public get siCalcType(): number | any { return this.data.siCalcType; }
-    public set siCalcType(val : number | any) { this.setDataVal('siCalcType', sys.board.valueMaps.siCalcTypes.encode(val));  }
+    public set siCalcType(val: number | any) { this.setDataVal('siCalcType', sys.board.valueMaps.siCalcTypes.encode(val)); }
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
     public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
     public get lsiRange(): AlarmSetting { return new AlarmSetting(this.data, 'lsiRange', this); }
@@ -1863,7 +1863,7 @@ export class Chemical extends ChildEqItem {
     public set maxDosingVolume(val: number) { this.setDataVal('maxDosingVolume', val); }
     public get maxDailyVolume(): number { return this.data.maxDailyVolume; }
     public set maxDailyVolume(val: number) { this.setDataVal('maxDailyVolume', val); }
-    
+
     public get mixingTime(): number { return this.data.mixingTime; }
     public set mixingTime(val: number) { this.setDataVal('mixingTime', val); }
     public get flowOnlyMixing(): boolean { return utils.makeBool(this.data.flowOnlyMixing); }
@@ -1938,7 +1938,7 @@ export class FilterCollection extends EqItemCollection<Filter> {
     public createItem(data: any): Filter { return new Filter(data); }
 }
 export class Filter extends EqItem {
-    public dataName='filterConfig';
+    public dataName = 'filterConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get filterType(): number | any { return this.data.filterType; }
