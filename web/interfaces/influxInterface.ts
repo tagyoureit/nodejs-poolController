@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import extend = require("extend");
-import { ClientOptions, InfluxDB, Point, WritePrecision, WriteApi } from '@influxdata/influxdb-client';
+import { ClientOptions, InfluxDB, Point, WriteApi, WritePrecisionType } from '@influxdata/influxdb-client';
 import { utils } from '../../controller/Constants';
 import { logger } from "../../logger/Logger";
 import { BaseInterfaceBindings, InterfaceContext, InterfaceEvent } from "./baseInterface";
@@ -49,7 +49,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             token: `${baseOpts.username}:${baseOpts.password}`,
         }
         const influxDB = new InfluxDB(clientOptions);
-        this.writeApi = influxDB.getWriteApi('', bucket, 'ms' as WritePrecision);
+        this.writeApi = influxDB.getWriteApi('', bucket, 'ms' as WritePrecisionType);
         
        
         // set global tags from context

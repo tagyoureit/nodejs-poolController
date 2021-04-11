@@ -70,7 +70,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         try {
             if (typeof this.client !== 'undefined') {
                 await this.unsubscribe();
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
                         logger.info(`Successfully shut down MQTT Client`);
                         resolve();
@@ -84,7 +84,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             while (this.topics.length > 0) {
                 let topic = this.topics.pop();
                 if (typeof topic !== 'undefined') {
-                    await new Promise((resolve, reject) => {
+                    await new Promise<void>((resolve, reject) => {
                         this.client.unsubscribe(topic, (err, packet) => {
                             if (err) reject(new Error(`Error unsubscribing from MQTT topic ${topic}`));
                             else {
@@ -119,7 +119,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 `${root}/state/chlorinator`);
             for (let i = 0; i < this.topics.length; i++) {
                 let topic = this.topics[i];
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     this.client.subscribe(topic, (err, granted) => {
                         if (!err) {
                             logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`);

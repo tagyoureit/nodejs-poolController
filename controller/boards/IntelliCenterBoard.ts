@@ -757,7 +757,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
     public async setGeneralAsync(obj?: any): Promise<General> {
         return new Promise<General>(async (resolve, reject) => {
             try {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
                         let out = Outbound.create({
                             action: 168,
@@ -845,7 +845,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
                 payload[2] = 1;
                 payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -860,7 +860,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 4;
                     payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
                     let out = Outbound.create({
@@ -877,7 +877,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 6;
                     payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
                     let out = Outbound.create({
@@ -894,7 +894,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 8;
                     payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
                     let out = Outbound.create({
@@ -912,7 +912,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
 
             if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 2;
                     payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
                     let out = Outbound.create({
@@ -929,7 +929,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 5;
                     payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
                     let out = Outbound.create({
@@ -946,7 +946,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 7;
                     payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
                     let out = Outbound.create({
@@ -963,7 +963,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 8;
                     payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
                     let out = Outbound.create({
@@ -980,7 +980,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 3;
                     payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
                     let out = Outbound.create({
@@ -998,7 +998,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
             if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
                 (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
-                await new Promise(function (resolve, reject) {
+                await new Promise<void>(function (resolve, reject) {
                     let byte = 0x30; // These bits are always set.
                     if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
                     else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
@@ -1024,7 +1024,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 11;
                     payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
                     let out = Outbound.create({
@@ -1046,7 +1046,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 27;
                     payload[30] = obj.pumpDelay ? 0x01 : 0x00;
                     let out = Outbound.create({
@@ -1063,7 +1063,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.cooldownDelay !== 'undefined' && obj.cooldownDelay !== sys.general.options.cooldownDelay) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 28;
                     payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
                     let out = Outbound.create({
@@ -1080,7 +1080,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.manualPriority !== 'undefined' && obj.manualPriority !== sys.general.options.manualPriority) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 36;
                     payload[39] = obj.manualPriority ? 0x01 : 0x00;
                     let out = Outbound.create({
@@ -1097,7 +1097,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     payload[2] = 37;
                     payload[40] = obj.manualHeat ? 0x01 : 0x00;
                     let out = Outbound.create({
@@ -1121,7 +1121,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         try {
             let arr = [];
             if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1137,7 +1137,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.country === 'string' && obj.country !== sys.general.location.country) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1153,7 +1153,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.city === 'string' && obj.city !== sys.general.location.city) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1169,7 +1169,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.state === 'string' && obj.state !== sys.general.location.state) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1185,7 +1185,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.zip === 'string' && obj.zip !== sys.general.location.zip) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1202,7 +1202,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
 
             if (typeof obj.latitude === 'number' && obj.latitude !== sys.general.location.latitude) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let lat = Math.round(Math.abs(obj.latitude) * 100);
                     let out = Outbound.create({
                         action: 168,
@@ -1220,7 +1220,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.longitude === 'number' && obj.longitude !== sys.general.location.longitude) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let lon = Math.round(Math.abs(obj.longitude) * 100);
                     let out = Outbound.create({
                         action: 168,
@@ -1238,7 +1238,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.timeZone === 'number' && obj.timeZone !== sys.general.location.timeZone) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1260,7 +1260,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         let arr = [];
         try {
             if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1276,7 +1276,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.email === 'string' && obj.email !== sys.general.owner.email) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1292,7 +1292,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.email2 === 'string' && obj.email2 !== sys.general.owner.email2) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1308,7 +1308,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.phone2 === 'string' && obj.phone2 !== sys.general.owner.phone2) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1324,7 +1324,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
             }
             if (typeof obj.phone === 'string' && obj.phone !== sys.general.owner.phone) {
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1419,7 +1419,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group ids exceeded: ${id}`, id, 'circuitGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'circuitGroup'));
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
                 if (isNaN(eggTimer)) eggTimer = 720;
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
@@ -1470,7 +1470,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.payload.push(eggMins);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1488,7 +1488,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1530,7 +1530,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id);
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
@@ -1554,7 +1554,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.payload.push(0);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1571,7 +1571,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.appendPayloadString(group.name || '', 16);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1610,7 +1610,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (typeof id === 'undefined') return Promise.reject(new Error(`Max light group ids exceeded`));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
                 if (isNaN(eggTimer)) eggTimer = 720;
                 eggTimer = Math.max(Math.min(1440, eggTimer), 1);
@@ -1680,7 +1680,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.payload.push(eggMins);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1699,7 +1699,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
@@ -1754,7 +1754,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         group = sys.lightGroups.getItemById(id);
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
@@ -1778,7 +1778,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.payload.push(0);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,
@@ -1795,7 +1795,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 out.appendPayloadString(group.name);
                 conn.queueSendMessage(out);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,
@@ -1831,7 +1831,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 msgs.msg1.payload[i + 3] = circuit ? circuit.color || 0 : 255;
                 msgs.msg2.payload[i + 3] = circuit ? circuit.color || 0 : 0;
             }
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
                 msgs.msg0.retries = 5;
                 msgs.msg0.onComplete = (err) => {
@@ -1853,7 +1853,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 }
                 conn.queueSendMessage(msgs.msg0);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 msgs.msg1.response = IntelliCenterBoard.getAckResponse(168);
                 msgs.msg1.retries = 5;
                 msgs.msg1.onComplete = (err) => {
@@ -1862,7 +1862,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 }
                 conn.queueSendMessage(msgs.msg1);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 msgs.msg2.response = IntelliCenterBoard.getAckResponse(168);
                 msgs.msg2.retries = 5;
                 msgs.msg2.onComplete = (err) => {
@@ -2051,7 +2051,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let sgroup = state.lightGroups.getItemById(id);
             let msgs = this.createLightGroupMessages(group);
             msgs.msg0.payload[4] = (theme << 2) + 1;
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
                 msgs.msg0.retries = 5;
                 msgs.msg0.onComplete = (err) => {
@@ -2084,7 +2084,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 });
                 out.response = IntelliCenterBoard.getAckResponse(168);
                 out.retries = 5;
-                await new Promise((resolve, reject) => {
+                await new Promise<void>((resolve, reject) => {
                     out.onComplete = (err) => {
                         if (!err) {
                             circuit.lightingTheme = theme;
@@ -2252,7 +2252,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         try {
             if (!cstate.isOn)
                 await this.setCircuitStateAsync(id, true);
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     action: 168, payload: [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
                         level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0],
@@ -2651,7 +2651,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 }
             }
             // We now have our messages.  Let's send them off and update our values.
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 outc.response = IntelliCenterBoard.getAckResponse(168);
                 outc.retries = 5;
                 outc.onComplete = (err) => {
@@ -2720,7 +2720,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 };
                 conn.queueSendMessage(outc);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 outn.response = IntelliCenterBoard.getAckResponse(168);
                 outn.retries = 5;
                 outn.onComplete = (err, msg) => {
@@ -2788,7 +2788,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outn.appendPayloadString('Pump -' + (id + 1), 16);
         // We now have our messages.  Let's send them off and update our values.
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 outc.retries = 5;
                 outc.response = IntelliCenterBoard.getAckResponse(168);
                 outc.onComplete = (err) => {
@@ -2802,7 +2802,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 };
                 conn.queueSendMessage(outc);
             });
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 outn.response = IntelliCenterBoard.getAckResponse(168);
                 outn.retries = 2;
                 outn.onComplete = (err) => {
@@ -2845,7 +2845,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                         response: IntelliCenterBoard.getAckResponse(168),
                         onComplete: (err, msg) => {
                             if (err) reject(err);
-                            else { body.name = obj.name; resolve(); }
+                            else { body.name = obj.name; resolve(body); }
                         }
                     });
                     out.appendPayloadString(obj.name, 16);
@@ -2855,7 +2855,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
             if (typeof obj.capacity !== 'undefined') {
                 let cap = parseInt(obj.capacity, 10);
                 if (cap !== body.capacity) {
-                    await new Promise((resolve, reject) => {
+                    await new Promise<void>((resolve, reject) => {
                         let out = Outbound.create({
                             action: 168,
                             retries: 2,
@@ -2873,7 +2873,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
             if (typeof obj.manualHeat !== 'undefined') {
                 let manHeat = utils.makeBool(obj.manualHeat);
                 if (manHeat !== body.manualHeat) {
-                    await new Promise((resolve, reject) => {
+                    await new Promise<void>((resolve, reject) => {
                         let out = Outbound.create({
                             action: 168,
                             payload: [13, 0, byte + 8, manHeat ? 1 : 0],

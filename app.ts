@@ -69,7 +69,7 @@ export async function stopAsync(): Promise<void> {
         config.update();
         await logger.stopAsync();
         // RKS: Uncomment below to see the shutdown process
-        //await new Promise((resolve, reject) => { setTimeout(() => { resolve(); }, 10000); });
+        //await new Promise<void>((resolve, reject) => { setTimeout(() => { resolve(); }, 10000); });
     }
     catch (err) {
         console.error(`Error stopping processes: ${ err.message }`);

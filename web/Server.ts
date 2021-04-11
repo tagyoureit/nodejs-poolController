@@ -20,8 +20,8 @@ import express = require('express');
 import { utils } from "../controller/Constants";
 import { config } from "../config/Config";
 import { logger } from "../logger/Logger";
-import socketio = require("socket.io");
-const sockClient = require('socket.io-client');
+import { Namespace, RemoteSocket, Server as SocketIoServer, Socket } from "socket.io";
+import { io as sockClient } from "socket.io-client";
 import { ConfigRoute } from "./services/config/Config";
 import { StateRoute } from "./services/state/State";
 import { StateSocket } from "./services/state/StateSocket";
@@ -222,62 +222,75 @@ export class Http2Server extends ProtoServer {
         }
     }
 }
+interface ClientToServerEvents {
+    noArg: () => void;
+    basicEmit: (a: number, b: string, c: number[]) => void;
+}
+
+interface ServerToClientEvents {
+    withAck: (d: string, cb: (e: number) => void) => void;
+}
 export class HttpServer extends ProtoServer {
     // Http protocol
     public app: express.Application;
     public server: http.Server;
-    public sockServer: socketio.Server;
-    //public parcel: parcelBundler;
-    private _sockets: socketio.Socket[] = [];
-    //private _pendingMsg: Inbound;
+    public sockServer: SocketIoServer<ClientToServerEvents, ServerToClientEvents>;
+    private _nameSpace: Namespace;
+    private _sockets: RemoteSocket<ServerToClientEvents>[] = [];
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
-            // console.log(JSON.stringify({evt:evt, msg: 'Emitting...', data: data },null,2));
-            this.sockServer.emit(evt, ...data);
+            this._nameSpace.emit(evt, ...data);
         }
     }
     public emitToChannel(channel: string, evt: string, ...data: any) {
         //console.log(`Emitting to channel ${channel} - ${evt}`)
-        if (this.isRunning) this.sockServer.to(channel).emit(evt, ...data);
+        if (this.isRunning) {
+            let _nameSpace: Namespace = this.sockServer.of(channel);
+            _nameSpace.emit(evt, ...data);
+        }
     }
     public get isConnected() { return typeof this.sockServer !== 'undefined' && this._sockets.length > 0; }
     protected initSockets() {
-        this.sockServer = socketio(this.server, { cookie: false });
-
-        //this.sockServer.origins('*:*');
-        this.sockServer.on('error', (err) => {
-            logger.error('Socket server error %s', err.message);
-        });
-        this.sockServer.on('connect_error', (err) => {
-            logger.error('Socket connection error %s', err.message);
-        });
-        this.sockServer.on('reconnect_failed', (err) => {
-            logger.error('Failed to reconnect with socket %s', err.message);
-        });
-        this.sockServer.on('connection', (sock: socketio.Socket) => {
+        let options = {
+            allowEIO3: true,
+            cors: {
+                origin: true,
+                methods: ["GET", "POST"],
+                credentials: true
+            }
+        }
+        this.sockServer = new SocketIoServer(this.server, options);
+        this._nameSpace = this.sockServer.of('/');
+        this.sockServer.on("connection", (sock: Socket) => {
             logger.info(`New socket client connected ${sock.id} -- ${sock.client.conn.remoteAddress}`);
             this.socketHandler(sock);
-            this.sockServer.emit('controller', state.controllerState);
-            sock.conn.emit('controller', state.controllerState);
+            sock.emit('controller', state.controllerState);
+            sock.conn.emit('controller', state.controllerState); // do we need both of these?
+            //this.sockServer.origins('*:*');
+            sock.on('connect_error', (err) => {
+                logger.error('Socket server error %s', err.message);
+            });
+            sock.on('reconnect_failed', (err) => {
+                logger.error('Failed to reconnect with socket %s', err.message);
+            });
         });
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
     }
 
-    private socketHandler(sock: socketio.Socket) {
+    private socketHandler(sock: Socket) {
         let self = this;
-        this._sockets.push(sock);
+        // this._sockets.push(sock);
+        setTimeout(async () => {
+            // refresh socket list with every new socket
+            self._sockets = await self.sockServer.fetchSockets();
+        }, 100)
+
         sock.on('error', (err) => {
             logger.error('Error with socket: %s', err);
         });
-        sock.on('close', (id) => {
-            for (let i = this._sockets.length; i >= 0; i--) {
-                if (this._sockets[i].id === id) {
-                    let s = this._sockets[i];
-                    logger.info('Socket diconnecting %s', s.conn.remoteAddress);
-                    s.disconnect();
-                    this._sockets.splice(i, 1);
-                }
-            }
+        sock.on('close', async (id) => {
+            logger.info('Socket diconnecting %s', id);
+            self._sockets = await self.sockServer.fetchSockets();
         });
         sock.on('echo', (msg) => { sock.emit('echo', msg); });
         sock.on('receivePacketRaw', function (incomingPacket: any[]) {
@@ -400,9 +413,10 @@ export class HttpServer extends ProtoServer {
         }
     }
     public addListenerOnce(event: any, f: (data: any) => void) {
-        for (let i = 0; i < this._sockets.length; i++) {
-            this._sockets[i].once(event, f);
-        }
+        // for (let i = 0; i < this._sockets.length; i++) {
+        //     this._sockets[i].once(event, f);
+        // }
+        this.sockServer.once(event, f);
     }
 }
 export class HttpsServer extends HttpServer {
@@ -628,12 +642,13 @@ export class MdnsServer extends ProtoServer {
     }
     public async stopAsync() {
         try {
-            await new Promise((resolve, reject) => {
-                this.server.destroy((err) => {
-                    if (err) reject(err);
-                    else resolve();
+            if (typeof this.server !== 'undefined')
+                await new Promise<void>((resolve, reject) => {
+                    this.server.destroy((err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
                 });
-            });
             logger.info(`Shut down MDNS Server ${this.name}`);
         } catch (err) { logger.error(`Error shutting down MDNS Server ${this.name}: ${err.message}`); }
     }
@@ -877,7 +892,7 @@ export class REMInterfaceServer extends ProtoServer {
     private async initConnection() {
         try {
             // find HTTP server
-            return new Promise(async (resolve, reject) => {
+            return new Promise<void>(async (resolve, reject) => {
                 // First, send the connection info for njsPC and see if a connection exists.
                 let url = '/config/checkconnection/';
                 // can & should extend for https/username-password/ssl
@@ -885,17 +900,18 @@ export class REMInterfaceServer extends ProtoServer {
                 let result = await this.putApiService(url, data, 5000);
                 // If the result code is > 200 we have an issue. (-1 is for timeout)
                 if (result.status.code > 200 || result.status.code < 0) return reject(new Error(`initConnection: ${result.error.message}`));
-                else {this.remoteConnectionId = result.obj.id};
+                else { this.remoteConnectionId = result.obj.id };
 
                 // The passed connection has been setup/verified; now test for emit
                 // if this fails, it could be because the remote connection is disabled.  We will not 
                 // automatically re-enable it
+
                 url = '/config/checkemit'
                 data = { eventName: "checkemit", property: "result", value: 'success', connectionId: result.obj.id }
                 // wait for REM server to finish resetting
                 setTimeout(async () => {
                     try {
-                        let _tmr = setTimeout(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 2000);
+                        let _tmr = setTimeout(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 5000);
                         let srv: HttpServer = webApp.findServer('http') as HttpServer;
                         srv.addListenerOnce('/checkemit', (data: any) => {
                             // if we receive the emit, data will work both ways.
@@ -904,11 +920,15 @@ export class REMInterfaceServer extends ProtoServer {
                             logger.info(`REM bi-directional communications established.`)
                             return resolve();
                         });
-                        result = await this.putApiService(url, data, 1000);
-                        // If the result code is > 200 we have an issue.
-                        if (result.status.code > 200) return reject(new Error(`initConnection: ${result.error.message}`));
+                        result = await this.putApiService(url, data);
+                        // If the result code is > 200 or -1 we have an issue.
+                        if (result.status.code > 200 || result.status.code === -1) return reject(new Error(`initConnection: ${result.error.message}`));
+                        else {
+                            clearTimeout(_tmr);
+                            return resolve();
+                        }
                     }
-                    catch (err) {reject(new Error(`initConnection setTimeout: ${result.error.message}`));}
+                    catch (err) { reject(new Error(`initConnection setTimeout: ${result.error.message}`)); }
                 }, 3000);
             });
         }
@@ -927,8 +947,8 @@ export class REMInterfaceServer extends ProtoServer {
     public sockClient;
     protected agent: http.Agent = new http.Agent({ keepAlive: true });
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
-    private _sockets: socketio.Socket[] = [];
-    private async sendClientRequest(method: string, url: string, data?: any, timeout:number = 10000): Promise<InterfaceServerResponse> {
+    private _sockets: RemoteSocket<ServerToClientEvents>[] = [];
+    private async sendClientRequest(method: string, url: string, data?: any, timeout: number = 10000): Promise<InterfaceServerResponse> {
         try {
 
             let ret = new InterfaceServerResponse();
@@ -948,7 +968,7 @@ export class REMInterfaceServer extends ProtoServer {
             ret.data = '';
             opts.agent = this.agent;
             logger.verbose(`REM server request initiated. ${opts.method} ${opts.path} ${sbody}`);
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let req: http.ClientRequest;
                 if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
                     opts.protocol = 'https:';
@@ -989,7 +1009,7 @@ export class REMInterfaceServer extends ProtoServer {
             }
             else if (ret.status.code === 200 && this.isJSONString(ret.data)) {
                 try { ret.obj = JSON.parse(ret.data); }
-                catch (err) {}
+                catch (err) { }
             }
             logger.debug(`REM server request returned. ${opts.method} ${opts.path} ${sbody} ${JSON.stringify(ret)}`);
             return ret;
@@ -1006,7 +1026,7 @@ export class REMInterfaceServer extends ProtoServer {
             logger.info(`Opening ${this.cfg.name} socket on ${url}`);
             //console.log(this.cfg);
             this.sockClient = sockClient(url, extend(true,
-                { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000, transports: ['websocket'], upgrade: false }, this.cfg.socket));
+                { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000, transports: ['websocket'], upgrade: true, }, this.cfg.socket));
             if (typeof this.sockClient === 'undefined') return Promise.reject(new Error('Could not Initialize REM Server.  Invalid configuration.'));
             //this.sockClient = io.connect(url, { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000 });
             //console.log(this.sockClient);
@@ -1034,24 +1054,24 @@ export class REMInterfaceServer extends ProtoServer {
         if (typeof s.startsWith('{') || typeof s.startsWith('[')) return true;
         return false;
     }
-    public async getApiService(url: string, data?: any, timeout:number = 3600): Promise<InterfaceServerResponse> {
+    public async getApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
         try { let ret = await this.sendClientRequest('GET', url, data, timeout); return ret; }
-        catch (err) {  return Promise.reject(err); }
+        catch (err) { return Promise.reject(err); }
     }
     public async putApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('PUT', url, data, timeout); return ret;}
+        try { let ret = await this.sendClientRequest('PUT', url, data, timeout); return ret; }
         catch (err) { return Promise.reject(err); }
     }
     public async searchApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('SEARCH', url, data, timeout); return ret;}
+        try { let ret = await this.sendClientRequest('SEARCH', url, data, timeout); return ret; }
         catch (err) { return Promise.reject(err); }
     }
     public async deleteApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret;}
+        try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret; }
         catch (err) { return Promise.reject(err); }
     }
     public async getDevices() {

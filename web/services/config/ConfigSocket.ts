@@ -22,8 +22,9 @@ import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
 import { state } from "../../../controller/State";
 import {stopPacketCaptureAsync, startPacketCapture} from '../../../app';
+import { Socket } from 'socket.io';
 export class ConfigSocket {
-    public static initSockets(sock: SocketIO.Socket) {
+    public static initSockets(sock: Socket) {
         sock.on('/config/lightGroup', async (data: any) => {
             try {
                 data = JSON.parse(data);

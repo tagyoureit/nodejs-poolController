@@ -23,7 +23,7 @@ import { Message, Outbound, Protocol, Response } from '../comms/messages/Message
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState } from '../State';
+import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -1540,7 +1540,7 @@ export class PumpCommands extends BoardCommands {
         conn.queueSendMessage(out);
     }
     private runGPM(pump: Pump, spump: PumpState, callbackStack?: any[]) {
-        // return new Promise((resolve, reject) => {
+        // return new Promise<void>((resolve, reject) => {
         sys.board.virtualPumpControllers.setTargetSpeed();
         let speed = spump.targetSpeed;
         if (speed === 0 && callbackStack.length > 0) {
@@ -2259,7 +2259,7 @@ export class ChlorinatorCommands extends BoardCommands {
     }
 
     public ping(cstate: ChlorinatorState) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Chlorinator,
                 dest: cstate.id,
@@ -2974,7 +2974,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (isNaN(orpTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', orpTankLevel));
             if (isNaN(acidTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', acidTankLevel));
 
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     dest: chem.address,
                     source: 16, // ic doesn't seem to like msgs coming from 33
@@ -3494,7 +3494,7 @@ export class ChemControllerCommands extends BoardCommands {
             if (isNaN(orpTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', orpTankLevel));
             if (isNaN(acidTankLevel)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp tank level`, 'chemController', acidTankLevel));
 
-            await new Promise((_resolve, _reject) => {
+            await new Promise<ChemControllerState>((_resolve, _reject) => {
                 let out = Outbound.create({
                     dest: chem.address,
                     source: 16, // ic doesn't seem to like msgs coming from 33
@@ -3518,7 +3518,7 @@ export class ChemControllerCommands extends BoardCommands {
                             schem.orp.tank.level = orpTankLevel;
                             chem.cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
                             chem.isActive = schem.isActive = true;
-                            _resolve(); // let IntelliChem status packet set values
+                            _resolve(schem); // let IntelliChem status packet set values
                         }
                     }
                 });
@@ -3694,7 +3694,7 @@ export class ChemControllerCommands extends BoardCommands {
         */
 
         // this mimics another control panel asking OCP for chem controller status
-        // return new Promise((resolve, reject)=> {
+        // return new Promise<void>((resolve, reject)=> {
         let out = Outbound.create({
             source: 16,
             dest: chem.address,
@@ -3906,7 +3906,7 @@ export class VirtualPumpController extends BoardCommands {
         // this is faux async just so we give pumps time to stop.
         // maybe a better way to do this without having individual
         // pump async calls
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             // turn off all pumps
             let bAnyVirtual = false;
             for (let i = 1; i <= sys.pumps.length; i++) {

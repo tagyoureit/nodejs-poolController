@@ -19,9 +19,9 @@ import { sys, ChemController, Circuit, Feature } from "../../../controller/Equip
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
 import { ServiceParameterError } from "../../../controller/Errors";
-
+import { Socket } from 'socket.io';
 export class StateSocket {
-    public static initSockets(sock: SocketIO.Socket) {
+    public static initSockets(sock: Socket) {
         sock.on('/state/circuit/toggleState', async (data: any) => {
             try {
                 data = JSON.parse(data);

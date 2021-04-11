@@ -741,7 +741,7 @@ export enum GetTouchConfigCategories {
 }
 class TouchSystemCommands extends SystemCommands {
     public async cancelDelay() {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 action: 131,
                 payload: [0],
@@ -762,7 +762,7 @@ class TouchSystemCommands extends SystemCommands {
         });
     }
     public async setDateTimeAsync(obj: any): Promise<any> {
-        return new Promise((resolve, reject) => {
+        return new Promise<any>((resolve, reject) => {
             let dst = sys.general.options.adjustDST ? 1 : 0;
             if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
             let { hour = state.time.hours,
@@ -1040,7 +1040,7 @@ class TouchCircuitCommands extends CircuitCommands {
         return this.setCircuitStateAsync(id, !cstate.isOn);
     }
     private createLightGroupMessages(group: LightGroup) {
-        let packets: Promise<any>[] = [];
+        let packets: Promise<void>[] = [];
         // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
         if (sys.equipment.maxIntelliBrites === 8) {
             // Easytouch
