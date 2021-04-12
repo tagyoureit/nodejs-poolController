@@ -1,7 +1,15 @@
 # Changelog
 
-## 6.5.2
+## 7.0.0
+1. Upgrades to setup/sync between njsPC and REM
+2. Significant steps to njsPC (Nixie) acting as a standalone pool controller (virtual controller heaters, move virtual controller code, etc.)
+3. Dependency updates (Typescript 4, Socket.io 4, etc)
 
+## 6.5.2
+1. Bug Fixes
+2. Schedule updates
+3. MQTT Binding updates
+4. LSI calcs for REM (in addition to CSI)
 
 ## 6.5.1
 1. Init Touch bodies upon startup

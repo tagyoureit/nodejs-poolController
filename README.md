@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 6.5.2
+# nodejs-poolController - Version 7.0.0
 
 ## What is nodejs-poolController
 
@@ -18,18 +18,14 @@ Equipment supported
 1. Intellichem and homegrown chemical controllers
 1. Intellivalve (coming soon)
 1. Home Automation:  SmartThings, Hubitat, ISY, Vera, Siri, Echo
+1. Chemical probes (pH, ORP, flow sensors, EC, etc.)
 
-## What's new in 6.0?
+## What's new in 7.0?
 
-In short, everything!  6.0 is a complete re-write of the application.  Huge props to @rstrouse for his wisdom and guidance in refactoring the code.
+The current version includes very tight intergation with [relayEquipmentManager](https://github.com/rstrouse/relayEquipmentManager) which allows for hardware control over your ancillary pool equipment (chemical probes, pumps, tanks, heaters, pumps, etc).  
 
-1. IntelliCenter - now supported
-1. Configuring and running the app - all new.  Start over with the Installation instructions.
-1. Automatic detection of your pool equipment.  Previous versions of the app would detect the configuration of your pool but you still had to tell the app if you had IntelliTouch/EasyTouch/IntelliCom.  This is now done automatically.
-1. Configuration and state information.  Config.json now only stores information related to the configuration of the app.  There are separate files in the /data directory that store (and persist) pool configuration and state information.
-1. API's - completely changed.  See separate [API documentation](https://tagyoureit.github.io/nodejs-poolcontroller-api/)
-1. Outbound Sockets - Now more granular to make the web app more responsive
-1. Web app - Now a separate installion for a true client/server metaphore.
+Starting with this version, all code will immediately be pushed to `master` branch.  The version of a `next` branch for feature development will disappear.
+ 
 
  <a name="module_nodejs-poolController--install"></a>
 
