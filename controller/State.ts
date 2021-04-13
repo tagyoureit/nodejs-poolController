@@ -1512,6 +1512,13 @@ export class ChemControllerState extends EqState {
         else if (typeof this.data.type.ph === 'undefined') {
             this.data.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
         }
+        if (typeof this.data.alarms === 'undefined') {
+            // Just get the alarms object it should then initialize.
+            let a = this.alarms;
+        }
+        if (typeof this.data.warnings === 'undefined') {
+            let w = this.warnings;
+        }
         //var chemControllerState = {
         //    lastComm: 'number',             // The unix time the chem controller sent its status.
         //    id: 'number',                   // Id of the chemController.

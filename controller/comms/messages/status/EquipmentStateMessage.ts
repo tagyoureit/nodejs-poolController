@@ -853,32 +853,29 @@ export class EquipmentStateMessage {
             const byte = msg.extractPayloadByte(i);
             // Shift each bit getting the circuit identified by each value.
             for (let j = 0; j < 8; j++) {
-                const circ = sys.circuits.getInterfaceById(circuitId);
+                const circ = sys.circuits.getInterfaceById(circuitId, false, { isActive: false });
                 if (!sys.board.equipmentIds.invalidIds.isValidId(circuitId)) {
                     circ.isActive = false;
+                }
+                if (circ.isActive) {
+                    const cstate = state.circuits.getInterfaceById(circuitId, circ.isActive);
+                    cstate.showInFeatures = circ.showInFeatures;
+                    cstate.isOn = (byte & 1 << j) >> j > 0;
+                    cstate.name = circ.name;
+                    cstate.type = circ.type;
+                    cstate.nameId = circ.nameId;
+                }
+                else {
                     if (circ instanceof Circuit) {
                         sys.circuits.removeItemById(circuitId);
                         // don't forget to remove from state #257
-                        state.circuits.removeItemById(circuitId); 
+                        state.circuits.removeItemById(circuitId);
                     }
                     else if (circ instanceof Feature) {
                         sys.features.removeItemById(circuitId);
                         // don't forget to remove from state #257
                         state.features.removeItemById(circuitId);
                     }
-                }
-                if (circ.isActive) {
-                    const cstate = state.circuits.getInterfaceById(
-                        circuitId,
-                        circ.isActive
-                    );
-                    /*                     if (cstate.isOn && circId === 6) body = 6;
-                                        if (cstate.isOn && circId === 1) body = 1; */
-                    cstate.showInFeatures = circ.showInFeatures;
-                    cstate.isOn = (byte & 1 << j) >> j > 0;
-                    cstate.name = circ.name;
-                    cstate.type = circ.type;
-                    cstate.nameId = circ.nameId;
                 }
                 circuitId++;
             }
