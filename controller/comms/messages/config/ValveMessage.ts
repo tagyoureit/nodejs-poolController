@@ -79,8 +79,6 @@ export class ValveMessage {
         // what is payload[0]?
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
             let valve: Valve;
-            valve.isVirtual = false;
-            valve.type = 0;
             if (id === 3) {
                 if (sys.equipment.shared) {
                     valve = sys.valves.getItemById(id, true);
@@ -143,6 +141,11 @@ export class ValveMessage {
                 sys.valves.removeItemById(id);
                 state.valves.removeItemById(id);
             }
+            else {
+                valve.isVirtual = false;
+                valve.type = 0;
+            }
+
             id++;
         }
     }
