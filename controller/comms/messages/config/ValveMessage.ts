@@ -78,7 +78,7 @@ export class ValveMessage {
         // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
         // what is payload[0]?
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
-            let valve: Valve;
+            let valve: Valve = sys.valves.getItemById(id);
             if (id === 3) {
                 if (sys.equipment.shared) {
                     valve = sys.valves.getItemById(id, true);
@@ -145,7 +145,6 @@ export class ValveMessage {
                 valve.isVirtual = false;
                 valve.type = 0;
             }
-
             id++;
         }
     }
