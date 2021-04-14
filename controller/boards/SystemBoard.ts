@@ -2187,6 +2187,8 @@ export class ChlorinatorCommands extends BoardCommands {
         // if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint);
         let schlor = state.chlorinators.getItemById(id, true);
         let cchlor = sys.chlorinators.getItemById(id, true);
+        if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
+
         for (let prop in chlor) {
             if (prop in schlor) schlor[prop] = chlor[prop];
             if (prop in cchlor) cchlor[prop] = chlor[prop];

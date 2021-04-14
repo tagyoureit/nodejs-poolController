@@ -1250,6 +1250,7 @@ export class Chlorinator extends EqItem {
     public dataName = 'chlorinatorConfig';
     public initData() {
         if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
+        if (typeof this.data.ignoreSaltReading === 'undefined') this.data.ignoreSaltReading = false;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1275,6 +1276,9 @@ export class Chlorinator extends EqItem {
     public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get disabled(): boolean { return this.data.disabled; }
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
+    public get ignoreSaltReading() { return this.data.ignoreSaltReading; }
+    public set ignoreSaltReading(val: boolean) { this.setDataVal('ignoreSaltReading', val); }
+
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }

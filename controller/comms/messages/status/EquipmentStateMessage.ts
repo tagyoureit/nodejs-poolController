@@ -290,6 +290,8 @@ export class EquipmentStateMessage {
             sys.bodies.removeItemById(2);
             state.temps.bodies.removeItemById(2);
         }
+        // RKS: 04-14-21 - Remove the spa circuit from the equation if this is a single body panel.
+        if (sys.equipment.maxBodies === 1) sys.board.equipmentIds.invalidIds.merge([1])
         sys.bodies.removeItemById(3);
         sys.bodies.removeItemById(4);
         state.temps.bodies.removeItemById(3);

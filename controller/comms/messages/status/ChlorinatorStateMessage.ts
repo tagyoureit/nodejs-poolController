@@ -15,14 +15,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound, Protocol } from "../Messages";
-import { state, BodyTempState } from "../../../State";
-import { sys, ControllerType } from "../../../Equipment";
+import { state, BodyTempState, ChlorinatorState } from "../../../State";
+import { sys, ControllerType, Chlorinator } from "../../../Equipment";
 
 export class ChlorinatorStateMessage {
     public static process(msg: Inbound) {
         if (msg.protocol === Protocol.Chlorinator) {
-            let chlor;
-            let cstate;
+            let chlor: Chlorinator;
+            let cstate: ChlorinatorState;
             
             if (msg.dest >= 1 && msg.dest <= 4) {
                 // RKS: The dest for these message are 80+ in raw terms.  The msg object translates these into 1-4 for the installed chlorinators.  This message
@@ -97,7 +97,7 @@ export class ChlorinatorStateMessage {
                     // Response to Set Salt Output (17 & 20)
                     // The most common failure with IntelliChlor is that the salt level stops reporting.  Below should allow it to be fed from an alternate
                     // source like REM.
-                    cstate.saltLevel = msg.extractPayloadByte(0) * 50 || cstate.saltLevel || 0;
+                    if(!chlor.ignoreSaltReading) cstate.saltLevel = msg.extractPayloadByte(0) * 50 || cstate.saltLevel || 0;
                     cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
                     cstate.currentOutput = chlor.disabled ? 0 : cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();

@@ -77,42 +77,83 @@ export class ValveMessage {
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
         // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
         // what is payload[0]?
-        for (let ndx  = 4, id = 1; id <= sys.equipment.maxValves;) {
-            let valve = sys.valves.getItemById(id, true);
+        for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
+            let valve: Valve;
             valve.isVirtual = false;
             valve.type = 0;
-            if (id === 3){
-                valve.circuit = 6; // pool/spa -- fix
-                valve.name = 'Intake';
-                valve.isIntake = true;
-                valve.isReturn = false;
-                valve.isActive = true; 
+            if (id === 3) {
+                if (sys.equipment.shared) {
+                    valve = sys.valves.getItemById(id, true);
+                    valve.circuit = 6; // pool/spa -- fix
+                    valve.name = ValveMessage.getName(id, valve.circuit);
+                    valve.isIntake = true;
+                    valve.isReturn = false;
+                    valve.isActive = true;
+                    valve.type = 0;
+                    let svalve = state.valves.getItemById(id, true);
+                    svalve.name = valve.name;
+                    svalve.type = valve.type;
+                }
+                else {
+                    sys.valves.removeItemById(id);
+                    state.valves.removeItemById(id);
+                }
                 id++;
-                continue;
             }
-            else if (id === 4){
-                valve.circuit = 6; // pool/spa -- fix
-                valve.name = 'Return';
-                valve.isIntake = false;
-                valve.isReturn = true;
-                valve.isActive = true; 
+            else if (id === 4) {
+                if (sys.equipment.shared) {
+                    valve = sys.valves.getItemById(id, true);
+                    valve.circuit = 6; // pool/spa -- fix
+                    valve.name = ValveMessage.getName(id, valve.circuit);
+                    valve.isIntake = false;
+                    valve.isReturn = true;
+                    valve.isActive = true;
+                    valve.type = 0;
+                    let svalve = state.valves.getItemById(id, true);
+                    svalve.name = valve.name;
+                    svalve.type = valve.type;
+                }
+                else {
+                    sys.valves.removeItemById(id);
+                    state.valves.removeItemById(id);
+                }
                 id++;
-                continue;
             }
             else {
+                valve = sys.valves.getItemById(id, true);
+                let circ = msg.extractPayloadByte(ndx);
+                valve.circuit = circ > 0 && circ < 255 ? circ : 0;
                 valve.circuit = msg.extractPayloadByte(ndx);
-                valve.isActive = valve.circuit > 0 && valve.circuit < 255;
+                //valve.isActive = valve.circuit > 0 && valve.circuit < 255;
+                // RKS: 04-14-21 -- Valves should always be active but shown with no assignment when
+                // there is no circuit.  The circuitry for the valve always exists although I am not sure
+                // how the valve expansion is represented.
+                valve.isActive = true;
                 valve.isReturn = false; 
                 valve.isIntake = false;
-                valve.name = ValveMessage.getName(valve.circuit);
+                valve.type = 0;
+                // Allow users to name the valve whatever they want.  *Touch apparently only allows the valve to be named the same
+                // as the circuit but this should be fine if we allow the user to edit it.
+                valve.name = (typeof valve.name === 'undefined') ? ValveMessage.getName(id, valve.circuit) : valve.name;
+                let svalve = state.valves.getItemById(id, true);
+                svalve.name = valve.name;
+                svalve.type = valve.type;
             }
-            if (!valve.isActive) sys.valves.removeItemById(ndx);
+            if (!valve.isActive) {
+                sys.valves.removeItemById(id);
+                state.valves.removeItemById(id);
+            }
             id++;
-            ndx++;
         }
     }
-    private static getName(cir: number) {
-        if (cir <= 50)
+    private static getName(id: number, cir: number) {
+        if (cir <= 0 || cir >= 255 || cir === 6) {
+            if (id === 3) return 'Intake';
+            else if (id === 4) return 'Return';
+            // If the id is on the expansion then the intake and return values are removed. So Valve C = 5.
+            else return `Valve ${id > 4 ? String.fromCharCode(62 + id) : String.fromCharCode(64 + id)}`;
+        }
+        else if (cir <= 50)
             return sys.circuits.getInterfaceById(cir).name;
         else
             return sys.board.valueMaps.virtualCircuits.transform(cir).desc;
