@@ -743,9 +743,9 @@ export class NixieFeatureCommands extends FeatureCommands {
             id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
         }
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
-        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
-        let feature = sys.features.getItemById(obj.id, true);
-        let sfeature = state.features.getItemById(obj.id, true);
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Feature id out of range: ${id}: ${sys.board.equipmentIds.features.start} to ${sys.board.equipmentIds.features.end}`, obj.id, 'Feature'));
+        let feature = sys.features.getItemById(id, true);
+        let sfeature = state.features.getItemById(id, true);
         feature.isActive = true;
         sfeature.isOn = false;
         if (obj.nameId) {
