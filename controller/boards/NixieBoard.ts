@@ -26,6 +26,9 @@ import { Protocol, Outbound, Message, Response } from '../comms/messages/Message
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import {conn} from '../comms/Comms';
 export class NixieBoard extends SystemBoard {
+    private _statusTimer: NodeJS.Timeout;
+    private _statusCheckRef: number = 0;
+    private _statusInterval: number = 1000;
     constructor (system: PoolSystem){
         super(system);
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
@@ -176,10 +179,26 @@ export class NixieBoard extends SystemBoard {
         ]);
 
     }
+    public get statusInterval(): number { return this._statusInterval}
+    private killStatusCheck() {
+        if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
+        this._statusTimer = undefined;
+    }
+    public suspendStatus(bSuspend: boolean) {
+        // The way status suspension works is by using a reference value that is incremented and decremented
+        // the status check is only performed when the reference value is 0.  So suspending the status check 3 times and un-suspending
+        // it 2 times will still result in the status check being suspended.  This method also ensures the reference never fallse below 0.
+        if (bSuspend) this._statusCheckRef++;
+        else this._statusCheckRef = Math.max(0, this._statusCheckRef--);
+    }
     public async initNixieBoard() {
         try {
+            this.killStatusCheck();
             state.status = 0;
             state.status.percent = 0;
+            // First lets clear out all the messages.
+            state.equipment.messages.removeItemByCode('EQ')
+
             // Set up all the default information for the controller.  This should be done
             // for the startup of the system.  The equipment installed at module 0 is the main
             // system descriptor.
@@ -266,9 +285,9 @@ export class NixieBoard extends SystemBoard {
                 sys.equipment.maxRemotes = 0;
                 sys.equipment.maxBodies = 0;
             }
-            
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
-        } catch (err) { logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
+            await this.processStatusAsync();
+        } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
     }
     public async verifySetup() {
         try {
@@ -297,9 +316,12 @@ export class NixieBoard extends SystemBoard {
     /// equipment polling functions.
     public async processStatusAsync() {
         try {
+            if (this._statusCheckRef > 0) return;
+            this.killStatusCheck();
+            // Go through all the assigned equipment and verify 
 
-
-        } catch (err) {}
+        } catch (err) { state.status = 255; logger.error(`Error performing Nixie processStatusAsync ${err.message}`); }
+        finally { this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval); }
     }
     public system: NixieSystemCommands = new NixieSystemCommands(this);
     public circuits: NixieCircuitCommands = new NixieCircuitCommands(this);

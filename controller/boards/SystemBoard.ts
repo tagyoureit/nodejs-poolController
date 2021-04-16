@@ -221,7 +221,8 @@ export class byteValueMaps {
         [1, { val: 1, name: 'service', desc: 'Service' }],
         [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
         [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
-        [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }]
+        [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
+        [255, { name: 'error', desc: 'System Error'}]
     ]);
     public controllerStatus: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'initializing', desc: 'Initializing', percent: 0 }],
@@ -643,6 +644,15 @@ export class byteValueMaps {
         [-1, { name: 'notapplicable', desc: 'Not Applicable' }],
         [0, { name: 'stopped', desc: 'Stopped' }],
         [1, { name: 'running', desc: 'Running' }]
+    ]);
+    public eqMessageSeverities: byteValueMap = new byteValueMap([
+        [-1, { name: 'unspecified', desc: 'Unspecified' }],
+        [0, { name: 'info', desc: 'Information' }],
+        [1, { name: 'reminder', desc: 'Reminder' }],
+        [2, { name: 'alert', desc: 'Alert' }],
+        [3, { name: 'warning', desc: 'Warning' }],
+        [4, { name: 'error', desc: 'Error' }],
+        [5, { name: 'fatal', desc: 'Fatal' }]
     ]);
     // need to validate these...
     public delay: byteValueMap = new byteValueMap([
@@ -2078,7 +2088,7 @@ export class FeatureCommands extends BoardCommands {
             id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
         }
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
-        if (!sys.board.equipmentIds.features.isInRange(obj.id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Feature id out of range: ${id}: ${sys.board.equipmentIds.features.start} to ${sys.board.equipmentIds.features.end}`, obj.id, 'Feature'));
         let feature = sys.features.getItemById(obj.id, true);
         let sfeature = state.features.getItemById(obj.id, true);
         feature.isActive = true;

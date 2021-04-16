@@ -24,6 +24,7 @@ import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
 import { sys, Chemical } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
+import { EquipmentStateMessage } from './comms/messages/status/EquipmentStateMessage';
 
 export class State implements IState {
     statePath: string;
@@ -641,6 +642,9 @@ class DirtyStateCollection extends Array<EqState> {
 }
 
 export class EquipmentState extends EqState {
+    public initData() {
+        if (typeof this.data.messages === 'undefined') this.data.messages = [];
+    }
     public get controllerType(): string { return this.data.controllerType; }
     public set controllerType(val: string) { this.setDataVal('controllerType', val); }
     public get name(): string { return this.data.name; }
@@ -670,6 +674,7 @@ export class EquipmentState extends EqState {
     public set maxCircuitGroups(val: number) { this.setDataVal('maxCircuitGroups', val); }
     public get maxLightGroups(): number { return this.data.maxLightGroups; }
     public set maxLightGroups(val: number) { this.setDataVal('maxLightGroups', val); }
+    public get messages(): EquipmentMessages { return new EquipmentMessages(this.data, 'messages'); }
     // This could be extended to include all the expansion panels but not sure why.
     public getExtended() {
         let obj = this.get(true);
@@ -678,6 +683,101 @@ export class EquipmentState extends EqState {
         return obj;
     }
 
+}
+// Equipment messages work like this.  While other equipment items are unique by id, these are unique by code.  This
+// means that at any given point there should only be one message per code.  Messages should always be referenced by
+// code.  As a result the codes have meaning and should be encoded as such.  That way messages related to a specific topic can be
+// removed while preserving any messages previously set.  Adding new messages or removing messages always results in
+// resorting of the message array so care should be taken when referings the collection by index.
+
+// Message Encoding Structure:
+// In the message encoding structure the severity is omitted.  This is on purpose so messages can be promoted and demoted
+// in severity while still ensuring proper encoding.  Do not encode severity into the message code.
+// Example: HT:1:1
+// EQ = Category - Each code should reference the specific category for the error.
+//      EQ = Equipment General
+//      VL = Valves
+//      HT = Heater
+//      PMP = Pump
+//      MISC = Miscellaneous
+//      SYS = System
+//      ...etc.  Standardizing on the equipment category will allow searching and filtering messages within the array
+// 1 = Id of the equipment.  If this is not applicable then the id should be 0.
+// 1 = The message identifier.  This allows uniqueness within the message categories.  Care should be taken to ensure this is unique
+//     within the category and equipment id.
+export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
+    public createItem(data: any): EquipmentMessage { return new EquipmentMessage(data, undefined, this); }
+    public getItemByCode(code: string, add?: boolean, data?: any): EquipmentMessage {
+        for (let i = 0; i < this.data.length; i++)
+            if (typeof this.data[i].code !== 'undefined' && this.data[i].code === code) {
+                return this.createItem(this.data[i]);
+            }
+        if (typeof add !== 'undefined' && add)
+            return this.add(data || { code: code });
+        return this.createItem(data || { code: code });
+    }
+    public getItemByIndex(ndx: number, add?: boolean): EquipmentMessage {
+        return (this.data.length > ndx) ? this.createItem(this.data[ndx]) : (typeof (add) !== 'undefined' && add) ? this.add(this.createItem({ code: `UNK:0:${ndx + 1}` })) : this.createItem({ code: `UNK:0:${ndx + 1}` });
+    }
+    public removeItemByCode(code: string): EquipmentMessage {
+        let rem: EquipmentMessage = null;
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof (this.data[i].code) !== 'undefined' && this.data[i].code === code) {
+                rem = this.data.splice(i, 1);
+            }
+        }
+        return new EquipmentMessage(rem, undefined, undefined);
+    }
+    // For lack of a better term category includes the equipment identifier if supplied.
+    public removeItemByCategory(category: string) {
+        let rem: EquipmentMessage[] = [];
+        let cmr = EquipmentMessage.parseMessageCode(category);
+        for (let i = this.data.length - 1; i >= 0; i--) {
+            if (typeof (this.data[i].code) !== 'undefined') {
+                let cm = EquipmentMessage.parseMessageCode(this.data.code);
+                if (cm.category === cmr.category) {
+                    if (typeof cmr.equipmentId === 'undefined' || cm.equipmentId === cmr.equipmentId) {
+                        if (typeof cmr.messageId === 'undefined' || cm.messageId === cmr.messageId) {
+                            let data = this.data.splice(i, 1);
+                            rem.push(new EquipmentMessage(data, undefined, undefined));
+                        }
+                    }
+                }
+            }
+        }
+        return rem;
+    }
+}
+export class EquipmentMessage extends ChildEqState {
+    public initData() {
+        if (typeof this.data.createDate === 'undefined') this.createDate = new Date();
+        else this._createDate = new Date(this.data.createDate);
+        if (isNaN(this._createDate.getTime())) this._createDate = new Date();
+    }
+    private _createDate: Date = new Date();
+    public static parseMessageCode(code: string): { category?: string, equipmentId?: number, messageId?: number } {
+        let c: { category?: string, equipmentId?: number, messageId?: number } = {};
+        let arr = code.split(':');
+        c.category = arr.length > 0 ? arr[0] : 'UNK';
+        c.equipmentId = arr.length > 1 ? parseInt(arr[1], 10) : undefined;
+        c.messageId = arr.length > 2 ? parseInt(arr[2], 10) : undefined;
+        return c;
+    }
+    public get createDate(): Date { return this._createDate; }
+    public set createDate(val: Date) { this._createDate = val; this._saveCreateDate(); }
+    private _saveCreateDate() { this.setDataVal('createDate', Timestamp.toISOLocal(this.createDate)); }
+    public get severity(): number {  return typeof (this.data.severity) !== 'undefined' ? this.data.severity.val : 0;  }
+    public set severity(val: number) {
+        if (this.severity !== val) {
+            this.data.type = sys.board.valueMaps.eqMessageSeverities.transform(val);
+            this.hasChanged = true;
+        }
+        this.hasChanged = true;
+    }
+    public get code(): string { return this.data.code; }
+    public set code(val: string) { this.data.code = val; }
+    public get message(): string { return this.data.message; }
+    public set message(val: string) { this.data.message = val; }
 }
 export class PumpStateCollection extends EqStateCollection<PumpState> {
     public createItem(data: any): PumpState { return new PumpState(data); }
