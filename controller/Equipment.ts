@@ -176,11 +176,11 @@ export class PoolSystem implements IPoolSystem {
     }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
-            logger.info("Searching chlorinators, pumps and chem controllers");
+            //logger.info("Searching chlorinators, pumps and chem controllers");
             EquipmentStateMessage.initVirtual();
-            sys.board.virtualChlorinatorController.search();
-            sys.board.virtualPumpControllers.search();
-            sys.board.virtualChemControllers.search();
+            //sys.board.virtualChlorinatorController.search();
+            //sys.board.virtualPumpControllers.search();
+            //sys.board.virtualChemControllers.search();
         }
         else {
             if (this.controllerType === ControllerType.Virtual) {
@@ -201,6 +201,7 @@ export class PoolSystem implements IPoolSystem {
             sys.board.heaters.initTempSensors();
             sys.board.heaters.updateHeaterServices();
             sys.board.system.processStatusTimer();
+            state.cleanupState();
         }
     }
     public board: SystemBoard = new SystemBoard(this);
@@ -534,10 +535,13 @@ class EqItemCollection<T> implements IEqItemCollection {
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
-    public getNextEquipmentId(range: EquipmentIdRange): number {
+    public getNextEquipmentId(range: EquipmentIdRange, exclude?:number[]): number {
         for (let i = range.start; i <= range.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
-            if (typeof eq === 'undefined') return i;
+            if (typeof eq === 'undefined') {
+                if (typeof exclude !== 'undefined' && exclude.indexOf(i) !== -1) continue;
+                return i;
+            }
         }
     }
     public getMaxId(activeOnly?: boolean, defId?: number) {

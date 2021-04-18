@@ -112,7 +112,7 @@ export class EquipmentIds {
     public circuits: EquipmentIdRange = new EquipmentIdRange(6, 6);
     public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
     public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
-    public circuitGroups: EquipmentIdRange = new EquipmentIdRange(0, 0);
+    public circuitGroups: EquipmentIdRange = new EquipmentIdRange(50, function () { return this.start + sys.equipment.maxCircuitGroups; });
     public virtualCircuits: EquipmentIdRange = new EquipmentIdRange(128, 136);
     public invalidIds: InvalidEquipmentIdArray = new InvalidEquipmentIdArray([]);
 }
@@ -318,7 +318,6 @@ export class byteValueMaps {
     ]);
 
     public pumpTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
         [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
@@ -362,7 +361,6 @@ export class byteValueMaps {
         [255, { name: 'poolspa', desc: 'Pool/Spa' }]
     ]);
     public heaterTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
         [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
         [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
         [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
@@ -1287,6 +1285,9 @@ export class PumpCommands extends BoardCommands {
             if (id <= 0) id = sys.pumps.length + 1;
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, data.id <= 0);
+            pump.master = 1;
+            pump.isVirtual = true;
+            pump.isActive = true;
             let spump = state.pumps.getItemById(id, data.id <= 0);
             if (typeof data.type !== 'undefined' && data.type !== pump.type) {
                 sys.board.pumps.setType(pump, data.type);
@@ -1315,7 +1316,9 @@ export class PumpCommands extends BoardCommands {
                     }
                 }
             }
+            data.id = id;
             pump.set(data); // Sets all the data back to the pump.
+            spump.name = pump.name;
             sys.pumps.sortById();
             state.pumps.sortById();
             spump.emitEquipmentChange();
@@ -1332,21 +1335,9 @@ export class PumpCommands extends BoardCommands {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, false);
             let spump = state.pumps.getItemById(id, false);
+            spump.isActive = pump.isActive = false;
             sys.pumps.removeItemById(id);
             state.pumps.removeItemById(id);
-            if (typeof data.circuits !== 'undefined') {
-                // We are setting the circuits as well.
-                let c = Math.max(pump.circuits.length, data.circuits.length);
-                for (let i = 0; i < c; i++) {
-                    if (i > data.circuits.length) pump.circuits.removeItemByIndex(i);
-                    else {
-                        let circ = pump.circuits.getItemByIndex(i, true, { id: i + 1 });
-                        for (let prop in data) {
-                            if (prop in circ) circ[prop] = data[prop];
-                        }
-                    }
-                }
-            }
             spump.emitEquipmentChange();
             return new Promise<Pump>((resolve, reject) => { resolve(pump); });
         }
@@ -1727,9 +1718,12 @@ export class CircuitCommands extends BoardCommands {
             }
         } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
     }
-    public setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         let circuit: ICircuit = sys.circuits.getInterfaceById(id);
         let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+        if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+            return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+        }
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
         circ.isOn = utils.makeBool(val);
         if (circ.id === 6 || circ.id === 1) {
@@ -1740,6 +1734,11 @@ export class CircuitCommands extends BoardCommands {
                 }
             }
         }
+        else {
+            // Lets do some mapping here.
+
+        }
+        sys.board.features.syncGroupStates();
         sys.board.valves.syncValveStates();
         state.emitEquipmentChanges();
         sys.board.virtualPumpControllers.start();
@@ -1850,16 +1849,17 @@ export class CircuitCommands extends BoardCommands {
             // We are adding a circuit group.
             id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
         }
-        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
+        if (typeof id === 'undefined' || id <= 0) return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id, true);
         return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            if (typeof obj.showInFeatures !== 'undefined') group.showInFeatures = utils.makeBool(obj.showInFeatures);
             group.dontStop = group.eggTimer === 1440;
             group.isActive = true;
-
+            group.type = 2;
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
                     let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
@@ -1868,15 +1868,17 @@ export class CircuitCommands extends BoardCommands {
                     if (typeof cobj.desiredState !== 'undefined')
                         c.desiredState = parseInt(cobj.desiredState, 10);
                     else if (typeof cobj.desiredStateOn !== 'undefined') {
-                        // Shim for prior interfaces that send desiredStateOn.
                         c.desiredState = utils.makeBool(cobj.desiredStateOn) ? 0 : 1;
-                        //c.desiredStateOn = utils.makeBool(cobj.desiredStateOn);
                     }
-                    //RKS: 09-26-20 There is no such thing as a lighting theme on a circuit group circuit.  That is what lighGroups are for.
-                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
                 }
-                // group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
             }
+            let sgroup = state.circuitGroups.getItemById(id, true);
+            sgroup.name = group.name;
+            sgroup.type = group.type;
+            sgroup.showInFeatures = group.showInFeatures;
+            sgroup.isActive = group.isActive;
+            sgroup.type = group.type;
+            sys.board.features.syncGroupStates();
             resolve(group);
         });
 
@@ -1918,8 +1920,8 @@ export class CircuitCommands extends BoardCommands {
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
-        if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
-        if (typeof obj.id !== 'undefined') {
+        //if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
+        if (typeof id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
             let sgroup = state.circuitGroups.getItemById(id, false);
             sys.circuitGroups.removeItemById(id);
@@ -1927,6 +1929,7 @@ export class CircuitCommands extends BoardCommands {
             group.isActive = false;
             sgroup.isOn = false;
             sgroup.isActive = false;
+            sgroup.showInFeatures = false;
             sgroup.emitEquipmentChange();
             return new Promise<CircuitGroup>((resolve, reject) => { resolve(group); });
         }
@@ -2056,9 +2059,9 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        logger.info(`Setting Circuit Group State`);
         let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
         let circuits = grp.circuits.toArray();
-        gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
             let circuit = circuits[i];
@@ -2066,6 +2069,8 @@ export class CircuitCommands extends BoardCommands {
         }
         return new Promise<ICircuitGroupState>(async (resolve, reject) => {
             await Promise.all(arr).catch((err) => { reject(err) });
+            gstate.emitEquipmentChange();
+            gstate.isOn = val;
             resolve(gstate);
         });
     }
@@ -2147,17 +2152,23 @@ export class FeatureCommands extends BoardCommands {
                 let grp: CircuitGroup = sys.circuitGroups.getItemByIndex(i);
                 let circuits = grp.circuits.toArray();
                 let bIsOn = false;
+                let bSyncOn = true;
+                // This should only show the group as on if all the states are correct.
                 if (grp.isActive) {
                     for (let j = 0; j < circuits.length; j++) {
-                        let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
+                        let circuit: CircuitGroupCircuit = grp.circuits.getItemByIndex(j);
                         let cstate = state.circuits.getInterfaceById(circuit.circuit);
+                        //logger.info(`Synchronizing circuit group ${cstate.name}: ${cstate.isOn} = ${circuit.desiredState}`);
                         if (circuit.desiredState === 1 || circuit.desiredState === 0) {
-                            if (cstate.isOn === utils.makeBool(circuit.desiredState)) bIsOn = true;
+                            if (cstate.isOn === utils.makeBool(circuit.desiredState)) {
+                                bIsOn = true;
+                            }
+                            else bSyncOn = false;
                         }
                     }
                 }
                 let sgrp = state.circuitGroups.getItemById(grp.id);
-                sgrp.isOn = bIsOn && grp.isActive;
+                sgrp.isOn = bIsOn && bSyncOn && grp.isActive;
                 sys.board.valves.syncValveStates();
             }
             // I am guessing that there will only be one here but iterate
@@ -2183,7 +2194,7 @@ export class FeatureCommands extends BoardCommands {
 export class ChlorinatorCommands extends BoardCommands {
     public setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) obj.id = 1;
+        if (isNaN(id) || id <= 0) obj.id = 1;
         // Merge all the information.
         let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         // Verify the data.
@@ -2197,8 +2208,10 @@ export class ChlorinatorCommands extends BoardCommands {
         // if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint);
         let schlor = state.chlorinators.getItemById(id, true);
         let cchlor = sys.chlorinators.getItemById(id, true);
+        cchlor.master = 1;
+        cchlor.isActive = true;
         if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
-
+        obj.id = id;
         for (let prop in chlor) {
             if (prop in schlor) schlor[prop] = chlor[prop];
             if (prop in cchlor) cchlor[prop] = chlor[prop];
@@ -2209,11 +2222,11 @@ export class ChlorinatorCommands extends BoardCommands {
     public deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) obj.id = 1;
-        // Merge all the information.
         let chlor = state.chlorinators.getItemById(id);
-
+        chlor.isActive = false;
         state.chlorinators.removeItemById(id);
         sys.chlorinators.removeItemById(id);
+        chlor.emitEquipmentChange();
         state.emitEquipmentChanges();
         return Promise.resolve(chlor);
     }
@@ -2813,7 +2826,9 @@ export class ValveCommands extends BoardCommands {
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         // The following code will make sure we do not encroach on any valves defined by the OCP.
         obj.isVirtual = true;
-        if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false), 49) + 1;
+        if (isNaN(id) || id <= 0) {
+            id = Math.max(sys.valves.getMaxId(false, 49), 49) + 1;
+        }
         return new Promise<Valve>(function (resolve, reject) {
             if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
             if (id < 50) reject(new InvalidEquipmentDataError('Virtual valves must be defined with an id >= 50.', obj.id, 'Valve'));
@@ -3964,8 +3979,9 @@ export class VirtualChemController extends BoardCommands {
         let promises = [];
         for (let i = 1; i <= sys.equipment.maxChemControllers; i++) {
             let address = 144 + i - 1; // first address;
-            let chem = sys.chemControllers.getItemByAddress(address, true);
+            let chem = sys.chemControllers.getItemByAddress(address);
             if (chem.isActive) continue;
+            chem = sys.chemControllers.getItemByAddress(address);
             chem.isActive = true;
             chem.isVirtual = true;
             chem.type = 1;

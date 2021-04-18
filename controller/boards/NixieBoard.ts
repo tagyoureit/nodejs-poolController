@@ -183,6 +183,7 @@ export class NixieBoard extends SystemBoard {
     private killStatusCheck() {
         if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
         this._statusTimer = undefined;
+        this._statusCheckRef = 0;
     }
     public suspendStatus(bSuspend: boolean) {
         // The way status suspension works is by using a reference value that is incremented and decremented
@@ -308,7 +309,6 @@ export class NixieBoard extends SystemBoard {
                 let heater = heaters[i];
                 let h = await ncp.heaters.initHeaterAsync(heater);
             }
-
         } catch (err) { logger.error(`Error verifying setup`); }
     }
     /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
@@ -318,7 +318,7 @@ export class NixieBoard extends SystemBoard {
         try {
             if (this._statusCheckRef > 0) return;
             this.killStatusCheck();
-            // Go through all the assigned equipment and verify 
+            // Go through all the assigned equipment and verify the current state.
 
         } catch (err) { state.status = 255; logger.error(`Error performing Nixie processStatusAsync ${err.message}`); }
         finally { this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval); }
@@ -333,7 +333,6 @@ export class NixieBoard extends SystemBoard {
     public heaters: NixieHeaterCommands = new NixieHeaterCommands(this);
     public valves: NixieValveCommands = new NixieValveCommands(this);
     public chemControllers: NixieChemControllerCommands = new NixieChemControllerCommands(this);
-
 }
 export class NixieSystemCommands extends SystemCommands {
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
@@ -366,6 +365,12 @@ export class NixieSystemCommands extends SystemCommands {
         if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
         if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
         return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
+    }
+    public async setModelAsync(obj: any) {
+        try {
+            // First things first.
+
+        } catch (err) { return logger.reject(`Error setting Nixie Model: ${err.message}`); }
     }
 }
 export class NixieCircuitCommands extends CircuitCommands {
@@ -469,22 +474,19 @@ export class NixieCircuitCommands extends CircuitCommands {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
-        let id = parseInt(data.id, 10);
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
-        if (id === 6) return Promise.reject(new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id));
-
-        if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
-        if (typeof data.id !== 'undefined') {
-            let circuit = sys.circuits.getInterfaceById(id, true);
-            let scircuit = state.circuits.getInterfaceById(id, true);
+        try {
+            let id = parseInt(data.id, 10);
+            if (id <= 0 || isNaN(id)) {
+                // You can add any circuit so long as it isn't 1 or 6.
+                id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
+            }
+            if (isNaN(id) || !sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+            let circuit = sys.circuits.getItemById(id, true);
+            let scircuit = state.circuits.getItemById(id, true);
             circuit.isActive = true;
             scircuit.isOn = false;
-            if (data.nameId) {
-                circuit.nameId = scircuit.nameId = data.nameId;
-                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId);
-            }
-            else if (data.name) circuit.name = scircuit.name = data.name;
-            else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
+            if (data.name) circuit.name = scircuit.name = data.name;
+            else if (!circuit.name && !data.name) circuit.name = scircuit.name = Circuit.getIdName(id);
             if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
             if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
             if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
@@ -493,10 +495,9 @@ export class NixieCircuitCommands extends CircuitCommands {
             circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
-            return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
-        }
-        else
-            return Promise.reject(new Error('Circuit id has not been defined'));
+            ncp.circuits.setCircuitAsync(circuit, data);
+            return circuit;
+        } catch (err) { logger.error(`Error setting circuit data ${err.message}`); }
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;

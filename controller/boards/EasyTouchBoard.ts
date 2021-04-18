@@ -155,6 +155,27 @@ export class EasyTouchBoard extends SystemBoard {
             [100, { name: 'feature7', desc: 'Feature 7' }],
             [101, { name: 'feature8', desc: 'Feature 8' }]
         ]);
+        // We need this because there is a no-pump thing in *Touch.
+        this.valueMaps.pumpTypes = new byteValueMap([
+            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
+            [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
+            [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
+            [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
+            [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
+            [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }]
+        ]);
+        this.valueMaps.heaterTypes = new byteValueMap([
+            [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
+            [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
+            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
+            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true }],
+            [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
+            [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+            [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
+        ]);
+
+
         this.valueMaps.heatModes = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }]
@@ -279,6 +300,92 @@ export class EasyTouchBoard extends SystemBoard {
                 return extend(true, {}, { val: byte, desc: customName.name, name: customName.name });
             }
         };
+        this.valueMaps.expansionBoards = new byteValueMap([
+            [0, { name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, shared: true }],
+            [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, shared: false }],
+            [2, { name: 'ET24', part: 'ET2-4', desc: 'EasyTouch2 4', circuits: 4, shared: false }],
+            [3, { name: 'ET24P', part: 'ET2-4P', desc: 'EasyTouch2 4P', circuits: 4, shared: true }],
+            [6, { name: 'ETPSL4', part: 'ET-PSL4', desc: 'EasyTouch PSL4', circuits: 4, features: 2, schedules: 4, pumps: 1, shared: true }],
+            [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, shared: false }],
+            // EasyTouch 1 models all start at 128.
+            [128, { name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, shared: true }],
+            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, shared: false }],
+            [130, { name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, shared: true }],
+            [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, shared: false }]
+        ]);
+    }
+    public initHeaterDefaults() {
+        let heater = sys.heaters.getItemById(1, true);
+        heater.isActive = true;
+        heater.type = 1;
+        heater.name = "Gas Heater";
+        let sheater = state.heaters.getItemById(1, true);
+        sheater.type = heater.type;
+        sheater.name = heater.name;
+        sheater.isVirtual = heater.isVirtual = false;
+        sys.equipment.shared ? heater.body = 32 : heater.body = 0;
+    }
+    public initBodyDefaults() {
+        // Initialize the bodies.  We will need these very soon.
+        for (let i = 1; i <= sys.equipment.maxBodies; i++) {
+            // Add in the bodies for the configuration.  These need to be set.
+            let cbody = sys.bodies.getItemById(i, true);
+            let tbody = state.temps.bodies.getItemById(i, true);
+            // If the body doesn't represent a spa then we set the type.
+            tbody.type = cbody.type = i > 1 && !sys.equipment.shared ? 1 : 0;
+            cbody.isActive = true;
+            if (typeof cbody.name === 'undefined') {
+                let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
+                tbody.name = cbody.name = bt.name;
+            }
+        }
+        if (!sys.equipment.shared && !sys.equipment.dual) {
+            sys.bodies.removeItemById(2);
+            state.temps.bodies.removeItemById(2);
+        }
+        // RKS: 04-14-21 - Remove the spa circuit from the equation if this is a single body panel.
+        if (sys.equipment.maxBodies === 1) sys.board.equipmentIds.invalidIds.merge([1])
+        sys.bodies.removeItemById(3);
+        sys.bodies.removeItemById(4);
+        state.temps.bodies.removeItemById(3);
+        state.temps.bodies.removeItemById(4);
+        sys.board.heaters.initTempSensors();
+        sys.general.options.clockMode = sys.general.options.clockMode || 12;
+        sys.general.options.clockSource = sys.general.options.clockSource || 'manual';
+    }
+    public initExpansionModules(byte1: number, byte2: number) {
+        // Initialize the installed personality board.
+        console.log(`Pentair EasyTouch System Detected!`);
+
+        let offset = byte1 === 14 ? 128 : 0;
+        let mt = this.valueMaps.expansionBoards.transform(offset + byte2);
+        let mod = sys.equipment.modules.getItemById(0, true);
+        mod.name = mt.name;
+        mod.desc = mt.desc;
+        mod.type = offset + byte2;
+        mod.part = mt.part;
+        let eq = sys.equipment;
+        let md = mod.get();
+        eq.maxBodies = md.bodies = typeof mt.bodies !== 'undefined' ? mt.bodies : mt.shared ? 2 : 1;
+        eq.maxCircuits = md.circuits = typeof mt.circuits !== 'undefined' ? mt.circuits : 8;
+        eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 10
+        eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : mt.shared ? 4 : 2;
+        eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
+        eq.shared = mt.shared;
+        eq.dual = false;
+        eq.maxChlorinators = md.chlorinators = 1;
+        eq.maxChemControllers = md.chemControllers = 1;
+        eq.maxCustomNames = 10;
+        // Calculate out the invalid ids.
+        sys.board.equipmentIds.invalidIds.set([]);
+        if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
+        if (eq.maxCircuits === 4) sys.board.equipmentIds.invalidIds.merge([7, 8, 9]);
+        if (byte1 !== 14) sys.board.equipmentIds.invalidIds.merge([10, 19]);
+        sys.equipment.model = mt.desc;
+        this.initBodyDefaults();
+        this.initHeaterDefaults();
+        sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
+        state.emitControllerChange();
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
     public system: TouchSystemCommands = new TouchSystemCommands(this);

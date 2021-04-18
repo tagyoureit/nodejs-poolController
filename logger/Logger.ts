@@ -105,6 +105,10 @@ class Logger {
     public verbose(...args: any[]) { logger._logger.verbose.apply(logger._logger, arguments); }
     public error(...args: any[]): Error { logger._logger.error.apply(logger._logger, arguments); return new Error(arguments[0]); }
     public silly(...args: any[]) { logger._logger.silly.apply(logger._logger, arguments); }
+    public reject(sError: string): Promise<Error> {
+        logger.error(sError);
+        return Promise.reject(new Error(sError));
+    }
     private isIncluded(byte: number, arr: number[]): boolean {
         if (typeof (arr) === "undefined" || !arr || arr.length === 0) return true;
         if (arr.indexOf(byte) !== -1) return true;

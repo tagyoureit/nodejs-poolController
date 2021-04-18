@@ -791,6 +791,15 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.pumps.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.isActive = c.isActive;
+        }
+
     }
 
 }
@@ -1013,6 +1022,17 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.circuitGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.circuitGroups.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.nameId = c.nameId;
+            s.showInFeatures = c.showInFeatures;
+            s.isActive = c.isActive;
+        }
+
     }
 }
 export class CircuitGroupState extends EqState implements ICircuitGroupState, ICircuitState {
@@ -1064,6 +1084,15 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.lightGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.lightGroups.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.isActive = c.isActive;
+        }
+
     }
 }
 export class LightGroupState extends EqState implements ICircuitGroupState, ICircuitState {
@@ -1250,6 +1279,13 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.heaters.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.heaters.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.name = c.name;
+            s.type = c.type;
+        }
     }
 }
 export class HeaterState extends EqState {
@@ -1284,6 +1320,15 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.features.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+        let cfg = sys.features.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.nameId = c.nameId;
+            s.showInFeatures = c.showInFeatures;
         }
     }
 }
@@ -1351,6 +1396,16 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.circuits.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.circuits.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.nameId = c.nameId;
+            s.showInFeatures = c.showInFeatures;
+        }
+
     }
 }
 export class CircuitState extends EqState implements ICircuitState {
@@ -1394,6 +1449,13 @@ export class ValveStateCollection extends EqStateCollection<ValveState> {
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.valves.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+        let cfg = sys.valves.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.name = c.name;
+            s.type = c.type;
         }
     }
 }
@@ -1458,6 +1520,15 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.chlorinators.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
         }
+        let cfg = sys.chlorinators.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.type = c.type;
+            s.name = c.name;
+            s.isActive = c.isActive;
+        }
+
     }
 }
 export class ChlorinatorState extends EqState {
@@ -1597,6 +1668,17 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof sys.chemControllers.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+        }
+        // Make sure we have at least the items that exist in the config.
+        let cfg = sys.chemControllers.toArray();
+        for (let i = 0; i < cfg.length; i++) {
+            let c = cfg[i];
+            let s = this.getItemById(cfg[i].id, true);
+            s.address = c.address;
+            s.body = c.body;
+            s.name = c.name;
+            s.type = c.type;
+            s.isActive = c.isActive;
         }
     }
 }

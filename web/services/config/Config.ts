@@ -63,14 +63,16 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/circuits', (req, res) => {
+        app.get('/config/options/circuits', async (req, res, next) => {
             let opts = {
                 maxCircuits: sys.equipment.maxCircuits,
                 equipmentIds: sys.equipment.equipmentIds.circuits,
                 invalidIds: sys.board.equipmentIds.invalidIds.get(),
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.circuits.getCircuitFunctions(),
-                circuits: sys.circuits.get()
+                circuits: sys.circuits.get(),
+                controllerType: sys.controllerType,
+                servers: await sys.ncp.getREMServers()
             };
             return res.status(200).send(opts);
         });

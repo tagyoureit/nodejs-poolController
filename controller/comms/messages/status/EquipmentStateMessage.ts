@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { O_DSYNC } from 'constants';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
+import { EasyTouchBoard } from 'controller/boards/EasyTouchBoard';
 
 import { logger } from '../../../../logger/Logger';
 import { ControllerType } from '../../../Constants';
@@ -48,6 +49,33 @@ export class EquipmentStateMessage {
         sys.equipment.maxChemControllers = 4;
         sys.equipment.maxFeatures = 8;
         sys.equipment.model = 'Unknown';
+    }
+    private static initTouchProposed(msg: Inbound) {
+        const model1 = msg.extractPayloadByte(27);
+        let model2 = msg.extractPayloadByte(28);
+        switch (model2) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+                sys.controllerType = ControllerType.IntelliTouch;
+                model2 = msg.extractPayloadByte(9);
+                break;
+            case 11:
+                sys.controllerType = ControllerType.IntelliCom;
+                break;
+            case 13:
+            case 14:
+                sys.controllerType = ControllerType.EasyTouch;
+                break;
+            default:
+                logger.error(`Unknown Touch Controller ${msg.extractPayloadByte(28)}:${msg.extractPayloadByte(27)}`);
+                break;
+        }
+        let board = sys.board as EasyTouchBoard;
+        board.initExpansionModules(model1, model2);
     }
     private static initTouch(msg: Inbound, model1: number, model2: number) {
         switch (model2) {
@@ -259,6 +287,7 @@ export class EquipmentStateMessage {
         else if (sys.equipment.model.includes('PSL')) state.equipment.shared = sys.equipment.shared = true;
         else['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
+
         // shared equipment frees up one physical circuit
         sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
         state.equipment.maxBodies = sys.equipment.maxBodies;
@@ -313,8 +342,8 @@ export class EquipmentStateMessage {
         sys.equipment.maxValves = 0;
         sys.equipment.maxIntelliBrites = 0;
         sys.equipment.maxLightGroups = 0;
-        sys.equipment.maxCustomNames = 10;
-        sys.customNames.getItemById(1, true, { id: 1, name: "Generic", isActive: true });
+        sys.equipment.maxCustomNames = 0;
+        sys.equipment.maxCircuitGroups = 40;
         // setup pool circuit
         let pool = sys.circuits.getItemById(6, true);
         let spool = state.circuits.getItemById(6, true);

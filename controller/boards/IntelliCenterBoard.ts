@@ -313,6 +313,8 @@ export class IntelliCenterBoard extends SystemBoard {
         //else
         //    sys.equipment.model = 'IntelliCenter ' + pb.name;
         state.equipment.model = sys.equipment.model;
+        sys.equipment.shared || sys.equipment.dual ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
+
         sys.board.heaters.initTempSensors();
         this.modulesAcquired = true;
         this.checkConfiguration();
