@@ -3810,9 +3810,11 @@ export class VirtualChlorinatorController extends BoardCommands {
     }
 
     public stop() {
-        let schlor = state.chlorinators.getItemById(1);
-        schlor.currentOutput = 0; // alias for off
-        schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+        let schlor = state.chlorinators.find(elem => elem.id === 1);
+        if (typeof schlor !== 'undefined') {
+            schlor.currentOutput = 0; // alias for off
+            schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+        }
     }
 
     public async search() {
