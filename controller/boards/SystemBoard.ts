@@ -3817,12 +3817,14 @@ export class VirtualChlorinatorController extends BoardCommands {
 
     public async search() {
         try {
-            let chlor = sys.chlorinators.getItemById(1, true);
+            let chlor = sys.chlorinators.getItemById(1, false);
             if (chlor.isActive && (typeof chlor.isVirtual === 'undefined' || !chlor.isVirtual)) return; // don't run if we already see chlorinator comms
             if (chlor.isVirtual) return this.start(); // we already have an active virtual chlorinator controller
-            let cstate = state.chlorinators.getItemById(1, true);
+            let cstate = state.chlorinators.getItemById(1, false);
             await sys.board.chlorinator.ping(cstate);
             logger.info(`Found Chlorinator at address 80; id: 1.`);
+            chlor = sys.chlorinators.getItemById(1, true);
+            cstate = state.chlorinators.getItemById(1, true);
             chlor.isActive = true;
             chlor.isVirtual = true;
             cstate.body = chlor.body = 0;
