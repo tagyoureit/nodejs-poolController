@@ -23,11 +23,13 @@ import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
 import { utils } from '../Constants';
+import { ncp } from "../nixie/Nixie";
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
+        this._statusInterval = -1;
         this.equipmentIds.circuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
@@ -468,7 +470,9 @@ export class TouchConfigQueue extends ConfigQueue {
         if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => { self.processNext(); }, 50);
-        } else state.status = 1;
+        } else {
+            state.status = 1;
+        }
         state.emitControllerChange();
     }
     // TODO: RKS -- Investigate why this is needed.  Me thinks that there really is no difference once the whole thing is optimized.  With a little
@@ -530,6 +534,7 @@ export class TouchConfigQueue extends ConfigQueue {
             // this._configQueueTimer = setTimeout(()=>{sys.board.checkConfiguration();}, 20 * 60 * 1000);
             logger.info(`EasyTouch system config complete.`);
             state.cleanupState();
+            ncp.initAsync(sys);
         }
         // Notify all the clients of our processing status.
         state.emitControllerChange();

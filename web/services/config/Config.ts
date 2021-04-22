@@ -64,17 +64,19 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/circuits', async (req, res, next) => {
-            let opts = {
-                maxCircuits: sys.equipment.maxCircuits,
-                equipmentIds: sys.equipment.equipmentIds.circuits,
-                invalidIds: sys.board.equipmentIds.invalidIds.get(),
-                equipmentNames: sys.board.circuits.getCircuitNames(),
-                functions: sys.board.circuits.getCircuitFunctions(),
-                circuits: sys.circuits.get(),
-                controllerType: sys.controllerType,
-                servers: await sys.ncp.getREMServers()
-            };
-            return res.status(200).send(opts);
+            try {
+                let opts = {
+                    maxCircuits: sys.equipment.maxCircuits,
+                    equipmentIds: sys.equipment.equipmentIds.circuits,
+                    invalidIds: sys.board.equipmentIds.invalidIds.get(),
+                    equipmentNames: sys.board.circuits.getCircuitNames(),
+                    functions: sys.board.circuits.getCircuitFunctions(),
+                    circuits: sys.circuits.get(),
+                    controllerType: sys.controllerType,
+                    servers: await sys.ncp.getREMServers()
+                };
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/circuitGroups', (req, res) => {
             let opts = {
@@ -117,15 +119,18 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/valves', (req, res) => {
-            let opts = {
-                maxValves: sys.equipment.maxValves,
-                valveTypes: sys.board.valueMaps.valveTypes.toArray(),
-                circuits: sys.board.circuits.getCircuitReferences(true, true, true),
-                valves: sys.valves.get()
-            };
-            opts.circuits.unshift({ id: 256, name: 'Unassigned', type: 0, equipmentType: 'circuit' });
-            return res.status(200).send(opts);
+        app.get('/config/options/valves', async (req, res, next) => {
+            try {
+                let opts = {
+                    maxValves: sys.equipment.maxValves,
+                    valveTypes: sys.board.valueMaps.valveTypes.toArray(),
+                    circuits: sys.board.circuits.getCircuitReferences(true, true, true),
+                    valves: sys.valves.get(),
+                    servers: await sys.ncp.getREMServers()
+                };
+                opts.circuits.unshift({ id: 256, name: 'Unassigned', type: 0, equipmentType: 'circuit' });
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/pumps', (req, res) => {
             let opts: any = {
@@ -170,17 +175,23 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/heaters', (req, res) => {
-            let opts = {
-                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
-                bodies: sys.board.bodies.getBodyAssociations(),
-                maxHeaters: sys.equipment.maxHeaters,
-                heaters: sys.heaters.get(),
-                heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
-                heatModes: sys.board.valueMaps.heatModes.toArray(),
-                coolDownDelay: sys.general.options.cooldownDelay
-            };
-            return res.status(200).send(opts);
+        app.get('/config/options/heaters', async (req, res, next) => {
+            try {
+                let opts = {
+                    tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
+                    bodies: sys.board.bodies.getBodyAssociations(),
+                    maxHeaters: sys.equipment.maxHeaters,
+                    heaters: sys.heaters.get(),
+                    heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
+                    heatModes: sys.board.valueMaps.heatModes.toArray(),
+                    coolDownDelay: sys.general.options.cooldownDelay,
+                    servers: []
+                };
+                // We only need the servers data when the controller is a Nixie controller.  We don't need to
+                // wait for this information if we are dealing with an OCP.
+                if (sys.controllerType === ControllerType.Nixie) opts.servers = await sys.ncp.getREMServers();
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/customNames', (req, res) => {
             let opts = {
@@ -290,13 +301,17 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/filters', (req, res) => {
-            let opts = {
-                types: sys.board.valueMaps.filterTypes.toArray(),
-                bodies: sys.board.bodies.getBodyAssociations(),
-                filters: sys.filters.get(),
-            };
-            return res.status(200).send(opts);
+        app.get('/config/options/filters', async (req, res, next) => {
+            try {
+                let opts = {
+                    types: sys.board.valueMaps.filterTypes.toArray(),
+                    bodies: sys.board.bodies.getBodyAssociations(),
+                    filters: sys.filters.get(),
+                    areaUnits: sys.board.valueMaps.areaUnits.toArray(),
+                    servers: await sys.ncp.getREMServers()
+                };
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/

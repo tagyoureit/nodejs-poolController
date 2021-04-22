@@ -12,6 +12,7 @@ import { NixieBodyCollection } from './bodies/Body';
 import { NixieValveCollection } from './valves/Valve';
 import { NixieHeaterCollection } from './heaters/Heater';
 import { config } from '../../config/Config';
+import { NixieFilterCollection } from './bodies/Filter';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -54,8 +55,10 @@ export class NixieControlPanel implements INixieControlPanel {
     chemControllers: NixieChemControllerCollection = new NixieChemControllerCollection(this);
     circuits: NixieCircuitCollection = new NixieCircuitCollection(this);
     bodies: NixieBodyCollection = new NixieBodyCollection(this);
+    filters: NixieFilterCollection = new NixieFilterCollection(this);
     valves: NixieValveCollection = new NixieValveCollection(this);
     heaters: NixieHeaterCollection = new NixieHeaterCollection(this);
+
     public async initAsync(equipment: PoolSystem) {
         try {
             // We need to tell Nixie what her place is.  If there is an existing OCP she needs to be a partner.  However, if
@@ -64,6 +67,7 @@ export class NixieControlPanel implements INixieControlPanel {
             // The controller types define the number of bodies and whether they are shared.
             logger.info(`Initializing Nixie Controller`);
             await this.bodies.initAsync(equipment.bodies);
+            await this.filters.initAsync(equipment.filters);
             await this.circuits.initAsync(equipment.circuits);
             await this.valves.initAsync(equipment.valves);
             await this.heaters.initAsync(equipment.heaters);
@@ -101,6 +105,15 @@ export class NixieControlPanel implements INixieControlPanel {
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
         } catch (err) { logger.error(err); }
+    }
+    public async closeAsync() {
+        // Close all the associated equipment.
+        await this.chemControllers.closeAsync();
+        await this.heaters.closeAsync();
+        await this.circuits.closeAsync();
+        await this.filters.closeAsync();
+        await this.bodies.closeAsync();
+        await this.valves.closeAsync();
     }
     /*
      * This method is used to obtain a list of existing REM servers for configuration.  This returns all servers and 

@@ -18,19 +18,17 @@ import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { ncp } from "../nixie/Nixie";
 import { utils, Heliotrope, Timestamp } from '../Constants';
-import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
+import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, FilterCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState } from '../State';
-import { sys, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit } from '../Equipment';
+import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState } from '../State';
+import { sys, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import {conn} from '../comms/Comms';
 export class NixieBoard extends SystemBoard {
-    private _statusTimer: NodeJS.Timeout;
-    private _statusCheckRef: number = 0;
-    private _statusInterval: number = 1000;
     constructor (system: PoolSystem){
         super(system);
+        this._statusInterval = 1000;
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
@@ -55,7 +53,6 @@ export class NixieBoard extends SystemBoard {
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true }],
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: true }],
             [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
@@ -108,7 +105,7 @@ export class NixieBoard extends SystemBoard {
             [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 2, shared: false, dual: false }],
             [1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 4, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixe Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
-            [255, { name: 'nxu', part: 'Unspecified', desc: 'Unspecified Nixie Controller', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
+            [255, { name: 'nxnb', part: 'NXNB', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
         ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
             [237, { name: 'heatBoost', desc: 'Heat Boost' }],
@@ -177,118 +174,181 @@ export class NixieBoard extends SystemBoard {
             [3, { name: 'quickTouch', desc: 'Quick Touch Remote', maxButtons: 4 }],
             [4, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
         ]);
-
-    }
-    public get statusInterval(): number { return this._statusInterval}
-    private killStatusCheck() {
-        if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
-        this._statusTimer = undefined;
-        this._statusCheckRef = 0;
-    }
-    public suspendStatus(bSuspend: boolean) {
-        // The way status suspension works is by using a reference value that is incremented and decremented
-        // the status check is only performed when the reference value is 0.  So suspending the status check 3 times and un-suspending
-        // it 2 times will still result in the status check being suspended.  This method also ensures the reference never fallse below 0.
-        if (bSuspend) this._statusCheckRef++;
-        else this._statusCheckRef = Math.max(0, this._statusCheckRef--);
     }
     public async initNixieBoard() {
         try {
             this.killStatusCheck();
-            state.status = 0;
-            state.status.percent = 0;
+            sys.general.options.clockSource = 'server';
+            state.status = sys.board.valueMaps.controllerStatus.transform(0, 0);
             // First lets clear out all the messages.
             state.equipment.messages.removeItemByCode('EQ')
-
             // Set up all the default information for the controller.  This should be done
             // for the startup of the system.  The equipment installed at module 0 is the main
             // system descriptor.
             let mod = sys.equipment.modules.getItemById(0, true);
+            mod.master = 1;
             //[0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 2, shared: false, dual: false }],
             //[1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 4, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             //[2, { name: 'nxpd', part: 'NXPD', desc: 'Nixe Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
             //[255, { name: 'nxu', part: 'Unspecified', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
-            let type = typeof mod.type !== 'undefined' ? this.valueMaps.expansionBoards.get(mod.type) : this.valueMaps.expansionBoards.get(255);
+            let type = typeof mod.type !== 'undefined' ? this.valueMaps.expansionBoards.transform(mod.type) : this.valueMaps.expansionBoards.transform(0);
+            logger.info(`Initializing Nixie Control Panel for ${type.desc}`);
+
             sys.equipment.shared = type.shared;
             sys.equipment.dual = type.dual;
+            sys.equipment.controllerFirmware = '1.0.0';
             mod.type = type.val;
             mod.part = type.part;
-            mod['bodies'] = type.bodies;
-            mod['part'] = type.part;
-            mod['valves'] = type.valves;
-            if (mod.type !== 255) {
-                sys.equipment.maxValves = 32;
-                sys.equipment.maxCircuits = 40;
-                sys.equipment.maxFeatures = 32;
-                sys.equipment.maxHeaters = 16;
-                sys.equipment.maxLightGroups = 16;
-                sys.equipment.maxCircuitGroups = 16;
-                sys.equipment.maxSchedules = 100;
-                sys.equipment.maxPumps = 16;
-                sys.equipment.maxRemotes = 16;
-                sys.equipment.maxBodies = type.bodies;
+            let md = mod.get();
+            md['bodies'] = type.bodies;
+            md['part'] = type.part;
+            md['valves'] = type.valves;
+            mod.name = type.name;
+            sys.equipment.model = mod.desc = type.desc;
+            state.equipment.maxValves = sys.equipment.maxValves = 32;
+            state.equipment.maxCircuits = sys.equipment.maxCircuits = 40;
+            state.equipment.maxFeatures = sys.equipment.maxFeatures = 32;
+            state.equipment.maxHeaters = sys.equipment.maxHeaters = 16;
+            state.equipment.maxLightGroups = sys.equipment.maxLightGroups = 16;
+            state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups = 16;
+            state.equipment.maxSchedules = sys.equipment.maxSchedules = 100;
+            state.equipment.maxPumps = sys.equipment.maxPumps = 16;
+            state.equipment.controllerType = sys.controllerType;
+            sys.equipment.maxCustomNames = 0;
+            state.equipment.model = type.desc;
+            state.equipment.maxBodies = sys.equipment.maxBodies = type.bodies;
+            if (type.bodies > 0) {
+                let pool = sys.bodies.getItemById(1, true);
+                let sbody = state.temps.bodies.getItemById(1, true);
+                let filter = sys.filters.getItemById(1, true, { filterType: 3, name: type.shared ? 'Filter' : 'Filter 1' });
+                filter.isActive = true;
+                filter.body = type.shared ? 32 : 0;
+                filter.master = 1;
+                if (typeof pool.type === 'undefined') pool.type = 0;
+                if (typeof pool.name === 'undefined') pool.name = type.dual ? 'Body 1' : 'Pool';
+                if (typeof pool.capacity === 'undefined') pool.capacity = 0;
+                if (typeof pool.setPoint === 'undefined') pool.setPoint = 0;
+                pool.circuit = 6;
+                pool.isActive = true;
+                pool.master = 1;
+                sbody.name = pool.name;
+                sbody.setPoint = pool.setPoint;
+                sbody.circuit = pool.circuit;
+                sbody.type = pool.type;
+                // We need to add in a circuit for 6.
+                let circ = sys.circuits.getItemById(6, true, { name: pool.name, showInFeatures: false });
+                let scirc = state.circuits.getItemById(6, true);
+                //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+                //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+                circ.type = 12;
+                if (typeof circ.showInFeatures === 'undefined') circ.showInFeatures = false;
+                circ.isActive = true;
+                circ.master = 1;
+                scirc.showInFeatures = circ.showInFeatures;
+                scirc.type = circ.type;
+                scirc.name = circ.name;
                 if (type.shared || type.dual) {
-                    // We are going to add two bodies and prune off the others.
-                    let pool = sys.bodies.getItemById(1, true);
-                    if (typeof pool.type === 'undefined') pool.type = 0;
-                    if (typeof pool.name === 'undefined') pool.name = type.dual ? 'Pool1' : 'Pool';
-                    if (typeof pool.capacity === 'undefined') pool.capacity = 0;
-                    if (typeof pool.setPoint === 'undefined') pool.setPoint = 0;
-                    // We need to add in a circuit for 6.
-                    let circ = sys.circuits.getItemById(6, true);
-                    //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-                    //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
-                    circ.type = 12;
-                    if (typeof circ.name === 'undefined') circ.name = pool.name;
-                    if (typeof circ.showInFeatures === 'undefined') circ.showInFeatures = false;
+                    // We are going to add two bodies and prune off the othergood ls.
+                    let spa = sys.bodies.getItemById(2, true);
+                    if (typeof spa.type === 'undefined') spa.type = type.dual ? 0 : 1;
+                    if (typeof spa.name === 'undefined') spa.name = type.dual ? 'Body 2' : 'Spa';
+                    if (typeof spa.capacity === 'undefined') spa.capacity = 0;
+                    if (typeof spa.setPoint === 'undefined') spa.setPoint = 0;
+                    circ = sys.circuits.getItemById(1, true, {name: spa.name, showInFeatures: false });
+                    circ.type = type.dual ? 12 : 13;
                     circ.isActive = true;
                     circ.master = 1;
-                    circ.eggTimer = 720;
-                    pool.circuit = 6;
-                    pool.isActive = true;
-                    pool.master = 1;
-                    if (type.shared || type.dual) {
-                        let spa = sys.bodies.getItemById(2, true);
-                        if (typeof spa.type === 'undefined') spa.type = type.dual ? 0 : 1;
-                        if (typeof spa.name === 'undefined') spa.name = type.dual ? 'Pool2' : 'Spa';
-                        if (typeof spa.capacity === 'undefined') pool.capacity = 0;
-                        if (typeof spa.setPoint === 'undefined') pool.setPoint = 0;
-                        circ = sys.circuits.getItemById(1, true);
-                        circ.type = type.dual ? 12 : 13;
-                        if (typeof circ.name === 'undefined') circ.name = spa.name;
-                        if (typeof circ.showInFeatures === 'undefined') circ.showInFeatures = false;
-                        circ.isActive = true;
-                        circ.master = 1;
-                        circ.eggTimer = 720;
-                        spa.circuit = 1;
-                        spa.isActive = true;
-                        spa.master = 1;
-                    }
-                    else {
-                        // Remove the items that are not part of our board.
-                        sys.bodies.removeItemById(2);
-                        sys.circuits.removeItemById(1);
-                        state.temps.bodies.removeItemById(1);
-                        state.circuits.removeItemById(1);
+                    spa.circuit = 1;
+                    spa.isActive = true;
+                    spa.master = 1;
+                    sbody = state.temps.bodies.getItemById(2, true);
+                    sbody.name = spa.name;
+                    sbody.setPoint = spa.setPoint;
+                    sbody.circuit = spa.circuit;
+                    sbody.type = spa.type;
+                    scirc = state.circuits.getItemById(1, true);
+                    scirc.showInFeatures = circ.showInFeatures;
+                    scirc.type = circ.type;
+                    scirc.name = circ.name;
+                    if (type.dual) {
+                        filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
+                        filter.isActive = true;
+                        filter.master = 1;
+                        filter.body = 2;
                     }
                 }
-                await this.verifySetup();
+                else {
+                    // Remove the items that are not part of our board.
+                    sys.bodies.removeItemById(2);
+                    state.temps.bodies.removeItemById(2);
+                    sys.circuits.removeItemById(1);
+                    state.circuits.removeItemById(1);
+                }
+                // Now we need to add in any valves.
+                logger.info('Initializing valves');
             }
             else {
-                sys.equipment.maxValves = 0;
-                sys.equipment.maxCircuits = 0;
-                sys.equipment.maxFeatures = 0;
-                sys.equipment.maxHeaters = 0;
-                sys.equipment.maxLightGroups = 0;
-                sys.equipment.maxCircuitGroups = 0;
-                sys.equipment.maxSchedules = 0;
-                sys.equipment.maxPumps = 0;
-                sys.equipment.maxRemotes = 0;
-                sys.equipment.maxBodies = 0;
+                sys.bodies.removeItemById(1);
+                sys.bodies.removeItemById(2);
+                state.temps.bodies.removeItemById(1);
+                state.temps.bodies.removeItemById(2);
+                sys.circuits.removeItemById(1);
+                state.circuits.removeItemById(1);
+                sys.circuits.removeItemById(6);
+                state.circuits.removeItemById(6);
             }
+            sys.equipment.setEquipmentIds();
+            state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
+            // Add up all the stuff we need to initialize.
+            let total = sys.bodies.length;
+            total += sys.circuits.length;
+            total += sys.heaters.length;
+            total += sys.chlorinators.length;
+            total += sys.chemControllers.length;
+            total += sys.filters.length;
+            total += sys.pumps.length;
+            total += sys.valves.length;
+            this.initValves();
+            await this.verifySetup();
+            await ncp.initAsync(sys);
+            sys.board.heaters.updateHeaterServices();
+            state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
-            await this.processStatusAsync();
+            this.processStatusAsync();
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
+    }
+    public initValves() {
+        let iv = sys.valves.find(elem => elem.isIntake === true);
+        let rv = sys.valves.find(elem => elem.isReturn === true);
+        if (sys.equipment.shared) {
+            if (typeof iv === 'undefined') iv = sys.valves.getItemById(sys.valves.getMaxId(false, 0) + 1, true);
+            iv.isIntake = true;
+            iv.isReturn = false;
+            iv.type = 0;
+            iv.name = 'Intake';
+            iv.circuit = 247;
+            iv.isActive = true;
+            iv.master = 1;
+            if (typeof rv === 'undefined') rv = sys.valves.getItemById(sys.valves.getMaxId(false, 0) + 1, true);
+            rv.isIntake = false;
+            rv.isReturn = true;
+            rv.name = 'Return';
+            rv.type = 0;
+            rv.circuit = 247;
+            rv.isActive = true;
+            rv.master = 1;
+
+        }
+        else {
+            if (typeof iv !== 'undefined') {
+                sys.valves.removeItemById(iv.id);
+                state.valves.removeItemById(iv.id);
+            }
+            if (typeof rv !== 'undefined') {
+                sys.valves.removeItemById(rv.id);
+                state.valves.removeItemById(rv.id);
+            }
+        }
     }
     public async verifySetup() {
         try {
@@ -311,52 +371,33 @@ export class NixieBoard extends SystemBoard {
             }
         } catch (err) { logger.error(`Error verifying setup`); }
     }
-    /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
-    /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
-    /// equipment polling functions.
-    public async processStatusAsync() {
-        try {
-            if (this._statusCheckRef > 0) return;
-            this.killStatusCheck();
-            // Go through all the assigned equipment and verify the current state.
-
-        } catch (err) { state.status = 255; logger.error(`Error performing Nixie processStatusAsync ${err.message}`); }
-        finally { this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval); }
-    }
     public system: NixieSystemCommands = new NixieSystemCommands(this);
     public circuits: NixieCircuitCommands = new NixieCircuitCommands(this);
     public features: NixieFeatureCommands = new NixieFeatureCommands(this);
     //public chlorinator: NixieChlorinatorCommands = new NixieChlorinatorCommands(this);
-    //public bodies: NixieBodyCommands = new NixieBodyCommands(this);
+    public bodies: NixieBodyCommands = new NixieBodyCommands(this);
+    public filters: NixieFilterCommands = new NixieFilterCommands(this);
     //public pumps: NixiePumpCommands = new NixiePumpCommands(this);
     //public schedules: NixieScheduleCommands = new NixieScheduleCommands(this);
     public heaters: NixieHeaterCommands = new NixieHeaterCommands(this);
     public valves: NixieValveCommands = new NixieValveCommands(this);
     public chemControllers: NixieChemControllerCommands = new NixieChemControllerCommands(this);
 }
+export class NixieBodyCommands extends BodyCommands {
+
+}
+export class NixieFilterCommands extends FilterCommands {
+    public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) {
+        try {
+            await ncp.filters.setFilterStateAsync(fstate, isOn);
+        }
+        catch (err) { return Promise.reject(`Nixie: Error setFiterStateAsync ${err.message}`); }
+    }
+}
+
 export class NixieSystemCommands extends SystemCommands {
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
-    public keepManualTime() {
-        // every minute, updated the time from the system clock in server mode
-        // but only for Virtual.  Likely 'manual' on *Center means OCP time
-        if (sys.general.options.clockSource !== 'server') return;
-        state.time.setTimeFromSystemClock();
-        sys.board.system.setTZ();
-        setTimeout(function () {
-            sys.board.system.keepManualTime();
-        }, (60 - new Date().getSeconds()) * 1000);
-    }
-    public setTZ() {
-        let tzOffsetObj = state.time.calcTZOffset();
-        if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
-            let tzs = sys.board.valueMaps.timeZones.toArray();
-            sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
-        }
-        if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
-            sys.general.options.adjustDST = tzOffsetObj.adjustDST;
-        }
-    }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
         let general = sys.general.get();
@@ -375,36 +416,41 @@ export class NixieSystemCommands extends SystemCommands {
 }
 export class NixieCircuitCommands extends CircuitCommands {
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        sys.board.suspendStatus(true);
         try {
-            let circuit: ICircuit = sys.circuits.getInterfaceById(id);
+            let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
             let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Nixie: Circuit or Feature id not valid', id, 'Circuit'));
             let newState = utils.makeBool(val);
-            circuit.master = 1;
             // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
             // to turn off the other body first.
             //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
             //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
             if (newState && (circuit.type === 12 || circuit.type === 13) && sys.equipment.shared === true) {
+                console.log(`Turning off shared body circuit`);
                 // If we are shared we need to turn off the other circuit.
-                let off: Circuit[];
                 let offType = circ.type === 12 ? 13 : 12;
-                off = sys.circuits.filter(elem => elem.type === offType).toArray();
+                let off = sys.circuits.get().filter(elem => elem.type === offType);
                 // Turn the circuits off that are part of the shared system.  We are going back to the board
                 // just in case we got here for a circuit that isn't on the current defined panel.
-                for (let i = 0; i < off.length; i++) await sys.board.circuits.setCircuitStateAsync(off[i].id, false);
+                for (let i = 0; i < off.length; i++) {
+                    let coff = off[i];
+                    await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+                }
             }
+            if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
+            else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
             await ncp.circuits.setCircuitStateAsync(circ, newState);
-
-            // Alright our circuit is now in the correct state so we need to position valves and then change the pumps accordingly.
-            sys.board.valves.syncValveStates();
-
-            state.emitEquipmentChanges();
-            sys.board.virtualPumpControllers.start();
             return state.circuits.getInterfaceById(circ.id);
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        finally {
+            state.emitEquipmentChanges();
+            sys.board.virtualPumpControllers.start();
+            sys.board.suspendStatus(false);
+            this.board.processStatusAsync();
+        }
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
@@ -492,6 +538,8 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
             if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
             if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+            if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
+            if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
             circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
@@ -813,6 +861,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             }
             let sgrp = state.circuitGroups.getItemById(grp.id);
             sgrp.isOn = bIsOn && grp.isActive;
+
             sys.board.valves.syncValveStates();
         }
         // I am guessing that there will only be one here but iterate
@@ -840,13 +889,21 @@ export class NixieValveCommands extends ValveCommands {
         try {
             let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
             obj.master = 1;
-            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false), 49) + 1;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Nixie: Valve Id has not been defined', obj.id, 'Valve'));
-            if (id < 50) return Promise.reject(new InvalidEquipmentDataError('Nixie valves must be defined with an id >= 50.', obj.id, 'Valve'));
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
             // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
             let valve = sys.valves.getItemById(id, true);
+            // Set all the valve properies.
+            let vstate = state.valves.getItemById(valve.id, true);
+            valve.isActive = true;
+            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+            valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
+            valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
             await ncp.valves.setValveAsync(valve, obj);
-            sys.board.valves.syncValveStates();            
+            sys.board.processStatusAsync();
             return valve;
         } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
     }
@@ -866,31 +923,11 @@ export class NixieValveCommands extends ValveCommands {
             return valve;
         } catch (err) { logger.error(`Nixie: Error removing valve from system ${obj.id}: ${err.message}`); return Promise.reject(new Error(`Nixie: Error removing valve from system ${ obj.id }: ${ err.message }`)); }
     }
-    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
+    public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
         try {
-            let valve = sys.valves.getItemByIndex(vstate.id);
             vstate.name = valve.name;
             await ncp.valves.setValveStateAsync(vstate, isDiverted);
         } catch (err) { logger.error(`Nixie: Error setting valve ${vstate.id}-${vstate.name} state to ${isDiverted}: ${err}`); return Promise.reject(err); }
-    }
-    public async syncValveStates() {
-        try {
-            for (let i = 0; i < sys.valves.length; i++) {
-                // Run through all the valves to see whether they should be triggered or not.
-                let valve = sys.valves.getItemByIndex(i);
-                if (valve.isActive) {
-                    let vstate = state.valves.getItemById(valve.id, true);
-                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-                        let circ = state.circuits.getInterfaceById(valve.circuit);
-                        vstate.isDiverted = utils.makeBool(circ.isOn);
-                    }
-                    else
-                        vstate.isDiverted = false;
-                    vstate.type = valve.type;
-                    vstate.name = valve.name;
-                }
-            }
-        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
     }
 }
 export class NixieHeaterCommands extends HeaterCommands {
@@ -917,6 +954,7 @@ export class NixieHeaterCommands extends HeaterCommands {
             hstate.name = heater.name;
             hstate.type = heater.type;
             heater.master = 1;
+            sys.board.heaters.updateHeaterServices();
             resolve(heater);
         });
     }
@@ -928,6 +966,7 @@ export class NixieHeaterCommands extends HeaterCommands {
             heater.isActive = false;
             sys.heaters.removeItemById(id);
             state.heaters.removeItemById(id);
+            sys.board.heaters.updateHeaterServices();
             resolve(heater);
         });
     }

@@ -161,7 +161,7 @@ export class Connection {
                 else
                     conn._port.destroy();
             }
-            conn.buffer.close();
+            if(typeof conn.buffer !== 'undefined') conn.buffer.close();
         } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
     }
     public drain(cb: Function) {

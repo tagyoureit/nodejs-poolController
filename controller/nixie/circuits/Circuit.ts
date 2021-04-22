@@ -15,10 +15,10 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean) {
         try {
             let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
-            if (typeof c === 'undefined') return Promise.reject(`NixieController: A circuit with id ${cstate.id} could not be found to set the state.`);
+            if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${cstate.id}-${cstate.name} could not be found to set the state to ${val}.`));
             await c.setCircuitStateAsync(cstate, val);
         }
-        catch (err) { return Promise.reject(logger.error(`NixieController: Error setting the NixieCircuit ${cstate.id}-${cstate.name}: ${err.message}`)); }
+        catch (err) { return logger.reject(`NCP: setCircuitStateAsync ${cstate.id}-${cstate.name}: ${err.message}`); }
     }
     public async setCircuitAsync(circuit: Circuit, data: any) {
         // By the time we get here we know that we are in control and this is a REMChem.
@@ -51,6 +51,18 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
         }
         catch (err) { return Promise.reject(logger.error(`NixieController: Circuit initAsync: ${err.message}`)); }
     }
+    public async closeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    await this[i].closeAsync();
+                    this.splice(i, 1);
+                } catch (err) { logger.error(`Error stopping Nixie Circuit ${err}`); }
+            }
+
+        } catch (err) { } // Don't bail if we have an errror.
+    }
+
     public async initCircuitAsync(circuit: Circuit): Promise<NixieCircuit> {
         try {
             let c: NixieCircuit = this.find(elem => elem.id === circuit.id) as NixieCircuit;
@@ -86,11 +98,12 @@ export class NixieCircuit extends NixieEquipment {
     }
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean): Promise<InterfaceServerResponse> {
         try {
+            if(val !== cstate.isOn) logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val });
+            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 7000 : undefined });
             if (res.status.code === 200) cstate.isOn = val;
             return res;
         } catch (err) { logger.error(`Nixie: Error setting circuit state ${cstate.id}-${cstate.name} to ${val}`); }
@@ -118,6 +131,8 @@ export class NixieCircuit extends NixieEquipment {
     }
     public async closeAsync() {
         try {
+            let cstate = state.circuits.getItemById(this.circuit.id);
+            await this.setCircuitStateAsync(cstate, false);
         }
         catch (err) { logger.error(`Nixie Circuit closeAsync: ${err.message}`); return Promise.reject(err); }
     }

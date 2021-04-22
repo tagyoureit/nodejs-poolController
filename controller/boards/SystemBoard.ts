@@ -21,7 +21,7 @@ import { conn } from '../comms/Comms';
 import { ncp } from "../nixie/Nixie"
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { utils, Heliotrope, Timestamp } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter } from '../Equipment';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter, Equipment } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState } from '../State';
 
@@ -109,7 +109,7 @@ export class InvalidEquipmentIdArray {
     }
 }
 export class EquipmentIds {
-    public circuits: EquipmentIdRange = new EquipmentIdRange(6, 6);
+    public circuits: EquipmentIdRange = new EquipmentIdRange(1, 6);
     public features: EquipmentIdRange = new EquipmentIdRange(7, function () { return this.start + sys.equipment.maxFeatures; });
     public pumps: EquipmentIdRange = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxPumps; });
     public circuitGroups: EquipmentIdRange = new EquipmentIdRange(50, function () { return this.start + sys.equipment.maxCircuitGroups; });
@@ -531,6 +531,11 @@ export class byteValueMaps {
         [6, { name: 'qt', desc: 'Quarts' }],
         [7, { name: 'pt', desc: 'Pints' }]
     ]);
+    public areaUnits: byteValueMap = new byteValueMap([
+        [0, { name: '', desc: 'No Units' }],
+        [1, { name: 'sqft', desc: 'Square Feet' }],
+        [2, { name: 'sqM', desc: 'Square Meters' }]
+    ]);
     public chemControllerStatus: byteValueMap = new byteValueMap([
         [0, { name: 'ok', desc: 'Ok' }],
         [1, { name: 'nocomms', desc: 'No Communication' }],
@@ -587,10 +592,10 @@ export class byteValueMaps {
         [5, { name: 'a14.5', desc: '14.5% - 9.8 Baume', dosingFactor: 2.16897 }],
     ]);
     public filterTypes: byteValueMap = new byteValueMap([
-        [0, { name: 'sand', desc: 'Sand Filter', hasBackwash: true }],
-        [1, { name: 'cartridge', desc: 'Cartridge Filter', hasBackwash: false }],
-        [2, { name: 'de', desc: 'DE Filter', hasBackwash: true }],
-        [3, { name: 'unknown', desc: 'unknown' }]
+        [0, { name: 'sand', desc: 'Sand', hasBackwash: true }],
+        [1, { name: 'cartridge', desc: 'Cartridge', hasBackwash: false }],
+        [2, { name: 'de', desc: 'Diatom Earth', hasBackwash: true }],
+        [3, { name: 'unknown', desc: 'Unknown' }]
     ]);
 
     // public filterPSITargetTypes: byteValueMap = new byteValueMap([
@@ -677,6 +682,10 @@ export class byteValueMaps {
 // managed by the personality board.  This also provides a way to override specific functions for
 // acquiring state and configuration data.
 export class SystemBoard {
+    protected _statusTimer: NodeJS.Timeout;
+    protected _statusCheckRef: number = 0;
+    protected _statusInterval: number = 3000;
+
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
     constructor(system: PoolSystem) { }
     protected _modulesAcquired: boolean = true;
@@ -687,9 +696,12 @@ export class SystemBoard {
     public equipmentMaster = 0;
     public async stopAsync() {
         // turn off chlor
+        console.log(`Stopping sys`);
         sys.board.virtualChlorinatorController.stop();
         if (sys.controllerType === ControllerType.Virtual) this.turnOffAllCircuits();
         sys.board.virtualChemControllers.stop();
+        this.killStatusCheck();
+        await ncp.closeAsync();
         return sys.board.virtualPumpControllers.stopAsync()
     }
     public async turnOffAllCircuits() {
@@ -738,6 +750,44 @@ export class SystemBoard {
     }
     public get commandSourceAddress(): number { return Message.pluginAddress; }
     public get commandDestAddress(): number { return 16; }
+    public get statusInterval(): number { return this._statusInterval }
+    protected killStatusCheck() {
+        if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
+        this._statusTimer = undefined;
+        this._statusCheckRef = 0;
+    }
+    public suspendStatus(bSuspend: boolean) {
+        // The way status suspension works is by using a reference value that is incremented and decremented
+        // the status check is only performed when the reference value is 0.  So suspending the status check 3 times and un-suspending
+        // it 2 times will still result in the status check being suspended.  This method also ensures the reference never falls below 0.
+        if (bSuspend) this._statusCheckRef++;
+        else this._statusCheckRef = Math.max(0, this._statusCheckRef - 1);
+        logger.verbose(`Suspending status check: ${bSuspend} -- ${this._statusCheckRef}`);
+    }
+    /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
+    /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
+    /// equipment polling functions.
+    public async processStatusAsync() {
+        try {
+            if (this._statusCheckRef > 0) return;
+            this.killStatusCheck();
+            // Go through all the assigned equipment and verify the current state.
+            sys.board.system.keepManualTime();
+            await sys.board.circuits.syncCircuitRelayStates();
+            await sys.board.features.syncGroupStates();
+            await sys.board.circuits.syncVirtualCircuitStates();
+            await sys.board.valves.syncValveStates();
+            await sys.board.filters.syncFilterStates();
+            await sys.board.heaters.syncHeaterStates();
+            await sys.board.schedules.syncScheduleStates();
+            state.emitControllerChange();
+            state.emitEquipmentChanges();
+        } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
+        finally {
+            if (this.statusInterval > 0) this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval);
+        }
+    }
+
 }
 export class ConfigRequest {
     public failed: boolean = false;
@@ -800,29 +850,15 @@ export class ConfigQueue {
     processNext(msg?: Outbound) { }
     protected queueItems(cat: number, items?: number[]) { }
     protected queueRange(cat: number, start: number, end: number) { }
+
 }
 export class BoardCommands {
     protected board: SystemBoard = null;
     constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    private _sysStatusTimer: NodeJS.Timeout;
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
-    public processStatusTimer() {
-        try {
-            if (typeof this._sysStatusTimer !== 'undefined' || this._sysStatusTimer) clearTimeout(this._sysStatusTimer);
-            sys.board.system.keepManualTime();
-            sys.board.features.syncGroupStates();
-            sys.board.circuits.syncVirtualCircuitStates();
-            sys.board.valves.syncValveStates();
-            sys.board.heaters.syncHeaterStates();
-            sys.board.schedules.syncScheduleStates();
-            state.emitControllerChange();
-            state.emitEquipmentChanges();
-        } catch (err) { logger.error(`Error processing the system timer ${err.message}`); }
-        finally { this._sysStatusTimer = setTimeout(() => sys.board.system.processStatusTimer(), 3000);  }
-    }
     public keepManualTime() {
         try {
             // every minute, updated the time from the system clock in server mode
@@ -900,6 +936,7 @@ export class SystemCommands extends BoardCommands {
             for (let prop in obj) {
                 switch (prop) {
                     case 'air':
+                    case 'airSensor':
                     case 'airSensor1':
                         {
                             let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
@@ -1605,6 +1642,19 @@ export class PumpCommands extends BoardCommands {
     }
 }
 export class CircuitCommands extends BoardCommands {
+    public async syncCircuitRelayStates() {
+        try {
+            for (let i = 0; i < sys.circuits.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let circ = sys.circuits.getItemByIndex(i);
+                if (circ.master === 1 && circ.isActive) {
+                    let cstate = state.circuits.getItemById(circ.id);
+                    if(cstate.isOn) ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
+                }
+            }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+    }
+
     public syncVirtualCircuitStates() {
         try {
             let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
@@ -1809,31 +1859,45 @@ export class CircuitCommands extends BoardCommands {
     }
     public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
-    public getCircuitNames() {
-        return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
-    }
+    public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
-        if (id === 6) return Promise.reject(new ParameterOutOfRangeError('You may not set the pool circuit', 'Setting Circuit Config', 'id', id));
-
-        if (!sys.board.equipmentIds.features.isInRange(id) || id === 6) return;
-        if (typeof data.id !== 'undefined') {
-            let circuit = sys.circuits.getInterfaceById(id, true);
-            let scircuit = state.circuits.getInterfaceById(id, true);
-            circuit.isActive = true;
-            scircuit.isOn = false;
-            if (data.nameId) {
-                circuit.nameId = scircuit.nameId = data.nameId;
-                circuit.name = scircuit.name = sys.board.valueMaps.circuitNames.get(data.nameId);
+        if (id <= 0 || typeof data.id === 'undefined') {
+            // We are adding a new circuit.  If we are not operating as a nixie controller then we need to start this
+            // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
+            // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
+            switch (state.equipment.controllerType) {
+                case 'intellicenter':
+                case 'intellitouch':
+                case 'easytouch':
+                    id = sys.circuits.getNextEquipmentId(new EquipmentIdRange(255, 300));
+                    break;
+                default:
+                    id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
+                    break;
             }
-            else if (data.name) circuit.name = scircuit.name = data.name;
+        }
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+        if (!sys.board.equipmentIds.circuits.isInRange(id)) return;
+        if (typeof data.id !== 'undefined') {
+            let circuit = sys.circuits.getItemById(id, true);
+            let scircuit = state.circuits.getItemById(id, true);
+            circuit.isActive = true;
+            circuit.master = 1;
+            scircuit.isOn = false;
+            if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
-            if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+            if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') {
+                circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+            }
+            if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
+            if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
             if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
             if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
             if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
             if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+            if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
+            if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
             circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
@@ -2801,27 +2865,33 @@ export class HeaterCommands extends BoardCommands {
                                 logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
 
                             }
-                            hstate.isOn = isOn;
+                            if (heater.master === 1) ncp.heaters.setHeaterStateAsync(hstate, isOn);
+                            else hstate.isOn = isOn;
                         }
                         if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') hon.push(heater.id);
                     }
                 }
                 // When the controller is a virtual one we need to control the heat status ourselves.
-                if (!isHeating && sys.controllerType === ControllerType.Virtual) body.heatStatus = 0;
+                if (!isHeating && (sys.controllerType === ControllerType.Virtual || sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
             }
             // Turn off any heaters that should be off.  The code above only turns heaters on.
             for (let i = 0; i < heaters.length; i++) {
                 let heater: Heater = heaters[i];
                 if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
                     let hstate = state.heaters.getItemById(heater.id, true);
-                    hstate.isOn = false;
+                    if (heater.master === 1) ncp.heaters.setHeaterStateAsync(hstate, false);
+                    else hstate.isOn = false;
                 }
             }
         } catch (err) { logger.error(`Error synchronizing heater states`); }
     }
 }
 export class ValveCommands extends BoardCommands {
-    public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) { vstate.isDiverted = isDiverted; }
+    public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
+        if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
+        else
+            vstate.isDiverted = isDiverted;
+    }
     public async setValveAsync(obj: any): Promise<Valve> {
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         // The following code will make sure we do not encroach on any valves defined by the OCP.
@@ -2852,11 +2922,9 @@ export class ValveCommands extends BoardCommands {
             vstate.emitEquipmentChange();
             sys.valves.removeItemById(id);
             state.valves.removeItemById(id);
-
             resolve(valve);
         });
     }
-
     public async syncValveStates() {
         try {
             for (let i = 0; i < sys.valves.length; i++) {
@@ -2864,14 +2932,26 @@ export class ValveCommands extends BoardCommands {
                 let valve = sys.valves.getItemByIndex(i);
                 if (valve.isActive) {
                     let vstate = state.valves.getItemById(valve.id, true);
+                    let isDiverted = vstate.isDiverted;
                     if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-                        let circ = state.circuits.getInterfaceById(valve.circuit);
-                        sys.board.valves.setValveStateAsync(vstate, utils.makeBool(circ.isOn));
+                        if (sys.equipment.shared && valve.isIntake === true)
+                            isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
+                        else if (sys.equipment.shared && valve.isReturn === true) {
+                            // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
+                            let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
+                                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
+                            isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
+                        }
+                        else {
+                            let circ = state.circuits.getInterfaceById(valve.circuit);
+                            isDiverted = utils.makeBool(circ.isOn);
+                        }
                     }
                     else
-                        sys.board.valves.setValveStateAsync(vstate, utils.makeBool(false));
+                        isDiverted = false;
                     vstate.type = valve.type;
                     vstate.name = valve.name;
+                    await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
                 }
             }
         } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
@@ -4032,6 +4112,20 @@ export class VirtualChemController extends BoardCommands {
 }
 
 export class FilterCommands extends BoardCommands {
+    public async syncFilterStates() {
+        try {
+            for (let i = 0; i < sys.filters.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let filter = sys.filters.getItemByIndex(i);
+                if (filter.isActive) {
+                    let fstate = state.filters.getItemById(filter.id, true);
+                    // Check to see if the associated body is on.
+                    await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
+                }
+            }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+    }
+    public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
     public setFilter(data: any): any {
         let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
         if (id <= 0) id = sys.filters.length + 1; // set max filters?
@@ -4051,6 +4145,7 @@ export class FilterCommands extends BoardCommands {
 
         let body = typeof data.body !== 'undefined' ? data.body : filter.body;
         let name = typeof data.name !== 'undefined' ? data.name : filter.name;
+        
         let psi = typeof data.psi !== 'undefined' ? parseFloat(data.psi) : sfilter.psi;
         let lastCleanDate = typeof data.lastCleanDate !== 'undefined' ? data.lastCleanDate : sfilter.lastCleanDate;
         let filterPsi = typeof data.filterPsi !== 'undefined' ? parseInt(data.filterPsi, 10) : sfilter.filterPsi;
@@ -4067,12 +4162,16 @@ export class FilterCommands extends BoardCommands {
         filter.body = sfilter.body = body;
         filter.filterType = sfilter.filterType = filterType;
         filter.name = sfilter.name = name;
+        filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
+        filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
         sfilter.psi = psi;
         sfilter.filterPsi = filterPsi;
         filter.needsCleaning = sfilter.needsCleaning = needsCleaning;
         filter.lastCleanDate = sfilter.lastCleanDate = lastCleanDate;
+        filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
+        filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
         sfilter.emitEquipmentChange();
-        return sfilter;
+        return filter; // Always return the config when we are dealing with the config not state.
     }
 
     public deleteFilter(data: any): any {

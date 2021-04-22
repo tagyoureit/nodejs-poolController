@@ -10,6 +10,14 @@ import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater> {
+    public async setHeaterStateAsync(hstate: HeaterState, val: boolean) {
+        try {
+            let h: NixieHeater = this.find(elem => elem.id === hstate.id) as NixieHeater;
+            if (typeof h === 'undefined') return Promise.reject(new Error(`NCP: Heater ${hstate.id}-${hstate.name} could not be found to set the state to ${val}.`));
+            await h.setHeaterStateAsync(hstate, val);
+        }
+        catch (err) { return logger.reject(`NCP: setHeaterStateAsync ${hstate.id}-${hstate.name}: ${err.message}`); }
+    }
     public async setHeaterAsync(Heater: Heater, data: any) {
         // By the time we get here we know that we are in control and this is a Nixie heater.
         try {
@@ -41,6 +49,16 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
         }
         catch (err) { logger.error(`Nixie Heater initAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async closeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    await this[i].closeAsync();
+                    this.splice(i, 1);
+                } catch (err) { logger.error(`Error stopping Nixie Heater ${err}`); }
+            }
+        } catch (err) { } // Don't bail if we have an errror.
+    }
     public async initHeaterAsync(heater: Heater): Promise<NixieHeater> {
         try {
             let c: NixieHeater = this.find(elem => elem.id === heater.id) as NixieHeater;
@@ -63,6 +81,20 @@ export class NixieHeater extends NixieEquipment {
         this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
+    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
+        try {
+            // Here we go we need to set the valve state.
+            if (hstate.isOn !== isOn) {
+                logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
+            }
+            if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
+                hstate.isOn = isOn;
+                return new InterfaceServerResponse(200, 'Success');
+            }
+            let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`, { isOn: isOn, latch: isOn ? 10000 : undefined });
+            if (res.status.code === 200) hstate.isOn = isOn;
+        } catch (err) { return logger.reject(`Nixie Error setting valve state ${hstate.id}-${hstate.name}: ${err.message}`); }
+    }
     public async setHeaterAsync(data: any) {
         try {
             let Heater = this.heater;

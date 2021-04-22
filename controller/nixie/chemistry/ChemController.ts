@@ -76,6 +76,17 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
         }
         catch (err) { logger.error(`initAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async closeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    await this[i].closeAsync();
+                    this.splice(i, 1);
+                } catch (err) { logger.error(`Error stopping Nixie Chem Controller ${err}`); }
+            }
+
+        } catch (err) { } // Don't bail if we have an error
+    }
     public async searchIntelliChem() {
         try {
             for (let i = 0; i < sys.equipment.maxChemControllers; i++) {

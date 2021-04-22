@@ -252,9 +252,17 @@ export class Timestamp {
         };
         return new Date(dt.getTime() - (tzo * 60000)).toISOString().slice(0, -1) + (tzo > 0 ? '-' : '+') + pad(tzo / 60) + pad(tzo % 60)
     }
-    public setTimeFromSystemClock(){
+    public setTimeFromSystemClock() {
+        let dt = this._dt;
         this._dt = new Date();
-        this.emitter.emit('change');
+        // RKS: This was emitting down to the millisecond.  We are only concerned with time to the minute.
+        if (typeof dt === 'undefined' ||
+            dt.getMinutes() !== this._dt.getMinutes() ||
+            dt.getHours() !== this._dt.getHours() ||
+            dt.getDate() !== this._dt.getDate() ||
+            dt.getMonth() !== this._dt.getMonth() ||
+            dt.getFullYear() !== this._dt.getFullYear())
+            this.emitter.emit('change');
     }
     public calcTZOffset(): {tzOffset:number, adjustDST:boolean}{
         let obj = {tzOffset: 0, adjustDST: false};

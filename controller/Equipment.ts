@@ -30,6 +30,8 @@ import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMes
 import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
 import { NixieControlPanel } from "./nixie/Nixie";
+import { NixieBoard } from 'controller/boards/NixieBoard';
+
 interface IPoolSystem {
     cfgPath: string;
     data: any;
@@ -69,7 +71,18 @@ export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean=false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
-        setTimeout(() => { this.searchForAdditionalDevices(); }, 7500);
+    }
+    public async start() {
+        this.data.appVersion = state.appVersion.installed = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
+        versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
+        logger.info(`Starting Pool System ${this.controllerType}`);
+        if (this.controllerType === 'unknown' || typeof this.controllerType === 'undefined') {
+            // Delay for 7.5 seconds to give any OCPs a chance to start emitting messages.
+            logger.info(`Listening for any installed OCPs`);
+            setTimeout(() => { this.initNixieController(); }, 7500);
+        }
+        else
+            this.initNixieController();
     }
     public init() {
         let cfg = this.loadConfigFile(this.cfgPath, {});
@@ -96,8 +109,6 @@ export class PoolSystem implements IPoolSystem {
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
         this.filters = new FilterCollection(this.data, 'filters');
-        this.data.appVersion = state.appVersion.installed = this.appVersion =  JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
-        versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
@@ -129,7 +140,7 @@ export class PoolSystem implements IPoolSystem {
     }
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
-        if (this.controllerType !== val) {
+        if (this.controllerType !== val || this.controllerType === ControllerType.Virtual) {
             console.log('RESETTING DATA');
             // Only go in here if there is a change to the controller type.
             this.resetData(); // Clear the configuration data.
@@ -138,7 +149,7 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
-            if (this.data.controllerType === ControllerType.Unknown) setTimeout(() => { this.searchForAdditionalDevices(); }, 7500);
+            if (this.data.controllerType === ControllerType.Unknown || this.controllerType === ControllerType.Virtual) setTimeout(() => { this.initNixieController(); }, 7500);
         }
     }
     public resetData() {
@@ -174,13 +185,28 @@ export class PoolSystem implements IPoolSystem {
         logger.info(`Shut down sys (config) object timers`);
         return this.board.stopAsync();
     }
+    public initNixieController() {
+        // Fall back to a nixie controller if an OCP is not installed.
+        switch (sys.controllerType || ControllerType.Unknown) {
+            case ControllerType.Unknown:
+            case ControllerType.Nixie:
+            case ControllerType.Virtual:
+                state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
+                let board = sys.board as NixieBoard;
+                (async () => { await board.initNixieBoard(); })();
+                break;
+        }
+    }
     public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
             //logger.info("Searching chlorinators, pumps and chem controllers");
-            EquipmentStateMessage.initVirtual();
+            //EquipmentStateMessage.initVirtual();
             //sys.board.virtualChlorinatorController.search();
             //sys.board.virtualPumpControllers.search();
             //sys.board.virtualChemControllers.search();
+            state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
+            let board = sys.board as NixieBoard;
+            (async () => { await board.initNixieBoard(); })();
         }
         else {
             if (this.controllerType === ControllerType.Virtual) {
@@ -188,6 +214,11 @@ export class PoolSystem implements IPoolSystem {
                 state.status = 1;
                 sys.equipment.setEquipmentIds();
                 state.emitControllerChange();
+                sys.board.processStatusAsync();
+            }
+            else {
+                let board = sys.board as NixieBoard;
+                (async () => { await board.initNixieBoard(); })();
             }
 
             // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
@@ -200,7 +231,6 @@ export class PoolSystem implements IPoolSystem {
             sys.board.virtualChemControllers.start();
             sys.board.heaters.initTempSensors();
             sys.board.heaters.updateHeaterServices();
-            sys.board.system.processStatusTimer();
             state.cleanupState();
         }
     }
@@ -462,7 +492,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     public getItemById(id: number | string, add?: boolean, data?: any): T {
         let itm = this.find(elem => elem.id === id && typeof elem.id !== 'undefined');
         if (typeof itm !== 'undefined') return itm;
-        if (typeof add !== 'undefined' && add) return this.add(data || { id: id });
+        if (typeof add !== 'undefined' && add) return this.add(extend(true, { id: id }, data));
         return this.createItem(data || { id: id });
     }
     public removeItemById(id: number | string): T {
@@ -640,6 +670,11 @@ export class TempSensor extends EqItem {
 }
 export class Options extends EqItem {
     public dataName = 'optionsConfig';
+    public initData() {
+        if (typeof this.data.units === 'undefined') this.data.units = 0;
+        if (typeof this.data.clockMode === 'undefined') this.data.clockMode = 12;
+        if (typeof this.data.adjustDST === 'undefined') this.data.adjustDST = true;
+    }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
     public get units(): number | any { return this.data.units; }
@@ -1947,10 +1982,19 @@ export class FilterCollection extends EqItemCollection<Filter> {
 }
 export class Filter extends EqItem {
     public dataName = 'filterConfig';
+    public initData() {
+        if (typeof this.data.filterType === 'undefined') this.data.filterType = 3;
+        if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
+        if (typeof this.data.capacityUnits === 'undefined') this.data.capacityUnits = 0;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get filterType(): number | any { return this.data.filterType; }
     public set filterType(val: number | any) { this.setDataVal('filterType', sys.board.valueMaps.filterTypes.encode(val)); }
+    public get capacity(): number | any { return this.data.capacity; }
+    public set capacity(val: number | any) { this.setDataVal('capacity', val); }
+    public get capacityUnits(): number | any { return this.data.capacityUnits; }
+    public set capacityUnits(val: number | any) { this.setDataVal('capacityUnits', sys.board.valueMaps.areaUnits.encode(val)); }
     public get body(): number | any { return this.data.body; }
     public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1961,6 +2005,10 @@ export class Filter extends EqItem {
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }
     public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
 }
 export class ChemicalProbe extends ChildEqItem {
     public initData() {

@@ -369,7 +369,7 @@ export class EquipmentStateMessage {
         sys.board.virtualPumpControllers.start();
         sys.board.heaters.initTempSensors();
         sys.board.heaters.updateHeaterServices();
-        sys.board.system.processStatusTimer();
+        sys.board.processStatusAsync();
 
     }
     private static initController(msg: Inbound) {
@@ -443,6 +443,7 @@ export class EquipmentStateMessage {
                     state.mode = msg.extractPayloadByte(9) & 0x81;
                     sys.general.options.units = state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
+
 
                     // RSG - added 7/8/2020
                     // Every 30 mins, check the timezone and adjust DST settings

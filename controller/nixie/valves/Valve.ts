@@ -13,7 +13,10 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
     public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
         try {
             let valve: NixieValve = this.find(elem => elem.id === vstate.id) as NixieValve;
-            if (typeof valve === 'undefined') return Promise.reject(new Error(`Nixie Control Panel Error setValveState could not find valve ${vstate.id}-${vstate.name}`));
+            if (typeof valve === 'undefined') {
+                vstate.isDiverted = isDiverted;
+                return logger.reject(`Nixie Control Panel Error setValveState could not find valve ${vstate.id}-${vstate.name}`);
+            }
             await valve.setValveStateAsync(vstate, isDiverted);
         } catch (err) { return Promise.reject(new Error(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`)); }
     }
@@ -40,14 +43,26 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
             for (let i = 0; i < valves.length; i++) {
                 let valve = valves.getItemByIndex(i);
                 if (valve.master === 1) {
-                    logger.info(`Initializing valve ${valve.name}`);
                     let nvalve = new NixieValve(this.controlPanel, valve);
+                    logger.info(`Initializing Nixie Valve ${nvalve.id}-${valve.name}`);
                     this.push(nvalve);
                 }
             }
         }
         catch (err) { logger.error(`Nixie Valve initAsync Error: ${err.message}`); return Promise.reject(err); }
     }
+    public async closeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    await this[i].closeAsync();
+                    this.splice(i, 1);
+                } catch (err) { logger.error(`Error stopping Nixie Valve ${err}`); }
+            }
+
+        } catch (err) { } // Don't bail if we have an errror.
+    }
+
     public async initValveAsync(valve: Valve): Promise<NixieValve> {
         try {
             let c: NixieValve = this.find(elem => elem.id === valve.id) as NixieValve;
@@ -73,8 +88,16 @@ export class NixieValve extends NixieEquipment {
     public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
         try {
             // Here we go we need to set the valve state.
-         
-        } catch (err) { return Promise.reject(logger.error(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`)); }
+            if (vstate.isDiverted !== isDiverted) {
+                logger.info(`Nixie: Set valve ${vstate.id}-${vstate.name} to ${isDiverted}`);
+            }
+            if (utils.isNullOrEmpty(this.valve.connectionId) || utils.isNullOrEmpty(this.valve.deviceBinding)) {
+                vstate.isDiverted = isDiverted;
+                return new InterfaceServerResponse(200, 'Success');
+            }
+            let res = await NixieEquipment.putDeviceService(this.valve.connectionId, `/state/device/${this.valve.deviceBinding}`, { isOn: isDiverted, latch: isDiverted ? 10000 : undefined });
+            if (res.status.code === 200) vstate.isDiverted = isDiverted;
+        } catch (err) { return logger.reject(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`); }
     }
     public async setValveAsync(data: any) {
         try {
@@ -116,6 +139,8 @@ export class NixieValve extends NixieEquipment {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            let vstate = state.valves.getItemById(this.valve.id);
+            this.setValveStateAsync(vstate, false);
         }
         catch (err) { logger.error(`Nixie Valve closeAsync: ${err.message}`); return Promise.reject(err); }
     }

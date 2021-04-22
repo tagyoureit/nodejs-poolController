@@ -24,11 +24,12 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState, ChemControllerState } from '../State';
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError } from '../Errors';
-import { cyan } from 'color-name';
+import { ncp } from '../nixie/Nixie';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
         super(system);
+        this._statusInterval = -1;
         this._modulesAcquired = false; // Set us up so that we can wait for a 2 and a 204.
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
@@ -54,7 +55,6 @@ export class IntelliCenterBoard extends SystemBoard {
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody:false }],
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody:true }],
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody:true }],
             [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
@@ -737,6 +737,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             state.equipment.maxCircuits = sys.equipment.maxCircuits;
             state.equipment.maxValves = sys.equipment.maxValves;
             state.equipment.maxSchedules = sys.equipment.maxSchedules;
+            ncp.initAsync(sys);
         }
         state.emitControllerChange();
         //this._needsChanges = false;

@@ -52,74 +52,78 @@ export class WebServer {
     private _servers: ProtoServer[] = [];
     private family = 'IPv4';
     constructor() { }
-    public init() {
-        let cfg = config.getSection('web');
-        let srv;
-        for (let s in cfg.servers) {
-            let c = cfg.servers[s];
-            if (typeof c.uuid === 'undefined') {
-                c.uuid = utils.uuid();
-                config.setSection(`web.servers.${s}`, c);
+    public async init() {
+        try {
+            let cfg = config.getSection('web');
+            let srv;
+            for (let s in cfg.servers) {
+                let c = cfg.servers[s];
+                if (typeof c.uuid === 'undefined') {
+                    c.uuid = utils.uuid();
+                    config.setSection(`web.servers.${s}`, c);
+                }
+                switch (s) {
+                    case 'http':
+                        srv = new HttpServer(s, s);
+                        break;
+                    case 'http2':
+                        srv = new Http2Server(s, s);
+                        break;
+                    case 'https':
+                        srv = new HttpsServer(s, s);
+                        break;
+                    case 'mdns':
+                        srv = new MdnsServer(s, s);
+                        break;
+                    case 'ssdp':
+                        srv = new SsdpServer(s, s);
+                        break;
+                }
+                if (typeof srv !== 'undefined') {
+                    this._servers.push(srv);
+                    await srv.init(c);
+                    srv = undefined;
+                }
             }
-            switch (s) {
-                case 'http':
-                    srv = new HttpServer(s, s);
-                    break;
-                case 'http2':
-                    srv = new Http2Server(s, s);
-                    break;
-                case 'https':
-                    srv = new HttpsServer(s, s);
-                    break;
-                case 'mdns':
-                    srv = new MdnsServer(s, s);
-                    break;
-                case 'ssdp':
-                    srv = new SsdpServer(s, s);
-                    break;
-            }
-            if (typeof srv !== 'undefined') {
-                this._servers.push(srv);
-                srv.init(c);
-                srv = undefined;
-            }
-        }
-        this.initInterfaces(cfg.interfaces);
+            this.initInterfaces(cfg.interfaces);
+        } catch (err) { logger.error(`Error initializing web server ${err.message}`) }
     }
-    public initInterfaces(interfaces: any) {
-        for (let s in interfaces) {
-            let int;
-            let c = interfaces[s];
-            if (typeof c.uuid === 'undefined') {
-                c.uuid = utils.uuid();
-                config.setSection(`web.interfaces.${s}`, c);
+    public async initInterfaces(interfaces: any) {
+        try {
+            for (let s in interfaces) {
+                let int;
+                let c = interfaces[s];
+                if (typeof c.uuid === 'undefined') {
+                    c.uuid = utils.uuid();
+                    config.setSection(`web.interfaces.${s}`, c);
+                }
+                if (!c.enabled) continue;
+                let type = c.type || 'http';
+                logger.info(`Init ${type} interface: ${c.name}`);
+                switch (type) {
+                    case 'http':
+                        int = new HttpInterfaceServer(c.name, type);
+                        int.init(c);
+                        this._servers.push(int);
+                        break;
+                    case 'influx':
+                        int = new InfluxInterfaceServer(c.name, type);
+                        int.init(c);
+                        this._servers.push(int);
+                        break;
+                    case 'mqtt':
+                        int = new MqttInterfaceServer(c.name, type);
+                        int.init(c);
+                        this._servers.push(int);
+                        break;
+                    case 'rem':
+                        int = new REMInterfaceServer(c.name, type);
+                        int.init(c);
+                        this._servers.push(int);
+                        break;
+                }
             }
-            if (!c.enabled) continue;
-            let type = c.type || 'http';
-            logger.info(`Init ${type} interface: ${c.name}`);
-            switch (type) {
-                case 'http':
-                    int = new HttpInterfaceServer(c.name, type);
-                    int.init(c);
-                    this._servers.push(int);
-                    break;
-                case 'influx':
-                    int = new InfluxInterfaceServer(c.name, type);
-                    int.init(c);
-                    this._servers.push(int);
-                    break;
-                case 'mqtt':
-                    int = new MqttInterfaceServer(c.name, type);
-                    int.init(c);
-                    this._servers.push(int);
-                    break;
-                case 'rem':
-                    int = new REMInterfaceServer(c.name, type);
-                    int.init(c);
-                    this._servers.push(int);
-                    break;
-            }
-        }
+        } catch (err) { logger.error(`Error initializing Interface servers ${err.message}`); }
     }
     public emitToClients(evt: string, ...data: any) {
         for (let i = 0; i < this._servers.length; i++) {
@@ -206,7 +210,7 @@ class ProtoServer {
     public get isConnected() { return this.isRunning; }
     public emitToClients(evt: string, ...data: any) { }
     public emitToChannel(channel: string, evt: string, ...data: any) { }
-    public init(obj: any) { };
+    public async init(obj: any) { };
     public async stopAsync() { }
     protected _dev: boolean = process.env.NODE_ENV !== 'production';
     // todo: how do we know if the client is using IPv4/IPv6?
@@ -214,7 +218,7 @@ class ProtoServer {
 export class Http2Server extends ProtoServer {
     public server: http2.Http2Server;
     public app: Express.Application;
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.app = express();
@@ -342,73 +346,75 @@ export class HttpServer extends ProtoServer {
         StateSocket.initSockets(sock);
         ConfigSocket.initSockets(sock);
     }
-    public init(cfg) {
-        this.uuid = cfg.uuid;
-        if (cfg.enabled) {
-            this.app = express();
+    public async init(cfg) {
+        try {
+            this.uuid = cfg.uuid;
+            if (cfg.enabled) {
+                this.app = express();
 
-            //this.app.use();
-            this.server = http.createServer(this.app);
-            if (cfg.httpsRedirect) {
-                var cfgHttps = config.getSection('web').server.https;
-                this.app.get('*', (res: express.Response, req: express.Request) => {
-                    let host = res.get('host');
-                    // Only append a port if there is one declared.  This will be the case for urls that have have an implicit port.
-                    host = host.replace(/:\d+$/, typeof cfgHttps.port !== 'undefined' ? ':' + cfgHttps.port : '');
-                    return res.redirect('https://' + host + req.url);
-                });
-            }
-            this.app.use(express.json());
-            this.app.use((req, res, next) => {
-                res.header('Access-Control-Allow-Origin', '*');
-                res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, api_key, Authorization'); // api_key and Authorization needed for Swagger editor live API document calls
-                res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
-                if ('OPTIONS' === req.method) { res.sendStatus(200); }
-                else {
-                    if (req.url !== '/device') {
-                        logger.info(`[${new Date().toLocaleTimeString()}] ${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
-                        logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},`}"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
-                    }
-                    next();
-                }
-            });
-
-
-            // Put in a custom replacer so that we can send error messages to the client.  If we don't do this the base properties of Error
-            // are omitted from the output.
-            this.app.set('json replacer', (key, value) => {
-                if (value instanceof Error) {
-                    var err = {};
-                    Object.getOwnPropertyNames(value).forEach((prop) => {
-                        if (prop === "level") err[prop] = value[prop].replace(/\x1b\[\d{2}m/g, '') // remove color from level
-                        else err[prop] = value[prop];
+                //this.app.use();
+                this.server = http.createServer(this.app);
+                if (cfg.httpsRedirect) {
+                    var cfgHttps = config.getSection('web').server.https;
+                    this.app.get('*', (res: express.Response, req: express.Request) => {
+                        let host = res.get('host');
+                        // Only append a port if there is one declared.  This will be the case for urls that have have an implicit port.
+                        host = host.replace(/:\d+$/, typeof cfgHttps.port !== 'undefined' ? ':' + cfgHttps.port : '');
+                        return res.redirect('https://' + host + req.url);
                     });
-                    return err;
                 }
-                return value;
-            });
+                this.app.use(express.json());
+                this.app.use((req, res, next) => {
+                    res.header('Access-Control-Allow-Origin', '*');
+                    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, api_key, Authorization'); // api_key and Authorization needed for Swagger editor live API document calls
+                    res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
+                    if ('OPTIONS' === req.method) { res.sendStatus(200); }
+                    else {
+                        if (req.url !== '/device') {
+                            logger.info(`[${new Date().toLocaleTimeString()}] ${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
+                            logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},`}"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
+                        }
+                        next();
+                    }
+                });
 
-            ConfigRoute.initRoutes(this.app);
-            StateRoute.initRoutes(this.app);
-            UtilitiesRoute.initRoutes(this.app);
 
-            // The socket initialization needs to occur before we start listening.  If we don't then
-            // the headers from the server will not be picked up.
-            this.initSockets();
-            this.app.use((error, req, res, next) => {
-                logger.error(error);
-                if (!res.headersSent) {
-                    let httpCode = error.httpCode || 500;
-                    res.status(httpCode).send(error);
-                }
-            });
+                // Put in a custom replacer so that we can send error messages to the client.  If we don't do this the base properties of Error
+                // are omitted from the output.
+                this.app.set('json replacer', (key, value) => {
+                    if (value instanceof Error) {
+                        var err = {};
+                        Object.getOwnPropertyNames(value).forEach((prop) => {
+                            if (prop === "level") err[prop] = value[prop].replace(/\x1b\[\d{2}m/g, '') // remove color from level
+                            else err[prop] = value[prop];
+                        });
+                        return err;
+                    }
+                    return value;
+                });
 
-            // start our server on port
-            this.server.listen(cfg.port, cfg.ip, function () {
-                logger.info('Server is now listening on %s:%s', cfg.ip, cfg.port);
-            });
-            this.isRunning = true;
-        }
+                ConfigRoute.initRoutes(this.app);
+                StateRoute.initRoutes(this.app);
+                UtilitiesRoute.initRoutes(this.app);
+
+                // The socket initialization needs to occur before we start listening.  If we don't then
+                // the headers from the server will not be picked up.
+                this.initSockets();
+                this.app.use((error, req, res, next) => {
+                    logger.error(error);
+                    if (!res.headersSent) {
+                        let httpCode = error.httpCode || 500;
+                        res.status(httpCode).send(error);
+                    }
+                });
+
+                // start our server on port
+                this.server.listen(cfg.port, cfg.ip, function () {
+                    logger.info('Server is now listening on %s:%s', cfg.ip, cfg.port);
+                });
+                this.isRunning = true;
+            }
+        } catch (err) { logger.error(`Error initializing server ${err.message}`); }
     }
     public addListenerOnce(event: any, f: (data: any) => void) {
         // for (let i = 0; i < this._sockets.length; i++) {
@@ -420,7 +426,7 @@ export class HttpServer extends ProtoServer {
 export class HttpsServer extends HttpServer {
     public server: https.Server;
 
-    public init(cfg) {
+    public async init(cfg) {
         // const auth = require('http-auth');
         this.uuid = cfg.uuid;
         if (!cfg.enabled) return;
@@ -507,7 +513,7 @@ export class HttpsServer extends HttpServer {
 export class SsdpServer extends ProtoServer {
     // Simple service discovery protocol
     public server: any; //node-ssdp;
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             let self = this;
@@ -573,7 +579,7 @@ export class MdnsServer extends ProtoServer {
     public server;
     public mdnsEmitter = new EventEmitter();
     private queries = [];
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             logger.info('Starting up MDNS server');
@@ -656,7 +662,7 @@ export class HttpInterfaceServer extends ProtoServer {
     public bindings: HttpInterfaceBindings;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
@@ -737,7 +743,7 @@ export class InfluxInterfaceServer extends ProtoServer {
     public bindings: InfluxInterfaceBindings;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
@@ -799,7 +805,7 @@ export class MqttInterfaceServer extends ProtoServer {
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
     public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
-    public init(cfg) {
+    public async init(cfg) {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
@@ -872,7 +878,7 @@ export class InterfaceServerResponse {
 
 }
 export class REMInterfaceServer extends ProtoServer {
-    public init(cfg) {
+    public async init(cfg) {
         this.cfg = cfg;
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
@@ -1040,7 +1046,6 @@ export class REMInterfaceServer extends ProtoServer {
                 logger.info(`${this.cfg.name} socket connected`);
                 this.sockClient.on('i2cDataValues', function (data) {
                     //logger.info(`REM Socket i2cDataValues ${JSON.stringify(data)}`);
-
                 });
             });
             this.isRunning = true;

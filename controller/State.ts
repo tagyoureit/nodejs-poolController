@@ -173,6 +173,8 @@ export class State implements IState {
             appVersionState: self.appVersion.get(true) || {},
             clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
             clockSource: sys.board.valueMaps.clockSources.transformByName(sys.general.options.clockSource) || {},
+            controllerType: sys.controllerType,
+            model: sys.equipment.model,
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
             alias: sys.general.alias
@@ -720,13 +722,13 @@ export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
         return (this.data.length > ndx) ? this.createItem(this.data[ndx]) : (typeof (add) !== 'undefined' && add) ? this.add(this.createItem({ code: `UNK:0:${ndx + 1}` })) : this.createItem({ code: `UNK:0:${ndx + 1}` });
     }
     public removeItemByCode(code: string): EquipmentMessage {
-        let rem: EquipmentMessage = null;
+        let rem: EquipmentMessage;
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof (this.data[i].code) !== 'undefined' && this.data[i].code === code) {
                 rem = this.data.splice(i, 1);
             }
         }
-        return new EquipmentMessage(rem, undefined, undefined);
+        return typeof rem !== 'undefined' ? new EquipmentMessage(rem, undefined, undefined) : undefined;
     }
     // For lack of a better term category includes the equipment identifier if supplied.
     public removeItemByCategory(category: string) {
@@ -1239,6 +1241,9 @@ export class BodyTempState extends EqState {
     }
 }
 export class TemperatureState extends EqState {
+    public initData() {
+        if (typeof this.data.units === 'undefined') this.units = 0;
+    }
     public get waterSensor1(): number { return this.data.waterSensor1; }
     public set waterSensor1(val: number) { this.setDataVal('waterSensor1', val); }
     public get waterSensor2(): number { return this.data.waterSensor2; }
@@ -2271,6 +2276,7 @@ export class FilterState extends EqState {
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }
     public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
-
+    public get isOn(): boolean { return utils.makeBool(this.data.isOn); }
+    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
 }
 export var state = new State();

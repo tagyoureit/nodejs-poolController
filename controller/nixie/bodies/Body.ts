@@ -41,6 +41,18 @@ export class NixieBodyCollection extends NixieEquipmentCollection<NixieBody> {
         }
         catch (err) { logger.error(`Nixie Body initAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async closeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    await this[i].closeAsync();
+                    this.splice(i, 1);
+                } catch (err) { logger.error(`Error stopping Nixie Body ${err}`); }
+            }
+
+        } catch (err) { } // Don't bail if we have an errror.
+    }
+
 }
 export class NixieBody extends NixieEquipment {
     public pollingInterval: number = 10000;
@@ -58,6 +70,16 @@ export class NixieBody extends NixieEquipment {
         }
         catch (err) { logger.error(`Nixie setBodyAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async setBodyStateAsync(bstate: BodyTempState, isOn: boolean) {
+        try {
+            // Here we go we need to set the valve state.
+            if (bstate.isOn !== isOn) {
+                logger.info(`Nixie: Set Body ${bstate.id}-${bstate.name} to ${isOn}`);
+            }
+            bstate.isOn = isOn;
+        } catch (err) { return logger.reject(`Nixie Error setting body state ${bstate.id}-${bstate.name}: ${err.message}`); }
+    }
+
     public async pollEquipmentAsync() {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
@@ -82,6 +104,8 @@ export class NixieBody extends NixieEquipment {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            let bstate = state.temps.bodies.getItemById(this.body.id);
+            await this.setBodyStateAsync(bstate, false);
         }
         catch (err) { logger.error(`Nixie Body closeAsync: ${err.message}`); return Promise.reject(err); }
     }

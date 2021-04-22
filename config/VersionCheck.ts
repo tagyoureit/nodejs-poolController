@@ -94,6 +94,7 @@ class VersionCheck {
         })
     }
     public compare() {
+        logger.info(`Checking njsPC versions...`);
         if (typeof state.appVersion.githubRelease === 'undefined' || typeof state.appVersion.installed === 'undefined') {
             state.appVersion.status = sys.board.valueMaps.appVersionStatus.getValue('unknown');
             return;

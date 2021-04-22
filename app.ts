@@ -21,21 +21,29 @@ import { logger } from "./logger/Logger";
 import { config } from "./config/Config";
 import { conn } from "./controller/comms/Comms";
 import { sys, ControllerType } from "./controller/Equipment";
+
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
-import { ncp } from "./controller/nixie/Nixie";
 
 export async function initAsync() {
-    return Promise.resolve()
-        .then(function () { config.init(); })
-        .then(function () { logger.init(); })
-        .then(function () { conn.init(); })
-        //.then(function () { }) Add in any initialization for no controller board here but I think we have that covered with the standard SystemBoard object.
-        .then(function () { state.init(); })
-        .then(function () { sys.init(); })
-        .then(function () { webApp.init(); })
-        .then(function () { ncp.initAsync(sys); });
+    try {
+        await config.init();
+        await logger.init();
+        await conn.init();
+        await sys.init();
+        await state.init();
+        await webApp.init();
+        await sys.start();
+    } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
+    //return Promise.resolve()
+    //    .then(function () { config.init(); })
+    //    .then(function () { logger.init(); })
+    //    .then(function () { conn.init(); })
+    //    .then(function () { sys.init(); })
+    //    .then(function () { state.init(); })
+    //    .then(function () { webApp.init(); })
+    //    .then(function () { sys.start(); });
 }
 
 export async function startPacketCapture(bResetLogs: boolean) {
@@ -69,7 +77,7 @@ export async function stopAsync(): Promise<void> {
         config.update();
         await logger.stopAsync();
         // RKS: Uncomment below to see the shutdown process
-        //await new Promise<void>((resolve, reject) => { setTimeout(() => { resolve(); }, 10000); });
+        //await new Promise<void>((resolve, reject) => { setTimeout(() => { resolve(); }, 20000); });
     }
     catch (err) {
         console.error(`Error stopping processes: ${ err.message }`);
@@ -90,4 +98,4 @@ else {
         try { return await stopAsync(); } catch (err) { console.log(`Error shutting down processes ${err.message}`); }
     });
 }
-initAsync();
+( async () => { await initAsync() })();
