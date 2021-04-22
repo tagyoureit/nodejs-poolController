@@ -229,24 +229,23 @@ interface ClientToServerEvents {
 
 interface ServerToClientEvents {
     withAck: (d: string, cb: (e: number) => void) => void;
+    [event: string]: (...args: any[]) => void;
 }
 export class HttpServer extends ProtoServer {
     // Http protocol
     public app: express.Application;
     public server: http.Server;
     public sockServer: SocketIoServer<ClientToServerEvents, ServerToClientEvents>;
-    private _nameSpace: Namespace;
     private _sockets: RemoteSocket<ServerToClientEvents>[] = [];
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
-            this._nameSpace.emit(evt, ...data);
+            this.sockServer.emit(evt, ...data);
         }
     }
     public emitToChannel(channel: string, evt: string, ...data: any) {
         //console.log(`Emitting to channel ${channel} - ${evt}`)
         if (this.isRunning) {
-            let _nameSpace: Namespace = this.sockServer.of(channel);
-            _nameSpace.emit(evt, ...data);
+            this.sockServer.to(channel).emit(evt, ...data);
         }
     }
     public get isConnected() { return typeof this.sockServer !== 'undefined' && this._sockets.length > 0; }
@@ -260,7 +259,6 @@ export class HttpServer extends ProtoServer {
             }
         }
         this.sockServer = new SocketIoServer(this.server, options);
-        this._nameSpace = this.sockServer.of('/');
         this.sockServer.on("connection", (sock: Socket) => {
             logger.info(`New socket client connected ${sock.id} -- ${sock.client.conn.remoteAddress}`);
             this.socketHandler(sock);

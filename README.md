@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 7.0.0
+# nodejs-poolController - Version 7.0.1
 
 ## What is nodejs-poolController
 
