@@ -1,6 +1,6 @@
 {
     "name": "nodejs-poolcontroller",
-    "version": "7.0.0",
+    "version": "7.0.1",
     "description": "nodejs-poolController",
     "main": "app.js",
     "author": {
