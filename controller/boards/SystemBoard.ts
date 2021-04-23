@@ -1984,6 +1984,7 @@ export class CircuitCommands extends BoardCommands {
             if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
             if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
             if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
+            if (typeof data.showInFeatures !== 'undefined') scircuit.showInFeatures = circuit.showInFeatures = utils.makeBool(data.showInFeatures);
             circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
