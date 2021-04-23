@@ -10,6 +10,18 @@ import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater> {
+    public async deleteHeaterAsync(id: number) {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                let heater = this[i];
+                if (heater.id === id) {
+                    await heater.closeAsync();
+                    this.splice(i, 1);
+                }
+            }
+        } catch (err) { return Promise.reject(`Nixie Control Panel deleteHeaterAsync ${err.message}`); }
+    }
+
     public async setHeaterStateAsync(hstate: HeaterState, val: boolean) {
         try {
             let h: NixieHeater = this.find(elem => elem.id === hstate.id) as NixieHeater;
@@ -74,6 +86,7 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
 export class NixieHeater extends NixieEquipment {
     public pollingInterval: number = 10000;
     private _pollTimer: NodeJS.Timeout = null;
+    private _lastState;
     public heater: Heater;
     constructor(ncp: INixieControlPanel, Heater: Heater) {
         super(ncp);
@@ -91,9 +104,18 @@ export class NixieHeater extends NixieEquipment {
                 hstate.isOn = isOn;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`, { isOn: isOn, latch: isOn ? 10000 : undefined });
-            if (res.status.code === 200) hstate.isOn = isOn;
-        } catch (err) { return logger.reject(`Nixie Error setting valve state ${hstate.id}-${hstate.name}: ${err.message}`); }
+            if (typeof this._lastState === 'undefined' || isOn || this._lastState !== isOn) {
+                let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`, { isOn: isOn, latch: isOn ? 10000 : undefined });
+                if (res.status.code === 200) this._lastState = hstate.isOn = isOn;
+                return res;
+            }
+            else {
+                hstate.isOn = isOn;
+                return new InterfaceServerResponse(200, 'Success');
+            }
+
+
+        } catch (err) { return logger.reject(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async setHeaterAsync(data: any) {
         try {
@@ -134,6 +156,8 @@ export class NixieHeater extends NixieEquipment {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            let hstate = state.heaters.getItemById(this.heater.id);
+            await this.setHeaterStateAsync(hstate, false);
         }
         catch (err) { logger.error(`Nixie Heater closeAsync: ${err.message}`); return Promise.reject(err); }
     }

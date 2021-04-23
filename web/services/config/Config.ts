@@ -253,6 +253,17 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
+        app.get('/config/options/controllerType', async (req, res, next) => {
+            try {
+                let opts = {
+                    controllerType: sys.controllerType,
+                    type: state.controllerState,
+                    equipment: sys.equipment.get(),
+                    controllerTypes: sys.getAvailableControllerTypes()
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
         app.get('/config/options/chlorinators', (req, res) => {
             let opts = {
                 types: sys.board.valueMaps.chlorinatorType.toArray(),
@@ -308,8 +319,9 @@ export class ConfigRoute {
                     bodies: sys.board.bodies.getBodyAssociations(),
                     filters: sys.filters.get(),
                     areaUnits: sys.board.valueMaps.areaUnits.toArray(),
-                    servers: await sys.ncp.getREMServers()
+                    servers: []
                 };
+                if (sys.controllerType === ControllerType.Nixie) opts.servers = await sys.ncp.getREMServers();
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
@@ -341,6 +353,12 @@ export class ConfigRoute {
                 return res.status(200).send(sfilter.get(true));
             }
             catch (err) { next(err); }
+        });
+        app.put('/config/controllerType', async (req, res, next) => {
+            try {
+                let controller = await sys.board.setControllerType(req.body);
+                return res.status(200).send(controller.get(true));
+            } catch (err) { next(err); }
         });
         app.delete('/config/filter', async (req, res, next) => {
             try {

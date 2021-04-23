@@ -58,7 +58,6 @@ export class NixieEquipment {
     }
     public async closeAsync() {
         try {
-
         }
         catch (err) { logger.error(err); }
     }

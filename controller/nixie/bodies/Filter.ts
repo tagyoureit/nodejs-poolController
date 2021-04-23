@@ -65,6 +65,7 @@ export class NixieFilterCollection extends NixieEquipmentCollection<NixieFilter>
 export class NixieFilter extends NixieEquipment {
     public pollingInterval: number = 10000;
     private _pollTimer: NodeJS.Timeout = null;
+    private _lastState;
     public filter: Filter;
     constructor(ncp: INixieControlPanel, filter: Filter) {
         super(ncp);
@@ -84,9 +85,15 @@ export class NixieFilter extends NixieEquipment {
                 fstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            let res = await NixieEquipment.putDeviceService(this.filter.connectionId, `/state/device/${this.filter.deviceBinding}`, { isOn: val, latch: val ? 7000 : undefined });
-            if (res.status.code === 200) fstate.isOn = val;
-            return res;
+            if (typeof this._lastState === 'undefined' || val || this._lastState !== val) {
+                let res = await NixieEquipment.putDeviceService(this.filter.connectionId, `/state/device/${this.filter.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
+                if (res.status.code === 200) this._lastState = fstate.isOn = val;
+                return res;
+            }
+            else {
+                fstate.isOn = val;
+                return new InterfaceServerResponse(200, 'Success');
+            }
         } catch (err) { logger.error(`Nixie: Error setting filter state ${fstate.id}-${fstate.name} to ${val}`); }
     }
 

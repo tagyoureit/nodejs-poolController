@@ -787,6 +787,13 @@ export class SystemBoard {
             if (this.statusInterval > 0) this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval);
         }
     }
+    public async setControllerType(obj): Promise<Equipment> {
+        try {
+            if (obj.controllerType !== sys.controllerType)
+                return Promise.reject(new InvalidEquipmentDataError(`You may not change the controller type data for ${sys.controllerType} controllers`, 'controllerType', obj.controllerType));
+            return sys.equipment;
+        } catch (err) {}
+    }
 
 }
 export class ConfigRequest {
@@ -1123,6 +1130,44 @@ export class SystemCommands extends BoardCommands {
     }
 }
 export class BodyCommands extends BoardCommands {
+    public async initFilters() {
+        try {
+            let filter: Filter;
+            let sFilter: FilterState;
+            if (sys.equipment.maxBodies > 0) {
+                filter = sys.filters.getItemById(1, true, { filterType: 3, name: sys.equipment.shared ? 'Filter' : 'Filter 1' });
+                sFilter = state.filters.getItemById(1, true, { name: filter.name });
+                filter.isActive = true;
+                filter.master = sys.board.equipmentMaster;
+                filter.body = sys.equipment.shared ? sys.board.valueMaps.bodies.transformByName('poolspa') : 0;
+                sFilter = state.filters.getItemById(1, true);
+                sFilter.body = filter.body;
+                sFilter.filterType = filter.filterType;
+                sFilter.name = filter.name;
+                if (sys.equipment.dual) {
+                    filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
+                    filter.isActive = true;
+                    filter.master = sys.board.equipmentMaster;
+                    filter.body = 1;
+                    sFilter = state.filters.getItemById(2, true);
+                    sFilter.body = filter.body;
+                    sFilter.filterType = filter.filterType;
+                    sFilter.name = filter.name;
+
+                }
+                else {
+                    sys.filters.removeItemById(2);
+                    state.filters.removeItemById(2);
+                }
+            }
+            else {
+                sys.filters.removeItemById(1);
+                state.filters.removeItemById(1);
+                sys.filters.removeItemById(2);
+                state.filters.removeItemById(2);
+            }
+        } catch (err) { logger.reject(`Error initializing filters`); }
+    }
     public async setBodyAsync(obj: any): Promise<Body> {
         return new Promise<Body>(function (resolve, reject) {
             let id = parseInt(obj.id, 10);1
@@ -1649,7 +1694,7 @@ export class CircuitCommands extends BoardCommands {
                 let circ = sys.circuits.getItemByIndex(i);
                 if (circ.master === 1 && circ.isActive) {
                     let cstate = state.circuits.getItemById(circ.id);
-                    if(cstate.isOn) ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
+                    if(cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
                 }
             }
         } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
@@ -1768,32 +1813,73 @@ export class CircuitCommands extends BoardCommands {
             }
         } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
     }
+    //public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    //    let circuit: ICircuit = sys.circuits.getInterfaceById(id);
+    //    let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+    //    if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+    //        return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+    //    }
+    //    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
+    //    circ.isOn = utils.makeBool(val);
+    //    if (circ.id === 6 || circ.id === 1) {
+    //        for (let i = 0; i < state.temps.bodies.length; i++) {
+    //            if (state.temps.bodies.getItemByIndex(i).circuit === circ.id) {
+    //                state.temps.bodies.getItemByIndex(i).isOn = utils.makeBool(circ.isOn);
+    //                break;
+    //            }
+    //        }
+    //    }
+    //    else {
+    //        // Lets do some mapping here.
+
+    //    }
+    //    sys.board.features.syncGroupStates();
+    //    sys.board.valves.syncValveStates();
+    //    state.emitEquipmentChanges();
+    //    sys.board.virtualPumpControllers.start();
+    //    sys.board.heaters.syncHeaterStates();
+    //    return Promise.resolve(state.circuits.getInterfaceById(circ.id));
+    //}
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        let circuit: ICircuit = sys.circuits.getInterfaceById(id);
-        let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
-        if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
-            return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
-        }
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
-        circ.isOn = utils.makeBool(val);
-        if (circ.id === 6 || circ.id === 1) {
-            for (let i = 0; i < state.temps.bodies.length; i++) {
-                if (state.temps.bodies.getItemByIndex(i).circuit === circ.id) {
-                    state.temps.bodies.getItemByIndex(i).isOn = utils.makeBool(circ.isOn);
-                    break;
+        sys.board.suspendStatus(true);
+        try {
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+                return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+            }
+            let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
+            let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+            let newState = utils.makeBool(val);
+            // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
+            // to turn off the other body first.
+            //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+            //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+            let func = sys.board.valueMaps.circuitFunctions.get(circuit.type);
+            if (newState && (func.name === 'pool' || func.name === 'spa') && sys.equipment.shared === true) {
+                console.log(`Turning off shared body circuit`);
+                // If we are shared we need to turn off the other circuit.
+                let offType = func.name === 'pool' ? sys.board.valueMaps.circuitFunctions.getValue('spa') : sys.board.valueMaps.circuitFunctions.getValue('pool');
+                let off = sys.circuits.get().filter(elem => elem.type === offType);
+                // Turn the circuits off that are part of the shared system.  We are going back to the board
+                // just in case we got here for a circuit that isn't on the current defined panel.
+                for (let i = 0; i < off.length; i++) {
+                    let coff = off[i];
+                    await sys.board.circuits.setCircuitStateAsync(coff.id, false);
                 }
             }
+            if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
+            else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
+            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
+            await ncp.circuits.setCircuitStateAsync(circ, newState);
+            return state.circuits.getInterfaceById(circ.id);
         }
-        else {
-            // Lets do some mapping here.
-
+        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        finally {
+            state.emitEquipmentChanges();
+            sys.board.virtualPumpControllers.start();
+            sys.board.suspendStatus(false);
+            this.board.processStatusAsync();
         }
-        sys.board.features.syncGroupStates();
-        sys.board.valves.syncValveStates();
-        state.emitEquipmentChanges();
-        sys.board.virtualPumpControllers.start();
-        sys.board.heaters.syncHeaterStates();
-        return Promise.resolve(state.circuits.getInterfaceById(circ.id));
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
@@ -1878,7 +1964,7 @@ export class CircuitCommands extends BoardCommands {
             }
         }
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
-        if (!sys.board.equipmentIds.circuits.isInRange(id)) return;
+        //if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit id is out of range: ${id}`, data.id, 'Circuit'));;
         if (typeof data.id !== 'undefined') {
             let circuit = sys.circuits.getItemById(id, true);
             let scircuit = state.circuits.getItemById(id, true);
@@ -1901,7 +1987,8 @@ export class CircuitCommands extends BoardCommands {
             circuit.dontStop = circuit.eggTimer === 1440;
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
-            return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
+            if (circuit.master === 1) await ncp.circuits.setCircuitAsync(circuit, data);
+            return Promise.resolve(circuit);
         }
         else
             return Promise.reject(new Error('Circuit id has not been defined'));
@@ -2021,6 +2108,7 @@ export class CircuitCommands extends BoardCommands {
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit'));
         let circuit = sys.circuits.getInterfaceById(data.id);
+        if (circuit.master === 1) await ncp.circuits.deleteCircuitAsync(circuit.id);
         if (circuit instanceof Circuit) {
             sys.circuits.removeItemById(data.id);
             state.circuits.removeItemById(data.id);
@@ -2618,17 +2706,18 @@ export class HeaterCommands extends BoardCommands {
         });
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
-        return new Promise<Heater>((resolve, reject) => {
+        try {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
             let heater = sys.heaters.getItemById(id);
             heater.isActive = false;
+            if (heater.master === 1) await ncp.heaters.deleteHeaterAsync(heater.id);
             sys.heaters.removeItemById(id);
             state.heaters.removeItemById(id);
             sys.board.heaters.updateHeaterServices();
             sys.board.heaters.syncHeaterStates();
-            resolve(heater);
-        });
+            return heater;
+        } catch (err) { return Promise.reject(`Error deleting heater: ${err.message}`)}
     }
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
@@ -2804,9 +2893,9 @@ export class HeaterCommands extends BoardCommands {
                         }
                         logger.debug(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
                         if (isAssociated) {
-                            let hstate = state.heaters.getItemById(heater.id, true);
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
                             let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
+                            let hstate = state.heaters.getItemById(heater.id, true);
                             if (heater.isVirtual === true) {
                                 // We need to do our own calculation as to whether it is on.
                                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
@@ -2863,12 +2952,13 @@ export class HeaterCommands extends BoardCommands {
                                         break;
                                 }
                                 logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
-
                             }
-                            if (heater.master === 1) ncp.heaters.setHeaterStateAsync(hstate, isOn);
-                            else hstate.isOn = isOn;
+                            if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                                hon.push(heater.id);
+                                if (heater.master === 1 && isOn) (async () => { await ncp.heaters.setHeaterStateAsync(hstate, isOn) })();
+                                else hstate.isOn = isOn;
+                            }
                         }
-                        if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') hon.push(heater.id);
                     }
                 }
                 // When the controller is a virtual one we need to control the heat status ourselves.
@@ -2893,37 +2983,61 @@ export class ValveCommands extends BoardCommands {
             vstate.isDiverted = isDiverted;
     }
     public async setValveAsync(obj: any): Promise<Valve> {
-        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
-        // The following code will make sure we do not encroach on any valves defined by the OCP.
-        obj.isVirtual = true;
-        if (isNaN(id) || id <= 0) {
-            id = Math.max(sys.valves.getMaxId(false, 49), 49) + 1;
-        }
-        return new Promise<Valve>(function (resolve, reject) {
-            if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
-            if (id < 50) reject(new InvalidEquipmentDataError('Virtual valves must be defined with an id >= 50.', obj.id, 'Valve'));
+        try {
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            obj.master = 1;
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
+            // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
             let valve = sys.valves.getItemById(id, true);
-            obj.id = id;
+            // Set all the valve properies.
+            let vstate = state.valves.getItemById(valve.id, true);
             valve.isActive = true;
-            for (var s in obj) valve[s] = obj[s];
+            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+            valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
+            valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
+            await ncp.valves.setValveAsync(valve, obj);
             sys.board.valves.syncValveStates();
-            resolve(valve);
-        });
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
     }
+
+    //public async setValveAsync(obj: any): Promise<Valve> {
+    //    let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+    //    // The following code will make sure we do not encroach on any valves defined by the OCP.
+    //    obj.isVirtual = true;
+    //    if (isNaN(id) || id <= 0) {
+    //        id = Math.max(sys.valves.getMaxId(false, 49), 49) + 1;
+    //    }
+    //    return new Promise<Valve>(function (resolve, reject) {
+    //        if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+    //        if (id < 50) reject(new InvalidEquipmentDataError('Virtual valves must be defined with an id >= 50.', obj.id, 'Valve'));
+    //        let valve = sys.valves.getItemById(id, true);
+    //        obj.id = id;
+    //        valve.isActive = true;
+    //        for (var s in obj) valve[s] = obj[s];
+    //        sys.board.valves.syncValveStates();
+    //        resolve(valve);
+    //    });
+    //}
     public async deleteValveAsync(obj: any): Promise<Valve> {
         let id = parseInt(obj.id, 10);
-        // The following code will make sure we do not encroach on any valves defined by the OCP.
-        return new Promise<Valve>(function (resolve, reject) {
-            if (isNaN(id)) reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+        try {
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
             let valve = sys.valves.getItemById(id, false);
             let vstate = state.valves.getItemById(id);
+            if (valve.master === 1) await ncp.valves.deleteValveAsync(id);
             valve.isActive = false;
             vstate.hasChanged = true;
             vstate.emitEquipmentChange();
             sys.valves.removeItemById(id);
             state.valves.removeItemById(id);
-            resolve(valve);
-        });
+            return valve;
+        } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
+        // The following code will make sure we do not encroach on any valves defined by the OCP.
     }
     public async syncValveStates() {
         try {

@@ -12,6 +12,17 @@ import { webApp, InterfaceServerResponse } from "../../../web/Server";
 export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircuit> {
     public pollingInterval: number = 2000;
     private _pollTimer: NodeJS.Timeout = null;
+    public async deleteCircuitAsync(id: number) {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                let circ = this[i];
+                if (circ.id === id) {
+                    await circ.closeAsync();
+                    this.splice(i, 1);
+                }
+            }
+        } catch (err) { return Promise.reject(`Nixie Control Panel deleteCircuitAsync ${err.message}`); }
+    }
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean) {
         try {
             let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
@@ -103,7 +114,7 @@ export class NixieCircuit extends NixieEquipment {
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 7000 : undefined });
+            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) cstate.isOn = val;
             return res;
         } catch (err) { logger.error(`Nixie: Error setting circuit state ${cstate.id}-${cstate.name} to ${val}`); }

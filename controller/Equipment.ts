@@ -72,6 +72,57 @@ export class PoolSystem implements IPoolSystem {
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
     }
+    public getAvailableControllerTypes() {
+        let arr = [];
+        arr.push({
+            type: 'easytouch', name: 'EasyTouch',
+            models: [
+                { val: 0, name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, bodies: 2, shared: true },
+                { val: 1, name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, bodies: 1, shared: false },
+                { val: 2, name: 'ET24', part: 'ET2-4', desc: 'EasyTouch2 4', circuits: 4, bodies: 1, shared: false },
+                { val: 3, name: 'ET24P', part: 'ET2-4P', desc: 'EasyTouch2 4P', circuits: 4, bodies: 2, shared: true },
+                { val: 6, name: 'ETPSL4', part: 'ET-PSL4', desc: 'EasyTouch PSL4', circuits: 4, bodies: 2, features: 2, schedules: 4, pumps: 1, shared: true },
+                { val: 7, name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, bodies: 1, schedules: 4, pumps: 1, shared: false },
+                // EasyTouch 1 models all start at 128.
+                { val: 128, name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, bodies: 2, shared: true },
+                { val: 129, name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, bodies: 1, shared: false },
+                { val: 130, name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, bodies: 2, shared: true },
+                { val: 129, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
+            ]
+        });
+        arr.push({
+            type: 'intellitouch', name: 'IntelliTouch',
+            models: [
+                { val: 0, name: 'IT5', part: 'i5+3', desc: 'IntelliTouch i5+3', bodies: 2, circuits: 6, shared: true },
+                { val: 1, name: 'IT7', part: 'i7+3', desc: 'IntelliTouch i7+3', bodies: 2, circuits: 7, shared: true },
+                { val: 2, name: 'IT9', part: 'i9+3', desc: 'IntelliTouch i9+3', bodies: 2, circuits: 9, shared: true },
+                { val: 3, name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', bodies: 1, circuits: 6, shared: false },
+                { val: 4, name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', bodies: 1, circuits: 9, shared: false },
+                { val: 5, name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', bodies: 1, circuits: 10, shared: false, dual: true }
+            ]
+        });
+        arr.push({
+            type: 'intellicenter', name: 'IntelliCenter',
+            models: [
+                { val: 0, name: 'i5P', part: '523125Z', desc: 'IntelliCenter i5P', bodies: 1, valves: 2, circuits: 5, shared: false, dual: false, chlorinators: 1, chemControllers: 1 },
+                { val: 1, name: 'i5PS', part: '521936Z', desc: 'IntelliCenter i5PS', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false, chlorinators: 1, chemControllers: 1 },
+                { val: 2, name: 'i8P', part: '521977Z', desc: 'IntelliCenter i8P', bodies: 1, valves: 2, circuits: 8, shared: false, dual: false, chlorinators: 1, chemControllers: 1 },
+                { val: 3, name: 'i8PS', part: '521968Z', desc: 'IntelliCenter i8PS', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 },
+                { val: 4, name: 'i10P', part: '521993Z', desc: 'IntelliCenter i10P', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }, // This is a guess
+                { val: 5, name: 'i10PS', part: '521873Z', desc: 'IntelliCenter i10PS', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }
+            ]
+        });
+        arr.push({
+            type: 'nixie', name: 'Nixie', canChange: true,
+            models: [
+                { val: 0, name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, shared: false, dual: false },
+                { val: 1, name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, shared: true, dual: false },
+                { val: 2, name: 'nxpd', part: 'NXPD', desc: 'Nixe Dual Body', bodies: 2, shared: false, dual: true },
+                { val: 255, name: 'nxnb', part: 'NXNB', desc: 'Nixie No Body', bodies: 0, shared: false, dual: false }
+            ]
+        });
+        return arr;
+    }
     public async start() {
         this.data.appVersion = state.appVersion.installed = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
@@ -1317,7 +1368,6 @@ export class Chlorinator extends EqItem {
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
     public get ignoreSaltReading() { return this.data.ignoreSaltReading; }
     public set ignoreSaltReading(val: boolean) { this.setDataVal('ignoreSaltReading', val); }
-
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }

@@ -34,7 +34,7 @@ export class IntelliCenterBoard extends SystemBoard {
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return 254; });
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
@@ -316,7 +316,13 @@ export class IntelliCenterBoard extends SystemBoard {
         sys.equipment.shared || sys.equipment.dual ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
 
         sys.board.heaters.initTempSensors();
+        (async () => {
+            try { sys.board.bodies.initFilters(); } catch (err) {
+                logger.error(`Error initializing IntelliCenter Filters`);
+            }
+        })();
         this.modulesAcquired = true;
+        ncp.initAsync(sys);
         this.checkConfiguration();
     }
     public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
@@ -1350,9 +1356,12 @@ class IntelliCenterSystemCommands extends SystemCommands {
 class IntelliCenterCircuitCommands extends CircuitCommands {
     public board: IntelliCenterBoard;
     public async setCircuitAsync(data: any): Promise<ICircuit> {
+        let id = parseInt(data.id, 10);
+        let circuit = sys.circuits.getItemById(id, false);
+        // Alright check to see if we are adding a nixie circuit.
+        if (id === -1 || circuit.master !== 0) 
+            return await super.setCircuitAsync(data);
         return new Promise<ICircuit>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            let circuit = sys.circuits.getItemById(id, false);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit'));
             if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
@@ -1361,13 +1370,17 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             data.dontStop = (eggTimer === 1440);
             let eggHrs = Math.floor(eggTimer / 60);
             let eggMins = eggTimer - (eggHrs * 60);
+            let type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type;
+            let theme = typeof data.lightingTheme !== 'undefined' ? data.ligthingTheme : circuit.lightingTheme;
+            if (circuit.type === 9) theme = typeof data.level !== 'undefined' ? data.level : circuit.level;
+            if (typeof theme === 'undefined') theme = 0;
             let out = Outbound.create({
                 action: 168,
                 payload: [1, 0, id - 1,
-                    typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type,
+                    type,
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze) ? 1 : 0,
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures) ? 1 : 0,
-                    typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme,
+                    theme,
                     eggHrs, eggMins, data.dontStop ? 1 : 0],
                 onComplete: (err, msg) => {
                     if (err) reject(err);
@@ -1376,9 +1389,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         circuit.dontStop = data.dontStop;
                         circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
                         circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
-                        circuit.lightingTheme = typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme;
+                        if (type === 9) circuit.level = theme;
+                        else circuit.lightingTheme = theme;
                         circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
-                        circuit.type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type;
+                        circuit.type = type;
                         resolve(circuit);
                     }
                 }
@@ -1995,6 +2009,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         });
     }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        let c = sys.circuits.getInterfaceById(id);
+        if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
         // As of 1.047 there is a sequence to this.
         // 1. ICP Sends action 228 (Get versions)
         // 2. OCP responds 164
@@ -3289,7 +3305,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         });
     }
     public async deleteHeaterAsync(obj): Promise<Heater> {
-        if (utils.makeBool(obj.isVirtual) || parseInt(obj.id, 10) > 255) return super.deleteHeaterAsync(obj);
+        if (utils.makeBool(obj.isVirtual) || obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
@@ -3376,7 +3392,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
 }
 class IntelliCenterValveCommands extends ValveCommands {
     public async setValveAsync(obj?: any): Promise<Valve> {
-        if (obj.isVirtual) return super.setValveAsync(obj);
+        if (obj.isVirtual || obj.master === 1) return super.setValveAsync(obj);
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
         let valve = sys.valves.getItemById(id);

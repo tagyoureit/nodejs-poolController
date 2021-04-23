@@ -10,6 +10,17 @@ import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 
 export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
+    public async deleteValveAsync(id: number) {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                let valve = this[i];
+                if (valve.id === id) {
+                    await valve.closeAsync();
+                    this.splice(i, 1);
+                }
+            }
+        } catch (err) { return Promise.reject(`Nixie Control Panel deleteValveAsync ${err.message}`); }
+    }
     public async setValveStateAsync(vstate: ValveState, isDiverted: boolean) {
         try {
             let valve: NixieValve = this.find(elem => elem.id === vstate.id) as NixieValve;
@@ -79,6 +90,7 @@ export class NixieValve extends NixieEquipment {
     public pollingInterval: number = 10000;
     private _pollTimer: NodeJS.Timeout = null;
     public valve: Valve;
+    private _lastState;
     constructor(ncp: INixieControlPanel, valve: Valve) {
         super(ncp);
         this.valve = valve;
@@ -95,8 +107,15 @@ export class NixieValve extends NixieEquipment {
                 vstate.isDiverted = isDiverted;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            let res = await NixieEquipment.putDeviceService(this.valve.connectionId, `/state/device/${this.valve.deviceBinding}`, { isOn: isDiverted, latch: isDiverted ? 10000 : undefined });
-            if (res.status.code === 200) vstate.isDiverted = isDiverted;
+            if (typeof this._lastState === 'undefined' || isDiverted || this._lastState !== isDiverted) {
+                let res = await NixieEquipment.putDeviceService(this.valve.connectionId, `/state/device/${this.valve.deviceBinding}`, { isOn: isDiverted, latch: isDiverted ? 10000 : undefined });
+                if (res.status.code === 200) this._lastState = vstate.isDiverted = isDiverted;
+                return res;
+            }
+            else {
+                vstate.isDiverted = isDiverted;
+                return new InterfaceServerResponse(200, 'Success');
+            }
         } catch (err) { return logger.reject(`Nixie Error setting valve state ${vstate.id}-${vstate.name}: ${err.message}`); }
     }
     public async setValveAsync(data: any) {

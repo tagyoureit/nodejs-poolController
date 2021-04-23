@@ -676,6 +676,7 @@ export class EquipmentStateMessage {
                                 // and as of 1.047 release this was no longer reliable.  Macro circuits only appear
                                 // to be available on message 30-15 and 168-15.
                                 //EquipmentStateMessage.processFeatureState(msg);
+                                sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();
                                 state.emitControllerChange();
@@ -689,6 +690,7 @@ export class EquipmentStateMessage {
                             {
                                 this.processTouchCircuits(msg);
                                 // This will toggle the group states depending on the state of the individual circuits.
+                                sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.features.syncGroupStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();

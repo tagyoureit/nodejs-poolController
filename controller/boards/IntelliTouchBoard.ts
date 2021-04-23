@@ -96,6 +96,11 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         this.initBodyDefaults();
         this.initHeaterDefaults();
+        (async () => {
+            try { sys.board.bodies.initFilters(); } catch (err) {
+                logger.error(`Error initializing IntelliTouch Filters`);
+            }
+        })();
         state.emitControllerChange();
     }
 }

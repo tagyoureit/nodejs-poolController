@@ -21,14 +21,14 @@ import { utils, Heliotrope, Timestamp } from '../Constants';
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, FilterCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState } from '../State';
-import { sys, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
+import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import {conn} from '../comms/Comms';
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
         super(system);
-        this._statusInterval = 1000;
+        this._statusInterval = 3000;
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
@@ -104,7 +104,7 @@ export class NixieBoard extends SystemBoard {
         this.valueMaps.expansionBoards = new byteValueMap([
             [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 2, shared: false, dual: false }],
             [1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 4, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
-            [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixe Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
+            [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixie Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
             [255, { name: 'nxnb', part: 'NXNB', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
         ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
@@ -220,10 +220,6 @@ export class NixieBoard extends SystemBoard {
             if (type.bodies > 0) {
                 let pool = sys.bodies.getItemById(1, true);
                 let sbody = state.temps.bodies.getItemById(1, true);
-                let filter = sys.filters.getItemById(1, true, { filterType: 3, name: type.shared ? 'Filter' : 'Filter 1' });
-                filter.isActive = true;
-                filter.body = type.shared ? 32 : 0;
-                filter.master = 1;
                 if (typeof pool.type === 'undefined') pool.type = 0;
                 if (typeof pool.name === 'undefined') pool.name = type.dual ? 'Body 1' : 'Pool';
                 if (typeof pool.capacity === 'undefined') pool.capacity = 0;
@@ -270,12 +266,6 @@ export class NixieBoard extends SystemBoard {
                     scirc.showInFeatures = circ.showInFeatures;
                     scirc.type = circ.type;
                     scirc.name = circ.name;
-                    if (type.dual) {
-                        filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
-                        filter.isActive = true;
-                        filter.master = 1;
-                        filter.body = 2;
-                    }
                 }
                 else {
                     // Remove the items that are not part of our board.
@@ -298,6 +288,7 @@ export class NixieBoard extends SystemBoard {
                 state.circuits.removeItemById(6);
             }
             sys.equipment.setEquipmentIds();
+            sys.board.bodies.initFilters();
             state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
             // Add up all the stuff we need to initialize.
             let total = sys.bodies.length;
@@ -314,7 +305,7 @@ export class NixieBoard extends SystemBoard {
             sys.board.heaters.updateHeaterServices();
             state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
-            this.processStatusAsync();
+            setTimeout(() => this.processStatusAsync(), 5000);
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
     }
     public initValves() {
@@ -382,6 +373,19 @@ export class NixieBoard extends SystemBoard {
     public heaters: NixieHeaterCommands = new NixieHeaterCommands(this);
     public valves: NixieValveCommands = new NixieValveCommands(this);
     public chemControllers: NixieChemControllerCommands = new NixieChemControllerCommands(this);
+    public async setControllerType(obj): Promise<Equipment> {
+        try {
+            if (typeof obj.model === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Nixie: Controller model not supplied`, 'model', obj.model));
+            let mt = this.valueMaps.expansionBoards.findItem(obj.model);
+            if (typeof mt === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Nixie: A valid Controller model not supplied ${obj.model}`, 'model', obj.model));
+            this.killStatusCheck();
+            let mod = sys.equipment.modules.getItemById(0, true);
+            mod.type = mt.val;
+            await this.initNixieBoard();
+            state.emitControllerChange();
+            return sys.equipment;
+        } catch (err) { logger.reject(`Error setting Nixie controller type.`); }
+    }
 }
 export class NixieBodyCommands extends BodyCommands {
 

@@ -386,7 +386,13 @@ export class EasyTouchBoard extends SystemBoard {
         sys.equipment.model = mt.desc;
         this.initBodyDefaults();
         this.initHeaterDefaults();
+        sys.board.bodies.initFilters();
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
+        (async () => {
+            try { sys.board.bodies.initFilters(); } catch (err) {
+                logger.error(`Error initializing EasyTouch Filters`);
+            }
+        })();
         state.emitControllerChange();
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
@@ -1056,8 +1062,14 @@ class TouchCircuitCommands extends CircuitCommands {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
             // set circuit 17 to function 14 and name 209
             // response: [255,0,255][165,33,34,16,1,1][139][1,133]
-            if (isNaN(parseInt(data.id, 10))) return Promise.reject(new InvalidEquipmentIdError('Circuit Id is invalid', data.id, 'Feature'));
-            let circuit = sys.circuits.getInterfaceById(data.id);
+            let id = parseInt(data.id, 10);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id is invalid', data.id, 'Feature'));
+            let circuit = sys.circuits.getInterfaceById(id);
+            // Alright check to see if we are adding a nixie circuit.
+            if (id === -1 || circuit.master !== 0) {
+                return super.setCircuitAsync(data);
+            }
+
             let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
@@ -1103,12 +1115,16 @@ class TouchCircuitCommands extends CircuitCommands {
         });
     }
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
+        let circuit = sys.circuits.getItemById(data.id);
+        if (circuit.master === 1) return await super.deleteCircuitAsync(data);
         data.nameId = 0;
         data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
         return this.setCircuitAsync(data);
     }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
+        let c = sys.circuits.getInterfaceById(id);
+        if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
         if (id === 192) return sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
         return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
@@ -1958,6 +1974,7 @@ class TouchHeaterCommands extends HeaterCommands {
         });
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
+        if (utils.makeBool(obj.isVirtual) || obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
