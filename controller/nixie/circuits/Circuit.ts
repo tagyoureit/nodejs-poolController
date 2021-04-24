@@ -8,6 +8,7 @@ import { CircuitState, state, ICircuitState, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
+import { log } from 'node:util';
 
 export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircuit> {
     public pollingInterval: number = 2000;
@@ -22,6 +23,14 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
                 }
             }
         } catch (err) { return Promise.reject(`Nixie Control Panel deleteCircuitAsync ${err.message}`); }
+    }
+    public async sendOnOffSequenceAsync(id: number, count: number) {
+        try {
+            let c: NixieCircuit = this.find(elem => elem.id === id) as NixieCircuit;
+            if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${id} could not be found to send sequence ${count}.`));
+            await c.sendOnOffSequenceAsync(count);
+
+        } catch (err) { return logger.reject(`NCP: sendOnOffSequence: ${err.message}`); }
     }
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean) {
         try {
@@ -96,6 +105,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
 }
 export class NixieCircuit extends NixieEquipment {
     public circuit: Circuit;
+    private _sequencing = false;
     constructor(ncp: INixieControlPanel, circuit: Circuit) {
         super(ncp);
         this.circuit = circuit;
@@ -107,6 +117,23 @@ export class NixieCircuit extends NixieEquipment {
         }
         catch (err) { logger.error(`Nixie setCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async sendOnOffSequenceAsync(count: number, timeout?:number): Promise<InterfaceServerResponse> {
+        try {
+            this._sequencing = true;
+            let arr = [];
+            let t = typeof timeout === 'undefined' ? 100 : timeout;
+            arr.push({ isOn: true, timeout: t }); // This may not be needed but we always need to start from on.
+            //[{ isOn: true, timeout: 1000 }, { isOn: false, timeout: 1000 }]
+            for (let i = 0; i < count; i++) {
+                arr.push({ isOn: false, timeout: t });
+                arr.push({ isOn: true, timeout: t });
+            }
+            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr);
+            return res;
+        } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
+        finally { this._sequencing = false; }
+    }
+
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean): Promise<InterfaceServerResponse> {
         try {
             if(val !== cstate.isOn) logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
@@ -114,6 +141,7 @@ export class NixieCircuit extends NixieEquipment {
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
+            if (this._sequencing && val === cstate.isOn) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) cstate.isOn = val;
             return res;

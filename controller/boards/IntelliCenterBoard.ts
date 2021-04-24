@@ -156,18 +156,18 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White' }],
-            [1, { name: 'green', desc: 'Green' }],
-            [2, { name: 'blue', desc: 'Blue' }],
-            [3, { name: 'magenta', desc: 'Magenta' }],
-            [4, { name: 'red', desc: 'Red' }],
-            [5, { name: 'sam', desc: 'SAm Mode' }],
-            [6, { name: 'party', desc: 'Party' }],
-            [7, { name: 'romance', desc: 'Romance' }],
-            [8, { name: 'caribbean', desc: 'Caribbean' }],
-            [9, { name: 'american', desc: 'American' }],
-            [10, { name: 'sunset', desc: 'Sunset' }],
-            [11, { name: 'royal', desc: 'Royal' }],
+            [0, { name: 'white', desc: 'White', sequence: 11 }],
+            [1, { name: 'green', desc: 'Green', sequence: 9 }],
+            [2, { name: 'blue', desc: 'Blue', sequence: 8 }],
+            [3, { name: 'magenta', desc: 'Magenta', sequence: 12 }],
+            [4, { name: 'red', desc: 'Red', sequence: 10 }],
+            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1 }],
+            [6, { name: 'party', desc: 'Party', sequence: 2 }],
+            [7, { name: 'romance', desc: 'Romance', sequence: 3 }],
+            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4 }],
+            [9, { name: 'american', desc: 'American', sequence: 5 }],
+            [10, { name: 'sunset', desc: 'Sunset', sequence: 6 }],
+            [11, { name: 'royal', desc: 'Royal', sequence: 7 }],
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
@@ -2089,6 +2089,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(err); }
     }
     public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
+        let circuit = sys.circuits.getInterfaceById(id);
+        if (circuit.master === 1) return await super.setLightThemeAsync(id, theme);
         try {
             if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
                 await this.setLightGroupThemeAsync(id, theme);

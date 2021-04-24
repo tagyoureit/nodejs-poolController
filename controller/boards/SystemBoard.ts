@@ -269,19 +269,19 @@ export class byteValueMaps {
         [128, { name: 'colorsync', desc: 'Color Sync', type: 'intellibrite' }],
         [144, { name: 'colorswim', desc: 'Color Swim', type: 'intellibrite' }],
         [160, { name: 'colorset', desc: 'Color Set', type: 'intellibrite' }],
-        [177, { name: 'party', desc: 'Party', type: 'intellibrite' }],
-        [178, { name: 'romance', desc: 'Romance', type: 'intellibrite' }],
-        [179, { name: 'caribbean', desc: 'Caribbean', type: 'intellibrite' }],
-        [180, { name: 'american', desc: 'American', type: 'intellibrite' }],
-        [181, { name: 'sunset', desc: 'Sunset', type: 'intellibrite' }],
-        [182, { name: 'royal', desc: 'Royal', type: 'intellibrite' }],
-        [190, { name: 'save', desc: 'Save', type: 'intellibrite' }],
-        [191, { name: 'recall', desc: 'Recall', type: 'intellibrite' }],
-        [193, { name: 'blue', desc: 'Blue', type: 'intellibrite' }],
-        [194, { name: 'green', desc: 'Green', type: 'intellibrite' }],
-        [195, { name: 'red', desc: 'Red', type: 'intellibrite' }],
-        [196, { name: 'white', desc: 'White', type: 'intellibrite' }],
-        [197, { name: 'magenta', desc: 'Magenta', type: 'intellibrite' }],
+        [177, { name: 'party', desc: 'Party', type: 'intellibrite', sequence: 2 }],
+        [178, { name: 'romance', desc: 'Romance', type: 'intellibrite', sequence: 3 }],
+        [179, { name: 'caribbean', desc: 'Caribbean', type: 'intellibrite', sequence: 4 }],
+        [180, { name: 'american', desc: 'American', type: 'intellibrite', sequence: 5 }],
+        [181, { name: 'sunset', desc: 'Sunset', type: 'intellibrite', sequence: 6 }],
+        [182, { name: 'royal', desc: 'Royal', type: 'intellibrite', sequence: 7 }],
+        [190, { name: 'save', desc: 'Save', type: 'intellibrite', sequence: 13 }],
+        [191, { name: 'recall', desc: 'Recall', type: 'intellibrite', sequence: 14 }],
+        [193, { name: 'blue', desc: 'Blue', type: 'intellibrite', sequence: 8 }],
+        [194, { name: 'green', desc: 'Green', type: 'intellibrite', sequence: 9 }],
+        [195, { name: 'red', desc: 'Red', type: 'intellibrite', sequence: 10 }],
+        [196, { name: 'white', desc: 'White', type: 'intellibrite', sequence: 11 }],
+        [197, { name: 'magenta', desc: 'Magenta', type: 'intellibrite', sequence: 12 }],
         [208, { name: 'thumper', desc: 'Thumper', type: 'magicstream' }],
         [209, { name: 'hold', desc: 'Hold', type: 'magicstream' }],
         [210, { name: 'reset', desc: 'Reset', type: 'magicstream' }],
@@ -1887,6 +1887,12 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setLightThemeAsync(id: number, theme: number) {
         let cstate = state.circuits.getItemById(id);
+        let circ = sys.circuits.getItemById(id);
+        let thm = sys.board.valueMaps.lightThemes.findItem(theme);
+        if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
+            await sys.board.circuits.setCircuitStateAsync(id, true);
+            await ncp.circuits.sendOnOffSequenceAsync(id, thm.sequence);
+        }
         cstate.lightingTheme = theme;
         return Promise.resolve(cstate as ICircuitState);
     }
