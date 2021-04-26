@@ -88,9 +88,9 @@ export class NixieHeater extends NixieEquipment {
     private _pollTimer: NodeJS.Timeout = null;
     private _lastState;
     public heater: Heater;
-    constructor(ncp: INixieControlPanel, Heater: Heater) {
+    constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp);
-        this.heater = Heater;
+        this.heater = heater;
         this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
