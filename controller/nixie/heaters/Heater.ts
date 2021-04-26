@@ -30,16 +30,16 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
         }
         catch (err) { return logger.reject(`NCP: setHeaterStateAsync ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
-    public async setHeaterAsync(Heater: Heater, data: any) {
+    public async setHeaterAsync(heater: Heater, data: any) {
         // By the time we get here we know that we are in control and this is a Nixie heater.
         try {
-            let c: NixieHeater = this.find(elem => elem.id === Heater.id) as NixieHeater;
+            let c: NixieHeater = this.find(elem => elem.id === heater.id) as NixieHeater;
             if (typeof c === 'undefined') {
-                Heater.master = 1;
-                c = new NixieHeater(this.controlPanel, Heater);
+                heater.master = 1;
+                c = new NixieHeater(this.controlPanel, heater);
                 this.push(c);
                 await c.setHeaterAsync(data);
-                logger.info(`A Heater was not found for id #${Heater.id} creating Heater`);
+                logger.info(`A Heater was not found for id #${heater.id} creating Heater`);
             }
             else {
                 await c.setHeaterAsync(data);
@@ -47,14 +47,14 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
         }
         catch (err) { logger.error(`setHeaterAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async initAsync(Heaters: HeaterCollection) {
+    public async initAsync(heaters: HeaterCollection) {
         try {
             this.length = 0;
-            for (let i = 0; i < Heaters.length; i++) {
-                let Heater = Heaters.getItemByIndex(i);
-                if (Heater.master === 1) {
-                    logger.info(`Initializing Heater ${Heater.name}`);
-                    let nHeater = new NixieHeater(this.controlPanel, Heater);
+            for (let i = 0; i < heaters.length; i++) {
+                let heater = heaters.getItemByIndex(i);
+                if (heater.master === 1) {
+                    logger.info(`Initializing Heater ${heater.name}`);
+                    let nHeater = new NixieHeater(this.controlPanel, heater);
                     this.push(nHeater);
                 }
             }
@@ -119,7 +119,7 @@ export class NixieHeater extends NixieEquipment {
     }
     public async setHeaterAsync(data: any) {
         try {
-            let Heater = this.heater;
+            let heater = this.heater;
         }
         catch (err) { logger.error(`Nixie setHeaterAsync: ${err.message}`); return Promise.reject(err); }
     }
