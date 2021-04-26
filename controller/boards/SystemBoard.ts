@@ -2972,7 +2972,11 @@ export class HeaterCommands extends BoardCommands {
                             }
                             if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
                                 hon.push(heater.id);
-                                if (heater.master === 1 && isOn) (async () => { await ncp.heaters.setHeaterStateAsync(hstate, isOn) })();
+                                if (heater.master === 1 && isOn) (async () => {
+                                    try {
+                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn);
+                                    } catch (err) { logger.error(err.message); }
+                                }) ();
                                 else hstate.isOn = isOn;
                             }
                         }
@@ -2986,7 +2990,11 @@ export class HeaterCommands extends BoardCommands {
                 let heater: Heater = heaters[i];
                 if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
                     let hstate = state.heaters.getItemById(heater.id, true);
-                    if (heater.master === 1) ncp.heaters.setHeaterStateAsync(hstate, false);
+                    if (heater.master === 1) (async () => {
+                        try {
+                            await ncp.heaters.setHeaterStateAsync(hstate, false);
+                        } catch (err) { logger.error(err.message); }
+                    })();
                     else hstate.isOn = false;
                 }
             }
